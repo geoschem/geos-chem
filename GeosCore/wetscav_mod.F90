@@ -5,8 +5,8 @@
 !
 ! !MODULE: wetscav_mod.F90
 !
-! !DESCRIPTION: Module WETSCAV\_MOD contains routines and variables used in 
-!  the wet scavenging of species in cloud updrafts, rainout, and washout. 
+! !DESCRIPTION: Module WETSCAV\_MOD contains routines and variables used in
+!  the wet scavenging of species in cloud updrafts, rainout, and washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -39,11 +39,17 @@ MODULE WETSCAV_MOD
   PRIVATE :: GET_RAINFRAC
   PRIVATE :: SAFETY
   PRIVATE :: WASHFRAC_FINE_AEROSOL
-  PRIVATE :: WASHFRAC_FINE_AEROSOLEW
   PRIVATE :: WASHFRAC_COARSE_AEROSOL
+
   PRIVATE :: WASHFRAC_LIQ_GAS
   PRIVATE :: WASHFRAC_HNO3
   PRIVATE :: GET_VUD
+#ifdef LUO_WETDEP
+  PRIVATE :: WASHFRAC_HNO3LUO
+  PRIVATE :: WASHFRAC_FINE_AEROSOLLUOPO
+  PRIVATE :: WASHFRAC_FINE_AEROSOLLUOPI
+  PRIVATE :: WASHFRAC_COARSE_AEROSOLLUO
+#endif
 !
 ! !REMARKS:
 !  References:
@@ -53,14 +59,14 @@ MODULE WETSCAV_MOD
 !        chemical tracer model driven by assimilated meteorological fields",
 !        JGR, Vol 106, pp 12109-12128, 2001.
 !  (2 ) D.J. Jacob, H. Liu, C. Mari, and R. M. Yantosca, "Harvard wet
-!        deposition scheme for GMI", Harvard Atmospheric Chemistry Modeling 
+!        deposition scheme for GMI", Harvard Atmospheric Chemistry Modeling
 !        Group, March 2000.
 !  (3 ) Chin, M., D.J. Jacob, G.M. Gardner, M.S. Foreman-Fowler, and P.A.
 !        Spiro, "A global three-dimensional model of tropospheric sulfate",
 !        J. Geophys. Res., 101, 18667-18690, 1996.
 !  (4 ) Balkanski, Y  D.J. Jacob, G.M. Gardner, W.C. Graustein, and K.K.
 !        Turekian, "Transport and Residence Times of Tropospheric Aerosols
-!        from a Global Three-Dimensional Simulation of 210Pb", JGR, Vol 98, 
+!        from a Global Three-Dimensional Simulation of 210Pb", JGR, Vol 98,
 !        (D11) pp 20573-20586, 1993.
 !  (5 ) Giorgi, F, & W.L. Chaimedes, "Rainout Lifetimes of Highly Soluble
 !        Aerosols and Gases as Inferred from Simulations With a General
@@ -75,24 +81,28 @@ MODULE WETSCAV_MOD
 ! !DEFINED PARAMETERS:
 !
   ! TINY number
-  REAL(fp), PARAMETER           :: TINY_FP = TINY(1.0_fp)
+  REAL(fp), PARAMETER :: TINY_FP  = TINY(1.0_fp)
+  REAL(f8), PARAMETER :: INV_T298 = 1.0_f8 / 298.15_f8
+
+
 !
 ! !LOCAL VARIABLES:
 !
   ! Define local shadow variables for values in Input_Opt
-  LOGICAL                       :: LGTMM
-  LOGICAL                       :: LSOILNOX
-  LOGICAL                       :: LDYNOCEAN
-  LOGICAL                       :: ITS_A_MERCURY_SIM
-  LOGICAL                       :: ITS_A_POPS_SIM
+  LOGICAL             :: LGTMM
+  LOGICAL             :: LSOILNOX
+  LOGICAL             :: LDYNOCEAN
+  LOGICAL             :: ITS_A_MERCURY_SIM
+  LOGICAL             :: ITS_A_POPS_SIM
 
   ! Species ID flags
-  INTEGER                       :: id_DUST1
-  INTEGER                       :: id_H2O2
-  INTEGER                       :: id_NK1
-  INTEGER                       :: id_SF1
-  INTEGER                       :: id_SO2
-  INTEGER                       :: id_SO4
+  INTEGER             :: id_DUST1
+  INTEGER             :: id_H2O2
+  INTEGER             :: id_NK1
+  INTEGER             :: id_NH3
+  INTEGER             :: id_SF1
+  INTEGER             :: id_SO2
+  INTEGER             :: id_SO4
 
 CONTAINS
 !EOC
@@ -364,7 +374,7 @@ CONTAINS
 !   ------------+-------------+--------------- = -------------
 !    kg air * s | 1000 kg H2O |    m^3 air        m^3 air * s
 !
-!  and [m^3 H2O/m3 air] = [cm^3 H2O/cm3 air] because the same conversion 
+!  and [m^3 H2O/m3 air] = [cm^3 H2O/cm3 air] because the same conversion
 !  factor from m^3 -> cm^3 is in both the numerator and the denominator.
 !                                                                             .
 !  Unit conversion for PDOWN:
@@ -415,7 +425,7 @@ CONTAINS
                            * ( State_Met%MAIRDEN(I,J,L)     / 1000.0_fp )
 #ifdef LUO_WETDEP
        ! Luo et al scheme: save QQ to State_Chm for further use
-       State_Chm%QQ3D(I,J,L) = State_Met%QQ(L,I,J)
+       State_Chm%QQ3D(I,J,L) = MAX(0.0_fp,State_Met%QQ(L,I,J))
 #endif
 
        ! Rate of re-evaporation in grid box (I,J,L)
@@ -425,10 +435,12 @@ CONTAINS
 
        ! Column precipitation [cm3 H2O/cm2 air/s]
 #ifdef LUO_WETDEP
+       State_Met%REEVAP(L,I,J) = MAX(0.0_fp,State_Met%REEVAP(L,I,J))
        ! Luo et al scheme: Use level L
        State_Met%PDOWN(L,I,J)  = ( ( State_Met%PFLLSAN(I,J,L) / 1000.0_fp )   &
                                +   ( State_Met%PFILSAN(I,J,L) /  917.0_fp ) ) &
                                * 100.0_fp
+       State_Met%PDOWN(L,I,J)  = MAX(0.0_fp,State_Met%PDOWN(L,I,J))
 #else
        ! Default scheme: Use level L+1
        State_Met%PDOWN(L,I,J)  = ( ( State_Met%PFLLSAN(I,J,L+1) / 1000.0_fp )   &
@@ -450,7 +462,7 @@ CONTAINS
 !
 ! !IROUTINE: e_ice
 !
-! !DESCRIPTION: Subroutine E\_ICE computes Eice(T), the saturation vapor 
+! !DESCRIPTION: Subroutine E\_ICE computes Eice(T), the saturation vapor
 !  pressure of ice at a given Celsius temperature.
 !\\
 !\\
@@ -509,7 +521,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE COMPUTE_L2G( K0, CR, pKa, TK, H2OLIQ, L2G )
+  SUBROUTINE COMPUTE_L2G( K0, CR, pKa, TK, H2OLIQ, pH, L2G )
 !
 ! !USES:
 !
@@ -523,6 +535,7 @@ CONTAINS
     REAL(f8), INTENT(IN)  :: pKa    ! Henry's pH correction factor [1]
     REAL(fp), INTENT(IN)  :: TK     ! Temperature [K]
     REAL(fp), INTENT(IN)  :: H2OLIQ ! Liquid water content [cm3 H2O/cm3 air]
+    REAL(f8), INTENT(IN)  :: pH     ! pH of input water
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -543,7 +556,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER  :: RC
-    REAL(f8) :: HEFF, KH, pH, TK_8
+    REAL(f8) :: HEFF, KH, TK_8
 
     !=================================================================
     ! COMPUTE_L2G begins here!
@@ -551,9 +564,6 @@ CONTAINS
 
     ! Cast temperature to REAL*8
     TK_8 = TK
-
-    ! For wetdep, we assume a pH of 4.5 for rainwater
-    pH = 4.5_f8
 
     ! Calculate the Henry's law constant
     CALL CALC_KH( K0, CR, TK_8, KH, RC )
@@ -626,6 +636,9 @@ CONTAINS
     ! Scalars
     INTEGER                  :: I, J, L
     REAL(fp)                 :: SO2LOSS,   Ki
+#ifdef LUO_WETDEP
+    REAL(fp)                 :: LIQCOV, ICECOV
+#endif
 #ifdef TOMAS
     REAL(fp)                 :: SOLFRAC,   XFRAC
 #endif
@@ -640,6 +653,9 @@ CONTAINS
     REAL(fp),      POINTER   :: p_T
     REAL(fp),      POINTER   :: H2O2s(:,:,:)
     REAL(fp),      POINTER   :: SO2s(:,:,:)
+#ifdef LUO_WETDEP
+    REAL(fp),      POINTER   :: p_pHcloud
+#endif
 
     ! Objects
     TYPE(Species), POINTER   :: SpcInfo
@@ -684,15 +700,62 @@ CONTAINS
     ! SO2 scavenges like an aerosol although it is considered
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
+#ifdef LUO_WETDEP
+    !--------------------------------------------------------------
+    ! Soluble gas-phase species
+    !
+    ! NOTE: HNO3 scavenges like an aerosol, although it is
+    ! considered a gas-phase species elsewhere.  Compute the
+    ! fraction of HNO3 scavenged out of the column further down
+    ! in the last ELSE block.
+    !--------------------------------------------------------------
+    IF ( SpcInfo%Is_Gas .and. ( .not. SpcInfo%WD_Is_HNO3 ) ) THEN
+
+       ! No scavenging at the surface
+       F(:,:,1) = 0.0_fp
+
+       ! Start scavenging at level 2
+       DO L = 2, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+
+          ! Set pointers
+          p_C_H2O   => State_Met%C_H2O (I,J,L)
+          p_CLDICE  => State_Met%CLDICE(I,J,L)
+          p_CLDLIQ  => State_Met%CLDLIQ(I,J,L)
+          p_T       => State_Met%T(I,J,L)
+
+          ! Use a default cloud pH of 5.6, stored in State_Chm%phCloud
+          ! (unless this value is recomputed in sulfate chemistry)
+          p_pHcloud => State_Chm%pHcloud(I,J,L)
+
+          LIQCOV = p_CLDLIQ / MAX(1.D-4,State_Met%CLDF(I,J,L))
+          ICECOV = p_CLDICE / MAX(1.D-4,State_Met%CLDF(I,J,L))
+
+          ! Compute Ki, the loss rate of a gas-phase species from
+          ! the convective updraft (Eq. 1, Jacob et al, 2000)
+          CALL COMPUTE_Ki( SpcInfo,   p_C_H2O, ICECOV, LIQCOV,               &
+                           p_pHcloud, Kc,      p_T,    Ki                   )
+
+          ! Free pointers
+          p_C_H2O   => NULL()
+          p_CLDICE  => NULL()
+          p_CLDLIQ  => NULL()
+          p_T       => NULL()
+          p_pHcloud => NULL()
+
+          ! Compute F, the fraction of scavenged H2O2.
+          ! (Eq. 2, Jacob et al, 2000)
+          F(I,J,L) = GET_F( Input_Opt, State_Met, I, J, L, Ki )
+
+       ENDDO
+       ENDDO
+       ENDDO
+#else
     IF ( SpcInfo%WD_Is_SO2 ) THEN
 
-#ifdef LUO_WETDEP
-       ! Luo et al scheme: Assume no SO2 is scavenged
-       F = 0.0_fp
-#else
        ! Default scheme: Compute fraction of SO2 scavenged
        CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met, F )
-#endif
 
        !--------------------------------------------------------------
        ! Coupled full chemistry/aerosol simulation:
@@ -765,8 +828,8 @@ CONTAINS
 
           ! Compute Ki, the loss rate of a gas-phase species from
           ! the convective updraft (Eq. 1, Jacob et al, 2000)
-          CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, p_CLDICE, &
-                           p_CLDLIQ, Kc,      p_T,      Ki )
+          CALL COMPUTE_Ki( SpcInfo, p_C_H2O, p_CLDICE, p_CLDLIQ,             &
+                           Kc,      p_T,     Ki                             )
 
           ! Free pointers
           p_C_H2O  => NULL()
@@ -781,6 +844,7 @@ CONTAINS
        ENDDO
        ENDDO
        ENDDO
+#endif
 
     !-----------------------------------------------------------
     ! Size-resolved soluble aerosol species
@@ -878,7 +942,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki )
+#ifdef LUO_WETDEP
+  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ,                     &
+                         pHCloud, Kc,    T,       Ki                        )
+#else
+  SUBROUTINE COMPUTE_Ki( SpcInfo, C_H2O, CLDICE, CLDLIQ, Kc, T, Ki          )
+#endif
 !
 ! !USES:
 !
@@ -895,6 +964,9 @@ CONTAINS
     REAL(fp),      INTENT(IN)  :: Kc       ! Rate for conversion of cloud
                                            !  condensate -> precip [1/s]
     REAL(fp),      INTENT(IN)  :: T        ! Temperature [K]
+#ifdef LUO_WETDEP
+    REAL(fp),      INTENT(IN)  :: pHCloud  ! pH in cloud
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -915,8 +987,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL(fp) :: L2G, I2G, C_TOT, F_L, F_I
-    REAL(f8) :: K0, CR, pKa
+    REAL(fp) :: L2G,   I2G,   C_TOT, F_L, F_I
+    REAL(f8) :: K0,    CR,    pKa
+#ifdef LUO_WETDEP
+    REAL(f8) :: Hplus, Henry, Ks1,   Ks2, T_term
+#endif
 
     !=================================================================
     ! COMPUTE_Ki begins here!
@@ -926,6 +1001,30 @@ CONTAINS
     K0   = SpcInfo%Henry_K0
     CR   = SpcInfo%Henry_CR
     pKa  = SpcInfo%Henry_pKa
+
+#ifdef LUO_WETDEP
+    IF ( SpcInfo%WD_is_SO2 ) THEN
+       Hplus  = 10.0_f8**( -pHCloud )
+       T_term = ( 298.15_f8 / T - 1.0_f8 )
+       Henry  = 1.22_f8    * EXP( 10.55_f8 * T_term )
+       Ks1    = 1.30e-2_f8 * EXP(  6.75_f8 * T_term )
+       Ks2    = 6.31e-8_f8 * EXP(  5.05_f8 * T_term )
+       K0     = Henry * ( 1.0_f8 + Ks1/Hplus + Ks1*Ks2/(Hplus*Hplus) )
+       CR     = 0.d0
+       pKa    = -999.0_f8
+    ENDIF
+
+    IF ( SpcInfo%ModelId == id_NH3 ) THEN
+       Hplus  = 10.0_f8**( -pHCloud )
+       T_term = ( 1.0_f8 / T ) - INV_T298
+       Henry  = 59.8_f8    * EXP(  4200.0_fp * T_term )
+       Ks1    = 1.0e-14_f8 * EXP( -6710.0_fp * T_term )
+       Ks2    = 1.7e-5_f8  * EXP( -4325.0_fp * T_term )
+       K0     = Henry * ( 1.0_f8 + ( ( Ks2* Hplus ) / Ks1 ) )
+       CR     = 0.0_f8
+       pKa    = -999.0_f8
+    ENDIF
+#endif
 
     IF ( SpcInfo%WD_LiqAndGas ) THEN
 
@@ -948,7 +1047,11 @@ CONTAINS
     ! Compute liquid to gas ratio for using
     ! the appropriate parameters for Henry's law
     ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-    CALL COMPUTE_L2G( K0, CR, pKa, T, CLDLIQ, L2G )
+#ifdef LUO_WETDEP
+    CALL COMPUTE_L2G( K0, CR, pKa, T, CLDLIQ, pHCloud, L2G ) ! pH in Cloud
+#else
+    CALL COMPUTE_L2G( K0, CR, pKa, T, CLDLIQ, 4.5_f8,  L2G ) ! Default pH
+#endif
 
     ! Fraction of species in liquid & ice phases
     ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -1027,7 +1130,7 @@ CONTAINS
     ! F_AEROSOL begins here!
     !
     ! Aerosol species are 100% in the cloud condensate phase, so
-    ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )    
+    ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )
     !=================================================================
 
     ! Turn off scavenging in the first level by setting F = 0
@@ -1127,12 +1230,18 @@ CONTAINS
 !
     ! Scalars
     REAL(fp)               :: Ki, SO2LOSS
+#ifdef LUO_WETDEP
+    REAL(fp)               :: LIQCLD, ICECLD
+#endif
 
     ! Pointers
     REAL(fp),      POINTER :: p_C_H2O
     REAL(fp),      POINTER :: p_CLDICE
     REAL(fp),      POINTER :: p_CLDLIQ
     REAL(fp),      POINTER :: p_T
+#ifdef LUO_WETDEP
+    REAL(fp),      POINTER :: p_pHCloud
+#endif
     REAL(fp),      POINTER :: H2O2s(:,:,:)
     REAL(fp),      POINTER :: SO2s(:,:,:)
 
@@ -1150,14 +1259,96 @@ CONTAINS
     RC       =  GC_SUCCESS
 
     ! Set pointers
-    p_C_H2O  => State_Met%C_H2O(I,J,L)
-    p_CLDICE => State_Met%CLDICE(I,J,L)
-    p_CLDLIQ => State_Met%CLDLIQ(I,J,L)
-    p_T      => State_Met%T(I,J,L)
-    H2O2s    => State_Chm%H2O2AfterChem
-    SO2s     => State_Chm%SO2AfterChem
-    SpcInfo  => State_Chm%SpcData(N)%Info
+    p_C_H2O   => State_Met%C_H2O(I,J,L)
+    p_CLDICE  => State_Met%CLDICE(I,J,L)
+    p_CLDLIQ  => State_Met%CLDLIQ(I,J,L)
+    p_T       => State_Met%T(I,J,L)
+    H2O2s     => State_Chm%H2O2AfterChem
+    SO2s      => State_Chm%SO2AfterChem
+    SpcInfo   => State_Chm%SpcData(N)%Info
 
+#ifdef LUO_WETDEP
+    ! Set pointer
+    p_pHCloud => State_Chm%pHCloud(I,J,L)
+
+    !=================================================================
+    ! %%% SPECIAL CASE %%%
+    !=================================================================
+    ! Compute rainout fraction for soluble gas-phase species
+    ! (except for HNO3 and H2SO4 which scavenge like aerosols)
+    !=================================================================
+    IF ( SpcInfo%Is_Gas                 .and. &
+         ( .not. SpcInfo%WD_Is_HNO3 )   .and. &
+         ( .not. SpcInfo%WD_Is_H2SO4 ) ) THEN
+
+       LIQCLD = p_CLDLIQ / MAX(1.D-4,State_Met%CLDF(I,J,L))
+       ICECLD = p_CLDICE / MAX(1.D-4,State_Met%CLDF(I,J,L))
+
+       ! Compute Ki, the loss rate of a gas-phase species from
+       ! the convective updraft (Eq. 1, Jacob et al, 2000)
+       CALL COMPUTE_Ki( SpcInfo,   p_C_H2O, ICECLD, LIQCLD,                  &
+                        p_pHCloud, K_RAIN,  p_T,    Ki                      )
+
+       ! Compute RAINFRAC, the fraction of rained-out H2O2
+       ! (Eq. 10, Jacob et al, 2000)
+       RAINFRAC = GET_RAINFRAC( Ki, F, DT )
+
+    !=================================================================
+    ! Compute rainout fraction for aerosol species
+    ! (including HNO3 and H2SO4 which scavenge like aerosols)
+    !=================================================================
+    ELSE
+
+       ! Compute rainout fraction for aerosol tracres
+       RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+       IF(SpcInfo%WD_Is_HNO3)THEN
+
+         IF(p_T<237.D0)THEN
+         IF(p_T>185.D0)THEN
+           RAINFRAC = (MAX(0.d0,State_Met%QI(I,J,L))+&
+                       MAX(0.d0,State_Met%QL(I,J,L)))*&
+                       State_Met%AIRDEN(I,J,L)*1.D-3*&
+                       (SpcInfo%MW_g/18.D0)/&
+                       MAX(1.D-4,State_Met%CLDF(I,J,L))*&
+                       (10.D0**(-26.4641D0*&
+                       (1.00155D0**p_T)+30.6534D0))
+           RAINFRAC = RAINFRAC/&
+                      MAX(1.D-30,(State_Chm%Species(I,J,L,N)*&
+                          28.9644d0/SpcInfo%MW_g/&
+                         (State_Met%AIRDEN(I,J,L)*&
+                          State_Met%BXHEIGHT(I,J,L))))
+
+           RAINFRAC = MAX(0.D0,MIN(1.D0,RAINFRAC))
+         ELSE
+           CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+         ENDIF
+         ELSE
+           CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+         ENDIF
+
+       ELSE
+
+         CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+
+         IF(p_T<237.D0)THEN
+         IF(State_Chm%Species(I,J,L,N)>1.D-20)THEN
+           RAINFRAC = RAINFRAC*MAX(0.D0,&
+           MIN( (0.06*MAX(0.d0,MIN(1.d0,((237.d0-p_T)/27.d0)))*&
+              (State_Met%QI(I,J,L)+State_Met%QL(I,J,L))*&
+               State_Met%AIRDEN(I,J,L)/&
+               MAX(1.D-4,State_Met%CLDF(I,J,L))*&
+               State_Met%BXHEIGHT(I,J,L)&
+               *SpcInfo%MW_g/18.d0),&
+               State_Chm%Species(I,J,L,N) )/&
+               State_Chm%Species(I,J,L,N))
+         ENDIF
+         ENDIF
+
+       ENDIF
+
+    ENDIF
+#else
     !=================================================================
     ! %%% SPECIAL CASE %%%
     ! SO2 scavenges like an aerosol although it is considered
@@ -1168,16 +1359,11 @@ CONTAINS
        ! Update SO2 and H2O2
        IF ( SO2s(I,J,L) > TINY_FP ) THEN
 
-#ifdef LUO_WETDEP
-          ! Luo et al scheme: Assume zero rainout fraction for SO2
-          RAINFRAC = 0.0_fp
-#else
           ! Default scheme: Treat SO2 as an aerosol
           ! Then apply temperature-dependent rainout efficiencies
           ! This accounts for impaction scavenging of certain aerosols
           RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
           CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
-#endif
 
           ! Limit RAINFRAC
           SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
@@ -1232,6 +1418,7 @@ CONTAINS
        CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
 
     ENDIF
+#endif
 
     ! Free pointers
     p_C_H2O  => NULL()
@@ -1280,6 +1467,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     REAL(fp),      INTENT(INOUT) :: RainFrac   ! Rainout fraction
+
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -1298,9 +1486,19 @@ CONTAINS
        RainFrac = RainFrac * SpcInfo%WD_RainoutEff(1)
 
     ELSE IF ( TK >= 237.0_fp .and. TK < 258.0_fp ) THEN
-
+#ifdef LUO_WETDEP
+       IF ( SpcInfo%WD_RainoutEff(2) > 0.0_fp ) THEN
+          RainFrac =                                                         &
+             RainFrac                                                     *  &
+             SpcInfo%WD_RainoutEff(1)                                     *  &
+             ( EXP( 0.46_fp * ( 273.16_fp - TK ) - 11.6_fp ) / 153.5_fp )
+       ELSE
+          RainFrac = RainFrac * SpcInfo%WD_RainoutEff(2)
+       ENDIF
+#else
        ! Snow: 237 K <= T < 258 K
        RainFrac = RainFrac * SpcInfo%WD_RainoutEff(2)
+#endif
 
     ELSE
 
@@ -1368,6 +1566,9 @@ CONTAINS
   SUBROUTINE WASHOUT( I,          J,         L,                    &
                       N,          BXHEIGHT,  TK,        PP,        &
                       DT,         F,         H2O2s,     SO2s,      &
+#ifdef LUO_WETDEP
+                      pHRain,                                      &
+#endif
                       WASHFRAC,   KIN,       Input_Opt, State_Chm, &
                       State_Grid, State_Met, RC )
 !
@@ -1398,7 +1599,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: N          ! Species number
     REAL(fp),       INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
     REAL(fp),       INTENT(IN)    :: TK         ! Temperature [K]
-    REAL(fp),       INTENT(IN)    :: PP         ! Precip rate thru bottom 
+    REAL(fp),       INTENT(IN)    :: PP         ! Precip rate thru bottom
                                                 !  of grid (I,J,L)
                                                 !  [cm3 H2O/cm2 air/s]
     REAL(fp),       INTENT(IN)    :: DT         ! Timestep [s]
@@ -1417,6 +1618,9 @@ CONTAINS
                                                 ! computed in the sulfate
                                                 ! chemistry module and
                                                 ! passed here as arguments.
+#ifdef LUO_WETDEP
+    REAL(fp),       INTENT(IN)    :: pHRain
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1447,6 +1651,9 @@ CONTAINS
 #endif
     REAL(fp)               :: L2G, DZ, SO2LOSS
     REAL(f8)               :: K0,  CR, pKa
+#ifdef LUO_WETDEP
+    REAL(f8)               :: Hplus, HCSO2, HCNH3, Ks1, Ks2, T_Term
+#endif
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
@@ -1525,6 +1732,44 @@ CONTAINS
     ! HNO3 scavenges like an aerosol although it is considered
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
+#ifdef LUO_WETDEP
+    IF ( SpcInfo%WD_Is_HNO3 ) THEN
+
+       ! Washout is a kinetic process
+       KIN      = .TRUE.
+
+       ! Get washout fraction
+       WASHFRAC = WASHFRAC_HNO3LUO( DT, F, PP, TK )
+    !=================================================================
+    ! %%% SPECIAL CASE %%%
+    ! SO2 scavenges like an aerosol although it is considered
+    ! to be a gas-phase species elsewhere (e.g. dry deposition)
+    !=================================================================
+    ELSE IF ( SpcInfo%WD_Is_SO2 ) THEN
+
+       Hplus = 10.0**(-pHRain)
+
+       ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
+       HCSO2  = 1.22e+0_fp * EXP( 10.55e+0_fp&
+              * ( 298.15e+0_fp / TK - 1.e+0_fp) )
+
+       Ks1 = 1.30e-2_fp * EXP( 6.75e+0_fp&
+           * ( 298.15e+0_fp / TK - 1.e+0_fp ) )
+
+       Ks2 = 6.31e-8_fp * EXP( 5.05e+0_fp&
+           * ( 298.15e+0_fp / TK - 1.e+0_fp ) )
+
+       K0  = HCSO2*&
+             (1.e+0_fp + Ks1/Hplus + Ks1*Ks2/(Hplus*Hplus))
+
+       CR  = 0.d0
+
+       pKa = -999.d0
+
+       ! Get the washout fraction for this species
+       CALL WASHFRAC_LIQ_GAS( K0, CR, pKa, PP, pHRain, DT, &
+                              F,  DZ, TK,  WASHFRAC, KIN )
+#else
     IF ( SpcInfo%WD_Is_HNO3 ) THEN
 
        ! Washout is a kinetic process
@@ -1546,7 +1791,7 @@ CONTAINS
        WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
        ! Use the wet-scavenging following [Chin et al, 1996] such
-       ! that a soluble fraction of SO2 is limited by the availability 
+       ! that a soluble fraction of SO2 is limited by the availability
        ! of H2O2 in the precipitating grid box.  Then scavenge the
        ! soluble SO2 at the same rate as sulfate.
        IF ( TK >= 268e+0_fp .AND. SO2s > TINY_FP ) THEN
@@ -1564,6 +1809,7 @@ CONTAINS
           WASHFRAC = 0e+0_fp
 
        ENDIF
+#endif
 
        ! Update saved SO2 concentration
        SO2s = SO2s * ( 1e+0_fp - WASHFRAC )
@@ -1589,9 +1835,26 @@ CONTAINS
        ! Washout is an equilibrium process
        KIN = .FALSE.
 
+#ifdef LUO_WETDEP
+       IF ( SpcInfo%ModelID == id_NH3 ) THEN
+          ! NOTE: This should end in _f8
+          Hplus  = 10.0**( -pHRain )
+          T_term = ( 1.0_f8 / TK ) - INV_T298
+          HCNH3  = 59.8_fp    * EXP(  4200.0_f8 * T_term )
+          Ks1    = 1.0e-14_fp * EXP( -6710.0_f8 * T_term )
+          Ks2    = 1.7e-5_fp  * EXP( -4325.0_fp * T_term )
+          K0     = HCNH3 * ( 1.0_f8 + ( ( Ks2 * Hplus) / Ks1 ) )
+          CR     = 0.0_f8
+          pKa    = -999.0_f8
+       ENDIF
+
+       CALL WASHFRAC_LIQ_GAS( K0, CR, pKa, PP, pHRain, DT, &
+                              F,  DZ, TK,  WASHFRAC, KIN )
+#else
        ! Get the washout fraction for this species
        CALL WASHFRAC_LIQ_GAS( K0, CR, pKa, PP,       DT, &
                               F,  DZ, TK,  WASHFRAC, KIN )
+#endif
 
     !-----------------------------------------------------------------
     ! Washout for size-resolved aerosol species or
@@ -1641,7 +1904,11 @@ CONTAINS
        KIN      = .TRUE.
 
        ! Compute washout fraction
+#ifdef LUO_WETDEP
+       WASHFRAC = WASHFRAC_COARSE_AEROSOLLUO( DT, F, PP, TK)
+#else
        WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+#endif
 
     !-----------------------------------------------------------------
     ! Washout for fine-aerosol species (Reff < 1um)
@@ -1654,12 +1921,11 @@ CONTAINS
        ! Compute washout fraction
 #ifdef LUO_WETDEP
        ! Luo et al scheme: Compute washout fraction.  If the efficiency
-       ! for T > 258 K is less than .999, treat it as a fine aerosol;
-       ! otherwise treat it as "coarse" aerosol.
+       ! for T > 258 K is less than .999, treat it as hydrophobic aerosol
        IF ( SpcInfo%WD_RainoutEff(3) < 0.999_fp ) THEN
-          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+          WASHFRAC = WASHFRAC_FINE_AEROSOLLUOPO( DT, F, PP, TK )
        ELSE
-          WASHFRAC = WASHFRAC_FINE_AEROSOLEW( DT, F, PP, TK )
+          WASHFRAC = WASHFRAC_FINE_AEROSOLLUOPI( DT, F, PP, TK )
        ENDIF
 #else
        ! Default scheme: Compute washout fraction, but always
@@ -1668,6 +1934,17 @@ CONTAINS
 #endif
 
     ENDIF
+
+#ifdef LUO_WETDEP
+    ! NOTE: Even though SO2 is not an aerosol we treat it as SO4 in
+    ! wet scavenging.  When evaporation occurs, it returns to SO4.
+    IF(SpcInfo%WD_Is_SO2)THEN
+    IF(.not.KIN)THEN
+      KIN      = .TRUE.
+      WASHFRAC = F*WASHFRAC
+    ENDIF
+    ENDIF
+#endif
 
 #ifdef TOMAS
     !-----------------------------------------------------------------
@@ -1711,6 +1988,354 @@ CONTAINS
     SpcInfo => NULL()
 
   END SUBROUTINE WASHOUT
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_fine_aerosolluopo
+!
+! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOLLUOPO returns the fraction of
+!  hydrophobic aerosol species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION WASHFRAC_FINE_AEROSOLLUOPO( DT, F, PP, TK ) &
+           RESULT( WASHFRAC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
+    REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
+                                        !  precipitating [unitless]
+    REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid
+                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+    REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+    REAL(fp)             :: WASHFRAC  ! Fraction of soluble species
+                                        !  lost to washout [1]
+!
+! !REVISION HISTORY:
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  21 Jan 2011 - J. Fisher & Q. Wang - Update to account for time-dependent
+!        shift in aerosol size distribution that slows washout as a rain
+!        event proceeds (see e.g. Feng et al., 2007, 2009).
+!  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined
+!                              parameter.
+!  20 Jan 2012 - H Amos      - rename WASHFRAC_FINE_AEROSOL to distinguish
+!                              this function from WASHFRAC_COARSE_AEROSOL
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETER:
+!
+    ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
+    ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
+    REAL(fp), PARAMETER :: K_WASH = 1.06e-3_fp
+
+    !=================================================================
+    ! WASHFRAC_FINE_AEROSOL begins here!
+    !=================================================================
+    IF ( ( TK >= 268e+0_fp ) .OR. ITS_A_POPS_SIM ) THEN
+
+       !---------------------------------
+       ! T >= 268K (or POPS simulation)
+       !---------------------------------
+       IF ( F > 0e+0_fp ) THEN
+          WASHFRAC = F *(1e+0_fp - EXP( -5.0D-7 * &
+                  (PP / F*3.6e+4_fp )**0.7e+0_fp * DT ))
+       ELSE
+          WASHFRAC = 0e+0_fp
+       ENDIF
+
+    ELSE
+
+       !---------------------------------
+       ! T < 268K
+       !---------------------------------
+       IF ( F > 0e+0_fp ) THEN
+          IF ( TK >= 248e+0_fp ) THEN
+            WASHFRAC = F *(1e+0_fp - EXP( -1.0D-5 * &
+                    (PP / F*3.6e+4_fp )**0.66e+0_fp * DT ))
+          ELSE
+            WASHFRAC = F *(1e+0_fp - EXP( -1.0D-5/5.d0 * &
+                    (PP / F*3.6e+4_fp )**0.66e+0_fp * DT ))
+          ENDIF
+       ELSE
+          WASHFRAC = 0e+0_fp
+       ENDIF
+
+    ENDIF
+
+    END FUNCTION WASHFRAC_FINE_AEROSOLLUOPO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_fine_aerosolluopi
+!
+! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOLLUOPI returns the fraction of
+!  soluble aerosol species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION WASHFRAC_FINE_AEROSOLLUOPI( DT, F, PP, TK ) &
+             RESULT( WASHFRAC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
+      REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
+                                        !  precipitating [unitless]
+      REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid
+                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+      REAL(fp)             :: WASHFRAC  ! Fraction of soluble species
+                                        !  lost to washout [1]
+!
+! !REVISION HISTORY:
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  21 Jan 2011 - J. Fisher & Q. Wang - Update to account for time-dependent
+!        shift in aerosol size distribution that slows washout as a rain
+!        event proceeds (see e.g. Feng et al., 2007, 2009).
+!  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined
+!                              parameter.
+!  20 Jan 2012 - H Amos      - rename WASHFRAC_FINE_AEROSOL to distinguish
+!                              this function from WASHFRAC_COARSE_AEROSOL
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETER:
+!
+    ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
+    ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
+    REAL(fp), PARAMETER :: K_WASH = 1.06e-3_fp
+
+    REAL(fp)            :: RATE
+
+    !=================================================================
+    ! WASHFRAC_FINE_AEROSOLLUOPI begins here!
+    !=================================================================
+    IF ( ( TK >= 268e+0_fp ) .OR. ITS_A_POPS_SIM ) THEN
+
+       !---------------------------------
+       ! T >= 268K (or POPS simulation)
+       !---------------------------------
+       IF ( F > 0e+0_fp ) THEN
+          WASHFRAC = F *(1e+0_fp - EXP( -1.0D-5 *&
+                   (PP / F*3.6e+4_fp )**0.7e+0_fp * DT ))
+       ELSE
+          WASHFRAC = 0e+0_fp
+       ENDIF
+
+    ELSE
+
+       !---------------------------------
+       ! T < 268K
+       !---------------------------------
+       IF ( F > 0e+0_fp ) THEN
+          IF ( TK >= 248e+0_fp ) THEN
+            WASHFRAC = F *(1e+0_fp - EXP( -2.0D-4 *&
+                      (PP / F*3.6e+4_fp )**0.66e+0_fp * DT ))
+          ELSE
+            WASHFRAC = F *(1e+0_fp - EXP( -2.0D-4/5.d0 *&
+                      (PP / F*3.6e+4_fp )**0.66e+0_fp * DT ))
+          ENDIF
+       ELSE
+          WASHFRAC = 0e+0_fp
+       ENDIF
+
+    ENDIF
+
+    END FUNCTION WASHFRAC_FINE_AEROSOLLUOPI
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_coarse_aerosolluo
+!
+! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of
+!  coarse aerosol species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION WASHFRAC_COARSE_AEROSOLLUO( DT, F, PP, TK ) &
+             RESULT( WASHFRAC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
+    REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
+                                         !  precipitating [unitless]
+    REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid
+                                         !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+    REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+    REAL(fp)             :: WASHFRAC   ! Fraction of soluble species
+                                         !  lost to washout
+!
+! !REVISION HISTORY:
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined
+!                              parameter.
+!  20 Jan 2012 - H Amos      - WASHFRAC_COARSE_AEROSOL created to handle
+!                              SALC and DST4
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    !=================================================================
+    ! WASHFRAC_COARSE_AEROSOLLUO begins here!
+    !=================================================================
+
+    IF ( TK >= 268e+0_fp .OR. ITS_A_POPS_SIM ) THEN
+
+       !---------------------------------
+       ! T >= 268K (or POPS simulation)
+       !---------------------------------
+       IF ( F > 0e+0_fp ) THEN
+          WASHFRAC = F*(1.0_fp - EXP(-2.e-4_fp * (PP / F*3.6e+4_fp)&
+                    ** 0.85_fp * DT ))
+       ELSE
+          WASHFRAC = 0.0_fp
+       ENDIF
+
+    ELSE
+
+       !---------------------------------
+       ! T < 268K
+       !---------------------------------
+       IF ( F > 0e+0_fp ) THEN
+          IF ( TK >= 248e+0_fp ) THEN
+             WASHFRAC = F *(1e+0_fp - EXP( -2.0e-3_fp *&
+                       (PP / F*3.6e+4_fp )**0.7e+0_fp * DT ))
+          ELSE
+             WASHFRAC = F *(1e+0_fp - EXP( -2.0e-3_fp/5.d0 *&
+                       (PP / F*3.6e+4_fp )**0.7e+0_fp * DT ))
+          ENDIF
+       ELSE
+          WASHFRAC = 0.0_fp
+       ENDIF
+
+    ENDIF
+
+    END FUNCTION WASHFRAC_COARSE_AEROSOLLUO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_hno3luo
+!
+! !DESCRIPTION: Function WASHFRAC\_HNO3LUO returns the fraction of HNO3
+!               species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION WASHFRAC_HNO3LUO( DT, F, PP, TK ) RESULT( WASHFRAC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
+    REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
+                                        !  precipitating [unitless]
+    REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid
+                                        !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+    REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+    REAL(fp)             :: WASHFRAC  ! Fraction of soluble species
+
+!
+! !REVISION HISTORY:
+!  13 Aug 2011, H Amos: Initial version, modeled after WASHFRAC_AEROSOL.
+!                       Seperate function created to emphasize that the new,
+!                       updated washout coefficients from Feng et al (2007;
+!                       2009) should only be applied to aerosol species. It
+!                       was a coincidence before that the original washout
+!                       coefficients for aerosols and HNO3 were the same.
+!  16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter
+!  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F
+!                              multiplies the whole expression for WASHFRAC,
+!                              WASHFRAC=0 whenever F=0 anyway.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETER:
+!
+    REAL(fp), PARAMETER :: K_WASH = 1.0_fp  ! First order washout rate
+                                              ! constant [cm^-1].
+    REAL(fp)            :: RATE
+
+    !=================================================================
+    ! WASHFRAC_HNO3LUO begins here!
+    !=================================================================
+    IF ( F > 0e+0_fp ) THEN
+       IF ( TK >= 248e+0_fp ) THEN
+          RATE = 2.D0*((PP/F)**0.62)
+       ELSE
+          RATE = 2.D0*((PP/F)**0.62)/5.d0
+       ENDIF
+          WASHFRAC = F * (1e+0_fp - EXP( - RATE * DT ))
+    ELSE
+       WASHFRAC = 0e+0_fp
+    ENDIF
+
+    END FUNCTION WASHFRAC_HNO3LUO
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1785,96 +2410,6 @@ CONTAINS
     ENDIF
 
   END FUNCTION WASHFRAC_FINE_AEROSOL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: washfrac_fine_aerosolew
-!
-! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOLEW returns the fraction of
-!  soluble aerosol species lost to washout.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION WASHFRAC_FINE_AEROSOLEW( DT, F, PP, TK ) &
-       RESULT( WASHFRAC )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
-    REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
-                                      !  precipitating [unitless]
-    REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid
-                                      !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-    REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
-!
-! !RETURN VALUE:
-!
-    REAL(fp)             :: WASHFRAC  ! Fraction of soluble species
-                                      !  lost to washout [1]
-!
-! !REVISION HISTORY:
-!  08 Nov 2002 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETER:
-!
-    ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
-    ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
-    REAL(fp), PARAMETER :: K_WASH = 1.06e-3_fp
-#ifdef LUO_WETDEP
-    REAL(fp)            :: RATE
-#endif
-
-    !=================================================================
-    ! WASHFRAC_FINE_AEROSOLEW begins here!
-    !=================================================================
-    IF ( ( TK >= 268.0_fp ) .OR. ITS_A_POPS_SIM ) THEN
-
-       !---------------------------------
-       ! T >= 268K (or POPS simulation)
-       !---------------------------------
-       IF ( F > 0.0_fp ) THEN
-#ifdef LUO_WETDEP
-          ! Luo et al scheme: New formulation for washout fraction
-          RATE = 10.e+0_fp**(274.35758e+0_fp+              &
-                 332839.59273_fp*(log10(0.5e-6_fp))**(-4)+ &
-                 226656.57259_fp*(log10(0.5e-6_fp))**(-3)+ &
-                 58005.91340_fp*(log10(0.5e-6_fp))**(-2)+  &
-                 6588.38582_fp/(log10(0.5e-6_fp))+         &
-                 0.244984_fp*                              &
-                 SQRT(MIN(20.e+0_fp,(PP*36000.e+0_fp/F))))
-          WASHFRAC = F * (1e+0_fp - EXP(-RATE * DT))
-#else
-          ! Default scheme
-          WASHFRAC = F*(1.0_fp - EXP(-0.92_fp * (PP / F*3.6e+4_fp) &
-                     ** 0.79_fp * DT / 3.6e+3_fp ))
-#endif
-       ELSE
-          WASHFRAC = 0e+0_fp
-       ENDIF
-
-    ELSE
-
-       !---------------------------------
-       ! T < 268K
-       !---------------------------------
-       IF ( F > 0.0_fp ) THEN
-          WASHFRAC = F *(1e+0_fp - EXP( -2.6e+1_fp*K_WASH * &
-                     (PP / F*3.6e+4_fp )**0.96e+0_fp * DT / 3.6e+3_fp ))
-       ELSE
-          WASHFRAC = 0e+0_fp
-       ENDIF
-
-    ENDIF
-
-  END FUNCTION WASHFRAC_FINE_AEROSOLEW
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2111,9 +2646,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef LUO_WETDEP
-    REAL(fp)            :: RATE
-#endif
 
     !=================================================================
     ! WASHFRAC_HNO3 begins here!
@@ -2124,14 +2656,8 @@ CONTAINS
        ! T >= 268K: Do washout
        !------------------------
        IF ( F > 0e+0_fp ) THEN
-#ifdef LUO_WETDEP
-          ! Luo et al scheme: New formulation for washfrac
-          RATE = 2.e+0_fp*((PP/F)**(0.62e+0_fp))
-          WASHFRAC = F * ( 1e+0_fp - EXP( -RATE * DT ) )
-#else
           ! Default scheme
           WASHFRAC = F * ( 1e+0_fp - EXP( -K_WASH * (PP / F) * DT) )
-#endif
        ELSE
           WASHFRAC = 0e+0_fp
        ENDIF
@@ -2154,7 +2680,7 @@ CONTAINS
 !
 ! !IROUTINE: washfrac_apmsize_aerosol
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -2171,7 +2697,7 @@ CONTAINS
                                                  !  of grid box (I,J,L)
                                                  !  [cm3 H2O/cm2 air/s]
     REAL*8,         INTENT(IN)    :: TK          ! Temperature [K]
-    
+
     REAL*8,         INTENT(OUT)   :: WASHFRAC    ! Fraction of tracer lost to washout
 !
 ! !REVISION HISTORY:
@@ -2366,8 +2892,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#ifdef LUO_WETDEP
+  SUBROUTINE WASHFRAC_LIQ_GAS( K0, CR, pKa, PP, pHRain, DT,&
+                               F,  DZ, TK,  WASHFRAC, KIN )
+#else
   SUBROUTINE WASHFRAC_LIQ_GAS( K0, CR, pKa, PP,       DT, &
                                F,  DZ, TK,  WASHFRAC, KIN )
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2376,6 +2907,9 @@ CONTAINS
     REAL(f8), INTENT(IN)  :: pKa       ! Henry's pH correction [1]
     REAL(fp), INTENT(IN)  :: PP        ! Precip rate thru bottom of the
                                        !  grid box [cm3 H2O/cm2 air/s]
+#ifdef LUO_WETDEP
+    REAL(fp), INTENT(IN)  :: pHrain
+#endif
     REAL(fp), INTENT(IN)  :: DT        ! Timestep for washout event [s]
     REAL(fp), INTENT(IN)  :: F         ! Fraction of grid box that is
                                        !  precipitating [unitless]
@@ -2401,7 +2935,7 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS
 !
-    REAL(fp), PARAMETER :: K_WASH = 1.0_fp   ! First order washout rate 
+    REAL(fp), PARAMETER :: K_WASH = 1.0_fp   ! First order washout rate
                                              ! constant [cm^-1].
 
     !=================================================================
@@ -2425,7 +2959,11 @@ CONTAINS
        ! Compute liquid to gas ratio for H2O2, using the appropriate
        ! parameters for Henry's law -- also use rainwater content Lp
        ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-       CALL COMPUTE_L2G( K0, CR, pKa, TK, LP, L2G )
+#ifdef LUO_WETDEP
+       CALL COMPUTE_L2G( K0, CR, pKa, TK, LP, pHRain, L2G )  ! pH of rain
+#else
+       CALL COMPUTE_L2G( K0, CR, pKa, TK, LP, 4.5_f8, L2G )  ! Default pH
+#endif
 
        ! Washout fraction from Henry's law (Eq. 16, Jacob et al, 2000)
        WASHFRAC = L2G / ( 1e+0_fp + L2G )
@@ -2460,7 +2998,7 @@ CONTAINS
 ! !IROUTINE: wetdep
 !
 ! !DESCRIPTION: Subroutine WETDEP computes the downward mass flux of
-!  species due to washout and rainout of aerosols and soluble species in a 
+!  species due to washout and rainout of aerosols and soluble species in a
 !  column.  This subroutine implements an algorithm in which the
 !  precipitation fields come directly from the met archive.
 !\\
@@ -2545,7 +3083,7 @@ CONTAINS
 !  completely removed from grid box (I,J,NZ).  There is no evaporation
 !  and "resuspension" of aerosols during a rainout event.
 !                                                                             .
-!  For large-scale (a.k.a. stratiform) precipitation, the first order rate 
+!  For large-scale (a.k.a. stratiform) precipitation, the first order rate
 !  constant for rainout in the grid box (I,J,L=NZ) (cf. Eq. 12, Jacob
 !  et al, 2000) is given by:
 !                                                                             .
@@ -2554,7 +3092,7 @@ CONTAINS
 !                         L + W
 !                                                                             .
 !  and the areal fraction of grid box (I,J,L=NZ) that is actually
-!  experiencing large-scale precipitation (cf. Eq. 11, Jacob et al, 2000) 
+!  experiencing large-scale precipitation (cf. Eq. 11, Jacob et al, 2000)
 !  is given by:
 !                                                                             .
 !                         Q
@@ -2604,7 +3142,7 @@ CONTAINS
 !                                                                             .
 !  Washout:
 !  ========
-!  Washout occurs when we have evaporation (or no precipitation at all) at 
+!  Washout occurs when we have evaporation (or no precipitation at all) at
 !  grid box (I,J,L), but have rain coming down from grid box (I,J,L+1).
 !                                                                             .
 ! !REVISION HISTORY:
@@ -2681,6 +3219,9 @@ CONTAINS
     ! Dynamic timestep [s]
     DT  = GET_TS_DYN()
 
+#ifdef LUO_WETDEP
+    State_Chm%KRATE = 0.d0
+#endif
     ! Select index for diagnostic arrays -- will archive either
     ! large-scale or convective rainout/washout fractions
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2778,7 +3319,7 @@ CONTAINS
           Q = State_Met%QQ(L,I,J)
 
 !---------------------------------------------------------------------------
-! Prior to 2/19/20: 
+! Prior to 2/19/20:
 ! Comment out for now, in case we need to restore this (bmy, 2/19/20)
 !#ifdef LUO_WETDEP
 !          ! Luo et al scheme: Compute the condensed water
@@ -2799,7 +3340,7 @@ CONTAINS
           K_RAIN    = LS_K_RAIN(  Q,         1.0e-6_fp  )
           F_RAINOUT = LS_F_PRIME( Q, K_RAIN, 1.0e-6_fp  )
 !---------------------------------------------------------------------------
-! Prior to 2/19/20: 
+! Prior to 2/19/20:
 ! Comment out for now, in case we need to restore this (bmy, 2/19/20)
 !#endif
 !---------------------------------------------------------------------------
@@ -2836,7 +3377,7 @@ CONTAINS
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF( errPrint ) THEN 
+                IF( errPrint ) THEN
                    ErrorMsg = 'Error encountered in "Do_Rainout_Only (3)"!'
                 ENDIF
                 RC       = EC
@@ -2881,7 +3422,7 @@ CONTAINS
              ! Luo et al scheme: Compute the condensed water
              ! content instead of using a defined constant value.
              ! Then compute K_RAIN and F_PRIME for LS precip.
-             ! Now use QL and QI in formula for COND_WATER_CONTENT 
+             ! Now use QL and QI in formula for COND_WATER_CONTENT
              ! (bmy, 2/7/20)
              COND_WATER_CONTENT = ( State_Met%QQ(L,I,J) * DT ) + &
                                   (( State_Met%QL(I,J,L) + State_Met%QI(I,J,L))&
@@ -2892,6 +3433,7 @@ CONTAINS
              F_PRIME = MAX(1.e-4_fp,State_Met%CLDF(I,J,L))
              F_PRIME = F_PRIME*MIN(1.e+0_fp, &
                        State_Met%QQ(L,I,J) / ( K_RAIN * COND_WATER_CONTENT ) )
+             State_Chm%KRATE(I,J,L) = State_Met%QQ(L,I,J)*DT/COND_WATER_CONTENT
 #else
              ! Default scheme: Compute K_RAIN and F_RAINOUT for LS
              ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000).
@@ -2932,7 +3474,7 @@ CONTAINS
           IF ( F_WASHOUT > 0e+0_fp ) THEN
 
              ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
-             ! Q     is the precip that is evaporating within box (I,J,L) 
+             ! Q     is the precip that is evaporating within box (I,J,L)
              QDOWN = State_Met%PDOWN(L,I,J)
              Q     = State_Met%REEVAP(L,I,J)
              Q     = MAX( Q, 0e+0_fp ) ! Negative values are unphysical
@@ -2949,7 +3491,7 @@ CONTAINS
                 ! precipitation (field REEVAPLS).
                 ! So the assumption below is not required. ** VPS (6/21/16)
 
-                ! The amount of precipitating water entering from above 
+                ! The amount of precipitating water entering from above
                 ! which evaporates. If there is rainout (new precip
                 ! forming) then we have no way to estimate this, so assume
                 ! zero for now. Consequently there will be no resuspended
@@ -3054,7 +3596,7 @@ CONTAINS
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF ( errPrint ) THEN 
+                IF ( errPrint ) THEN
                    ErrorMsg = 'Error encountered in "Do_Washout_Only (4)!'
                 ENDIF
                 RC       = EC
@@ -3069,7 +3611,7 @@ CONTAINS
           ! then  set F, the effective area of precipitation in grid
           ! box (I,J,L), to zero.
           !
-          ! Also, all of the previously rained-out species that is now 
+          ! Also, all of the previously rained-out species that is now
           ! coming down from grid box (I,J,L+1) will evaporate and
           ! re-enter the atmosphere in the gas phase in grid box
           ! (I,J,L).  This is called "resuspension".
@@ -3142,7 +3684,7 @@ CONTAINS
           ! Luo et al scheme: Only consider washout
           F = F_WASHOUT
 #else
-          ! Default scheme: Since no precip is forming within grid box 
+          ! Default scheme: Since no precip is forming within grid box
           ! (I,J,L), F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
           F = FTOP
 #endif
@@ -3276,7 +3818,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(fp), INTENT(IN) :: Q           ! Rate of precipitation formation 
+    REAL(fp), INTENT(IN) :: Q           ! Rate of precipitation formation
                                         !  [cm3 H2O/cm3 air/s]
     REAL(fp), INTENT(IN) :: COND_WATER  ! Condensed water content
                                         !  [cm3 H2O/cm3 air/s]
@@ -3313,7 +3855,7 @@ CONTAINS
 ! !IROUTINE: ls_f_prime
 !
 ! !DESCRIPTION: Function LS\_F\_PRIME computes F', the fraction of the
-!  grid box that is precipitating during large scale (a.k.a. stratiform) 
+!  grid box that is precipitating during large scale (a.k.a. stratiform)
 !  precipitation.
 !\\
 !\\
@@ -3323,7 +3865,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(fp), INTENT(IN) :: Q           ! Rate of precipitation formation 
+    REAL(fp), INTENT(IN) :: Q           ! Rate of precipitation formation
                                         !  [cm3 H2O/cm3 air/s]
     REAL(fp), INTENT(IN) :: K_RAIN      ! 1st order rate constant [1/s]
     REAL(fp), INTENT(IN) :: COND_WATER  ! Condensed water content
@@ -3331,7 +3873,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-    REAL(fp)             :: F_PRIME     ! Fraction of grid box undergoing 
+    REAL(fp)             :: F_PRIME     ! Fraction of grid box undergoing
                                         !  large-scale precipitation [1]
 !
 ! !REVISION HISTORY:
@@ -3372,7 +3914,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(fp), INTENT(IN) :: Q         ! Rate of precipitation formation 
+    REAL(fp), INTENT(IN) :: Q         ! Rate of precipitation formation
                                       !  [cm3 H2O/cm3 air/s]
     REAL(fp), INTENT(IN) :: K_RAIN    ! 1st order rainout rate constant [1/s]
     REAL(fp), INTENT(IN) :: DT        ! Wet deposition timestep [s]
@@ -3467,15 +4009,15 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?    
+    INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?
 !
 ! !REMARKS:
 !  An IF statement in WETDEP decides if this rainout is to be done (and thus
 !  if this routine will be called.  The criteria for rainout is:
 !                                                                             .
 !     There is rainout if there is new precip formation in the grid box
-!     (i.e. DQRLSAN(I,J,L) > 0) and the fraction of the grid box experiencing 
-!     rainout (i.e. F_RAINOUT) is greater than or equal to the fraction of 
+!     (i.e. DQRLSAN(I,J,L) > 0) and the fraction of the grid box experiencing
+!     rainout (i.e. F_RAINOUT) is greater than or equal to the fraction of
 !     the grid box directly overhead experiencing precip (i.e. FTOP).
 !        -- Helen Amos (9/10/10)
 !
@@ -3581,14 +4123,6 @@ CONTAINS
        ENDIF
 #endif
 
-#ifdef LUO_WETDEP
-       ! Luo et al scheme: Attenuate the rainout fraction
-       ! of SO4 by the quantity PSO4s.
-       IF ( N == id_SO4 ) THEN
-          RAINFRAC = RAINFRAC * EXP( -State_Chm%PSO4s(I,J,L) )
-       ENDIF
-#endif
-
        ! WETLOSS is the amount of species in grid box per unit area
        ! (I,J,L) that is lost to rainout [kg/m2]
        WETLOSS = Spc(I,J,L,N) * RAINFRAC
@@ -3606,7 +4140,7 @@ CONTAINS
 
        ELSE
 
-          ! Add to DSpc the species lost to rainout in grid box        
+          ! Add to DSpc the species lost to rainout in grid box
           ! (I,J,L) plus the species lost to rainout from grid box
           ! (I,J,L+1), which has by now precipitated down into
           ! grid box (I,J,L).  DSpc will continue to accumulate
@@ -3654,7 +4188,7 @@ CONTAINS
        ! Error checks (only prints if this is the first error)
        !---------------------------------------------------------------------
        IF ( IT_IS_NAN( Spc(I,J,L,N) )  .or.                                  &
-            Spc(I,J,L,N) < 0e+0_fp     .or.                                  & 
+            Spc(I,J,L,N) < 0e+0_fp     .or.                                  &
             DSpc(NW,L,I,J) < 0e+0_fp ) THEN
 
           ! Print error message
@@ -3916,6 +4450,9 @@ CONTAINS
                      TF,                                                     &
                      State_Chm%H2O2AfterChem(I,J,L),                         &
                      State_Chm%SO2AfterChem(I,J,L),                          &
+#ifdef LUO_WETDEP
+                     State_Chm%pHRain(I,J,L),                                &
+#endif
                      WASHFRAC,                                               &
                      KIN,                                                    &
                      Input_Opt,                                              &
@@ -3938,12 +4475,12 @@ CONTAINS
        ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
        !
        ! If WASHFRAC = NaN, then DSpc = NaN and SAFETY trips because
-       ! species concentrations must be finite.WASHFRAC = NaN when F = 0. 
+       ! species concentrations must be finite.WASHFRAC = NaN when F = 0.
        ! When less than 0.1% of a soluble species is available for washout
        ! DSpc < 0 and SAFETY trips.  (Helen Amos, 20100928)
        !
        ! Viral Shah wrote:
-       !  The condition requiring that the WASHFRAC>1D-3 or any number 
+       !  The condition requiring that the WASHFRAC>1D-3 or any number
        !  greater than 0 for washout to occur, prevents the partial
        !  resuspension of the dissolved mass falling from above, and leads
        !  to an overestimate in the wet deposited mass... I recommend that
@@ -3955,7 +4492,7 @@ CONTAINS
           CYCLE
        ENDIF
 
-       ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
+       ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always
        ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.
        ! We will never get a div-by-zero error here. (bmy, 5/27/11)
        IF ( KIN ) THEN
@@ -4453,14 +4990,14 @@ CONTAINS
                           GAINED      = 0e+0_fp,                             &
                           LOST        = 0e+0_fp,                             &
                           State_Grid  = State_Grid,                          &
-                          DSpc        = DSpc(NW,:,I,J),                      & 
+                          DSpc        = DSpc(NW,:,I,J),                      &
                           Spc         = Spc(I,J,:,N),                        &
                           RC          = RC )
           ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             IF ( errPrint ) THEN 
+             IF ( errPrint ) THEN
                 ErrorMsg = 'Error encountered in "Safety"!'
                 CALL GC_Error( ErrorMsg, RC, ThisLoc )
              ENDIF
@@ -4612,6 +5149,9 @@ CONTAINS
                      F,                                                     &
                      State_Chm%H2O2AfterChem(I,J,L),                        &
                      State_Chm%SO2AfterChem(I,J,L),                         &
+#ifdef LUO_WETDEP
+                     State_Chm%pHRain(I,J,L),                               &
+#endif
                      WASHFRAC,                                              &
                      KIN,                                                   &
                      Input_Opt,                                             &
@@ -4760,7 +5300,7 @@ CONTAINS
 !
 ! !IROUTINE: safety
 !
-! !DESCRIPTION: Subroutine SAFETY stops the run with debug output and an 
+! !DESCRIPTION: Subroutine SAFETY stops the run with debug output and an
 !  error message if negative species are found.
 !\\
 !\\
@@ -4884,7 +5424,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-    REAL(fp)                   :: VUD    ! Vertical updraft velocity in m/s. 
+    REAL(fp)                   :: VUD    ! Vertical updraft velocity in m/s.
 !
 ! !REVISION HISTORY:
 !  12 Feb 2015 - C. Keller   - Initial version
@@ -5090,6 +5630,7 @@ CONTAINS
 
     ! Define species ID flags
     id_NK1   = Ind_('NK1'  )
+    id_NH3   = Ind_('NH3'  )
     id_SF1   = Ind_('SF1'  )
     id_DUST1 = Ind_('DUST1')
     id_SO2   = Ind_('SO2'  )
@@ -5253,18 +5794,11 @@ CONTAINS
           ! Luo et al scheme:
           ! Compute CLDLIQ directly from met fields
           !--------------------------------------------------------------
-          IF ( TK >= 268.0_fp ) THEN
-             State_Met%CLDLIQ(I,J,L) = (State_Met%QL(I,J,L)+State_Met%QI(I,J,L))* &
-                                        State_Met%AIRDEN(I,J,L) * 1e-3_fp
-
-          ELSE IF ( TK > 248.0_fp .and. TK < 268.0_fp ) THEN
-             State_Met%CLDLIQ(I,J,L) = (State_Met%QL(I,J,L)+State_Met%QI(I,J,L))* &
-                                        State_Met%AIRDEN(I,J,L) * 1e-3_fp &
-                                        * ((TK - 248.0_fp) / 20.0_fp )
-
+          IF ( TK >= 237.0_fp ) THEN
+             State_Met%CLDLIQ(I,J,L) = MAX(0.d0,State_Met%QL(I,J,L))*&
+                                       State_Met%AIRDEN(I,J,L) * 1e-3_fp
           ELSE
              State_Met%CLDLIQ(I,J,L) = 0.0_fp
-
           ENDIF
 #else
           !--------------------------------------------------------------
@@ -5321,7 +5855,7 @@ CONTAINS
           ! and   Tk(I,J,L) is the Kelvin temp. of grid box (I,J,L).
           !
           ! and   Eice( Tk(I,J,L) ) is the saturation vapor pressure
-          !       of ice [hPa] at temperature Tk(I,J,L) -- computed in 
+          !       of ice [hPa] at temperature Tk(I,J,L) -- computed in
           !       routine E_ICE above.
           !--------------------------------------------------------------
           IF ( PL <= TINY_FP ) THEN
