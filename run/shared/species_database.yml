@@ -2743,13 +2743,17 @@ NAP:
   Is_Gas: true
   MW_g: 128.18
 NH3:
-  DD_DvzMinVal: [0.01, 0.01]
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_DvzMinVal_Luo: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 2.0e+4
   Formula: NH3
   FullName: Ammonia
-  Henry_CR: 4200.0
-  Henry_K0: 59.78175
+  Henry_CR: 4100.0
+  Henry_CR_Luo: 4200.0
+  Henry_K0: 3.3e+6
+  Henry_K0_Luo: 59.78175
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -3710,13 +3714,15 @@ SHEmis90dayTracer:
   Is_Gas: true
   MW_g: 1.0
 SO2:
-  DD_DvzMinVal: [0.01, 0.01]
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_DvzMinVal_Luo: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
   Formula: SO2
   FullName: Sulfur dioxide
-  Henry_CR: 3100.0
-  Henry_K0: 1.22
+  Henry_CR_Luo: 3100.0
+  Henry_K0_Luo: 1.22
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -3727,9 +3733,9 @@ SO2:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-  WD_RetFactor: 5.0e-2
-  WD_LiqAndGas: true
-  WD_ConvFacI2G: 6.17395e-1
+  WD_RetFactor_Luo: 5.0e-2
+  WD_LiqAndGas_Luo: true
+  WD_ConvFacI2G_Luo: 6.17395e-1
 SO4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
