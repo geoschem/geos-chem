@@ -54,8 +54,7 @@ Mask fractions:              false
     --> HEMCO_RESTART          :       true
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> APEI                   :       false    # 1989-2014
-    --> NEI2011_HOURLY         :       false    # 2006-2013
-    --> NEI2011_MONMEAN        :       false    # 2006-2013
+    --> NEI2016_MONMEAN        :       false    # 2016
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> CEDSv2                 :       true     # 1750-2019
@@ -73,8 +72,6 @@ Mask fractions:              false
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
-    --> NEI2011_SHIP_HOURLY    :       false    # 2006-2013
-    --> NEI2011_SHIP_MONMEAN   :       false    # 2006-2013
 # ----- RCP FUTURE EMISSIONS -----------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
@@ -131,92 +128,67 @@ Mask fractions:              false
 )))APEI
 
 #==============================================================================
-# --- NEI 2011 (USA) ---
+# --- NEI 2016v1 (USA) ---
 #
-# Users may use either hourly or monthly mean NEI2011 emissions.
+# NOTES:
+#  - Barron Henderson wrote, "The EPA emission modeling platform always
+#    includes our best estimate of that year's emissions for Canada and Mexico
+#    (othpt, othar, ptfire_oth). Using that estimate is likely good. However,
+#    that can lead to a discontinuity in Mexico and Canada."
+#  - By default only emissions over the CONUS are used (via Mask #1007)
+#  - To include emissions over Canada and Mexico, users may revert to the old
+#    US mask file $ROOT/MASKS/v2018-09/USA_LANDMASK_NEI2011_0.1x0.1.20160921.nc
 #==============================================================================
-
-#------------------------------------------------
-# HOURLY NEI2011
-#------------------------------------------------
-(((NEI2011_HOURLY
-# SURFACE INVENTORY
-0 NEI11_SURFACE_CO       $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD.nc          CO 2006-2013/1-12/1-31/* RF xy  kg/m2/s  CO    252/1007       1 50
-0 NEI11_SURFACE_CO_us    -                                                               -  -                     -  -   -        COus  252/1007/1100  1 50
-0 NEI11_SURFACE_CO_eur   -                                                               -  -                     -  -   -        COeur 252/1007/1101  1 50
-0 NEI11_SURFACE_CO_oth   -                                                               -  -                     -  -   -        COoth 252/1007/1103  1 50
-
-# ELECTRIC GENERATING UNITS (EGUs)
-0 NEI11_EGU_CO           $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_egu.nc      CO 2006-2013/1-12/1-31/* RF xyz kg/m2/s  CO    252/1007       1   50
-0 NEI11_EGU_CO_us        -                                                               -  -                     -  -   -        COus  252/1007/1100  1   50
-0 NEI11_EGU_CO_eur       -                                                               -  -                     -  -   -        COeur 252/1007/1101  1   50
-0 NEI11_EGU_CO_oth       -                                                               -  -                     -  -   -        COoth 252/1007/1103  1   50
-
-# PEAKING ELECTRIC GENERATING UNITS
-0 NEI11_EGUPK_CO         $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_egupk.nc    CO 2006-2013/1-12/1-31/* RF xyz kg/m2/s  CO    252/1007       1   50
-0 NEI11_EGUPK_CO_us      -                                                               -  -                     -  -   -        COus  252/1007/1100  1   50
-0 NEI11_EGUPK_CO_eur     -                                                               -  -                     -  -   -        COeur 252/1007/1101  1   50
-0 NEI11_EGUPK_CO_oth     -                                                               -  -                     -  -   -        COoth 252/1007/1103  1   50
-
-# OIL & GAS
-0 NEI11_OILGAS_CO        $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_oilgas.nc   CO 2006-2013/1-12/1-31/* RF xyz kg/m2/s  CO    252/1007       1   50
-0 NEI11_OILGAS_CO_us     -                                                               -  -                     -  -   -        COus  252/1007/1100  1   50
-0 NEI11_OILGAS_CO_eur    -                                                               -  -                     -  -   -        COeur 252/1007/1101  1   50
-0 NEI11_OILGAS_CO_oth    -                                                               -  -                     -  -   -        COoth 252/1007/1103  1   50
-
-# OTHER POINT SOURCES
-0 NEI11_OTHPT_CO         $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_othpt.nc    CO 2006-2013/1-12/1-31/* RF xyz kg/m2/s  CO    252/1007       1   50
-0 NEI11_OTHPT_CO_us      -                                                               -  -                     -  -   -        COus  252/1007/1100  1   50
-0 NEI11_OTHPT_CO_eur     -                                                               -  -                     -  -   -        COeur 252/1007/1101  1   50
-0 NEI11_OTHPT_CO_oth     -                                                               -  -                     -  -   -        COoth 252/1007/1103  1   50
-
-# NON-EGU INDUSTRIAL STACKS
-0 NEI11_PTNONIPM_CO      $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_ptnonipm.nc CO 2006-2013/1-12/1-31/* RF xyz kg/m2/s  CO    252/1007       1   50
-0 NEI11_PTNONIPM_CO_us   -                                                               -  -                     -  -   -        COus  252/1007/1100  1   50
-0 NEI11_PTNONIPM_CO_eur  -                                                               -  -                     -  -   -        COeur 252/1007/1101  1   50
-0 NEI11_PTNONIPM_CO_oth  -                                                               -  -                     -  -   -        COoth 252/1007/1103  1   50
-)))NEI2011_HOURLY
-
-#------------------------------------------------
-# MONTHLY MEAN NEI2011
-#------------------------------------------------
-(((NEI2011_MONMEAN
-# SURFACE INVENTORY
-0 NEI11_SURFACE_CO       $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean.nc          CO 2006-2013/1-12/1/0 RF xy  kg/m2/s  CO    26/211/252/1007       1   50
-0 NEI11_SURFACE_CO_us    -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
-0 NEI11_SURFACE_CO_eur   -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
-0 NEI11_SURFACE_CO_oth   -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
-
-# ELECTRIC GENERATING UNITS (EGUs)
-0 NEI11_EGU_CO           $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_egu.nc      CO 2006-2013/1-12/1/0 RF xyz kg/m2/s  CO    26/211/252/1007       1   50
-0 NEI11_EGU_CO_us        -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
-0 NEI11_EGU_CO_eur       -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
-0 NEI11_EGU_CO_oth       -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
-
-# PEAKING ELECTRIC GENERATING UNITS
-0 NEI11_EGUPK_CO         $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_egupk.nc    CO 2006-2013/1-12/1/0 RF xyz kg/m2/s  CO    26/211/252/1007       1   50
-0 NEI11_EGUPK_CO_us      -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
-0 NEI11_EGUPK_CO_eur     -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
-0 NEI11_EGUPK_CO_oth     -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
-
-# OIL & GAS
-0 NEI11_OILGAS_CO        $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_oilgas.nc   CO 2006-2013/1-12/1/0 RF xyz kg/m2/s  CO    26/211/252/1007       1   50
-0 NEI11_OILGAS_CO_us     -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
-0 NEI11_OILGAS_CO_eur    -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
-0 NEI11_OILGAS_CO_oth    -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
-
-# OTHER POINT SOURCES
-0 NEI11_OTHPT_CO         $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_othpt.nc    CO 2006-2013/1-12/1/0 RF xyz kg/m2/s  CO    26/211/252/1007       1   50
-0 NEI11_OTHPT_CO_us      -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
-0 NEI11_OTHPT_CO_eur     -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
-0 NEI11_OTHPT_CO_oth     -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
-
-# NON-EGU INDUSTRIAL STACKS
-0 NEI11_PTNONIPM_CO      $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_ptnonipm.nc CO 2006-2013/1-12/1/0 RF xyz kg/m2/s  CO    26/211/252/1007       1   50
-0 NEI11_PTNONIPM_CO_us   -                                                                       -  -                  -  -   -        COus  26/211/252/1007/1100  1   50
-0 NEI11_PTNONIPM_CO_eur  -                                                                       -  -                  -  -   -        COeur 26/211/252/1007/1101  1   50
-0 NEI11_PTNONIPM_CO_oth  -                                                                       -  -                  -  -   -        COoth 26/211/252/1007/1103  1   50
-)))NEI2011_MONMEAN
+(((NEI2016_MONMEAN
+0 EPA16_CO__airportsCO           $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__airportsCOus         -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__airportsCOoth        -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__nonptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__nonptCOus            -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__nonptCOoth           -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__nonroadCO            $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__nonroadCOus          -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__nonroadCOoth         -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__npogCO               $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__npogCOus             -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__npogCOoth            -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__onroadCO             $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__onroadCOus           -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__onroadCOoth          -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__onroad_caCO          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__onroad_caCOus        -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__onroad_caCOoth       -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__railCO               $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__railCOus             -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__railCOoth            -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__c1c2CO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__clc2COus             -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__clc2COoth            -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__c3CO                 $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__c3COus               -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__c3COoth              -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__pteguCO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__pteguCOus            -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__pteguCOoth           -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__ptogCO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__ptogCOus             -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__ptogCOoth            -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__ptnonipmCO           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__ptnonipmCOus         -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__ptnonipmCOoth        -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__onroad_canCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__onroad_canCOus       -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__onroad_canCOoth      -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__onroad_mexCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__onroad_mexCOus       -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__onroad_mexCOoth      -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__otharCO              $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__otharCOus            -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__otharCOoth           -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+0 EPA16_CO__othptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO         2016/1-12/1/0 C xyz  kg/m2/s    CO     26/211/1007        1 50
+0 EPA16_CO__othptCOus            -                                                                                     -          -             - -    -          COus   26/211/1007/1100   1 50
+0 EPA16_CO__othptCOoth           -                                                                                     -          -             - -    -          COoth  26/211/1007/1103   1 50
+)))NEI2016_MONMEAN
 
 #==============================================================================
 # --- DICE-Africa emission inventory (Marais and Wiedinmyer, ES&T, 2016) ---
@@ -619,8 +591,6 @@ Mask fractions:              false
 # ==> CEDS ship emissions are now the default.
 # ==> If CEDS_SHIP is turned off above then ARCTAS should be used over ICOADS,
 #     CORBETT, and HTAP for SO2 and ICOADS should be used for CO and NO.
-# ==> The ship inventory for NEI11 only goes a few km from land, so it isn’t
-#     a complete 'ship inventory'. NEI2011_SHIP_* is set to false for now.
 # ==> Ship NO emissions are used by PARANOx and the extension number must be
 #     adjusted accordingly. If PARANOx is turned off, set the ExtNr back to
 #     zero.
@@ -665,20 +635,6 @@ Mask fractions:              false
 0 CMIP6_CO_SHP_asia     -                                                               -      -                  - -  -         COasia 26/1102       10 5
 0 CMIP6_CO_SHP_oth      -                                                               -      -                  - -  -         COoth  26/1103       10 5
 )))CMIP6_SHIP
-
-(((NEI2011_SHIP_HOURLY
-0 NEI11_C3MARINE_CO     $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc CO     2006-2013/$MM/$DD/* R xy kg/m2/s  CO     252/1007      10 50
-0 NEI11_C3MARINE_CO_us  -                                                               -      -                   - -  -        COus   252/1007/1100 10 50
-0 NEI11_C3MARINE_CO_eur -                                                               -      -                   - -  -        COeur  252/1007/1101 10 50
-0 NEI11_C3MARINE_CO_oth -                                                               -      -                   - -  -        COoth  252/1007/1103 10 50
-)))NEI2011_SHIP_HOURLY
-
-(((NEI2011_SHIP_MONMEAN
-0 NEI11_C3MARINE_CO     $ROOT/NEI2011/v2017-02-MM/$MM/NEI11_0.1x0.1_2011$MM_monmean_c3marine.nc CO 2006-2013/1-12/1/0 RF xy kg/m2/s  CO     252/1007      10 50
-0 NEI11_C3MARINE_CO_us  -                                                                       -  -                  -  -  -        COus   252/1007/1100 10 50
-0 NEI11_C3MARINE_CO_eur -                                                                       -  -                  -  -  -        COeur  252/1007/1101 10 50
-0 NEI11_C3MARINE_CO_oth -                                                                       -  -                  -  -  -        COoth  252/1007/1103 10 50
-)))NEI2011_SHIP_MONMEAN
 
 )))SHIP
 
@@ -1188,17 +1144,12 @@ Mask fractions:              false
 110 AEICNOCO 1.000000e-3 - -  - xy 1 1
 )))AEIC
 
-(((NEI2011_HOURLY.or.NEI2011_MONMEAN
+(((NEI2016_MONMEAN
 #==============================================================================
-# --- NEI 2005 scale factors ---
+# --- EPA NEI day-of-week scale factors ---
 #==============================================================================
 211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc      CO 1999/1-12/WD/0 C xy 1 1
-
-#==============================================================================
-# --- NEI 2011 scale factors ---
-#==============================================================================
-252 NEI11_CO_YRSCALE  1.271/1.227/1.104/0.998/1.019/1.0/0.981/0.962 - 2006-2013/1/1/0 C xy 1 1
-)))NEI2011_HOURLY.or.NEI2011_MONMEAN
+)))NEI2016_MONMEAN
 
 #==============================================================================
 # --- GFAS scale factors ---
@@ -1254,9 +1205,9 @@ Mask fractions:              false
 1002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc                  MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
 
-(((NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
+(((NEI2016_MONMEAN
 1007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                      MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
-)))NEI2011_HOURLY.or.NEI2011_MONMEAN.or.NEI2011_SHIP_HOURLY.or.NEI2011_SHIP_MONMEAN
+)))NEI2016_MONMEAN
 
 (((DICE_Africa
 1008 AFRICA_MASK $ROOT/MASKS/v2018-09/AF_LANDMASK.geos.05x0666.global.nc       LANDMASK 1985/1/1/0 C xy 1 1 -20/-37/54/40
