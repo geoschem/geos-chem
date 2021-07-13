@@ -899,13 +899,6 @@ DMS:
   Is_Advected: true
   Is_Aerosol: true
   MW_g: 62.13
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
 DST1:
   << : *DST1properties
   FullName: Dust aerosol, Reff = 0.7 microns
@@ -3406,8 +3399,8 @@ POPPBCPI_BaP:
   Is_WetDep: true
   MW_g: 252.32
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPI_PHE:
   DD_DvzAerSnow: 0.03
@@ -3420,8 +3413,8 @@ POPPBCPI_PHE:
   Is_WetDep: true
   MW_g: 178.24
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPI_PYR:
   DD_DvzAerSnow: 0.03
@@ -3434,8 +3427,8 @@ POPPBCPI_PYR:
   Is_WetDep: true
   MW_g: 202.26
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPO_BaP:
   DD_DvzAerSnow: 0.03
