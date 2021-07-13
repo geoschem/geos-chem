@@ -51,6 +51,7 @@ PRECCON  1 N Y F0;003000 none none PRECCON  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2
 PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+QV2M     1 N Y F0;003000 none none QV2M     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE00 1 N Y F0;003000 none none SEAICE00 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE10 1 N Y F0;003000 none none SEAICE10 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE20 1 N Y F0;003000 none none SEAICE20 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
@@ -1377,7 +1378,8 @@ DEAD_VAI 1 Y Y 1985-%m2-01T00:00:00 none none VAI ./HcoDir/DUST_DEAD/v2019-06/ds
 #==============================================================================
 # --- Sea salt emissions (Extension 107)
 #==============================================================================
-MODIS_CHLR mg_m-3 N Y F%y4-%m2-01T00:00:00 none none MODIS ./HcoDir/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.%y4.nc
+MODIS_CHLR  mg_m-3 N Y F%y4-%m2-01T00:00:00  none none MODIS    ./HcoDir/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.%y4.nc
+MULTISEAICE 1      N Y F%y4-%m2-%d2T00:00:00 none none FRSEAICE ./HcoDir/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.%y4.nc
 #
 #==============================================================================
 # --- MEGAN biogenic emissions (Extension 108)

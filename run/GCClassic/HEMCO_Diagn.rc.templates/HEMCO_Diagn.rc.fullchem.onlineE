@@ -803,7 +803,6 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 # SeaSalt extension
 #=============================
-#InvSeaSalt_Br2       Br2    107  -1  -1  2   kg/m2/s  Br2_emission_flux_from_SeaSalt_extension
 #InvSeaSalt_BrSALA    BrSALA 107  -1  -1  2   kg/m2/s  BrSALA_emission_flux_from_SeaSalt_extension
 #InvSeaSalt_BrSALC    BrSALC 107  -1  -1  2   kg/m2/s  BrSALC_emission_flux_from_SeaSalt_extension
 #InvSeaSalt_SALA      SALA   107  -1  -1  2   kg/m2/s  SALA_emission_flux_from_SeaSalt_extension
