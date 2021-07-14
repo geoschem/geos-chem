@@ -1056,15 +1056,13 @@ CONTAINS
        gamma = 0.1e-4_dp
        k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        !
-       IF ( H%is_UCX ) THEN
-          ! Rate of ClNO3 + HCl on stratospheric liquid aerosol
-          k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HCl)
-          !
-          ! Rate of ClNO3 + HCl on irregular ice cloud
-          gamma = 0.3_dp                               ! Rxn prob, ice [1]
-          IF ( H%NatSurface ) gamma = 0.2_dp           ! Rxn prob, NAT [1]
-          k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
-       ENDIF
+       ! Rate of ClNO3 + HCl on stratospheric liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HCl)
+       !
+       ! Rate of ClNO3 + HCl on irregular ice cloud
+       gamma = 0.3_dp                               ! Rxn prob, ice [1]
+       IF ( H%NatSurface ) gamma = 0.2_dp           ! Rxn prob, NAT [1]
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ELSE
        !
        ! NOTE: No ClNO3 + HCl uptake in tropospheric liquid cloud
@@ -1128,32 +1126,33 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
     !
-    REAL(dp) :: brBr, brLiq, gamma, srMw
+    REAL(dp) :: area, branch, brBr, gamma, srMw
     !
-    brBr  = 0.0_dp
-    brLiq = 0.0_dp
-    gamma = 0.0_dp
-    k     = 0.0_dp
-    srMw  = SR_MW(ind_ClNO3)
+    area   = H%ClearFr*H%aClArea
+    branch = 0.0_dp
+    brBr   = 0.0_dp
+    gamma  = 0.0_dp
+    k      = 0.0_dp
+    srMw   = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
     IF ( .not. H%stratBox ) THEN
        !
        ! Compute ClNO3 + BrSALA uptake rate & branching ratio
        CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       brLiq = brBr * H%Br_branch_CldA
+       branch = brBr * H%Br_branch_CldA
        !
        ! Compute ClNO3 + BrSALA uptake rate accounting for cloud fraction
-       k = k + CloudHet( H, srMw, gamma, 0.0_dp, brLiq, 0.0_dp )
+       k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
 ! Investigate numerical diffs later
 !    ! Compute uptake rate of ClNO3 + BrSALA in clear sky
 !    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
-!    k = k + Ars_L1K( H%ClearFr*H%aClArea, H%aClRadi, gamma, srMw ) * brBr
+!    k = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * brBr
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
-    k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k  )
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k )
   END FUNCTION ClNO3uptkByBrSALAandTropCloud
 
   FUNCTION ClNO3uptkByBrSALCandTropCloud( H ) RESULT( k )
@@ -1163,32 +1162,83 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
     !
-    REAL(dp) :: brBr, brLiq, gamma, srMw
+    REAL(dp) :: area, branch, brBr, gamma, srMw
     !
-    brBr  = 0.0_dp
-    brLiq = 0.0_dp
-    gamma = 0.0_dp
-    k     = 0.0_dp
-    srMw  = SR_MW(ind_ClNO3)
+    area   = H%ClearFr * H%xArea(SSC)
+    branch = 0.0_dp
+    brBr   = 0.0_dp
+    gamma  = 0.0_dp
+    k      = 0.0_dp
+    srMw   = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
     IF ( .not. H%stratBox ) THEN
        !
        ! Compute ClNO3 + BrSALA uptake rate & branching ratio
        CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       brLiq = brBr * H%Br_branch_CldC
+       branch = brBr * H%Br_branch_CldC
        !
        ! Compute ClNO3 + BrSALA uptake rate accounting for cloud fraction
-       k = k + CloudHet( H, srMw, gamma, 0.0_dp, brLiq, 0.0_dp )
+       k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, brBr )
-    k = k + Ars_L1K( H%ClearFr*H%xArea(SSC), H%xRadi(SSC), gamma, srMw )* brBr
+    k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )* brBr
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
-    k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k  )
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k )
   END FUNCTION ClNO3uptkByBrSALCandTropCloud
+
+  FUNCTION ClNO3uptkBySALACL( H ) RESULT( k )
+    !
+    ! Computes rxn rate [1/s] of ClNO3 + SALACL.
+    !
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    REAL(dp) :: area, branch, brBr, gamma, srMw
+    !
+    area   = H%ClearFr * H%aClArea
+    branch = 0.0_dp
+    brBr   = 0.0_dp
+    gamma  = 0.0_dp
+    k      = 0.0_dp
+    srMw   = SR_MW(ind_ClNO3)
+    !
+!    ! Compute uptake rate of ClNO3 + SALACL in clear sky
+!    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
+!    branch = ( 1.0_dp - brBr ) * ( 1.0_dp - H%frac_SALACL )
+!    k      = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branch
+    !
+    ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), k )
+  END FUNCTION ClNO3uptkBySALACL
+
+  FUNCTION ClNO3uptkBySALCCL( H ) RESULT( k )
+    !
+    ! Computes rxn rate [1/s] of ClNO3 + SALCCL.
+    !
+    TYPE(HetState), INTENT(IN) :: H
+    REAL(dp)                   :: k
+    !
+    REAL(dp) :: area, brBr, branch, gamma, srMw
+    !
+    area   = H%ClearFr * H%xArea(SSC)
+    branch = 0.0_dp
+    brBr   = 0.0_dp
+    gamma  = 0.0_dp
+    k      = 0.0_dp
+    srMw   = SR_MW(ind_ClNO3)
+    !
+    ! Compute uptake rate of ClNO3 + BrSALA in clear sky
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, brBr )
+    branch = 1.0_dp - brBr
+    k      = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw ) * branch
+    !
+    ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALCCL), k )
+  END FUNCTION ClNO3uptkBySALCCL
 
   !=========================================================================
   ! Hetchem rate-law functions for HBr
