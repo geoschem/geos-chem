@@ -128,6 +128,15 @@ Warnings:                    1
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
+    --> Reduce SS cold water   :       true
+    --> Blowing Snow SS        :       true
+    --> NH FYI snow salinity   :       0.1
+    --> NH MYI snow salinity   :       0.05
+    --> SH FYI snow salinity   :       0.03
+    --> SH MYI snow salinity   :       0.015
+    --> NH snow age            :       3.0
+    --> SH snow age            :       1.5
+    --> N per snowflake        :       5.0
     --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : {ONLINE}   ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
@@ -1253,7 +1262,8 @@ Warnings:                    1
 # MODIS Chlorophyll-A fields used for emissions of marine organic aerosols
 #==============================================================================
 (((SeaSalt
-107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS 2005-2014/1-12/1/0 C xy 1 * - 1 1
+107 MODIS_CHLR  $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS    2005-2014/1-12/1/0    C xy 1 * - 1 1
+107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
 
 # Climatology CHLR
 #107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1
