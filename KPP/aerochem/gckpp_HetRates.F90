@@ -3145,13 +3145,18 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(dp) :: V_tot
+!
+! !DEFINED_PARAMETERS:
+!
+    REAL(dp) :: ONE_THIRD = 1.0_dp / 3.0_dp
 
     !==================================================================
     ! Get_Halide_SsaConc begins here!
     !==================================================================
 
     ! Cloud volume
-    V_tot = surf_area * r_w * 0.3333333e0_dp * 1e-3_dp ! L(liq)/cm3(air)
+    !V_tot = surf_area * r_w * 0.3333333e0_dp * 1e-3_dp ! L(liq)/cm3(air)
+    V_tot = surf_area * r_w * ONE_THIRD * 1e-3_dp ! L(liq)/cm3(air)
 
     ! Skip if we are not in cloud
     IF ( V_tot <= 1.0e-20_dp ) THEN
