@@ -692,53 +692,6 @@ CONTAINS
 
        ENDDO
 
-#ifdef LUO_WETDEP
-       !--------------------------------------------------------------------
-       ! For Luo et al 2020 wetdep
-       ! Overwrite with special values if present in file
-       !--------------------------------------------------------------------
-       IF ( found_dd_dvzaersnow_luo ) THEN
-          ThisSpc%DD_DvzAerSnow = dd_dvzaersnow_luo
-       ENDIF
-
-       IF ( found_dd_dvzminval_luo ) THEN
-          ThisSpc%DD_DvzMinVal(1) = dd_dvzminval_luo(1)
-          ThisSpc%DD_DvzMinVal(2) = dd_dvzminval_luo(2)
-       ENDIF
-
-       IF ( found_henry_cr_luo ) THEN
-          ThisSpc%Henry_CR = henry_cr_luo
-       ENDIF
-
-       IF ( found_henry_k0_luo ) THEN
-          ThisSpc%Henry_K0 = henry_k0_luo
-       ENDIF
-
-       IF ( found_wd_convfaci2g_luo ) THEN
-          ThisSpc%WD_RetFactor = wd_convfaci2g_luo
-       ENDIF
-
-       IF ( found_wd_liqandgas_luo ) THEN
-          ThisSpc%WD_LiqAndGas = wd_liqandgas_luo
-       ENDIF
-
-       IF ( found_wd_kcscalefac_luo ) THEN
-          ThisSpc%WD_KcScaleFac(1) = wd_kcscalefac_luo(1)
-          ThisSpc%WD_KcScaleFac(2) = wd_kcscalefac_luo(2)
-          ThisSpc%WD_KcScaleFac(3) = wd_kcscalefac_luo(3)
-       ENDIF
-
-       IF ( found_wd_rainouteff_luo ) THEN
-          ThisSpc%WD_RainoutEff(1) = wd_rainouteff_luo(1)
-          ThisSpc%WD_RainoutEff(2) = wd_rainouteff_luo(2)
-          ThisSpc%WD_RainoutEff(3) = wd_rainouteff_luo(3)
-       ENDIF
-
-       IF ( found_wd_retfactor_luo ) THEN
-          ThisSpc%WD_RetFactor = wd_retfactor_luo
-       ENDIF
-#endif
-
        !--------------------------------------------------------------------
        ! SANITY CHECKS
        !--------------------------------------------------------------------
@@ -777,9 +730,7 @@ CONTAINS
              CASE( 'HNO3', 'SO2' )
                 ! HNO3 and SO2 drydep like gases but wetdep like fine
                 ! aerosols, so set certain fields to missing values.
-#ifndef LUO_WETDEP
                 ThisSpc%DD_DvzAerSnow = MISSING
-#endif
                 ThisSpc%MP_SizeResAer = MISSING_BOOL
                 ThisSpc%MP_SizeResNum = MISSING_BOOL
                 ThisSpc%WD_CoarseAer  = MISSING_BOOL
@@ -802,6 +753,53 @@ CONTAINS
           ThisSpc%WD_RetFactor  = MISSING
           ThisSpc%WD_LiqAndGas  = MISSING_BOOL
        ENDIF
+
+#ifdef LUO_WETDEP
+       !--------------------------------------------------------------------
+       ! For Luo et al 2020 wetdep
+       ! Overwrite with special values if present in file
+       !--------------------------------------------------------------------
+       IF ( found_dd_dvzaersnow_luo ) THEN
+          ThisSpc%DD_DvzAerSnow = dd_dvzaersnow_luo
+       ENDIF
+
+       IF ( found_dd_dvzminval_luo ) THEN
+          ThisSpc%DD_DvzMinVal(1) = dd_dvzminval_luo(1)
+          ThisSpc%DD_DvzMinVal(2) = dd_dvzminval_luo(2)
+       ENDIF
+
+       IF ( found_henry_cr_luo ) THEN
+          ThisSpc%Henry_CR = henry_cr_luo
+       ENDIF
+
+       IF ( found_henry_k0_luo ) THEN
+          ThisSpc%Henry_K0 = henry_k0_luo
+       ENDIF
+
+       IF ( found_wd_convfaci2g_luo ) THEN
+          ThisSpc%WD_ConvFacI2G = wd_convfaci2g_luo
+       ENDIF
+
+       IF ( found_wd_liqandgas_luo ) THEN
+          ThisSpc%WD_LiqAndGas = wd_liqandgas_luo
+       ENDIF
+
+       IF ( found_wd_kcscalefac_luo ) THEN
+          ThisSpc%WD_KcScaleFac(1) = wd_kcscalefac_luo(1)
+          ThisSpc%WD_KcScaleFac(2) = wd_kcscalefac_luo(2)
+          ThisSpc%WD_KcScaleFac(3) = wd_kcscalefac_luo(3)
+       ENDIF
+
+       IF ( found_wd_rainouteff_luo ) THEN
+          ThisSpc%WD_RainoutEff(1) = wd_rainouteff_luo(1)
+          ThisSpc%WD_RainoutEff(2) = wd_rainouteff_luo(2)
+          ThisSpc%WD_RainoutEff(3) = wd_rainouteff_luo(3)
+       ENDIF
+
+       IF ( found_wd_retfactor_luo ) THEN
+          ThisSpc%WD_RetFactor = wd_retfactor_luo
+       ENDIF
+#endif
 
        ! Debug printout
        IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
