@@ -993,19 +993,20 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: branchBr, brLiq, brIce,    dum1
-    REAL(dp) :: dum2,     gamma, gammaIce, srMw
+    REAL(dp) :: brBr, brLiq, brIce,    dum1
+    REAL(dp) :: dum2, gamma, gammaIce, srMw
     !
-    branchBr = 0.0_dp
+    brBr     = 0.0_dp
     brLiq    = 0.0_dp
+    brIce    = 0.0_dp
     gamma    = 0.0_dp
     gammaIce = 0.0_dp
     k        = 0.0_dp
     srMw     = SR_MW(ind_ClNO3)
     !
     ! Rxn rate of ClNO3 + H2O on fine sea salt in clear sky
-    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
-    brLiq = ( 1.0_dp - branchBr ) * ( 1.0_dp - H%frac_SALACL )
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
+    brLiq = ( 1.0_dp - brBr ) * ( 1.0_dp - H%frac_SALACL )
     k = k + Ars_L1K( H%ClearFr * H%aClArea, H%aClRadi, gamma, srMw ) * brLiq
     !
     ! Rate of ClNO3 + H2O on stratospheric liquid aerosol
@@ -1016,18 +1017,18 @@ CONTAINS
     IF ( H%NatSurface ) gamma = 0.004_dp         ! Rxn prob, NAT [1]
     k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     !
-    !IF ( .not. H%stratBox ) THEN
-    !   !
-    !   ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
-    !   CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-    !   brLiq = 1.0_dp - branchBr
-    !   !
-    !   ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
-    !   CALL Gam_ClNO3_Ice( H, gamma, dum1, dum2, brIce )
-    !   !
-    !   ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
-    !   k = k + CloudHet( H, srMw, gamma, gammaIce, 0.0_dp, 0.0_dp )
-    !ENDIF
+    IF ( .not. H%stratBox ) THEN
+       !
+       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
+       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
+       brLiq = 1.0_dp - brBr
+       !
+       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
+       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, dum2, brIce )
+       !
+       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
+       k = k + CloudHet( H, srMw, gamma, gammaIce, brLiq, brIce )
+    ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), k )
