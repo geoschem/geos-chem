@@ -235,7 +235,7 @@ MODULE gckpp_Global
      REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt [pH units   ]I2O4
      REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
      REAL(dp) :: HNO3_theta     ! HNO3 theta for uptake on ice
-     REAL(dp) :: HSO3_conc_Cld  !
+     REAL(dp) :: HSO3_aq_Cld    !
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc  [M          ]I2O4
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA   [1          ]I2O4
      REAL(dp) :: HSO4_molal     ! Bisulfate concentration          [M          ]I2O4
@@ -254,12 +254,13 @@ MODULE gckpp_Global
      REAL(dp) :: rLiq           ! Liquid radius
      REAL(dp) :: SALAAL_save    ! Conc of SALAAL before conversion [molec/cm3  ]I2O4
      REAL(dp) :: SALCAL_save    ! Conc of SALCAL before conversion [molec/cm3  ]I2O4
-     REAL(dp) :: SO3_conc_Cld   !
+     REAL(dp) :: SO3_aq_Cld     !
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
      LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?       [T/F        ]I2O4
      LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt acidic?         [T/F        ]I2O4
      LOGICAL  :: SSC_is_Alk     ! Is coarse sea-salt alkaline?     [T/F        ]I2O4
      LOGICAL  :: SSC_is_Acid    ! Is coarse sea-salt acidic?       [T/F        ]I2O4
+     REAL(dp) :: TSO3_aq_Cld    ! Total SO3 = SO3 + HSO3
      REAL(dp) :: vAir           ! Volume of air                    [cm3        ]I2O4
      REAL(dp) :: vIce           ! Ice volume                       [cm3        ]I2O4
      REAL(dp) :: vLiq           ! Liquid volume                    [cm3        ]I2O4

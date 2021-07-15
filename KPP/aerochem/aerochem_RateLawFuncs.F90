@@ -1397,8 +1397,8 @@ CONTAINS
     ! Rates for each HOBr + {Cl-, Br-, HSO3-, HSO3--} rxn
     k_HOBr_Cl     = 2.3e+10_dp * H%Cl_conc_Cld * C_Hp1  ! Liu & Margerum, EST, 2001
     k_HOBr_Br     = 1.6e+10_dp * H%Br_conc_Cld * C_Hp2  ! ??
-    k_HOBr_HSO3   = 2.6e+7_dp  * H%HSO3_conc_Cld        ! Liu and Abbatt, GRL, 2020
-    k_HOBr_HSO3_2 = 5.0e+9_dp  * H%SO3_conc_Cld         ! Troy & Margerum, Inorg. Chem., 1991
+    k_HOBr_HSO3   = 2.6e+7_dp  * H%HSO3_aq_Cld        ! Liu and Abbatt, GRL, 2020
+    k_HOBr_HSO3_2 = 5.0e+9_dp  * H%SO3_aq_Cld         ! Troy & Margerum, Inorg. Chem., 1991
     !
     ! Total rate
     k_tot  = k_HOBr_Cl + k_HOBr_Br + k_HOBr_HSO3 + k_HOBr_HSO3_2
@@ -1877,7 +1877,7 @@ CONTAINS
   ! Hetchem rate-law functions for HOCl
   !=========================================================================
 
-  SUBROUTINE Gam_HOCl_Cld( H, gamma, branchCl )
+  SUBROUTINE Gam_HOCl_Cld( H, gamma, branchCl, branchSO3 )
     !
     ! Computes the uptake coefficient [1] of HOCl + HSO3 and HOCl + SO3.
     ! Returns reaction rates of Cl and SO3 paths to compute branching ratios.
@@ -1885,6 +1885,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN)  :: H             ! Hetchem State
     REAL(dp),       INTENT(OUT) :: gamma         ! Rxn prob [1]
     REAL(dp),       INTENT(OUT) :: branchCl      ! Branch ratio, Cl path [1]
+    REAL(dp),       INTENT(OUT) :: branchSO3     ! Branch ratio, SO3 path [1]
     !
     REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.8_dp  ! 1/mass accom coeff
     REAL(dp), PARAMETER :: D_l    = 2.0e-5_dp        ! Liq diff phase coeff
@@ -1893,24 +1894,25 @@ CONTAINS
     REAL(dp) :: k_SO3, k_tot,  l_r, M_X
     !
     ! thermal velocity (cm/s)
-    M_X      = MW(ind_HOCl) * 1.0e-3_dp
-    cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
+    M_X       = MW(ind_HOCl) * 1.0e-3_dp
+    cavg      = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
     !
     ! Reaction rates, Cl and SO3 paths [1/s]
-    k_Cl     = 1.5e+4_dp * ( H%H_Conc_LCL    * H%Cl_conc_Cld  )
-    k_SO3    = 2.8e+5_dp * ( H%HSO3_conc_Cld + H%SO3_conc_Cld )
-    k_tot    = k_Cl + k_SO3
+    k_Cl      = 1.5e+4_dp * ( H%H_Conc_LCL  * H%Cl_conc_Cld )
+    k_SO3     = 2.8e+5_dp * ( H%HSO3_aq_Cld + H%SO3_aq_Cld  )
+    k_tot     = k_Cl + k_SO3
 
     ! Henry's law
-    H_X      = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                          &
-             * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
-    l_r      = SQRT( D_l / k_tot )
-    gb_tot   = FOUR_R_T * H_X * l_r * k_tot / cavg
-    gb_tot   = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
+    H_X       = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                         &
+              * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
+    l_r       = SQRT( D_l / k_tot )
+    gb_tot    = FOUR_R_T * H_X * l_r * k_tot / cavg
+    gb_tot    = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
     !
     ! Reactive uptake coefficient [1] and branching ratio [1], Cl path
-    gamma    = 1.0_dp / ( INV_AB + 1.0_dp / gb_tot )
-    branchCl = k_Cl / k_tot
+    gamma     = 1.0_dp / ( INV_AB + 1.0_dp / gb_tot )
+    branchCl  = k_Cl   / k_tot
+    branchSO3 = k_SO3  / k_tot
   END SUBROUTINE Gam_HOCl_Cld
 
   SUBROUTINE Gam_HOCl_AER( H, radius, C_Hp, C_Cl, gamma )
@@ -1952,7 +1954,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    REAL(dp) :: branch, branchCl, brIce
+    REAL(dp) :: branch, branchCl, brIce, dummy
     REAL(dp) :: gamma,  gammaIce, srMw
     !
     k    = 0.0_dp
@@ -1974,7 +1976,7 @@ CONTAINS
     ELSE
        !
        ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop liquid cloud
-       CALL Gam_HOCl_Cld( H, gamma, branchCl )
+       CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
        branch = branchCl * H%Cl_branch_CldG
        !
        ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop ice cloud
@@ -2027,7 +2029,7 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
     REAL(dp) :: area,  branch, branchCl
-    REAL(dp) :: gamma, srMw
+    REAL(dp) :: dummy, gamma,  srMw
     !
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
@@ -2036,7 +2038,7 @@ CONTAINS
     IF ( .not. H%stratBox ) THEN
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
-       CALL Gam_HOCl_Cld( H, gamma, branchCl )
+       CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
        branch = branchCl * H%Cl_branch_CldA
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
@@ -2062,7 +2064,7 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
     REAL(dp) :: area,  branch, branchCl
-    REAL(dp) :: gamma, srMw
+    REAL(dp) :: dummy, gamma,  srMw
     !
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
@@ -2071,7 +2073,7 @@ CONTAINS
     IF ( .not. H%stratBox ) THEN
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
-       CALL Gam_HOCl_Cld( H, gamma, branchCl )
+       CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
        branch = branchCl * H%Cl_branch_CldC
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
@@ -2096,8 +2098,8 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    REAL(dp) :: area,  branch, dummy
-    REAL(dp) :: gamma, srMw
+    REAL(dp) :: area,  branch, branchSO3
+    REAL(dp) :: dummy, gamma,  srMw
     !
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
@@ -2106,8 +2108,8 @@ CONTAINS
     IF ( .not. H%stratBox ) THEN
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
-       CALL Gam_HOCl_Cld( H, gamma, dummy )
-       branch = H%HSO3_conc_Cld / ( H%HSO3_conc_Cld + H%SO3_conc_Cld )
+       CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
+       branch = branchSO3 * ( H%HSO3_aq_Cld / H%TSO3_aq_Cld )
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -2124,8 +2126,8 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    REAL(dp) :: area,  branch, dummy
-    REAL(dp) :: gamma, srMw
+    REAL(dp) :: area,  branch, branchSO3
+    REAL(dp) :: dummy, gamma,  srMw
     !
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
@@ -2134,8 +2136,8 @@ CONTAINS
     IF ( .not. H%stratBox ) THEN
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
-       CALL Gam_HOCl_Cld( H, gamma, dummy )
-       branch = H%SO3_conc_Cld / ( H%HSO3_conc_Cld + H%SO3_conc_Cld )
+       CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
+       branch = branchSO3 * ( H%SO3_aq_Cld / H%TSO3_aq_Cld )
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )

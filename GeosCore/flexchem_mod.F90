@@ -1637,11 +1637,12 @@ CONTAINS
     State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
 
     ! Concentrations
-    State_Het%HSO3_conc_Cld  = State_Chm%HSO3_AQ(I,J,L)
+    State_Het%HSO3_aq_Cld    = State_Chm%HSO3_AQ(I,J,L)
+    State_Het%SO3_aq_Cld     = State_Chm%SO3_AQ(I,J,L)
+    State_Het%TSO3_aq_Cld    = State_Het%HSO3_aq_Cld + State_Het%SO3_aq_Cld
     State_Het%HSO4_molal     = State_Chm%IsorropBisulfate(I,J,L)
     State_Het%NO3_molal      = State_Chm%IsorropNitrate(I,J,L,1)
     State_Het%SO4_molal      = State_Chm%IsorropSulfate(I,J,L)
-    State_Het%SO3_conc_Cld   = State_Chm%SO3_AQ(I,J,L)
 
     ! pH and alkalinity fields
     State_Het%H_plus         = State_Chm%IsorropHplus(I,J,L,1)
