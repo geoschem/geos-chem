@@ -1879,6 +1879,101 @@ CONTAINS
   ! Hetchem rate-law functions for HOCl
   !=========================================================================
 
+  SUBROUTINE Gam_HOCl_Cld( H,    radius, C_Cl, C_HSO3, C_SO3,                &
+                           C_Hp, gamma,  k_Cl, k_SO3,  k_tot                )
+    !
+    ! Computes the uptake coefficient [1] of HOCl + HSO3 and HOCl + SO3.
+    ! Returns reaction rates of Cl and SO3 paths to compute branching ratios.
+    !
+    TYPE(HetState), INTENT(IN)  :: H             ! Hetchem State
+    REAL(dp),       INTENT(IN)  :: radius        ! Radius [cm]
+    REAL(dp),       INTENT(IN)  :: C_Cl          ! Cl   conc [mol/L]
+    REAL(dp),       INTENT(IN)  :: C_HSO3        ! HSO3 conc [mol/L]
+    REAL(dp),       INTENT(IN)  :: C_SO3         ! SO3  conc [mol/L]
+    REAL(dp),       INTENT(IN)  :: C_Hp          ! H+   conc [mol/L]
+    REAL(dp),       INTENT(OUT) :: gamma         ! Rxn prob [1]
+    REAL(dp),       INTENT(OUT) :: k_Cl          ! Rxn rate, Cl path [1/s]
+    REAL(dp),       INTENT(OUT) :: k_SO3         ! Rxn rate, SO3 path [1/s]
+    REAL(dp),       INTENT(OUT) :: k_tot         ! Total rxn rate [1/s]
+    !
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.8_dp  ! 1/mass accom coeff
+    REAL(dp), PARAMETER :: D_l    = 2.0e-5_dp        ! Liq diff phase coeff
+    !
+    REAL(dp) :: cavg, gb_tot, H_X, l_r, M_X
+    !
+    ! thermal velocity (cm/s)
+    M_X    = MW(ind_HOCl) * 1.0e-3_dp
+    cavg   = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
+    !
+    ! Reaction rates, Cl and SO3 paths [1/s]
+    k_Cl   = 1.5e+4_dp * C_Cl * C_Hp  
+    k_SO3  = 2.8e+5_dp * ( C_HSO3 + C_SO3 )
+    k_tot  = k_Cl + k_SO3
+
+    ! Henry's law
+    H_X    = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                            &
+           * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
+    l_r    = SQRT( D_l / k_tot )
+    gb_tot = FOUR_R_T * l_r * k_tot / cavg
+    gb_tot = gb_tot * ReactoDiff_Corr( radius, l_r )
+
+    ! Reactive uptake coefficient [unitless]
+    gamma  = 1.0_dp / ( INV_AB + 1.0_dp / gb_tot )
+  END SUBROUTINE Gam_HOCl_Cld
+
+  FUNCTION HOClUptkByHClAndTropCloud( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] for the HOCl + HBr reaction.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    REAL(dp) :: branch, brIce, gamma, gammaIce
+    REAL(dp) :: k_Cl,   k_SO3, k_tot, srMw
+    !
+    branch   = 0.0_dp
+    brIce    = 1.0_dp
+    gamma    = 0.0_dp
+    gammaIce = 0.22_dp * H%HCl_theta
+    k        = 0.0_dp
+    k_Cl     = 0.0_dp
+    k_SO3    = 0.0_dp
+    srMw     = SR_MW(ind_HOCl)
+    !
+    IF ( H%stratBox ) THEN
+       !
+       ! HOCl + HBr on tropospheric sulfate in stratosphere
+       gamma = 0.8_dp
+       k = k + Ars_L1K( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       !
+       ! HOCl + HBr on stratopsheric liquid aerosol
+       k = k + H%xArea(SLA) * H%KHETI_SLA(HOCl_plus_HCl)
+       !
+       ! HOCl + HBr on irregular ice cloud 
+       gamma = 0.2_dp                          ! Rxn prob, ice
+       IF ( H%natSurface ) gamma = 0.1_dp      ! Rxn prob, NAT
+       k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
+    ELSE
+!       !
+!       ! HOCl uptake coefficient in tropospheric cloud, liquid path [1]
+!       CALL Gam_HOCl_Cld( H,               H%rLiq,         H%Cl_conc_CldG,   &
+!                          H%HSO3_conc_Cld, H%SO3_conc_Cld, H%H_Conc_LCL,     &
+!                          gamma,           k_Cl,           k_SO3,            &
+!                          k_tot                                             )
+!       !
+!       ! Branching ratio, liquid path [1]
+!       branch = ( k_Cl / k_tot ) * H%Cl_branch_CldG
+!       !
+!       gamma = 0.0_dp
+!       branch = 0.0_dp
+!       ! Compute overal HOCl + HCl uptake rate accounting for cloud fraction
+!       k = k + CloudHet( H, SR_MW(ind_HOCl), gamma, branch, gammaIce, brIce )
+    ENDIF
+    !
+    ! Assume HOCl is limiting, so recompute reaction rate accordingly
+    k =  kIIR1Ltd( C(ind_HOCl), C(ind_HCl), k )
+  END FUNCTION HOClUptkByHClAndTropCloud
+
   FUNCTION HOClUptkByHBr( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + HBr reaction.
