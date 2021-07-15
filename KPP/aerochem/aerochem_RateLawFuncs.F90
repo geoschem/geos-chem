@@ -1106,7 +1106,7 @@ CONTAINS
        !
        ! ClNO3 + HBr uptake rate in tropospheric liquid cloud
        CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       brLiq = brBr * H%Br_branch_CldG
+       brLiq = brBr * H%frac_Br_CldG
        !
        ! ClNO3 + HBr uptake rate in tropospheric ice cloud
        CALL Gam_ClNO3_Ice( H, gammaIce, dum1, brIce, dum2 )
@@ -1140,7 +1140,7 @@ CONTAINS
        !
        ! Compute ClNO3 + BrSALA uptake rate & branching ratio
        CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       branch = brBr * H%Br_branch_CldA
+       branch = brBr * H%frac_Br_CldA
        !
        ! Compute ClNO3 + BrSALA uptake rate accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -1176,7 +1176,7 @@ CONTAINS
        !
        ! Compute ClNO3 + BrSALA uptake rate & branching ratio
        CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       branch = brBr * H%Br_branch_CldC
+       branch = brBr * H%frac_Br_CldC
        !
        ! Compute ClNO3 + BrSALA uptake rate accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -1397,8 +1397,8 @@ CONTAINS
     ! Rates for each HOBr + {Cl-, Br-, HSO3-, HSO3--} rxn
     k_HOBr_Cl     = 2.3e+10_dp * H%Cl_conc_Cld * C_Hp1  ! Liu & Margerum, EST, 2001
     k_HOBr_Br     = 1.6e+10_dp * H%Br_conc_Cld * C_Hp2  ! ??
-    k_HOBr_HSO3   = 2.6e+7_dp  * H%HSO3_aq_Cld        ! Liu and Abbatt, GRL, 2020
-    k_HOBr_HSO3_2 = 5.0e+9_dp  * H%SO3_aq_Cld         ! Troy & Margerum, Inorg. Chem., 1991
+    k_HOBr_HSO3   = 2.6e+7_dp  * H%HSO3_aq ! Liu and Abbatt, GRL, 2020
+    k_HOBr_HSO3_2 = 5.0e+9_dp  * H%SO3_aq  ! Troy & Margerum, Inorg. Chem., 1991
     !
     ! Total rate
     k_tot  = k_HOBr_Cl + k_HOBr_Br + k_HOBr_HSO3 + k_HOBr_HSO3_2
@@ -1487,7 +1487,7 @@ CONTAINS
        IF ( H%Br_over_Cl_Cld <=  5.0e-4_dp ) THEN
           branch = branch_0 * Br2_Yield( H%Br_over_Cl_Cld )
        ENDIF
-       brLiq = branch * H%Br_branch_CldG
+       brLiq = branch * H%frac_Br_CldG
        !
        ! Overall probability of HOBr uptake and
        ! ice-path branching ratio for HOBr + HBr
@@ -1550,7 +1550,7 @@ CONTAINS
        IF ( H%Br_over_Cl_Cld <= 5.0e-4_dp ) THEN
           branch = branch_0 * ( 1.0_dp - Br2_Yield( H%Br_over_Cl_Cld ) )
        ENDIF
-       brLiq = branch * H%Cl_branch_CldG
+       brLiq = branch * H%frac_Cl_CldG
        !
        ! Overall probability of HOBr uptake and
        ! ice-path branching ratio for HOBr + HCl
@@ -1596,7 +1596,7 @@ CONTAINS
        IF ( H%Br_over_Cl_Cld <= 5.0e-4_dp ) THEN
           branch = branch_0 * Br2_Yield( H%Br_over_Cl_Cld )
        ENDIF
-       brLiq = branch * H%Br_branch_CldA
+       brLiq = branch * H%frac_Br_CldA
        !
        ! Compute overall HOBr removal rate in cloud
        k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
@@ -1656,7 +1656,7 @@ CONTAINS
        IF ( H%Br_over_Cl_Cld <= 5.0e-4_dp ) THEN
           branch = branch_0 * Br2_Yield( H%Br_over_Cl_Cld )
        ENDIF
-       brLiq = branch * H%Br_branch_CldC
+       brLiq = branch * H%frac_Br_CldC
        !
        ! Compute overall HOBr removal rate in cloud
        k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
@@ -1716,7 +1716,7 @@ CONTAINS
        IF ( H%Br_over_Cl_Cld <= 5.0e-4_dp ) THEN
           branch = branch_0 * ( 1.0_dp - Br2_Yield( H%Br_over_Cl_Cld )  )
        ENDIF
-       brLiq = branch * H%Cl_branch_CldA
+       brLiq = branch * H%frac_Cl_CldA
        !
        ! Compute overall HOBr removal rate in cloud
        k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
@@ -1776,7 +1776,7 @@ CONTAINS
        IF ( H%Br_over_Cl_Cld <= 5.0e-4_dp ) THEN
           branch = branch_0 * ( 1.0_dp -  Br2_Yield( H%Br_over_Cl_Cld ) )
        ENDIF
-       brLiq = branch * H%Cl_branch_CldC
+       brLiq = branch * H%frac_Cl_CldC
        !
        ! Compute overall HOBr removal rate in cloud
        k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
@@ -1898,8 +1898,8 @@ CONTAINS
     cavg      = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
     !
     ! Reaction rates, Cl and SO3 paths [1/s]
-    k_Cl      = 1.5e+4_dp * ( H%H_Conc_LCL  * H%Cl_conc_Cld )
-    k_SO3     = 2.8e+5_dp * ( H%HSO3_aq_Cld + H%SO3_aq_Cld  )
+    k_Cl      = 1.5e+4_dp * H%H_Conc_LCL  * H%Cl_conc_Cld
+    k_SO3     = 2.8e+5_dp * H%TSO3_aq 
     k_tot     = k_Cl + k_SO3
 
     ! Henry's law
@@ -1977,7 +1977,7 @@ CONTAINS
        !
        ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop liquid cloud
        CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
-       branch = branchCl * H%Cl_branch_CldG
+       branch = branchCl * H%frac_Cl_CldG
        !
        ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop ice cloud
        gammaIce = 0.22_dp * H%HCl_theta
@@ -2039,7 +2039,7 @@ CONTAINS
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
-       branch = branchCl * H%Cl_branch_CldA
+       branch = branchCl * H%frac_Cl_CldA
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -2074,7 +2074,7 @@ CONTAINS
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
-       branch = branchCl * H%Cl_branch_CldC
+       branch = branchCl * H%frac_Cl_CldC
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -2109,7 +2109,7 @@ CONTAINS
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
-       branch = branchSO3 * ( H%HSO3_aq_Cld / H%TSO3_aq_Cld )
+       branch = branchSO3 * H%frac_HSO3_aq
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -2137,7 +2137,7 @@ CONTAINS
        !
        ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
-       branch = branchSO3 * ( H%SO3_aq_Cld / H%TSO3_aq_Cld )
+       branch = branchSO3 * H%frac_SO3_aq
        !
        ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
@@ -2834,7 +2834,7 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
     ! O3 + HBr uptake rate (gas-phase path), in trop cloud
-    k = O3uptkByBrInTropCloud( H, H%Br_branch_CldG )
+    k = O3uptkByBrInTropCloud( H, H%frac_Br_CldG )
     !
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_O3), C(ind_HBr), k )
@@ -2852,7 +2852,7 @@ CONTAINS
     k = 0.0_dp
     !
     ! O3 + Br- uptake by acidic fine sea salt, in trop cloud
-    k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldA )
+    k = k + O3uptkByBrInTropCloud( H, H%frac_Br_CldA )
     !
     ! O3 + Br- uptake on acidic fine sea-salt, clear sky
     IF ( H%SSA_is_Acid ) THEN
@@ -2877,7 +2877,7 @@ CONTAINS
     k = 0.0_dp
     !
     ! O3 + Br- uptake by acidic coarse sea salt, in trop cloud
-    k = k + O3uptkByBrInTropCloud( H, H%Br_branch_CldC )
+    k = k + O3uptkByBrInTropCloud( H, H%frac_Br_CldC )
     !
     ! O3 + Br- uptake on acidic coarse sea salt, clear sky
     IF ( H%SSC_is_Acid ) THEN

@@ -2966,27 +2966,27 @@ CONTAINS
     ELSE
        H%Cl_conc_CldG = 0.0_dp
        H%Cl_conc_CldA = 0.0_dp
-       H%Cl_Conc_CldC = 0.0_dp
+       H%Cl_conc_CldC = 0.0_dp
     ENDIF
 
     ! Enforce minimum values
-    H%Cl_Conc_CldG   = MAX( H%Cl_conc_CldG, 1.0e-20_dp )
-    H%Cl_Conc_CldA   = MAX( H%Cl_conc_CldA, 1.0e-20_dp )
-    H%Cl_Conc_CldC   = MAX( H%Cl_conc_CldC, 1.0e-20_dp )
+    H%Cl_conc_CldG   = MAX( H%Cl_conc_CldG, 1.0e-20_dp )
+    H%Cl_conc_CldA   = MAX( H%Cl_conc_CldA, 1.0e-20_dp )
+    H%Cl_conc_CldC   = MAX( H%Cl_conc_CldC, 1.0e-20_dp )
 
     ! Total Br- and Cl- in cloud
     H%Br_conc_Cld    = H%Br_conc_CldA + H%Br_conc_CldC + H%Br_conc_CldG
     H%Cl_conc_Cld    = H%Cl_conc_CldA + H%Cl_conc_CldC + H%Cl_conc_CldG
 
     ! Branching ratios for Br- in each of the CldA, CldG, CldC paths
-    H%Br_branch_CldA = H%Br_conc_CldA / H%Br_conc_Cld
-    H%Br_branch_CldC = H%Br_conc_CldC / H%Br_conc_Cld
-    H%Br_branch_CldG = H%Br_conc_CldG / H%Br_conc_Cld
+    H%frac_Br_CldA = H%Br_conc_CldA / H%Br_conc_Cld
+    H%frac_Br_CldC = H%Br_conc_CldC / H%Br_conc_Cld
+    H%frac_Br_CldG = H%Br_conc_CldG / H%Br_conc_Cld
 
     ! Branching ratios for Br- in each of the CldA, CldG, CldC paths
-    H%Cl_branch_CldA = H%Cl_conc_CldA / H%Cl_conc_Cld
-    H%Cl_branch_CldC = H%Cl_conc_CldC / H%Cl_conc_Cld
-    H%Cl_branch_CldG = H%Cl_conc_CldG / H%Cl_conc_Cld
+    H%frac_Cl_CldA = H%Cl_conc_CldA / H%Cl_conc_Cld
+    H%frac_Cl_CldC = H%Cl_conc_CldC / H%Cl_conc_Cld
+    H%frac_Cl_CldG = H%Cl_conc_CldG / H%Cl_conc_Cld
 
     !=======================================================================
     ! Get halide concentrations, in aerosol

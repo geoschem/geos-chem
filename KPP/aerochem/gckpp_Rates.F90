@@ -53,7 +53,7 @@ SUBROUTINE Update_RCONST ( )
 ! Begin INLINED RCONST
 
 
-  ! Inline an include file containing rate law definitions, which 
+  ! Inline an include file containing rate law definitions, which
   ! will be inserted directly into subroutine Update_Rconst().
   ! This is necessary as a workaround for KPP not being able to
   ! include very large files ( > 200000 chars) directly.

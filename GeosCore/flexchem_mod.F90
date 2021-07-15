@@ -1636,10 +1636,14 @@ CONTAINS
     State_Het%OMOC_POA       = State_Chm%OMOC_POA(I,J)
     State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
 
-    ! Concentrations
-    State_Het%HSO3_aq_Cld    = State_Chm%HSO3_AQ(I,J,L)
-    State_Het%SO3_aq_Cld     = State_Chm%SO3_AQ(I,J,L)
-    State_Het%TSO3_aq_Cld    = State_Het%HSO3_aq_Cld + State_Het%SO3_aq_Cld
+    ! HSO3 and SO3 concentrations in cloud [mol/L]
+    State_Het%HSO3_aq        = State_Chm%HSO3_aq(I,J,L)
+    State_Het%SO3_aq         = State_Chm%SO3_aq(I,J,L)
+    State_Het%TSO3_aq        = State_Het%HSO3_aq + State_Het%SO3_aq
+    State_Het%frac_HSO3_aq   = State_Het%HSO3_aq / State_Het%TSO3_aq
+    State_Het%frac_SO3_aq    = State_Het%SO3_aq  / State_Het%TSO3_aq
+
+    ! Concentrations from ISORROPIA
     State_Het%HSO4_molal     = State_Chm%IsorropBisulfate(I,J,L)
     State_Het%NO3_molal      = State_Chm%IsorropNitrate(I,J,L,1)
     State_Het%SO4_molal      = State_Chm%IsorropSulfate(I,J,L)
