@@ -113,7 +113,7 @@ Warnings:                    1
 # NOTE: The offline dust emissions are considered to be buggy.
 #  Until further notice online dust emissions are recommended.
 #--------------------------------------------------------------
-    --> OFFLINE_DUST           :       false    # 1980-2021
+    --> OFFLINE_DUST           :       true     # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       true     # 1980-2021
     --> OFFLINE_SEASALT        :       true     # 1980-2021
     --> OFFLINE_SOILNOX        :       true     # 1980-2021
@@ -2648,10 +2648,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 606 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 606 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 606 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 606 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2020-05/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 666/676 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2020-05/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 666/676 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2020-05/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 666/676 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2020-05/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 666/676 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -4242,10 +4242,11 @@ Warnings:                    1
 # --- Offline dust scale factors ---
 #
 # Scale annual emission totals for offline dust to 2x2.5 online dust values
-# Use 6.42e-5 for GEOS-FP and 3.86e-4 for MERRA-2
+# Use 5.7141e-04 for GEOS-FP and 4.7376e-04 for MERRA-2
 #==============================================================================
 (((OFFLINE_DUST
-606 DST_SF {DUST_SF} - - - xy 1 1
+666 DST_SF {DUST_SF} - - - xy 1 1
+676 DST_NA_opt $ROOT/OFFLINE_DUST/v2020-05/{NATIVE_RES}/DustEmis_scalefactor_NA_optimized.nc dustemis_factor  2016/1/1/0 C xy 1 1
 )))OFFLINE_DUST
 
 #==============================================================================
