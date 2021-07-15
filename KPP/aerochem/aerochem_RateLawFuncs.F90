@@ -1906,7 +1906,7 @@ CONTAINS
     cavg   = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
     !
     ! Reaction rates, Cl and SO3 paths [1/s]
-    k_Cl   = 1.5e+4_dp * C_Cl * C_Hp  
+    k_Cl   = 1.5e+4_dp * C_Hp * C_Cl
     k_SO3  = 2.8e+5_dp * ( C_HSO3 + C_SO3 )
     k_tot  = k_Cl + k_SO3
 
@@ -1914,7 +1914,7 @@ CONTAINS
     H_X    = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                            &
            * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
     l_r    = SQRT( D_l / k_tot )
-    gb_tot = FOUR_R_T * l_r * k_tot / cavg
+    gb_tot = FOUR_R_T * H_X * l_r * k_tot / cavg
     gb_tot = gb_tot * ReactoDiff_Corr( radius, l_r )
 
     ! Reactive uptake coefficient [unitless]
@@ -1954,20 +1954,18 @@ CONTAINS
        IF ( H%natSurface ) gamma = 0.1_dp      ! Rxn prob, NAT
        k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ELSE
-!       !
-!       ! HOCl uptake coefficient in tropospheric cloud, liquid path [1]
-!       CALL Gam_HOCl_Cld( H,               H%rLiq,         H%Cl_conc_CldG,   &
-!                          H%HSO3_conc_Cld, H%SO3_conc_Cld, H%H_Conc_LCL,     &
-!                          gamma,           k_Cl,           k_SO3,            &
-!                          k_tot                                             )
-!       !
-!       ! Branching ratio, liquid path [1]
-!       branch = ( k_Cl / k_tot ) * H%Cl_branch_CldG
-!       !
-!       gamma = 0.0_dp
-!       branch = 0.0_dp
-!       ! Compute overal HOCl + HCl uptake rate accounting for cloud fraction
-!       k = k + CloudHet( H, SR_MW(ind_HOCl), gamma, branch, gammaIce, brIce )
+       !
+       ! HOCl uptake coefficient in tropospheric cloud, liquid path [1]
+       CALL Gam_HOCl_Cld( H,               H%rLiq,         H%Cl_conc_Cld,    &
+                          H%HSO3_conc_Cld, H%SO3_conc_Cld, H%H_Conc_LCL,     &
+                          gamma,           k_Cl,           k_SO3,            &
+                          k_tot                                             )
+       !
+       ! Branching ratio, liquid path [1]
+       branch = ( k_Cl / k_tot ) * H%Cl_branch_CldG
+       !
+       ! Compute overall HOCl + HCl uptake rate accounting for cloud fraction
+       k = k + CloudHet( H, SR_MW(ind_HOCl), gamma, gammaIce, branch, brIce )
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
