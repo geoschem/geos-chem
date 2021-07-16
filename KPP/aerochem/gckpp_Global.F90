@@ -211,7 +211,7 @@ MODULE gckpp_Global
      REAL(dp) :: H2O            ! H2O concentration
      REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice
      REAL(dp) :: HCl_theta      ! HCl theta for uptake on ice
-     REAL(dp) :: H_conc_ICl     ! Liquid phase pH, Cl-
+     REAL(dp) :: H_conc_ICl     ! Ice phase pH, Cl-
      REAL(dp) :: H_conc_LCl     ! Liquid phase pH, Cl-
      REAL(dp) :: H_conc_SSA     ! Liquid phase pH, fine sea salt
      REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt

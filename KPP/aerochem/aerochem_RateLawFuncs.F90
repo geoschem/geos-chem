@@ -41,7 +41,7 @@ MODULE aerochem_RateLawFuncs
   INTEGER,  PRIVATE, PARAMETER :: SLA            = 13 ! Strat sulfate liq aer
   INTEGER,  PRIVATE, PARAMETER :: IIC            = 14 ! Irregular ice cloud
 
-  ! Indices for Fine and coarse sea-salt indices
+  ! Indices for Fine and Coarse sea-salt indices
   INTEGER,  PRIVATE, PARAMETER :: SS_FINE        = 1
   INTEGER,  PRIVATE, PARAMETER :: SS_COARSE      = 2
 
@@ -65,7 +65,7 @@ MODULE aerochem_RateLawFuncs
   REAL(dp), PRIVATE, PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
 
   ! Reference temperature used in Henry's law
-  REAL(dp), PRIVATE, PARAMETER :: INV_T298      = 1.0_dp / 298.15_dp
+  REAL(dp), PRIVATE, PARAMETER :: INV_T298       = 1.0_dp / 298.15_dp
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -926,7 +926,7 @@ CONTAINS
     REAL(dp) :: cavg, gb_tot, H_X, k_Cl
     REAL(dp) :: k_Br, k_tot,  l_r, M_X
     !
-    ! thermal velocity (cm/s)
+    ! Thermal velocity (cm/s)
     M_X      = MW(ind_ClNO2) * 1.0e-3_dp
     cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
     !
@@ -949,26 +949,124 @@ CONTAINS
     branchBr = k_Br / k_tot
   END SUBROUTINE Gam_ClNO2
 
-!    ! Then calculate reaction on aerosols out of cloud
-!    kITemp = kITemp                                                          &
-!           + HETClNO2( NUMDEN,       AClRADI,     ClearFr*AClAREA,           &
-!                       SSAlk(1),    Temp,       pHSSA(1),                    &
-!                       clConc_SALA, brConc_SALA, 1,                          &
-!                        H                                                   )
+  FUNCTION ClNO2uptkByBrSALA( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] of ClNO2 + BrSALA.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area,     gamma, branch
+    REAL(dp) :: branchBr, dummy, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO2)
+    !
+    ! ClNO2 + BrSALA uptake rate [1/s] in tropospheric cloud
+    IF ( .not. H%stratBox ) THEN
+       CALL Gam_ClNO2(                                                       &
+            H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
+            H%Br_conc_Cld, gamma,  dummy,     branchBr                      )
+       branch = branchBr * H%frac_Br_CldA
+       k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+    ENDIF
+    !
+    ! ClNO2 + BrSALA uptake rate [1/s] on fine sea salt aerosol, in clear sky
+    CALL Gam_ClNO2(                                                          &
+         H,             H%aClRadi,  H%H_conc_SSA, H%Cl_conc_SSA,             &
+         H%Br_Conc_SSA, gamma,      dummy,        branchBr                  )
+    area = H%ClearFr * H%aClArea
+    k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchBr
 
-!  FUNCTION ClNO2uptkBySALACL( H ) RESULT( k )
-!    !
-!    !
-!    !
-!
-!    ! ClNO2 + SALACL uptake rate [1/s] 
-!    CALL Gam_ClNO2( H%aClRadi,     H%H_conc_SSA, H%Cl_conc_SSA,              &
-!                    H%Br_Conc_SSA, gamma,        branchCl,                   &
-!                    branchBr                                                )
-!    area = H%ClearFr * H%aClArea
-!    k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchCl
-!
-!  END FUNCTION ClNO2uptkBySALACL
+    ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALA), k )
+  END FUNCTION ClNO2uptkByBrSALA
+
+  FUNCTION ClNO2uptkBySALACL( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] of ClNO2 + SALACL.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area,     gamma, branch
+    REAL(dp) :: branchCl, dummy, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO2)
+    !
+    ! ClNO2 + SALACl uptake rate [1/s] in tropospheric cloud
+    IF ( .not. H%stratBox ) THEN
+       CALL Gam_ClNO2(                                                       &
+            H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
+            H%Br_conc_Cld, gamma,  branchCl,  dummy                         )
+       branch = branchCl * H%frac_Cl_CldA
+       k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+    ENDIF
+    !
+    ! ClNO2 + SALACL uptake rate [1/s] on fine sea salt aerosol, in clear sky
+    CALL Gam_ClNO2(                                                          &
+         H,             H%aClRadi,  H%H_conc_SSA, H%Cl_conc_SSA,             &
+         H%Br_Conc_SSA, gamma,      branchCl,     dummy                     )
+    area = H%ClearFr * H%aClArea
+    k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchCl
+
+    ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO2), C(ind_SALACL), k )
+  END FUNCTION ClNO2uptkBySALACL
+
+  FUNCTION ClNO2uptkBySALCCL( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] of ClNO2 + SALACL.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area,     gamma, branch
+    REAL(dp) :: branchCl, dummy, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO2)
+    !
+    ! ClNO2 + SALCCL uptake rate [1/s] in tropospheric cloud
+    IF ( .not. H%stratBox ) THEN
+       CALL Gam_ClNO2(                                                       &
+            H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
+            H%Br_conc_Cld, gamma,  branchCl,  dummy                         )
+       branch = branchCl * H%frac_Cl_CldC
+       k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+    ENDIF
+    !
+    ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO2), C(ind_SALCCL), k )
+  END FUNCTION ClNO2uptkBySALCCL
+
+  FUNCTION ClNO2uptkByHCl( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] of ClNO2 + HCl.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area,     gamma, branch
+    REAL(dp) :: branchCl, dummy, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO2)
+    !
+    ! ClNO2 + HCl uptake rate [1/s] in tropospheric cloud
+    IF ( .not. H%stratBox ) THEN
+       CALL Gam_ClNO2(                                                       &
+            H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
+            H%Br_conc_Cld, gamma,  branchCl,  dummy                         )
+       branch = branchCl * H%frac_Cl_CldG
+       k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+    ENDIF
+    !
+    ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO2), C(ind_HCl), k )
+  END FUNCTION ClNO2uptkByHCl
+
 
   !=========================================================================
   ! Hetchem rate-law functions for ClNO3
@@ -1162,7 +1260,7 @@ CONTAINS
     k        = 0.0_dp
     srMw     = SR_MW(ind_ClNO3)
     !
-    IF ( H%is_UCX .and. H%stratBox ) THEN
+    IF ( H%stratBox ) THEN
        !
        ! ClNO3 + HBr uptake rate on stratospheric liquid aerosol
        k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_HBr)
@@ -1528,7 +1626,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. H%stratBox ) THEN
+    IF ( H%stratBox ) THEN
        !
        ! Uptake on tropospheric (origin) sulfate in stratosphere
        gammaLiq = 0.25_dp
@@ -1591,7 +1689,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. H%stratBox ) THEN
+    IF ( H%stratBox ) THEN
        !
        ! Uptake on tropospheric (origin) sulfate in stratosphere
        gammaLiq = 0.2_dp
@@ -1651,7 +1749,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+    IF (  .not. H%stratBox ) THEN
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
        CALL Gam_HOBr_CLD(                                                    &
@@ -1711,7 +1809,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+    IF ( .not. H%stratBox ) THEN
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
        CALL Gam_HOBr_CLD(                                                    &
@@ -1771,7 +1869,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+    IF ( .not. H%stratBox ) THEN
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
        CALL Gam_HOBr_CLD(                                                    &
@@ -1831,7 +1929,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+    IF ( .not. H%stratBox  ) THEN
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
        CALL Gam_HOBr_CLD(                                                    &
@@ -1889,7 +1987,7 @@ CONTAINS
     gammaLiq = 0.0_dp
     srMw     = SR_MW(ind_HOBr)
     !
-    IF ( H%is_UCX .and. ( .not. H%stratBox ) ) THEN
+    IF ( .not. H%stratBox ) THEN
        !
        ! HOBr + HBr rxn probability in tropospheric liquid cloud
        CALL Gam_HOBr_CLD(                                                    &
@@ -2234,9 +2332,7 @@ CONTAINS
 
     ! For UCX-based mechanisms also allow reaction on stratospheric
     ! sulfate liq aerosol if tropospheric sulfate is requested
-    IF ( H%is_UCX ) THEN
-       k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
-    ENDIF
+    k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
   END FUNCTION IuptkBySulf1stOrd
 
   FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
@@ -2681,7 +2777,7 @@ CONTAINS
     !
     k = 0.0_dp
     !
-    IF ( H%is_UCX .and. H%stratBox ) THEN
+    IF ( H%stratBox ) THEN
        !
        ! Uptake on stratospheric liquid aerosol
        k = k + ( H%xArea(SLA) * H%KHETI_SLA(N2O5_plus_HCl)                  )
