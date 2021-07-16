@@ -6732,7 +6732,7 @@ CONTAINS
        ! Temperature correction factor [K]
        IF ( SpcInfo%Henry_CR  /= MISSING_R8 ) dhr = SpcInfo%Henry_CR
        ! Acid dissociation constant Ka, compute from pKa
-       IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = 10.0**(-SpcInfo%Henry_pKa) 
+       IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = SpcInfo%Henry_pKa
        ! Temperature correction for Ka, currently ignored by GEOS-Chem
        dak   = 0.0 !mkelp 
        ! Don't washout SO2 if specified so
@@ -7023,7 +7023,7 @@ CONTAINS
            DO I=1,State_Grid%NX
               LTOP = 0
               DO L = 2,State_Grid%NZ+1
-                 IF ( CNV_MFC(I,J,L) > 0.0 ) THEN
+                 IF ( CNV_MFC(I,J,L-1) > 0.0 ) THEN
                     LTOP = (State_Grid%NZ+1) - L + 1
                     EXIT
                  ENDIF
