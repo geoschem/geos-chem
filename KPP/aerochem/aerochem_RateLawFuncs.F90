@@ -903,6 +903,74 @@ CONTAINS
   END FUNCTION BrNO3uptkByHCl
 
   !=========================================================================
+  ! Hetchem rate-law functions for ClNO2
+  !=========================================================================
+
+  SUBROUTINE Gam_ClNO2( H, radius, pH, C_Cl, C_Br, gamma, branchCl, branchBr )
+    !
+    ! Calculates reactive uptake coefficient [1] for 
+    ! ClNO2 + Cl- and ClNO2 + Br-.
+    !
+    TYPE(HetState), INTENT(IN)   :: H            ! Hetchem State
+    REAL(dp),       INTENT(IN)   :: Radius       ! Radius [cm]
+    REAL(dp),       INTENT(IN)   :: C_Cl         ! Cl- conc [mol/L]
+    REAL(dp),       INTENT(IN)   :: C_Br         ! Br- conc [mol/L]
+    REAL(dp),       INTENT(IN)   :: pH           ! H+ conc 
+    REAL(dp),       INTENT(OUT)  :: gamma        ! Rxn prob [1]
+    REAL(dp),       INTENT(OUT)  :: branchCl     ! Branching ratio, Cl path
+    REAL(dp),       INTENT(OUT)  :: branchBr     ! Branching ratio, Br path
+    !
+    REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.01_dp ! 1/mass accom coeff
+    REAL(dp), PARAMETER :: D_l    = 1.0e-5_dp        ! Liq phase diffusion coef
+    ! 
+    REAL(dp) :: cavg, gb_tot, H_X, k_Cl
+    REAL(dp) :: k_Br, k_tot,  l_r, M_X
+    !
+    ! thermal velocity (cm/s)
+    M_X      = MW(ind_ClNO2) * 1.0e-3_dp
+    cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
+    !
+    ! Henry's law [M/bar]
+    H_X      = 4.5e-2_dp * CON_ATM_BAR
+    !
+    ! Reaction rates (Cl path, Br path, total)
+    k_Cl     = 1.0e+7_dp * C_Cl
+    IF ( pH >= 2.0_dp ) k_Cl = 0.0_dp
+    k_Br     = ( 1.01e-1_dp / ( H_X * H_X * D_l ) ) * C_Br
+    k_tot    = k_Cl + k_Br
+    !
+    l_r      = SQRT( D_l / k_tot )
+    gb_tot   = FOUR_R_T * H_X * l_r * k_tot / cavg
+    gb_tot   = gb_tot * ReactoDiff_Corr( radius, l_r )
+    !
+    ! Uptake coefficient [1] and branching ratios [1] for Cl, Br paths
+    gamma    = 1.0_dp / ( INV_AB +  1.0_dp / gb_tot )
+    branchCl = k_Cl / k_tot
+    branchBr = k_Br / k_tot
+  END SUBROUTINE Gam_ClNO2
+
+!    ! Then calculate reaction on aerosols out of cloud
+!    kITemp = kITemp                                                          &
+!           + HETClNO2( NUMDEN,       AClRADI,     ClearFr*AClAREA,           &
+!                       SSAlk(1),    Temp,       pHSSA(1),                    &
+!                       clConc_SALA, brConc_SALA, 1,                          &
+!                        H                                                   )
+
+!  FUNCTION ClNO2uptkBySALACL( H ) RESULT( k )
+!    !
+!    !
+!    !
+!
+!    ! ClNO2 + SALACL uptake rate [1/s] 
+!    CALL Gam_ClNO2( H%aClRadi,     H%H_conc_SSA, H%Cl_conc_SSA,              &
+!                    H%Br_Conc_SSA, gamma,        branchCl,                   &
+!                    branchBr                                                )
+!    area = H%ClearFr * H%aClArea
+!    k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchCl
+!
+!  END FUNCTION ClNO2uptkBySALACL
+
+  !=========================================================================
   ! Hetchem rate-law functions for ClNO3
   !=========================================================================
 
@@ -986,7 +1054,7 @@ CONTAINS
     brH2O = g3 / gamma
   END SUBROUTINE Gam_ClNO3_Ice
 
-  FUNCTION ClNO3uptkByH2OandTropCloud( H ) RESULT( k )
+  FUNCTION ClNO3uptkByH2O( H ) RESULT( k )
     !
     ! Computes the hydrolysis reaction rate [1/s] of ClNO3 + H2O.
     !
@@ -1032,9 +1100,9 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), k )
-  END FUNCTION ClNO3uptkByH2OandTropCloud
+  END FUNCTION ClNO3uptkByH2O
 
-  FUNCTION ClNO3uptkByHClandTropCloud( H ) RESULT( k )
+  FUNCTION ClNO3uptkByHCl( H ) RESULT( k )
     !
     ! Computes the rate [1/s] of ClNO3(g) + HCl(l,s).
     !
@@ -1074,9 +1142,9 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_HCl), k )
-  END FUNCTION ClNO3uptkByHClandTropCloud
+  END FUNCTION ClNO3uptkByHCl
 
-  FUNCTION ClNO3uptkByHBrandTropCloud( H ) RESULT( k )
+  FUNCTION ClNO3uptkByHBr( H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] of ClNO3(g) + HBr-.
     !
@@ -1117,9 +1185,9 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), k )
-  END FUNCTION ClNO3uptkByHBrandTropCloud
+  END FUNCTION ClNO3uptkByHBr
 
-  FUNCTION ClNO3uptkByBrSALAandTropCloud( H ) RESULT( k )
+  FUNCTION ClNO3uptkByBrSALA( H ) RESULT( k )
     !
     ! Computes rxn rate [1/s] of ClNO3 + BrSALA.
     !
@@ -1153,9 +1221,9 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k )
-  END FUNCTION ClNO3uptkByBrSALAandTropCloud
+  END FUNCTION ClNO3uptkByBrSALA
 
-  FUNCTION ClNO3uptkByBrSALCandTropCloud( H ) RESULT( k )
+  FUNCTION ClNO3uptkByBrSALC( H ) RESULT( k )
     !
     ! Computes rxn rate [1/s] of ClNO3 + BrSALC.
     !
@@ -1188,7 +1256,7 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k )
-  END FUNCTION ClNO3uptkByBrSALCandTropCloud
+  END FUNCTION ClNO3uptkByBrSALC
 
   FUNCTION ClNO3uptkBySALACL( H ) RESULT( k )
     !
@@ -1439,7 +1507,7 @@ CONTAINS
     ENDIF
   END SUBROUTINE Gam_HOBr_Ice
 
-  FUNCTION HOBrUptkByHBrAndTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkByHBr( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + HBr reaction
     ! in the stratosphere and in tropospheric clouds.
@@ -1500,9 +1568,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_HBr), k )
-  END FUNCTION HOBrUptkByHBrAndTropCloud
+  END FUNCTION HOBrUptkByHBr
 
-  FUNCTION HOBrUptkByHClAndTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkByHCl( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + HCl reaction
     ! which only occurs in the stratosphere.
@@ -1563,9 +1631,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_HCl), k )
-  END FUNCTION HOBrUptkByHClAndTropCloud
+  END FUNCTION HOBrUptkByHCl
 
-  FUNCTION HOBrUptkByBrSALAandTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkByBrSALA( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + BrSALA reaction.
     !
@@ -1623,9 +1691,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALA), k )
-  END FUNCTION HOBrUptkByBrSALAandTropCloud
+  END FUNCTION HOBrUptkByBrSALA
 
-  FUNCTION HOBrUptkByBrSALCandTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkByBrSALC( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + BrSALC reaction.
     !
@@ -1683,9 +1751,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_BrSALC), k )
-  END FUNCTION HOBrUptkByBrSALCandTropCloud
+  END FUNCTION HOBrUptkByBrSALC
 
-  FUNCTION HOBrUptkBySALACLandTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkBySALACL( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + SALACL reaction.
     !
@@ -1743,9 +1811,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_SALACL), k )
-  END FUNCTION HOBrUptkBySALACLandTropCloud
+  END FUNCTION HOBrUptkBySALACL
 
-  FUNCTION HOBrUptkBySALCCLandTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkBySALCCL( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + SALCCL reaction.
     !
@@ -1803,9 +1871,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_SALCCL), k )
-  END FUNCTION HOBrUptkBySALCCLandTropCloud
+  END FUNCTION HOBrUptkBySALCCL
 
-  FUNCTION HOBrUptkByHSO3mAndTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkByHSO3m( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + HSO3(-) reaction.
     !
@@ -1838,9 +1906,9 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_HSO3m), k )
-  END FUNCTION HOBrUptkByHSO3mAndTropCloud
+  END FUNCTION HOBrUptkByHSO3m
 
-  FUNCTION HOBrUptkBySO3mmAndTropCloud( H ) RESULT( k )
+  FUNCTION HOBrUptkBySO3mm( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + HSO3(-) reaction.
     !
@@ -1871,7 +1939,7 @@ CONTAINS
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_HOBr), C(ind_SO3mm), k )
-  END FUNCTION HOBrUptkBySO3mmAndTropCloud
+  END FUNCTION HOBrUptkBySO3mm
 
   !=========================================================================
   ! Hetchem rate-law functions for HOCl
@@ -1947,7 +2015,7 @@ CONTAINS
     gamma = 1.0_dp / ( INV_AB  +  1.0_dp / gb )
   END SUBROUTINE Gam_HOCl_Aer
 
-  FUNCTION HOClUptkByHClAndTropCloud( H ) RESULT( k )
+  FUNCTION HOClUptkByHCl( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + HBr reaction.
     !
@@ -1989,7 +2057,7 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), k )
-  END FUNCTION HOClUptkByHClAndTropCloud
+  END FUNCTION HOClUptkByHCl
 
   FUNCTION HOClUptkByHBr( H ) RESULT( k )
     !
@@ -2021,7 +2089,7 @@ CONTAINS
     k = kIIR1Ltd( C(ind_HOCl), C(ind_HBr), k )
   END FUNCTION HOClUptkByHBr
 
-  FUNCTION HOClUptkBySALACLandTropCloud( H ) RESULT( k )
+  FUNCTION HOClUptkBySALACL( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + SALACL reaction.
     !
@@ -2054,9 +2122,9 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_SALACL), k )
-  END FUNCTION HOClUptkBySALACLandTropCloud
+  END FUNCTION HOClUptkBySALACL
 
-  FUNCTION HOClUptkBySALCCLandTropCloud( H ) RESULT( k )
+  FUNCTION HOClUptkBySALCCL( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + SALCCL reaction.
     !
@@ -2089,9 +2157,9 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_SALCCL), k )
-  END FUNCTION HOClUptkBySALCCLandTropCloud
+  END FUNCTION HOClUptkBySALCCL
 
-  FUNCTION HOClUptkByHSO3mAndTropCloud( H ) RESULT( k )
+  FUNCTION HOClUptkByHSO3m( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + HSO3- reaction.
     !
@@ -2117,9 +2185,9 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_HSO3m), k )
-  END FUNCTION HOClUptkByHSO3mAndTropCloud
+  END FUNCTION HOClUptkByHSO3m
 
-  FUNCTION HOClUptkBySO3mmAndTropCloud( H ) RESULT( k )
+  FUNCTION HOClUptkBySO3mm( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + SO3-- reaction.
     !
@@ -2145,7 +2213,7 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_SO3mm), k )
-  END FUNCTION HOClUptkBySO3mmAndTropCloud
+  END FUNCTION HOClUptkBySO3mm
 
   !=========================================================================
   ! Hetchem rate-law functions for iodine species
@@ -2826,7 +2894,7 @@ CONTAINS
     k      = CloudHet( H, SR_MW(ind_O3), gamma, 0.0_dp, Br_branch, 0.0_dp )
   END FUNCTION O3uptkByBrInTropCloud
 
-  FUNCTION O3uptkByHBrInTropCloud( H ) RESULT( k )
+  FUNCTION O3uptkByHBr( H ) RESULT( k )
     !
     ! Computes the O3 + HBr uptake rate in tropospheric cloud.
     !
@@ -2838,9 +2906,9 @@ CONTAINS
     !
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_O3), C(ind_HBr), k )
-  END FUNCTION O3uptkByHBrInTropCloud
+  END FUNCTION O3uptkByHBr
 
-  FUNCTION O3uptkByCloudAndBrSALA( H ) RESULT( k )
+  FUNCTION O3uptkByBrSALA( H ) RESULT( k )
     !
     ! Computes the uptake rate of O3 + Br- (in tropospheric
     ! cloud) and on acidic fine sea salt (in clear sky).
@@ -2863,9 +2931,9 @@ CONTAINS
 
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_O3), C(ind_BrSALA), k )
-  END FUNCTION O3uptkByCloudAndBrSALA
+  END FUNCTION O3uptkByBrSALA
 
-  FUNCTION O3uptkByCloudandBrSALC( H ) RESULT( k )
+  FUNCTION O3uptkByBrSALC( H ) RESULT( k )
     !
     ! Computes the uptake rate of O3 + Br- in tropospheric
     ! cloud and on acidic coarse sea salt.
@@ -2888,7 +2956,7 @@ CONTAINS
 
     ! Assume OH is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), k )
-  END FUNCTION O3uptkByCloudAndBrSALC
+  END FUNCTION O3uptkByBrSALC
 
   FUNCTION Gamma_O3_Br( H, Radius, C_Y ) RESULT( gamma )
     !
