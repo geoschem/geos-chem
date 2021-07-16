@@ -973,14 +973,72 @@ CONTAINS
     !
     ! ClNO2 + BrSALA uptake rate [1/s] on fine sea salt aerosol, in clear sky
     CALL Gam_ClNO2(                                                          &
-         H,             H%aClRadi,  H%H_conc_SSA, H%Cl_conc_SSA,             &
-         H%Br_Conc_SSA, gamma,      dummy,        branchBr                  )
+         H,             H%aClRadi,  H%phSSA(1), H%Cl_conc_SSA,               &
+         H%Br_Conc_SSA, gamma,      dummy,      branchBr                    )
     area = H%ClearFr * H%aClArea
     k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchBr
 
     ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALA), k )
   END FUNCTION ClNO2uptkByBrSALA
+
+  FUNCTION ClNO2uptkByBrSALC( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] of ClNO2 + BrSALC.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area,     gamma, branch
+    REAL(dp) :: branchBr, dummy, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO2)
+    !
+    ! ClNO2 + BrSALA uptake rate [1/s] in tropospheric cloud
+    IF ( .not. H%stratBox ) THEN
+       CALL Gam_ClNO2(                                                       &
+            H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
+            H%Br_conc_Cld, gamma,  dummy,     branchBr                      )
+       branch = branchBr * H%frac_Br_CldC
+       k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+    ENDIF
+    !
+    ! ClNO2 + BrSALA uptake rate [1/s] on fine sea salt aerosol, in clear sky
+    CALL Gam_ClNO2(                                                          &
+         H,             H%xRadi(SSC), H%phSSA(2), H%Cl_conc_SSC,             &
+         H%Br_Conc_SSC, gamma,        dummy,      branchBr                  )
+    area = H%ClearFr * H%xArea(SSC)
+    k    = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw ) * branchBr
+
+    ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO2), C(ind_BrSALC), k )
+  END FUNCTION ClNO2uptkByBrSALC
+
+  FUNCTION ClNO2uptkByHBr( H ) RESULT( k )
+    !
+    ! Computes the uptake rate [1/s] of ClNO2 + HCl.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: gamma, branch, branchBr, dummy, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO2)
+    !
+    ! ClNO2 + HCl uptake rate [1/s] in tropospheric cloud
+    IF ( .not. H%stratBox ) THEN
+       CALL Gam_ClNO2(                                                       &
+            H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
+            H%Br_conc_Cld, gamma,  dummy,     branchBr                      )
+       branch = branchBr * H%frac_Cl_CldG
+       k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+    ENDIF
+    !
+    ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_ClNO2), C(ind_HBr), k )
+  END FUNCTION ClNO2uptkByHBr
 
   FUNCTION ClNO2uptkBySALACL( H ) RESULT( k )
     !
@@ -1006,8 +1064,8 @@ CONTAINS
     !
     ! ClNO2 + SALACL uptake rate [1/s] on fine sea salt aerosol, in clear sky
     CALL Gam_ClNO2(                                                          &
-         H,             H%aClRadi,  H%H_conc_SSA, H%Cl_conc_SSA,             &
-         H%Br_Conc_SSA, gamma,      branchCl,     dummy                     )
+         H,             H%aClRadi,  H%phSSA(1), H%Cl_conc_SSA,               &
+         H%Br_Conc_SSA, gamma,      branchCl,   dummy                       )
     area = H%ClearFr * H%aClArea
     k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchCl
 
@@ -1048,8 +1106,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: area,     gamma, branch
-    REAL(dp) :: branchCl, dummy, srMw
+    REAL(dp) :: gamma, branch, branchCl, dummy, srMw
     !
     k    = 0.0_dp
     srMw = SR_MW(ind_ClNO2)
@@ -1066,7 +1123,6 @@ CONTAINS
     ! Assume ClNO2 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO2), C(ind_HCl), k )
   END FUNCTION ClNO2uptkByHCl
-
 
   !=========================================================================
   ! Hetchem rate-law functions for ClNO3
