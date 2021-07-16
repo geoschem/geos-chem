@@ -908,21 +908,21 @@ CONTAINS
 
   SUBROUTINE Gam_ClNO2( H, radius, pH, C_Cl, C_Br, gamma, branchCl, branchBr )
     !
-    ! Calculates reactive uptake coefficient [1] for 
+    ! Calculates reactive uptake coefficient [1] for
     ! ClNO2 + Cl- and ClNO2 + Br-.
     !
     TYPE(HetState), INTENT(IN)   :: H            ! Hetchem State
     REAL(dp),       INTENT(IN)   :: Radius       ! Radius [cm]
     REAL(dp),       INTENT(IN)   :: C_Cl         ! Cl- conc [mol/L]
     REAL(dp),       INTENT(IN)   :: C_Br         ! Br- conc [mol/L]
-    REAL(dp),       INTENT(IN)   :: pH           ! H+ conc 
+    REAL(dp),       INTENT(IN)   :: pH           ! H+ conc
     REAL(dp),       INTENT(OUT)  :: gamma        ! Rxn prob [1]
     REAL(dp),       INTENT(OUT)  :: branchCl     ! Branching ratio, Cl path
     REAL(dp),       INTENT(OUT)  :: branchBr     ! Branching ratio, Br path
     !
     REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 0.01_dp ! 1/mass accom coeff
     REAL(dp), PARAMETER :: D_l    = 1.0e-5_dp        ! Liq phase diffusion coef
-    ! 
+    !
     REAL(dp) :: cavg, gb_tot, H_X, k_Cl
     REAL(dp) :: k_Br, k_tot,  l_r, M_X
     !
@@ -939,14 +939,19 @@ CONTAINS
     k_Br     = ( 1.01e-1_dp / ( H_X * H_X * D_l ) ) * C_Br
     k_tot    = k_Cl + k_Br
     !
-    l_r      = SQRT( D_l / k_tot )
-    gb_tot   = FOUR_R_T * H_X * l_r * k_tot / cavg
-    gb_tot   = gb_tot * ReactoDiff_Corr( radius, l_r )
-    !
     ! Uptake coefficient [1] and branching ratios [1] for Cl, Br paths
-    gamma    = 1.0_dp / ( INV_AB +  1.0_dp / gb_tot )
-    branchCl = k_Cl / k_tot
-    branchBr = k_Br / k_tot
+    ! Prevent div by zero
+    gamma    = 0.0_dp
+    branchCl = 0.0_dp
+    branchBr = 0.0_dp
+    IF ( k_tot > 0.0_dp ) THEN
+       l_r      = SQRT( D_l / k_tot )
+       gb_tot   = FOUR_R_T * H_X * l_r * k_tot / cavg
+       gb_tot   = gb_tot * ReactoDiff_Corr( radius, l_r )
+       gamma    = 1.0_dp / ( INV_AB +  1.0_dp / gb_tot )
+       branchCl = k_Cl   / k_tot
+       branchBr = k_Br   / k_tot
+    ENDIF
   END SUBROUTINE Gam_ClNO2
 
   FUNCTION ClNO2uptkByBrSALA( H ) RESULT( k )
@@ -1148,7 +1153,7 @@ CONTAINS
     M_X      = MW(ind_ClNO3) * 1.0e-3_dp
     cavg     = SQRT( EIGHT_RSTARG_T / ( H%PI * M_X ) ) * 100.0_dp
     !
-    ! H*sqrt(kb)=10^6 (M/s)^½ s-1 for ClNO3 + HBr
+    ! H*sqrt(kb)=10^6 (M/s)^1/2 s-1 for ClNO3 + HBr
     gb2      = FOUR_R_T * 1.0e+6_dp * SQRT( C_Br * D_l ) / cavg
     !
     ! H2k2br cm2 s-1.
@@ -1238,7 +1243,7 @@ CONTAINS
 !       !
 !       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
 !       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-!       brLiq = 1.0_dp - brBr 
+!       brLiq = 1.0_dp - brBr
 !       !
 !       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
 !       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, dum2, brIce )
@@ -1303,11 +1308,6 @@ CONTAINS
     REAL(dp) :: brBr, brLiq, brIce,    dum1
     REAL(dp) :: dum2, gamma, gammaIce, srMw
     !
-    brBr     = 0.0_dp
-    brLiq    = 0.0_dp
-    brIce    = 0.0_dp
-    gamma    = 0.0_dp
-    gammaIce = 0.0_dp
     k        = 0.0_dp
     srMw     = SR_MW(ind_ClNO3)
     !
@@ -1340,33 +1340,30 @@ CONTAINS
     !
     ! Computes rxn rate [1/s] of ClNO3 + BrSALA.
     !
-    TYPE(HetState), INTENT(IN) :: H
-    REAL(dp)                   :: k
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: area, branch, brBr, gamma, srMw
+    REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
-    area   = H%ClearFr*H%aClArea
-    branch = 0.0_dp
-    brBr   = 0.0_dp
-    gamma  = 0.0_dp
-    k      = 0.0_dp
-    srMw   = SR_MW(ind_ClNO3)
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
     IF ( .not. H%stratBox ) THEN
        !
        ! Compute ClNO3 + BrSALA uptake rate & branching ratio
-       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       branch = brBr * H%frac_Br_CldA
+       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+       branch = branchBr * H%frac_Br_CldA
        !
        ! Compute ClNO3 + BrSALA uptake rate accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
-! Investigate numerical diffs later
-!    ! Compute uptake rate of ClNO3 + BrSALA in clear sky
-!    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
-!    k = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * brBr
+!### Investigate numerical diffs
+    ! Compute uptake rate of ClNO3 + BrSALA in clear sky
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
+    area = H%ClearFr * H%aClArea
+    k    = k + ( Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchBr )
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k )
@@ -1379,29 +1376,26 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
     !
-    REAL(dp) :: area, branch, brBr, gamma, srMw
+    REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
-    area   = H%ClearFr * H%xArea(SSC)
-    branch = 0.0_dp
-    brBr   = 0.0_dp
-    gamma  = 0.0_dp
-    k      = 0.0_dp
-    srMw   = SR_MW(ind_ClNO3)
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
     IF ( .not. H%stratBox ) THEN
        !
        ! Compute ClNO3 + BrSALA uptake rate & branching ratio
-       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       branch = brBr * H%frac_Br_CldC
+       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+       branch = branchBr * H%frac_Br_CldC
        !
        ! Compute ClNO3 + BrSALA uptake rate accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
-    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, brBr )
-    k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )* brBr
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, branchBr )
+    area = H%ClearFr * H%xArea(SSC)
+    k    = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )* branchBr
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k )
@@ -1416,16 +1410,14 @@ CONTAINS
     !
     REAL(dp) :: area, branch, brBr, gamma, srMw
     !
-    area   = H%ClearFr * H%aClArea
-    branch = 0.0_dp
-    brBr   = 0.0_dp
-    gamma  = 0.0_dp
-    k      = 0.0_dp
-    srMw   = SR_MW(ind_ClNO3)
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
     !
+!### Investigate numerical diffs
 !    ! Compute uptake rate of ClNO3 + SALACL in clear sky
-!    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
-!    branch = ( 1.0_dp - brBr ) * ( 1.0_dp - H%frac_SALACL )
+!    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
+!    area   = H%ClearFr * H%aClArea
+!    branch = ( 1.0_dp - branchBr ) * ( 1.0_dp - H%frac_SALACL )
 !    k      = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branch
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
@@ -1436,21 +1428,18 @@ CONTAINS
     !
     ! Computes rxn rate [1/s] of ClNO3 + SALCCL.
     !
-    TYPE(HetState), INTENT(IN) :: H
-    REAL(dp)                   :: k
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: area, brBr, branch, gamma, srMw
+    REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
-    area   = H%ClearFr * H%xArea(SSC)
-    branch = 0.0_dp
-    brBr   = 0.0_dp
-    gamma  = 0.0_dp
     k      = 0.0_dp
     srMw   = SR_MW(ind_ClNO3)
     !
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
-    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, brBr )
-    branch = 1.0_dp - brBr
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, branchBr )
+    area   = H%ClearFr * H%xArea(SSC)
+    branch = 1.0_dp - branchBr
     k      = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw ) * branch
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
@@ -1528,8 +1517,11 @@ CONTAINS
     REAL(dp)             :: Y_Br2                ! local vars
 
     ! Yield of Br2
-    Y_Br2 = 0.41_dp * LOG10( Br_over_Cl ) + 2.25_dp
-    Y_Br2 = MAX( MIN( Y_Br2, 0.9_dp ), 0.0_dp )
+    Y_Br2 = 0.0_dp
+    IF ( Br_over_Cl > 0.0_dp ) THEN
+       Y_Br2 = 0.41_dp * LOG10( Br_over_Cl ) + 2.25_dp
+       Y_Br2 = MAX( MIN( Y_Br2, 0.9_dp ), 0.0_dp )
+    ENDIF
   END FUNCTION Br2_Yield
 
   SUBROUTINE Gam_HOBr_Aer( H, radius, C_Hp, C_Clm, C_Brm, gamma )
@@ -1568,14 +1560,16 @@ CONTAINS
     k_HOBr_Br = 1.6e+10_dp * C_Brm     * C_Hp2  ! ??
     k_tot     = k_HOBr_Cl  + k_HOBr_Br
     !
+    ! Compute reactive uptake coefficient [unitless], prevent div by zero
     ! l_r is diffusive length scale [cm];
     ! gb is Bulk reaction coefficient [unitless]
-    l_r       = SQRT( D_l / k_tot )
-    gb_tot    = FOUR_R_T * H_X * l_r * k_tot / cavg
-    gb_tot    = gb_tot * ReactoDiff_Corr( radius, l_r )
-    !
-    ! Reactive uptake coefficient [unitless]
-    gamma     = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+    gamma     = 0.0_dp
+    IF ( k_tot > 0.0_dp ) THEN
+       l_r    = SQRT( D_l / k_tot )
+       gb_tot = FOUR_R_T * H_X * l_r * k_tot / cavg
+       gb_tot = gb_tot * ReactoDiff_Corr( radius, l_r )
+       gamma  = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+    ENDIF
   END SUBROUTINE Gam_HOBr_Aer
 
   SUBROUTINE Gam_HOBr_Cld( H,         gamma,     k_tot,                      &
@@ -1620,14 +1614,16 @@ CONTAINS
     ! Total rate
     k_tot  = k_HOBr_Cl + k_HOBr_Br + k_HOBr_HSO3 + k_HOBr_HSO3_2
     !
+    ! Compue reactive uptake coefficient [unitless], prevent div by zero
     ! l_r is diffusive length scale [cm];
     ! gb is Bulk reaction coefficient [unitless]
-    l_r    = SQRT( D_l / k_tot )
-    gb_tot = FOUR_R_T * H_X * l_r * k_tot / cavg
-    gb_tot = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
-    !
-    ! Reactive uptake coefficient [unitless]
-    gamma = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+    gamma  = 0.0_dp
+    IF ( k_tot > 0.0_dp ) THEN
+       l_r    = SQRT( D_l / k_tot )
+       gb_tot = FOUR_R_T * H_X * l_r * k_tot / cavg
+       gb_tot = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
+       gamma  = 1.0_dp / ( INV_AB + 1.0 / gb_tot )
+    ENDIF
   END SUBROUTINE Gam_HOBr_Cld
 
   SUBROUTINE Gam_HOBr_Ice( H, gamma, branch_HCl, branch_HBr )
@@ -2116,20 +2112,27 @@ CONTAINS
     !
     ! Reaction rates, Cl and SO3 paths [1/s]
     k_Cl      = 1.5e+4_dp * H%H_Conc_LCL  * H%Cl_conc_Cld
-    k_SO3     = 2.8e+5_dp * H%TSO3_aq 
+    k_SO3     = 2.8e+5_dp * H%TSO3_aq
     k_tot     = k_Cl + k_SO3
 
-    ! Henry's law
-    H_X       = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                         &
-              * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
-    l_r       = SQRT( D_l / k_tot )
-    gb_tot    = FOUR_R_T * H_X * l_r * k_tot / cavg
-    gb_tot    = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
-    !
-    ! Reactive uptake coefficient [1] and branching ratio [1], Cl path
-    gamma     = 1.0_dp / ( INV_AB + 1.0_dp / gb_tot )
-    branchCl  = k_Cl   / k_tot
-    branchSO3 = k_SO3  / k_tot
+    ! Compute reactive uptake coefficient [1] and branching ratio [1], Cl path
+    ! but avoid division by zero
+    gamma     = 0.0_dp
+    branchCl  = 0.0_dp
+    branchSO3 = 0.0_dp
+    IF ( k_tot > 0.0_dp ) THEN
+       ! Henry's law
+       H_X       = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                      &
+                 * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
+       !
+       l_r       = SQRT( D_l / k_tot )
+       gb_tot    = FOUR_R_T * H_X * l_r * k_tot / cavg
+       gb_tot    = gb_tot * ReactoDiff_Corr( H%rLiq, l_r )
+       !
+       gamma     = 1.0_dp / ( INV_AB + 1.0_dp / gb_tot )
+       branchCl  = k_Cl   / k_tot
+       branchSO3 = k_SO3  / k_tot
+    ENDIF
   END SUBROUTINE Gam_HOCl_Cld
 
   SUBROUTINE Gam_HOCl_AER( H, radius, C_Hp, C_Cl, gamma )
@@ -2148,6 +2151,11 @@ CONTAINS
     REAL(dp), PARAMETER :: K_TER  = 1.5e+4_dp       ! Units: M-1 s-1
     !
     REAL(dp) :: cavg, gb, H_X, l_r, M_X
+    !
+    gamma = 0.0_dp
+    !
+    ! If C_Cl is zero, gamma is zero!
+    IF ( .not. C_Cl > 0.0_dp ) RETURN
     !
     ! Thermal velocity (cm/s)
     M_X   = MW(ind_HOCl) * 1.0e-3_dp
@@ -2186,7 +2194,7 @@ CONTAINS
        ! HOCl + HBr on stratopsheric liquid aerosol
        k = k + H%xArea(SLA) * H%KHETI_SLA(HOCl_plus_HCl)
        !
-       ! HOCl + HBr on irregular ice cloud 
+       ! HOCl + HBr on irregular ice cloud
        gamma = 0.2_dp                          ! Rxn prob, ice
        IF ( H%natSurface ) gamma = 0.1_dp      ! Rxn prob, NAT
        k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
@@ -2913,23 +2921,27 @@ CONTAINS
     REAL(dp)            :: gb,  l_r,   WaterC, Vol, corr
     REAL(dp), PARAMETER :: INV_AB = 1.0_dp / 1.3e-2_dp
     !
-    Vol     = aArea * aRadi * 1.0e-3_dp / 3.0_dp       ! L/cm3 air
-    WaterC  = aWater / 18.0e+12_dp / Vol               ! mol/L aerosol
-    M_X     = MW(ind_NO3) * 1.0e-3_dp                  ! NO3 mol wt kg/mol
+    Vol      = aArea * aRadi * 1.0e-3_dp / 3.0_dp       ! L/cm3 air
+    WaterC   = aWater / 18.0e+12_dp / Vol               ! mol/L aerosol
     !
     ! Thermal velocity [cm/s]
-    cavg    = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 1.0e2_dp
+    M_X      = MW(ind_NO3) * 1.0e-3_dp                  ! NO3 mol wt kg/mol
+    cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 1.0e2_dp
     !
-    k_tot   = ( 2.76e+6_dp * C_X ) + ( 23.0_dp * WaterC )
+    k_tot    = ( 2.76e+6_dp * C_X ) + ( 23.0_dp * WaterC )
     !
-    H_X     = 0.6_dp * CON_ATM_BAR                     ! M/bar
-    l_r     = SQRT( 1.0e-5_dp / k_tot )                ! diff const = 1e-5
-    !                                                  !  for NO3
-    gb      = FOUR_R_T * H_X * l_r * k_tot / cavg
-    corr    = Reactodiff_Corr( aRadi, l_r )
-    gb      = gb * corr
-    !
-    gamma   = 1.0_dp / ( INV_AB + 1.0_dp/gb )
+    ! Compute reactive uptake coefficient [1], but prevent div by zero
+    gamma   = 0.0_dp
+    IF ( k_tot > 0.0_dp ) THEN
+       H_X   = 0.6_dp * CON_ATM_BAR            ! M/bar
+       l_r   = SQRT( 1.0e-5_dp / k_tot )       ! diff const = 1e-5 for NO3
+       !
+       gb    = FOUR_R_T * H_X * l_r * k_tot / cavg
+       corr  = Reactodiff_Corr( aRadi, l_r )
+       gb    = gb * corr
+       !
+       gamma = 1.0_dp / ( INV_AB + 1.0_dp / gb )
+    ENDIF
   END FUNCTION Gam_NO3
 
   FUNCTION NO3uptk1stOrdAndCloud( H ) RESULT( k )
@@ -3105,42 +3117,50 @@ CONTAINS
     k = kIIR1Ltd( C(ind_O3), C(ind_BrSALC), k )
   END FUNCTION O3uptkByBrSALC
 
-  FUNCTION Gamma_O3_Br( H, Radius, C_Y ) RESULT( gamma )
+  FUNCTION Gamma_O3_Br( H, Radius, C_Br ) RESULT( gamma )
     !
     ! Computes reactive uptake coefficient for Br- oxidation by O3.
     !
     TYPE(HetState), INTENT(IN) :: H             ! Hetchem State
     REAL(dp),       INTENT(IN) :: radius        ! Radius in cm
-    REAL(dp),       INTENT(IN) :: C_Y           ! Br- concentration
+    REAL(dp),       INTENT(IN) :: C_Br          ! Br- concentration
     REAL(dp)                   :: gamma         ! rxn prob [1]
     !
     REAL(dp), PARAMETER  :: K0_O3 = 1.1e-2_dp * CON_ATM_BAR ! Henry K0(O3)
     !
-    REAL(dp) :: ab,  gb,     gd,   gs,      cavg,  H_X
-    REAL(dp) :: M_X, KLangC, k_s, C_Y_surf, Nmax,  k_b,   D_l, l_r
+    REAL(dp) :: ab,  gb,     gd,  gs,       cavg,  H_X
+    REAL(dp) :: M_X, KLangC, k_s, C_Br_surf, Nmax,  k_b,   D_l, l_r
+    !
+    gamma     = 0.0_dp
+    !
+    ! If C_Br is zero, gamma is zero
+    IF ( .not. C_Br > 0.0_dp ) RETURN
     !
     ! Henry's law for O3 (use constants for numerical stability)
-    H_X      = K0_O3 * EXP( 2300.0_dp * ( INV_TEMP - INV_T298 ) )
+    H_X       = K0_O3 * EXP( 2300.0_dp * ( INV_TEMP - INV_T298 ) )
     !
     ! Thermal velocity (cm/s)
-    M_X      = MW(ind_O3) * 1.0e-3_dp
-    cavg     = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
+    M_X       = MW(ind_O3) * 1.0e-3_dp
+    cavg      = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
     !
-    Nmax     = 3.0e+14_dp  ! #/cm2
-    KLangC   = 1.0e-13_dp !cm3
-    k_s      = 1.0e-16_dp !cm2s-1, from ks*Nmax=0.03s-1
+    Nmax      = 3.0e+14_dp  ! #/cm2
+    KLangC    = 1.0e-13_dp !cm3
+    k_s       = 1.0e-16_dp !cm2s-1, from ks*Nmax=0.03s-1
     !
     ! [Br-(surf)] = 3.41E14 cm-2/M * [Br-(bulk)], but not gt Nmax.
-    C_Y_surf = MIN( 3.41e+14_dp * C_Y, Nmax )
-    gs       = ( 4.0_dp * k_s * C_Y_surf * KLangC * Nmax )                   &
-               / ( cavg * ( 1.0_dp + KLangC * C(ind_O3)  ) )
+    C_Br_surf = MIN( 3.41e+14_dp * C_Br, Nmax )
+    gs        = ( 4.0_dp * k_s * C_Br_surf * KLangC * Nmax )                   &
+              / ( cavg * ( 1.0_dp + KLangC * C(ind_O3)  ) )
     !
-    k_b      = 6.3e+8_dp * EXP(-4.45e+3_dp / TEMP )  ! M-1 s-1
-    D_l      = 8.9e-6_dp                             ! cm2 s-1.
-    l_r      = SQRT( D_l / ( k_b * C_Y ) )           ! cm
-    gb       = FOUR_R_T * H_X * l_r * k_b * C_Y / cavg
-    gb       = gb * ReactoDiff_Corr( Radius, l_r )
-    gamma    = gb + gs
+    k_b       = 6.3e+8_dp * EXP(-4.45e+3_dp / TEMP )       ! M-1 s-1
+    D_l       = 8.9e-6_dp                                  ! cm2 s-1.
+    !
+    l_r    = SQRT( D_l / ( k_b * C_Br ) ) ! cm
+    gb     = FOUR_R_T * H_X * l_r * k_b * C_Br / cavg
+    gb     = gb * ReactoDiff_Corr( Radius, l_r )
+    !
+    ! Reactive uptake coefficient [1]
+    gamma     = gb + gs
   END FUNCTION Gamma_O3_Br
 
   !=========================================================================

@@ -123,7 +123,7 @@ CONTAINS
     INTEGER                 :: IND
     REAL(dp)                :: kITemp, kIITemp, rate, gamma
     REAL(dp)                :: HetTemp(3)
-    
+
 
     ! Pointers and objects
     TYPE(HetState), POINTER :: H
@@ -2928,6 +2928,27 @@ CONTAINS
     REAL(dp) :: Br_conc, Cl_conc, denom, HBr, HCl
 
     !=======================================================================
+    ! Initialization
+    !=======================================================================
+
+    ! Set Br and Cl fields of State_Het to zero
+    H%Br_conc_CldG   = 0.0_dp
+    H%Br_conc_CldA   = 0.0_dp
+    H%Br_conc_CldC   = 0.0_dp
+    H%Br_over_Cl_Cld = 0.0_dp
+    H%Br_over_Cl_SSA = 0.0_dp
+    H%Br_over_Cl_SSC = 0.0_dp
+    H%Cl_conc_CldG   = 0.0_dp
+    H%Cl_conc_CldA   = 0.0_dp
+    H%Cl_conc_CldC   = 0.0_dp
+    H%frac_Br_CldA   = 0.0_dp
+    H%frac_Br_CldC   = 0.0_dp
+    H%frac_Br_CldG   = 0.0_dp
+    H%frac_Cl_CldA   = 0.0_dp
+    H%frac_Cl_CldC   = 0.0_dp
+    H%frac_Cl_CldG   = 0.0_dp
+
+    !=======================================================================
     ! Get halide conc's in cloud (gas-phase, fine & coarse sea salt)
     !=======================================================================
 
@@ -2945,16 +2966,13 @@ CONTAINS
        H%Br_conc_CldG = ( Br_conc * C(ind_HBr   )          ) / denom
        H%Br_conc_CldA = ( Br_conc * C(ind_BrSALA) * 0.7_dp ) / denom
        H%Br_conc_CldC = ( Br_conc * C(ind_BrSALC)          ) / denom
-    ELSE
-       H%Br_conc_CldG = 0.0_dp
-       H%Br_conc_CldA = 0.0_dp
-       H%Br_conc_CldC = 0.0_dp
     ENDIF
 
-    ! Enforce minimum values
-    H%Br_conc_CldG = MAX( H%Br_conc_CldG, 1.0e-20_dp )
-    H%Br_conc_CldA = MAX( H%Br_conc_CldA, 1.0e-20_dp )
-    H%Br_conc_CldC = MAX( H%Br_conc_CldC, 1.0e-20_dp )
+    ! Disable, this can lead to numerical roundoff
+    !! Enforce minimum values
+    !H%Br_conc_CldG = MAX( H%Br_conc_CldG, 1.0e-20_dp )
+    !H%Br_conc_CldA = MAX( H%Br_conc_CldA, 1.0e-20_dp )
+    !H%Br_conc_CldC = MAX( H%Br_conc_CldC, 1.0e-20_dp )
 
     ! Split Cl- into gas-phase (G), fine sea salt (A), coarse sea salt (C)
     ! Avoid div-by-zero (all three expressions use the same denominator)
@@ -2963,30 +2981,31 @@ CONTAINS
        H%Cl_conc_CldG = ( Cl_conc * C(ind_HCl   )          ) / denom
        H%Cl_conc_CldA = ( Cl_conc * C(ind_SALACL) * 0.7_dp ) / denom
        H%Cl_conc_CldC = ( Cl_conc * C(ind_SALCCL)          ) / denom
-    ELSE
-       H%Cl_conc_CldG = 0.0_dp
-       H%Cl_conc_CldA = 0.0_dp
-       H%Cl_conc_CldC = 0.0_dp
     ENDIF
 
-    ! Enforce minimum values
-    H%Cl_conc_CldG   = MAX( H%Cl_conc_CldG, 1.0e-20_dp )
-    H%Cl_conc_CldA   = MAX( H%Cl_conc_CldA, 1.0e-20_dp )
-    H%Cl_conc_CldC   = MAX( H%Cl_conc_CldC, 1.0e-20_dp )
+    ! Disable, this can lead to numerical roundoff
+    !! Enforce minimum values
+    !H%Cl_conc_CldG = MAX( H%Cl_conc_CldG, 1.0e-20_dp )
+    !H%Cl_conc_CldA = MAX( H%Cl_conc_CldA, 1.0e-20_dp )
+    !H%Cl_conc_CldC = MAX( H%Cl_conc_CldC, 1.0e-20_dp )
 
     ! Total Br- and Cl- in cloud
-    H%Br_conc_Cld    = H%Br_conc_CldA + H%Br_conc_CldC + H%Br_conc_CldG
-    H%Cl_conc_Cld    = H%Cl_conc_CldA + H%Cl_conc_CldC + H%Cl_conc_CldG
+    H%Br_conc_Cld = H%Br_conc_CldA + H%Br_conc_CldC + H%Br_conc_CldG
+    H%Cl_conc_Cld = H%Cl_conc_CldA + H%Cl_conc_CldC + H%Cl_conc_CldG
+
+    ! Fractions of Br- in each of the CldA, CldG, CldC paths
+    IF ( H%Br_Conc_Cld > 0.0_dp ) THEN
+       H%frac_Br_CldA = H%Br_conc_CldA / H%Br_conc_Cld
+       H%frac_Br_CldC = H%Br_conc_CldC / H%Br_conc_Cld
+       H%frac_Br_CldG = H%Br_conc_CldG / H%Br_conc_Cld
+    ENDIF
 
     ! Branching ratios for Br- in each of the CldA, CldG, CldC paths
-    H%frac_Br_CldA = H%Br_conc_CldA / H%Br_conc_Cld
-    H%frac_Br_CldC = H%Br_conc_CldC / H%Br_conc_Cld
-    H%frac_Br_CldG = H%Br_conc_CldG / H%Br_conc_Cld
-
-    ! Branching ratios for Br- in each of the CldA, CldG, CldC paths
-    H%frac_Cl_CldA = H%Cl_conc_CldA / H%Cl_conc_Cld
-    H%frac_Cl_CldC = H%Cl_conc_CldC / H%Cl_conc_Cld
-    H%frac_Cl_CldG = H%Cl_conc_CldG / H%Cl_conc_Cld
+    IF ( H%Cl_Conc_Cld > 0.0_dp ) THEN
+       H%frac_Cl_CldA = H%Cl_conc_CldA / H%Cl_conc_Cld
+       H%frac_Cl_CldC = H%Cl_conc_CldC / H%Cl_conc_Cld
+       H%frac_Cl_CldG = H%Cl_conc_CldG / H%Cl_conc_Cld
+    ENDIF
 
     !=======================================================================
     ! Get halide concentrations, in aerosol
@@ -3031,9 +3050,17 @@ CONTAINS
     !=======================================================================
     ! Ratios of Br- to Cl-
     !=======================================================================
-    H%Br_over_Cl_Cld = H%Br_conc_Cld / H%Cl_conc_Cld  ! in gas, in-cloud
-    H%Br_over_Cl_SSA = H%Br_conc_SSA / H%Cl_conc_SSA  ! in fine sea salt
-    H%Br_over_Cl_SSC = H%Br_conc_SSC / H%Cl_conc_SSC  ! in coarse sea salt
+    IF ( H%Cl_conc_Cld > 0.0_dp ) THEN
+       H%Br_over_Cl_Cld = H%Br_conc_Cld / H%Cl_conc_Cld   ! in gas, in-cloud
+    ENDIF
+
+    IF ( H%Cl_conc_SSA > 0.0_dp ) THEN
+       H%Br_over_Cl_SSA = H%Br_conc_SSA / H%Cl_conc_SSA  ! in fine sea salt
+    ENDIF
+
+    IF ( H%Cl_conc_SSC > 0.0_dp ) THEN
+       H%Br_over_Cl_SSC = H%Br_conc_SSC / H%Cl_conc_SSC  ! in coarse sea salt
+    ENDIF
 
     !=======================================================================
     ! Fraction of SALACL in total fine sea salt
@@ -3096,8 +3123,8 @@ CONTAINS
 
     ! Exit if not in cloud
     IF ( V_tot < 1.0e-20_dp ) THEN
-       Br_conc = 1.0e-20_dp
-       Cl_conc = 1.0e-20_dp
+       Br_conc = 0.0_dp
+       Cl_conc = 0.0_dp
        RETURN
     ENDIF
 
@@ -3155,7 +3182,7 @@ CONTAINS
 
     ! Skip if we are not in cloud
     IF ( V_tot <= 1.0e-20_dp ) THEN
-       conc_x = 1.0e-20_dp
+       conc_x = 0.0_dp
        RETURN
     ENDIF
 
@@ -3164,7 +3191,7 @@ CONTAINS
     ! V_tot*(1-CF), n_x = n_x*(1-CF), so (1-CF) is canceled.
     ! xnw, 02/05/18
     conc_x = ( n_x / AVO ) / V_tot    ! mol/L
-    conc_x = MAX( conc_x, 1.0e-20_dp )
+    conc_x = MAX( conc_x, 0.0_dp )
 
   END SUBROUTINE Get_Halide_SsaConc
 !EOC
