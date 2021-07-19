@@ -1264,12 +1264,11 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: brIce, dum1,     dum2
-    REAL(dp) :: gamma, gammaIce, srMw
+    REAL(dp) :: branchIce, dum1,     dum2
+    REAL(dp) :: gamma,     gammaIce, srMw
     !
-    k        = 0.0_dp
-    RETURN
-    srMw     = SR_MW(ind_ClNO3)
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
     !
     IF ( H%stratBox ) THEN
        !
@@ -1289,8 +1288,8 @@ CONTAINS
        ! NOTE: No ClNO3 + HCl uptake in tropospheric liquid cloud
        !
        ! ClNO3 + HCl uptake rate in tropospheric ice cloud
-       CALL Gam_ClNO3_Ice( H, gammaIce, brIce, dum1, dum2 )
-       k = k + CloudHet( H, srMw, 0.0_dp, gammaIce, 0.0_dp, brIce )
+       CALL Gam_ClNO3_Ice( H, gammaIce, branchIce, dum1, dum2 )
+       k = k + CloudHet( H, srMw, 0.0_dp, gammaIce, 0.0_dp, branchIce )
     ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
@@ -1304,12 +1303,11 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: brBr, brLiq, brIce,    dum1
-    REAL(dp) :: dum2, gamma, gammaIce, srMw
+    REAL(dp) :: branchBr, branchLiq, branchIce, dum1
+    REAL(dp) :: dum2,     gamma,     gammaIce,  srMw
     !
-    k        = 0.0_dp
-    RETURN
-    srMw     = SR_MW(ind_ClNO3)
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
     !
     IF ( H%stratBox ) THEN
        !
@@ -1322,14 +1320,14 @@ CONTAINS
     ELSE
        !
        ! ClNO3 + HBr uptake rate in tropospheric liquid cloud
-       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       brLiq = brBr * H%frac_Br_CldG
+       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+       branchLiq = branchBr * H%frac_Br_CldG
        !
        ! ClNO3 + HBr uptake rate in tropospheric ice cloud
-       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, brIce, dum2 )
+       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, branchIce, dum2 )
        !
-       ! Compute overall ClNO3 + HBr uptake rate in cloud
-       k = CloudHet( H, srMw, gamma, gammaIce, brLiq, brIce )
+       ! ClNO3 + HBr overall uptake rate, accounting for cloud fraction
+       k = CloudHet( H, srMw, gamma, gammaIce, branchLiq, branchIce )
     ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
