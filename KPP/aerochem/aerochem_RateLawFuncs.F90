@@ -1363,7 +1363,7 @@ CONTAINS
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
     area = H%ClearFr * H%aClArea
-    k    = k + ( Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchBr )
+    k    = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchBr
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k )
@@ -1379,7 +1379,6 @@ CONTAINS
     REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
     k    = 0.0_dp
-    RETURN
     srMw = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
@@ -1396,7 +1395,7 @@ CONTAINS
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, branchBr )
     area = H%ClearFr * H%xArea(SSC)
-    k    = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )* branchBr
+    k    = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw ) * branchBr
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k )
