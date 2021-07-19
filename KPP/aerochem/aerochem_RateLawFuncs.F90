@@ -1139,7 +1139,7 @@ CONTAINS
     !
     !
     TYPE(HetState), INTENT(IN) :: H
-    REAL(dp), INTENT(IN)       :: C_Br     ! Concentration (mol/L)
+    REAL(dp), INTENT(IN)       :: C_Br     ! Br concentration (mol/L)
     REAL(dp), INTENT(OUT)      :: gamma    ! Rxn prob [1]
     REAL(dp), INTENT(OUT)      :: branchBr ! ClNO3 + HBr- branch ratio [1]
     !
@@ -1152,9 +1152,6 @@ CONTAINS
     ! thermal velocity (cm/s)
     M_X      = MW(ind_ClNO3) * 1.0e-3_dp
     cavg     = SQRT( EIGHT_RSTARG_T / ( H%PI * M_X ) ) * 100.0_dp
-    !
-    ! H*sqrt(kb)=10^6 (M/s)^1/2 s-1 for ClNO3 + HBr
-    gb2      = FOUR_R_T * 1.0e+6_dp * SQRT( C_Br * D_l ) / cavg
     !
     ! H2k2br cm2 s-1.
     k_Br     = 1.0e+12_dp * C_Br
@@ -1189,7 +1186,7 @@ CONTAINS
     !
     REAL(dp), PARAMETER :: twenty = 1.0_dp / 0.5_dp
     !
-    REAL(dp)            :: cavg, g1, g2, g3, H2Os, kks, M_X
+    REAL(dp) :: cavg, g1, g2, g3, H2Os, kks, M_X
     !
     ! ClNO3 + HCl uptake probability [1]
     g1    = 0.24_dp * H%HCl_theta
@@ -1220,17 +1217,18 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     !
-    REAL(dp) :: brBr, brLiq, brIce,    dum1
-    REAL(dp) :: dum2, gamma, gammaIce, srMw
+    REAL(dp) :: area,       branchBr, branchLiq
+    REAL(dp) :: branchIce,  dum1,     dum2
+    REAL(dp) :: gamma,      gammaIce, srMw
     !
     k    = 0.0_dp
-    RETURN
     srMw = SR_MW(ind_ClNO3)
     !
     ! Rxn rate of ClNO3 + H2O on fine sea salt in clear sky
-    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, brBr )
-    brLiq = ( 1.0_dp - brBr ) * ( 1.0_dp - H%frac_SALACL )
-    k = k + Ars_L1K( H%ClearFr * H%aClArea, H%aClRadi, gamma, srMw ) * brLiq
+    CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
+    area      = H%ClearFr * H%aClArea
+    branchLiq = ( 1.0_dp - branchBr ) * ( 1.0 - H%frac_SALACL )
+    k         = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchLiq
     !
     ! Rate of ClNO3 + H2O on stratospheric liquid aerosol
     k = k + H%xArea(SLA) * H%KHETI_SLA(ClNO3_plus_H2O)
@@ -1239,19 +1237,19 @@ CONTAINS
     gamma = 0.3_dp                               ! Rxn prob, ice [1]
     IF ( H%NatSurface ) gamma = 0.004_dp         ! Rxn prob, NAT [1]
     k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
-    !
-    IF ( .not. H%stratBox ) THEN
-       !
-       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
-       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, brBr )
-       brLiq = 1.0_dp - brBr
-       !
-       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
-       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, dum2, brIce )
-       !
-       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
-       k = k + CloudHet( H, srMw, gamma, gammaIce, brLiq, brIce )
-    ENDIF
+!    !
+!    IF ( .not. H%stratBox ) THEN
+!       !
+!       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
+!       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+!       branchLiq = 1.0_dp - branchBr
+!       !
+!       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
+!       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, dum2, branchIce )
+!       !
+!       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
+!       k = k + CloudHet( H, srMw, gamma, gammaIce, branchLiq, branchIce )
+!    ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), k )
