@@ -1407,7 +1407,7 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
     !
-    REAL(dp) :: area, branch, brBr, gamma, srMw
+    REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
     k    = 0.0_dp
     srMw = SR_MW(ind_ClNO3)
