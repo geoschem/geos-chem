@@ -1224,6 +1224,7 @@ CONTAINS
     REAL(dp) :: dum2, gamma, gammaIce, srMw
     !
     k    = 0.0_dp
+    RETURN
     srMw = SR_MW(ind_ClNO3)
     !
     ! Rxn rate of ClNO3 + H2O on fine sea salt in clear sky
@@ -1266,10 +1267,8 @@ CONTAINS
     REAL(dp) :: brIce, dum1,     dum2
     REAL(dp) :: gamma, gammaIce, srMw
     !
-    brIce    = 0.0_dp
-    gamma    = 0.0_dp
-    gammaIce = 0.0_dp
     k        = 0.0_dp
+    RETURN
     srMw     = SR_MW(ind_ClNO3)
     !
     IF ( H%stratBox ) THEN
@@ -1309,6 +1308,7 @@ CONTAINS
     REAL(dp) :: dum2, gamma, gammaIce, srMw
     !
     k        = 0.0_dp
+    RETURN
     srMw     = SR_MW(ind_ClNO3)
     !
     IF ( H%stratBox ) THEN
@@ -1346,6 +1346,7 @@ CONTAINS
     REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
     k    = 0.0_dp
+    RETURN
     srMw = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
@@ -1378,6 +1379,7 @@ CONTAINS
     REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
     k    = 0.0_dp
+    RETURN
     srMw = SR_MW(ind_ClNO3)
     !
     ! First compute uptake of ClNO3 + BrSALA in tropospheric cloud
@@ -1412,11 +1414,11 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_ClNO3)
     !
-    ! Compute uptake rate of ClNO3 + SALACL in clear sky
+    ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
     area   = H%ClearFr * H%aClArea
-    branch = ( 1.0_dp - branchBr ) * ( 1.0_dp - H%frac_SALACL )
-    k      = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branch
+    branch = ( 1.0_dp - branchBr ) * H%frac_SALACL
+    k      = k + Ars_L1K( area, H%aClRadi, gamma, srMw )* branch
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), k )
@@ -1431,14 +1433,14 @@ CONTAINS
     !
     REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
-    k      = 0.0_dp
-    srMw   = SR_MW(ind_ClNO3)
+    k    = 0.0_dp
+    srMw = SR_MW(ind_ClNO3)
     !
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, branchBr )
     area   = H%ClearFr * H%xArea(SSC)
-    branch = 1.0_dp - branchBr
-    k      = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw ) * branch
+    branch = 1.0 - branchBr
+    k      = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )* branch
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALCCL), k )
