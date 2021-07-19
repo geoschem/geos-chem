@@ -1237,19 +1237,19 @@ CONTAINS
     gamma = 0.3_dp                               ! Rxn prob, ice [1]
     IF ( H%NatSurface ) gamma = 0.004_dp         ! Rxn prob, NAT [1]
     k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
-!    !
-!    IF ( .not. H%stratBox ) THEN
-!       !
-!       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
-!       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
-!       branchLiq = 1.0_dp - branchBr
-!       !
-!       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
-!       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, dum2, branchIce )
-!       !
-!       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
-!       k = k + CloudHet( H, srMw, gamma, gammaIce, branchLiq, branchIce )
-!    ENDIF
+    !
+    IF ( .not. H%stratBox ) THEN
+       !
+       ! ClNO3 + H2O uptake prob [1] in liquid tropospheric cloud
+       CALL Gam_ClNO3_Aer( H, H%Br_conc_Cld, gamma, branchBr )
+       branchLiq = 1.0_dp - branchBr
+       !
+       ! ClNO3 + H2O uptake prob [1] in tropospheric ice cloud
+       CALL Gam_ClNO3_Ice( H, gammaIce, dum1, dum2, branchIce )
+       !
+       ! ClNO3 + H2O rxn rate in cloudy tropopsheric grid box
+       k = k + CloudHet( H, srMw, gamma, gammaIce, branchLiq, branchIce )
+    ENDIF
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_H2O), k )
