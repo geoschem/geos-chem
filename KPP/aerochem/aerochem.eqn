@@ -452,36 +452,28 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 // NOTES:
 // ------
 // Initial version, Mar. 23, 2021 - MSL
-//
 //------------------------
 // Seasalt:
-//
 SO2  + SALAAL + O3  = SO4 - SALAAL     : K_MT(1);
-HCl  + SALAAL     = SALACL     : K_MT(2);
-HNO3 + SALAAL     = NIT        : K_MT(3);
-//HCl  {+ SALAAL}     = HpA + SALACL     : K_MT(2);
-//HNO3 {+ SALAAL}     = HpA + NIT        : K_MT(3);
+HCl  + SALAAL       = SALACL           : K_MT(2);
+HNO3 + SALAAL       = NIT              : K_MT(3);
 SO2  + SALCAL + O3  = SO4s - SALCAL    : K_MT(4);
-HCl  + SALCAL     =  SALCCL     : K_MT(5);
-HNO3 + SALCAL     =  NITs       : K_MT(6);
-//HCl  {+ SALCAL}     = HpC + SALCCL     : K_MT(5);
-//HNO3 {+ SALCAL}     = HpC + NITs       : K_MT(6);
-//HpA + SALAAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
-//HpC + SALCAL        = DUMMY            : 1.0d-7; {Alkalinity titration by acid uptake; MSL}
+HCl  + SALCAL       =  SALCCL          : K_MT(5);
+HNO3 + SALCAL       =  NITs            : K_MT(6);
 //------------------------
 // Dust:
+//
 //------------------------
 // Cloud:
 // - S(IV) --> S(VI)
-// How to account for cloud fraction? Holmes, 2019
-SO2 + H2O2 = SO4 : K_CLD(1);
-SO2 + O3  = SO4  : K_CLD(2);
-SO2 {+O2} = SO4  : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
+SO2 + H2O2 	    = SO4   	       : K_CLD(1);
+SO2 + O3            = SO4  	       : K_CLD(2);
+SO2 {+O2} 	    = SO4  	       : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
 //------------------------
 // HMS:
-CH2O + SO2 = HMS         : K_CLD(4);
-HMS        = SO2 + CH2O  : K_CLD(5);
-HMS + OH   = 2SO4 + CH2O : k_CLD(6);
+CH2O + SO2	    = HMS	       : K_CLD(4);
+HMS        	    = SO2 + CH2O       : K_CLD(5);
+HMS + OH   	    = 2SO4 + CH2O      : k_CLD(6);
 //------------------------
 // --- End sulfate_mod.F90 reactions 
 //
