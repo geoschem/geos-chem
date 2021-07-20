@@ -66,12 +66,12 @@ SNOMAS   '1'         N Y F0;003000 none none         SNOMAS     /dev/null
 RADSWG   '1'         N Y F0;003000 none none         SWGDN      /dev/null
 TO3      'dobson'    N Y F0;003000 none none         TO3        /dev/null
 TROPP    {PRES_UNIT} N Y F0;003000 none {PRES_SCALE} TROPPT     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-TSKIN    '1'         N Y F0;003000 none none         TS         /dev/null
+TSKIN    '1'         N Y F0;003000 none none         TS         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 TS       '1'         N Y F0;003000 none none         T2M        /dev/null
 USTAR    '1'         N Y F0;003000 none none         USTAR      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 U10M     'm s-1'     N N F0;003000 none none         U10M       /dev/null
 V10M     'm s-1'     N N F0;003000 none none         V10M       /dev/null
-Z0       '1'         N Y F0;003000 none none         Z0M        /dev/null
+Z0       '1'         N Y F0;003000 none none         Z0M        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 
 # --- Surface pressure, 3-hr instantaneous ---
 PS1      {PRES_UNIT} N Y 0         none {PRES_SCALE} PS         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}

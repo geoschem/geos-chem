@@ -554,8 +554,9 @@ fi
 
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
 ### needed for forward run, but we need it now
-sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'#Adjoint',/" HISTORY.rc
-sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'#SFEmissions',/" HISTORY.rc
+print_msg "Removing adjoint history collections"
+sed -i "s/^\([\t ]*\)'Adjoint',/\1#'Adjoint',/" HISTORY.rc
+sed -i "s/^\([\t ]*\)'SFEmissions',/\1#'SFEmissions',/" HISTORY.rc
 replace_val SFEmissions.backwards 0 HISTORY.rc
 sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
 
