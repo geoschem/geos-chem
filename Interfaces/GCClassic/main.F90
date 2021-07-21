@@ -71,6 +71,8 @@ PROGRAM GEOS_Chem
   USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
   USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
   USE SET_GLOBAL_CH4_MOD    ! For setting global CH4 concentrations
+  USE FAST_JX_MOD           ! For Fast-JX state object
+  USE FJX_GC_Interface_MOD  ! For GEOS-Chem interface with Fast-JX
 
   !--------------------------------------------------------------------------
   ! GEOS-Chem deposition modules
@@ -253,6 +255,7 @@ PROGRAM GEOS_Chem
   TYPE(MetState)           :: State_Met       ! Meteorology State object
   TYPE(DgnList )           :: Diag_List       ! Diagnostics list object
   TYPE(TaggedDgnList )     :: TaggedDiag_List ! Tagged diagnostics list object
+  TYPE(FjxState)           :: State_FJX       ! FAST-JX state object
 !
 ! !DEFINED PARAMETERS:
 !
@@ -558,10 +561,21 @@ PROGRAM GEOS_Chem
   ! Skip these operations when in dry-run mode
   !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
+
      ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks,
      ! which require the AREA_M2 field saved out to the StateMet
      ! diagnostic collection for computing emission totals.
      State_Met%Area_M2 = State_Grid%Area_M2
+
+     ! Set Fast-JX object with GEOS-Chem state information
+     ! Only do this if fullchem or aerosol sim???
+     CALL Set_State_Fjx( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                          State_Diag, State_FJX, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "Init_State_Fjx!"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
+     ENDIF
+
   ENDIF
 
   !--------------------------------------------------------------------------
@@ -2238,7 +2252,7 @@ PROGRAM GEOS_Chem
   ENDIF
   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Grid' )
 
-  ! Deallocate fields of the diagnostics list object
+  ! Deallocate fields of the diagnostics list and Fast-JX objects
   IF ( notDryRun ) THEN
      CALL Cleanup_DiagList( Diag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
@@ -2252,6 +2266,12 @@ PROGRAM GEOS_Chem
      ENDIF
      IF ( prtDebug ) THEN
         CALL Debug_Msg( '### MAIN: a cleanup diag lists' )
+     ENDIF
+
+     CALL Finalize_State_Fjx( State_FJX, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "Finalize_State_Fjx!"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
   ENDIF
 

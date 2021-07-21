@@ -30,6 +30,8 @@ MODULE FAST_JX_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: EXITC
+  PUBLIC  :: INIT_STATE_FJX
+  PUBLIC  :: FINALIZE_STATE_FJX
   PUBLIC  :: PHOTO_JX
   PUBLIC  :: INIT_FJX
   PUBLIC  :: FAST_JX
@@ -53,6 +55,88 @@ MODULE FAST_JX_MOD
   PRIVATE :: RD_XXX
   PRIVATE :: RD_JS_JX
   PRIVATE :: SET_AER
+!
+! !PUBLIC DERIVED TYPES
+!
+  ! Parameters - private? define here or externally from fjx dir?
+  TYPE, PUBLIC :: FjxParams
+  END TYPE FjxParams
+
+  ! Run-time configurables - private?
+  TYPE, PUBLIC :: FjxConfig
+    LOGICAL :: amIRoot
+    LOGICAL :: DryRun
+    LOGICAL :: LPRT
+    LOGICAL :: USE_ONLINE_O3
+    LOGICAL :: LUCX
+    LOGICAL :: LBRC
+    CHARACTER(LEN=255) :: FAST_JX_DIR
+    CHARACTER(LEN=255) :: CHEM_INPUTS_DIR
+    LOGICAL :: hvAerNIT
+    REAL    :: hvAerNIT_JNITs
+    REAL    :: hvAerNIT_JNIT
+    REAL    :: JNITChanA
+    REAL    :: JNITChanB
+#if defined( MODEL_GEOS )
+    INTEGER :: FJX_EXTRAL_ITERMAX
+    LOGICAL :: FJX_EXTRAL_ERR
+#endif
+    INTEGER :: NWVSELECT
+    REAL(8), POINTER :: WVSELECT(:)
+  END TYPE FjxConfig
+
+  ! Grid parameters - private?
+  TYPE, PUBLIC :: FjxGrid
+    INTEGER :: NX
+    INTEGER :: NY
+    INTEGER :: NZ
+    INTEGER :: YMID
+    INTEGER :: MaxChemLev
+  END TYPE FjxGrid
+
+  ! Meterology - private?
+  TYPE, PUBLIC :: FjxMet
+    INTEGER(fp), POINTER :: ChemGridLev(:,:)
+    REAL(fp),    POINTER :: SUNCOSmid  (:,:)
+    REAL(fp),    POINTER :: UVALBEDO   (:,:)
+    REAL(fp),    POINTER :: PEDGE      (:,:,:)
+    REAL(fp),    POINTER :: T          (:,:,:)
+    REAL(fp),    POINTER :: OPTD       (:,:,:)
+    REAL(fp),    POINTER :: CLDF       (:,:,:)
+  END TYPE FjxMet
+
+  ! Reaction flags
+  TYPE, PUBLIC :: RxnFlags
+     ! Flags for certain photo-reactions that will be adjusted by
+     ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
+     INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
+     INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
+     INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
+     ! O3  + hv --> O2  + O(1D) (UCX #1)
+     INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
+     INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
+     INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
+   
+     INTEGER, PUBLIC :: RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
+     INTEGER, PUBLIC :: RXN_JNITSa = -1   ! NITs  + hv --> HNO2
+     INTEGER, PUBLIC :: RXN_JNITSb = -1   ! NITs  + hv --> NO2
+     INTEGER, PUBLIC :: RXN_JNITa  = -1   ! NIT + hv --> HNO2
+     INTEGER, PUBLIC :: RXN_JNITb  = -1   ! NIT + hv --> NO2
+   
+     ! Needed for UCX_MOD
+     INTEGER, PUBLIC :: RXN_NO    = -1
+     INTEGER, PUBLIC :: RXN_NO3   = -1
+     INTEGER, PUBLIC :: RXN_N2O   = -1
+  END TYPE RxnFlags
+
+  ! State
+  TYPE, PUBLIC :: FjxState
+    INTEGER :: nPhotol
+    TYPE(FjxConfig), POINTER :: config => NULL()
+    TYPE(FjxGrid  ), POINTER :: grid   => NULL()
+    TYPE(FjxMet   ), POINTER :: met    => NULL()
+    TYPE(RxnFlags ), POINTER :: flags  => NULL()
+  END TYPE FjxState
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -91,6 +175,188 @@ MODULE FAST_JX_MOD
 
 CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_state_fjx
+!
+! !DESCRIPTION: Subroutine INIT\_STATE\_FJX nullifies and/or zeroes all fields
+!  of Fast-JX state object
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE INIT_STATE_FJX( State_FJX, RC )
+!
+! !USES:
+!
+  USE ERRCODE_MOD
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(FjxState), INTENT(INOUT) :: State_Fjx ! FJX state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  14 Jun 2021 - E. Lundgren
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=================================================================
+    ! INIT_STATE_FJX begins here!
+    !=================================================================
+
+    ! Initialize
+    RC          = GC_SUCCESS
+    ErrMsg      = ''
+    ThisLoc     = ' -> at Init_FJX_State (in module GeosCore/fast_jx_mod.F90)'
+
+    ! Set parameters - do later
+
+    ! Set values from state_chm
+    ! others from state_chm:
+
+    ! input configuration
+    state_fjx%config%DryRun            = .FALSE. !Input_Opt%DryRun
+    state_fjx%config%amIRoot           = .FALSE. !Input_Opt%amIRoot
+    state_fjx%config%LPRT              = .FALSE. !Input_Opt%LPRT
+    state_fjx%config%USE_ONLINE_O3     = .FALSE. !Input_Opt%USE_ONLINE_O3
+    state_fjx%config%LBRC              = .FALSE. !Input_Opt%LBRC
+    state_fjx%config%LUCX              = .FALSE. !Input_Opt%LUCX
+    state_fjx%config%FAST_JX_DIR       = ''      !Input_Opt%FAST_JX_DIR
+    state_fjx%config%CHEM_INPUTS_DIR   = ''      !Input_Opt%CHEM_INPUTS_DIR
+    state_fjx%config%hvAerNIT          = .FALSE. !Input_Opt%hvAerNIT
+    state_fjx%config%hvAerNIT_JNITs    = 0.0     !Input_Opt%hvAerNIT_JNITs
+    state_fjx%config%hvAerNIT_JNIT     = 0.0     !Input_Opt%hvAerNIT_JNIT
+    state_fjx%config%JNITChanA         = 0.0     !Input_Opt%JNITChanA
+    state_fjx%config%JNITChanB         = 0.0     !Input_Opt%JNITChanB
+#if defined( MODEL_GEOS )
+    state_fjx%config%FJX_EXTRAL_ITERMAX= 0       !Input_Opt%FJX_EXTRAL_ITERMAX
+    state_fjx%config%FJX_EXTRAL_ERR    = .FALSE. !Input_Opt%FJX_EXTRAL_ERR
+#endif
+    state_fjx%config%NWVSELECT         = 0       !Input_Opt%NWVSELECT
+    state_fjx%config%WVSELECT          => NULL() !Input_Opt%WVSELECT(1:Input_Opt%NWVSELECT)
+
+    ! grid quantities
+    state_fjx%grid%NX         = 0 !State_Grid%NX
+    state_fjx%grid%NY         = 0 !State_Grid%NY
+    state_fjx%grid%NZ         = 0 !State_Grid%NZ
+    state_fjx%grid%YMID       = 0 !State_Grid%YMID
+    state_fjx%grid%MaxChemLev = 0 !State_Grid%MaxChemLev
+
+    ! met quantities
+    state_fjx%met%PEDGE     => NULL() !State_Met%PEDGE
+    state_fjx%met%T         => NULL() !State_Met%T
+    state_fjx%met%SuncosMid => NULL() !State_Met%SuncosMid
+    state_fjx%met%UVALBEDO  => NULL() !State_Met%UVALBEDO
+    state_fjx%met%OPTD      => NULL() !State_Met%OPTD
+    state_fjx%met%CLDF      => NULL() !State_Met%CLDF
+
+    ! rxn flags
+    state_fjx%flags%RXN_O2    = -1   ! O2  + jv --> O   + O
+    state_fjx%flags%RXN_O3_1  = -1   ! O3  + hv --> O2  + O
+    state_fjx%flags%RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
+    ! O3  + hv --> O2  + O(1D) (UCX #1)
+    state_fjx%flags%RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
+    state_fjx%flags%RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
+    state_fjx%flags%RXN_NO2   = -1   ! NO2 + hv --> NO  + O
+    state_fjx%flags%RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
+    state_fjx%flags%RXN_JNITSa = -1   ! NITs  + hv --> HNO2
+    state_fjx%flags%RXN_JNITSb = -1   ! NITs  + hv --> NO2
+    state_fjx%flags%RXN_JNITa  = -1   ! NIT + hv --> HNO2
+    state_fjx%flags%RXN_JNITb  = -1   ! NIT + hv --> NO2
+    ! Needed for UCX_MOD
+    state_fjx%flags%RXN_NO    = -1
+    state_fjx%flags%RXN_NO3   = -1
+    state_fjx%flags%RXN_N2O   = -1
+
+    ! State_Diag vals needed (move elsewhere, last)
+
+  END SUBROUTINE INIT_STATE_FJX
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: finalize_state_fjx
+!
+! !DESCRIPTION: Subroutine FINALIZE\_STATE\_FJX nullifies and/or deallocates all
+!  fields of Fast-JX state object
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FINALIZE_STATE_FJX( State_FJX, RC )
+!
+! !USES:
+!
+  USE ERRCODE_MOD
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(FjxState), INTENT(INOUT) :: State_Fjx ! FJX state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  14 Jun 2021 - E. Lundgren
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=================================================================
+    ! FINALIZE_STATE_FJX begins here!
+    !=================================================================
+
+    ! Assume pointers are to pointers, and deallocation of target
+    ! occurs elsewhere in model, e.g. cleanup of State_Met in GEOS-Chem
+    IF ( ASSOCIATED( state_fjx%config%WVSELECT ) ) THEN
+       state_fjx%config%WVSELECT => NULL()
+    ENDIF
+    IF ( ASSOCIATED( state_fjx%met%PEDGE ) ) THEN
+       state_fjx%met%PEDGE => NULL()
+    ENDIF
+    IF ( ASSOCIATED( state_fjx%met%T ) ) THEN
+       state_fjx%met%T => NULL()
+    ENDIF
+    IF ( ASSOCIATED( state_fjx%met%SuncosMid ) ) THEN
+       state_fjx%met%SuncosMid => NULL()
+    ENDIF
+    IF ( ASSOCIATED( state_fjx%met%UVALBEDO ) ) THEN
+       state_fjx%met%UVALBEDO => NULL()
+    ENDIF
+    IF ( ASSOCIATED( state_fjx%met%OPTD ) ) THEN
+       state_fjx%met%OPTD => NULL()
+    ENDIF
+    IF ( ASSOCIATED( state_fjx%met%CLDF ) ) THEN
+       state_fjx%met%CLDF => NULL()
+    ENDIF 
+
+  END SUBROUTINE FINALIZE_STATE_FJX
+!EOC
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
