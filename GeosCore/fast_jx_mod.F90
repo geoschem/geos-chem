@@ -1906,7 +1906,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: int_fjx
+! !IROUTINE: init_fjx
 !
 ! !DESCRIPTION: Subroutine INIT\_FJX initializes Fast-JX variables.
 !\\
@@ -3732,7 +3732,6 @@ CONTAINS
     LOGICAL,        INTENT(IN)                      :: AOD999
     TYPE(OptInput), INTENT(IN)                      :: Input_Opt
     TYPE(GrdState), INTENT(IN)                      :: State_Grid
-    TYPE(MetState), INTENT(IN)                      :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
