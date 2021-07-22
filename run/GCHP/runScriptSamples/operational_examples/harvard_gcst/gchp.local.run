@@ -5,6 +5,14 @@
 # variables NY and NUM_CORES_PER_NODE match nCores set below.
 nCores=6
 
+# Exit with error if nCores does not match number of cores configured in
+# runConfig.sh
+cfgCores=$( grep -oP 'TOTAL_CORES=\s*\K\d+' runConfig.sh )
+if [[ ${nCores} != ${cfgCores} ]]; then
+   echo "ERROR: number of cores set in gchp.local.run does not match TOTAL_CORES set in runConfig.sh."
+   exit 1
+fi
+
 # Define log
 log=gchp.log
 
