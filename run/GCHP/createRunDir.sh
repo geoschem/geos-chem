@@ -435,9 +435,9 @@ sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 
 # Special handling for benchmark simulation
 if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
-    total_cores=48
+    total_cores=96
     num_nodes=2
-    num_cores_per_node=24
+    num_cores_per_node=48
     grid_res=48
     timeAvg_monthly="1"
     timeAvg_freq="7440000"
@@ -447,7 +447,7 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
     printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- The default diagnostic frequency, duration, and mode is monthly average."
+    printf "\n  -- Monthly time-averaged diagnostics are enabled in HISTORY.rc."
 elif [ "${sim_type}" == "CO2" ]; then
     total_cores=48
     num_nodes=2
