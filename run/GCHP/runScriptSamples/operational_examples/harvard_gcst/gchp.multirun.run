@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -n 48
+#SBATCH -n 96
 #SBATCH -N 2
 #SBATCH -t 0-20:00
 #SBATCH -p huce_cascade
