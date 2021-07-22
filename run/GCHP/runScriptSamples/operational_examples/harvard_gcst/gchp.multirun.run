@@ -5,8 +5,6 @@
 #SBATCH -t 0-20:00
 #SBATCH -p huce_cascade
 #SBATCH --mem=180000
-## Use lower memory if doing Transport Tracers simulation:
-##SBATCH --mem=30000
 #SBATCH --mail-type=ALL
 #SBATCH -o slurm-%j.out
 #SBATCH -e slurm-%j.err
