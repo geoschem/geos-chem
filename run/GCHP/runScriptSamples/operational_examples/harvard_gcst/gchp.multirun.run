@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH -n 24
-#SBATCH -N 1
-#SBATCH -t 0-0:10
+#SBATCH -n 48
+#SBATCH -N 2
+#SBATCH -t 0-20:00
 #SBATCH -p huce_cascade
-#SBATCH --mem=110000
+#SBATCH --mem=180000
 ## Use lower memory if doing Transport Tracers simulation:
 ##SBATCH --mem=30000
 #SBATCH --mail-type=ALL
