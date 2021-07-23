@@ -76,11 +76,6 @@ MODULE FlexChem_Mod
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
-  ! Timing & Testing values
-  REAL(fp) :: test_integrationtime, start, finish, test_h2o2, test_so2
-  REAL(fp) :: tmp_h2o2, tmp_so2, test_FC, test_rate, integrationtime, test_set_cld_s
-  INTEGER  :: test_i, test_j, test_l
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -585,9 +580,6 @@ CONTAINS
        CALL Timer_Start( "  -> FlexChem loop", RC )
     ENDIF
 
-    test_integrationtime = 0.
-    test_set_cld_s = 0.
-
     !-----------------------------------------------------------------------
     ! MAIN LOOP: Compute reaction rates and call chemical solver
     !
@@ -964,52 +956,8 @@ CONTAINS
        ENDIF
 
        ! Call the KPP integrator
-       if (i .eq. 61 .and. j .eq. 15 .and. L .eq. 1 ) then
-          write(*,*) '----KPP AQ RATES---'
-          DO N=1,16
-             write(*,'(A38,a,2e15.9)') EQN_NAMES(N), " ", RCONST(N)
-          END DO
-          write(*,'(a,e15.9)') 'SO2: ', VAR(IND_SO2)
-          write(*,'(a,e15.9)') 'SO4: ', VAR(IND_SO4)
-          write(*,'(a,e15.9)') 'SO4s: ', VAR(IND_SO4s)
-          write(*,'(a,e15.9)') 'SALAAL: ', VAR(IND_SALAAL)
-          write(*,'(a,e15.9)') 'SALCAL: ', VAR(IND_SALCAL)
-          write(*,*) '-------------------'
-       end if
-
-       ! <<>> MSL testing
-       tmp_h2o2 = C(ind_h2o2)
-       tmp_so2  = C(ind_so2)
-
-       call CPU_TIME(start)
-       ! Call the KPP integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,      &
                        RCNTRL, ISTATUS, RSTATE, IERR )
-       call CPU_TIME(finish)
-
-       integrationtime = finish-start
-
-       if (i .eq. 61 .and. j .eq. 15 .and. L .eq. 1 ) then
-          write(*,*) '----KPP CONCS AFTER---'
-          write(*,'(a,e15.9)') 'SO2: ', VAR(IND_SO2)
-          write(*,'(a,e15.9)') 'SO4: ', VAR(IND_SO4)
-          write(*,'(a,e15.9)') 'SO4s: ', VAR(IND_SO4s)
-          write(*,'(a,e15.9)') 'SALAAL: ', VAR(IND_SALAAL)
-          write(*,'(a,e15.9)') 'SALCAL: ', VAR(IND_SALCAL)
-          write(*,*) '-------------------'
-       end if
-
-       ! <<>> MSL testing
-       if (finish-start .gt. test_integrationtime) then
-          test_integrationtime = finish-start
-          test_i = I
-          test_j = J
-          test_l = L
-          test_h2o2 = tmp_h2o2
-          test_so2  = tmp_so2
-          test_rate = RCONST(9)
-          test_FC   = State_Met%CLDF(I,J,L)
-       endif
 
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End( "     Integrate 1", RC, InLoop=.TRUE., ThreadNum=Thread )
@@ -1347,19 +1295,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-!//    write(*,*) ' '
-!//    write(*,*) '--------------------'
-!//    write(*,*) ' integration stats @ max integration time'
-!//    write(*,*) '-- max integrateion time: ', test_integrationtime
-!//    write(*,*) '-- I,J,L: ', test_i, test_j, test_l
-!//    write(*,*) '-- H2O2: ', test_h2o2
-!//    write(*,*) '-- SO2: ', test_so2
-!//    write(*,*) '-- rate: ', test_rate
-!//    write(*,*) '-- cloud frac: ', test_FC
-!//    write(*,*) '-- test_set_cld_s: ', test_set_cld_s
-!//    write(*,*) '--------------------'
-!//    write(*,*) ' '
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End( "  -> FlexChem loop", RC )
