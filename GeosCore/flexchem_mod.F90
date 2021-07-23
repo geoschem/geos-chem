@@ -1015,12 +1015,12 @@ CONTAINS
 
           ! # of forward and backwards substitutions
           IF ( State_Diag%Archive_KppSubsts ) THEN
-             State_Diag%KppSubsts(I,J,L) = State_Met%CldF(I,J,L)
+             State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
           ENDIF
 
           ! # of singular-matrix decompositions
           IF ( State_Diag%Archive_KppSmDecomps ) THEN
-             State_Diag%KppSmDecomps(I,J,L) = integrationtime
+             State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
        ENDIF
 
