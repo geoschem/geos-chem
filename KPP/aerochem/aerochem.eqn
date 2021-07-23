@@ -251,8 +251,6 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
-HpA	   = IGNORE; {dummy proton; MSL}
-HpC	   = IGNORE; {dummy proton; MSL}
 DUMMY	   = IGNORE;
 HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
 HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
