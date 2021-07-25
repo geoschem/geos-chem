@@ -1512,6 +1512,58 @@ CONTAINS
           ENDDO
        ENDIF
 
+       !------------------------------------------------------------------------
+       ! TOMS_MOD
+       ! Not registered to the registry as these are fields internal to the
+       ! toms_mod module state.
+       !------------------------------------------------------------------------
+       chmId = 'TO3_DAILY'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TO3_DAILY,                                &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'TOMS1'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TOMS1,                                    &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'TOMS2'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TOMS2,                                    &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -2258,7 +2310,7 @@ CONTAINS
     ! returned from the species database.  If not, there's an error.
 !>>    IF ( SpcCount%nHg0 == SpcCount%nHg2 .and.                                &
 !>>         SpcCount%nHg0 == SpcCount%nHgP        ) THEN
-       State_Chm%N_Hg_CATS = SpcCount%nHg0
+       State_Chm%N_Hg_CATS = 1 !SpcCount%nHg0
 !>>    ELSE
 !>>       ErrMsg = 'Inconsistent number of Hg categories!'
 !>>       CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2270,15 +2322,15 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Hg0_Id_List = 0
 
-    ! Index array: Hg2 species # <--> Hg0 category #
-    ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Hg2_Id_List = 0
-
-    ! Index array: HgP species # <--> Hg0 category #
-    ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%HgP_Id_List = 0
+!>>    ! Index array: Hg2 species # <--> Hg0 category #
+!>>    ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+!>>    IF ( RC /= GC_SUCCESS ) RETURN
+!>>    State_Chm%Hg2_Id_List = 0
+!>>
+!>>    ! Index array: HgP species # <--> Hg0 category #
+!>>    ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+!>>    IF ( RC /= GC_SUCCESS ) RETURN
+!>>    State_Chm%HgP_Id_List = 0
 
     ! Hg category names
     ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
@@ -4721,10 +4773,10 @@ CONTAINS
        !---------------------------------------------------------------------
 
        ! Append the species name to the diagnostic name with an underscore
-       diagName = TRIM( name ) // '_' // TRIM( State_Chm%Hg_Cat_Name(N) )
+       diagName = TRIM( name )! // '_' // TRIM( State_Chm%Hg_Cat_Name(N) )
 
        ! Append the species name to the diagnostic description
-       diagDesc = TRIM( desc ) // ' ' // TRIM( State_Chm%Hg_Cat_Name(N) )
+       diagDesc = TRIM( desc )! // ' ' // TRIM( State_Chm%Hg_Cat_Name(N) )
 
     ELSE
 

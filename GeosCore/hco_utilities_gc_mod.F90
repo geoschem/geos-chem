@@ -1089,7 +1089,6 @@ CONTAINS
             ! Assign ocean mercury data and write total mass to log file
             SELECT CASE( M )
             CASE ( 1 )
-               write(*,*) '<<>> Togal_Hg_Id: ', Total_Hg_Id, shape(State_Chm%OceanHg0), associated(ptr2d)
                State_Chm%OceanHg0(:,:,Total_Hg_Id) = Ptr2D
                WRITE( 6, 240 ) TRIM( v_name ), &
                             SUM( State_Chm%OceanHg0(:,:,Total_Hg_Id) ), 'kg'

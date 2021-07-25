@@ -1243,20 +1243,20 @@ PROGRAM GEOS_Chem
 
           ! Read data required for Hg2 gas-particle partitioning
           ! (H Amos, 25 Oct 2011)
-          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
-             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
-                                         MONTH,     RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( prtDebug ) THEN
-                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
-             ENDIF
-          ENDIF
+!>>          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
+!>>             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
+!>>                                         MONTH,     RC )
+!>>
+!>>             ! Trap potential errors
+!>>             IF ( RC /= GC_SUCCESS ) THEN
+!>>                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
+!>>                CALL Error_Stop( ErrMsg, ThisLoc )
+!>>             ENDIF
+!>>
+!>>             IF ( prtDebug ) THEN
+!>>                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
+!>>             ENDIF
+!>>          ENDIF
        ENDIF
 
        ! Prescribe methane surface concentrations throughout PBL

@@ -336,6 +336,7 @@ MODULE MERCURY_MOD
      REAL(f4), POINTER  :: Radi(:,:,:) => NULL()
   END TYPE AeroPtrObj
 
+
   ! Vectors holding the oxidant concentrations,
   ! which will be read and interpolated by HEMCO. The
   ! corresponding HEMCO fields must be specified in the HEMCO
@@ -674,6 +675,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !=======================================================================
     IF ( DO_PHOTCHEM ) THEN
+       
         !Compute J values
         CALL FAST_JX( 0, Input_Opt,  State_Chm, &
                       State_Diag, State_Grid, State_Met, RC )
@@ -828,7 +830,7 @@ CONTAINS
 
              ! If this FAST_JX photolysis species maps to a valid
              ! GEOS-Chem photolysis species (for this simulation)...
-             IF ( P > 0 ) THEN
+             IF ( P > 0 .and. P .le. size(State_Diag%JVal,4)) THEN
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
@@ -872,6 +874,22 @@ CONTAINS
                                     State_Met  = State_Met,                  &
                                     RC         = RC                         )
 
+       !======================================================================
+       ! Set heterogeneous uptake rates (s-1)
+       !======================================================================
+       ! Do cloud chemistry only in the troposphere & in liquid/mixed-phase clouds
+       IF ( (State_Met%InTroposphere(I,J,L)) .or. (State_Met%T(I,J,L) .ge. 258e+0_fp)   &
+            .or. ( State_Met%CLDF(I,J,L) .ge. 1e-3_fp ) ) THEN
+          CALL Set_HetRates( I, J, L, Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       ENDIF
+       
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Set_HetRates"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          !           RETURN
+       ENDIF
+
        !====================================================================
        ! Get rates for heterogeneous chemistry
        !====================================================================
@@ -888,24 +906,13 @@ CONTAINS
                 HET(NN,1) = HetRate ( I, J, L, N, 1 )
                 HET(NN,2) = HetRate ( I, J, L, N, 2 )
 
+!>>                if (hetrate(I,J,L,N,1) .gt. 0.) then
+!>>                   write(*,*) '<<>> HetRate: ', I,J,L, HetRate(I,J,L,N,1)
+!>>                   read(*,*)
+!>>                endif
+
            ENDDO
 
-        ENDIF
-
-        !======================================================================
-        ! Set heterogeneous uptake rates (s-1)
-        !======================================================================
-        ! Do cloud chemistry only in the troposphere & in liquid/mixed-phase clouds
-        IF ( (State_Met%InTroposphere(I,J,L)) .or. (State_Met%T(I,J,L) .ge. 258e+0_fp)   &
-             .or. ( State_Met%CLDF(I,J,L) .ge. 1e-3_fp ) ) THEN
-           CALL Set_HetRates( I, J, L, Input_Opt, State_Chm, State_Grid, State_Met, RC )
-        ENDIF
-        
-        ! Trap potential errors
-        IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Error encountered in "Set_HetRates"!'
-           CALL GC_Error( ErrMsg, RC, ThisLoc )
-!           RETURN
         ENDIF
         
        ! Zero out dummy species index in KPP
@@ -924,6 +931,13 @@ CONTAINS
 
        ! Update the array of rate constants
        CALL Update_RCONST( )
+       CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
+!>>       if (I .eq. 2 .and. J .eq. 2 .and. L .eq. 3) then
+!>>          DO N=1,NREACT
+!>>             write(*,*) '<<>>R',N, RCONST(N), Aout(N)
+!>>          enddo
+!>>          read(*,*)
+!>>       Endif
 
        ! Archive KPP reaction rates
        IF ( State_Diag%Archive_RxnRate ) THEN
@@ -1619,7 +1633,7 @@ CONTAINS
           !-----------------
           ! Total Hg species
           !-----------------
-          N    = Hg0_Id_List(ID_Hg_tot)
+          N    = id_Hg0 !Hg0_Id_List(ID_Hg_tot)
           E_Hg = F_OF_PBL * T_Hg * DTSRCE
           CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm, State_Grid )
 
@@ -4152,7 +4166,7 @@ END SUBROUTINE SeaSaltUptake
       prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
       ! Zero array
-      HetRate   = 0e+0_fp
+      HetRate(I,J,L,:,:)   = 0e+0_fp
 
       ! Loop over gridcells
 !<<>> MSL: Put this within the I,J,L integration loop inthe main routine
@@ -5096,7 +5110,7 @@ END SUBROUTINE PARTITIONHG2
 
     ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
     DO NNN = 1, N_Hg_CATS
-       IF ( NNN .eq. 1 ) THEN
+       IF ( NNN .eq. 1 .and. associated(OCEAN_CONC)) THEN
           Hg0aq(:,:,NNN) = OCEAN_CONC(:,:,1)
        ELSE
           Hg0aq(:,:,NNN) = 0.0e+0_fp
@@ -5197,7 +5211,7 @@ END SUBROUTINE PARTITIONHG2
           DO NN = 1, N_Hg_CATS
 
              ! Hg0 tracer number (for STT)
-             N = Hg0_Id_List(NN)
+             N = id_Hg0 !Hg0_Id_List(NN)
 
              !--------------------------------------------------------
              ! Calculate oceanic and gas-phase concentration of Hg(0)
@@ -5468,88 +5482,82 @@ END SUBROUTINE PARTITIONHG2
     id_HGCLO    = Ind_( 'HGCLO'   )
     id_HGOHO    = Ind_( 'HGOHO'   )
 
-    ! Hg species index corresponding to a given Hg category number
-    Hg0_Id_List => State_Chm%Hg0_Id_List
-    Hg2_Id_List => State_Chm%Hg2_Id_List
-    HgP_Id_List => State_Chm%HgP_Id_List
+    ! Initialize variables
+    nHg2gasSpc = 0
+    Map_Hg2gas = 0
 
-    ! Locate various species flags
-    DO N = 1, State_Chm%nSpecies
-
-       ! Point to the species database entry for species # N
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       SELECT CASE( TRIM( SpcInfo%Name ) )
-       CASE( 'Hg0'     )
-          id_Hg0    = SpcInfo%ModelId
-          ID_Hg_tot = SpcInfo%Hg_Cat
-       CASE( 'Hg2'     )
-          id_Hg2    = SpcInfo%ModelId
-       CASE( 'HgP'     )
-          id_HgP    = SpcInfo%ModelId
-       CASE( 'Hg0_can' )
-          ID_Hg_can = SpcInfo%Hg_Cat
-       CASE( 'Hg0_usa' )
-          ID_Hg_usa = SpcInfo%Hg_Cat
-       CASE( 'Hg0_cam' )
-          ID_Hg_cam = SpcInfo%Hg_Cat
-       CASE( 'Hg0_sam' )
-          ID_Hg_sam = SpcInfo%Hg_Cat
-       CASE( 'Hg0_waf' )
-          ID_Hg_waf = SpcInfo%Hg_Cat
-       CASE( 'Hg0_eaf' )
-          ID_Hg_eaf = SpcInfo%Hg_Cat
-       CASE( 'Hg0_saf' )
-          ID_Hg_saf = SpcInfo%Hg_Cat
-       CASE( 'Hg0_naf' )
-          ID_Hg_naf = SpcInfo%Hg_Cat
-       CASE( 'Hg0_eur' )
-          ID_Hg_eur = SpcInfo%Hg_Cat
-       CASE( 'Hg0_eeu' )
-          ID_Hg_eeu = SpcInfo%Hg_Cat
-       CASE( 'Hg0_sov' )
-          ID_Hg_sov = SpcInfo%Hg_Cat
-       CASE( 'Hg0_mde' )
-          ID_Hg_mde = SpcInfo%Hg_Cat
-       CASE( 'Hg0_sas' )
-          ID_Hg_sas = SpcInfo%Hg_Cat
-       CASE( 'Hg0_eas' )
-          ID_Hg_eas = SpcInfo%Hg_Cat
-       CASE( 'Hg0_sea' )
-          ID_Hg_sea = SpcInfo%Hg_Cat
-       CASE( 'Hg0_jpn' )
-          ID_Hg_jpn = SpcInfo%Hg_Cat
-       CASE( 'Hg0_oce' )
-          ID_Hg_oce = SpcInfo%Hg_Cat
-       CASE( 'Hg0_so'  )
-          ID_Hg_so  = SpcInfo%Hg_Cat
-       CASE( 'Hg0_bb'  )
-          ID_Hg_bb  = SpcInfo%Hg_Cat
-       CASE( 'Hg0_geo' )
-          ID_Hg_geo = SpcInfo%Hg_Cat
-       CASE( 'Hg0_atl' )
-          ID_Hg_atl = SpcInfo%Hg_Cat
-       CASE( 'Hg0_nat' )
-          ID_Hg_nat = SpcInfo%Hg_Cat
-       CASE( 'Hg0_sat' )
-          ID_Hg_sat = SpcInfo%Hg_Cat
-       CASE( 'Hg0_npa' )
-          ID_Hg_npa = SpcInfo%Hg_Cat
-       CASE( 'Hg0_arc' )
-          ID_Hg_arc = SpcInfo%Hg_Cat
-       CASE( 'Hg0_ant' )
-          ID_Hg_ant = SpcInfo%Hg_Cat
-       CASE( 'Hg0_ocn' )
-          ID_Hg_ocn = SpcInfo%Hg_Cat
-       CASE( 'Hg0_str' )
-          ID_Hg_str = SpcInfo%Hg_cat
-       CASE DEFAULT
-          ! Do nothing
-       END SELECT
-
-       ! Free pointer
-       SpcInfo => NULL()
-    ENDDO
+    IF (  id_HGBRNO2 > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGBRNO2
+    ENDIF
+    IF (  id_HGBRHO2 > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGBRHO2
+    ENDIF
+    IF (  id_HGBROH  > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGBROH
+    ENDIF
+    IF (  id_HGBRBRO > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGBRBRO
+    ENDIF
+    IF (  id_HGBRCLO > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGBRCLO
+    ENDIF
+    IF (  id_HGBR2 > 0   ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGBR2
+    ENDIF
+    IF (  id_HGCLNO2 > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGCLNO2
+    ENDIF
+    IF (  id_HGCLHO2 > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGCLHO2
+    ENDIF
+    IF (  id_HGCLOH  > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HgCLOH
+    ENDIF
+    IF (  id_HGCLBRO > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGCLBRO
+    ENDIF
+    IF (  id_HGCLCLO > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGCLCLO
+    ENDIF
+    IF (  id_HGCLBR > 0  ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGCLBR
+    ENDIF
+    IF (  id_HGOHNO2 > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGOHNO2
+    ENDIF
+    IF (  id_HGOHHO2 > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGOHHO2
+    ENDIF
+    IF (  id_HGOHOH  > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HgOHOH
+    ENDIF
+    IF (  id_HGOHBRO > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGOHBRO
+    ENDIF
+    IF (  id_HGOHCLO > 0 ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGOHCLO
+    ENDIF
+    IF (  id_HGCL2  > 0  ) THEN
+        nHg2gasSpc           = nHg2gasSpc + 1
+        Map_Hg2gas(nHg2gasSpc) = id_HGCL2
+    ENDIF
 
     !=================================================================
     ! Allocate arrays
@@ -6396,8 +6404,7 @@ END SUBROUTINE PARTITIONHG2
     USE ErrCode_Mod
     USE GcHg_Global
     USE GcHg_Parameters
-    USE GCKPP_Global,       ONLY : State_Het, TEMP_GCKPP => TEMP
-!>>    USE Gckpp_HetRates,  ONLY : Cld_Params, Halide_Conc
+    USE GCKPP_Global,    ONLY : State_Het, TEMP_GCKPP => TEMP
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PhysConstants,   ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
     USE Pressure_Mod,    ONLY : Get_Pcenter
@@ -6461,7 +6468,6 @@ END SUBROUTINE PARTITIONHG2
     ! Temperature quantities
     TEMP            = State_Met%T(I,J,L)
     TEMP_GCKPP      = TEMP ! Enables using gckpp_HetRates.F90
-!    INV_TEMP        = 1.0_dp   / TEMP
     TEMP_OVER_K300  = TEMP     / 300.0_dp
     K300_OVER_TEMP  = 300.0_dp / TEMP
     SR_TEMP         = SQRT( TEMP )
@@ -6469,7 +6475,6 @@ END SUBROUTINE PARTITIONHG2
     ! Relative humidity quantities
     CONSEXP         = 17.2693882_f8 * (TEMP - 273.16_f8) / (TEMP - 35.86_f8)
     VPRESH2O        = CONSVAP * EXP( CONSEXP ) / TEMP
-!    RELHUM          = ( H2O / VPRESH2O ) * 100_dp
 
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
@@ -6485,48 +6490,6 @@ END SUBROUTINE PARTITIONHG2
     State_Het%QICE           = State_Met%QI(I,J,L)
     State_Het%QLIQ           = State_Met%QL(I,J,L)
     State_Het%vAir           = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
-
-    ! Aerosol fields
-!>>    State_Het%nAeroType      = State_Chm%nAeroType
-!>>    State_Het%AClArea        = State_Chm%AClArea(I,J,L)
-!>>    State_Het%AClRadi        = State_Chm%AClRadi(I,J,L)
-!>>    State_Het%AClVol         = State_Het%AClArea * State_Het%AClRadi / 3.0_dp
-!>>    State_Het%AWATER(:)      = State_Chm%IsorropAeroH2O(I,J,L,:)
-!>>    State_Het%xArea(1:NA)    = State_Chm%AeroArea(I,J,L,1:NA)
-!>>    State_Het%xRadi(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)
-!>>    State_Het%xVol(1:NA)     = State_Het%xArea(1:NA)                         &
-!>>                             * State_Het%xRadi(1:NA) / 3.0_dp
-!>>    State_Het%xH2O(1:NA)     = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
-!>>    State_Het%OMOC_POA       = State_Chm%OMOC_POA(I,J)
-!>>    State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
-
-    ! Concentrations
-!>>    State_Het%HSO3_conc_Cld  = State_Chm%HSO3_AQ(I,J,L)
-!>>    State_Het%mHSO4          = State_Chm%IsorropBisulfate(I,J,L)
-!>>    State_Het%mNO3           = State_Chm%IsorropNitrate(I,J,L,1)
-!>>    State_Het%mSO4           = State_Chm%IsorropSulfate(I,J,L)
-!>>    State_Het%SO3_conc_Cld   = State_Chm%SO3_AQ(I,J,L)
-
-    ! pH and alkalinity fields
-!>>    State_Het%H_plus         = State_Chm%IsorropHplus(I,J,L,1)
-!>>    State_Het%pHCloud        = State_Chm%pHCloud(I,J,L)
-!>>    State_Het%pHSSA(:)       = State_Chm%IsorropAeropH(I,J,L,:)
-!>>    State_Het%H_conc_Sul     = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
-!>>    State_Het%H_conc_LCl     = 10.0**( -1.0_dp * State_Het%pHCloud  )
-!>>    State_Het%H_conc_ICl     = 10.0**( -4.5_dp                      )
-!>>    State_Het%H_conc_SSA     = State_Het%H_conc_Sul
-!>>    State_Het%H_conc_SSC     = 10.0**( -5.0_dp                      )
-!>>    State_Het%ssAlk          = State_Chm%SSAlk(I,J,L,:)
-!>>    State_Het%ssFineIsAlk    = ( State_Het%ssAlk(1) > 0.05_dp       )
-!>>    State_Het%ssFineisAcid   = ( .not.  State_Het%ssFineIsAlk       )
-!>>    State_Het%ssCoarseIsAlk  = ( State_Het%ssAlk(2) > 0.05_dp       )
-!>>    State_Het%ssCoarseIsAcid = ( .not.  State_Het%ssCoarseIsAlk     )
-
-    ! Other fields
-!>>    State_Het%fupdateHOBr    = State_Chm%fupdateHOBr(I,J,L)
-!>>    State_Het%fupdateHOCl    = State_Chm%fupdateHOCl(I,J,L)
-!>>    State_Het%gamma_HO2      = Input_Opt%gamma_HO2
-!>>    State_Het%is_UCX         = Input_Opt%LUCX
 
   END SUBROUTINE Set_Kpp_GridBox_Values
 !EOC

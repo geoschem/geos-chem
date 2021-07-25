@@ -3635,7 +3635,7 @@ CONTAINS
     ! ALL FULL-CHEMISTRY SIMULATIONS
     ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
@@ -4461,8 +4461,8 @@ CONTAINS
           SELECT CASE( N )
              CASE( 1  )
                 diagID = 'RxnRate'
-             CASE( 2  )
-                diagID = 'Jval'
+!             CASE( 2  )
+!                diagID = 'Jval'
              CASE( 3  )
                 diagID = 'JNoon'
              CASE( 4  )
@@ -11773,8 +11773,6 @@ CONTAINS
 
        ! Prod species
        CASE( 'PRD' )
-          write(*,*) '<<>> Name_Prod1: ', N
-          write(*,*) '<<>> Name_Prod2: ', size(State_Chm%Name_Prod)
           tagName = State_Chm%Name_Prod(N)
           D       = INDEX( tagName, '_' )
           tagName = tagName(D+1:)
