@@ -3,12 +3,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: fjx_gc_interface_mod.F90
+! !MODULE: FJX_GC_Interface_Mod.F90
 !
-! !DESCRIPTION: Module fjx\_gc\_interface\_mod.F90 contains routines and
-! variables to interface GEOS-Chem and FAST-JX. It contains the FAST-JX state
-! state object (FjxState) as well as init-run-finalize driver routines
-! to run FAST-JX within GEOS-Chem.
+! !DESCRIPTION: Module FJX\_GC\_Interface\_Mod.F90 contains routines and
+! variables to interface GEOS-Chem and FAST-JX. It sets the FAST-JX
+! state object (FjxState) from other GEOS-Chem state objects.
 !\\
 !\\
 ! !INTERFACE:
@@ -20,15 +19,13 @@ MODULE FJX_GC_Interface_Mod
   USE Precision_Mod
   USE Error_Mod
 
-  ! Import the FJX states and their types from the state container
-!  USE HCOX_State_Mod, ONLY : Ext_State
-
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Set_State_FJX
+  PUBLIC  :: FjxState_GC_Set
+  PUBLIC  :: FjxState_Print
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -48,21 +45,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_state_fjx
+! !IROUTINE: FjxState_GC_Set
 !
-! !DESCRIPTION: Subroutine SET\_STATE\_FJX allocates and initializes
-!  fields of the FAST-JX object.
+! !DESCRIPTION: Subroutine FjxState\_GC\_Set sets the FAST-JX state object
+!  values and pointers from other GEOS-Chem state objects.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_STATE_FJX( Input_Opt,  State_Chm, State_Grid, State_Met, &
-                            State_Diag, State_FJX, RC )
+  SUBROUTINE FjxState_GC_Set( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                              State_Diag, FjxState, RC )
 !
 ! !USES:
 !
     USE ERRCODE_MOD
-    USE Fast_jx_mod,        ONLY : FjxState, Init_State_FJX
+    USE Fast_JX_Mod,        ONLY : Fjx_State, FjxState_Init
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -72,23 +69,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input options
+    TYPE(ChmState),  INTENT(IN)    :: State_Chm   ! Chemistry State object
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState),  INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(FjxState), INTENT(INOUT) :: State_Fjx ! FJX state object
+    TYPE(DgnState),  INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    TYPE(Fjx_State), INTENT(INOUT) :: FjxState    ! FJX state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,         INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  20 Jul 2021 - E. Lundgren
@@ -102,62 +95,163 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
-    ! SET_STATE_FJX begins here!
+    ! FjxState_GC_Set begins here!
     !=================================================================
 
     ! Initialize
     RC          = GC_SUCCESS
     ErrMsg      = ''
-    ThisLoc     = ' -> at Set_FJX_State (in module GeosCore/fast_jx_mod.F90)'
+    ThisLoc     = ' -> at FjxState_GC_Set (in module GeosCore/fjx_gc_interface_mod.F90)'
 
-    ! Nullify or zero all State_FJX variables
-    CALL Init_State_FJX( State_FJX, RC )
+    ! Initialize FjxState object
+    CALL FjxState_Init( FjxState, RC )
 
-    ! Set parameters - do later
+    ! Set values from state_chm: todo
 
-    ! Set values from state_chm
-    ! others from state_chm:
-
-    ! input configuration
-    state_fjx%config%DryRun            = Input_Opt%DryRun
-    state_fjx%config%amIRoot           = Input_Opt%amIRoot
-    state_fjx%config%LPRT              = Input_Opt%LPRT
-    state_fjx%config%USE_ONLINE_O3     = Input_Opt%USE_ONLINE_O3
-    state_fjx%config%LBRC              = Input_Opt%LBRC
-    state_fjx%config%LUCX              = Input_Opt%LUCX
-    state_fjx%config%FAST_JX_DIR       = Input_Opt%FAST_JX_DIR
-    state_fjx%config%CHEM_INPUTS_DIR   = Input_Opt%CHEM_INPUTS_DIR
-    state_fjx%config%hvAerNIT          = Input_Opt%hvAerNIT
-    state_fjx%config%hvAerNIT_JNITs    = Input_Opt%hvAerNIT_JNITs
-    state_fjx%config%hvAerNIT_JNIT     = Input_Opt%hvAerNIT_JNIT
-    state_fjx%config%JNITChanA         = Input_Opt%JNITChanA
-    state_fjx%config%JNITChanB         = Input_Opt%JNITChanB
+    ! Set Config from GEOS-Chem object Input_Opt
+    FjxState%Config%DryRun            = Input_Opt%DryRun
+    FjxState%Config%amIRoot           = Input_Opt%amIRoot
+    FjxState%Config%LPRT              = Input_Opt%LPRT
+    FjxState%Config%USE_ONLINE_O3     = Input_Opt%USE_ONLINE_O3
+    FjxState%Config%LBRC              = Input_Opt%LBRC
+    FjxState%Config%LUCX              = Input_Opt%LUCX
+    FjxState%Config%FAST_JX_DIR       = Input_Opt%FAST_JX_DIR
+    FjxState%Config%CHEM_INPUTS_DIR   = Input_Opt%CHEM_INPUTS_DIR
+    FjxState%Config%hvAerNIT          = Input_Opt%hvAerNIT
+    FjxState%Config%hvAerNIT_JNITs    = Input_Opt%hvAerNIT_JNITs
+    FjxState%Config%hvAerNIT_JNIT     = Input_Opt%hvAerNIT_JNIT
+    FjxState%Config%JNITChanA         = Input_Opt%JNITChanA
+    FjxState%Config%JNITChanB         = Input_Opt%JNITChanB
 #if defined( MODEL_GEOS )
-    state_fjx%config%FJX_EXTRAL_ITERMAX= Input_Opt%FJX_EXTRAL_ITERMAX
-    state_fjx%config%FJX_EXTRAL_ERR    = Input_Opt%FJX_EXTRAL_ERR
+    FjxState%Config%FJX_EXTRAL_ITERMAX= Input_Opt%FJX_EXTRAL_ITERMAX
+    FjxState%Config%FJX_EXTRAL_ERR    = Input_Opt%FJX_EXTRAL_ERR
 #endif
-    state_fjx%config%NWVSELECT         = Input_Opt%NWVSELECT
+    FjxState%Config%NWVSELECT         = Input_Opt%NWVSELECT
    
-    ALLOCATE( state_fjx%config%WVSELECT( Input_Opt%NWVSELECT ), STAT=RC )
-    CALL GC_CheckVar( 'state_fjx%config%WVSELECT', 0, RC )
+    ALLOCATE( FjxState%Config%WVSELECT( Input_Opt%NWVSELECT ), STAT=RC )
+    CALL GC_CheckVar( 'FjxState%Config%WVSELECT', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    state_fjx%config%WVSELECT(1:state_fjx%config%NWVSELECT) = Input_Opt%WVSELECT(1:Input_Opt%NWVSELECT)
+    FjxState%Config%WVSELECT(1:FjxState%Config%NWVSELECT) = Input_Opt%WVSELECT(1:Input_Opt%NWVSELECT)
 
-    ! grid quantities
-    state_fjx%grid%NX         = State_Grid%NX
-    state_fjx%grid%NY         = State_Grid%MaxChemLev
+    ! Set Grid from GEOS-Chem object State_Grid
+    FjxState%Grid%NX         =  State_Grid%NX
+    FjxState%Grid%NY         =  State_Grid%NY
+    FjxState%Grid%NZ         =  State_Grid%NZ
+    FjxState%Grid%MaxChemLev =  State_Grid%MaxChemLev
+    FjxState%Grid%YMID       => State_Grid%YMID
 
-    ! met quantities
-    state_fjx%met%PEDGE     => State_Met%PEDGE
-    state_fjx%met%T         => State_Met%T
-    state_fjx%met%SuncosMid => State_Met%SuncosMid
-    state_fjx%met%UVALBEDO  => State_Met%UVALBEDO
-    state_fjx%met%OPTD      => State_Met%OPTD
-    state_fjx%met%CLDF      => State_Met%CLDF
+    ! Set Met from GEOS-Chem object State_Met
+    FjxState%Met%ChemGridLev => State_Met%ChemGridLev
+    FjxState%Met%SuncosMid   => State_Met%SuncosMid
+    FjxState%Met%UVALBEDO    => State_Met%UVALBEDO
+    FjxState%Met%PEDGE       => State_Met%PEDGE
+    FjxState%Met%T           => State_Met%T
+    FjxState%Met%OPTD        => State_Met%OPTD
+    FjxState%Met%CLDF        => State_Met%CLDF
 
+    ! State_Diag vals needed: todo
 
-    ! State_Diag vals needed (move elsewhere, last)
+  END SUBROUTINE FjxState_GC_Set
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FjxState_Print
+!
+! !DESCRIPTION: Subroutine FjxState\_Print prints information about the
+!  FAST-JX object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FjxState_Print( Input_Opt, FjxState, RC )
+!
+! !USES:
+!
+    USE ERRCODE_MOD
+    USE Fast_jx_mod,        ONLY : Fjx_State
+    USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),  INTENT(IN)  :: Input_Opt   ! Input options
+    TYPE(Fjx_State), INTENT(IN)  :: FjxState    ! FJX state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  20 Jul 2021 - E. Lundgren
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-  END SUBROUTINE Set_STATE_FJX
+    !=================================================================
+    ! FjxState_Print begins here!
+    !=================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at FjxState_Print (in module GeosCore/fjx_gc_interface_mod.F90)'
+
+    IF ( input_opt%AmIRoot ) THEN
+
+       ! input configuration
+       print *, ' '
+       print *, '=== Printing FAST-JX State Object ==='
+       print *, 'FjxState%Config%amIRoot: ',         FjxState%Config%amIRoot
+       print *, 'FjxState%Config%DryRun: ',          FjxState%Config%DryRun
+       print *, 'FjxState%Config%LPRT: ',            FjxState%Config%LPRT
+       print *, 'FjxState%Config%USE_ONLINE_O3: ',   FjxState%Config%USE_ONLINE_O3
+       print *, 'FjxState%Config%LUCX: ',            FjxState%Config%LUCX
+       print *, 'FjxState%Config%LBRC: ',            FjxState%Config%LBRC
+       print *, 'FjxState%Config%FAST_JX_DIR: ',     TRIM(FjxState%Config%FAST_JX_DIR)
+       print *, 'FjxState%Config%CHEM_INPUTS_DIR: ', TRIM(FjxState%Config%CHEM_INPUTS_DIR)
+       print *, 'FjxState%Config%hvAerNIT: ',        FjxState%Config%hvAerNIT
+       print *, 'FjxState%Config%hvAerNIT_JNITs: ',  FjxState%Config%hvAerNIT_JNITs
+       print *, 'FjxState%Config%hvAerNIT_JNIT: ',   FjxState%Config%hvAerNIT_JNIT
+       print *, 'FjxState%Config%JNITChanA: ',       FjxState%Config%JNITChanA
+       print *, 'FjxState%Config%JNITChanB: ',       FjxState%Config%JNITChanB
+       print *, 'FjxState%Config%NWVSELECT: ',       FjxState%Config%NWVSELECT       
+       print *, 'FjxState%Config%WVSELECT: ',        FjxState%Config%WVSELECT
+#if defined( MODEL_GEOS )
+       print *, 'FjxState%Config%FJX_EXTRAL_ITERMAX: ', &
+                                                     FjxState%Config%FJX_EXTRAL_ITERMAX
+       print *, 'FjxState%Config%FJX_EXTRAL_ERR: ', FjxState%Config%FJX_EXTRAL_ERR
+#endif
+       
+       ! grid quantities
+       print *, 'FjxState%Grid%NX: ',         FjxState%Grid%NX
+       print *, 'FjxState%Grid%NY: ',         FjxState%Grid%NY
+       print *, 'FjxState%Grid%NZ: ',         FjxState%Grid%NZ
+       print *, 'FjxState%Grid%MaxChemLev: ', FjxState%Grid%MaxChemLev
+       print *, 'FjxState%Grid%YMID max: ',   MAXVAL(FjxState%Grid%YMID)
+       
+       ! met quantities
+       print *, 'FjxState%Met%ChemGridLev max: ',MAXVAL(FjxState%Met%ChemGridLev)
+       print *, 'FjxState%Met%SuncosMid max: ',  MAXVAL(FjxState%Met%SuncosMid)
+       print *, 'FjxState%Met%UVALBEDO max: ',   MAXVAL(FjxState%Met%UVALBEDO)
+       print *, 'FjxState%Met%PEDGE max: ',      MAXVAL(FjxState%Met%PEDGE)
+       print *, 'FjxState%Met%T max: ',          MAXVAL(FjxState%Met%T)
+       print *, 'FjxState%Met%OPTD max: ',       MAXVAL(FjxState%Met%OPTD)
+       print *, 'FjxState%Met%CLDF max: ',       MAXVAL(FjxState%Met%CLDF)
+       
+       
+       ! State_Diag vals needed (move elsewhere, last)
+      
+       print *, '======'
+
+    ENDIF
+
+  END SUBROUTINE FjxState_Print
 !EOC
 END MODULE FJX_GC_Interface_Mod

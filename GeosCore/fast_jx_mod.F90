@@ -7,7 +7,9 @@
 !
 ! !DESCRIPTION: Module FAST\_JX\_MOD contains routines and variables for
 !  calculating photolysis rates using the Fast-JX scheme (Prather et al).
-!  Current implementation is version 7.0a.
+!  Current implementation is version 7.0a. It also contains definitions and
+!  subroutines for the FAST-JX state derived type. The FAST-JX state object
+!  (FjxState) contains all information used within FAST-JX.
 !\\
 !\\
 ! !INTERFACE:
@@ -30,8 +32,8 @@ MODULE FAST_JX_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC  :: EXITC
-  PUBLIC  :: INIT_STATE_FJX
-  PUBLIC  :: FINALIZE_STATE_FJX
+  PUBLIC  :: FjxState_Init
+  PUBLIC  :: FjxState_Final
   PUBLIC  :: PHOTO_JX
   PUBLIC  :: INIT_FJX
   PUBLIC  :: FAST_JX
@@ -59,11 +61,11 @@ MODULE FAST_JX_MOD
 ! !PUBLIC DERIVED TYPES
 !
   ! Parameters - private? define here or externally from fjx dir?
-  TYPE, PUBLIC :: FjxParams
-  END TYPE FjxParams
+  TYPE, PUBLIC :: Fjx_Params
+  END TYPE Fjx_Params
 
   ! Run-time configurables - private?
-  TYPE, PUBLIC :: FjxConfig
+  TYPE, PUBLIC :: Fjx_Config
     LOGICAL :: amIRoot
     LOGICAL :: DryRun
     LOGICAL :: LPRT
@@ -77,36 +79,36 @@ MODULE FAST_JX_MOD
     REAL    :: hvAerNIT_JNIT
     REAL    :: JNITChanA
     REAL    :: JNITChanB
+    INTEGER :: NWVSELECT
+    REAL(8), POINTER :: WVSELECT(:) => NULL()
 #if defined( MODEL_GEOS )
     INTEGER :: FJX_EXTRAL_ITERMAX
     LOGICAL :: FJX_EXTRAL_ERR
 #endif
-    INTEGER :: NWVSELECT
-    REAL(8), POINTER :: WVSELECT(:)
-  END TYPE FjxConfig
+  END TYPE Fjx_Config
 
   ! Grid parameters - private?
-  TYPE, PUBLIC :: FjxGrid
-    INTEGER :: NX
-    INTEGER :: NY
-    INTEGER :: NZ
-    INTEGER :: YMID
-    INTEGER :: MaxChemLev
-  END TYPE FjxGrid
+  TYPE, PUBLIC :: Fjx_Grid
+    INTEGER           :: NX
+    INTEGER           :: NY
+    INTEGER           :: NZ
+    INTEGER           :: MaxChemLev
+    REAL(fp), POINTER :: YMID(:,:) => NULL()
+  END TYPE Fjx_Grid
 
   ! Meterology - private?
-  TYPE, PUBLIC :: FjxMet
-    INTEGER(fp), POINTER :: ChemGridLev(:,:)
-    REAL(fp),    POINTER :: SUNCOSmid  (:,:)
-    REAL(fp),    POINTER :: UVALBEDO   (:,:)
-    REAL(fp),    POINTER :: PEDGE      (:,:,:)
-    REAL(fp),    POINTER :: T          (:,:,:)
-    REAL(fp),    POINTER :: OPTD       (:,:,:)
-    REAL(fp),    POINTER :: CLDF       (:,:,:)
-  END TYPE FjxMet
+  TYPE, PUBLIC :: Fjx_Met
+    INTEGER,  POINTER :: ChemGridLev(:,:)   => NULL()
+    REAL(fp), POINTER :: SUNCOSmid  (:,:)   => NULL()
+    REAL(fp), POINTER :: UVALBEDO   (:,:)   => NULL()
+    REAL(fp), POINTER :: PEDGE      (:,:,:) => NULL()
+    REAL(fp), POINTER :: T          (:,:,:) => NULL()
+    REAL(fp), POINTER :: OPTD       (:,:,:) => NULL()
+    REAL(fp), POINTER :: CLDF       (:,:,:) => NULL()
+  END TYPE Fjx_Met
 
   ! Reaction flags
-  TYPE, PUBLIC :: RxnFlags
+  TYPE, PUBLIC :: Fjx_RxnFlags
      ! Flags for certain photo-reactions that will be adjusted by
      ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
      INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
@@ -127,16 +129,16 @@ MODULE FAST_JX_MOD
      INTEGER, PUBLIC :: RXN_NO    = -1
      INTEGER, PUBLIC :: RXN_NO3   = -1
      INTEGER, PUBLIC :: RXN_N2O   = -1
-  END TYPE RxnFlags
+  END TYPE Fjx_RxnFlags
 
   ! State
-  TYPE, PUBLIC :: FjxState
+  TYPE, PUBLIC :: Fjx_State
     INTEGER :: nPhotol
-    TYPE(FjxConfig), POINTER :: config => NULL()
-    TYPE(FjxGrid  ), POINTER :: grid   => NULL()
-    TYPE(FjxMet   ), POINTER :: met    => NULL()
-    TYPE(RxnFlags ), POINTER :: flags  => NULL()
-  END TYPE FjxState
+    TYPE(Fjx_Config),    POINTER :: Config    => NULL()
+    TYPE(Fjx_Grid  ),    POINTER :: Grid      => NULL()
+    TYPE(Fjx_Met   ),    POINTER :: Met       => NULL()
+    TYPE(Fjx_RxnFlags ), POINTER :: RxnFlags  => NULL()
+  END TYPE Fjx_State
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -180,15 +182,17 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_state_fjx
+! !IROUTINE: FjxState_Init
 !
-! !DESCRIPTION: Subroutine INIT\_STATE\_FJX nullifies and/or zeroes all fields
-!  of Fast-JX state object
+! !DESCRIPTION: Subroutine FjxState\_Init initializes the FAST-JX state object.
+! This initializes (nullifies) all pointers and sets all FAST-JX settings and
+! options to initial (zero) values. These pointers and values are then set at
+! the FAST-JX/model interface level.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_STATE_FJX( State_FJX, RC )
+  SUBROUTINE FjxState_Init( FjxState, RC )
 !
 ! !USES:
 !
@@ -196,14 +200,14 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(FjxState), INTENT(INOUT) :: State_Fjx ! FJX state object
+    TYPE(Fjx_State), INTENT(INOUT) :: FjxState ! FJX state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,         INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  14 Jun 2021 - E. Lundgren
+!  14 Jun 2021 - E. Lundgren (based on HEMCO hco_state_mod.F90)
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -211,80 +215,113 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    INTEGER            :: AS
 
     !=================================================================
-    ! INIT_STATE_FJX begins here!
+    ! FjxState_Init begins here!
     !=================================================================
 
     ! Initialize
     RC          = GC_SUCCESS
     ErrMsg      = ''
-    ThisLoc     = ' -> at Init_FJX_State (in module GeosCore/fast_jx_mod.F90)'
+    ThisLoc     = ' -> at FjxState_Init (in module GeosCore/fast_jx_mod.F90)'
 
-    ! Set parameters - do later
+    ! Set parameters
+    FjxState%nPhotol = 0
 
-    ! Set values from state_chm
-    ! others from state_chm:
-
+    !=====================================================================
     ! input configuration
-    state_fjx%config%DryRun            = .FALSE. !Input_Opt%DryRun
-    state_fjx%config%amIRoot           = .FALSE. !Input_Opt%amIRoot
-    state_fjx%config%LPRT              = .FALSE. !Input_Opt%LPRT
-    state_fjx%config%USE_ONLINE_O3     = .FALSE. !Input_Opt%USE_ONLINE_O3
-    state_fjx%config%LBRC              = .FALSE. !Input_Opt%LBRC
-    state_fjx%config%LUCX              = .FALSE. !Input_Opt%LUCX
-    state_fjx%config%FAST_JX_DIR       = ''      !Input_Opt%FAST_JX_DIR
-    state_fjx%config%CHEM_INPUTS_DIR   = ''      !Input_Opt%CHEM_INPUTS_DIR
-    state_fjx%config%hvAerNIT          = .FALSE. !Input_Opt%hvAerNIT
-    state_fjx%config%hvAerNIT_JNITs    = 0.0     !Input_Opt%hvAerNIT_JNITs
-    state_fjx%config%hvAerNIT_JNIT     = 0.0     !Input_Opt%hvAerNIT_JNIT
-    state_fjx%config%JNITChanA         = 0.0     !Input_Opt%JNITChanA
-    state_fjx%config%JNITChanB         = 0.0     !Input_Opt%JNITChanB
+    !=====================================================================
+    ALLOCATE ( FjxState%Config, STAT = AS )
+    IF ( AS /= 0 ) THEN
+       ErrMsg = 'FjxState config'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    FjxState%Config%amIRoot         = .FALSE. !Input_Opt%amIRoot
+    FjxState%Config%DryRun          = .FALSE. !Input_Opt%DryRun
+    FjxState%Config%LPRT            = .FALSE. !Input_Opt%LPRT
+    FjxState%Config%USE_ONLINE_O3   = .FALSE. !Input_Opt%USE_ONLINE_O3
+    FjxState%Config%LUCX            = .FALSE. !Input_Opt%LUCX
+    FjxState%Config%LBRC            = .FALSE. !Input_Opt%LBRC
+    FjxState%Config%FAST_JX_DIR     = ''      !Input_Opt%FAST_JX_DIR
+    FjxState%Config%CHEM_INPUTS_DIR = ''      !Input_Opt%CHEM_INPUTS_DIR
+    FjxState%Config%hvAerNIT        = .FALSE. !Input_Opt%hvAerNIT
+    FjxState%Config%hvAerNIT_JNITs  = 0.0     !Input_Opt%hvAerNIT_JNITs
+    FjxState%Config%hvAerNIT_JNIT   = 0.0     !Input_Opt%hvAerNIT_JNIT
+    FjxState%Config%JNITChanA       = 0.0     !Input_Opt%JNITChanA
+    FjxState%Config%JNITChanB       = 0.0     !Input_Opt%JNITChanB
+    FjxState%Config%NWVSELECT       = 0       !Input_Opt%NWVSELECT
+    FjxState%Config%WVSELECT        => NULL() !Input_Opt%WVSELECT(1:Input_Opt%NWVSELECT)
 #if defined( MODEL_GEOS )
-    state_fjx%config%FJX_EXTRAL_ITERMAX= 0       !Input_Opt%FJX_EXTRAL_ITERMAX
-    state_fjx%config%FJX_EXTRAL_ERR    = .FALSE. !Input_Opt%FJX_EXTRAL_ERR
+    FjxState%Config%FJX_EXTRAL_ITERMAX = 0       !Input_Opt%FJX_EXTRAL_ITERMAX
+    FjxState%Config%FJX_EXTRAL_ERR     = .FALSE. !Input_Opt%FJX_EXTRAL_ERR
 #endif
-    state_fjx%config%NWVSELECT         = 0       !Input_Opt%NWVSELECT
-    state_fjx%config%WVSELECT          => NULL() !Input_Opt%WVSELECT(1:Input_Opt%NWVSELECT)
 
+    !=====================================================================
     ! grid quantities
-    state_fjx%grid%NX         = 0 !State_Grid%NX
-    state_fjx%grid%NY         = 0 !State_Grid%NY
-    state_fjx%grid%NZ         = 0 !State_Grid%NZ
-    state_fjx%grid%YMID       = 0 !State_Grid%YMID
-    state_fjx%grid%MaxChemLev = 0 !State_Grid%MaxChemLev
+    !=====================================================================
+    ALLOCATE ( FjxState%Grid, STAT = AS )
+    IF ( AS /= 0 ) THEN
+       ErrMsg = 'FjxState grid'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    FjxState%Grid%NX         = 0       !State_Grid%NX
+    FjxState%Grid%NY         = 0       !State_Grid%NY
+    FjxState%Grid%NZ         = 0       !State_Grid%NZ
+    FjxState%Grid%MaxChemLev = 0       !State_Grid%MaxChemLev
+    FjxState%Grid%YMID       => NULL() !State_Grid%YMID
 
+    !=====================================================================
     ! met quantities
-    state_fjx%met%PEDGE     => NULL() !State_Met%PEDGE
-    state_fjx%met%T         => NULL() !State_Met%T
-    state_fjx%met%SuncosMid => NULL() !State_Met%SuncosMid
-    state_fjx%met%UVALBEDO  => NULL() !State_Met%UVALBEDO
-    state_fjx%met%OPTD      => NULL() !State_Met%OPTD
-    state_fjx%met%CLDF      => NULL() !State_Met%CLDF
+    !=====================================================================
+    ALLOCATE ( FjxState%Met, STAT = AS )
+    IF ( AS /= 0 ) THEN
+       ErrMsg = 'FjxState met'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    FjxState%Met%ChemGridLev => NULL() !State_Met%ChemGridLev
+    FjxState%Met%SuncosMid   => NULL() !State_Met%SuncosMid
+    FjxState%Met%UVALBEDO    => NULL() !State_Met%UVALBEDO
+    FjxState%Met%PEDGE       => NULL() !State_Met%PEDGE
+    FjxState%Met%T           => NULL() !State_Met%T
+    FjxState%Met%OPTD        => NULL() !State_Met%OPTD
+    FjxState%Met%CLDF        => NULL() !State_Met%CLDF
 
+    !=====================================================================
     ! rxn flags
-    state_fjx%flags%RXN_O2    = -1   ! O2  + jv --> O   + O
-    state_fjx%flags%RXN_O3_1  = -1   ! O3  + hv --> O2  + O
-    state_fjx%flags%RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
+    !=====================================================================
+    ALLOCATE ( FjxState%RxnFlags, STAT = AS )
+    IF ( AS /= 0 ) THEN
+       ErrMsg = 'FjxState rxn flags'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    FjxState%RxnFlags%RXN_O2     = -1   ! O2  + jv --> O   + O
+    FjxState%RxnFlags%RXN_O3_1   = -1   ! O3  + hv --> O2  + O
+    FjxState%RxnFlags%RXN_O3_2a  = -1   ! O3  + hv --> 2OH         (Tropchem)
     ! O3  + hv --> O2  + O(1D) (UCX #1)
-    state_fjx%flags%RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
-    state_fjx%flags%RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
-    state_fjx%flags%RXN_NO2   = -1   ! NO2 + hv --> NO  + O
-    state_fjx%flags%RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
-    state_fjx%flags%RXN_JNITSa = -1   ! NITs  + hv --> HNO2
-    state_fjx%flags%RXN_JNITSb = -1   ! NITs  + hv --> NO2
-    state_fjx%flags%RXN_JNITa  = -1   ! NIT + hv --> HNO2
-    state_fjx%flags%RXN_JNITb  = -1   ! NIT + hv --> NO2
+    FjxState%RxnFlags%RXN_O3_2b  = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
+    FjxState%RxnFlags%RXN_H2SO4  = -1   ! SO4 + hv --> SO2 + 2OH
+    FjxState%RxnFlags%RXN_NO2    = -1   ! NO2 + hv --> NO  + O
+    FjxState%RxnFlags%RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
+    FjxState%RxnFlags%RXN_JNITSa = -1   ! NITs  + hv --> HNO2
+    FjxState%RxnFlags%RXN_JNITSb = -1   ! NITs  + hv --> NO2
+    FjxState%RxnFlags%RXN_JNITa  = -1   ! NIT + hv --> HNO2
+    FjxState%RxnFlags%RXN_JNITb  = -1   ! NIT + hv --> NO2
     ! Needed for UCX_MOD
-    state_fjx%flags%RXN_NO    = -1
-    state_fjx%flags%RXN_NO3   = -1
-    state_fjx%flags%RXN_N2O   = -1
+    FjxState%RxnFlags%RXN_NO     = -1
+    FjxState%RxnFlags%RXN_NO3    = -1
+    FjxState%RxnFlags%RXN_N2O    = -1
 
-    ! State_Diag vals needed (move elsewhere, last)
+    !=====================================================================
+    ! diagnostics quantitites (move elsewhere, last?)
+    !=====================================================================
 
-  END SUBROUTINE INIT_STATE_FJX
+  END SUBROUTINE FjxState_Init
 !EOC
 
 !------------------------------------------------------------------------------
@@ -292,15 +329,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: finalize_state_fjx
+! !IROUTINE: FjxState_Final
 !
-! !DESCRIPTION: Subroutine FINALIZE\_STATE\_FJX nullifies and/or deallocates all
-!  fields of Fast-JX state object
+! !DESCRIPTION: Subroutine FjxState\_Final cleans up FjxState object.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FINALIZE_STATE_FJX( State_FJX, RC )
+  SUBROUTINE FjxState_Final( FjxState, RC )
 !
 ! !USES:
 !
@@ -308,11 +344,11 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(FjxState), INTENT(INOUT) :: State_Fjx ! FJX state object
+    TYPE(Fjx_State), INTENT(INOUT) :: FjxState ! FJX state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,         INTENT(OUT)   :: RC       ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  14 Jun 2021 - E. Lundgren
@@ -327,34 +363,42 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
-    ! FINALIZE_STATE_FJX begins here!
+    ! FjxState_Final begins here!
     !=================================================================
 
-    ! Assume pointers are to pointers, and deallocation of target
-    ! occurs elsewhere in model, e.g. cleanup of State_Met in GEOS-Chem
-    IF ( ASSOCIATED( state_fjx%config%WVSELECT ) ) THEN
-       state_fjx%config%WVSELECT => NULL()
-    ENDIF
-    IF ( ASSOCIATED( state_fjx%met%PEDGE ) ) THEN
-       state_fjx%met%PEDGE => NULL()
-    ENDIF
-    IF ( ASSOCIATED( state_fjx%met%T ) ) THEN
-       state_fjx%met%T => NULL()
-    ENDIF
-    IF ( ASSOCIATED( state_fjx%met%SuncosMid ) ) THEN
-       state_fjx%met%SuncosMid => NULL()
-    ENDIF
-    IF ( ASSOCIATED( state_fjx%met%UVALBEDO ) ) THEN
-       state_fjx%met%UVALBEDO => NULL()
-    ENDIF
-    IF ( ASSOCIATED( state_fjx%met%OPTD ) ) THEN
-       state_fjx%met%OPTD => NULL()
-    ENDIF
-    IF ( ASSOCIATED( state_fjx%met%CLDF ) ) THEN
-       state_fjx%met%CLDF => NULL()
-    ENDIF 
+    ! Initialize
+    RC          = GC_SUCCESS
+    ErrMsg      = ''
+    ThisLoc     = ' -> at FjxState_Final (in module GeosCore/fast_jx_mod.F90)'
 
-  END SUBROUTINE FINALIZE_STATE_FJX
+    ! Deallocate grid information
+    IF ( ASSOCIATED ( FjxState%Grid) ) THEN
+       FjxState%Grid%YMID       => NULL()
+       DEALLOCATE(FjxState%Grid)
+    ENDIF
+
+    ! Deallocate met
+    IF ( ASSOCIATED ( FjxState%Met ) ) THEN
+       FjxState%Met%ChemGridLev => NULL()
+       FjxState%Met%SunCosMid   => NULL()
+       FjxState%Met%UVALBEDO    => NULL()
+       FjxState%Met%PEDGE       => NULL()
+       FjxState%Met%T           => NULL()
+       FjxState%Met%OPTD        => NULL()
+       FjxState%Met%CLDF        => NULL()
+       DEALLOCATE(FjxState%Met)
+    ENDIF
+
+    ! Deallocate config
+    IF ( ASSOCIATED( FjxState%Config ) ) THEN
+       FjxState%Config%WVSELECT => NULL()
+       DEALLOCATE(FjxState%Config)
+    ENDIF
+
+    ! Cleanup various types
+    IF ( ASSOCIATED ( FjxState%RxnFlags ) ) DEALLOCATE ( FjxState%RxnFlags )
+
+  END SUBROUTINE FjxState_Final
 !EOC
 
 !------------------------------------------------------------------------------

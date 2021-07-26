@@ -255,7 +255,7 @@ PROGRAM GEOS_Chem
   TYPE(MetState)           :: State_Met       ! Meteorology State object
   TYPE(DgnList )           :: Diag_List       ! Diagnostics list object
   TYPE(TaggedDgnList )     :: TaggedDiag_List ! Tagged diagnostics list object
-  TYPE(FjxState)           :: State_FJX       ! FAST-JX state object
+  TYPE(Fjx_State)          :: FjxState        ! FAST-JX state object
 !
 ! !DEFINED PARAMETERS:
 !
@@ -569,10 +569,10 @@ PROGRAM GEOS_Chem
 
      ! Set Fast-JX object with GEOS-Chem state information
      ! Only do this if fullchem or aerosol sim???
-     CALL Set_State_Fjx( Input_Opt,  State_Chm, State_Grid, State_Met, &
-                          State_Diag, State_FJX, RC )
+     CALL FjxState_GC_Set( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                           State_Diag, FjxState, RC )
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Init_State_Fjx!"!'
+        ErrMsg = 'Error encountered in "FjxState_GC_Set"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
@@ -2268,9 +2268,9 @@ PROGRAM GEOS_Chem
         CALL Debug_Msg( '### MAIN: a cleanup diag lists' )
      ENDIF
 
-     CALL Finalize_State_Fjx( State_FJX, RC )
+     CALL FjxState_Final( FjxState, RC )
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Finalize_State_Fjx!"!'
+        ErrMsg = 'Error encountered in "FjxState_Final!"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
   ENDIF
