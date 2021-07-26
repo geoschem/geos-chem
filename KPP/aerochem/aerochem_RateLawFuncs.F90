@@ -783,7 +783,7 @@ CONTAINS
   END FUNCTION GCJPLPR_abcabc
 
   !#########################################################################
-  !#####          RATE-LAW FUNCTIONS FOR SULFATE REACTIONS             #####
+  !#####          RATE-LAW FUNCTIONS FOR SEASALT REACTIONS             #####
   !#####   Some common functions are defined in rateLawUtilFuncs.F90   #####
   !#########################################################################
 
@@ -815,26 +815,91 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-    k = 0.0_dp
+    ! Compute uptake rate of HCL + SALAAL
+    k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.074_dp, SR_MW(ind_HCl) )
     !
+    ! Assume HCl is limiting, so recompute reaction rate accordingly
+    ! NOTE: We need to use the concentration of SALAAL prior to its
+    ! continue conversion to equivalents.  This is in H%SALAAL_save.
     IF ( H%SALAAL_save > 0.1_dp ) THEN
-       !
-       ! NOTE: We need to use the concentration of SALAAL prior to its
-       ! continue conversion to equivalents.  This is in H%SALAAL_save.
-       k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.074_dp, SR_MW(ind_HCl) )
-       !
-       ! Assume HCl is limiting, so recompute reaction rate accordingly
        k = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k )
     ENDIF
-
-! HCl
-!k_ex = ARSL1K( State_Chm%WetAeroArea(I,J,L,11),                             &
-!           STATE_HET%XRADI(11), NUMDEN, 0.074_dp, SR_TEMP, SR_MW(ind_HCl))
-!
-!      IF (State_Chm%Species(I,J,L,id_SALAAL) .gt. 1.e-1_fp) &
-!         K_MT(2) = kIIR1Ltd(C(ind_HCl), C(ind_SALAAL), k_ex)!/State_Chm%Species(I,J,L,id_SALAAL)
-
   END FUNCTION AqRate_SALAAL_HCl
+
+  FUNCTION AqRate_SALAAL_HNO3( H ) RESULT( k )
+    !
+    ! Computes the rate constant [1/s] for the equation
+    ! HNO3 + SALAAL = NITs
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Uptake of HNO3 + SALAAL
+    k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.5_dp, SR_MW(ind_HNO3) )
+    !
+    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
+    ! NOTE: We need to use the concentration of SALAAL prior to its
+    ! conversion to equivalents.  This is in H%SALAAL_save.
+    IF ( H%SALAAL_save > 0.1_dp ) THEN
+       k = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k)
+    ENDIF
+  END FUNCTION AqRate_SALAAL_HNO3
+
+  FUNCTION AqRate_SALCAL_SO2_O3( H ) RESULT( k )
+    !
+    ! Computes the rate constant [1/s] for the equation
+    ! SO2  + SALCAL + O3  = SO4 - SALCAL
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    k = 0.0_dp
+    !
+    ! NOTE: We need to use the concentration of SALCAL prior to its
+    ! conversion to equivalents.  This is in H%SALCAL_save.
+    IF ( H%SALCAL_save > 0.1_dp ) THEN
+       k = Ars_L1K( H%wetArea(SSC), H%xRadi(SSC), 0.11_dp, SR_MW(ind_SO2) )
+       !
+       ! Assume SO2 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_SO2), C(ind_O3), k ) / H%SALCAL_save
+    ENDIF
+  END FUNCTION AqRate_SALCAL_SO2_O3
+
+  FUNCTION AqRate_SALCAL_HCl( H ) RESULT( k )
+    !
+    ! Computes the rate constant [1/s] for the equation
+    ! HCl + SALCAL = SALCCL
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Compute uptake rate of HCL + SALACL
+    k = Ars_L1K( H%wetArea(SSC), H%xRadi(SSC), 0.074_dp, SR_MW(ind_HCl) )
+    !
+    ! Assume HCl is limiting, so recompute reaction rate accordingly
+    ! NOTE: We need to use the concentration of SALCAL prior to its
+    ! conversion to equivalents.  This is in H%SALCAL_save.
+    IF ( H%SALCAL_save > 0.1_dp ) THEN
+       k = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k )
+    ENDIF
+  END FUNCTION AqRate_SALCAL_HCl
+
+  FUNCTION AqRate_SALCAL_HNO3( H ) RESULT( k )
+    !
+    ! Computes the rate constant [1/s] for the equation
+    ! HNO3 + SALAAL = NITs
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Compute uptake of HNO3 on SALCAL
+    k = Ars_L1K( H%wetArea(SSC), H%xRadi(SSC), 0.5_dp, SR_MW(ind_HNO3) )
+    !
+    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
+    IF ( H%SALCAL_save > 0.1_dp ) THEN
+       k = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k )
+    ENDIF
+  END FUNCTION AqRate_SALCAL_HNO3
 
   !#########################################################################
   !#####        RATE-LAW FUNCTIONS FOR HETEROGENEOUS REACTIONS         #####

@@ -11,7 +11,6 @@ target_link_libraries(KPPFirstPass_aerochem
 # Add libKPP.a
 add_library(KPP_aerochem STATIC EXCLUDE_FROM_ALL
       aerochem_RateLawFuncs.F90
-      gckpp_AqRates.F90
       gckpp_Function.F90
       gckpp_Global.F90
       gckpp_HetRates.F90
