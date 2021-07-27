@@ -36,6 +36,7 @@
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
   State_Met%FRLANDIC            = FRLANDIC                   ! 1
+  State_Met%FRSEAICE            = FRSEAICE                   ! 1
   State_Met%QV2M                = QV2M                       ! 1
   State_Met%PHIS                = PHIS / 9.80665d0           ! m
   State_Met%GWETROOT            = GWETROOT                   ! 1
