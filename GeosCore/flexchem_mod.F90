@@ -102,7 +102,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE GCKPP_AqRates,        ONLY : SET_SEASALT_S
     USE GCKPP_Sulfate,        ONLY : SET_CLD_S
     USE GCKPP_HetRates,       ONLY : SET_HET
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
@@ -212,7 +211,6 @@ CONTAINS
     TYPE(Species), POINTER :: SpcInfo
 
     ! For testing purposes
-    LOGICAL                :: DO_HETCHEM
     LOGICAL                :: DO_PHOTCHEM
 
     ! OH reactivity and KPP reaction rate diagnostics
@@ -235,15 +233,8 @@ CONTAINS
     Thread    =  1
 
     ! Turn heterogeneous chemistry and photolysis on/off for testing
-    DO_HETCHEM  = .TRUE.
     DO_PHOTCHEM = .TRUE.
     IF ( FIRSTCHEM .AND. Input_Opt%amIRoot ) THEN
-       IF ( .not. DO_HETCHEM ) THEN
-          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-          WRITE( 6, '(a)' )  ' # Do_FlexChem: Heterogeneous chemistry' // &
-                             ' is turned off for testing purposes.'
-          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-       ENDIF
        IF ( .not. DO_PHOTCHEM ) THEN
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
           WRITE( 6, '(a)' )  ' # Do_FlexChem: Photolysis chemistry' // &
@@ -844,8 +835,8 @@ CONTAINS
           C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
           C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
 
-          CALL SET_SEASALT_S( I, J, L, Input_Opt, State_Chm, State_Grid, &
-               State_Met, RC ) !S(IV)->S(VI), HCl, HNO3
+          ! ALSO NOTE: code in set_seasalt_s has been moved into
+          ! aerochem_RateLawFunctions.F90 (bmy, 7/26/21)
        ENDIF
 
        IF (.not. DO_SULFATEMOD_CLD) THEN
@@ -855,36 +846,11 @@ CONTAINS
           C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
           C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
 
-          State_Chm%fupdateHOBr(I,J,L) = 1.e0
-          State_Chm%fupdateHOCl(I,J,L) = 1.e0
-
+          State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
+          State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
        ENDIF
 
        ! SET_DUSTUP() ! Holding...
-
-       !====================================================================
-       ! Get rates for heterogeneous chemistry
-       !====================================================================
-       IF ( DO_HETCHEM ) THEN
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> Het chem rates", RC, &
-                               InLoop=.TRUE., ThreadNum=Thread )
-          ENDIF
-
-          ! Compute heterogeneous rates
-          ! NOTE: State_Het is in gckpp_Global.F90
-          CALL SET_HET( I         = I,                                       &
-                        J         = J,                                       &
-                        L         = L,                                       &
-                        Input_Opt = Input_Opt,                               &
-                        State_Chm = State_Chm,                               &
-                        State_Met = State_Met                               )
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "  -> Het chem rates", RC,                      &
-                             InLoop=.TRUE., ThreadNum=Thread )
-          ENDIF
-       ENDIF
 
        !====================================================================
        ! Start KPP main timer and prepare arrays
@@ -2224,7 +2190,6 @@ CONTAINS
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
     USE State_Diag_Mod,   ONLY : DgnState
-    USE GcKpp_AqRates,    ONLY : INIT_AQRATES
     USE GcKpp_Sulfate,    ONLY : INIT_SULFATE
 !
 ! !INPUT PARAMETERS:
@@ -2457,8 +2422,13 @@ CONTAINS
 
     ENDIF
 
-    CALL INIT_AQRATES( RC ) ! MSL
-    CALL INIT_SULFATE( RC ) ! MSL
+    ! Initialize sulfate chemistry code (Mike Long)
+    CALL Init_Sulfate( RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Init_Sulfate"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE Init_FlexChem
 !EOC
