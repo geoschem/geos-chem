@@ -104,4 +104,21 @@ WRITE_RESTART_BY_OSERVER: NO
 #
 # %%% Adjoint variables
 #
-MODEL_PHASE: ADJOINT
+MODEL_PHASE: FORWARD
+# FD_TYPE:             GLOBAL
+# FD_STEP:             0
+# FD_SPEC:             CO2
+# #FD_LAT:              44.65
+# #FD_LON:              -63.58
+# IFD:                 3
+# JFD:                56
+# LFD:                 1
+
+# CF_IMIN:             2
+# CF_IMAX:             5
+# CF_JMIN:            55
+# CF_JMAX:            58
+# CF_LMIN:             1
+# CF_LMAX:             4
+
+

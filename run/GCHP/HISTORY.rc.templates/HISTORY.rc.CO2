@@ -56,9 +56,10 @@ COLLECTIONS: 'Emissions',
              'Budget',
              'CloudConvFlux',
              'LevelEdgeDiags',      
-             'SpeciesConc',
+             'SpeciesConc_avg',
 	     'SpeciesConc_inst',
 	     #'Adjoint',
+	     #'SFEmissions',
              'StateMet_avg',      
              'StateMet_inst',      
 ::
@@ -97,6 +98,7 @@ COLLECTIONS: 'Emissions',
 # Emissions Scaling Factor sensitivities (see HEMCO_Diagn.rc for additional config settings)
   SFEmissions.template:       '%y4%m2%d2.nc4',
   SFEmissions.format:         'CFIO',
+  SFEmissios..timestampStart: .true.
   SFEmissions.frequency:      010000
   SFEmissions.duration:       240000
   SFEmissions.mode:           'instantaneous'
@@ -166,24 +168,25 @@ COLLECTIONS: 'Emissions',
                                  'Met_PFLLSAN        ', 'GCHPchem',
 ::
 #==============================================================================
-  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.format:         'CFIO',
-  SpeciesConc.timestampStart: .true.
-  SpeciesConc.monthly:        1
-  SpeciesConc.frequency:      010000
-  SpeciesConc.duration:       240000
-  SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_CO2           ', 'GCHPchem',
-  			      'SpeciesConc_PassiveTracer ', 'GCHPchem',
+  SpeciesConc_avg.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc_avg.format:         'CFIO',
+  SpeciesConc_avg.timestampStart: .true.
+  SpeciesConc_avg.monthly:        1
+  SpeciesConc_avg.frequency:      010000
+  SpeciesConc_avg.duration:       240000
+  SpeciesConc_avg.mode:           'time-averaged'
+  SpeciesConc_avg.fields:         'SpeciesConc_CO2           ', 'GCHPchem',
+  				  'SpeciesConc_PassiveTracer ', 'GCHPchem',
 ::
 #==============================================================================
-  SpeciesConc_inst.template:   '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc_inst.format:     'CFIO',
-  SpeciesConc_inst.frequency:  001000
-  SpeciesConc_inst.duration:   240000
-  SpeciesConc_inst.mode:       'instantaneous'
-  SpeciesConc_inst.fields:     'SpeciesConc_CO2                ', 'GCHPchem',
-  			       'SpeciesConc_PassiveTracer      ', 'GCHPchem',
+  SpeciesConc_inst.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc_inst.format:         'CFIO',
+  SpeciesConc_inst.timestampStart: .true.,
+  SpeciesConc_inst.frequency:      001000
+  SpeciesConc_inst.duration:       240000
+  SpeciesConc_inst.mode:           'instantaneous'
+  SpeciesConc_inst.fields:         'SpeciesConc_CO2                ', 'GCHPchem',
+  			           'SpeciesConc_PassiveTracer      ', 'GCHPchem',
 ::
 #===================================================================
 # Species concentrations (per advected species) - time-averaged values

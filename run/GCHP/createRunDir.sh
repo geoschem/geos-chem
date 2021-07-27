@@ -454,6 +454,11 @@ elif [ "${sim_type}" == "CO2" ]; then
     num_cores_per_node=24
     grid_res=24
     diag_freq="010000"
+    inst_freq="010000"
+    inst_dur="010000"
+    timeAvg_monthly=0
+    timeAvg_dur="010000"
+    timeAvg_freq="010000"
     start_time="000000"
     end_time="060000"
     dYYYYMMDD="00000000"
