@@ -829,7 +829,7 @@ CONTAINS
   FUNCTION AqRate_SALAAL_HNO3( H ) RESULT( k )
     !
     ! Computes the rate constant [1/s] for the equation
-    ! HNO3 + SALAAL = NITs
+    ! HNO3 + SALAAL = NIT
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
