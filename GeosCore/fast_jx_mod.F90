@@ -415,8 +415,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FAST_JX( WLAOD, Input_Opt, State_Chm, State_Diag, &
-                      State_Grid, State_Met, RC )
+  SUBROUTINE FAST_JX( WLAOD, FjxState, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -424,12 +423,9 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
     USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
     USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
@@ -452,12 +448,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: WLAOD       ! AOD calculated how?
-                                                 ! (1: 550 nm, 0: 999 nm)
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    INTEGER,         INTENT(IN)    :: WLAOD       ! AOD calculated how?
+                                                  ! (1: 550 nm, 0: 999 nm)
+    TYPE(Fjx_State), INTENT(IN)    :: FjxState    ! FAST-JX options
+    TYPE(ChmState),  INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -487,24 +481,24 @@ CONTAINS
     INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
     INTEGER       :: IOPT, LCHEM
     REAL(fp)      :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
-    REAL(fp)      :: O3_CTM(State_Grid%NZ+1)
-    REAL(fp)      :: T_CTM(State_Grid%NZ+1), OPTD(State_Grid%NZ)
-    REAL(fp)      :: OPTDUST(State_Grid%NZ,NDUST)
-    REAL(fp)      :: OPTAER(State_Grid%NZ,A_)
+    REAL(fp)      :: O3_CTM(FjxState%Grid%NZ+1)
+    REAL(fp)      :: T_CTM(FjxState%Grid%NZ+1), OPTD(FjxState%Grid%NZ)
+    REAL(fp)      :: OPTDUST(FjxState%Grid%NZ,NDUST)
+    REAL(fp)      :: OPTAER(FjxState%Grid%NZ,A_)
 
     ! Local variables for cloud overlap (hyl, phs)
     INTEGER       :: NUMB, KK, I
-    INTEGER       :: INDIC(State_Grid%NZ+1)
-    INTEGER       :: INDGEN(State_Grid%NZ+1)! = (/ (i,i=1,State_Grid%NZ+1) /)
-    INTEGER       :: KBOT(State_Grid%NZ)
-    INTEGER       :: KTOP(State_Grid%NZ)
-    INTEGER       :: INDICATOR(State_Grid%NZ+2)
-    REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
+    INTEGER       :: INDIC(FjxState%Grid%NZ+1)
+    INTEGER       :: INDGEN(FjxState%Grid%NZ+1)! = (/ (i,i=1,State_Grid%NZ+1) /)
+    INTEGER       :: KBOT(FjxState%Grid%NZ)
+    INTEGER       :: KTOP(FjxState%Grid%NZ)
+    INTEGER       :: INDICATOR(FjxState%Grid%NZ+2)
+    REAL(fp)      :: FMAX(FjxState%Grid%NZ)    ! maximum cloud fraction
                                               !  in a block, size can be to
-                                              !  FIX(State_Grid%NZ)+1
-    REAL(fp)      :: CLDF1D(State_Grid%NZ)
-    REAL(fp)      :: ODNEW(State_Grid%NZ)
-    REAL(fp)      :: P_CTM(State_Grid%NZ+2)
+                                              !  FIX(FjxState%Grid%NZ)+1
+    REAL(fp)      :: CLDF1D(FjxState%Grid%NZ)
+    REAL(fp)      :: ODNEW(FjxState%Grid%NZ)
+    REAL(fp)      :: P_CTM(FjxState%Grid%NZ+2)
 
     LOGICAL       :: AOD999
     LOGICAL, SAVE :: FIRST = .true.
@@ -520,11 +514,11 @@ CONTAINS
     ! FAST_JX begins here!
     !=================================================================
 
-    ! Initialize
+    ! Error handling
     RC        = GC_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' -> at Fast_JX (in module GeosCore/fast_jx_mod.F)'
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot)
+    prtDebug  = ( FjxState%Config%LPRT .and. FjxState%Config%amIRoot)
 
     ! Get day of year (0-365 or 0-366)
     DAY_OF_YR = GET_DAY_OF_YEAR()
@@ -565,8 +559,8 @@ CONTAINS
 
 #ifdef USE_MAXIMUM_RANDOM_OVERLAP
        ! Special setup only for max random overlap
-       DO i = 1,State_Grid%NZ+1
-          INDGEN(i) = i       !(/(i,i=1,State_Grid%NZ+1)/)
+       DO i = 1,FjxState%Grid%NZ+1
+          INDGEN(i) = i       !(/(i,i=1,FjxState%Grid%NZ+1)/)
        ENDDO
 #endif
 
@@ -594,31 +588,31 @@ CONTAINS
     !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over latitudes and longitudes
-    DO NLAT = 1, State_Grid%NY
-    DO NLON = 1, State_Grid%NX
+    DO NLAT = 1, FjxState%Grid%NY
+    DO NLON = 1, FjxState%Grid%NX
 
        ! Grid box latitude [degrees]
-       YLAT = State_Grid%YMid( NLON, NLAT )
+       YLAT = FjxState%Grid%YMid( NLON, NLAT )
 
        ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
-       CSZA = State_Met%SUNCOSmid(NLON,NLAT)
+       CSZA = FjxState%Met%SUNCOSmid(NLON,NLAT)
 
        ! Define the P array here
-       DO L = 1, State_Grid%NZ+1
-          P_CTM(L) = State_Met%PEDGE( NLON, NLAT, L )
+       DO L = 1, FjxState%Grid%NZ+1
+          P_CTM(L) = FjxState%Met%PEDGE( NLON, NLAT, L )
        ENDDO
 
        ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)
-       P_CTM(State_Grid%NZ+2) = 0e+0_fp
+       P_CTM(FjxState%Grid%NZ+2) = 0e+0_fp
 
        ! Temperature profile [K] at (NLON,NLAT)
-       T_CTM(1:State_Grid%NZ) = State_Met%T( NLON, NLAT, 1:State_Grid%NZ)
+       T_CTM(1:FjxState%Grid%NZ) = FjxState%Met%T( NLON, NLAT, 1:FjxState%Grid%NZ)
 
        ! Top of atmosphere
-       T_CTM(State_Grid%NZ+1) = T_CTM(State_Grid%NZ)
+       T_CTM(FjxState%Grid%NZ+1) = T_CTM(FjxState%Grid%NZ)
 
        ! Surface albedo [unitless] at (NLON,NLAT)
-       SFCA = State_Met%UVALBEDO(NLON,NLAT)
+       SFCA = FjxState%Met%UVALBEDO(NLON,NLAT)
 
        ! Overhead ozone column [DU] at (NLON, NLAT)
        ! These values are either from the met fields or TOMS/SBUV,
@@ -627,7 +621,7 @@ CONTAINS
 
        ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
        O3_CTM = 0e+0_fp
-       LCHEM  = State_Met%ChemGridLev(NLON,NLAT)
+       LCHEM  = FjxState%Met%ChemGridLev(NLON,NLAT)
        DO L = 1, LCHEM
           O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
        ENDDO
@@ -638,13 +632,13 @@ CONTAINS
        !use IRHARR to map to correct OPTAER bin (DAR 08/13)
        OPTAER = 0.0e+0_fp
        DO N = 1, NAER
-       DO L = 1, State_Grid%NZ
+       DO L = 1, FjxState%Grid%NZ
           IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
           OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
        ENDDO
        ENDDO
        DO N = 1, NDUST
-       DO L = 1, State_Grid%NZ
+       DO L = 1, FjxState%Grid%NZ
           OPTDUST(L,N) = ODMDUST(NLON,NLAT,L,IWV1000,N)
        ENDDO
        ENDDO
@@ -654,7 +648,7 @@ CONTAINS
        !OPTDUST = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
        ! Cloud OD profile [unitless] at (NLON,NLAT)
-       OPTD = State_Met%OPTD(NLON,NLAT,1:State_Grid%NZ)
+       OPTD = FjxState%Met%OPTD(NLON,NLAT,1:FjxState%Grid%NZ)
 
        !-----------------------------------------------------------
        !### If you want to exclude aerosol OD, mineral dust OD,
@@ -672,7 +666,7 @@ CONTAINS
        !===========================================================
 
        ! Column cloud fraction (not less than zero)
-       CLDF1D = State_Met%CLDF(NLON,NLAT,1:State_Grid%NZ)
+       CLDF1D = FjxState%Met%CLDF(NLON,NLAT,1:FjxState%Grid%NZ)
        WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
 
        ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
@@ -687,7 +681,7 @@ CONTAINS
                       O3_CTM,     O3_TOMS,   AOD999, OPTAER, &
                       OPTDUST,    OPTD,      NLON,   NLAT,   &
                       YLAT,       DAY_OF_YR, MONTH,  DAY,    &
-                      Input_Opt, State_Diag, State_Grid )
+                      State_Diag, FjxState )
 
 #elif defined( USE_APPROX_RANDOM_OVERLAP )
        !===========================================================
@@ -697,7 +691,7 @@ CONTAINS
        !===========================================================
 
        ! Column cloud fraction (not less than zero)
-       CLDF1D = State_Met%CLDF(NLON,NLAT,1:State_Grid%NZ)
+       CLDF1D = FjxState%Met%CLDF(NLON,NLAT,1:FjxState%Grid%NZ)
        WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
 
        ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
@@ -712,7 +706,7 @@ CONTAINS
                       O3_CTM,     O3_TOMS,   AOD999, OPTAER, &
                       OPTDUST,    OPTD,      NLON,   NLAT,   &
                       YLAT,       DAY_OF_YR, MONTH,  DAY,    &
-                      Input_Opt, State_Diag, State_Grid )
+                      State_Diag, FjxState )
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
        !===========================================================
@@ -755,7 +749,7 @@ CONTAINS
        !! Initialize
        !FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
        !ODNEW(:)  = 0d0  ! in-cloud optical depth
-       !CLDF1D    = State_Met%CLDF(1:State_Grid%NZ,NLON,NLAT)
+       !CLDF1D    = FjxState%Met%CLDF(1:FjxState%Grid%NZ,NLON,NLAT)
        !INDICATOR = 0
        !
        !! set small negative CLDF or OPTD to zero.
@@ -764,7 +758,7 @@ CONTAINS
        !   CLDF1D               = 0d0
        !   OPTD                 = 0D0
        !ELSEWHERE
-       !   INDICATOR(2:State_Grid%NZ+1) = 1
+       !   INDICATOR(2:FjxState%Grid%NZ+1) = 1
        !ENDWHERE
        !
        !! Prevent negative opt depth
@@ -774,7 +768,7 @@ CONTAINS
        !! Generate cloud blocks & get their Bottom and Top levels
        !!--------------------------------------------------------
        !INDICATOR = CSHIFT(INDICATOR, 1) - INDICATOR
-       !INDIC     = INDICATOR(1:State_Grid%NZ+1)
+       !INDIC     = INDICATOR(1:FjxState%Grid%NZ+1)
        !
        !! Number of cloud block
        !NUMB      = COUNT( INDIC == 1 )
@@ -820,7 +814,7 @@ CONTAINS
        !    CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,
        !                   DAY,   MONTH, DAY_OF_YR, CSZA,
        !                   TEMP,  SFCA,  OPTDUST,   OPTAER,
-       !                   State_Grid%NZ, FMAX,  ODNEW,     KBOT,
+       !                   FjxState%Grid%NZ, FMAX,  ODNEW,     KBOT,
        !                   KTOP,  O3COL )
        !
        !END SELECT
@@ -1736,20 +1730,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EXTRAL (Input_Opt,State_Diag,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
+  SUBROUTINE EXTRAL (FjxState,State_Diag,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
 !
 ! !USES:
-    USE Input_Opt_Mod,  ONLY : OptInput
+!
     USE State_Diag_Mod, ONLY : DgnState
 !
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-    INTEGER,        INTENT(IN) :: L1X,L2X     !index of cloud/aerosol
-    integer,        intent(in) :: NX          !Mie scattering array size
-    real(fp),       intent(in) :: DTAUX(L1X)  !cloud+3aerosol OD in each layer
-    integer,        intent(in) :: ILON, ILAT  !lon,lat index
+    TYPE(Fjx_State), INTENT(IN) :: FjxState    ! FAST-JX object
+    INTEGER,         INTENT(IN) :: L1X,L2X     !index of cloud/aerosol
+    integer,         intent(in) :: NX          !Mie scattering array size
+    real(fp),        intent(in) :: DTAUX(L1X)  !cloud+3aerosol OD in each layer
+    integer,         intent(in) :: ILON, ILAT  !lon,lat index
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1757,7 +1751,7 @@ CONTAINS
 !
 ! !OUTPUT VARIABLES:
 !
-    integer,        intent(out):: JXTRA(L2X+1)!number of sub-layers to be added
+    integer,         intent(out):: JXTRA(L2X+1)!number of sub-layers to be added
 !
 ! !REMARKS:
 !     DTAUX(L=1:L1X) = Optical Depth in layer L (generally 600 nm OD)
@@ -1803,7 +1797,7 @@ CONTAINS
     ! and the number of iterations needed to converge to that solution.
     ! Ideally, NITER is 1 and no adjustments to the heating rate are
     ! needed (ckeller, 5/22/18).
-    NMAX = MAX(1,Input_Opt%FJX_EXTRAL_ITERMAX)
+    NMAX = MAX(1,FjxState%Config%FJX_EXTRAL_ITERMAX)
     DO N=1,NMAX
        ! local heating rate
        ATAULOC = ATAU + (0.06*(N-1))
@@ -1875,7 +1869,7 @@ CONTAINS
 
     ! print error and cut off JXTRAL at lower L if too many levels
     if ( failed ) then
-       IF ( Input_Opt%FJX_EXTRAL_ERR ) THEN
+       IF ( FjxState%Config%FJX_EXTRAL_ERR ) THEN
           write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
        ENDIF
        do L = L2,1,-1
@@ -1957,17 +1951,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE INIT_FJX( FjxState, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
     USE inquireMod,     ONLY : findFreeLUN
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
-    USE State_Grid_Mod, ONLY : GrdState
 #if defined( MODEL_CESM )
     USE UNITS,          ONLY : freeUnit
 #endif
@@ -1975,10 +1967,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+    TYPE(Fjx_State), INTENT(IN)  :: FjxState    ! FAST-JX object
+    TYPE(ChmState),  INTENT(IN)  :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),  INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2009,10 +2000,10 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC          = GC_SUCCESS
-    notDryRun   = ( .not. Input_Opt%DryRun )
-    ErrMsg      = ''
-    ThisLoc     = ' -> at Init_FJX (in module GeosCore/fast_jx_mod.F90)'
+    RC           = GC_SUCCESS
+    ErrMsg       = ''
+    ThisLoc      = ' -> at Init_FJX (in module GeosCore/fast_jx_mod.F90)'
+    notDryRun    = ( .not. FjxState%Config%DryRun )
 
     ! Skip these opterations when running in dry-run mode
     IF ( notDryRun ) THEN
@@ -2036,7 +2027,7 @@ CONTAINS
        id_I2O3     = IND_('I2O3'    )
 
        ! Print info
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( FjxState%Config%amIRoot ) THEN
           write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
 
           if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
@@ -2047,7 +2038,7 @@ CONTAINS
        ENDIF
 
 #if defined( MODEL_CESM )
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( FjxState%Config%amIRoot ) THEN
           JXUNIT = findFreeLUN()
        ELSE
           JXUNIT = 0
@@ -2060,7 +2051,7 @@ CONTAINS
     ENDIF
 
     ! Define data directory for FAST-JX input
-    DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
+    DATA_DIR = TRIM( FjxState%Config%FAST_JX_DIR )
 
     !=====================================================================
     ! Read in fast-J X-sections (spectral data)
@@ -2068,7 +2059,7 @@ CONTAINS
     FILENAME = TRIM( DATA_DIR ) // 'FJX_spec.dat'
 
     ! Read file, or just print filename if we are in dry-run mode
-    CALL RD_XXX( JXUNIT, TRIM( FILENAME ), Input_Opt, RC)
+    CALL RD_XXX( JXUNIT, TRIM( FILENAME ), FjxState, RC)
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2097,7 +2088,7 @@ CONTAINS
     FILENAME = TRIM( DATA_DIR ) // 'jv_spec_mie.dat'
 
     ! Read data
-    CALL RD_MIE( JXUNIT, TRIM( FILENAME ), Input_Opt, RC )
+    CALL RD_MIE( JXUNIT, TRIM( FILENAME ), FjxState, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2110,7 +2101,7 @@ CONTAINS
     ! Read in AOD data
     ! (or just print file name if in dry-run mode)
     !=====================================================================
-    CALL RD_AOD( JXUNIT, Input_Opt, RC )
+    CALL RD_AOD( JXUNIT, FjxState, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2121,14 +2112,14 @@ CONTAINS
 
     ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
     IF ( notDryRun ) THEN
-       CALL SET_AER( Input_Opt )
+       CALL SET_AER( FjxState )
     ENDIF
 
     !=====================================================================
     ! Read in T & O3 climatology used to fill e.g. upper layers
     ! or if O3 not calc.
     !=====================================================================
-    CALL RD_PROF_NC( Input_Opt, RC )
+    CALL RD_PROF_NC( FjxState, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2152,8 +2143,7 @@ CONTAINS
     FILENAME = TRIM( DATA_DIR ) // 'FJX_j2j.dat'
 
     ! Read mapping information
-    CALL RD_JS_JX( JXUNIT, TRIM( FILENAME ), TITLEJXX, NJXX, &
-                   Input_Opt, RC )
+    CALL RD_JS_JX( JXUNIT, TRIM( FILENAME ), TITLEJXX, NJXX, FjxState, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2187,7 +2177,7 @@ CONTAINS
              ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
              ! non-UCX : undefined
              !-------------------------------------------------------------
-             IF ( Input_Opt%LUCX ) THEN
+             IF ( FjxState%Config%LUCX ) THEN
                 GC_Photo_Id(J) = State_Chm%nPhotol + 2
              ELSE
                 GC_Photo_Id(J) = -999
@@ -2203,7 +2193,7 @@ CONTAINS
              !           NOTE: The JPOH rate in the bpch diagnostic will
              !           now be the sum of the nPhotol+1+nPhotol+2 slots!
              !------------------------------------------------------------
-             IF ( Input_Opt%LUCX ) THEN
+             IF ( FjxState%Config%LUCX ) THEN
                 GC_Photo_Id(J) = -999
              ELSE
                 GC_Photo_Id(J) = State_Chm%nPhotol + 2
@@ -2221,7 +2211,7 @@ CONTAINS
           ENDIF
 
           ! Print the mapping
-          IF ( Input_Opt%amIRoot ) THEN
+          IF ( FjxState%Config%amIRoot ) THEN
              IF ( GC_Photo_Id(J) > 0 ) THEN
                 WRITE(6, 200) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
 200             FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
@@ -2230,7 +2220,7 @@ CONTAINS
        ENDDO
 
 #if defined( MODEL_CESM )
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( FjxState%Config%amIRoot ) THEN
          CALL freeUnit(JXUnit)
        ENDIF
 #endif
@@ -2252,22 +2242,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RD_XXX ( NUN, NAMFIL, Input_Opt, RC )
+  SUBROUTINE RD_XXX ( NUN, NAMFIL, FjxState, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)  :: NUN
-    CHARACTER(*),   INTENT(IN)  :: NAMFIL
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt
+    INTEGER,         INTENT(IN)  :: NUN
+    CHARACTER(*),    INTENT(IN)  :: NAMFIL
+    TYPE(Fjx_State), INTENT(IN)  :: FjxState
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC
+    INTEGER,         INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !    NEW v-6.8  now allow 1 to 3 sets of X-sects for T or P
@@ -2342,14 +2331,14 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( FjxState%Config%AmIRoot ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
 
     ! For dry-run simulations, return to calling program.
     ! For regular simulations, throw an error if we can't find the file.
-    IF ( Input_Opt%DryRun ) THEN
+    IF ( FjxState%Config%DryRun ) THEN
        RETURN
     ELSE
        IF ( .not. FileExists ) THEN
@@ -2374,7 +2363,7 @@ CONTAINS
 
 #if defined( MODEL_CESM )
     ! Only read file on root thread if using CESM
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
 #endif
 
     ! Open file
@@ -2385,7 +2374,7 @@ CONTAINS
     read (NUN,101) NQRD,NWWW
     NW1 = 1
     NW2 = NWWW
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( FjxState%Config%AmIRoot ) THEN
        write(6,'(1x,a)') TITLE0
        write(6,'(i8)') NWWW
     ENDIF
@@ -2457,7 +2446,7 @@ CONTAINS
     NJX = JJ
 
     do J = 1,NJX
-       if ( Input_Opt%AmIRoot ) then
+       if ( FjxState%Config%AmIRoot ) then
           write(6,200) J,TITLEJX(J),SQQ(J),LQQ(J),(TQQ(I,J),I=1,LQQ(J))
        endif
        ! need to check that TQQ is monotonically increasing:
@@ -2484,7 +2473,7 @@ CONTAINS
     if (W_ .ne. WX_) then
        ! TROP-ONLY
        if (W_ .eq. 12) then
-          if ( Input_Opt%AmIRoot ) then
+          if ( FjxState%Config%AmIRoot ) then
              write(6,'(a)') &
                   ' >>>TROP-ONLY reduce wavelengths to 12, drop strat X-sects'
           endif
@@ -2521,7 +2510,7 @@ CONTAINS
           enddo
           ! TROP-QUICK  (must scale solar flux for W=5)
        elseif (W_ .eq. 8) then
-          if ( Input_Opt%amIRoot ) then
+          if ( FjxState%Config%amIRoot ) then
              write(6,'(a)') &
                   ' >>>TROP-QUICK reduce wavelengths to 8, drop strat X-sects'
           endif
@@ -2610,22 +2599,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RD_MIE( NUN, NAMFIL, Input_Opt, RC )
+  SUBROUTINE RD_MIE( NUN, NAMFIL, FjxState, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)  :: NUN         ! Logical unit #
-    CHARACTER(*),   INTENT(IN)  :: NAMFIL      ! File name
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    INTEGER,          INTENT(IN)  :: NUN         ! Logical unit #
+    CHARACTER(*),     INTENT(IN)  :: NAMFIL      ! File name
+    TYPE(Fjx_State),  INTENT(IN)  :: FjxState    ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,          INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !   --------------------------------------------------------------------
@@ -2677,14 +2665,14 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
 
     ! For dry-run simulations, return to calling program
     ! For regular simulations, throw an error if we can't find the file.
-    IF ( Input_Opt%DryRun ) THEN
+    IF ( FjxState%Config%DryRun ) THEN
        RETURN
     ELSE
        IF ( .not. FileExists ) THEN
@@ -2698,12 +2686,12 @@ CONTAINS
     ! RD_MIE begins here -- read data from file
     !=================================================================
 
-    ! Copy fields from Input_Opt
-    LBRC = Input_Opt%LBRC
+    ! Copy fields from config
+    LBRC = FjxState%Config%LBRC
 
 #if defined( MODEL_CESM )
     ! Only read file on root thread if using CESM
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
 #endif
 
     ! Open file
@@ -2711,7 +2699,7 @@ CONTAINS
 
     ! Read header lines
     READ( NUN,'(A)' ) TITLE0
-    IF  ( Input_Opt%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+    IF  ( FjxState%Config%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
     READ( NUN,'(A)' ) TITLE0
 
     !---Read aerosol phase functions:
@@ -2757,7 +2745,7 @@ CONTAINS
 #endif
 #endif
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):', &
                             (WAA(K,1),K=1,5)
        do J=1,NAA
@@ -2785,17 +2773,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RD_AOD( NJ1, Input_Opt, RC )
+  SUBROUTINE RD_AOD( NJ1, FjxState, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: NJ1         ! Unit # of file to open
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(Fjx_State) , INTENT(IN)  :: FjxState    ! FAST-JX object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2853,8 +2840,8 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at RD_AOD (in module GeosCore/fast_jx_mod.F90)'
-    LBRC     = Input_Opt%LBRC
-    DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
+    LBRC     = FjxState%Config%LBRC
+    DATA_DIR = TRIM( FjxState%Config%FAST_JX_DIR )
 
     ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
     DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
@@ -2880,7 +2867,7 @@ CONTAINS
     DO k = 1, NSPAA
 
        ! Choose different set of input files for UCX and tropchem simulations
-       IF ( Input_Opt%LUCX) THEN
+       IF ( FjxState%Config%LUCX) THEN
           THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL_UCX(k) )
        ELSE
           THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
@@ -2902,14 +2889,14 @@ CONTAINS
        ENDIF
 
        ! Write to stdout for both regular and dry-run simulations
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( FjxState%Config%amIRoot ) THEN
           WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
 300       FORMAT( a, ' ', a )
        ENDIF
 
        ! For dry-run simulations, cycle to next file.
        ! For regular simulations, throw an error if we can't find the file.
-       IF ( Input_Opt%DryRun ) THEN
+       IF ( FjxState%Config%DryRun ) THEN
           CYCLE
        ELSE
           IF ( .not. FileExists ) THEN
@@ -2925,7 +2912,7 @@ CONTAINS
 
 #if defined( MODEL_CESM )
        ! Only read file on root thread if using CESM
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( FjxState%Config%amIRoot ) THEN
 #endif
 
        ! Open file
@@ -2940,11 +2927,11 @@ CONTAINS
 
        ! Read header lines
        READ(  NJ1, '(A)' ) TITLE0
-       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+       IF ( FjxState%Config%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
 
        ! Second header line added for more info
        READ(  NJ1, '(A)' ) TITLE0
-       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+       IF ( FjxState%Config%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
 
        READ(  NJ1, '(A)' ) TITLE0
 110    FORMAT( 3x, a20 )
@@ -2992,15 +2979,15 @@ CONTAINS
     !=================================================================
     ! Only do the following if we are not running in dry-run mode
     !=================================================================
-    IF ( .not. Input_Opt%DryRun ) THEN
+    IF ( .not. FjxState%Config%DryRun ) THEN
 
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( FjxState%Config%amIRoot ) THEN
           WRITE( 6, * ) 'Optics read for all wavelengths successfully'
        ENDIF
 
        ! Now calculate the required wavelengths in the LUT to calculate
        ! the requested AOD
-       CALL CALC_AOD( Input_Opt )
+       CALL CALC_AOD( FjxState )
     ENDIF
 
   END SUBROUTINE RD_AOD
@@ -3021,7 +3008,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CALC_AOD( Input_Opt )
+  SUBROUTINE CALC_AOD( FjxState )
 !
 ! !USES:
 !
@@ -3032,14 +3019,13 @@ CONTAINS
     USE CMN_FJX_MOD, ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV
     USE CMN_FJX_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
     USE CMN_FJX_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
-    USE Input_Opt_Mod, ONLY : OptInput
 #ifdef RRTMG
     USE PARRRTM,     ONLY : NBNDLW
 #endif
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN) :: Input_Opt
+    TYPE(Fjx_State), INTENT(IN) :: FjxState
 !
 ! !REMARKS:
 !  Now the user is able to select any 3 wavelengths for optics
@@ -3084,11 +3070,11 @@ CONTAINS
     N1=NWVAA0
     NSTEP=1
     NWVREQUIRED=0
-    DO W=1,Input_Opt%NWVSELECT
+    DO W=1,FjxState%Config%NWVSELECT
        MINWV     = -999
        MAXWV     =  999
        DO N=N0,N1,NSTEP
-          WVDIF = WVAA(N,1)-Input_Opt%WVSELECT(W)
+          WVDIF = WVAA(N,1)-FjxState%Config%WVSELECT(W)
           IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
              MINWV = WVDIF
              IWVSELECT(1,W)=N
@@ -3139,25 +3125,25 @@ CONTAINS
        !now calcualte the angstrom exponent coefs for interpolation -
        !this is done here to save time and repetition in aerosol_mod.F
        IF (IWVSELECT(1,W).NE.IWVSELECT(2,W)) THEN
-          ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/Input_Opt%WVSELECT(W)
+          ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/FjxState%Config%WVSELECT(W)
           BCOEF_WV(W) =1.0d0/(LOG(WVAA(IWVSELECT(2,W),1)/ &
                                   WVAA(IWVSELECT(1,W),1)))
           !relative location of selected wavelength between tie points
           !for interpolating SSA and ASYM for output in aerosol_mod.F and
           !dust_mod.F
-          CCOEF_WV(W) =(Input_Opt%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/ &
+          CCOEF_WV(W) =(FjxState%Config%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/ &
                       (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
        ENDIF
-       IF ( Input_Opt%amIRoot ) THEN
-          write(6,*) 'N WAVELENGTHS: ',Input_Opt%NWVSELECT
-          write(6,*) 'WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
+       IF ( FjxState%Config%amIRoot ) THEN
+          write(6,*) 'N WAVELENGTHS: ',FjxState%Config%NWVSELECT
+          write(6,*) 'WAVELENGTH REQUESTED:',FjxState%Config%WVSELECT(W)
           write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
           !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
           !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
           !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
           write(6,*) '*********************************'
        ENDIF
-    ENDDO !Input_Opt%NWVSELECT
+    ENDDO !FjxState%Config%NWVSELECT
 #ifdef RRTMG
     !repeat for RRTMG wavelengths to get the closest wavelength
     !indices and the interpolation coefficients
@@ -3167,11 +3153,11 @@ CONTAINS
     N1=NWVAA
     NSTEP=1
     NRTWVREQUIRED=0
-    DO W=1,Input_Opt%NWVSELECT
+    DO W=1,FjxState%Config%NWVSELECT
        MINWV     = -999
        MAXWV     =  999
        DO N=N0,N1,NSTEP
-          WVDIF = WVAA(N,1)-Input_Opt%WVSELECT(W)
+          WVDIF = WVAA(N,1)-FjxState%Config%WVSELECT(W)
           IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
              MINWV = WVDIF
              IRTWVSELECT(1,W)=N
@@ -3223,29 +3209,29 @@ CONTAINS
        !now calcualte the angstrom exponent coefs for interpolation -
        !this is done here to save time and repetition in aerosol_mod.F
        IF (IRTWVSELECT(1,W).NE.IRTWVSELECT(2,W)) THEN
-          ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/Input_Opt%WVSELECT(W)
+          ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/FjxState%Config%WVSELECT(W)
           BCOEF_RTWV(W) =1.0d0/(LOG(WVAA(IRTWVSELECT(2,W),1)/ &
                                     WVAA(IRTWVSELECT(1,W),1)))
           !relative location of selected wavelength between tie points
           !for interpolating SSA and ASYM for output in aerosol_mod.F and
           !dust_mod.F
-          CCOEF_RTWV(W) =(Input_Opt%WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/ &
+          CCOEF_RTWV(W) =(FjxState%Config%WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/ &
                       (WVAA(IRTWVSELECT(2,W),1)-WVAA(IRTWVSELECT(1,W),1))
        ENDIF
        !convert wavelength index to that required by rrtmg_rad_transfer
        !i.e. without the standard and LW wavelengths
        IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
        IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
-       IF ( Input_Opt%amIRoot ) THEN
-          write(6,*) 'N RT WAVELENGTHS: ',Input_Opt%NWVSELECT
-          write(6,*) 'RT WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
+       IF ( FjxState%Config%amIRoot ) THEN
+          write(6,*) 'N RT WAVELENGTHS: ',FjxState%Config%NWVSELECT
+          write(6,*) 'RT WAVELENGTH REQUESTED:',FjxState%Config%WVSELECT(W)
           write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
           write(6,*) IRTWVSELECT(1,W),WVAA(IRTWVSELECT(1,W)+NWVAA0+NBNDLW,1)
           write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
           write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
           write(6,*) '*********************************'
        ENDIF
-    ENDDO !Input_Opt%NWVSELECT
+    ENDDO !FjxState%Config%NWVSELECT
 #endif
   END SUBROUTINE CALC_AOD
 !EOC
@@ -3264,13 +3250,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RD_JS_JX( NUNIT, NAMFIL, TITLEJX, NJXX, Input_Opt, RC )
+  SUBROUTINE RD_JS_JX( NUNIT, NAMFIL, TITLEJX, NJXX, FjxState, RC )
 !
 ! !USES:
 !
     USE Charpak_Mod,   ONLY : CStrip
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3278,7 +3263,7 @@ CONTAINS
     INTEGER,          INTENT(IN)                  :: NJXX
     CHARACTER(LEN=*), INTENT(IN)                  :: NAMFIL
     CHARACTER(LEN=6), INTENT(IN), DIMENSION(NJXX) :: TITLEJX
-    TYPE(OptInput),   INTENT(IN)                  :: Input_Opt
+    TYPE(Fjx_State),  INTENT(IN)                  :: FjxState
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3336,14 +3321,14 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
 
     ! For dry-run simulations, return to calling program.
     ! For regular simulations, throw an error if we can't find the file.
-    IF ( Input_Opt%DryRun ) THEN
+    IF ( FjxState%Config%DryRun ) THEN
        RETURN
     ELSE
        IF ( .not. FileExists ) THEN
@@ -3367,14 +3352,14 @@ CONTAINS
 
 #if defined( MODEL_CESM )
     ! Only read file on root thread if using CESM
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
 #endif
 
     ! Open file
     open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
     read (NUNIT,'(a)') CLINE
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        write(6,'(a)') CLINE
     ENDIF
     do J = 1,JVN_
@@ -3435,13 +3420,13 @@ CONTAINS
        enddo
     enddo
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        write(6,'(a,i4,a)')'Photochemistry Scheme with',NRATJ,' J-values'
     ENDIF
     do K=1,NRATJ
        if (JMAP(K) .ne. '------' ) then
           J = JIND(K)
-          IF ( Input_Opt%amIRoot ) THEN
+          IF ( FjxState%Config%amIRoot ) THEN
              if (J.eq.0) then
                 write(6,'(i5,1x,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K), &
                      ' no mapping onto fast-JX',JMAP(K)
@@ -3465,7 +3450,7 @@ CONTAINS
        TEXT = JLABEL(K)
        CALL CSTRIP( TEXT )
 
-       !IF ( Input_Opt%amIRoot ) THEN
+       !IF ( FjxState%Config%amIRoot ) THEN
        !   WRITE(*,*) K, TRIM( TEXT )
        !ENDIF
 
@@ -3603,7 +3588,7 @@ CONTAINS
     !---------------------------------------------------------------------
     ! These reactions are only defined for the UCX mechanism!
     !---------------------------------------------------------------------
-    IF ( Input_Opt%LUCX ) THEN
+    IF ( FjxState%Config%LUCX ) THEN
 
        IF ( RXN_H2SO4  < 0 ) THEN
           ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
@@ -3634,7 +3619,7 @@ CONTAINS
     !------------------------------------
     ! Print out saved rxn flags
     !------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 100 ) REPEAT( '=', 79 )
        WRITE( 6, 110 )
        WRITE( 6, 120 ) RXN_O2
@@ -3645,7 +3630,7 @@ CONTAINS
        WRITE( 6, 190 ) RXN_JNITSb
        WRITE( 6, 200 ) RXN_JNITa
        WRITE( 6, 210 ) RXN_JNITb
-       IF ( Input_Opt%LUCX ) THEN
+       IF ( FjxState%Config%LUCX ) THEN
           WRITE( 6, 160 ) RXN_H2SO4
        ENDIF
        WRITE( 6, 170 ) RXN_NO2
@@ -3743,21 +3728,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PHOTO_JX( U0,             REFLB,     P_COL,       &
-                       T_COL,          O3_COL,    O3_TOMS,     &
-                       AOD999,         ODAER_COL, ODMDUST_COL, &
-                       ODCLOUD_COL_IN, ILON,      ILAT,        &
-                       YLAT,           DAY_OF_YR, MONTH,       &
-                       DAY,            Input_Opt, State_Diag,  &
-                       State_Grid )
+  SUBROUTINE PHOTO_JX( U0,             REFLB,      P_COL,       &
+                       T_COL,          O3_COL,     O3_TOMS,     &
+                       AOD999,         ODAER_COL,  ODMDUST_COL, &
+                       ODCLOUD_COL_IN, ILON,       ILAT,        &
+                       YLAT,           DAY_OF_YR,  MONTH,       &
+                       DAY,            State_Diag, FjxState )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod,   ONLY : NRH, NRHAER
-    USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3774,8 +3755,7 @@ CONTAINS
     REAL(fp),       INTENT(IN), DIMENSION(L_,NDUST) :: ODMDUST_COL
     REAL(fp),       INTENT(IN), DIMENSION(L_      ) :: ODCLOUD_COL_IN
     LOGICAL,        INTENT(IN)                      :: AOD999
-    TYPE(OptInput), INTENT(IN)                      :: Input_Opt
-    TYPE(GrdState), INTENT(IN)                      :: State_Grid
+    TYPE(Fjx_State),INTENT(IN)                      :: FjxState
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3792,9 +3772,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+
     ! --------------------------------------------------------------------
     ! key LOCAL atmospheric data needed to solve plane-parallel J----
-    ! --these are dimensioned JXL_, and must have JXL_ .ge. State_Grid%NZ
+    ! --these are dimensioned JXL_, and must have JXL_ .ge. FjxState%Grid%NZ
     real(fp), dimension(JXL1_)      :: DDJ,OOJ
     real(fp), dimension(JXL1_+1)    :: PPJ,ZZJ
     integer,dimension(JXL2_+1)      :: JXTRA
@@ -3862,7 +3843,7 @@ CONTAINS
     ENDIF
 #endif
 
-    if (State_Grid%NZ+1 .gt. JXL1_) then
+    if (FjxState%Grid%NZ+1 .gt. JXL1_) then
        call EXITC(' PHOTO_JX: not enough levels in JX')
     endif
 
@@ -3898,12 +3879,12 @@ CONTAINS
     ! Path density  (DDJ)    [# molec/cm2]
     ! New methodology for:
     ! Ozone density (OOJ)    [# O3 molec/cm2]
-    CALL SET_PROF (YLAT,        MONTH,     DAY,         &
-                   T_COL,       P_COL,     ODCLOUD_COL, &
-                   ODMDUST_COL, ODAER_COL, O3_COL,      &
-                   O3_TOMS,     AERX_COL,  T_CLIM,      &
-                   OOJ,         ZZJ,       DDJ,         &
-                   Input_Opt,   State_Grid )
+    CALL SET_PROF (YLAT,        MONTH,      DAY,         &
+                   T_COL,       P_COL,      ODCLOUD_COL, &
+                   ODMDUST_COL, ODAER_COL,  O3_COL,      &
+                   O3_TOMS,     AERX_COL,   T_CLIM,      &
+                   OOJ,         ZZJ,        DDJ,         &
+                   FjxState )
 
     ! Fill out PPJ and TTJ with CTM data to replace fixed climatology
     DO L=1,L1_
@@ -3976,7 +3957,7 @@ CONTAINS
           !to the new speciated LUT
           KMIE2=LUTIDX(KMIE)
 
-          IF ( Input_Opt%LUCX ) THEN
+          IF ( FjxState%Config%LUCX ) THEN
 
              ! Strat aerosols for UCX simulations
              IM=10+(NRHAER*NRH)+1
@@ -4074,7 +4055,7 @@ CONTAINS
     ! Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
     !  additonal levels at top of clouds (now uses log spacing)
     ! --------------------------------------------------------------------
-    call EXTRAL(Input_Opt,State_Diag,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
+    call EXTRAL(FjxState,State_Diag,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
     ! --------------------------------------------------------------------
 
     ! set surface reflectance
@@ -4123,7 +4104,7 @@ CONTAINS
     enddo
     ! --------------------------------------------------------------------
     call OPMIE(DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA, &
-               AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,State_Grid%NZ)
+               AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,FjxState%Grid%NZ)
 
     !! --------------------------------------------------------------------
 
@@ -4136,10 +4117,10 @@ CONTAINS
     enddo
 
     ! Calculate photolysis rates
-    call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,State_Grid%MaxChemLev,NJX)
+    call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,FjxState%Grid%MaxChemLev,NJX)
 
     ! Fill out common-block array of J-rates
-    DO L=1,State_Grid%MaxChemLev
+    DO L=1,FjxState%Grid%MaxChemLev
        DO J=1,NRATJ
           IF (JIND(J).gt.0) THEN
              ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
@@ -4150,8 +4131,8 @@ CONTAINS
     ENDDO
 
     ! Set J-rates outside the chemgrid to zero
-    IF (State_Grid%MaxChemLev.lt.L_) THEN
-       DO L=State_Grid%MaxChemLev+1,L_
+    IF (FjxState%Grid%MaxChemLev.lt.L_) THEN
+       DO L=FjxState%Grid%MaxChemLev+1,L_
           DO J=1,NRATJ
              ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
           ENDDO
@@ -4185,7 +4166,7 @@ CONTAINS
           ! Direct & diffuse fluxes at each level
           FDIRECT(1)  = FSBOT(K)                    ! surface
           FDIFFUSE(1) = FJBOT(K)                    ! surface
-          DO L = 2, State_Grid%NZ
+          DO L = 2, FjxState%Grid%NZ
              FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
              FDIFFUSE(L) = FJFLX(L-1,K)
           ENDDO
@@ -4194,7 +4175,7 @@ CONTAINS
           UVX_CONST = SOLF * FL(K) * UVXFACTOR(K)
 
           ! Archive into diagnostic arrays
-          DO L = 1, State_Grid%NZ
+          DO L = 1, FjxState%Grid%NZ
 
              IF ( State_Diag%Archive_UVFluxNet ) THEN
                 S = State_Diag%Map_UvFluxNet%id2slot(K)
@@ -4302,7 +4283,7 @@ CONTAINS
 !! mapping J-values from fast-JX onto CTM chemistry is done in main
 !
 !! --------------------------------------------------------------------
-!         if ((Input_Opt%amIRoot).and.(LPRTJ)) then
+!         if ((FjxState%Config%amIRoot).and.(LPRTJ)) then
 !! diagnostics below are NOT returned to the CTM code
 !            write(6,*)'fast-JX-(7.0)---PHOTO_JX internal print:',
 !     &               ' Atmosphere---'
@@ -4317,7 +4298,7 @@ CONTAINS
 !      !   call JP_ATM(PPJ,TTJ,DDJ,OOJ,ZZJ,DTAU600,POMG600,JXTRA, LU)
 !
 !! PRINT SUMMARY of mean intensity, flux, heating rates:
-!         if (Input_Opt%amIRoot) then
+!         if (FjxState%Config%amIRoot) then
 !            write(6,*)
 !            write(6,*)'fast-JX(7.0)---PHOTO_JX internal print:',
 !     &               ' Mean Intens---'
@@ -4334,12 +4315,12 @@ CONTAINS
 !            do K=NW1,NW2
 !               RATIO(K) = (1.d5*FFF(K,L)/FL(K))
 !            enddo
-!            if (Input_Opt%amIRoot) then
+!            if (FjxState%Config%amIRoot) then
 !               write(6,'(i3,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
 !            endif
 !         enddo
 !
-!         if (Input_Opt%amIRoot) then
+!         if (FjxState%Config%amIRoot) then
 !            write(6,*)
 !            write(6,*)'fast-JX(7.0)---PHOTO_JX internal print:',
 !                              ' Net Fluxes---'
@@ -4372,11 +4353,11 @@ CONTAINS
 !            do K=NW1,NW2
 !               RATIO(K) = 1.d5*FFX(K,L)
 !            enddo
-!            if (Input_Opt%amIRoot) then
+!            if (FjxState%Config%amIRoot) then
 !               write(6,'(i9,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
 !            endif
 !         enddo
-!         if (Input_Opt%amIRoot) then
+!         if (FjxState%Config%amIRoot) then
 !            write(6,'(a)')
 !            write(6,'(a)') ' fast-JX (7.0)----J-values----'
 !            write(6,'(1x,a,72(a6,3x))') 'L=  ',(TITLEJX(K), K=1,NJX)
@@ -4973,17 +4954,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_PROF( YLAT,      MONTH,  DAY,     T_CTM,  P_CTM,    &
-                       CLDOD,     DSTOD,  AEROD,   O3_CTM, O3_TOMS,  &
-                       AERCOL,    T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM, &
-                       Input_Opt, State_Grid )
+  SUBROUTINE SET_PROF( YLAT,      MONTH,      DAY,     T_CTM,  P_CTM,    &
+                       CLDOD,     DSTOD,      AEROD,   O3_CTM, O3_TOMS,  &
+                       AERCOL,    T_CLIM,     O3_CLIM, Z_CLIM, AIR_CLIM, &
+                       FjxState )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod,       ONLY : NAER, NRH
-    USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
-    USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -4997,8 +4976,7 @@ CONTAINS
     REAL(fp), INTENT(IN)       :: DSTOD(L_,NDUST)   ! Mineral dust OD
     REAL(fp), INTENT(IN)       :: AEROD(L_,A_)      ! Aerosol OD
     REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
-    TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
-    TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
+    TYPE(Fjx_State),INTENT(IN) :: FjxState          ! FAST-JX state object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -5025,15 +5003,15 @@ CONTAINS
     REAL(fp)                 :: PROFCOL, ODSUM
     REAL(fp), PARAMETER      :: ODMAX = 200.0e+0_fp
 
-    ! Local variables for quantities from Input_Opt
+    ! Local variables
     LOGICAL :: USE_ONLINE_O3
 
     !=================================================================
     ! SET_PROF begins here!
     !=================================================================
 
-    ! Copy fields from INPUT_OPT
-    USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
+    ! Copy fields
+    USE_ONLINE_O3   = FjxState%Config%USE_ONLINE_O3
 
     ! Zero aerosol column
     DO K=1,A_
@@ -5232,7 +5210,7 @@ CONTAINS
 
        ! Use online O3 values in the chemistry grid if selected
        IF ( (USE_ONLINE_O3) .and. &
-            (I <= State_Grid%MaxChemLev) .and. &
+            (I <= FjxState%Grid%MaxChemLev) .and. &
             (O3_CTM(I) > 0e+0_fp) ) THEN
 
           ! Convert from molec/cm3 to molec/cm2
@@ -5263,16 +5241,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_AER( Input_Opt )
+  SUBROUTINE SET_AER( FjxState )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod,  ONLY : NRHAER, NRH
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
+    TYPE(Fjx_State), INTENT(IN) :: FjxState
 !
 ! !REVISION HISTORY:
 !  31 Mar 2013 - S. D. Eastham - Adapted from J. Mao FJX v6.2 implementation
@@ -5321,7 +5298,7 @@ CONTAINS
        ENDDO
     ENDDO
 
-    IF ( Input_Opt%LUCX ) THEN
+    IF ( FjxState%Config%LUCX ) THEN
        ! Stratospheric aerosols - SSA/STS and solid PSCs
        MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
        MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
@@ -5329,9 +5306,9 @@ CONTAINS
 
     ! Ensure all 'AN_' types are valid selections
     do i=1,AN_
-       IF (Input_Opt%amIRoot) write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
+       IF (FjxState%Config%amIRoot) write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
        if (MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
-          if (Input_Opt%amIRoot) then
+          if (FjxState%Config%amIRoot) then
              write(6,1200) MIEDX(i),NAA
           endif
           CALL EXITC('Bad MIEDX value.')
@@ -5357,12 +5334,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RD_PROF_NC( Input_Opt, RC )
+  SUBROUTINE RD_PROF_NC( FjxState, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
 
 #if defined( MODEL_CESM )
     USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
@@ -5384,7 +5360,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(Fjx_State), INTENT(IN)  :: FjxState
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -5438,7 +5414,7 @@ CONTAINS
     ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/fast_jx_mod.F90)'
 
     ! Directory and file names
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
+    nc_dir  = TRIM( FjxState%Config%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
     nc_file = 'fastj.jv_atms_dat.nc'
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
@@ -5458,14 +5434,14 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
 300    FORMAT( a, ' ', a )
     ENDIF
 
     ! For dry-run simulations, return to calling program.
     ! For regular simulations, throw an error if we can't find the file.
-    IF ( Input_Opt%DryRun ) THEN
+    IF ( FjxState%Config%DryRun ) THEN
        RETURN
     ELSE
        IF ( .not. FileExists ) THEN
@@ -5487,7 +5463,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 100 ) REPEAT( '%', 79 )
        WRITE( 6, 110 ) TRIM(nc_file)
        WRITE( 6, 120 ) TRIM(nc_dir)
@@ -5514,7 +5490,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 #endif
@@ -5540,7 +5516,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 #endif
@@ -5557,7 +5533,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 140 )
        WRITE( 6, 100 ) REPEAT( '%', 79 )
     ENDIF
@@ -5574,7 +5550,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
-!BOP
+!BOPe
 !
 ! !IROUTINE: photrate_adj
 !
@@ -5584,22 +5560,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met,                 &
-                           I,         J,          L,                         &
-                           FRAC,      RC                                    )
-  SUBROUTINE PHOTRATE_ADJ( Input_Opt, I, J, L, FRAC, RC )
+  SUBROUTINE PHOTRATE_ADJ( FjxState, I, J, L, FRAC, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input_Options object
-    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
-    INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
-    REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
+    TYPE(Fjx_State), INTENT(IN)  :: FjxState
+    INTEGER,         INTENT(IN)  :: I, J, L    ! Lon, lat, lev indices
+    REAL(fp),        INTENT(IN)  :: FRAC       ! Result of SO4_PHOTFRAC,
                                                 !  called from DO_FLEXCHEM
 !
 ! !OUTPUT PARAMETERS:
@@ -5638,14 +5609,14 @@ CONTAINS
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
     ! scaled value of JHNO3. NOTE: this is set in input.geos
-    IF ( Input_Opt%hvAerNIT ) THEN
+    IF ( FjxState%Config%hvAerNIT ) THEN
 
        ! Get the photolysis scalars read in from input.geos
-       JscaleNITs = Input_Opt%hvAerNIT_JNITs
-       JscaleNIT  = Input_Opt%hvAerNIT_JNIT
+       JscaleNITs = FjxState%Config%hvAerNIT_JNITs
+       JscaleNIT  = FjxState%Config%hvAerNIT_JNIT
        ! convert reaction channel % to a fraction
-       JNITChanA  = Input_Opt%JNITChanA
-       JNITChanB  = Input_Opt%JNITChanB
+       JNITChanA  = FjxState%Config%JNITChanA
+       JNITChanB  = FjxState%Config%JNITChanB
        JNITChanA  = JNITChanA / 100.0_fp
        JNITChanB  = JNITChanB / 100.0_fp
        ! Set the photolysis rate of NITs
@@ -5674,7 +5645,7 @@ CONTAINS
     ENDIF
 
     ! Test if the UCX mechanism is being used
-    IF ( Input_Opt%LUCX ) THEN
+    IF ( FjxState%Config%LUCX ) THEN
 
        !==============================================================
        ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

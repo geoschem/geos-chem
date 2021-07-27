@@ -90,8 +90,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag,                 &
-                          State_Grid, State_Met, RC                         )
+  SUBROUTINE Do_FlexChem( FjxState, Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -100,7 +100,7 @@ CONTAINS
     USE DUST_MOD,             ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
+    USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX, Fjx_State
     USE GCKPP_HetRates,       ONLY : SET_HET
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
@@ -139,18 +139,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+    TYPE(Fjx_State), INTENT(IN)    :: FjxState   ! FAST-JX object
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
+    TYPE(MetState),  INTENT(INOUT) :: State_Met  ! Meteorology State object
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm  ! Chemistry State object
+    TYPE(DgnState),  INTENT(INOUT) :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
+    INTEGER,         INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
@@ -450,8 +451,7 @@ CONTAINS
     ENDIF
 
     ! Do Photolysis
-    CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm, &
-                  State_Diag, State_Grid, State_Met, RC )
+    CALL FAST_JX( WAVELENGTH, FjxState, State_Chm, State_Diag,  RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -649,7 +649,7 @@ CONTAINS
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-          CALL PHOTRATE_ADJ( Input_Opt, I, J, L, SO4_FRAC, IERR )
+          CALL PHOTRATE_ADJ( FjxState, I, J, L, SO4_FRAC, IERR )
 
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_

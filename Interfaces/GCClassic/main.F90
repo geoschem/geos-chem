@@ -567,15 +567,6 @@ PROGRAM GEOS_Chem
      ! diagnostic collection for computing emission totals.
      State_Met%Area_M2 = State_Grid%Area_M2
 
-     ! Set Fast-JX object with GEOS-Chem state information
-     ! Only do this if fullchem or aerosol sim???
-     CALL FjxState_GC_Set( Input_Opt,  State_Chm, State_Grid, State_Met, &
-                           State_Diag, FjxState, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "FjxState_GC_Set"!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
-     ENDIF
-
   ENDIF
 
   !--------------------------------------------------------------------------
@@ -802,18 +793,34 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
-  ! Initialize chemistry
+  ! Initialize chemistry, including FAST-JX
   ! Moved here because some of the variables are used for non-local
   ! PBL mixing BEFORE the first call of the chemistry routines
   ! (ckeller, 05/19/14).
   IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
-
-     ! Trap potential errors
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_Chemistry"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
+
+     ! Set Fast-JX object with GEOS-Chem state information
+     ! Only do this if fullchem or aerosol sim???
+     CALL FjxState_GC_Set( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                           State_Diag, FjxState, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "FjxState_GC_Set"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
+     ENDIF
+
+     ! Consolidate with above?
+     CALL Init_FJX( FjxState, State_Chm, State_Diag, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "Init_FJX"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
+        RETURN
+     ENDIF
+
   ENDIF
 
   !==========================================================================
@@ -1626,7 +1633,7 @@ PROGRAM GEOS_Chem
 
              ! Do GEOS-Chem chemistry
              CALL Do_Chemistry( Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, RC )
+                                State_Grid, State_Met, FjxState, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN

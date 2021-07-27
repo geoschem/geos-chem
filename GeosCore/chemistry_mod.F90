@@ -58,7 +58,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE DO_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
-                           State_Grid, State_Met, RC )
+                           State_Grid, State_Met, FjxState, RC )
 !
 ! !USES:
 !
@@ -71,6 +71,7 @@ CONTAINS
     USE DUST_MOD,        ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE FAST_JX_Mod,     ONLY : Fjx_State
     USE FlexChem_Mod,    ONLY : Do_FlexChem
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -108,14 +109,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(Fjx_State), INTENT(IN)    :: FjxState    ! FAST-JX object
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),  INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -311,7 +313,7 @@ CONTAINS
              CALL Timer_Start( "=> FlexChem", RC )
           ENDIF
 
-          CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
+          CALL Do_FlexChem( FjxState, Input_Opt,  State_Chm, State_Diag, &
                             State_Grid, State_Met, RC )
 
           ! Check units (ewl, 10/5/15)
@@ -1265,7 +1267,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE FAST_JX_MOD,    ONLY : Init_FJX
     USE FlexChem_Mod,   ONLY : Init_FlexChem
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1330,20 +1331,6 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Initialize Fast-JX photolysis
-       ! NOTE: we need to call this for a dry-run so that we can get
-       ! a list of all of the lookup tables etc. that FAST-JX reads
-       !--------------------------------------------------------------------
-       CALL Init_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_FJX"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
        ENDIF
 
     ENDIF
