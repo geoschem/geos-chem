@@ -827,8 +827,8 @@ CONTAINS
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
 
           ! Do Hg chemistry
-          CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
+!          CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
+!                            State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
