@@ -145,6 +145,8 @@ CONTAINS
     FjxState%Met%SuncosMid   => State_Met%SuncosMid
     FjxState%Met%UVALBEDO    => State_Met%UVALBEDO
     FjxState%Met%PEDGE       => State_Met%PEDGE
+    FjxState%Met%AIRNUMDEN   => State_Met%AIRNUMDEN
+    FjxState%Met%AVGW        => State_Met%AVGW
     FjxState%Met%T           => State_Met%T
     FjxState%Met%OPTD        => State_Met%OPTD
     FjxState%Met%CLDF        => State_Met%CLDF
@@ -241,6 +243,8 @@ CONTAINS
        print *, 'FjxState%Met%SuncosMid max: ',  MAXVAL(FjxState%Met%SuncosMid)
        print *, 'FjxState%Met%UVALBEDO max: ',   MAXVAL(FjxState%Met%UVALBEDO)
        print *, 'FjxState%Met%PEDGE max: ',      MAXVAL(FjxState%Met%PEDGE)
+       print *, 'FjxState%Met%AIRNUMDEN max: ',  MAXVAL(FjxState%Met%AIRNUMDEN)
+       print *, 'FjxState%Met%AVGW max: ',       MAXVAL(FjxState%Met%AVGW)
        print *, 'FjxState%Met%T max: ',          MAXVAL(FjxState%Met%T)
        print *, 'FjxState%Met%OPTD max: ',       MAXVAL(FjxState%Met%OPTD)
        print *, 'FjxState%Met%CLDF max: ',       MAXVAL(FjxState%Met%CLDF)

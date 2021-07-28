@@ -103,6 +103,8 @@ MODULE FAST_JX_MOD
     REAL(fp), POINTER :: UVALBEDO   (:,:)   => NULL()
     REAL(fp), POINTER :: PEDGE      (:,:,:) => NULL()
     REAL(fp), POINTER :: T          (:,:,:) => NULL()
+    REAL(fp), POINTER :: AIRNUMDEN  (:,:,:) => NULL()
+    REAL(fp), POINTER :: AVGW       (:,:,:) => NULL()
     REAL(fp), POINTER :: OPTD       (:,:,:) => NULL()
     REAL(fp), POINTER :: CLDF       (:,:,:) => NULL()
   END TYPE Fjx_Met
@@ -287,6 +289,8 @@ CONTAINS
     FjxState%Met%SuncosMid   => NULL() !State_Met%SuncosMid
     FjxState%Met%UVALBEDO    => NULL() !State_Met%UVALBEDO
     FjxState%Met%PEDGE       => NULL() !State_Met%PEDGE
+    FjxState%Met%AIRNUMDEN   => NULL() !State_Met%AIRNUMDEN
+    FjxState%Met%AVGW        => NULL() !State_Met%AVGW
     FjxState%Met%T           => NULL() !State_Met%T
     FjxState%Met%OPTD        => NULL() !State_Met%OPTD
     FjxState%Met%CLDF        => NULL() !State_Met%CLDF
@@ -383,6 +387,8 @@ CONTAINS
        FjxState%Met%SunCosMid   => NULL()
        FjxState%Met%UVALBEDO    => NULL()
        FjxState%Met%PEDGE       => NULL()
+       FjxState%Met%AIRNUMDEN   => NULL()
+       FjxState%Met%AVGW        => NULL()
        FjxState%Met%T           => NULL()
        FjxState%Met%OPTD        => NULL()
        FjxState%Met%CLDF        => NULL()
@@ -5603,9 +5609,9 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    TEMP    = State_Met%T(I,J,L)                                 ! K
-    NUMDEN  = State_Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
-    C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
+    TEMP    = FjxState%Met%T(I,J,L)                                 ! K
+    NUMDEN  = FjxState%Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
+    C_H2O   = FjxState%Met%AVGW(I,J,L) * FjxState%Met%AIRNUMDEN(I,J,L) ! molec/cm3
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
     ! scaled value of JHNO3. NOTE: this is set in input.geos
