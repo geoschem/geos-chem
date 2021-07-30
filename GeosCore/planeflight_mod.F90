@@ -1104,7 +1104,7 @@ CONTAINS
              WRITE( 6, '(a)') 'If this is intended, you may comment out the '
              WRITE( 6, '(a)') 'call to GEOS_CHEM_STOP in routine '
              WRITE( 6, '(a)') 'READ_POINTS (planeflight_mod.F90). Otherwise,'
-             WRITE( 6, '(a)') 'remove "S" from the IF statement in the same ' 
+             WRITE( 6, '(a)') 'remove "S" from the IF statement in the same '
              WRITE( 6, '(a)') 'location.'
              WRITE( 6, '(a)') REPEAT( '=', 79 )
              CALL GEOS_CHEM_STOP
@@ -1512,7 +1512,7 @@ CONTAINS
     USE Ncdf_Mod,           ONLY : GET_TAU0
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
-    USE PhysConstants,      ONLY : CONSVAP, AIRMW
+    USE PhysConstants,      ONLY : AIRMW, AVO, CONSVAP
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -1540,6 +1540,12 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  When Planeflight is called, the State_Chm%Species array has units of
+!  kg/kg dry.  Species units are stored in State_Chm%Spc_Units.  Therefore,
+!  some of the legacy unit conversions were incorrect but have now been
+!  fixed. -- Bob Yantosca, 30 Jul 2021
+!
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1557,8 +1563,9 @@ CONTAINS
     REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
     REAL(fp)            :: VARI(NPVAR)
     LOGICAL             :: CHEMSTEP
-    REAL*8              :: FLTGMT   ! eam (06/2015)
-    REAL*8              :: XRH      ! MET field RH (eam, 08/2015)
+    REAL(f8)            :: FLTGMT   ! eam (06/2015)
+    REAL(f8)            :: XRH      ! MET field RH (eam, 08/2015)
+    REAL(fp)            :: MW_g, MW_kg
     CHARACTER(LEN=63)   :: OrigUnit
     CHARACTER(LEN=7)    :: NAME
 
@@ -1706,90 +1713,86 @@ CONTAINS
              ! Handle each variable
              SELECT CASE ( PVAR(V) )
 
-             !-------------------------
+             !---------------------------------------------------------------
              ! GEOS-Chem Chemical species [molec/cm3]
-             !-------------------------
+             !---------------------------------------------------------------
              CASE ( 1:996)
 
                 ! Only archive where chemistry is done
                 IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-                   ! Species concentration [v/v] -> [molec/cm3]
-                   VARI(V) = Spc(I,J,L,PVAR(V)) * State_Met%AIRNUMDEN(I,J,L)
-
+                   ! Species concentration [kg/kg dry] -> [molec/cm3]
+                   N       = PVAR(V)
+                   MW_kg   = State_Chm%SpcData(N)%Info%MW_g * 1.0e-3_fp
+                   VARI(V) = Spc(I,J,L,N)                                    &
+                           * State_Met%AIRDEN(I,J,L)                         &
+                           * ( AVO / MW_kg )                                 &
+                           / 1e+6_fp
                 ENDIF
 
-             ! FP 04/01/2010
-             !-------------------------
+             !---------------------------------------------------------------
              ! NOy family
-             !-------------------------
+             !---------------------------------------------------------------
              CASE ( 997 )
 
                 ! Only archive where chemistry is done
-                ! Sum all AN contributions, save as [v/v]
+                ! Sum all AN contributions, save as [v/v dry]
                 VARI(V) = 0e+0_fp
 
+                ! Convert species conc from [kg/kg dry] -> [v/v dry]
                 IF ( IS_FULLCHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
-
                    DO N = 1, NPNOY
-
-                      ! Species concentration [v/v]
-                      VARI(V) = VARI(V) + Spc(I,J,L,PNOY(N))
-
+                      MW_g    = State_Chm%SpcData(PNOY(N))%Info%MW_g
+                      VARI(V) = VARI(V)                                      &
+                              + ( Spc(I,J,L,PNOY(N)) * ( AIRMW / MW_g ) )
                    ENDDO
-
                 ENDIF
 
-             ! FP 04/01/2010
-             !-------------------------
+             !---------------------------------------------------------------
              ! AN family
-             !-------------------------
+             !---------------------------------------------------------------
              CASE ( 998 )
 
                 ! Only archive where chemistry is done
-                ! Sum all AN contributions, save as [v/v]
+                ! Sum all AN contributions, save as [v/v dry]
                 VARI(V) = 0e+0_fp
 
+                ! Convert species conc from [kg/kg dry] -> [v/v dry]
                 IF ( IS_FULLCHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
-
                    DO N = 1, NPAN
-
-                      ! Species concentration [v/v]
-                      VARI(V) = VARI(V) + Spc(I,J,L,P_AN(N))
-
+                      MW_g    = State_Chm%SpcData(P_AN(N))%Info%MW_g
+                      VARI(V) = VARI(V) +                                    &
+                              + ( Spc(I,J,L,P_AN(N)) * ( AIRMW / MW_g ) )
                    ENDDO
-
                 ENDIF
 
-             !-------------------------
+             !---------------------------------------------------------------
              ! RO2 family
-             !-------------------------
+             !---------------------------------------------------------------
              CASE ( 999 )
 
                 ! Only archive where chemistry is done
-                ! Sum all RO2 contributions, save as [v/v]
+                ! Sum all RO2 contributions, save as [v/v dry]
                 VARI(V) = 0e+0_fp
 
+                ! Convert species conc from [kg/kg dry] -> [v/v dry]
                 IF ( IS_FULLCHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
-
                    DO N = 1, NPRO2
-
-                      ! Species concentration [v/v]
-                      VARI(V) = VARI(V) + Spc(I,J,L,PRO2(N))
-
+                      MW_g    = State_Chm%SpcData(PRO2(N))%Info%MW_g
+                      VARI(V) = VARI(V)                                      &
+                              + ( Spc(I,J,L,PRO2(N)) * ( AIRMW / MW_g ) )
                    ENDDO
-
                 ENDIF
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GMAO temperature [K]
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1001 )
                 VARI(V) = State_Met%T(I,J,L)
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GMAO abs humidity [frac]
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1002 )
 
                 ! Only archive where chemistry is done
@@ -1804,9 +1807,9 @@ CONTAINS
                    VARI(V)  = VARI(V) * VPRESH2O / State_Met%AIRNUMDEN(I,J,L)
                 ENDIF
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GMAO aerosol sfc area
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1003 )
 
                 ! Only archive where chemistry is done
@@ -1818,87 +1821,73 @@ CONTAINS
                    ENDDO
                 ENDIF
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GMAO sfc pressure [hPa]
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1004 )
                 VARI(V) = State_Met%PEDGE(I,J,1)
 
-             !-------------------------
-             ! GMAO U-wind [m/s]
-             !-------------------------
+             !---------------------------------------------------------------
+             ! GMAO U-wind and V-wind [m/s]
+             !---------------------------------------------------------------
              CASE ( 1005 )
                 VARI(V) = State_Met%U(I,J,L)
 
-             !--------------------------
-             ! GMAO V-wind [m/s]
-             !--------------------------
              CASE ( 1006 )
                 VARI(V) = State_Met%V(I,J,L)
 
-             !--------------------------
-             ! GEOS-Chem Grid Box I
-             !--------------------------
+             !---------------------------------------------------------------
+             ! GEOS-Chem Grid Box indices (I,J,L)
+             !---------------------------------------------------------------
              CASE ( 1007 )
                 VARI(V) = I
 
-             !--------------------------
-             ! GEOS-Chem Grid Box J
-             !--------------------------
              CASE ( 1008 )
                 VARI(V) = J
 
-             !--------------------------
-             ! GEOS-Chem Grid Box L
-             !--------------------------
              CASE ( 1009 )
                 VARI(V) = L
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GEOS-Chem Relative Humidity [%]
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1010 )
                 VARI(V) = State_Met%RH(I,J,L)
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GEOS-Chem Ertel's potential vorticity
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1011 )
                 ! Disable for now. State_Met%PV is not defined.
                 !VARI(V) = State_Met%PV(I,J,L)
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GEOS-Chem Sea Level pressure [hPa]
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1012 )
                 VARI(V) = State_Met%SLP(I,J)
 
-             !--------------------------
-             ! GEOS-Chem Water Vapor
-             !  mixing ratio [v/v]
-             !--------------------------
+             !---------------------------------------------------------------
+             ! GEOS-Chem Water Vapor mixing ratio [v/v]
+             !---------------------------------------------------------------
              CASE ( 1013 )
                 VARI(V) = State_Met%AVGW(I,J,L)
 
-             !--------------------------
-             ! GEOS-Chem Potential Temp
-             !  (Theta) [k]
-             !  (same calc used in diag1.F90)
-             !--------------------------
+             !---------------------------------------------------------------
+             ! GEOS-Chem Potential Temp (Theta) [k]
+             !---------------------------------------------------------------
              CASE ( 1014 )
-                VARI(V) = State_Met%T(I,J,L) * &
-                     ( State_Met%PEDGE(I,J,1) / State_Met%PMID(I,J,L) )**0.286
+                VARI(V) = State_Met%THETA(I,J,L)
 
-             !--------------------------
-             ! GEOS-Chem Pressure
-             ! at center of grid box [hPa]
-             !--------------------------
+             !---------------------------------------------------------------
+             ! GEOS-Chem Pressure at center of grid box [hPa]
+             !---------------------------------------------------------------
              CASE ( 1015 )
                 VARI(V) = State_Met%PMID(I,J,L)
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! GEOS-Chem SEAICE frac's
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 1100 )
                 VARI(V) = State_Met%SEAICE00(I,J)
              CASE ( 1101 )
@@ -1920,10 +1909,9 @@ CONTAINS
              CASE ( 1109 )
                 VARI(V) = State_Met%SEAICE90(I,J)
 
-             !--------------------------
-             ! Column aerosol optical
-             ! depths [unitless]
-             !--------------------------
+             !---------------------------------------------------------------
+             ! Column aerosol optical  depths [unitless]
+             !---------------------------------------------------------------
              CASE ( 2001:2005 ) ! SULF, BLKC, ORGC, SALA, SALC
 
                 ! Remove MISSING flag
@@ -2040,10 +2028,10 @@ CONTAINS
                    ENDDO
                 ENDIF
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! Aerosol optical depths
              ! below plane [unitless]
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 3001:3005 ) ! SULF, BLKC, ORGC, SALA, SALC
 
                 ! Remove MISSING flag
@@ -2160,18 +2148,18 @@ CONTAINS
                    ENDDO
                 ENDIF
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! Hg(II) partitioning eds 10/27/11
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 4001 )
                 VARI(V) = FG(I,J,LL) !L+1 sample 4/24/12
 
              CASE ( 4002 )
                 VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! ISORROPIA H+ and pH (eam, 06/2015)
-             !--------------------------
+             !---------------------------------------------------------------
              CASE( 5001 )
                 VARI(V) = State_Chm%IsorropHplus(I,J,L,1)
 
@@ -2184,9 +2172,9 @@ CONTAINS
              CASE( 5004 )
                 VARI(V) = State_Chm%IsorropBisulfate(I,J,L)
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! Local Time (eam, 06/2015)
-             !--------------------------
+             !---------------------------------------------------------------
              CASE( 6001 )
 
                 ! Convert GMT from integer to real and
@@ -2195,9 +2183,9 @@ CONTAINS
 
                 VARI(V) = GET_LOCALTIME(I,J,L,State_Grid,FLTGMT)
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! Aqueous aerosol properties (eam, 08/2015)
-             !--------------------------
+             !---------------------------------------------------------------
              ! MET field relative humidity (%):
                 XRH = State_Met%RH( I, J, L )
              CASE( 7001 )
@@ -2257,9 +2245,9 @@ CONTAINS
              !   VARI(V) = PRRATE(I,J,L,R)
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! Photolysis reaction rates
-             !--------------------------
+             !---------------------------------------------------------------
              CASE ( 30001:99999 )
 
                ! Increment reaction count
@@ -2272,24 +2260,25 @@ CONTAINS
                ! NOTE: JValues collection must have been requested in HISTORY.rc
                VARI(V) = State_Diag%JVal(I,J,L, NUM )
 
-             !--------------------------
-             ! GEOS-CHEM advected species [v/v]
-             !--------------------------
+             !---------------------------------------------------------------
+             ! GEOS-CHEM advected species [v/v dry]
+             !---------------------------------------------------------------
              CASE( 100000:199999 )
 
                 ! Remove offset from PVAR
-                N = PVAR(V) - 100000
+                N       = PVAR(V) - 100000
 
-                ! Species concentration [v/v]
-                VARI(V) = Spc(I,J,L,N)
+                ! Convert [kg/kg dry] -> [v/v dry]
+                MW_g    = State_Chm%SpcData(N)%Info%MW_g
+                VARI(V) = Spc(I,J,L,N) * ( AIRMW / MW_g )
 
                 IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
 #ifdef TOMAS
 #ifdef BPCH_DIAG
-             !-------------------------------
+             !---------------------------------------------------------------
              ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
-             !-------------------------------
+             !---------------------------------------------------------------
              CASE( 200000:299999 )
 
                 ! Remove offset from PVAR
@@ -2305,9 +2294,9 @@ CONTAINS
 #endif
 #endif
 
-             !--------------------------
+             !---------------------------------------------------------------
              ! Otherwise it's an error!
-             !--------------------------
+             !---------------------------------------------------------------
              CASE DEFAULT
                 IF ( Input_Opt%amIRoot) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
