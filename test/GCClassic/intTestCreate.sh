@@ -376,22 +376,21 @@ create_rundir "1\n1\n1\n1\n1\n2\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 dir="gc_4x5_fullchem_geosfp_47L"
 create_rundir "1\n1\n1\n2\n1\n2\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
-# Comment these out for now (bmy, 11/12/20)
-##=============================================================================
-## Nested-grid simulations
-##=============================================================================
-#
-#dir="merra2_05x0625_CH4_na_47L"
-#create_rundir "3\n1\n3\n4\n2\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
-#
-#dir="geosfp_025x03125_CH4_na_47L"
-#create_rundir "3\n2\n4\n4\n2\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
-#
-#dir="merra2_05x0625_fullchem_as_47L"
-#create_rundir "1\n2\n1\n1\n3\n2\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
-#
-#dir="geosfp_025x03125_fullchem_na_47L"
-#create_rundir "1\n2\n1\n2\n4\n4\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+#=============================================================================
+# Nested-grid simulations
+#=============================================================================
+
+dir="merra2_05x0625_CH4_na_47L"
+create_rundir "3\n1\n3\n4\n2\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+
+dir="geosfp_025x03125_CH4_na_47L"
+create_rundir "3\n2\n4\n4\n2\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+
+dir="merra2_05x0625_fullchem_as_47L"
+create_rundir "1\n2\n1\n1\n3\n2\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+
+dir="geosfp_025x03125_fullchem_na_47L"
+create_rundir "1\n2\n1\n2\n4\n4\n2\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 
 #=============================================================================
 # Cleanup and quit
