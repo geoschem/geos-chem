@@ -1107,8 +1107,8 @@ CONTAINS
              WRITE( 6, '(a)') 'remove "S" from the IF statement in the same ' 
              WRITE( 6, '(a)') 'location.'
              WRITE( 6, '(a)') REPEAT( '=', 79 )
+             CALL GEOS_CHEM_STOP
           ENDIF
-          CALL GEOS_CHEM_STOP
 
           ! Change units
           ! NOTE: PHIS is now in units of [m], so we don't need to
