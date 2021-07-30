@@ -291,11 +291,11 @@ CONTAINS
        !--------------------------------
        ! Longitude edges [degrees]
        !--------------------------------
-       State_Grid%XEdge(I,J) = State_Grid%GlobalXEdge( IG, JG)
+       State_Grid%XEdge(I,J) = State_Grid%GlobalXEdge( IG, JG )
 
        ! Compute the last longitude edge
        IF ( I == State_Grid%NX ) THEN
-          State_Grid%XEdge(I+1,J) = State_Grid%GlobalXEdge(I+1,J)
+          State_Grid%XEdge(I+1,J) = State_Grid%GlobalXEdge(IG+1,J)
        ENDIF
 
        !--------------------------------
@@ -425,11 +425,11 @@ CONTAINS
        WRITE( 6, '(''%%%%%%%%%%%%%%% GLOBAL GRID %%%%%%%%%%%%%%%'')' )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%GlobalXMid(I,1), &
+       WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid%GlobalXMid(I,1), &
                                     I=1,State_Grid%GlobalNX )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%GlobalYMid(1,J), &
+       WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid%GlobalYMid(1,J), &
                                     J=1,State_Grid%GlobalNY )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''%%%%%%%%%%%% USER-DEFINED GRID %%%%%%%%%%%%'')' )
@@ -441,19 +441,19 @@ CONTAINS
        WRITE( 6, '(a)' )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XMid(I,1), I=1,State_Grid%NX )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%XMid(I,1), I=1,State_Grid%NX )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XEdge(I,1), I=1,State_Grid%NX+1 )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%XEdge(I,1), I=1,State_Grid%NX+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YMid(1,J), J=1,State_Grid%NY )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%YMid(1,J), J=1,State_Grid%NY )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YEdge(1,J), J=1,State_Grid%NY+1 )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%YEdge(1,J), J=1,State_Grid%NY+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''SIN( grid box latitude edges )'')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YSIN(1,J), J=1,State_Grid%NY+1 )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%YSIN(1,J), J=1,State_Grid%NY+1 )
     ENDIF
 
   END SUBROUTINE Compute_Grid
@@ -465,14 +465,16 @@ CONTAINS
 !
 ! !IROUTINE: Compute_Scaled_Grid
 !
-! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid State
-!  object ("Destination") by performing a linear scaling refinement of the primary
-!  ("Source") Grid. e.g. a scale of 2 will yield 2 x 2.5 -> 1 x 1.25.
+! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid 
+!  State object ("Destination") by performing a linear scaling refinement
+!  of the primary ("Source") Grid. e.g. a scale of 2 will yield 
+!  2 x 2.5 -> 1 x 1.25.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Scaled_Grid( Input_Opt, State_Grid, State_Grid_Dst, XScale, YScale, RC )
+  SUBROUTINE Compute_Scaled_Grid( Input_Opt, State_Grid, State_Grid_Dst,      &
+                                  XScale,    YScale,      RC                 )
 !
 ! !USES:
 !
@@ -482,14 +484,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt       ! Input Options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(GrdState), INTENT(IN   ) :: State_Grid        ! Grid State object, orig
-    TYPE(GrdState), INTENT(INOUT) :: State_Grid_Dst    ! Grid State object, scaled
-    INTEGER,        INTENT(IN   ) :: XScale            ! Long dimension scale (>=1)
-    INTEGER,        INTENT(IN   ) :: YScale            ! Lat  dimension scale (>=1)
+    TYPE(GrdState), INTENT(IN   ) :: State_Grid      ! Grid State object, orig
+    TYPE(GrdState), INTENT(INOUT) :: State_Grid_Dst  ! Grid State object, scaled
+    INTEGER,        INTENT(IN   ) :: XScale          ! Long dim scale (>=1)
+    INTEGER,        INTENT(IN   ) :: YScale          ! Lat  dim scale (>=1)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -626,19 +628,19 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
       WRITE( 6, '(''%%%%%%%%%%%%%%% SCALED (HEMCO) GRID %%%%%%%%%%%%%%%'')' )
       WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%XMid(I,1), I=1,State_Grid_Dst%NX )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%XMid(I,1), I=1,State_Grid_Dst%NX )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%XEdge(I,1), I=1,State_Grid_Dst%NX+1 )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%XEdge(I,1), I=1,State_Grid_Dst%NX+1 )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YMid(1,J), J=1,State_Grid_Dst%NY )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%YMid(1,J), J=1,State_Grid_Dst%NY )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YEdge(1,J), J=1,State_Grid_Dst%NY+1 )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%YEdge(1,J), J=1,State_Grid_Dst%NY+1 )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''SIN( grid box latitude edges )'')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YSIN(1,J), J=1,State_Grid_Dst%NY+1 )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%YSIN(1,J), J=1,State_Grid_Dst%NY+1 )
     ENDIF
   END SUBROUTINE Compute_Scaled_Grid
 !EOC
