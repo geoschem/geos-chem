@@ -1506,6 +1506,10 @@ CONTAINS
 
                 ENDIF
 
+             ! currently messy test for if surface is snow/ice to change O3
+             ! surface resistance to an updated value
+             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (State_Met%isSnow(I,J))) THEN
+                 RSURFC(K,LDT) = 10000.0_f8
              ELSE
 
                 !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
