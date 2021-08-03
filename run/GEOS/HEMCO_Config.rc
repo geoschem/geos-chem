@@ -174,291 +174,293 @@ Warnings:                    1
 
 #97  NOx ems as NO scale factor
 #115 NO2toNO scale factor; CEDS emits all as NO2. Convert NO2 to NO here instead of preprocessing.
-0 CEDS_NO_AGR     /see/ExtData.rc            NOx_agr            2014/1-12/1/0 C xy kg/m2/s NO    97/115/205/215        5 2
-0 CEDS_NO_ENE     /see/ExtData.rc            NOx_ene            2014/1-12/1/0 C xy kg/m2/s NO    97/115/202/212/317    2 2
-0 CEDS_NO_IND     /see/ExtData.rc            NOx_ind            2014/1-12/1/0 C xy kg/m2/s NO    97/115/201/211/318    1 2
-0 CEDS_NO_TRA     /see/ExtData.rc            NOx_tra            2014/1-12/1/0 C xy kg/m2/s NO    97/115/203/213        3 2
-0 CEDS_NO_RCO     /see/ExtData.rc            NOx_rco            2014/1-12/1/0 C xy kg/m2/s NO    97/115/204/214        4 2
-0 CEDS_NO_SLV     /see/ExtData.rc            NOx_slv            2014/1-12/1/0 C xy kg/m2/s NO    97/115/201/211        1 2
-0 CEDS_NO_WST     /see/ExtData.rc            NOx_wst            2014/1-12/1/0 C xy kg/m2/s NO    97/115                9 2
+#0 CEDS_NO_AGR     /see/ExtData.rc            NOx_agr            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/205/215        5 2
+0 CEDS_NO_ENE     /see/ExtData.rc            NOx_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s NO    97/115/202/212/317    2 2
+0 CEDS_NO_IND     /see/ExtData.rc            NOx_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s NO    97/115/201/211/318    1 2
+0 CEDS_NO_TRA     /see/ExtData.rc            NOx_tra            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/203/213        3 2
+0 CEDS_NO_RCO     /see/ExtData.rc            NOx_rco            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/204/214        4 2
+0 CEDS_NO_SLV     /see/ExtData.rc            NOx_slv            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/201/211        1 2
+0 CEDS_NO_WST     /see/ExtData.rc            NOx_wst            2014/1-12/1/0 C xy       kg/m2/s NO    97/115                9 2
 
 #98 NOx ems as NO2 scale factor
-0 CEDS_NO2_AGR     /see/ExtData.rc            NOx_agr            2014/1-12/1/0 C xy kg/m2/s NO2    98/205/215        5 2
-0 CEDS_NO2_ENE     /see/ExtData.rc            NOx_ene            2014/1-12/1/0 C xy kg/m2/s NO2    98/202/212/317    2 2
-0 CEDS_NO2_IND     /see/ExtData.rc            NOx_ind            2014/1-12/1/0 C xy kg/m2/s NO2    98/201/211/318    1 2
-0 CEDS_NO2_TRA     /see/ExtData.rc            NOx_tra            2014/1-12/1/0 C xy kg/m2/s NO2    98/203/213        3 2
-0 CEDS_NO2_RCO     /see/ExtData.rc            NOx_rco            2014/1-12/1/0 C xy kg/m2/s NO2    98/204/214        4 2
-0 CEDS_NO2_SLV     /see/ExtData.rc            NOx_slv            2014/1-12/1/0 C xy kg/m2/s NO2    98/201/211        1 2
-0 CEDS_NO2_WST     /see/ExtData.rc            NOx_wst            2014/1-12/1/0 C xy kg/m2/s NO2    98                9 2
+#0 CEDS_NO2_AGR     /see/ExtData.rc           NOx_agr            2014/1-12/1/0 C xy       kg/m2/s NO2    98/205/215        5 2
+0 CEDS_NO2_ENE     /see/ExtData.rc           NOx_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s NO2    98/202/212/317    2 2
+0 CEDS_NO2_IND     /see/ExtData.rc           NOx_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s NO2    98/201/211/318    1 2
+0 CEDS_NO2_TRA     /see/ExtData.rc           NOx_tra            2014/1-12/1/0 C xy       kg/m2/s NO2    98/203/213        3 2
+0 CEDS_NO2_RCO     /see/ExtData.rc           NOx_rco            2014/1-12/1/0 C xy       kg/m2/s NO2    98/204/214        4 2
+0 CEDS_NO2_SLV     /see/ExtData.rc           NOx_slv            2014/1-12/1/0 C xy       kg/m2/s NO2    98/201/211        1 2
+0 CEDS_NO2_WST     /see/ExtData.rc           NOx_wst            2014/1-12/1/0 C xy       kg/m2/s NO2    98                9 2
 
 #280 COtoSOAP_anth
-0 CEDS_CO_AGR     /see/ExtData.rc            CO_agr            2014/1-12/1/0 C xy kg/m2/s CO    205/215         5 2
-0 CEDS_SOAP_AGR   -                          -                 -             - -  -       SOAP  205/215/280     5 2
-0 CEDS_CO_ENE     /see/ExtData.rc            CO_ene            2014/1-12/1/0 C xy kg/m2/s CO    202/212/317     2 2
-0 CEDS_SOAP_ENE   -                          -                 -             - -  -       SOAP  202/212/280/317 2 2
-0 CEDS_CO_IND     /see/ExtData.rc            CO_ind            2014/1-12/1/0 C xy kg/m2/s CO    201/211/318     1 2
-0 CEDS_SOAP_IND   -                          -                 -             - -  -       SOAP  201/211/280/318 1 2
-0 CEDS_CO_TRA     /see/ExtData.rc            CO_tra            2014/1-12/1/0 C xy kg/m2/s CO    203/213         3 2
-0 CEDS_SOAP_TRA   -                          -                 -             - -  -       SOAP  203/213/280     3 2
-0 CEDS_CO_RCO     /see/ExtData.rc            CO_rco            2014/1-12/1/0 C xy kg/m2/s CO    204/214         4 2
-0 CEDS_SOAP_RCO   -                          -                 -             - -  -       SOAP  204/214/280     4 2
-0 CEDS_CO_SLV     /see/ExtData.rc            CO_slv            2014/1-12/1/0 C xy kg/m2/s CO    201/211         1 2
-0 CEDS_SOAP_SLV   -                          -                 -             - -  -       SOAP  201/211/280     1 2
-0 CEDS_CO_WST     /see/ExtData.rc            CO_wst            2014/1-12/1/0 C xy kg/m2/s CO    -               9 2
-0 CEDS_SOAP_WST   -                          -                 -             - -  -       SOAP  280             9 2
+#301 ODIAC_ANNUALSCALE_2010 (not applied here but is used in HTAP) **********
+#302 ODIAC_ANNUALSCALE_2013
+0 CEDS_CO_AGR     /see/ExtData.rc            CO_agr            2014/1-12/1/0 C xy       kg/m2/s CO    205/215         5 2
+0 CEDS_SOAP_AGR   -                          -                 -             - -        -       SOAP  205/215/280     5 2
+0 CEDS_CO_ENE     /see/ExtData.rc            CO_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s CO    202/212/317     2 2
+0 CEDS_SOAP_ENE   -                          -                 -             - -        -       SOAP  202/212/280/317 2 2
+0 CEDS_CO_IND     /see/ExtData.rc            CO_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s CO    201/211/318     1 2
+0 CEDS_SOAP_IND   -                          -                 -             - -        -       SOAP  201/211/280/318 1 2
+0 CEDS_CO_TRA     /see/ExtData.rc            CO_tra            2014/1-12/1/0 C xy       kg/m2/s CO    203/213         3 2
+0 CEDS_SOAP_TRA   -                          -                 -             - -        -       SOAP  203/213/280     3 2
+0 CEDS_CO_RCO     /see/ExtData.rc            CO_rco            2014/1-12/1/0 C xy       kg/m2/s CO    204/214         4 2
+0 CEDS_SOAP_RCO   -                          -                 -             - -        -       SOAP  204/214/280     4 2
+0 CEDS_CO_SLV     /see/ExtData.rc            CO_slv            2014/1-12/1/0 C xy       kg/m2/s CO    201/211         1 2
+0 CEDS_SOAP_SLV   -                          -                 -             - -        -       SOAP  201/211/280     1 2
+0 CEDS_CO_WST     /see/ExtData.rc            CO_wst            2014/1-12/1/0 C xy       kg/m2/s CO    -               9 2
+0 CEDS_SOAP_WST   -                          -                 -             - -        -       SOAP  280             9 2
 
-0 CEDS_NH3_AGR    /see/ExtData.rc           NH3_agr           2014/1-12/1/0 C xy kg/m2/s NH3   205/215         5 2
-0 CEDS_NH3_ENE    /see/ExtData.rc           NH3_ene           2014/1-12/1/0 C xy kg/m2/s NH3   202/212/317     2 2
-0 CEDS_NH3_IND    /see/ExtData.rc           NH3_ind           2014/1-12/1/0 C xy kg/m2/s NH3   201/211/318     1 2
-0 CEDS_NH3_TRA    /see/ExtData.rc           NH3_tra           2014/1-12/1/0 C xy kg/m2/s NH3   203/213         3 2
-0 CEDS_NH3_RCO    /see/ExtData.rc           NH3_rco           2014/1-12/1/0 C xy kg/m2/s NH3   204/214         4 2
-0 CEDS_NH3_SLV    /see/ExtData.rc           NH3_slv           2014/1-12/1/0 C xy kg/m2/s NH3   201/211         1 2
-0 CEDS_NH3_WST    /see/ExtData.rc           NH3_wst           2014/1-12/1/0 C xy kg/m2/s NH3   -               9 2
+0 CEDS_NH3_AGR    /see/ExtData.rc           NH3_agr           2014/1-12/1/0 C xy       kg/m2/s NH3   205/215         5 2
+0 CEDS_NH3_ENE    /see/ExtData.rc           NH3_ene           2014/1-12/1/0 C xyL=1:11 kg/m2/s NH3   202/212/317     2 2
+0 CEDS_NH3_IND    /see/ExtData.rc           NH3_ind           2014/1-12/1/0 C xyL=1:15 kg/m2/s NH3   201/211/318     1 2
+0 CEDS_NH3_TRA    /see/ExtData.rc           NH3_tra           2014/1-12/1/0 C xy       kg/m2/s NH3   203/213         3 2
+0 CEDS_NH3_RCO    /see/ExtData.rc           NH3_rco           2014/1-12/1/0 C xy       kg/m2/s NH3   204/214         4 2
+0 CEDS_NH3_SLV    /see/ExtData.rc           NH3_slv           2014/1-12/1/0 C xy       kg/m2/s NH3   201/211         1 2
+0 CEDS_NH3_WST    /see/ExtData.rc           NH3_wst           2014/1-12/1/0 C xy       kg/m2/s NH3   -               9 2
 
 #70 BC2BCPI
 #71 BC2BCPO
-0 CEDS_BCPI_AGR   /see/ExtData.rc            BC_agr            2014/1-12/1/0 C xy kg/m2/s BCPI  70/205/215        5 2
-0 CEDS_BCPO_AGR   -                          -                 -             - -  -       BCPO  71/205/215        5 2
-0 CEDS_BCPI_ENE   /see/ExtData.rc            BC_ene            2014/1-12/1/0 C xy kg/m2/s BCPI  70/202/212/317    2 2
-0 CEDS_BCPO_ENE   -                          -                 -             - -  -       BCPO  71/202/212/317    2 2
-0 CEDS_BCPI_IND   /see/ExtData.rc            BC_ind            2014/1-12/1/0 C xy kg/m2/s BCPI  70/201/211/318    1 2
-0 CEDS_BCPO_IND   -                          -                 -             - -  -       BCPO  71/201/211/318    1 2
-0 CEDS_BCPI_TRA   /see/ExtData.rc            BC_tra            2014/1-12/1/0 C xy kg/m2/s BCPI  70/203/213        3 2
-0 CEDS_BCPO_TRA   -                          -                 -             - -  -       BCPO  71/203/213        3 2
-0 CEDS_BCPI_RCO   /see/ExtData.rc            BC_rco            2014/1-12/1/0 C xy kg/m2/s BCPI  70/204/214        4 2
-0 CEDS_BCPO_RCO   -                          -                 -             - -  -       BCPO  71/204/214        4 2
-0 CEDS_BCPI_SLV   /see/ExtData.rc            BC_slv            2014/1-12/1/0 C xy kg/m2/s BCPI  70/201/211        1 2
-0 CEDS_BCPO_SLV   -                          -                 -             - -  -       BCPO  71/201/211        1 2
-0 CEDS_BCPI_WST   /see/ExtData.rc            BC_wst            2014/1-12/1/0 C xy kg/m2/s BCPI  70                9 2
-0 CEDS_BCPO_WST   -                          -                 -             - -  -       BCPO  71                9 2
+0 CEDS_BCPI_AGR   /see/ExtData.rc            BC_agr            2014/1-12/1/0 C xy       kg/m2/s BCPI  70/205/215        5 2
+0 CEDS_BCPO_AGR   -                          -                 -             - -        -       BCPO  71/205/215        5 2
+0 CEDS_BCPI_ENE   /see/ExtData.rc            BC_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s BCPI  70/202/212/317    2 2
+0 CEDS_BCPO_ENE   -                          -                 -             - -        -       BCPO  71/202/212/317    2 2
+0 CEDS_BCPI_IND   /see/ExtData.rc            BC_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s BCPI  70/201/211/318    1 2
+0 CEDS_BCPO_IND   -                          -                 -             - -        -       BCPO  71/201/211/318    1 2
+0 CEDS_BCPI_TRA   /see/ExtData.rc            BC_tra            2014/1-12/1/0 C xy       kg/m2/s BCPI  70/203/213        3 2
+0 CEDS_BCPO_TRA   -                          -                 -             - -        -       BCPO  71/203/213        3 2
+0 CEDS_BCPI_RCO   /see/ExtData.rc            BC_rco            2014/1-12/1/0 C xy       kg/m2/s BCPI  70/204/214        4 2
+0 CEDS_BCPO_RCO   -                          -                 -             - -        -       BCPO  71/204/214        4 2
+0 CEDS_BCPI_SLV   /see/ExtData.rc            BC_slv            2014/1-12/1/0 C xy       kg/m2/s BCPI  70/201/211        1 2
+0 CEDS_BCPO_SLV   -                          -                 -             - -        -       BCPO  71/201/211        1 2
+0 CEDS_BCPI_WST   /see/ExtData.rc            BC_wst            2014/1-12/1/0 C xy       kg/m2/s BCPI  70                9 2
+0 CEDS_BCPO_WST   -                          -                 -             - -        -       BCPO  71                9 2
 #72 OC2OCPI
 #73 OC2OCPO
 #74 POGSCAL
 #76 SV2POG1
 #77 SV2POG2
-0 CEDS_OCPI_AGR   /see/ExtData.rc            OC_agr            2014/1-12/1/0 C xy kg/m2/s OCPI  72/205/215            5 2
-0 CEDS_OCPO_AGR   -                          -                 -             - -  -       OCPO  73/205/215            5 2
-0 CEDS_POG1_AGR   -                          -                 -             - -  -       POG1  73/74/76/205/215      5 2
-0 CEDS_POG2_AGR   -                          -                 -             - -  -       POG2  73/74/77/205/215      5 2
-0 CEDS_OCPI_ENE   /see/ExtData.rc            OC_ene            2014/1-12/1/0 C xy kg/m2/s OCPI  72/202/212/317        2 2
-0 CEDS_OCPO_ENE   -                          -                 -             - -  -       OCPO  73/202/212/317        2 2
-0 CEDS_POG1_ENE   -                          -                 -             - -  -       POG1  73/74/76/202/212/317  2 2
-0 CEDS_POG2_ENE   -                          -                 -             - -  -       POG2  73/74/77/202/212/317  2 2
-0 CEDS_OCPI_IND   /see/ExtData.rc            OC_ind            2014/1-12/1/0 C xy kg/m2/s OCPI  72/201/211/318        1 2
-0 CEDS_OCPO_IND   -                          -                 -             - -  -       OCPO  73/201/211/318        1 2
-0 CEDS_POG1_IND   -                          -                 -             - -  -       POG1  73/74/76/201/211/318  1 2
-0 CEDS_POG2_IND   -                          -                 -             - -  -       POG2  73/74/77/201/211/318  1 2
-0 CEDS_OCPI_TRA   /see/ExtData.rc            OC_tra            2014/1-12/1/0 C xy kg/m2/s OCPI  72/203/213            3 2
-0 CEDS_OCPO_TRA   -                          -                 -             - -  -       OCPO  73/203/213            3 2
-0 CEDS_POG1_TRA   -                          -                 -             - -  -       POG1  73/74/76/203/213      3 2
-0 CEDS_POG2_TRA   -                          -                 -             - -  -       POG2  73/74/77/203/213      3 2
-0 CEDS_OCPI_RCO   /see/ExtData.rc            OC_rco            2014/1-12/1/0 C xy kg/m2/s OCPI  72/204/214            4 2
-0 CEDS_OCPO_RCO   -                          -                 -             - -  -       OCPO  73/204/214            4 2
-0 CEDS_POG1_RCO   -                          -                 -             - -  -       POG1  73/74/76/204/214      4 2
-0 CEDS_POG2_RCO   -                          -                 -             - -  -       POG2  73/74/77/204/214      4 2
-0 CEDS_OCPI_SLV   /see/ExtData.rc            OC_slv            2014/1-12/1/0 C xy kg/m2/s OCPI  72/201/211            1 2
-0 CEDS_OCPO_SLV   -                          -                 -             - -  -       OCPO  73/201/211            1 2
-0 CEDS_POG1_SLV   -                          -                 -             - -  -       POG1  73/74/76/201/211      1 2
-0 CEDS_POG2_SLV   -                          -                 -             - -  -       POG2  73/74/77/201/211      1 2
-0 CEDS_OCPI_WST   /see/ExtData.rc            OC_wst            2014/1-12/1/0 C xy kg/m2/s OCPI  72                    9 2
-0 CEDS_OCPO_WST   -                          -                 -             - -  -       OCPO  73                    9 2
-0 CEDS_POG1_WST   -                          -                 -             - -  -       POG1  73/74/76              9 2
-0 CEDS_POG2_WST   -                          -                 -             - -  -       POG2  73/74/77              9 2
+0 CEDS_OCPI_AGR   /see/ExtData.rc            OC_agr            2014/1-12/1/0 C xy       kg/m2/s OCPI  72/205/215            5 2
+0 CEDS_OCPO_AGR   -                          -                 -             - -        -       OCPO  73/205/215            5 2
+0 CEDS_POG1_AGR   -                          -                 -             - -        -       POG1  73/74/76/205/215      5 2
+0 CEDS_POG2_AGR   -                          -                 -             - -        -       POG2  73/74/77/205/215      5 2
+0 CEDS_OCPI_ENE   /see/ExtData.rc            OC_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s OCPI  72/202/212/317        2 2
+0 CEDS_OCPO_ENE   -                          -                 -             - -        -       OCPO  73/202/212/317        2 2
+0 CEDS_POG1_ENE   -                          -                 -             - -        -       POG1  73/74/76/202/212/317  2 2
+0 CEDS_POG2_ENE   -                          -                 -             - -        -       POG2  73/74/77/202/212/317  2 2
+0 CEDS_OCPI_IND   /see/ExtData.rc            OC_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s OCPI  72/201/211/318        1 2
+0 CEDS_OCPO_IND   -                          -                 -             - -        -       OCPO  73/201/211/318        1 2
+0 CEDS_POG1_IND   -                          -                 -             - -        -       POG1  73/74/76/201/211/318  1 2
+0 CEDS_POG2_IND   -                          -                 -             - -        -       POG2  73/74/77/201/211/318  1 2
+0 CEDS_OCPI_TRA   /see/ExtData.rc            OC_tra            2014/1-12/1/0 C xy       kg/m2/s OCPI  72/203/213            3 2
+0 CEDS_OCPO_TRA   -                          -                 -             - -        -       OCPO  73/203/213            3 2
+0 CEDS_POG1_TRA   -                          -                 -             - -        -       POG1  73/74/76/203/213      3 2
+0 CEDS_POG2_TRA   -                          -                 -             - -        -       POG2  73/74/77/203/213      3 2
+0 CEDS_OCPI_RCO   /see/ExtData.rc            OC_rco            2014/1-12/1/0 C xy       kg/m2/s OCPI  72/204/214            4 2
+0 CEDS_OCPO_RCO   -                          -                 -             - -        -       OCPO  73/204/214            4 2
+0 CEDS_POG1_RCO   -                          -                 -             - -        -       POG1  73/74/76/204/214      4 2
+0 CEDS_POG2_RCO   -                          -                 -             - -        -       POG2  73/74/77/204/214      4 2
+0 CEDS_OCPI_SLV   /see/ExtData.rc            OC_slv            2014/1-12/1/0 C xy       kg/m2/s OCPI  72/201/211            1 2
+0 CEDS_OCPO_SLV   -                          -                 -             - -        -       OCPO  73/201/211            1 2
+0 CEDS_POG1_SLV   -                          -                 -             - -        -       POG1  73/74/76/201/211      1 2
+0 CEDS_POG2_SLV   -                          -                 -             - -        -       POG2  73/74/77/201/211      1 2
+0 CEDS_OCPI_WST   /see/ExtData.rc            OC_wst            2014/1-12/1/0 C xy       kg/m2/s OCPI  72                    9 2
+0 CEDS_OCPO_WST   -                          -                 -             - -        -       OCPO  73                    9 2
+0 CEDS_POG1_WST   -                          -                 -             - -        -       POG1  73/74/76              9 2
+0 CEDS_POG2_WST   -                          -                 -             - -        -       POG2  73/74/77              9 2
 
 #63 SO2toSO4
 #66 SO2toPFe
-0 CEDS_SO2_AGR    /see/ExtData.rc           SO2_agr           2014/1-12/1/0 C xy kg/m2/s SO2   205/215           5 2
-0 CEDS_SO4_AGR    -                         -                 -             - -  -       SO4   63/205/215        5 2
-0 CEDS_pFe_AGR    -                         -                 -             - -  -       pFe   66/205/215        5 2
-0 CEDS_SO2_ENE    /see/ExtData.rc           SO2_ene           2014/1-12/1/0 C xy kg/m2/s SO2   202/212/317       2 2
-0 CEDS_SO4_ENE    -                         -                 -             - -  -       SO4   63/202/212/317    2 2
-0 CEDS_pFe_ENE    -                         -                 -             - -  -       pFe   66/202/212/317    2 2
-0 CEDS_SO2_IND    /see/ExtData.rc           SO2_ind           2014/1-12/1/0 C xy kg/m2/s SO2   201/211/318       1 2
-0 CEDS_SO4_IND    -                         -                 -             - -  -       SO4   63/201/211/318    1 2
-0 CEDS_pFe_IND    -                         -                 -             - -  -       pFe   66/201/211/318    1 2
-0 CEDS_SO2_TRA    /see/ExtData.rc           SO2_tra           2014/1-12/1/0 C xy kg/m2/s SO2   203/213           3 2
-0 CEDS_SO4_TRA    -                         -                 -             - -  -       SO4   63/203/213        3 2
-0 CEDS_pFe_TRA    -                         -                 -             - -  -       pFe   66/203/213        3 2
-0 CEDS_SO2_RCO    /see/ExtData.rc           SO2_rco           2014/1-12/1/0 C xy kg/m2/s SO2   204/214           4 2
-0 CEDS_SO4_RCO    -                         -                 -             - -  -       SO4   63/204/214        4 2
-0 CEDS_pFe_RCO    -                         -                 -             - -  -       pFe   66/204/214        4 2
-0 CEDS_SO2_SLV    /see/ExtData.rc           SO2_slv           2014/1-12/1/0 C xy kg/m2/s SO2   201/211           1 2
-0 CEDS_SO4_SLV    -                         -                 -             - -  -       SO4   63/201/211        1 2
-0 CEDS_pFe_SLV    -                         -                 -             - -  -       pFe   66/201/211        1 2
-0 CEDS_SO2_WST    /see/ExtData.rc           SO2_wst           2014/1-12/1/0 C xy kg/m2/s SO2   -                 9 2
-0 CEDS_SO4_WST    -                         -                 -             - -  -       SO4   63                9 2
-0 CEDS_pFe_WST    -                         -                 -             - -  -       pFe   66                9 2
+0 CEDS_SO2_AGR    /see/ExtData.rc           SO2_agr           2014/1-12/1/0 C xy       kg/m2/s SO2   205/215           5 2
+0 CEDS_SO4_AGR    -                         -                 -             - -        -       SO4   63/205/215        5 2
+0 CEDS_pFe_AGR    -                         -                 -             - -        -       pFe   66/205/215        5 2
+0 CEDS_SO2_ENE    /see/ExtData.rc           SO2_ene           2014/1-12/1/0 C xyL=1:11 kg/m2/s SO2   202/212/317       2 2
+0 CEDS_SO4_ENE    -                         -                 -             - -        -       SO4   63/202/212/317    2 2
+0 CEDS_pFe_ENE    -                         -                 -             - -        -       pFe   66/202/212/317    2 2
+0 CEDS_SO2_IND    /see/ExtData.rc           SO2_ind           2014/1-12/1/0 C xyL=1:15 kg/m2/s SO2   201/211/318       1 2
+0 CEDS_SO4_IND    -                         -                 -             - -        -       SO4   63/201/211/318    1 2
+0 CEDS_pFe_IND    -                         -                 -             - -        -       pFe   66/201/211/318    1 2
+0 CEDS_SO2_TRA    /see/ExtData.rc           SO2_tra           2014/1-12/1/0 C xy       kg/m2/s SO2   203/213           3 2
+0 CEDS_SO4_TRA    -                         -                 -             - -        -       SO4   63/203/213        3 2
+0 CEDS_pFe_TRA    -                         -                 -             - -        -       pFe   66/203/213        3 2
+0 CEDS_SO2_RCO    /see/ExtData.rc           SO2_rco           2014/1-12/1/0 C xy       kg/m2/s SO2   204/214           4 2
+0 CEDS_SO4_RCO    -                         -                 -             - -        -       SO4   63/204/214        4 2
+0 CEDS_pFe_RCO    -                         -                 -             - -        -       pFe   66/204/214        4 2
+0 CEDS_SO2_SLV    /see/ExtData.rc           SO2_slv           2014/1-12/1/0 C xy       kg/m2/s SO2   201/211           1 2
+0 CEDS_SO4_SLV    -                         -                 -             - -        -       SO4   63/201/211        1 2
+0 CEDS_pFe_SLV    -                         -                 -             - -        -       pFe   66/201/211        1 2
+0 CEDS_SO2_WST    /see/ExtData.rc           SO2_wst           2014/1-12/1/0 C xy       kg/m2/s SO2   -                 9 2
+0 CEDS_SO4_WST    -                         -                 -             - -        -       SO4   63                9 2
+0 CEDS_pFe_WST    -                         -                 -             - -        -       pFe   66                9 2
 )))CEDS
 
 (((CEDS_VOCs
 ##206,216 Average DOW,TOD used like in RETRO.  ****Maybe I shouldn't apply to _WST ?? or apply to _WST evwh******
 #
-##8  kg EOH to kg MOH 
+##8  kg EOH to kg MOH
 ##9  kg EOH to kg EOH
 ##24 kg EOH to kg ROH
 ##92 VOC1 to MOH
 ##93 VOC1 to EOH
 ##94 VOC1 to ROH
-0 CEDS_MOH_AGR    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_agr           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92      5 2
-0 CEDS_EOH_AGR    -                                              -                 -             - -  -       EOH   206/216/9/93      5 2
-0 CEDS_ROH_AGR    -                                              -                 -             - -  -       ROH   206/216/24/94     5 2
-0 CEDS_MOH_ENE    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_ene           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92/317  2 2
-0 CEDS_EOH_ENE    -                                              -                 -             - -  -       EOH   206/216/9/93/317  2 2
-0 CEDS_ROH_ENE    -                                              -                 -             - -  -       ROH   206/216/24/94/317 2 2
-0 CEDS_MOH_IND    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_ind           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92/318  1 2
-0 CEDS_EOH_IND    -                                              -                 -             - -  -       EOH   206/216/9/93/318  1 2
-0 CEDS_ROH_IND    -                                              -                 -             - -  -       ROH   206/216/24/94/318 1 2
-0 CEDS_MOH_TRA    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_tra           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92      3 2
-0 CEDS_EOH_TRA    -                                              -                 -             - -  -       EOH   206/216/9/93      3 2
-0 CEDS_ROH_TRA    -                                              -                 -             - -  -       ROH   206/216/24/94     3 2
-0 CEDS_MOH_RCO    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_rco           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92      4 2
-0 CEDS_EOH_RCO    -                                              -                 -             - -  -       EOH   206/216/9/93      4 2
-0 CEDS_ROH_RCO    -                                              -                 -             - -  -       ROH   206/216/24/94     4 2
-0 CEDS_MOH_SLV    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_slv           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92      1 2
-0 CEDS_EOH_SLV    -                                              -                 -             - -  -       EOH   206/216/9/93      1 2
-0 CEDS_ROH_SLV    -                                              -                 -             - -  -       ROH   206/216/24/94     1 2
-0 CEDS_MOH_WST    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_wst           2014/1-12/1/0 C xy kg/m2/s MOH   206/216/8/92      9 2
-0 CEDS_EOH_WST    -                                              -                 -             - -  -       EOH   206/216/9/93      9 2
-0 CEDS_ROH_WST    -                                              -                 -             - -  -       ROH   206/216/24/94     9 2
+0 CEDS_MOH_AGR    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_agr           2014/1-12/1/0 C xy       kg/m2/s MOH   206/216/8/92      5 2
+0 CEDS_EOH_AGR    -                                              -                 -             - -        -       EOH   206/216/9/93      5 2
+0 CEDS_ROH_AGR    -                                              -                 -             - -        -       ROH   206/216/24/94     5 2
+0 CEDS_MOH_ENE    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_ene           2014/1-12/1/0 C xyL=1:11 kg/m2/s MOH   206/216/8/92/317  2 2
+0 CEDS_EOH_ENE    -                                              -                 -             - -        -       EOH   206/216/9/93/317  2 2
+0 CEDS_ROH_ENE    -                                              -                 -             - -        -       ROH   206/216/24/94/317 2 2
+0 CEDS_MOH_IND    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_ind           2014/1-12/1/0 C xyL=1:15 kg/m2/s MOH   206/216/8/92/318  1 2
+0 CEDS_EOH_IND    -                                              -                 -             - -        -       EOH   206/216/9/93/318  1 2
+0 CEDS_ROH_IND    -                                              -                 -             - -        -       ROH   206/216/24/94/318 1 2
+0 CEDS_MOH_TRA    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_tra           2014/1-12/1/0 C xy       kg/m2/s MOH   206/216/8/92      3 2
+0 CEDS_EOH_TRA    -                                              -                 -             - -        -       EOH   206/216/9/93      3 2
+0 CEDS_ROH_TRA    -                                              -                 -             - -        -       ROH   206/216/24/94     3 2
+0 CEDS_MOH_RCO    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_rco           2014/1-12/1/0 C xy       kg/m2/s MOH   206/216/8/92      4 2
+0 CEDS_EOH_RCO    -                                              -                 -             - -        -       EOH   206/216/9/93      4 2
+0 CEDS_ROH_RCO    -                                              -                 -             - -        -       ROH   206/216/24/94     4 2
+0 CEDS_MOH_SLV    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_slv           2014/1-12/1/0 C xy       kg/m2/s MOH   206/216/8/92      1 2
+0 CEDS_EOH_SLV    -                                              -                 -             - -        -       EOH   206/216/9/93      1 2
+0 CEDS_ROH_SLV    -                                              -                 -             - -        -       ROH   206/216/24/94     1 2
+0 CEDS_MOH_WST    see/EOH-em-anthro_CMIP_CEDS_$YYYY.nc           EOH_wst           2014/1-12/1/0 C xy       kg/m2/s MOH   206/216/8/92      9 2
+0 CEDS_EOH_WST    -                                              -                 -             - -        -       EOH   206/216/9/93      9 2
+0 CEDS_ROH_WST    -                                              -                 -             - -        -       ROH   206/216/24/94     9 2
 
 #10 C4H10toALK4
-0 CEDS_C4H10_AGR  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_agr  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10        5 2
-0 CEDS_C4H10_ENE  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_ene  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10/317    2 2
-0 CEDS_C4H10_IND  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_ind  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10/318    1 2
-0 CEDS_C4H10_TRA  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_tra  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10        3 2
-0 CEDS_C4H10_RCO  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_rco  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10        4 2
-0 CEDS_C4H10_SLV  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_slv  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10        1 2
-0 CEDS_C4H10_WST  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_wst  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/10        9 2
+0 CEDS_C4H10_AGR  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_agr  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/10        5 2
+0 CEDS_C4H10_ENE  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_ene  2014/1-12/1/0 C xyL=1:11 kg/m2/s ALK4  206/216/10/317    2 2
+0 CEDS_C4H10_IND  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_ind  2014/1-12/1/0 C xyL=1:15 kg/m2/s ALK4  206/216/10/318    1 2
+0 CEDS_C4H10_TRA  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_tra  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/10        3 2
+0 CEDS_C4H10_RCO  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_rco  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/10        4 2
+0 CEDS_C4H10_SLV  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_slv  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/10        1 2
+0 CEDS_C4H10_WST  see/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_wst  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/10        9 2
 
 #11 C5H12toALK4
-0 CEDS_C5H12_AGR  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_agr 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11        5 2
-0 CEDS_C5H12_ENE  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_ene 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11/317    2 2
-0 CEDS_C5H12_IND  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_ind 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11/318    1 2
-0 CEDS_C5H12_TRA  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_tra 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11        3 2
-0 CEDS_C5H12_RCO  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_rco 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11        4 2
-0 CEDS_C5H12_SLV  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_slv 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11        1 2
-0 CEDS_C5H12_WST  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_wst 2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/11        9 2
+0 CEDS_C5H12_AGR  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_agr 2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/11        5 2
+0 CEDS_C5H12_ENE  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_ene 2014/1-12/1/0 C xyL=1:11 kg/m2/s ALK4  206/216/11/317    2 2
+0 CEDS_C5H12_IND  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_ind 2014/1-12/1/0 C xyL=1:15 kg/m2/s ALK4  206/216/11/318    1 2
+0 CEDS_C5H12_TRA  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_tra 2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/11        3 2
+0 CEDS_C5H12_RCO  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_rco 2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/11        4 2
+0 CEDS_C5H12_SLV  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_slv 2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/11        1 2
+0 CEDS_C5H12_WST  see/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_wst 2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/11        9 2
 
 #12 C6H14toALK4
-0 CEDS_C6H14_AGR  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12        5 2
-0 CEDS_C6H14_ENE  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12/317    2 2
-0 CEDS_C6H14_IND  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12/318    1 2
-0 CEDS_C6H14_TRA  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12        3 2
-0 CEDS_C6H14_RCO  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12        4 2
-0 CEDS_C6H14_SLV  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12        1 2
-0 CEDS_C6H14_WST  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  2014/1-12/1/0 C xy kg/m2/s ALK4  206/216/12        9 2
+0 CEDS_C6H14_AGR  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/12        5 2
+0 CEDS_C6H14_ENE  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  2014/1-12/1/0 C xyL=1:11 kg/m2/s ALK4  206/216/12/317    2 2
+0 CEDS_C6H14_IND  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  2014/1-12/1/0 C xyL=1:15 kg/m2/s ALK4  206/216/12/318    1 2
+0 CEDS_C6H14_TRA  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/12        3 2
+0 CEDS_C6H14_RCO  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/12        4 2
+0 CEDS_C6H14_SLV  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/12        1 2
+0 CEDS_C6H14_WST  see/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  2014/1-12/1/0 C xy       kg/m2/s ALK4  206/216/12        9 2
 
-#14 MEKtoACET 
+#14 MEKtoACET
 #50 CEDS_KET2ACET
-0 CEDS_ACET_AGR    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51     5 2
-0 CEDS_ACET_ENE    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51/317 2 2
-0 CEDS_ACET_IND    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51/318 1 2
-0 CEDS_ACET_TRA    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51     3 2
-0 CEDS_ACET_RCO    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51     4 2
-0 CEDS_ACET_SLV    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51     1 2
-0 CEDS_ACET_WST    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy kg/m2/s ACET   206/216/14/51     9 2
+0 CEDS_ACET_AGR    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy       kg/m2/s ACET   206/216/14/51     5 2
+0 CEDS_ACET_ENE    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xyL=1:11 kg/m2/s ACET   206/216/14/51/317 2 2
+0 CEDS_ACET_IND    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xyL=1:15 kg/m2/s ACET   206/216/14/51/318 1 2
+0 CEDS_ACET_TRA    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy       kg/m2/s ACET   206/216/14/51     3 2
+0 CEDS_ACET_RCO    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy       kg/m2/s ACET   206/216/14/51     4 2
+0 CEDS_ACET_SLV    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy       kg/m2/s ACET   206/216/14/51     1 2
+0 CEDS_ACET_WST    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc          MEK_agr           2014/1-12/1/0 C xy       kg/m2/s ACET   206/216/14/51     9 2
 
-#13 MEKtoMEK 
+#13 MEKtoMEK
 #51 CEDS_KET2MEK
-0 CEDS_MEK_AGR    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_agr           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50     5 2
-0 CEDS_MEK_ENE    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_ene           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50/317 2 2
-0 CEDS_MEK_IND    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_ind           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50/318 1 2
-0 CEDS_MEK_TRA    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_tra           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50     3 2
-0 CEDS_MEK_RCO    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_rco           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50     4 2
-0 CEDS_MEK_SLV    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_slv           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50     1 2
-0 CEDS_MEK_WST    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_wst           2014/1-12/1/0 C xy kg/m2/s MEK   206/216/13/50     9 2
+0 CEDS_MEK_AGR    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_agr           2014/1-12/1/0 C xy       kg/m2/s MEK   206/216/13/50     5 2
+0 CEDS_MEK_ENE    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_ene           2014/1-12/1/0 C xyL=1:11 kg/m2/s MEK   206/216/13/50/317 2 2
+0 CEDS_MEK_IND    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_ind           2014/1-12/1/0 C xyL=1:15 kg/m2/s MEK   206/216/13/50/318 1 2
+0 CEDS_MEK_TRA    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_tra           2014/1-12/1/0 C xy       kg/m2/s MEK   206/216/13/50     3 2
+0 CEDS_MEK_RCO    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_rco           2014/1-12/1/0 C xy       kg/m2/s MEK   206/216/13/50     4 2
+0 CEDS_MEK_SLV    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_slv           2014/1-12/1/0 C xy       kg/m2/s MEK   206/216/13/50     1 2
+0 CEDS_MEK_WST    see/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_wst           2014/1-12/1/0 C xy       kg/m2/s MEK   206/216/13/50     9 2
 
 #15 ALD2toALD2
-0 CEDS_ALD2_AGR   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_agr          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15        5 2
-0 CEDS_ALD2_ENE   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_ene          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15/317    2 2
-0 CEDS_ALD2_IND   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_ind          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15/318    1 2
-0 CEDS_ALD2_TRA   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_tra          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15        3 2
-0 CEDS_ALD2_RCO   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_rco          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15        4 2
-0 CEDS_ALD2_SLV   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_slv          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15        1 2
-0 CEDS_ALD2_WST   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_wst          2014/1-12/1/0 C xy kg/m2/s ALD2  206/216/15        9 2
+0 CEDS_ALD2_AGR   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_agr          2014/1-12/1/0 C xy       kg/m2/s ALD2  206/216/15        5 2
+0 CEDS_ALD2_ENE   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s ALD2  206/216/15/317    2 2
+0 CEDS_ALD2_IND   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s ALD2  206/216/15/318    1 2
+0 CEDS_ALD2_TRA   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_tra          2014/1-12/1/0 C xy       kg/m2/s ALD2  206/216/15        3 2
+0 CEDS_ALD2_RCO   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_rco          2014/1-12/1/0 C xy       kg/m2/s ALD2  206/216/15        4 2
+0 CEDS_ALD2_SLV   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_slv          2014/1-12/1/0 C xy       kg/m2/s ALD2  206/216/15        1 2
+0 CEDS_ALD2_WST   see/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_wst          2014/1-12/1/0 C xy       kg/m2/s ALD2  206/216/15        9 2
 
-0 CEDS_PRPE_AGR   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_agr          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216           5 2
-0 CEDS_PRPE_ENE   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_ene          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216/317       2 2
-0 CEDS_PRPE_IND   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_ind          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216/318       1 2
-0 CEDS_PRPE_TRA   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_tra          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216           3 2
-0 CEDS_PRPE_RCO   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_rco          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216           4 2
-0 CEDS_PRPE_SLV   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_slv          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216           1 2
-0 CEDS_PRPE_WST   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_wst          2014/1-12/1/0 C xy kg/m2/s PRPE  206/216           9 2
+0 CEDS_PRPE_AGR   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_agr          2014/1-12/1/0 C xy       kg/m2/s PRPE  206/216           5 2
+0 CEDS_PRPE_ENE   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s PRPE  206/216/317       2 2
+0 CEDS_PRPE_IND   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s PRPE  206/216/318       1 2
+0 CEDS_PRPE_TRA   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_tra          2014/1-12/1/0 C xy       kg/m2/s PRPE  206/216           3 2
+0 CEDS_PRPE_RCO   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_rco          2014/1-12/1/0 C xy       kg/m2/s PRPE  206/216           4 2
+0 CEDS_PRPE_SLV   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_slv          2014/1-12/1/0 C xy       kg/m2/s PRPE  206/216           1 2
+0 CEDS_PRPE_WST   see/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_wst          2014/1-12/1/0 C xy       kg/m2/s PRPE  206/216           9 2
 
-0 CEDS_C3H8_AGR   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_agr          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216           5 2
-0 CEDS_C3H8_ENE   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_ene          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216/317       2 2
-0 CEDS_C3H8_IND   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_ind          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216/318       1 2
-0 CEDS_C3H8_TRA   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_tra          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216           3 2
-0 CEDS_C3H8_RCO   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_rco          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216           4 2
-0 CEDS_C3H8_SLV   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_slv          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216           1 2
-0 CEDS_C3H8_WST   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_wst          2014/1-12/1/0 C xy kg/m2/s C3H8  206/216           9 2
+0 CEDS_C3H8_AGR   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_agr          2014/1-12/1/0 C xy       kg/m2/s C3H8  206/216           5 2
+0 CEDS_C3H8_ENE   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s C3H8  206/216/317       2 2
+0 CEDS_C3H8_IND   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s C3H8  206/216/318       1 2
+0 CEDS_C3H8_TRA   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_tra          2014/1-12/1/0 C xy       kg/m2/s C3H8  206/216           3 2
+0 CEDS_C3H8_RCO   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_rco          2014/1-12/1/0 C xy       kg/m2/s C3H8  206/216           4 2
+0 CEDS_C3H8_SLV   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_slv          2014/1-12/1/0 C xy       kg/m2/s C3H8  206/216           1 2
+0 CEDS_C3H8_WST   see/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_wst          2014/1-12/1/0 C xy       kg/m2/s C3H8  206/216           9 2
 
-0 CEDS_CH2O_AGR   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_agr          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216        5 2
-0 CEDS_CH2O_ENE   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_ene          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216/317    2 2
-0 CEDS_CH2O_IND   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_ind          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216/318    1 2
-0 CEDS_CH2O_TRA   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_tra          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216        3 2
-0 CEDS_CH2O_RCO   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_rco          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216        4 2
-0 CEDS_CH2O_SLV   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_slv          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216        1 2
-0 CEDS_CH2O_WST   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_wst          2014/1-12/1/0 C xy kg/m2/s CH2O  206/216        9 2
+0 CEDS_CH2O_AGR   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_agr          2014/1-12/1/0 C xy       kg/m2/s CH2O  206/216        5 2
+0 CEDS_CH2O_ENE   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s CH2O  206/216/317    2 2
+0 CEDS_CH2O_IND   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s CH2O  206/216/318    1 2
+0 CEDS_CH2O_TRA   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_tra          2014/1-12/1/0 C xy       kg/m2/s CH2O  206/216        3 2
+0 CEDS_CH2O_RCO   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_rco          2014/1-12/1/0 C xy       kg/m2/s CH2O  206/216        4 2
+0 CEDS_CH2O_SLV   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_slv          2014/1-12/1/0 C xy       kg/m2/s CH2O  206/216        1 2
+0 CEDS_CH2O_WST   see/CH2O-em-anthro_CMIP_CEDS_$YYYY.nc          CH2O_wst          2014/1-12/1/0 C xy       kg/m2/s CH2O  206/216        9 2
 
-0 CEDS_BENZ_AGR   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_agr          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216           5 2
-0 CEDS_BENZ_ENE   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_ene          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216/317       2 2
-0 CEDS_BENZ_IND   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_ind          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216/318       1 2
-0 CEDS_BENZ_TRA   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_tra          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216           3 2
-0 CEDS_BENZ_RCO   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_rco          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216           4 2
-0 CEDS_BENZ_SLV   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_slv          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216           1 2
-0 CEDS_BENZ_WST   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_wst          2014/1-12/1/0 C xy kg/m2/s BENZ  206/216           9 2
+0 CEDS_BENZ_AGR   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_agr          2014/1-12/1/0 C xy       kg/m2/s BENZ  206/216           5 2
+0 CEDS_BENZ_ENE   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s BENZ  206/216/317       2 2
+0 CEDS_BENZ_IND   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s BENZ  206/216/318       1 2
+0 CEDS_BENZ_TRA   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_tra          2014/1-12/1/0 C xy       kg/m2/s BENZ  206/216           3 2
+0 CEDS_BENZ_RCO   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_rco          2014/1-12/1/0 C xy       kg/m2/s BENZ  206/216           4 2
+0 CEDS_BENZ_SLV   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_slv          2014/1-12/1/0 C xy       kg/m2/s BENZ  206/216           1 2
+0 CEDS_BENZ_WST   see/BENZ-em-anthro_CMIP_CEDS_$YYYY.nc          BENZ_wst          2014/1-12/1/0 C xy       kg/m2/s BENZ  206/216           9 2
 
-0 CEDS_TOLU_AGR   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_agr          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216           5 2
-0 CEDS_TOLU_ENE   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_ene          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216/317       2 2
-0 CEDS_TOLU_IND   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_ind          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216/318       1 2
-0 CEDS_TOLU_TRA   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_tra          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216           3 2
-0 CEDS_TOLU_RCO   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_rco          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216           4 2
-0 CEDS_TOLU_SLV   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_slv          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216           1 2
-0 CEDS_TOLU_WST   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_wst          2014/1-12/1/0 C xy kg/m2/s TOLU  206/216           9 2
+0 CEDS_TOLU_AGR   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_agr          2014/1-12/1/0 C xy       kg/m2/s TOLU  206/216           5 2
+0 CEDS_TOLU_ENE   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s TOLU  206/216/317       2 2
+0 CEDS_TOLU_IND   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s TOLU  206/216/318       1 2
+0 CEDS_TOLU_TRA   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_tra          2014/1-12/1/0 C xy       kg/m2/s TOLU  206/216           3 2
+0 CEDS_TOLU_RCO   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_rco          2014/1-12/1/0 C xy       kg/m2/s TOLU  206/216           4 2
+0 CEDS_TOLU_SLV   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_slv          2014/1-12/1/0 C xy       kg/m2/s TOLU  206/216           1 2
+0 CEDS_TOLU_WST   see/TOLU-em-anthro_CMIP_CEDS_$YYYY.nc          TOLU_wst          2014/1-12/1/0 C xy       kg/m2/s TOLU  206/216           9 2
 
-0 CEDS_XYLE_AGR   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_agr          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216           5 2
-0 CEDS_XYLE_ENE   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_ene          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216/317       2 2
-0 CEDS_XYLE_IND   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_ind          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216/318       1 2
-0 CEDS_XYLE_TRA   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_tra          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216           3 2
-0 CEDS_XYLE_RCO   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_rco          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216           4 2
-0 CEDS_XYLE_SLV   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_slv          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216           1 2
-0 CEDS_XYLE_WST   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_wst          2014/1-12/1/0 C xy kg/m2/s XYLE  206/216           9 2
+0 CEDS_XYLE_AGR   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_agr          2014/1-12/1/0 C xy       kg/m2/s XYLE  206/216           5 2
+0 CEDS_XYLE_ENE   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s XYLE  206/216/317       2 2
+0 CEDS_XYLE_IND   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s XYLE  206/216/318       1 2
+0 CEDS_XYLE_TRA   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_tra          2014/1-12/1/0 C xy       kg/m2/s XYLE  206/216           3 2
+0 CEDS_XYLE_RCO   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_rco          2014/1-12/1/0 C xy       kg/m2/s XYLE  206/216           4 2
+0 CEDS_XYLE_SLV   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_slv          2014/1-12/1/0 C xy       kg/m2/s XYLE  206/216           1 2
+0 CEDS_XYLE_WST   see/XYLE-em-anthro_CMIP_CEDS_$YYYY.nc          XYLE_wst          2014/1-12/1/0 C xy       kg/m2/s XYLE  206/216           9 2
 
-0 CEDS_C2H4_AGR   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_agr          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216           5 2
-0 CEDS_C2H4_ENE   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ene          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216/317       2 2
-0 CEDS_C2H4_IND   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ind          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216/318       1 2
-0 CEDS_C2H4_TRA   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_tra          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216           3 2
-0 CEDS_C2H4_RCO   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_rco          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216           4 2
-0 CEDS_C2H4_SLV   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_slv          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216           1 2
-0 CEDS_C2H4_WST   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_wst          2014/1-12/1/0 C xy kg/m2/s C2H4  206/216           9 2
+0 CEDS_C2H4_AGR   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_agr          2014/1-12/1/0 C xy       kg/m2/s C2H4  206/216           5 2
+0 CEDS_C2H4_ENE   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s C2H4  206/216/317       2 2
+0 CEDS_C2H4_IND   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s C2H4  206/216/318       1 2
+0 CEDS_C2H4_TRA   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_tra          2014/1-12/1/0 C xy       kg/m2/s C2H4  206/216           3 2
+0 CEDS_C2H4_RCO   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_rco          2014/1-12/1/0 C xy       kg/m2/s C2H4  206/216           4 2
+0 CEDS_C2H4_SLV   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_slv          2014/1-12/1/0 C xy       kg/m2/s C2H4  206/216           1 2
+0 CEDS_C2H4_WST   see/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_wst          2014/1-12/1/0 C xy       kg/m2/s C2H4  206/216           9 2
 
-#0 CEDS_C2H2_AGR   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_agr          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216           5 2
-#0 CEDS_C2H2_ENE   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_ene          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216/317       2 2
-#0 CEDS_C2H2_IND   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_ind          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216/318       1 2
-#0 CEDS_C2H2_TRA   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_tra          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216           3 2
-#0 CEDS_C2H2_RCO   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_rco          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216           4 2
-#0 CEDS_C2H2_SLV   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_slv          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216           1 2
-#0 CEDS_C2H2_WST   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_wst          2014/1-12/1/0 C xy kg/m2/s C2H2  206/216           9 2
+#0 CEDS_C2H2_AGR   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_agr          2014/1-12/1/0 C xy       kg/m2/s C2H2  206/216           5 2
+#0 CEDS_C2H2_ENE   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s C2H2  206/216/317       2 2
+#0 CEDS_C2H2_IND   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s C2H2  206/216/318       1 2
+#0 CEDS_C2H2_TRA   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_tra          2014/1-12/1/0 C xy       kg/m2/s C2H2  206/216           3 2
+#0 CEDS_C2H2_RCO   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_rco          2014/1-12/1/0 C xy       kg/m2/s C2H2  206/216           4 2
+#0 CEDS_C2H2_SLV   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_slv          2014/1-12/1/0 C xy       kg/m2/s C2H2  206/216           1 2
+#0 CEDS_C2H2_WST   see/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_wst          2014/1-12/1/0 C xy       kg/m2/s C2H2  206/216           9 2
 
 #16 HCOOHtoHCOOH
-0 CEDS_HCOOH_AGR  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_agr         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16        5 2
-0 CEDS_HCOOH_ENE  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_ene         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16/317    2 2
-0 CEDS_HCOOH_IND  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_ind         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16/318    1 2
-0 CEDS_HCOOH_TRA  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_tra         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16        3 2
-0 CEDS_HCOOH_RCO  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_rco         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16        4 2
-0 CEDS_HCOOH_SLV  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_slv         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16        1 2
-0 CEDS_HCOOH_WST  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_wst         2014/1-12/1/0 C xy kg/m2/s HCOOH 206/216/16        9 2
+0 CEDS_HCOOH_AGR  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_agr         2014/1-12/1/0 C xy       kg/m2/s HCOOH 206/216/16        5 2
+0 CEDS_HCOOH_ENE  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_ene         2014/1-12/1/0 C xyL=1:11 kg/m2/s HCOOH 206/216/16/317    2 2
+0 CEDS_HCOOH_IND  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_ind         2014/1-12/1/0 C xyL=1:15 kg/m2/s HCOOH 206/216/16/318    1 2
+0 CEDS_HCOOH_TRA  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_tra         2014/1-12/1/0 C xy       kg/m2/s HCOOH 206/216/16        3 2
+0 CEDS_HCOOH_RCO  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_rco         2014/1-12/1/0 C xy       kg/m2/s HCOOH 206/216/16        4 2
+0 CEDS_HCOOH_SLV  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_slv         2014/1-12/1/0 C xy       kg/m2/s HCOOH 206/216/16        1 2
+0 CEDS_HCOOH_WST  see/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_wst         2014/1-12/1/0 C xy       kg/m2/s HCOOH 206/216/16        9 2
 )))CEDS_VOCs
 
 (((CEDS_C2H6
-0 CEDS_C2H6_AGR   /see/ExtData.rc          C2H6_agr          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216           5 2
-0 CEDS_C2H6_ENE   /see/ExtData.rc          C2H6_ene          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216/317       2 2
-0 CEDS_C2H6_IND   /see/ExtData.rc          C2H6_ind          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216/318       1 2
-0 CEDS_C2H6_TRA   /see/ExtData.rc          C2H6_tra          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216           3 2
-0 CEDS_C2H6_RCO   /see/ExtData.rc          C2H6_rco          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216           4 2
-0 CEDS_C2H6_SLV   /see/ExtData.rc          C2H6_slv          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216           1 2
-0 CEDS_C2H6_WST   /see/ExtData.rc          C2H6_wst          2014/1-12/1/0 C xy kg/m2/s C2H6  206/216           4 2
+0 CEDS_C2H6_AGR   /see/ExtData.rc                                C2H6_agr          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           5 2
+0 CEDS_C2H6_ENE   /see/ExtData.rc                                C2H6_ene          2014/1-12/1/0 C xyL=1:11 kg/m2/s C2H6  206/216/317       2 2
+0 CEDS_C2H6_IND   /see/ExtData.rc                                C2H6_ind          2014/1-12/1/0 C xyL=1:15 kg/m2/s C2H6  206/216/318       1 2
+0 CEDS_C2H6_TRA   /see/ExtData.rc                                C2H6_tra          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           3 2
+0 CEDS_C2H6_RCO   /see/ExtData.rc                                C2H6_rco          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           4 2
+0 CEDS_C2H6_SLV   /see/ExtData.rc                                C2H6_slv          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           1 2
+0 CEDS_C2H6_WST   /see/ExtData.rc                                C2H6_wst          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           4 2
 )))CEDS_C2H6
 
 #=======================================================================================================================================
@@ -546,46 +548,46 @@ Warnings:                    1
 ## --- Ship emissions ---
 #=======================================================================================================================================
 (((CEDS_SHIP
-0 CEDS_CO_SHP     /see/CO_ExtData.rc            CO_shp            2014/1-12/1/0 C xy kg/m2/s CO    319     10 5
-0 CEDS_SOAP_SHP   -                             -                 -             - -  -       SOAP  280/319 10 5
-0 CEDS_SO2_SHP    /see/SO2_ExtData.rc           SO2_shp           2014/1-12/1/0 C xy kg/m2/s SO2   319     10 5
-0 CEDS_SO4_SHP    -                             -                 -             - -  -       SO4   63/319  10 5
-0 CEDS_pFe_SHP    -                             -                 -             - -  -       pFe   66/319  10 5
-0 CEDS_NH3_SHP    /see/NH3_ExtData.rc           NH3_shp           2014/1-12/1/0 C xy kg/m2/s NH3   319     10 5
-0 CEDS_BCPI_SHP   /see/BC_ExtData.rc            BC_shp            2014/1-12/1/0 C xy kg/m2/s BCPI  70/319  10 5
-0 CEDS_BCPO_SHP   -                             -                 -             - -  -       BCPO  71/319  10 5
-0 CEDS_OCPI_SHP   /see/OC_ExtData.rc            OC_shp            2014/1-12/1/0 C xy kg/m2/s OCPI  72/319  10 5
-0 CEDS_OCPO_SHP   -                             -                 -             - -  -       OCPO  73/319  10 5
+0 CEDS_CO_SHP     /see/CO_ExtData.rc            CO_shp            2014/1-12/1/0 C xyL=1:3 kg/m2/s CO    319     10 5
+0 CEDS_SOAP_SHP   -                             -                 -             - -       -       SOAP  280/319 10 5
+0 CEDS_SO2_SHP    /see/SO2_ExtData.rc           SO2_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s SO2   319     10 5
+0 CEDS_SO4_SHP    -                             -                 -             - -       -       SO4   63/319  10 5
+0 CEDS_pFe_SHP    -                             -                 -             - -       -       pFe   66/319  10 5
+0 CEDS_NH3_SHP    /see/NH3_ExtData.rc           NH3_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NH3   319     10 5
+0 CEDS_BCPI_SHP   /see/BC_ExtData.rc            BC_shp            2014/1-12/1/0 C xyL=1:3 kg/m2/s BCPI  70/319  10 5
+0 CEDS_BCPO_SHP   -                             -                 -             - -       -       BCPO  71/319  10 5
+0 CEDS_OCPI_SHP   /see/OC_ExtData.rc            OC_shp            2014/1-12/1/0 C xyL=1:3 kg/m2/s OCPI  72/319  10 5
+0 CEDS_OCPO_SHP   -                             -                 -             - -       -       OCPO  73/319  10 5
 # Comment out CO2 for fullchem simulations: CO2 not advected
-#0 CEDS_CO2_SHP   /see/CO2_ExtData.rc           CO2_shp           2014/1-12/1/0 C xy kg/m2/s CO2   319     10 5
+#0 CEDS_CO2_SHP   /see/CO2_ExtData.rc           CO2_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s CO2   319     10 5
 # Comment out CH4 for fullchem simulations: do not use CH4 emissions
 # CEDS CH4 emissions are only available for 1970-2014
-#0 CEDS_CH4_SHP   /see/CH4_ExtData.rc           CH4_shp           1970-2014/1-12/1/0 C xy kg/m2/s CH4   319    10 5
+#0 CEDS_CH4_SHP   /see/CH4_ExtData.rc           CH4_shp           1970-2014/1-12/1/0 C xyL=1:3 kg/m2/s CH4   319    10 5
 # NOTE: EOH files in CEDS/v2018-08 are actually VOC1 (total alchohols) and are split into MOH, EOH, ROH here
-0 CEDS_MOH_SHP    /see/EOH_ExtData.rc           EOH_shp           2014/1-12/1/0 C xy kg/m2/s MOH   92/8/319  10 5
-0 CEDS_EOH_SHP    -                             -                 -             - -  -       EOH   93/9/319  10 5
-0 CEDS_ROH_SHP    -                             -                 -             - -  -       ROH   94/24/319 10 5
-0 CEDS_C2H6_SHP   /see/C2H6_ExtData.rc          C2H6_shp          2014/1-12/1/0 C xy kg/m2/s C2H6  319       10 5
-0 CEDS_C3H8_SHP   /see/C3H8_ExtData.rc          C3H8_shp          2014/1-12/1/0 C xy kg/m2/s C3H8  319       10 5
-0 CEDS_C4H10_SHP  /see/ALK4_butanes_ExtData.rc  ALK4_butanes_shp  2014/1-12/1/0 C xy kg/m2/s ALK4  10/319    10 5
-0 CEDS_C5H12_SHP  /see/ALK4_pentanes_ExtData.rc ALK4_pentanes_shp 2014/1-12/1/0 C xy kg/m2/s ALK4  11/319    10 5
-0 CEDS_C6H14_SHP  /see/ALK4_hexanes_ExtData.rc  ALK4_hexanes_shp  2014/1-12/1/0 C xy kg/m2/s ALK4  12/319    10 5
-0 CEDS_C2H4_SHP   /see/C2H4_ExtData.rc          C2H4_shp          2014/1-12/1/0 C xy kg/m2/s C2H4  319       10 5
-0 CEDS_PRPE_SHP   /see/PRPE_ExtData.rc          PRPE_shp          2014/1-12/1/0 C xy kg/m2/s PRPE  319       10 5
-0 CEDS_C2H2_SHP   /see/C2H2_ExtData.rc          C2H2_shp          2014/1-12/1/0 C xy kg/m2/s C2H2  319       10 5
-0 CEDS_BENZ_SHP   /see/BENZ_ExtData.rc          BENZ_shp          2014/1-12/1/0 C xy kg/m2/s BENZ  319       10 5
-0 CEDS_TOLU_SHP   /see/TOLU_ExtData.rc          TOLU_shp          2014/1-12/1/0 C xy kg/m2/s TOLU  319       10 5
-0 CEDS_XYLE_SHP   /see/XYLE_ExtData.rc          XYLE_shp          2014/1-12/1/0 C xy kg/m2/s XYLE  319       10 5
-0 CEDS_CH2O_SHP   /see/CH2O_ExtData.rc          CH2O_shp          2014/1-12/1/0 C xy kg/m2/s CH2O  319       10 5
-0 CEDS_ALD2_SHP   /see/ALD2_ExtData.rc          ALD2_shp          2014/1-12/1/0 C xy kg/m2/s ALD2  15/319    10 5
-0 CEDS_MEK_SHP    /see/MEK_ExtData.rc           MEK_shp           2014/1-12/1/0 C xy kg/m2/s MEK   13/50/319 10 5
-0 CEDS_ACET_SHP   /see/MEK_ExtData.rc           MEK_shp           2014/1-12/1/0 C xy kg/m2/s ACET  14/51/319 10 5
-0 CEDS_HCOOH_SHP  /see/HCOOH_ExtData.rc         HCOOH_shp         2014/1-12/1/0 C xy kg/m2/s HCOOH 16/319    10 5
+0 CEDS_MOH_SHP    /see/EOH_ExtData.rc           EOH_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s MOH   92/8/319  10 5
+0 CEDS_EOH_SHP    -                             -                 -             - -       -       EOH   93/9/319  10 5
+0 CEDS_ROH_SHP    -                             -                 -             - -       -       ROH   94/24/319 10 5
+0 CEDS_C2H6_SHP   /see/C2H6_ExtData.rc          C2H6_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s C2H6  319       10 5
+0 CEDS_C3H8_SHP   /see/C3H8_ExtData.rc          C3H8_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s C3H8  319       10 5
+0 CEDS_C4H10_SHP  /see/ALK4_butanes_ExtData.rc  ALK4_butanes_shp  2014/1-12/1/0 C xyL=1:3 kg/m2/s ALK4  10/319    10 5
+0 CEDS_C5H12_SHP  /see/ALK4_pentanes_ExtData.rc ALK4_pentanes_shp 2014/1-12/1/0 C xyL=1:3 kg/m2/s ALK4  11/319    10 5
+0 CEDS_C6H14_SHP  /see/ALK4_hexanes_ExtData.rc  ALK4_hexanes_shp  2014/1-12/1/0 C xyL=1:3 kg/m2/s ALK4  12/319    10 5
+0 CEDS_C2H4_SHP   /see/C2H4_ExtData.rc          C2H4_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s C2H4  319       10 5
+0 CEDS_PRPE_SHP   /see/PRPE_ExtData.rc          PRPE_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s PRPE  319       10 5
+0 CEDS_C2H2_SHP   /see/C2H2_ExtData.rc          C2H2_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s C2H2  319       10 5
+0 CEDS_BENZ_SHP   /see/BENZ_ExtData.rc          BENZ_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s BENZ  319       10 5
+0 CEDS_TOLU_SHP   /see/TOLU_ExtData.rc          TOLU_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s TOLU  319       10 5
+0 CEDS_XYLE_SHP   /see/XYLE_ExtData.rc          XYLE_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s XYLE  319       10 5
+0 CEDS_CH2O_SHP   /see/CH2O_ExtData.rc          CH2O_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s CH2O  319       10 5
+0 CEDS_ALD2_SHP   /see/ALD2_ExtData.rc          ALD2_shp          2014/1-12/1/0 C xyL=1:3 kg/m2/s ALD2  15/319    10 5
+0 CEDS_MEK_SHP    /see/MEK_ExtData.rc           MEK_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s MEK   13/50/319 10 5
+0 CEDS_ACET_SHP   /see/MEK_ExtData.rc           MEK_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s ACET  14/51/319 10 5
+0 CEDS_HCOOH_SHP  /see/HCOOH_ExtData.rc         HCOOH_shp         2014/1-12/1/0 C xyL=1:3 kg/m2/s HCOOH 16/319    10 5
 #97  NOx ems as NO scale factor
 #115 NO2toNO scale factor; CEDS emits all as NO2. Convert NO2 to NO here instead of preprocessing.
 #98 NOx ems as NO2 scale factor
-0 CEDS_NO_SHP     /see/NOx_ExtData.rc           NOx_shp           2014/1-12/1/0 C xy kg/m2/s NO    97/115/319 10 5
-0 CEDS_NO2_SHP    /see/NOx_ExtData.rc           NOx_shp           2014/1-12/1/0 C xy kg/m2/s NO2   98/319     10 5
+0 CEDS_NO_SHP     /see/NOx_ExtData.rc           NOx_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NO    97/115/319 10 5
+0 CEDS_NO2_SHP    /see/NOx_ExtData.rc           NOx_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NO2   98/319     10 5
 )))CEDS_SHIP
 
 #=======================================================================================================================================
