@@ -513,7 +513,7 @@ Warnings:                    1
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_ $ROOT/SAMPLE_BCs/v2019-05/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
+* BC_ $ROOT/SAMPLE_BCs/v2021-07/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
 )))GC_BCs
 
 #==============================================================================
