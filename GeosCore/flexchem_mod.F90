@@ -246,6 +246,8 @@ CONTAINS
     IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
     IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
     IF (State_Diag%Archive_Jval           ) State_Diag%Jval           = 0.0_f4
+    IF (State_Diag%Archive_Jval           ) State_Diag%JvalO3O1D      = 0.0_f4
+    IF (State_Diag%Archive_Jval           ) State_Diag%JvalO3O3P      = 0.0_f4
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
