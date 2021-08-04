@@ -1003,7 +1003,7 @@ if [[ "x${nested_sim}" == "xT" ]]; then
     replace_colon_sep_val "--> GC_BCs" true HEMCO_Config.rc
     if [[ "x${domain_name}" == "xNA" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
-	replace_colon_sep_val "--> NEI2011_HOURLY"  true  HEMCO_Config.rc
+	replace_colon_sep_val "--> NEI2011_HOURLY"  false  HEMCO_Config.rc
     fi
 fi
 
