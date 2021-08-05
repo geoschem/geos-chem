@@ -602,7 +602,7 @@ GEOSCCM_HOBr_NIGHT '1'          Y   N 2005-%m2-01T00:00:00   none     none    HO
 STRAT_OH           '1'          Y   N 2005-%m2-01T00:00:00   none     none    species	      /discover/nobackup/cakelle2/data/GMI/gmi.clim.OH.geos5.2x25.esmf.nc
 
 # --- NOAA GMD surface CH4 concentrations ---
-NOAA_GMD_CH4       'v/v'        N   N %y4-%m2-01T00:00:00    none     none    SFC_CH4         /discover/nobackup/cakelle2/data/NOAA_GMD/monthly.gridded.surface.methane.1979-2020.1x1.nc
+NOAA_GMD_CH4       'v/v'        N   N %y4-%m2-01T00:00:00    none     none    SFC_CH4         /discover/nobackup/cakelle2/data/NOAA_GMD/monthly.gridded.surface.methane.1979-2024.1x1.nc
 
 # --- Spatially varying OM/OC ---
 OMOC_DJF           '1'          N   N -                      none     none    OMOC            /discover/nobackup/cakelle2/data/OMOC/OMOC.DJF.01x01.nc
@@ -655,6 +655,10 @@ CEDS_VSCAL_SHIP     1 Y N 2005-%m-01T00:00:00 none none vscal_ship     /discover
 
 # --- FP assimilated O3 
 ANA_O3  'kg/kg' N N 0 none none O3 /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2018-01-01T01:30:00P03:00
+
+# QFED2 mask for extratropical forests (temperate vs. boreal)
+QFED2_TEMPERATE     '1'          N   N -                      none     none    qfed2_temperate /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
+QFED2_BOREAL        '1'          N   N -                      none     none    qfed2_boreal    /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
 
 # Masks
 DEAD_SFC_TYP  NA  N V - none none  SFC_TYP    /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
