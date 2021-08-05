@@ -1005,6 +1005,11 @@ if [[ "x${nested_sim}" == "xT" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
 	replace_colon_sep_val "--> NEI2011_HOURLY"  false  HEMCO_Config.rc
     fi
+    
+    printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
+    printf "\n     by default. To improve run time, you may choose to use cropped"
+    printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"
+    printf "\n     to include the region string (e.g. 'AS', 'EU', 'NA').\n"
 fi
 
 # Modify input files for POPs simulations
