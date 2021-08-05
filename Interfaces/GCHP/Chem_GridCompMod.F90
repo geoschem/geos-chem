@@ -6957,6 +6957,10 @@ CONTAINS
   CHARACTER(LEN=31), SAVE       :: LFR_SOURCE = ""
   CHARACTER(LEN=31), SAVE       :: CNV_SOURCE = ""
   INTEGER, SAVE                 :: CNV_ID = -1
+  REAL, SAVE                    :: SCAL_STRP = 1.0
+  REAL, SAVE                    :: SCAL_TROP = 1.0
+  REAL, SAVE                    :: SCAL_NTRP = 1.0
+  REAL, SAVE                    :: SCAL_LFR  = 1.0
   REAL, POINTER                 :: Ptr2d(:,:)
   REAL, POINTER                 :: BYNCY(:,:,:)
 
@@ -6970,9 +6974,29 @@ CONTAINS
                                  Label="LIGHTNING_FLASH_RATE_SOURCE:", &
                                  Default="LFR_GCC",                    &
                                  __RC__                                 )
+     CALL ESMF_ConfigGetAttribute( CF, SCAL_STRP,                      &
+                                 Label="LFR_SCALING_SOUTHERN_TROP:",   &
+                                 Default=1.0,                          &
+                                 __RC__                                 )
+     CALL ESMF_ConfigGetAttribute( CF, SCAL_TROP,                      &
+                                 Label="LFR_SCALING_TROPICS:",         &
+                                 Default=1.0,                          &
+                                 __RC__                                 )
+     CALL ESMF_ConfigGetAttribute( CF, SCAL_NTRP,                      &
+                                 Label="LFR_SCALING_NORTHERN_TROP:",   &
+                                 Default=1.0,                          &
+                                 __RC__                                 )
+     CALL ESMF_ConfigGetAttribute( CF, SCAL_LFR,                       &
+                                 Label="LFR_SCALING_GLOBAL:",          &
+                                 Default=1.0,                          &
+                                 __RC__                                 )
      ! Verbose
      IF (am_I_Root) THEN
         WRITE(*,*) 'GEOSCHEMchem lightning flash rate source: ',TRIM(LFR_SOURCE)
+        WRITE(*,*) '--> LFR scaling southern trop (<23S)    : ',SCAL_STRP
+        WRITE(*,*) '--> LFR scaling tropics (23S-23N)       : ',SCAL_TROP
+        WRITE(*,*) '--> LFR scaling northern trop (>23N)    : ',SCAL_NTRP
+        WRITE(*,*) '--> LFR scaling global                  : ',SCAL_LFR
      ENDIF
 
 !----Convective height source 
@@ -7007,6 +7031,30 @@ CONTAINS
 !----Lightning flash rate density [km-2 s-1]
      call MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(LFR_SOURCE), __RC__ )
      State_Met%FLASH_DENS = Ptr2D
+
+     ! Rescale flash rates as specified in GEOSCHEMchem_GridComp.rc
+     ! southern extratropics
+     IF ( SCAL_STRP /= 1.0 ) THEN
+         WHERE ( State_Grid%YMID < -23.0 ) 
+             State_Met%FLASH_DENS = State_Met%FLASH_DENS * SCAL_STRP
+         END WHERE
+     ENDIF
+     ! tropics
+     IF ( SCAL_TROP /= 1.0 ) THEN
+         WHERE ( State_Grid%YMID >= -23.0 .AND. State_Grid%YMID <= 23.0 ) 
+             State_Met%FLASH_DENS = State_Met%FLASH_DENS * SCAL_TROP
+         END WHERE
+     ENDIF
+     ! northern extratropics 
+     IF ( SCAL_NTRP /= 1.0 ) THEN
+         WHERE ( State_Grid%YMID > 23.0 ) 
+             State_Met%FLASH_DENS = State_Met%FLASH_DENS * SCAL_NTRP
+         END WHERE
+     ENDIF
+     ! overall LFR scaling
+     IF ( SCAL_LFR /= 1.0 ) THEN
+        State_Met%FLASH_DENS = State_Met%FLASH_DENS * SCAL_LFR
+     ENDIF
 
      ! Eventually add to Export
      Ptr2D => NULL()

@@ -179,8 +179,17 @@ Use_PCHEM_O3: 0
 # Input source for flash rates: If set to 'LFR' or 'LFR_GCC', the corresponding MOIST export is used. If set to any other
 # name, will search for that name in the import state. For instance, set it to 'LFR_OFFLINE' and then define an import via
 # ExtData to use LFR values from a file. Default is LFR_GCC. All values expected in [flashes km-2 s-1].
+# Scale factors can be defined to adjust the imported LFR field for the southern extratropics (<23S), tropics (23S-23N), and 
+# the northern extratropics (>23N). In addition, a global scale factor can be set to rescale the overall LFR.
+# These factors can be used to better match the expected global annual average flash rate of 46 flashes s-1, and a distribution
+# of ~65% in the tropics and ~23% in the N extratropics.
 #
 LIGHTNING_FLASH_RATE_SOURCE: LFR_GCC
+LFR_SCALING_SOUTHERN_TROP:   1.0
+LFR_SCALING_NORTHERN_TROP:   1.0
+LFR_SCALING_TROPICS:         1.0
+LFR_SCALING_GLOBAL:          1.0
+
 #
 # Input source for convective height: If set to 'CNV_MFC', will compute the convective height from convective mass fluxes
 # (default). If set to 'BYNCY', will compute it from the buoyancy and convective fraction. For all other cases, will look
