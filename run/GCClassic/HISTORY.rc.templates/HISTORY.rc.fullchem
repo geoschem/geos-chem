@@ -349,10 +349,10 @@ COLLECTIONS: 'Restart',
   DryDep.frequency:           {FREQUENCY}
   DryDep.duration:            {DURATION}
   DryDep.mode:                'time-averaged'
-  DryDep.fields:              'DryDepVel_?DRY?               ',
+  DryDep.fields:              'DryDep_?DRY?                  ',
+                              'DryDepVel_?DRY?               ',
                               ##'DryDepChm_?DRY?              ',
                               ##'DryDepMix_?DRY?              ',
-                              'DryDep_?DRY?                  ',
 ::
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
