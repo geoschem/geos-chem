@@ -701,6 +701,7 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
+cp ${gcdir}/run/shared/download_data.yml    ${rundir}
 cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
 cp ./README                                 ${rundir}
