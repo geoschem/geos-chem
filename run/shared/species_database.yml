@@ -393,9 +393,16 @@ C:
   Formula: C
   FullName: Atomic carbon
   MW_g: 12.01
+C2H2:
+  Formula: C2H2
+  FullName: Acetylene
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 26.05
 C2H4:
   Formula: C2H4
   FullName: Ethylene
+  Is_Advected: true
   Is_Gas: true
   MW_g: 28.05
 C2H6:
@@ -958,6 +965,33 @@ ETHLN:
   Is_WetDep: true
   MW_g: 105.06
   WD_RetFactor: 2.0e-2
+ETHN:
+  Formula: HOCH2CH2ONO2
+  FullName: hydroxy-nitrooxy-ethane
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 107.07
+  Is_DryDep: true
+  Is_WetDep: true
+  WD_RetFactor: 2.0e-2
+  DD_F0: 0.1
+  DD_Hstar: 3.90e+04
+  Henry_CR: 8600.0
+  Henry_K0: 3.90e+04
+ETHP:
+  Formula: HOCH2CH2OOH
+  FullName: hydroxy-hydroperoxy-ethane
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 78.07
+  Is_DryDep: true
+  Is_WetDep: true
+  Is_Photolysis: true
+  WD_RetFactor: 2.0e-2
+  DD_F0: 0.1
+  DD_Hstar: 6.50e+5
+  Henry_CR: 8800.0
+  Henry_K0: 6.50e+5
 ETNO3:
   DD_F0: 0.1
   DD_Hstar: 1.6
@@ -970,6 +1004,16 @@ ETNO3:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 91.08
+ETO:
+  Formula: HOCH2CH2O
+  FullName: alkoxy radical from ETOO
+  Is_Gas: true
+  MW_g: 61.06
+ETOO:
+  Formula: HOCH2CH2OO
+  FullName: peroxy radical from ethene
+  Is_Gas: true
+  MW_g: 77.06
 ETO2:
   Formula: CH3CH2OO
   FullName: ETO2
