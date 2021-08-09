@@ -2373,10 +2373,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2020-05/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST1 1980-2017/1-12/1-31/* C xy kg/m2/s DST1 666/676 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2020-05/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST2 1980-2017/1-12/1-31/* C xy kg/m2/s DST2 666/676 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2020-05/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST3 1980-2017/1-12/1-31/* C xy kg/m2/s DST3 666/676 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2020-05/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST4 1980-2017/1-12/1-31/* C xy kg/m2/s DST4 666/676 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST1 1980-2017/1-12/1-31/* C xy kg/m2/s DST1 - 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST2 1980-2017/1-12/1-31/* C xy kg/m2/s DST2 - 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST3 1980-2017/1-12/1-31/* C xy kg/m2/s DST3 - 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST4 1980-2017/1-12/1-31/* C xy kg/m2/s DST4 - 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -3949,17 +3949,6 @@ Warnings:                    1
 # in car OC emissions that results from incorrect emission factors used in the original inventory
 330 DICE_CAR_OC_SF    0.14 - - - xy 1 1
 )))DICE_Africa
-
-#==============================================================================
-# --- Offline dust scale factors ---
-#
-# Scale annual emission totals for offline dust to 2x2.5 online dust values
-# Use 5.7141e-04 for GEOS-FP and 4.7376e-04 for MERRA-2
-#==============================================================================
-(((OFFLINE_DUST
-666 DST_SF {DUST_SF} - - - xy 1 1
-676 DST_NA_opt $ROOT/OFFLINE_DUST/v2020-05/{NATIVE_RES}/DustEmis_scalefactor_NA_optimized.nc dustemis_factor  2016/1/1/0 C xy 1 1
-)))OFFLINE_DUST
 
 #==============================================================================
 # --- Offline biogenic VOC scale factors ---
