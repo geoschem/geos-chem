@@ -4829,7 +4829,13 @@ CONTAINS
       ThisSpc => State_Chm%SpcData(N)%Info
 
       ! Check if there is emissions or deposition for this species
+#if !defined( MODEL_CESM )
       CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
+#else
+      ! Do not apply for MODEL_CESM as its handled by HEMCO-CESM independently
+      EmisSpec = .False.
+      DepSpec  = .False.
+#endif
 
       ! If there is emissions for this species, it must be loaded into memory first.
       ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
@@ -4849,9 +4855,6 @@ CONTAINS
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
-      ! Below emissions. Do not apply for MODEL_CESM as its handled by
-      ! HEMCO-CESM independently
-#if !defined( MODEL_CESM )
         ! PBL top level [integral model levels]
         topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
@@ -4893,7 +4896,6 @@ CONTAINS
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
         ENDIF
-#endif
 
         !------------------------------------------------------------------
         ! Also add drydep frequencies calculated by HEMCO (e.g. from the
