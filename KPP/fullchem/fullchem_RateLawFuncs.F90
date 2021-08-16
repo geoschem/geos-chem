@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: aerochem_RateLawFuncs
+! !IROUTINE: fullchem_RateLawFuncs
 !
-! !DESCRIPTION: Provides rate-law functions used by the "aerochem" chemical
+! !DESCRIPTION: Provides rate-law functions used by the "fullchem" chemical
 !  mechanism.  This will be referenced from within subroutine Update_RCONST.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE aerochem_RateLawFuncs
+MODULE fullchem_RateLawFuncs
 !
 ! !USES:
 !
@@ -3434,5 +3434,5 @@ CONTAINS
     ENDIF
   END FUNCTION VOCuptk1stOrd
 
-END MODULE aerochem_RateLawFuncs
+END MODULE fullchem_RateLawFuncs
 !EOC

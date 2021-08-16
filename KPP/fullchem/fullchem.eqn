@@ -99,7 +99,7 @@ KRT : Katie Travis;            ktravis@fas.harvard.edu
 LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
 MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
-MSL : Mike Long;               mlong@seas.harvard.edu
+MSL : Michael Long;            msl3v@virginia.edu
 PK  : Prasad Kasibhatla;       psk9@duke.edu
 QJC : Qianjie Chen;            chenqjie@uw.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu
@@ -242,6 +242,7 @@ HCOOH      = IGNORE; {HCOOH; Formic acid}
 HI         = IGNORE; {HI; Hydrogen iodide}
 HMHP       = IGNORE; {HOCH2OOH; Hydroxymethyl hydroperoxide}
 HMML       = IGNORE; {C4H6O3; Hydroxymethyl-methyl-a-lactone}
+HMS	   = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
@@ -250,6 +251,7 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
+DUMMY	   = IGNORE;
 HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
 HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
 HPALD2     = IGNORE; {HOOCH2C(CH3)=CHCH=O; d-1,4-C5-hydroperoxyaldehyde}
@@ -257,6 +259,7 @@ HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
 HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
 HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
 HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
+HSO3m	   = IGNORE;
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -376,6 +379,8 @@ NRO2       = IGNORE; {Peroxy radical from NAP oxidation}
 O          = IGNORE; {O(3P); Ground state atomic oxygen}
 O1D        = IGNORE; {O(1D); Excited atomic oxygen}
 O3         = IGNORE; {O3; Ozone}
+O3A        = IGNORE; {O3; Ozone in accum seasalt}
+O3C        = IGNORE; {O3; Ozone in coarse seasalt}
 OClO       = IGNORE; {OClO; Chlorine dioxide}
 OCS        = IGNORE; {COS; Carbonyl sulfide}
 OH         = IGNORE; {OH; Hydroxyl radical}
@@ -408,14 +413,18 @@ RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
 RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
+SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
+SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
 SALACL     = IGNORE; {Cl; Fine chloride}
 SALCCL     = IGNORE; {Cl; Coarse chloride}
+SALASO2    = IGNORE; {SO2; Fine seasalt}
+SALCSO2    = IGNORE; {SO2; Coarse seasalt}
+SALASO3    = IGNORE; {SO3--; Fine seasalt}
+SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
+SO3mm      = IGNORE; 
 SO4        = IGNORE; {SO4; Sulfate}
-SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
-SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
-SO4H3      = IGNORE; {SO4; Sulfate produced by HOCl}
-SO4H4      = IGNORE; {SO4; Sulfate produced by HOCl}
+SO4s       = IGNORE; {SO4; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
 TOLU       = IGNORE; {C7H8; Toluene}
@@ -431,6 +440,31 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
+//
+// Reactions extracted from sulfate_mod.F90
+// Initial version, Mar. 23, 2021 - MSL + Bob Y. updates (7/27/21)
+//
+// Seasalt
+SO2  + SALAAL + O3  = SO4 - SALAAL  : AqRate_SALAAL_SO2_O3( State_Het );
+HCl  + SALAAL       = SALACL        : AqRate_SALAAL_HCl( State_Het );
+HNO3 + SALAAL       = NIT           : AqRate_SALAAL_HNO3( State_Het );
+SO2  + SALCAL + O3  = SO4s - SALCAL : AqRate_SALCAL_SO2_O3( State_Het );
+HCl  + SALCAL       = SALCCL        : AqRate_SALCAL_HCl( State_Het );
+HNO3 + SALCAL       = NITs          : AqRate_SALCAL_HNO3( State_Het );
+//
+// Dust
+//
+// Cloud 
+// S(IV) --> S(VI)
+SO2 + H2O2 	    = SO4   	    : K_CLD(1);
+SO2 + O3            = SO4  	    : K_CLD(2);
+SO2 {+O2} 	    = SO4  	    : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
+//
+// HMS
+// NOTE: Turn off HMS rxns so that we can validate without them (bmy, 7/27/21)
+//CH2O + SO2       = HMS            : K_CLD(4);
+//HMS              = SO2 + CH2O     : K_CLD(5);
+//HMS + OH         = 2SO4 + CH2O    : K_CLD(6);
 //
 // Gas-phase reactions
 //
@@ -468,7 +502,7 @@ OH + OH {+M} = H2O2 :                        GCJPLPR_aba(6.90d-31, 1.0d+00, 2.6d
 OH + HO2 = H2O + O2 :                        GCARR_ac(4.80d-11, 250.0d0);
 OH + H2O2 = H2O + HO2 :                      1.80d-12;
 HO2 + NO = OH + NO2 :                        GCARR_ac(3.30d-12, 270.0d0);                                                      {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
-HO2 + HO2 = H2O2 + O2 :                      GC_HO2HO2_acac(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                              {2014/02/03; Eastham2014; SDE}
+O2 + HO2 = H2O2 + O2 :                       GC_HO2HO2_acac(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                              {2014/02/03; Eastham2014; SDE}
 OH + CO = HO2 + CO2 :                        GC_OHCO_a(1.50d-13);                                                              {2017/02/22; JPL 15-10; BHH,MJE}
 OH + CH4 = MO2 + H2O :                       GCARR_ac(2.45d-12, -1775.0d0);
 MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO_B1_ac(2.80d-12, 300.0d0);                                                {2019/05/10; Fisher2018; JAF}
@@ -1325,11 +1359,11 @@ NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);       
 //
 // Heterogeneous reactions
 //
-HO2 = O2 :                                   HET(ind_HO2,1);                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-NO2 = 0.500HNO3 + 0.500HNO2 :                HET(ind_NO2,1);
-NO3 = HNO3 :                                 HET(ind_NO3,1);
-NO3 = NIT :                                  HET(ind_NO3,2);                      {2018/03/16; XW}
-NO3 = NITs :                                 HET(ind_NO3,3);                      {2018/03/16; XW}
+HO2 = H2O :                    HO2uptk1stOrd( State_Het );                                                  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+NO2 = 0.500HNO3 + 0.500HNO2 :  NO2uptk1stOrdAndCloud( State_Het );
+NO3 = HNO3 :                   NO3uptk1stOrdAndCloud( State_Het );
+NO3 = NIT :                    NO3hypsisClonSALA( State_Het );                                              {2018/03/16; XW}
+NO3 = NITs :                   NO3hypsisClonSALC( State_Het );                                              {2018/03/16; XW}
 //
 // NOTE: N2O5 + H2O reaction rate is still calculated as first-order,
 // based on Evans and Jacob [2005]. However this is converted to a
@@ -1339,102 +1373,102 @@ NO3 = NITs :                                 HET(ind_NO3,3);                    
 // of H2O in the stratosphere.
 //    -- Seb Eastham (14 May 2018)
 //
-N2O5 + H2O = 2.000HNO3 :                     HET(ind_N2O5,1);
-N2O5 + HCl = ClNO2 + HNO3 :                  HET(ind_N2O5,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-N2O5 = 2.000HNO3 :                           HET(ind_N2O5,3);                     {2018/10/17; Cloud uptake, CDH}
-N2O5 + SALACL = ClNO2 + HNO3 :               HET(ind_N2O5,4);                     {2018/01/19; Sherwen2017;TS,JAS,SDE,XW}
-N2O5 + SALCCL = ClNO2 + HNO3 :               HET(ind_N2O5,5);                     {2018/01/19; Sherwen2017;TS,JAS,SDE,XW}
-OH + SALACL = 0.500Cl2 :                     HET(ind_OH,1);                       {2018/03/12; XW}
-OH + SALCCL = 0.500Cl2 :                     HET(ind_OH,2);                       {2018/03/12; XW}
-BrNO3 + H2O = HOBr + HNO3 :                  HET(ind_BrNO3,1);                    {2014/02/03; Eastham2014; SDE}
-BrNO3 + HCl = BrCl + HNO3 :                  HET(ind_BrNO3,2);                    {2014/02/03; Eastham2014; SDE}
-ClNO3 + H2O = HOCl + HNO3 :                  HET(ind_ClNO3,1);                    {2014/02/03; Eastham2014; SDE}
-ClNO3 + HCl = Cl2 + HNO3 :                   HET(ind_ClNO3,2);                    {2014/02/03; Eastham2014; SDE}
-ClNO3 + HBr = BrCl + HNO3 :                  HET(ind_ClNO3,3);                    {2014/02/03; Eastham2014; SDE}
-ClNO3 + BrSALA = BrCl + HNO3 :               HET(ind_ClNO3,4);                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-ClNO3 + BrSALC = BrCl + HNO3 :               HET(ind_ClNO3,5);                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-ClNO3 + SALACL = Cl2 + HNO3 :                HET(ind_ClNO3,6);                    {2018/01/22; XW}
-ClNO3 + SALCCL = Cl2 + HNO3 :                HET(ind_ClNO3,7);                    {2018/01/22; XW}
-ClNO2 + SALACL = Cl2 + HNO3 :                HET(ind_ClNO2,1);                    {2018/01/22; XW}
-ClNO2 + SALCCL = Cl2 + HNO3 :                HET(ind_ClNO2,2);                    {2018/01/22; XW}
-ClNO2 + HCl = Cl2 + HNO3 :                   HET(ind_ClNO2,3);                    {2018/01/22; XW}
-ClNO2 + BrSALA = BrCl + HNO2 :               HET(ind_ClNO2,4);                    {2018/01/22; XW}
-ClNO2 + BrSALC = BrCl + HNO2 :               HET(ind_ClNO2,5);                    {2018/01/22; XW}
-ClNO2 + HBr = BrCl + HNO2 :                  HET(ind_ClNO2,6);                    {2018/01/22; XW}
-HOCl + HCl = Cl2 + H2O :                     HET(ind_HOCl,1);                     {2014/02/03; Eastham2014; SDE}
-HOCl + HBr = BrCl + H2O :                    HET(ind_HOCl,2);                     {2014/02/03; Eastham2014; SDE}
-HOCl + SALACL = Cl2 + H2O :                  HET(ind_HOCl,3);                     {2018/01/22; XW}
-HOCl + SALCCL = Cl2 + H2O :                  HET(ind_HOCl,4);                     {2018/01/22; XW}
-HOCl = SO4H3 + HCl :                         HET(ind_HOCl,5);                     {2018/11/08; XW}
-HOCl = SO4H4 + HCl :                         HET(ind_HOCl,6);                     {2018/11/08; XW}
-HOBr + HBr = Br2 + H2O :                     HET(ind_HOBr,1);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOBr + HCl = BrCl + H2O :                    HET(ind_HOBr,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOBr + SALACL = BrCl + H2O :                 HET(ind_HOBr,3);                     {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
-HOBr + SALCCL = BrCl + H2O :                 HET(ind_HOBr,4);                     {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
-HOBr + BrSALA = Br2 :                        HET(ind_HOBr,5);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr + BrSALC = Br2 :                        HET(ind_HOBr,6);                     {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr = SO4H1 + HBr :                         HET(ind_HOBr,7);                     {2017/11/15; Chen2017; QJC}
-HOBr = SO4H2 + HBr :                         HET(ind_HOBr,8);                     {2017/11/15; Chen2017; QJC}
-O3 + HBr = HOBr :                            HET(ind_O3,1);                       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-O3 + BrSALA = HOBr :                         HET(ind_O3,2);                       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-O3 + BrSALC = HOBr :                         HET(ind_O3,3);                       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HBr = BrSALA :                               HET(ind_HBr,1);                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HBr = BrSALC :                               HET(ind_HBr,2);                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HI = AERI :                                  HET(ind_HI,1);                       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HI = ISALA :                                 HET(ind_HI,2);                       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HI = ISALC :                                 HET(ind_HI,3);                       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOI = ISALA :                                HET(ind_HOI,1);                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOI = ISALC :                                HET(ind_HOI,2);                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O2 = 2.000AERI :                           HET(ind_I2O2,1);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O2 = 2.000ISALA :                          HET(ind_I2O2,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O2 = 2.000ISALC :                          HET(ind_I2O2,3);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O3 = 2.000AERI :                           HET(ind_I2O3,1);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O3 = 2.000ISALA :                          HET(ind_I2O3,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O3 = 2.000ISALC :                          HET(ind_I2O3,3);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O4 = 2.000AERI :                           HET(ind_I2O4,1);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O4 = 2.000ISALA :                          HET(ind_I2O4,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O4 = 2.000ISALC :                          HET(ind_I2O4,3);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO = ISALA :                               HET(ind_IONO,1);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO = ISALC :                               HET(ind_IONO,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO2 = ISALA :                              HET(ind_IONO2,1);                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO2 = ISALC :                              HET(ind_IONO2,2);                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO + BrSALA = IBr + HNO2 :                 HET(ind_IONO,3);                     {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO + BrSALC = IBr + HNO2 :                 HET(ind_IONO,4);                     {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO + SALACL = ICl + HNO2 :                 HET(ind_IONO,5);                     {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO + SALCCL = ICl + HNO2 :                 HET(ind_IONO,6);                     {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO2 + BrSALA = IBr + HNO3 :                HET(ind_IONO2,3);                    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO2 + BrSALC = IBr + HNO3 :                HET(ind_IONO2,4);                    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO2 + SALACL = ICl + HNO3 :                HET(ind_IONO2,5);                    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-IONO2 + SALCCL = ICl + HNO3 :                HET(ind_IONO2,6);                    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-HOI + BrSALA = IBr :                         HET(ind_HOI,3);                      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-HOI + BrSALC = IBr :                         HET(ind_HOI,4);                      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-HOI + SALACL = ICl :                         HET(ind_HOI,5);                      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-HOI + SALCCL = ICl :                         HET(ind_HOI,6);                      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
-GLYX = SOAGX :                               HET(ind_GLYX,1);                     {2017/06/15; Marais2016, EAM}
-MGLY = SOAGX :                               HET(ind_MGLY,1);                     {2017/06/15; Marais2016, EAM}
-IEPOXA = SOAIE :                             HET(ind_IEPOXA,1);                   {2017/06/15; Marais2016, EAM}
-IEPOXB = SOAIE :                             HET(ind_IEPOXB,1);                   {2017/06/15; Marais2016, EAM}
-IEPOXD = SOAIE :                             HET(ind_IEPOXD,1);                   {2017/06/15; Marais2016, EAM}
-LVOC = LVOCOA :                              HET(ind_LVOC,1);                     {2017/06/15; Marais2016, EAM}
-MVKN = IONITA :                              HET(ind_MVKN,1);                     {2017/06/15; Marais2016, EAM}
-R4N2 = IONITA :                              HET(ind_R4N2,1);                     {2017/06/15; Marais2016, EAM}
-MONITS = MONITA :                            HET(ind_MONITS,1);                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-MONITU = MONITA :                            HET(ind_MONITU,1);                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-HONIT = MONITA :                             HET(ind_HONIT,1);                    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-PYAC = SOAGX :                               HET(ind_PYAC,1);                     {2019/11/06; Bates2019; KHB}
-HMML = SOAIE :                               HET(ind_HMML,1);                     {2019/11/06; Bates2019; KHB}
-IHN1 = IONITA :                              HET(ind_IHN1,1);                     {2019/11/06; Bates2019; KHB}
-IHN2 = IONITA :                              HET(ind_IHN2,1);                     {2019/11/06; Bates2019; KHB}
-IHN3 = IONITA :                              HET(ind_IHN3,1);                     {2019/11/06; Bates2019; KHB}
-IHN4 = IONITA :                              HET(ind_IHN4,1);                     {2019/11/06; Bates2019; KHB}
-ICHE = SOAIE :                               HET(ind_ICHE,1);                     {2019/11/06; Bates2019; KHB}
-INPD = IONITA :                              HET(ind_INPD,1);                     {2019/11/06; Bates2019; KHB}
-INPB = IONITA :                              HET(ind_INPB,1);                     {2019/11/06; Bates2019; KHB}
-IDN = IONITA :                               HET(ind_IDN,1);                      {2019/11/06; Bates2019; KHB}
-ITCN = IONITA :                              HET(ind_ITCN,1);                     {2019/11/06; Bates2019; KHB}
-ITHN = IONITA :                              HET(ind_ITHN,1);                     {2019/11/06; Bates2019; KHB}
-MCRHNB = IONITA :                            HET(ind_MCRHNB,1);                   {2019/11/06; Bates2019; KHB}
-MCRHN = IONITA :                             HET(ind_MCRHN,1);                    {2019/11/06; Bates2019; KHB}
+N2O5 + H2O = 2.000HNO3 :       N2O5uptkByH2O( State_Het );
+N2O5 + HCl = ClNO2 + HNO3 :    N2O5uptkByStratHCl( State_Het );                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+N2O5 = 2.000HNO3 :             N2O5uptkByCloud( State_Het );                                                {2018/10/17; Cloud uptake, CDH}
+N2O5 + SALACL = ClNO2 + HNO3 : N2O5uptkBySALACl( State_Het );                                               {2018/01/19; Sherwen2017;TS,JAS,SDE,XW}
+N2O5 + SALCCL = ClNO2 + HNO3 : N2O5uptkBySALCCl( State_Het );                                               {2018/01/19; Sherwen2017;TS,JAS,SDE,XW}
+OH + SALACL = 0.500Cl2 :       OHuptkBySALACl( State_Het );                                                 {2018/03/12; XW}
+OH + SALCCL = 0.500Cl2 :       OHuptkBySALCCl( State_Het );                                                 {2018/03/12; XW}
+BrNO3 + H2O = HOBr + HNO3 :    BrNO3uptkByH2O( State_Het );                                                 {2014/02/03; Eastham2014; SDE}
+BrNO3 + HCl = BrCl + HNO3 :    BrNO3uptkByHCl( State_Het );                                                 {2014/02/03; Eastham2014; SDE}
+ClNO3 + H2O = HOCl + HNO3 :    ClNO3uptkByH2O( State_Het );                                                 {2014/02/03; Eastham2014; SDE}
+ClNO3 + HCl = Cl2 + HNO3 :     ClNO3uptkByHCl( State_Het );                                                 {2014/02/03; Eastham2014; SDE}
+ClNO3 + HBr = BrCl + HNO3 :    ClNO3uptkByHBr( State_Het );                                                 {2014/02/03; Eastham2014; SDE}
+ClNO3 + BrSALA = BrCl + HNO3 : ClNO3uptkByBrSALA( State_Het );                                              {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+ClNO3 + BrSALC = BrCl + HNO3 : ClNO3uptkByBrSALC( State_Het );                                              {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+ClNO3 + SALACL = Cl2 + HNO3 :  ClNO3uptkBySALACL( State_Het );                                              {2018/01/22; XW}
+ClNO3 + SALCCL = Cl2 + HNO3 :  ClNO3uptkBySALCCL( State_Het );                                              {2018/01/22; XW}
+ClNO2 + SALACL = Cl2 + HNO3 :  ClNO2uptkBySALACL( State_Het );                                              {2018/01/22; XW}
+ClNO2 + SALCCL = Cl2 + HNO3 :  ClNO2uptkBySALCCL( State_Het );                                              {2018/01/22; XW}
+ClNO2 + HCl = Cl2 + HNO3 :     ClNO2uptkByHCl( State_Het );                                                 {2018/01/22; XW}
+ClNO2 + BrSALA = BrCl + HNO2 : ClNO2uptkByBrSALA( State_Het );                                              {2018/01/22; XW}
+ClNO2 + BrSALC = BrCl + HNO2 : ClNO2uptkByBrSALC( State_Het );                                              {2018/01/22; XW}
+ClNO2 + HBr = BrCl + HNO2 :    ClNO2uptkByHBr( State_Het );                                                 {2018/01/22; XW}
+HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
+HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
+HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
+HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
+HOCl + HSO3m = SO4 + HCl :     HOClUptkByHSO3m( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
+HOCl + SO3mm = SO4 + HCl :     HOClUptkBySO3mm( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
+HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
+HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
+HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
+HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
+HOBr + HSO3m = SO4 + HBr :     HOBrUptkByHSO3m( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr + SO3mm = SO4 + HBr :     HOBrUptkBySO3mm( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HBr = BrSALA :                 HBrUptkBySALA( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HBr = BrSALC :                 HBrUptkBySALC( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HI = AERI :                    IuptkBySulf1stOrd( SR_MW(ind_HI), 0.10_dp, State_Het );                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HI = ISALA :                   IuptkBySALA1stOrd( SR_MW(ind_HI), 0.10_dp, State_Het );                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HI = ISALC :                   IuptkBySALC1stOrd( SR_MW(ind_HI), 0.10_dp, State_Het );                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HOI = ISALA :                  IuptkByAlkSALA1stOrd( SR_MW(ind_HOI), 0.01_dp, State_Het );                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HOI = ISALC :                  IuptkByAlkSALC1stOrd( SR_MW(ind_HOI), 0.01_dp, State_Het );                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O2 = 2.000AERI :             IuptkBySulf1stOrd( SR_MW(ind_I2O2), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O2 = 2.000ISALA :            IuptkBySALA1stOrd( SR_MW(ind_I2O2), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O2 = 2.000ISALC :            IuptkBySALC1stOrd( SR_MW(ind_I2O2), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O3 = 2.000AERI :             IuptkBySulf1stOrd( SR_MW(ind_I2O3), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O3 = 2.000ISALA :            IuptkBySALA1stOrd( SR_MW(ind_I2O3), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O3 = 2.000ISALC :            IuptkBySALC1stOrd( SR_MW(ind_I2O3), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O4 = 2.000AERI :             IuptkBySulf1stOrd( SR_MW(ind_I2O4), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O4 = 2.000ISALA :            IuptkBySALA1stOrd( SR_MW(ind_I2O4), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O4 = 2.000ISALC :            IuptkBySALC1stOrd( SR_MW(ind_I2O4), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO = ISALA :                 IuptkByAlkSALA1stOrd( SR_MW(ind_IONO), 0.02_dp, State_Het );                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO = ISALC :                 IuptkByAlkSALC1stOrd( SR_MW(ind_IONO), 0.02_dp, State_Het );                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO2 = ISALA :                IuptkByAlkSALA1stOrd( SR_MW(ind_IONO2), 0.01_dp, State_Het );                {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO2 = ISALC :                IuptkByAlkSALC1stOrd( SR_MW(ind_IONO2), 0.01_dp, State_Het );                {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO + BrSALA = IBr + HNO2 :   IbrkdnByAcidBrSALA( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO + BrSALC = IBr + HNO2 :   IbrkdnByAcidBrSALC( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO + SALACL = ICl + HNO2 :   IbrkdnByAcidSALACl( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO + SALCCL = ICl + HNO2 :   IbrkdnByAcidSALCCl( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO2 + BrSALA = IBr + HNO3 :  IbrkdnByAcidBrSALA( SR_MW(ind_IONO2), C(ind_IONO2), 0.01_dp, State_Het );    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO2 + BrSALC = IBr + HNO3 :  IbrkdnByAcidBrSALC( SR_MW(ind_IONO2), C(ind_IONO2), 0.01_dp, State_Het );    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO2 + SALACL = ICl + HNO3 :  IbrkdnByAcidSALACl( SR_MW(ind_IONO2), C(ind_IONO2), 0.01_dp, State_Het );    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+IONO2 + SALCCL = ICl + HNO3 :  IbrkdnByAcidSALCCl( SR_MW(ind_IONO2), C(ind_IONO2), 0.01_dp, State_Het );    {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+HOI + BrSALA = IBr :           IbrkdnByAcidBrSALA( SR_MW(ind_HOI), C(ind_HOI), 0.01_dp, State_Het );        {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+HOI + BrSALC = IBr :           IbrkdnByAcidBrSALC( SR_MW(ind_HOI), C(ind_HOI), 0.01_dp, State_Het );        {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+HOI + SALACL = ICl :           IbrkdnByAcidSALACl( SR_MW(ind_HOI), C(ind_HOI), 0.01_dp, State_Het );        {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+HOI + SALCCL = ICl :           IbrkdnByAcidSALCCl( SR_MW(ind_HOI), C(ind_HOI), 0.01_dp, State_Het );        {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
+GLYX = SOAGX :                 GLYXuptk1stOrd( SR_MW(ind_GLYX), State_Het);                                 {2017/06/15; Marais2016, EAM}
+MGLY = SOAGX :                 MGLYuptk1stOrd( SR_MW(ind_MGLY), State_Het);                                 {2017/06/15; Marais2016, EAM}
+IEPOXA = SOAIE :               IEPOXuptk1stOrd( SR_MW(ind_IEPOXA), .FALSE., State_Het );                    {2017/06/15; Marais2016, EAM}
+IEPOXB = SOAIE :               IEPOXuptk1stOrd( SR_MW(ind_IEPOXB), .FALSE., State_Het );                    {2017/06/15; Marais2016, EAM}
+IEPOXD = SOAIE :               IEPOXuptk1stOrd( SR_MW(ind_IEPOXD), .FALSE., State_Het );                    {2017/06/15; Marais2016, EAM}
+LVOC = LVOCOA :                VOCuptk1stOrd( SR_MW(ind_LVOC), 1.0_dp, State_Het );                         {2017/06/15; Marais2016, EAM}
+MVKN = IONITA :                VOCuptk1stOrd( SR_MW(ind_MVKN), 5.0E-3_dp, State_Het );                      {2017/06/15; Marais2016, EAM}
+R4N2 = IONITA :                VOCuptk1stOrd( SR_MW(ind_R4N2), 5.0E-3_dp, State_Het );                      {2017/06/15; Marais2016, EAM}
+MONITS = MONITA :              VOCuptk1stOrd( SR_MW(ind_MONITS), 1.0E-2_dp, State_Het );                    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+MONITU = MONITA :              VOCuptk1stOrd( SR_MW(ind_MONITU), 1.0E-2_dp, State_Het );                    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+HONIT = MONITA :               VOCuptk1stOrd( SR_MW(ind_HONIT), 1.0E-2_dp, State_Het );                     {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+PYAC = SOAGX :                 MGLYuptk1stOrd( SR_MW(ind_PYAC), State_Het );                                {2019/11/06; Bates2019; KHB}
+HMML = SOAIE :                 IEPOXuptk1stOrd( SR_MW(ind_HMML), .TRUE., State_Het);                        {2019/11/06; Bates2019; KHB}
+IHN1 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN1), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN2 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN2), 5.0E-2_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN3 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN3), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN4 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN4), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+ICHE = SOAIE :                 IEPOXuptk1stOrd( SR_MW(ind_ICHE), .FALSE., State_Het );                      {2019/11/06; Bates2019; KHB}
+INPD = IONITA :                VOCuptk1stOrd( SR_MW(ind_INPD), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+INPB = IONITA :                VOCuptk1stOrd( SR_MW(ind_INPB), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+IDN = IONITA :                 VOCuptk1stOrd( SR_MW(ind_IDN), 5.0E-3_dp, State_Het );                       {2019/11/06; Bates2019; KHB}
+ITCN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITCN), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+ITHN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITHN), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, State_Het );                    {2019/11/06; Bates2019; KHB}
+MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
 //
 // Photolysis reactions
 //

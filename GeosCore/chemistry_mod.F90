@@ -434,12 +434,9 @@ CONTAINS
           !--------------------------------
           IF ( LSULF ) THEN
 
-             CALL CPU_TIME(sDTFC)
              ! Do sulfate chemistry
              CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                State_Met, .TRUE.,     RC )
-             CALL CPU_TIME(fDTFC)
-             write(*,*) 'CHEMSULFATE DT: ', fDTFC-sDTFC
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
