@@ -3,84 +3,203 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gckpp_HetRates
+! !MODULE: fullchem_HetStateMod.F90
 !
-! !DESCRIPTION: FlexChem module for heterogeneous chemistry, via KPP.
+! !DESCRIPTION: Module for initializing the HetState object, which passes
+!  arguments from GEOS-Chem to the heterogeneous chemistry routines.
 !\\
 !\\
 ! !INTERFACE:
 
-MODULE GcKpp_HetRates
+MODULE FullChem_HetStateMod
 !
 ! !USES:
 !
-  USE CMN_FJX_MOD,      ONLY : NDUST
-  USE CMN_FJX_MOD,      ONLY : NAER
-  USE Error_Mod,        ONLY : ERROR_STOP
-  USE Error_Mod,        ONLY : GEOS_CHEM_STOP
-  USE Error_Mod,        ONLY : IS_SAFE_DIV, SAFE_DIV
-  USE GcKpp_Global
   USE GcKpp_Precision
-  USE GcKpp_Parameters
-  USE State_Chm_Mod,    ONLY : ChmState
-  USE State_Chm_Mod,    ONLY : Ind_
-  USE State_Met_Mod,    ONLY : MetState
-  USE Input_Opt_Mod,    ONLY : OptInput
-  USE PhysConstants,    ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
-  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Cld_Params
-  PUBLIC :: Halide_Conc
-!
-! !REMARKS:
-!  There are NAEROTYPE=14 aerosol types used in het chem rate computations:
-!  (1 ) Mineral dust (reff = 0.151 um)   (8 ) Tropospheric sulfate
-!  (2 ) Mineral dust (reff = 0.253 um)   (9 ) Black Carbon
-!  (3 ) Mineral dust (reff = 0.402 um)   (10) Organic Carbon
-!  (4 ) Mineral dust (reff = 0.818 um)   (11) Fine (accum-mode) sea salt
-!  (5 ) Mineral dust (reff = 1.491 um)   (12) Coarse sea salt
-!  (6 ) Mineral dust (reff = 2.417 um)   (13) Stratospheric sulfate
-!  (7 ) Mineral dust (reff = 3.721 um)   (14) Irregular ice cloud
-!
-! !REFERENCES:
-!  Eastham et al., Development and evaluation of the unified tropospheric-
-!    stratospheric chemistry extension (UCX) for the global chemistry-transport
-!    model GEOS-Chem, Atmos. Env., doi:10.1016/j.atmosenv.2014.02.001, 2014.
-!  Fisher et al, Organic nitrate chemistry and its implications for nitrogen
-!    budgets in an isoprene- and monoterpene-rich atmosphere: constraints from
-!    aircraft (SEAC4RS) and ground-based (SOAS) observations in the Southeast
-!    US. Atmos. Chem. Phys., 16, 2961-1.02990, 2016.
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K.,
-!    Graham, K. A., Shah, V. (2019) The role of clouds in the tropospheric
-!    NOx cycle: a new modeling approach for cloud chemistry and its global
-!    implications, Geophys. Res. Lett. 46, 4980-4990,
-!    https://doi.org/10.1029/2019GL081990
-!  Marais et al., Aqueous-phase mechanism for secondary organic aerosol
-!    formation from isoprene: application to the southeast United States and
-!    co-benefit of SO2 emission controls, Atmos. Chem. Phys., 16, 1603-1618,
-!    doi:10.5194/acp-16-1603-2016, 2016.
-!  Parrella et al, Tropospheric bromine chemistry: implications for present and
-!    pre-industrial ozone and mercury, Atmos. Chem. Phys., 12, 6,723-6,740,
-!    doi:10.5194/acp-12-6723-2012, 2012.
-!  Schmidt, J., et al., “Modelling the observed tropospheric BrO background:
-!    Importance of multiphase chemistry & implications for ozone, OH, &
-!    mercury”, J Geophys. Res-Atmos., 121, 024229,
-!    https://doi.org/10.1002/2015JD024229, 2016.
-!  Sherwen, T., et al., Global impacts of tropospheric halogens (Cl, Br, I) on
-!    oxidants and composition in GEOS-Chem, Atmos. Chem. Phys., 16, 12239-12271,
-!    https://doi.org/10.5194/acp-16-12239-2016, 2016.
-!
+  PUBLIC :: Fullchem_SetStateHet
+
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FullChem_SetStateHet
+!
+! !DESCRIPTION: Initializes the State_Het object with gridbox values passed
+!  from fullchem_mod.  These values are used in the heterogenous chemistry
+!  reaction rate computations.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FullChem_SetStateHet( I,         J,         L,                  &
+                                   Input_Opt, State_Chm, State_Met,          &
+                                   H,         RC                            )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE GcKpp_Global
+    USE GcKpp_Parameters
+    USE PhysConstants,    ONLY : AVO, PI
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE rateLawUtilFuncs, ONLY :
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Met_Mod,    ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I
+    INTEGER,        INTENT(IN)    :: J
+    INTEGER,        INTENT(IN)    :: L
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
+    TYPE(ChmState), INTENT(IN)    :: State_Chm
+    TYPE(MetState), INTENT(IN)    :: State_Met
+!
+! INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HetState), INTENT(INOUT) :: H
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: NA
+
+    !========================================================================
+    ! Populate fields of the HetState object in gckpp_Global
+    !========================================================================
+
+    ! Initialization
+    RC = GC_SUCCESS
+    NA = State_Chm%nAeroType
+
+    !========================================================================
+    ! Populate fields of the HetState object in gckpp_Global
+    !========================================================================
+
+    ! Constants (so that we can use these within KPP)
+    H%AVO           = AVO
+    H%PI            = PI
+
+    ! Meteorology-related quantities
+    H%CldFr         = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
+    H%ClearFr       = 1.0_dp - H%CldFr
+    H%QICE          = State_Met%QI(I,J,L)
+    H%QLIQ          = State_Met%QL(I,J,L)
+    H%vAir          = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
+
+    ! Aerosol fields
+    H%nAeroType     = State_Chm%nAeroType
+    H%aClArea       = State_Chm%aClArea(I,J,L)
+    H%aClRadi       = State_Chm%aClRadi(I,J,L)
+    H%aClVol        = H%aClArea * H%aClRadi / 3.0_dp
+    H%AWATER(:)     = State_Chm%IsorropAeroH2O(I,J,L,:)
+    H%xArea(1:NA)   = State_Chm%AeroArea(I,J,L,1:NA)
+    H%xRadi(1:NA)   = State_Chm%AeroRadi(I,J,L,1:NA)
+    H%xVol(1:NA)    = H%xArea(1:NA) * H%xRadi(1:NA) / 3.0_dp
+    H%wetArea(1:NA) = State_Chm%WetAeroArea(I,J,L,1:NA)
+    H%xH2O(1:NA)    = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
+    H%OMOC_POA      = State_Chm%OMOC_POA(I,J)
+    H%OMOC_OPOA     = State_Chm%OMOC_OPOA(I,J)
+
+    ! HSO3 and SO3 concentrations in cloud [mol/L]
+    H%HSO3_aq       = State_Chm%HSO3_aq(I,J,L)
+    H%SO3_aq        = State_Chm%SO3_aq(I,J,L)
+    H%TSO3_aq       = H%HSO3_aq + H%SO3_aq
+    H%frac_HSO3_aq  = H%HSO3_aq / H%TSO3_aq
+    H%frac_SO3_aq   = H%SO3_aq  / H%TSO3_aq
+
+    ! Concentrations from ISORROPIA
+    H%HSO4_molal    = State_Chm%IsorropBisulfate(I,J,L)
+    H%NO3_molal     = State_Chm%IsorropNitrate(I,J,L,1)
+    H%SO4_molal     = State_Chm%IsorropSulfate(I,J,L)
+
+    ! pH and alkalinity fields
+    H%H_plus        = State_Chm%IsorropHplus(I,J,L,1)
+    H%pHCloud       = State_Chm%pHCloud(I,J,L)
+    H%pHSSA(:)      = State_Chm%IsorropAeropH(I,J,L,:)
+    H%H_conc_Sul    = 10.0**( -1.0_dp * H%pHSSA(1) )
+    H%H_conc_LCl    = 10.0**( -1.0_dp * H%pHCloud  )
+    H%H_conc_ICl    = 10.0**( -4.5_dp              )
+    H%H_conc_SSA    = H%H_conc_Sul
+    H%H_conc_SSC    = 10.0**( -5.0_dp              )
+    H%ssAlk         = State_Chm%SSAlk(I,J,L,:)
+    H%SSA_is_Alk    = ( H%ssAlk(1) > 0.05_dp       )
+    H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk        )
+    H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )
+    H%SSC_is_Acid   = ( .not.  H%SSC_is_Alk        )
+
+    ! Other fields
+    H%gamma_HO2     = Input_Opt%gamma_HO2
+    H%is_UCX        = Input_Opt%LUCX
+
+    ! Cloud fields
+    CALL Cld_Params( I, J, L, H, State_Met )
+
+    ! Halide (Br- and Cl-) concentrations
+    CALL Halide_Conc( I, J, L, H )
+
+    !========================================================================
+    ! Copy quantities for UCX into gckpp_Global variables
+    !========================================================================
+    IF ( Input_Opt%LUCX ) THEN
+
+       !---------------------------------------------------------------------
+       ! If UCX is turned on ...
+       !---------------------------------------------------------------------
+
+       ! ... copy uptake probabilities for PSC reactions on SLA
+       ! ... to the proper gckpp_Global variable
+       H%KHETI_SLA(1:11) = State_Chm%KHETI_SLA(I,J,L,1:11)
+
+       ! ... check if we are in the stratosphere
+       H%STRATBOX = State_Met%InStratosphere(I,J,L)
+
+       ! ... check if there are solid PSCs at this grid box
+       H%PSCBOX  =                                                           &
+          ( ( Input_Opt%LPSCCHEM                ) .and.                      &
+            ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. H%STRATBOX          )
+
+       ! ... check if there is surface NAT at this grid box
+       H%NATSURFACE = ( H%PSCBOX .and. ( C(ind_NIT) > 0.0_dp )              )
+
+    ELSE
+
+       !---------------------------------------------------------------------
+       ! If UCX is turned off ...
+       !---------------------------------------------------------------------
+
+       ! ... set H2O concentration from the meteorology
+       C(ind_H2O)   = H%H2O
+
+       ! ... zero out UCX-related quantities
+       H%KHETI_SLA  = 0.0_dp
+       H%STRATBOX   = .FALSE.
+       H%PSCBOX     = .FALSE.
+       H%NATSURFACE = .FALSE.
+
+    ENDIF
+
+  END SUBROUTINE FullChem_SetStateHet
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -95,10 +214,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cld_Params( I, J, L, State_Het, State_Met )
+  SUBROUTINE Cld_Params( I, J, L, H, State_Met )
 !
 ! !USES:
 !
+    USE GcKpp_Global
+    USE GcKpp_Parameters
     USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -110,7 +231,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(HetState), INTENT(INOUT) :: State_Het   ! Hetchem State object
+    TYPE(HetState), INTENT(INOUT) :: H           ! Hetchem State object
 !
 ! !REMARKS:
 !  References:
@@ -155,12 +276,12 @@ CONTAINS
     ! Exit if there is no cloud
     IF ( ( State_Met%QL(I,J,L) + State_Met%QI(I,J,L) <= 0.0_dp )  .or.     &
          ( State_Met%CLDF(I,J,L)                     <= 0.0_dp ) ) THEN
-       State_Het%rLiq = CLDR_CONT
-       State_Het%rIce = CLDR_ICE
-       State_Het%ALiq = 0.0_dp
-       State_Het%VLiq = 0.0_dp
-       State_Het%AIce = 0.0_dp
-       State_Het%VIce = 0.0_dp
+       H%rLiq = CLDR_CONT
+       H%rIce = CLDR_ICE
+       H%ALiq = 0.0_dp
+       H%VLiq = 0.0_dp
+       H%AIce = 0.0_dp
+       H%VIce = 0.0_dp
        RETURN
     ENDIF
 
@@ -180,20 +301,20 @@ CONTAINS
     ! Surface area density = Surface area / Grid volume
     !-----------------------------------------------------------------------
     IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
-       State_Het%rLiq = CLDR_CONT      ! Continental cloud droplet radius [cm]
+       H%rLiq = CLDR_CONT      ! Continental cloud droplet radius [cm]
     ELSE
-       State_Het%rLiq = CLDR_MARI      ! Marine cloud droplet radius [cm]
+       H%rLiq = CLDR_MARI      ! Marine cloud droplet radius [cm]
 
     ENDIF
 
     ! get the volume of cloud condensate [cm3(condensate)/cm3(air)]
     ! QL is [g/g]
-    State_Het%VLiq = State_Met%QL(I,J,L) * State_Met%AD(I,J,L)               &
-                   / DENS_LIQ            / State_Het%vAir
-    State_Het%VIce = State_Met%QI(I,J,L) * State_Met%AD(I,J,L)               &
-                   / DENS_ICE            / State_Het%vAir
+    H%VLiq = State_Met%QL(I,J,L) * State_Met%AD(I,J,L)               &
+           / DENS_LIQ            / H%vAir
+    H%VIce = State_Met%QI(I,J,L) * State_Met%AD(I,J,L)               &
+           / DENS_ICE            / H%vAir
 
-    State_Het%ALiq = 3.0_dp * State_Het%vLiq / State_Het%rLiq
+    H%ALiq = 3.0_dp * H%vLiq / H%rLiq
 
     !-----------------------------------------------------------------------
     ! Ice water clouds
@@ -229,16 +350,16 @@ CONTAINS
     ENDIF
 
     ! Effective radius, cm
-    State_Het%rIce = 0.5_dp * alpha                                          &
-                   * EXP(beta * (State_Met%T(I,J,L) - 273.15_dp)) / 1e+4_dp
+    H%rIce = 0.5_dp * alpha                                                  &
+           * EXP(beta * (State_Met%T(I,J,L) - 273.15_dp)) / 1e+4_dp
 
     ! Ice surface area density, cm2/cm3
-    State_Het%aIce = 3.0_dp * State_Het%vIce / State_Het%rIce * 2.25_dp
+    H%aIce = 3.0_dp * H%vIce / H%rIce * 2.25_dp
 
     !=======================================================================
     ! Get theta for ice cloud uptake
     !=======================================================================
-    CALL Get_Theta_Ice( C(ind_HNO3), C(ind_HCl), C(ind_HBr), State_Het )
+    CALL Get_Theta_Ice( C(ind_HNO3), C(ind_HCl), C(ind_HBr), H )
 
   END SUBROUTINE Cld_Params
 !EOC
@@ -257,14 +378,17 @@ CONTAINS
 !
   SUBROUTINE Get_Theta_Ice( HNO3, HCl, HBr, H )
 !
+! !USES:
+!
+    USE Gckpp_Global, ONLY : HetState, TEMP
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(dp),      INTENT(IN)     :: HNO3  ! HNO3 conc [molec/cm3]
-    REAL(dp),      INTENT(IN)     :: HCl   ! HCl  conc [molec/cm3]
-    REAL(dp),      INTENT(IN)     :: HBr   ! HBr  conc [molec/cm3]
+    REAL(dp),       INTENT(IN)    :: HNO3  ! HNO3 conc [molec/cm3]
+    REAL(dp),       INTENT(IN)    :: HCl   ! HCl  conc [molec/cm3]
+    REAL(dp),       INTENT(IN)    :: HBr   ! HBr  conc [molec/cm3]
 !
-! !RETURN VALUE:
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HetState), INTENT(INOUT) :: H     ! Hetchem State object
 !EOP
@@ -279,7 +403,6 @@ CONTAINS
     ! GET_THETA_ICE begins here!
     !=================================================================
 
-    ! HNO3
     KlinC   = 7.5e-5_dp * EXP( 4585.0_dp / TEMP )          ! 1/cm
     KLangC1 = KlinC / 2.7e+14_dp                           ! cm3/molec
 
@@ -311,6 +434,11 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Halide_Conc( I, J, L, H )
+!
+! !USES:
+!
+    USE Gckpp_Global
+    USE GcKpp_Parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -476,6 +604,9 @@ CONTAINS
 !
 ! !USES:
 !
+    USE gckpp_Global
+    USE rateLawUtilFuncs, ONLY : SafeDiv
+!
 ! !INPUT PARAMETERS:
 !
     TYPE(HetState), INTENT(IN)  :: H          ! Hetchem State object
@@ -509,7 +640,7 @@ CONTAINS
 
     ! V_tot = VLiq + (VIce / T2L) ! (cm3(liq)/cm3(air)
     V_tot = H%VLiq
-    V_tot = SAFE_DIV( V_tot, H%CldFr, 0.0_dp )
+    V_tot = SafeDiv( V_tot, H%CldFr, 0.0_dp )
 
     ! Exit if not in cloud
     IF ( V_tot < 1.0e-20_dp ) THEN
@@ -522,13 +653,13 @@ CONTAINS
     CALL Compute_L2G_Local( 1.0_dp, 9000.0_dp, -6.3_dp,                      &
                             TEMP,   V_tot,      L2G,    pH                  )
     F_L = L2G / ( 1.0_dp + L2G )
-    cl_conc = F_L * HCl / (V_tot * AVO * 1.0e-3_dp)
+    cl_conc = F_L * HCl / (V_tot * H%AVO * 1.0e-3_dp)
 
     ! Bromide (mol/L)
     CALL Compute_L2G_Local( 7.5e-1_dp, 10200.0_dp, -9.0_dp,                  &
                             TEMP,      V_tot,       L2G,   pH               )
     F_L = L2G / ( 1.0_dp + L2G )
-    br_conc = F_L * HBr / ( V_tot * AVO * 1.0e-3_dp )
+    br_conc = F_L * HBr / ( V_tot * H%AVO * 1.0e-3_dp )
 
   END SUBROUTINE Get_Halide_CldConc
 !EOC
@@ -546,15 +677,20 @@ CONTAINS
 !
   SUBROUTINE Get_Halide_SsaConc( n_x, surf_area, r_w, conc_x )
 !
+! !USES:
+!
+    USE GcKpp_Global,  ONLY : HetState
+    USE PhysConstants, ONLY : AVO
+!
 ! !INPUT PARAMETERS:
 !
-    REAL(dp), INTENT(IN)  :: n_x         ! Number density     [#/cm3  ]
-    REAL(dp), INTENT(IN)  :: surf_area   ! Surface area       [cm2/cm3]
-    REAL(dp), INTENT(IN)  :: r_w         ! Aerosol wet radius [cm     ]
+    REAL(dp),       INTENT(IN)  :: n_x        ! Number density     [#/cm3  ]
+    REAL(dp),       INTENT(IN)  :: surf_area  ! Surface area       [cm2/cm3]
+    REAL(dp),       INTENT(IN)  :: r_w        ! Aerosol wet radius [cm     ]
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(dp), INTENT(OUT) :: conc_x      ! Halide conc in seasalt [mol/L]
+    REAL(dp),       INTENT(OUT) :: conc_x     ! Halide conc in seasalt [mol/L]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,157 +798,4 @@ CONTAINS
 
   END SUBROUTINE Compute_L2G_Local
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: ArsL1k
-!
-! !DESCRIPTION: Calculates the 1st-order loss rate of species on wet
-!  aerosol surface
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION ArsL1k( area, radius, denAir, gamma, srTk, srMw ) RESULT( rate )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: area   ! Area of wet aerosol / vol of air [cm2/cm3]
-    REAL(dp), INTENT(IN) :: radius ! Radius of wet aerosol (Rd) [cm]
-    REAL(dp), INTENT(IN) :: denAir ! Density of air [#/cm3]
-    REAL(dp), INTENT(IN) :: gamma  ! Reaction probability gamma [1]
-    REAL(dp), INTENT(IN) :: srTk   ! Square root of temperature [K]
-    REAL(dp), INTENT(IN) :: srMw   ! Square root of mol wt [g/mole]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: rate   ! Reaction rate [1/s]
-!
-! !REMARKS:
-!  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
-!  is computed as:
-!                                                                             .
-!     ArsL1k [1/s] = area / [ radius/dfkg + 4./(gamma * xmms) ]
-!                                                                             .
-!  where XMMS = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
-!                                                                             .
-!     DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL(dp) :: dfkg
-
-    !========================================================================
-    ! ArsL1k begins here!
-    !========================================================================
-
-    ! If gamma or radius is very small, set rate to zero and return
-    IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN
-       !rate = 1.0e-30_dp
-       rate = 0.0_dp
-       RETURN
-    ENDIF
-
-    ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-    dfkg = ( 9.45E+17_dp / denAir ) * srTk *                                 &
-           SQRT( 3.472E-2_dp + 1.0_dp / ( srMw * srMw ) )
-
-    ! Compute ArsL1k according to the formula listed above
-    rate = area / ( (radius / dfkg) + 2.749064E-4_dp * srMw / (gamma * srTk) )
-
-  END FUNCTION ArsL1k
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: kiir1ltd
-!
-! !DESCRIPTION: Determine removal rates for both species in an uptake reaction.
-!\\
-!\\
-! !INTERFACE:
-!
-    FUNCTION kIIR1Ltd( concGas, concEduct, kISource, minLife ) RESULT( kII )
-!
-! !INPUT PARAMETERS:
-!
-      ! Rate coefficients
-      REAL(dp), INTENT(IN)           :: concGas, concEduct
-      REAL(dp), INTENT(IN)           :: kISource
-      REAL(dp), INTENT(IN), OPTIONAL :: minLife
-!
-! !RETURN VALUE:
-!
-      REAL(dp)                       :: kII
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(dp) :: kIGas, kIEduct
-      REAL(dp) :: lifeA, lifeB, kIMult
-
-      ! Copy kI as calculated assuming no limitation
-      kIGas = kISource
-      kIEduct = 0.0e+0_dp
-      kII = 0.0e+0_dp
-
-      IF (concEduct.lt.100.0e+0_dp) THEN
-         kIGas = 0.0e+0_dp
-         kIEduct = 0.0e+0_dp
-         kII = 0.0e+0_dp
-      ELSE
-         ! Safe division here is probably overkill - may remove this
-         IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-            kIEduct = kIGas*concGas/concEduct
-            kII = kIGas/concEduct
-         ELSE
-            kIGas = 0.0e+0_dp
-            kIEduct = 0.0e+0_dp
-            kII = 0.0e+0_dp
-         ENDIF
-      ENDIF
-
-      ! Enforce a minimum lifetime?
-      IF (PRESENT(minLife)) THEN
-         IF ((kIGas.gt.0.0e+0_dp).and.(minLife.gt.0.0e+0_dp)) THEN
-            ! Calculate lifetime of each reactant against removal
-            lifeA = Safe_Div(1.0e+0_dp,kIGas,0.0e+0_dp)
-            lifeB = Safe_Div(1.0e+0_dp,kIEduct,0.0e+0_dp)
-            ! Check if either lifetime is "too short"
-            IF ((lifeA.lt.lifeB).and.(lifeA.lt.minLife)) THEN
-               IF (Is_Safe_Div(concGas*kIGas,concEduct)) THEN
-                  kIGas = 1.0e+0_dp/minLife
-                  kII = kIGas/concEduct
-               ELSE
-                  kIGas = 0.0e+0_dp
-                  kII = 0.0e+0_dp
-               ENDIF
-            ELSEIF (lifeB.lt.minLife) THEN
-               IF (Is_Safe_Div(concEduct*kIEduct,concGas)) THEN
-                  kIEduct = 1.0e+0_dp/minLife
-                  kII = kIEduct/concGas
-               ELSE
-                  kIEduct = 0.0e+0_dp
-                  kII = 0.0e+0_dp
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDIF
-
-    END FUNCTION kIIR1Ltd
-!EOC
-END MODULE GcKpp_HetRates
+END MODULE fullchem_HetStateMod

@@ -18,7 +18,8 @@ MODULE GCKPP_SULFATE
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
   USE GCKPP_Global,    ONLY : K_MT, K_CLD, NUMDEN
   USE Error_Mod,       ONLY : SAFE_DIV
-  USE gckpp_HetRates
+  USE rateLawUtilFuncs
+! USE gckpp_HetRates
 
   IMPLICIT NONE
   PRIVATE

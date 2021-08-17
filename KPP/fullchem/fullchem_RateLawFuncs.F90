@@ -66,6 +66,34 @@ MODULE fullchem_RateLawFuncs
 
   ! Reference temperature used in Henry's law
   REAL(dp), PRIVATE, PARAMETER :: INV_T298       = 1.0_dp / 298.15_dp
+!
+! !REFERENCES:
+!  Eastham et al., Development and evaluation of the unified tropospheric-
+!    stratospheric chemistry extension (UCX) for the global chemistry-transport
+!    model GEOS-Chem, Atmos. Env., doi:10.1016/j.atmosenv.2014.02.001, 2014.
+!  Fisher et al, Organic nitrate chemistry and its implications for nitrogen
+!    budgets in an isoprene- and monoterpene-rich atmosphere: constraints from
+!    aircraft (SEAC4RS) and ground-based (SOAS) observations in the Southeast
+!    US. Atmos. Chem. Phys., 16, 2961-1.02990, 2016.
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K.,
+!    Graham, K. A., Shah, V. (2019) The role of clouds in the tropospheric
+!    NOx cycle: a new modeling approach for cloud chemistry and its global
+!    implications, Geophys. Res. Lett. 46, 4980-4990,
+!    https://doi.org/10.1029/2019GL081990
+!  Marais et al., Aqueous-phase mechanism for secondary organic aerosol
+!    formation from isoprene: application to the southeast United States and
+!    co-benefit of SO2 emission controls, Atmos. Chem. Phys., 16, 1603-1618,
+!    doi:10.5194/acp-16-1603-2016, 2016.
+!  Parrella et al, Tropospheric bromine chemistry: implications for present and
+!    pre-industrial ozone and mercury, Atmos. Chem. Phys., 12, 6,723-6,740,
+!    doi:10.5194/acp-12-6723-2012, 2012.
+!  Schmidt, J., et al., “Modelling the observed tropospheric BrO background:
+!    Importance of multiphase chemistry & implications for ozone, OH, &
+!    mercury”, J Geophys. Res-Atmos., 121, 024229,
+!    https://doi.org/10.1002/2015JD024229, 2016.
+!  Sherwen, T., et al., Global impacts of tropospheric halogens (Cl, Br, I) on
+!    oxidants and composition in GEOS-Chem, Atmos. Chem. Phys., 16, 12239-12271,
+!    https://doi.org/10.5194/acp-16-12239-2016, 2016.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

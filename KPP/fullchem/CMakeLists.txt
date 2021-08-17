@@ -10,10 +10,10 @@ target_link_libraries(KPPFirstPass_fullchem
 
 # Add libKPP.a
 add_library(KPP_fullchem STATIC EXCLUDE_FROM_ALL
+      fullchem_HetStateMod.F90
       fullchem_RateLawFuncs.F90
       gckpp_Function.F90
       gckpp_Global.F90
-      gckpp_HetRates.F90
       gckpp_Initialize.F90
       gckpp_Integrator.F90
       gckpp_Jacobian.F90

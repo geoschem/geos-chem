@@ -5,7 +5,7 @@
 !
 ! !MODULE: fullchem_mod.F90
 !
-! !DESCRIPTION: Contines arrays and routines for the GEOS_Chem "fullchem" 
+! !DESCRIPTION: Contines arrays and routines for the GEOS_Chem "fullchem"
 !  mechanism, which is implemented in KPP-generated Fortran code.
 !\\
 !\\
@@ -1422,27 +1422,27 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE FullChem_HetStateMod, ONLY : FullChem_SetStateHet
     USE GcKpp_Global
     USE GcKpp_Parameters
-    USE Gckpp_HetRates,  ONLY : Cld_Params, Halide_Conc
-    USE Input_Opt_Mod,   ONLY : OptInput
-    USE PhysConstants,   ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
-    USE Pressure_Mod,    ONLY : Get_Pcenter
-    USE State_Chm_Mod,   ONLY : ChmState
-    USE State_Grid_Mod,  ONLY : GrdState
-    USE State_Met_Mod,   ONLY : MetState
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE PhysConstants,        ONLY : CONSVAP, RGASLATM, RSTARG
+    USE Pressure_Mod,         ONLY : Get_Pcenter
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I, J, L
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt
-    TYPE(ChmState), INTENT(IN)    :: State_Chm
-    TYPE(GrdState), INTENT(IN)    :: State_Grid
-    TYPE(MetState), INTENT(IN)    :: State_Met
+    INTEGER,        INTENT(IN)  :: I, J, L
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt
+    TYPE(ChmState), INTENT(IN)  :: State_Chm
+    TYPE(GrdState), INTENT(IN)  :: State_Grid
+    TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC
+    INTEGER,        INTENT(OUT) :: RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1450,27 +1450,30 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER  :: F,       N,       NA,    KppId,    SpcId
-    REAL(f8) :: CONSEXP, VPRESH2O
+    INTEGER            :: F,       N,        NA,    KppId,    SpcId
+    REAL(f8)           :: CONSEXP, VPRESH2O
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !========================================================================
     ! Set_Kpp_GridBox_Values begins here!
     !========================================================================
 
     ! Initialization
-    RC =  GC_SUCCESS
-    NA =  State_Chm%nAeroType
+    RC      = GC_SUCCESS
+    NA      = State_Chm%nAeroType
+    ErrMsg  = ''
+    ThisLoc = &
+     ' -> at Set_Kpp_Gridbox_Values (in module GeosCore/fullchem_mod.F90)'
 
     !========================================================================
     ! Copy species concentrations into gckpp_Global variables [molec/cm3]
     !========================================================================
     DO N = 1, NSPEC
        SpcID = State_Chm%Map_KppSpc(N)
-       IF ( SpcId > 0 ) THEN
-          C(N) = State_Chm%Species(I,J,L,SpcID)
-       ELSE
-          C(N) = 0.0_dp
-       ENDIF
+       C(N)  = 0.0_dp
+       IF ( SpcId > 0 ) C(N) = State_Chm%Species(I,J,L,SpcID)
     ENDDO
 
     ! Save the concentrations of SALAAL and SALCAL before they get
@@ -1508,112 +1511,23 @@ CONTAINS
     RELHUM          = ( H2O / VPRESH2O ) * 100_dp
 
     !========================================================================
-    ! Populate fields of the HetState object in gckpp_Global
+    ! Populate variables in the HetChem state object
     !========================================================================
+    CALL FullChem_SetStateHet(                                               &
+         I         = I,                                                      &
+         J         = J,                                                      &
+         L         = L,                                                      &
+         Input_Opt = Input_Opt,                                              &
+         State_Chm = State_Chm,                                              &
+         State_Met = State_Met,                                              &
+         H         = State_Het,                                              &
+         RC        = RC                                                     )
 
-    ! Constants (so that we can use these within KPP)
-    State_Het%AVO            = AVO
-    State_Het%PI             = PI
-
-    ! Meteorology-related quantities
-    State_Het%CldFr          = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
-    State_Het%ClearFr        = 1.0_dp - State_Het%CldFr
-    State_Het%QICE           = State_Met%QI(I,J,L)
-    State_Het%QLIQ           = State_Met%QL(I,J,L)
-    State_Het%vAir           = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
-
-    ! Aerosol fields
-    State_Het%nAeroType      = State_Chm%nAeroType
-    State_Het%aClArea        = State_Chm%aClArea(I,J,L)
-    State_Het%aClRadi        = State_Chm%aClRadi(I,J,L)
-    State_Het%aClVol         = State_Het%aClArea * State_Het%aClRadi / 3.0_dp
-    State_Het%AWATER(:)      = State_Chm%IsorropAeroH2O(I,J,L,:)
-    State_Het%xArea(1:NA)    = State_Chm%AeroArea(I,J,L,1:NA)
-    State_Het%xRadi(1:NA)    = State_Chm%AeroRadi(I,J,L,1:NA)
-    State_Het%xVol(1:NA)     = State_Het%xArea(1:NA)                         &
-                             * State_Het%xRadi(1:NA) / 3.0_dp
-    State_Het%wetArea(1:NA)  = State_Chm%WetAeroArea(I,J,L,1:NA)
-    State_Het%xH2O(1:NA)     = State_Chm%AeroH2O(I,J,L,1:NA) * 1.0e-6_dp
-    State_Het%OMOC_POA       = State_Chm%OMOC_POA(I,J)
-    State_Het%OMOC_OPOA      = State_Chm%OMOC_OPOA(I,J)
-
-    ! HSO3 and SO3 concentrations in cloud [mol/L]
-    State_Het%HSO3_aq        = State_Chm%HSO3_aq(I,J,L)
-    State_Het%SO3_aq         = State_Chm%SO3_aq(I,J,L)
-    State_Het%TSO3_aq        = State_Het%HSO3_aq + State_Het%SO3_aq
-    State_Het%frac_HSO3_aq   = State_Het%HSO3_aq / State_Het%TSO3_aq
-    State_Het%frac_SO3_aq    = State_Het%SO3_aq  / State_Het%TSO3_aq
-
-    ! Concentrations from ISORROPIA
-    State_Het%HSO4_molal     = State_Chm%IsorropBisulfate(I,J,L)
-    State_Het%NO3_molal      = State_Chm%IsorropNitrate(I,J,L,1)
-    State_Het%SO4_molal      = State_Chm%IsorropSulfate(I,J,L)
-
-    ! pH and alkalinity fields
-    State_Het%H_plus         = State_Chm%IsorropHplus(I,J,L,1)
-    State_Het%pHCloud        = State_Chm%pHCloud(I,J,L)
-    State_Het%pHSSA(:)       = State_Chm%IsorropAeropH(I,J,L,:)
-    State_Het%H_conc_Sul     = 10.0**( -1.0_dp * State_Het%pHSSA(1) )
-    State_Het%H_conc_LCl     = 10.0**( -1.0_dp * State_Het%pHCloud  )
-    State_Het%H_conc_ICl     = 10.0**( -4.5_dp                      )
-    State_Het%H_conc_SSA     = State_Het%H_conc_Sul
-    State_Het%H_conc_SSC     = 10.0**( -5.0_dp                      )
-    State_Het%ssAlk          = State_Chm%SSAlk(I,J,L,:)
-    State_Het%SSA_is_Alk     = ( State_Het%ssAlk(1) > 0.05_dp       )
-    State_Het%SSA_is_Acid    = ( .not.  State_Het%SSA_is_Alk        )
-    State_Het%SSC_is_Alk     = ( State_Het%ssAlk(2) > 0.05_dp       )
-    State_Het%SSC_is_Acid    = ( .not.  State_Het%SSC_is_Alk        )
-
-    ! Other fields
-    State_Het%gamma_HO2      = Input_Opt%gamma_HO2
-    State_Het%is_UCX         = Input_Opt%LUCX
-
-    ! Cloud fields
-    CALL Cld_Params( I, J, L, State_Het, State_Met )
-
-    ! Halide (Br- and Cl-) concentrations
-    CALL Halide_Conc( I, J, L, State_Het )
-
-    !========================================================================
-    ! Copy quantities for UCX into gckpp_Global variables
-    !========================================================================
-    IF ( Input_Opt%LUCX ) THEN
-
-       !---------------------------------------------------------------------
-       ! If UCX is turned on ...
-       !---------------------------------------------------------------------
-
-       ! ... copy uptake probabilities for PSC reactions on SLA
-       ! ... to the proper gckpp_Global variable
-       State_Het%KHETI_SLA(1:11) = State_Chm%KHETI_SLA(I,J,L,1:11)
-
-       ! ... check if we are in the stratosphere
-       State_Het%STRATBOX = State_Met%InStratosphere(I,J,L)
-
-       ! ... check if there are solid PSCs at this grid box
-       State_Het%PSCBOX  =                                                   &
-          ( ( Input_Opt%LPSCCHEM                ) .and.                      &
-            ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. State_Het%STRATBOX   )
-
-       ! ... check if there is surface NAT at this grid box
-       State_Het%NATSURFACE =                                                &
-          ( State_Het%PSCBOX .and. ( C(ind_NIT) > 0.0_f8 )                  )
-
-    ELSE
-
-       !---------------------------------------------------------------------
-       ! If UCX is turned off ...
-       !---------------------------------------------------------------------
-
-       ! ... set H2O concentration from the meteorology
-       C(ind_H2O) = State_Het%H2O
-
-       ! ... zero out UCX-related quantities
-       State_Het%KHETI_SLA  = 0.0_dp
-       State_Het%STRATBOX   = .FALSE.
-       State_Het%PSCBOX     = .FALSE.
-       State_Het%NATSURFACE = .FALSE.
-
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Set_State_Het"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
   END SUBROUTINE Set_Kpp_GridBox_Values
