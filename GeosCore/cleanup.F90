@@ -150,7 +150,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_SULFATE()
   CALL CLEANUP_STRAT_CHEM()
 
-  CALL Cleanup_FlexChem( RC )
+  CALL Cleanup_FullChem( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_FlexChem"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )

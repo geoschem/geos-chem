@@ -57,7 +57,7 @@ add_library(GeosCore
   dust_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
-  flexchem_mod.F90
+  fullchem_mod.F90
   gamap_mod.F90
   gc_environment_mod.F90
   get_ndep_mod.F90

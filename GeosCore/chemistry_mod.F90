@@ -1270,7 +1270,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE FAST_JX_MOD,    ONLY : Init_FJX
-    USE FlexChem_Mod,   ONLY : Init_FlexChem
+    USE FullChem_Mod,   ONLY : Init_FullChem
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
@@ -1326,7 +1326,7 @@ CONTAINS
        ! Initialize FlexChem (skip if it is a dry-run)
        !--------------------------------------------------------------------
        IF ( .not. Input_Opt%DryRun ) THEN
-          CALL Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
+          CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
