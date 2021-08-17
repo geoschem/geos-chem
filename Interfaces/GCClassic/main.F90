@@ -814,9 +814,17 @@ PROGRAM GEOS_Chem
      ENDIF
 
      ! Consolidate with above?
-     CALL Init_FJX( FjxState, State_Chm, State_Diag, RC )
+     CALL Init_FJX( FjxState, State_Diag, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_FJX"!'
+        CALL Error_Stop( ErrMsg, ThisLoc )
+        RETURN
+     ENDIF
+
+     ! Set GEOS-Chem photolysis IDs after FAST-JX initialization
+     CALL Set_GC_Photol_Ids( FjxState, RC )
+     IF ( RC /= GC_SUCCESS ) THEN
+        ErrMsg = 'Error encountered in "Set_GC_Photol_Ids"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
         RETURN
      ENDIF

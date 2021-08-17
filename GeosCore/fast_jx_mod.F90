@@ -135,11 +135,14 @@ MODULE FAST_JX_MOD
 
   ! State
   TYPE, PUBLIC :: Fjx_State
-    INTEGER :: nPhotol
-    TYPE(Fjx_Config),    POINTER :: Config    => NULL()
-    TYPE(Fjx_Grid  ),    POINTER :: Grid      => NULL()
-    TYPE(Fjx_Met   ),    POINTER :: Met       => NULL()
-    TYPE(Fjx_RxnFlags ), POINTER :: RxnFlags  => NULL()
+    INTEGER  :: nPhotol
+    INTEGER  :: id_O3
+    REAL(fp),            POINTER :: Species  (:,:,:,:) => NULL()
+    REAL(fp),            POINTER :: TO3_Daily(:,:)     => NULL()
+    TYPE(Fjx_Config),    POINTER :: Config             => NULL()
+    TYPE(Fjx_Grid  ),    POINTER :: Grid               => NULL()
+    TYPE(Fjx_Met   ),    POINTER :: Met                => NULL()
+    TYPE(Fjx_RxnFlags ), POINTER :: RxnFlags           => NULL()
   END TYPE Fjx_State
 !
 ! !REVISION HISTORY:
@@ -167,12 +170,6 @@ MODULE FAST_JX_MOD
   INTEGER, PUBLIC :: RXN_NO    = -1
   INTEGER, PUBLIC :: RXN_NO3   = -1
   INTEGER, PUBLIC :: RXN_N2O   = -1
-
-  ! Species ID flags
-  INTEGER :: id_CH2IBr, id_IBr,  id_CH2ICl, id_ICl,   id_I2
-  INTEGER :: id_HOI,    id_IO,   id_OIO,    id_INO,   id_IONO
-  INTEGER :: id_IONO2,  id_I2O2, id_CH3I,   id_CH2I2, id_I2O4
-  INTEGER :: id_I2O3
 
   ! Needed for scaling JNIT/JNITs photolysis to JHNO3
   REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
@@ -231,6 +228,11 @@ CONTAINS
 
     ! Set parameters
     FjxState%nPhotol = 0
+    FjxState%id_O3   = -1
+
+    ! Nullify pointers
+    FjxState%Species   => NULL()
+    FjxState%TO3_Daily => NULL()
 
     !=====================================================================
     ! input configuration
@@ -375,6 +377,10 @@ CONTAINS
     ErrMsg      = ''
     ThisLoc     = ' -> at FjxState_Final (in module GeosCore/fast_jx_mod.F90)'
 
+    ! Nullify pointers
+    IF ( ASSOCIATED ( FjxState%Species   ) ) FjxState%Species   => NULL()
+    IF ( ASSOCIATED ( FjxState%TO3_Daily ) ) FjxState%TO3_Daily => NULL()
+
     ! Deallocate grid information
     IF ( ASSOCIATED ( FjxState%Grid) ) THEN
        FjxState%Grid%YMID       => NULL()
@@ -421,7 +427,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FAST_JX( WLAOD, FjxState, State_Chm, State_Diag, RC )
+  SUBROUTINE FAST_JX( WLAOD, FjxState, State_Diag, RC )
 !
 ! !USES:
 !
@@ -429,8 +435,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
     USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
@@ -457,7 +461,6 @@ CONTAINS
     INTEGER,         INTENT(IN)    :: WLAOD       ! AOD calculated how?
                                                   ! (1: 550 nm, 0: 999 nm)
     TYPE(Fjx_State), INTENT(IN)    :: FjxState    ! FAST-JX options
-    TYPE(ChmState),  INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -510,9 +513,6 @@ CONTAINS
     LOGICAL, SAVE :: FIRST = .true.
     LOGICAL       :: prtDebug
 
-    ! Species ID flags
-    INTEGER, SAVE :: id_O3
-
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -555,9 +555,8 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( FIRST ) THEN
 
-       ! Get the species ID for O3
-       id_O3 = Ind_('O3')
-       IF ( id_O3 < 0 ) THEN
+       ! Check there's a valid species ID for O3
+       IF ( FjxState%id_O3 < 0 ) THEN
           ErrMsg = 'O3 is not a defined species!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
@@ -623,13 +622,13 @@ CONTAINS
        ! Overhead ozone column [DU] at (NLON, NLAT)
        ! These values are either from the met fields or TOMS/SBUV,
        ! depending on the settings in input.geos
-       O3_TOMS = GET_OVERHEAD_O3( State_Chm, NLON, NLAT )
+       O3_TOMS = FjxState%TO3_Daily(NLON,NLAT)
 
        ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
        O3_CTM = 0e+0_fp
        LCHEM  = FjxState%Met%ChemGridLev(NLON,NLAT)
        DO L = 1, LCHEM
-          O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
+          O3_CTM(L) = FjxState%Species(NLON,NLAT,L,FjxState%id_O3)
        ENDDO
 
        ! Aerosol OD profile [unitless] at (NLON,NLAT)
@@ -1957,14 +1956,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_FJX( FjxState, State_Chm, State_Diag, RC )
+  SUBROUTINE INIT_FJX( FjxState, State_Diag, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE inquireMod,     ONLY : findFreeLUN
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
 #if defined( MODEL_CESM )
     USE UNITS,          ONLY : freeUnit
@@ -1974,7 +1971,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(Fjx_State), INTENT(IN)  :: FjxState    ! FAST-JX object
-    TYPE(ChmState),  INTENT(IN)  :: State_Chm   ! Chemistry State object
     TYPE(DgnState),  INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
@@ -2013,24 +2009,6 @@ CONTAINS
 
     ! Skip these opterations when running in dry-run mode
     IF ( notDryRun ) THEN
-
-       ! Define species IDs
-       id_CH2IBr   = IND_('CH2IBr'  )
-       id_IBr      = IND_('IBr'     )
-       id_CH2ICl   = IND_('CH2ICl'  )
-       id_ICl      = IND_('ICl'     )
-       id_I2       = IND_('I2'      )
-       id_HOI      = IND_('HOI'     )
-       id_IO       = IND_('IO'      )
-       id_OIO      = IND_('OIO'     )
-       id_INO      = IND_('INO'     )
-       id_IONO     = IND_('IONO'    )
-       id_IONO2    = IND_('IONO2'   )
-       id_I2O2     = IND_('I2O2'    )
-       id_CH3I     = IND_('CH3i'    )
-       id_CH2I2    = IND_('CH2I2'   )
-       id_I2O4     = IND_('I2O4'    )
-       id_I2O3     = IND_('I2O3'    )
 
        ! Print info
        IF ( FjxState%Config%amIRoot ) THEN
@@ -2160,70 +2138,6 @@ CONTAINS
 
     ! Skip further processing if we are in dry-run mode
     IF ( notDryRun ) THEN
-
-       ! Get the GEOS-Chem photolysis index for each of the 1...JVN_ entries
-       ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
-       DO J = 1, JVN_
-
-          IF ( J == Rxn_O3_2a ) THEN
-
-             !------------------------------------------------------------
-             ! O3 + hv = O + O(1D) branch 1
-             !
-             ! UCX     : Save this as JO3_O1D in the nPhotol+1 slot
-             ! non_UCX : Save this as JO3     in the nPhotol+1 slot
-             !------------------------------------------------------------
-             GC_Photo_Id(J) = State_Chm%nPhotol + 1
-
-          ELSE IF ( J == Rxn_O3_1 ) THEN
-
-             !------------------------------------------------------------
-             ! O3 + hv -> O + O
-             !
-             ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
-             ! non-UCX : undefined
-             !-------------------------------------------------------------
-             IF ( FjxState%Config%LUCX ) THEN
-                GC_Photo_Id(J) = State_Chm%nPhotol + 2
-             ELSE
-                GC_Photo_Id(J) = -999
-             ENDIF
-
-          ELSE IF ( J == Rxn_O3_2b ) THEN
-
-             !------------------------------------------------------------
-             ! O3 + hv -> O2 + O(1d) branch 2
-             !
-             ! UCX     : undefined
-             ! non-UCX : Save into the nPhotol+2 slot
-             !           NOTE: The JPOH rate in the bpch diagnostic will
-             !           now be the sum of the nPhotol+1+nPhotol+2 slots!
-             !------------------------------------------------------------
-             IF ( FjxState%Config%LUCX ) THEN
-                GC_Photo_Id(J) = -999
-             ELSE
-                GC_Photo_Id(J) = State_Chm%nPhotol + 2
-             ENDIF
-
-          ELSE
-
-             !------------------------------------------------------------
-             ! Everything else
-             !
-             ! Find the matching GEOS-Chem photolysis species number
-             !------------------------------------------------------------
-             GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
-
-          ENDIF
-
-          ! Print the mapping
-          IF ( FjxState%Config%amIRoot ) THEN
-             IF ( GC_Photo_Id(J) > 0 ) THEN
-                WRITE(6, 200) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
-200             FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
-             ENDIF
-          ENDIF
-       ENDDO
 
 #if defined( MODEL_CESM )
        IF ( FjxState%Config%amIRoot ) THEN
@@ -3825,9 +3739,6 @@ CONTAINS
     REAL(fp) :: UVX_CONST
     INTEGER  :: S
 
-    ! Logical flags
-    LOGICAL :: IS_HALOGENS
-
     !Maps the new LUT optics wavelengths on to
     !the 5 jv_spec_mie.dat wavelengths
     ! N.B. currently 200nm and 300nm data is the same in
@@ -3852,16 +3763,6 @@ CONTAINS
     if (FjxState%Grid%NZ+1 .gt. JXL1_) then
        call EXITC(' PHOTO_JX: not enough levels in JX')
     endif
-
-    ! Define logical flags for ND22
-    IS_HALOGENS = ( id_CH2IBr > 0 .and. id_IBr   > 0 .and. &
-                    id_CH2ICl > 0 .and. id_ICl   > 0 .and. &
-                    id_I2     > 0 .and. id_HOI   > 0 .and. &
-                    id_IO     > 0 .and. id_OIO   > 0 .and. &
-                    id_INO    > 0 .and. id_IONO  > 0 .and. &
-                    id_IONO2  > 0 .and. id_I2O2  > 0 .and. &
-                    id_CH3I   > 0 .and. id_CH2I2 > 0 .and. &
-                    id_I2O4   > 0 .and. id_I2O3  > 0 )
 
     ! Copy cloud OD data to a variable array
     DO L=1,L_

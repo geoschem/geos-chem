@@ -26,6 +26,7 @@ MODULE FJX_GC_Interface_Mod
 !
   PUBLIC  :: FjxState_GC_Set
   PUBLIC  :: FjxState_Print
+  PUBLIC  :: Set_GC_Photol_Ids
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -106,7 +107,11 @@ CONTAINS
     ! Initialize FjxState object
     CALL FjxState_Init( FjxState, RC )
 
-    ! Set values from state_chm: todo
+    ! Set values from state_chm: todo - put in FjxState%Chem?
+    FjxState%nPhotol   =  State_Chm%nPhotol
+    FjxState%id_O3     =  Ind_('O3')
+    FjxState%Species   => State_Chm%Species
+    FjxState%TO3_Daily => State_Chm%TO3_Daily
 
     ! Set Config from GEOS-Chem object Input_Opt
     FjxState%Config%DryRun            = Input_Opt%DryRun
@@ -257,5 +262,128 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE FjxState_Print
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_GC_Photol_Ids
+!
+! !DESCRIPTION: Subroutine Set\_GC\_Photol\_Ids sets the GEOS-Chem photolysis
+!  index for each of the 1....JVN_ entries in the FJX_j2j.dat file for use in
+!  GEOS-Chem diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_GC_Photol_Ids( FjxState, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE CMN_FJX_MOD,   ONLY : JVN_, GC_Photo_Id, RNAMES, JFACTA
+    USE Fast_JX_Mod,   ONLY : Fjx_State
+    USE State_Chm_Mod, ONLY : Ind_
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(FJX_State),  INTENT(IN)  :: FjxState      ! Fast-JX state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  17 Aug 2021 - E. Lundgren
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    INTEGER            :: J
+
+    !=================================================================
+    ! Set_GC_Photol_Ids begins here!
+    !=================================================================
+
+    ! Initialize
+    RC          = GC_SUCCESS
+    ErrMsg      = ''
+    ThisLoc     = ' -> at Set_GC_Photol_Ids (in module GeosCore/fjx_gc_interface_mod.F90)'
+
+    ! Skip further processing if we are in dry-run mode
+    IF ( .NOT. FjxState%Config%DryRun ) THEN
+
+       ! Get the GEOS-Chem photolysis index for each of the 1...JVN_ entries
+       ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
+       DO J = 1, JVN_
+
+          IF ( J == FjxState%RxnFlags%Rxn_O3_2a ) THEN
+
+             !------------------------------------------------------------
+             ! O3 + hv = O + O(1D) branch 1
+             !
+             ! UCX     : Save this as JO3_O1D in the nPhotol+1 slot
+             ! non_UCX : Save this as JO3     in the nPhotol+1 slot
+             !------------------------------------------------------------
+             GC_Photo_Id(J) = FjxState%nPhotol + 1
+
+          ELSE IF ( J == FjxState%RxnFlags%Rxn_O3_1 ) THEN
+
+             !------------------------------------------------------------
+             ! O3 + hv -> O + O
+             !
+             ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
+             ! non-UCX : undefined
+             !-------------------------------------------------------------
+             IF ( FjxState%Config%LUCX ) THEN
+                GC_Photo_Id(J) = FjxState%nPhotol + 2
+             ELSE
+                GC_Photo_Id(J) = -999
+             ENDIF
+
+          ELSE IF ( J == FjxState%RxnFlags%Rxn_O3_2b ) THEN
+
+             !------------------------------------------------------------
+             ! O3 + hv -> O2 + O(1d) branch 2
+             !
+             ! UCX     : undefined
+             ! non-UCX : Save into the nPhotol+2 slot
+             !           NOTE: The JPOH rate in the bpch diagnostic will
+             !           now be the sum of the nPhotol+1+nPhotol+2 slots!
+             !------------------------------------------------------------
+             IF ( FjxState%Config%LUCX ) THEN
+                GC_Photo_Id(J) = -999
+             ELSE
+                GC_Photo_Id(J) = FjxState%nPhotol + 2
+             ENDIF
+
+          ELSE
+
+             !------------------------------------------------------------
+             ! Everything else
+             !
+             ! Find the matching GEOS-Chem photolysis species number
+             !------------------------------------------------------------
+             GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
+
+          ENDIF
+
+          ! Print the mapping
+          IF ( FjxState%Config%amIRoot ) THEN
+             IF ( GC_Photo_Id(J) > 0 ) THEN
+                WRITE(6, 200) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
+200             FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
+             ENDIF
+          ENDIF
+       ENDDO
+
+    ENDIF
+
+  END SUBROUTINE Set_GC_Photol_Ids
 !EOC
 END MODULE FJX_GC_Interface_Mod
