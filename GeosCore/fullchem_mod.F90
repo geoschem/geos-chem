@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: flexchem_mod.F90
+! !MODULE: fullchem_mod.F90
 !
-! !DESCRIPTION: Module FlexChem\_Mod contines arrays and routines for the
-!  FlexChem chemical solver.
+! !DESCRIPTION: Contines arrays and routines for the GEOS_Chem "fullchem" 
+!  mechanism, which is implemented in KPP-generated Fortran code.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE FlexChem_Mod
+MODULE FullChem_Mod
 !
 ! !USES:
 !
@@ -22,9 +22,9 @@ MODULE FlexChem_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Do_FlexChem
-  PUBLIC  :: Init_FlexChem
-  PUBLIC  :: Cleanup_FlexChem
+  PUBLIC  :: Do_FullChem
+  PUBLIC  :: Init_FullChem
+  PUBLIC  :: Cleanup_FullChem
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -83,15 +83,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: do_flexchem
+! !ROUTINE: do_fullchem
 !
-! !DESCRIPTION: Subroutine Do\_FlexChem is the driver subroutine for
-!  full chemistry with KPP.
+! !DESCRIPTION: Driver subroutine for the KPP fullchem mechanism.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag,                 &
+  SUBROUTINE Do_FullChem( Input_Opt,  State_Chm, State_Diag,                 &
                           State_Grid, State_Met, RC                         )
 !
 ! !USES:
@@ -102,16 +101,16 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE GCKPP_Sulfate,        ONLY : SET_CLD_S
-    USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
-    USE GCKPP_Parameters
-    USE GCKPP_Integrator,     ONLY : INTEGRATE, NHnew
-    USE GCKPP_Function
-    USE GCKPP_Model
-    USE GCKPP_Global
-    USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
-    USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
-    USE GcKPP_Util,           ONLY : Get_OHreactivity
+    USE GcKpp_Sulfate,        ONLY : SET_CLD_S
+    USE GcKpp_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
+    USE GcKpp_Parameters
+    USE GcKpp_Integrator,     ONLY : INTEGRATE, NHnew
+    USE GcKpp_Function
+    USE GcKpp_Model
+    USE GcKpp_Global
+    USE GcKpp_Rates,          ONLY : UPDATE_RCONST, RCONST
+    USE GcKpp_Initialize,     ONLY : Init_KPP => Initialize
+    USE GcKpp_Util,           ONLY : Get_OHreactivity
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE PhysConstants,        ONLY : DO_SULFATEMOD_SEASALT, DO_SULFATEMOD_CLD
@@ -217,13 +216,13 @@ CONTAINS
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
 
     !=======================================================================
-    ! Do_FlexChem begins here!
+    ! Do_FullChem begins here!
     !=======================================================================
 
     ! Initialize
     RC        =  GC_SUCCESS
     ErrMsg    =  ''
-    ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F90)'
+    ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
     SpcInfo   => NULL()
     prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Day       =  Get_Day()    ! Current day
@@ -236,7 +235,7 @@ CONTAINS
     IF ( FIRSTCHEM .AND. Input_Opt%amIRoot ) THEN
        IF ( .not. DO_PHOTCHEM ) THEN
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-          WRITE( 6, '(a)' )  ' # Do_FlexChem: Photolysis chemistry' // &
+          WRITE( 6, '(a)' )  ' # Do_FullChem: Photolysis chemistry' // &
                              ' is turned off for testing purposes.'
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
        ENDIF
@@ -247,6 +246,8 @@ CONTAINS
     IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
     IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
     IF (State_Diag%Archive_Jval           ) State_Diag%Jval           = 0.0_f4
+    IF (State_Diag%Archive_JvalO3O1D      ) State_Diag%JvalO3O1D      = 0.0_f4
+    IF (State_Diag%Archive_JvalO3O3P      ) State_Diag%JvalO3O3P      = 0.0_f4
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
@@ -280,7 +281,7 @@ CONTAINS
 #endif
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",     RC ) ! started in Do_Chemistry
+       CALL Timer_End  ( "=> FullChem",     RC ) ! started in Do_Chemistry
        CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
@@ -307,7 +308,7 @@ CONTAINS
 
           ! Debug output
           IF ( prtDebug ) THEN
-             CALL DEBUG_MSG( '### Do_FlexChem: after CALC_PSC' )
+             CALL DEBUG_MSG( '### Do_FullChem: after CALC_PSC' )
           ENDIF
 
        ENDIF
@@ -341,7 +342,7 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FlexChem: after RDAER' )
+       CALL DEBUG_MSG( '### Do_FullChem: after RDAER' )
     ENDIF
 
     !=======================================================================
@@ -367,12 +368,12 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FlexChem: after RDUST' )
+       CALL DEBUG_MSG( '### Do_FullChem: after RDUST' )
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> Aerosol chem", RC )
-       CALL Timer_Start( "=> FlexChem",   RC )
+       CALL Timer_Start( "=> FullChem",   RC )
     ENDIF
 
     !=======================================================================
@@ -443,7 +444,7 @@ CONTAINS
                             'molec/cm3', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90')
+       CALL GC_Error( ErrMsg, RC, 'FullChem_mod.F90')
        RETURN
     ENDIF
 
@@ -451,7 +452,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !=======================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",     RC )
+       CALL Timer_End  ( "=> FullChem",     RC )
        CALL Timer_Start( "=> FAST-JX photolysis", RC )
     ENDIF
 
@@ -468,12 +469,12 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
+       CALL DEBUG_MSG( '### Do_FullChem: after FAST_JX' )
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> FAST-JX photolysis", RC )
-       CALL Timer_Start( "=> FlexChem",     RC ) ! ended in Do_Chemistry
+       CALL Timer_Start( "=> FullChem",     RC ) ! ended in Do_Chemistry
     ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
@@ -567,7 +568,7 @@ CONTAINS
            'Hnew, last predicted step (not yet taken):', f11.4 )
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "  -> FlexChem loop", RC )
+       CALL Timer_Start( "  -> FullChem loop", RC )
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -1164,7 +1165,7 @@ CONTAINS
                                  1e+6_fp / DT
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
-              write(*,*) "H2SO4_RATE negative in flexchem_mod.F90!!", &
+              write(*,*) "H2SO4_RATE negative in FullChem_mod.F90!!", &
                  I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
               H2SO4_RATE(I,J,L) = 0.0d0
             ENDIF
@@ -1262,7 +1263,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "  -> FlexChem loop", RC )
+       CALL Timer_End( "  -> FullChem loop", RC )
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
@@ -1278,7 +1279,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Archive OH, HO2, O1D, O3P concentrations after FlexChem solver
+    ! Archive OH, HO2, O1D, O3P concentrations after FullChem solver
     !=======================================================================
     IF ( Do_Diag_OH_HO2_O1D_O3P ) THEN
 
@@ -1296,7 +1297,7 @@ CONTAINS
        ENDIF
 
        IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### Do_FlexChem: after OHSAVE' )
+          CALL DEBUG_MSG( '### Do_FullChem: after OHSAVE' )
        ENDIF
     ENDIF
 
@@ -1314,7 +1315,7 @@ CONTAINS
     ENDIF
 
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FlexChem: after Diag_Metrics' )
+       CALL DEBUG_MSG( '### Do_FullChem: after Diag_Metrics' )
     ENDIF
 
     !=======================================================================
@@ -1324,7 +1325,7 @@ CONTAINS
                             OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90' )
+       CALL GC_Error( ErrMsg, RC, 'FullChem_mod.F90' )
        RETURN
     ENDIF
 
@@ -1399,7 +1400,7 @@ CONTAINS
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
 
-  END SUBROUTINE Do_FlexChem
+  END SUBROUTINE Do_FullChem
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2168,15 +2169,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_flexchem
+! !IROUTINE: init_FullChem
 !
-! !DESCRIPTION: Subroutine Init\_FlexChem is used to allocate arrays for the
+! !DESCRIPTION: Subroutine Init\_FullChem is used to allocate arrays for the
 !  KPP solver.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
+  SUBROUTINE Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2218,7 +2219,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
 
     !=======================================================================
-    ! Init_FlexChem begins here!
+    ! Init_FullChem begins here!
     !=======================================================================
 
     ! Assume success
@@ -2233,13 +2234,13 @@ CONTAINS
     ! Initialize variables
     !=======================================================================
     ErrMsg   = ''
-    ThisLoc  = ' -> at Init_FlexChem (in module GeosCore/flexchem_mod.F90)'
+    ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Debug output
     IF ( prtDebug ) THEN
        WRITE( 6, 100 )
-100    FORMAT( '     - INIT_FLEXCHEM: Allocating arrays for FLEX_CHEMISTRY' )
+100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays for FLEX_CHEMISTRY' )
 
        WRITE( 6 ,'(a)' ) ' KPP Reaction Reference '
        DO N = 1, NREACT
@@ -2367,7 +2368,7 @@ CONTAINS
 
        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
        ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:PL_Kpp_Id', 0, RC )
+       CALL GC_CheckVar( 'FullChem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Loop over all KPP prod/loss species
@@ -2429,21 +2430,21 @@ CONTAINS
        RETURN
     ENDIF
 
-  END SUBROUTINE Init_FlexChem
+  END SUBROUTINE Init_FullChem
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_flexchem
+! !IROUTINE: cleanup_FullChem
 !
-! !DESCRIPTION: Subroutine Cleanup\_FlexChem deallocate module variables.
+! !DESCRIPTION: Subroutine Cleanup\_FullChem deallocate module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_FlexChem( RC )
+  SUBROUTINE Cleanup_FullChem( RC )
 !
 ! !USES:
 !
@@ -2461,7 +2462,7 @@ CONTAINS
 !BOC
 
     !=================================================================
-    ! Cleanup_FlexChem begins here!
+    ! Cleanup_FullChem begins here!
     !=================================================================
 
     ! Initialize
@@ -2469,34 +2470,34 @@ CONTAINS
 
     IF ( ALLOCATED( PL_Kpp_Id ) ) THEN
        DEALLOCATE( PL_Kpp_Id, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:PL_Kpp_Id', 2, RC )
+       CALL GC_CheckVar( 'fullchem_mod.F90:PL_Kpp_Id', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( JvCountDay ) ) THEN
        DEALLOCATE( JvCountDay, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountDay', 2, RC )
+       CALL GC_CheckVar( 'fullchem_mod.F90:JvCountDay', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( JvSumDay ) ) THEN
        DEALLOCATE( JvSumDay, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountDay', 2, RC )
+       CALL GC_CheckVar( 'fullchem_mod.F90:JvCountDay', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( JvCountMon ) ) THEN
        DEALLOCATE( JvCountMon, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountMon', 2, RC )
+       CALL GC_CheckVar( 'fullchem_mod.F90:JvCountMon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( JvSumMon ) ) THEN
        DEALLOCATE( JvSumMon, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountMon', 2, RC )
+       CALL GC_CheckVar( 'fullchem_mod.F90:JvCountMon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-  END SUBROUTINE Cleanup_FlexChem
+  END SUBROUTINE Cleanup_FullChem
 !EOC
-END MODULE FlexChem_Mod
+END MODULE FullChem_Mod

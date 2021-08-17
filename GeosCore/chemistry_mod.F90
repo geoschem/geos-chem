@@ -71,7 +71,7 @@ CONTAINS
     USE DUST_MOD,        ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FlexChem_Mod,    ONLY : Do_FlexChem
+    USE FullChem_Mod,    ONLY : Do_FullChem
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
     USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
@@ -313,15 +313,12 @@ CONTAINS
              CALL Timer_Start( "=> FlexChem", RC )
           ENDIF
 
-          CALL CPU_TIME(sDTFC)
-          CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
-          CALL CPU_TIME(fDTFC)
-          write(*,*) 'DO_FLEXCHEM DT: ', fDTFC-sDTFC
+          CALL Do_FullChem( Input_Opt,  State_Chm, State_Diag,               &
+                            State_Grid, State_Met, RC                       )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-             ErrMsg = 'Incorrect species units after FLEX_CHEMDR!'
+             ErrMsg = 'Incorrect species units after Do_FullChem!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
