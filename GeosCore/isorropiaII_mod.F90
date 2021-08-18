@@ -932,17 +932,16 @@ CONTAINS
              State_Chm%IsorropSulfate(I,J,L)  = MAX(SULFTEMP, 1e-30_fp)
              State_Chm%IsorropBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
              State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
-
-          NUM_SAV    = ( Spc(I,J,L,id_NH3)  / 17.0_fp                        &
+          
+             NUM_SAV = ( Spc(I,J,L,id_NH3)  / 17.0_fp                        &
                      +   Spc(I,J,L,id_NH4)  / 18.0_fp                        &
                      +   Spc(I,J,L,id_SALA) * 0.3061_fp / 23.0_fp           )
 
-          DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp             &
+             DEN_SAV = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp             &
                      +   Spc(I,J,L,id_NIT)  / 62.0_fp                        &
                      +   HNO3_DEN           / 63.0_fp                        &
                      +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp          )
-       ENDIF
-
+          ENDIF
        ENDDO
 
        IF ( id_HCl > 0 ) THEN

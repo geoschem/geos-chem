@@ -35,6 +35,7 @@ MODULE SULFATE_MOD
 #ifdef TOMAS
   PUBLIC :: EMISSSULFATETOMAS
 #endif
+
 !
 !
 ! !REMARKS:
@@ -1348,7 +1349,7 @@ CONTAINS
              DO K = 1, IBINS
                 TC1(I,J,L,K) = TC1(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
-                TC2(I,J,L,K) = TC2(I,J,L,K) + &
+               TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
              ENDDO
           ENDDO
@@ -2744,11 +2745,13 @@ CONTAINS
        ! Total alkalinity [kg]
        ALK = ALK1 + ALK2
 
-       ! If (1) there is alkalinity, (2) there is SO2 present, and
-       ! (3) O3 is in excess, then compute seasalt SO2 chemistry
-       IF  ( ( ALK    > MINDAT )  .AND. &
-             ( SO2_cd > MINDAT )  .AND. &
-             ( SO2_cd < O3     ) ) THEN
+       ! If we are not using KPP to compute seasalt reaction rates, then
+       ! compute seasalt reaction rates here (1) if there is alkalinity,
+       ! (2) if there is SO2 present, and (3) if O3 is in excess.
+       IF ( ( State_Chm%Do_SulfateMod_SeaSalt )  .and.                       &
+            ( ALK    > MINDAT                 )  .and.                       &
+            ( SO2_cd > MINDAT                 )  .and.                       &
+            ( SO2_cd < O3                     ) ) THEN
 
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
@@ -2766,8 +2769,8 @@ CONTAINS
           PSO4E        = 0.e+0_fp
           PSO4F        = 0.e+0_fp
           PNITS(I,J,L) = 0.e+0_fp
-          AlkA         = 0.e+0_fp !to zero instead of MINDAT, xnw
-          AlkC         = 0.e+0_fp !to zero instead of MINDAT, xnw
+          AlkA         = 0.e+0_fp
+          AlkC         = 0.e+0_fp
           PNIT(I,J,L)  = 0.e+0_fp
           PACL(I,J,L)  = 0.e+0_fp
           PCCL(I,J,L)  = 0.e+0_fp
@@ -2782,8 +2785,10 @@ CONTAINS
           SSAlk(I,J,L,2) = AlkC * (7.0d-2 * State_Met%AD(I,J,L)) / &
                 (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g)
        ENDIF
-       ! Update sea salt alkalinity [v/v] in FullRun, XW 12/8/17
-       IF (FullRun) Then
+
+       ! If we are not using KPP to compute seasalt reaction rates,
+       ! then update sea salt alkalinity [v/v] in FullRun (XW 12/8/17)
+       IF ( FullRun .and. State_Chm%Do_SulfateMod_SeaSalt ) Then
           Spc(I,J,L,id_SALAAL) = AlkA
           Spc(I,J,L,id_SALCAL) = AlkC
        ENDIF
@@ -2918,17 +2923,20 @@ CONTAINS
        L6S     = 0.e+0_fp !XW
        L6S_1   = 0.e+0_fp !XW
 
-       ! If (1) there is cloud, (2) there is SO2 present, and
-       ! (3) the T > -15 C, then compute aqueous SO2 chemistry
-       ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
-       IF ( ( FC     > 1.e-4_fp   )  .AND. &
-            ( SO2_ss > MINDAT )  .AND. &
+       ! If we are not using KPP to compute reaction rates, then
+       ! compute SO2 cloud chemistry (1) if there is cloud, (2) if there
+       ! is SO2 present, (3) if T > -15 C, and (4) if there is liquid
+       ! water content (prevents div-by-zero).
+       IF ( ( State_Chm%Do_SulfateMod_Cld )   .and.                          &
+            ( FC     > 1.e-4_fp           )   .and.                          &
+            ( SO2_ss > MINDAT             )   .and.                          &
 #ifdef LUO_WETDEP
-            ( TK     > 237.0  )  .AND. &
+            ( TK     > 237.0              )   .and.                          &
 #else
-            ( TK     > 258.0  )  .AND. &
+            ( TK     > 258.0              )   .and.                          &
 #endif
-            ( LWC    > 0.e+0_fp   ) ) THEN
+            ( LWC    > 0.e+0_fp           ) ) THEN
+
           !===========================================================
           ! NOTE...Sulfate production from aquatic reactions of SO2
           ! with H2O2 & O3 is computed here and followings are
@@ -3240,6 +3248,17 @@ CONTAINS
                            KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
                            HSO3aq,  SO3aq )
 
+!### Debug
+!       if (i .eq. 61 .and. j .eq. 15  .and. L .eq. 1 ) then
+!          write(*,*) 'CloudHet 3: ', KaqH2O2*CVFAC, K_CLD(1), FC, Spc(I,J,L,id_SO2), Spc(I,J,L,id_H2O2)
+!          write(*,*) 'CloudHet 1: ', KaqH2O2*CVFAC*Spc(I,J,L,id_SO2), KaqH2O2*CVFAC*Spc(I,J,L,id_H2O2), 1./3600.
+!          write(*,*) 'CloudHet 2: ', K_CLD(1), KaqH2O2*CVFAC*FC
+!          write(*,*) 'HMS R1: ', KaqHCHO*CVFAC, I, J, L
+!          write(*,*) 'HMS R2: ', KaqHMS*CVFAC
+!          write(*,*) 'HMS R3: ', KaqHMS2*CVFAC
+!          write(*,*) 'KaqO2: ', KaqO2
+!          write(*,*) 'KaqH2O2: ', KaqH2O2, HPLUS
+!       endif
           !----------------------------------------------------------
           ! Compute loss by H2O2.  Prevent floating-point exception
           ! by not allowing the exponential to go to infinity if

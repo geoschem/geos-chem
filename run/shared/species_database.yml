@@ -1522,6 +1522,13 @@ HMML:
   Is_WetDep: true
   MW_g: 102.10
   WD_RetFactor: 2.0e-2
+HMS:
+  Formula: CH3O4S
+  FullName: hydroxymethyl-methyl-a-lactone
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  MW_g: 111.10
 HNO2:
   Background_VV: 4.0e-15
   Formula: HNO2
@@ -1684,6 +1691,11 @@ HPETHNL:
   Is_WetDep: true
   MW_g: 76.06
   WD_RetFactor: 2.0e-2
+HSO3m:
+  Formula: HSO3-
+  FullName: Hydrogen sulfite
+  Is_Gas: true
+  MW_g: 81.07
 I:
   Formula: I
   FullName: Atomic iodine
@@ -3020,6 +3032,8 @@ O3_PROP: &O3properties
   DD_Hstar: 1.0e-2
   Formula: O3
   FullName: Ozone
+  Henry_CR: 2800.0
+  Henry_K0: 0.0101325e0
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -3029,6 +3043,8 @@ O3:
   << : *O3properties
   Background_VV: 2.0e-8
   FullName: Ozone
+  Henry_CR: 2800.0
+  Henry_K0: 0.0101325e0
   Is_DryAlt: true
 O3afbl:
   << : *O3properties
@@ -3893,6 +3909,11 @@ SO2:
   WD_RetFactor_Luo: 5.0e-2
   WD_LiqAndGas_Luo: true
   WD_ConvFacI2G_Luo: 6.17395e-1
+SO3mm:
+  Formula: SO3--
+  FullName: Sulfite
+  Is_Gas: true
+  MW_g: 80.07
 SO4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]

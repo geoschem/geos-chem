@@ -25,7 +25,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE DUST_MOD,                ONLY : CLEANUP_DUST
   USE ErrCode_Mod
   USE ERROR_MOD,               ONLY : DEBUG_MSG
-  USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
+  USE FullChem_MOD,            ONLY : Cleanup_FullChem
   USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
   USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
@@ -150,7 +150,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_SULFATE()
   CALL CLEANUP_STRAT_CHEM()
 
-  CALL Cleanup_FlexChem( RC )
+  CALL Cleanup_FullChem( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_FlexChem"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )

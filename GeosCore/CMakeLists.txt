@@ -57,7 +57,7 @@ add_library(GeosCore
   dust_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
-  flexchem_mod.F90
+  fullchem_mod.F90
   gamap_mod.F90
   gc_environment_mod.F90
   get_ndep_mod.F90
@@ -127,6 +127,10 @@ target_link_libraries(GeosCore
   # Add dependency on the correct KPP library
   $<$<STREQUAL:${MECH},fullchem>:KPP_fullchem>
   $<$<STREQUAL:${MECH},custom>:KPP_custom>
+  #------------------------------------------------------------------
+  # Kludge for KPP development, can remove it later (bmy, 3/16/21)
+  $<$<STREQUAL:${MECH},aerochem>:KPP_aerochem>
+  #------------------------------------------------------------------
 
   $<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
