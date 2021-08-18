@@ -376,7 +376,7 @@ CONTAINS
 
     SO2_AfterSS = Spc(id_SO2) * CVFAC
 
-    K_CLD    = 0.d0
+    K_CLD    = 0.0_fp
 
     ! If (1) there is cloud, (2) there is SO2 present, and
     ! (3) the T > -15 C, then compute aqueous SO2 chemistry
@@ -467,30 +467,27 @@ CONTAINS
        ! [moles/liter]
        ! Use a cloud scavenging ratio of 0.7
 
-       SO4nss  =  1.e+3 * ( Spc(id_SO4) * 0.7e+0_fp + Spc(id_SO4s) ) / &
-            ( LWC * AVO ) ! mcl/cm3 -> mol/L
+       SO4nss = 1.e+3 * ( Spc(id_SO4) * 0.7e+0_fp + Spc(id_SO4s) )           &
+              / ( LWC * AVO ) ! mcl/cm3 -> mol/L
 
+       ! Get HMS cloud concentration and convert from [v/v] to
+       ! [moles/liter] (jmm, 06/13/2018)
+       ! Use a cloud scavenging ratio of 0.7
+       ! assume nonvolatile like sulfate for realistic cloud pH
+       HMSc = 0.0_fp
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          ! Get HMS cloud concentration and convert from [v/v] to
-          ! [moles/liter] (jmm, 06/13/2018)
-          ! Use a cloud scavenging ratio of 0.7
-          ! assume nonvolatile like sulfate for realistic cloud pH
-          HMSc  =  Spc(id_HMS) * State_Met%AIRDEN(I,J,L) * &
-               0.7e+0_fp * CVFAC / ( AIRMW * LWC )
-       ELSE
-          HMSc = 0e+0_fp
+          HMSc = Spc(id_HMS) * State_Met%AIRDEN(I,J,L)                       &
+               * 0.7_fp * CVFAC / ( AIRMW * LWC )
        ENDIF
 
        ! Get total ammonia (NH3 + NH4+) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7 for NH4+
-       TNH3     = ( ( Spc(id_NH4) * 0.7e+0_fp ) + Spc(id_NH3) ) * &
-            CVFAC
+       TNH3 = ( ( Spc(id_NH4) * 0.7e+0_fp ) + Spc(id_NH3) ) * CVFAC
 
        ! Get total chloride (SALACL + HCL) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7
-       CL  = ( Spc(id_SALACL) * 0.7e+0_fp ) + &
-            Spc(id_SALCCL)
-       CL = (CL + Spc(id_HCL)) * CVFAC
+       CL = ( Spc(id_SALACL) * 0.7e+0_fp ) + Spc(id_SALCCL)
+       CL = ( CL + Spc(id_HCL) ) * CVFAC
 
        ! Get total formic acid concentration [v/v]
        ! jmm (12/3/18)
@@ -656,11 +653,15 @@ CONTAINS
        K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2*CVFAC )
        K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3), FC, KaqO3*CVFAC )
        !K_CLD(3) computed below
-       K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
-       K_CLD(5) = CloudHet1R( FC, KaqHMS) ! KaqHMS is pseudo-1st order
-       K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
-            KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
-       ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
+
+       ! HMS reaction rates (skip if HMS isn't defined)
+       IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
+          K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+          K_CLD(5) = CloudHet1R( FC, KaqHMS) ! KaqHMS is pseudo-1st order
+          K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
+               KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
+          ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
+       ENDIF
 
 #ifdef TOMAS
        !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
