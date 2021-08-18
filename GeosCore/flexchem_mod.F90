@@ -451,7 +451,7 @@ CONTAINS
     ENDIF
 
     ! Do Photolysis
-    CALL FAST_JX( WAVELENGTH, FjxState, State_Diag,  RC )
+    CALL FAST_JX( WAVELENGTH, FjxState, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

@@ -137,12 +137,27 @@ MODULE FAST_JX_MOD
   TYPE, PUBLIC :: Fjx_State
     INTEGER  :: nPhotol
     INTEGER  :: id_O3
+
     REAL(fp),            POINTER :: Species  (:,:,:,:) => NULL()
     REAL(fp),            POINTER :: TO3_Daily(:,:)     => NULL()
+
     TYPE(Fjx_Config),    POINTER :: Config             => NULL()
     TYPE(Fjx_Grid  ),    POINTER :: Grid               => NULL()
     TYPE(Fjx_Met   ),    POINTER :: Met                => NULL()
     TYPE(Fjx_RxnFlags ), POINTER :: RxnFlags           => NULL()
+
+    ! Diagnostics
+    REAL(f4), POINTER :: UVFluxDiffuse    (:,:,:,:)
+    REAL(f4), POINTER :: UVFluxDirect     (:,:,:,:)
+    REAL(f4), POINTER :: UVFluxNet        (:,:,:,:)
+    INTEGER,  POINTER :: Map_UVFluxDiffuse(:)
+    INTEGER,  POINTER :: Map_UVFluxDirect (:)
+    INTEGER,  POINTER :: Map_UVFluxNet    (:)
+#ifdef MODEL_GEOS
+    REAL(f4), POINTER :: EXTRALNLEVS      (:,:)
+    REAL(f4), POINTER :: EXTRALNITER      (:,:)
+#endif
+
   END TYPE Fjx_State
 !
 ! !REVISION HISTORY:
@@ -378,12 +393,28 @@ CONTAINS
     ThisLoc     = ' -> at FjxState_Final (in module GeosCore/fast_jx_mod.F90)'
 
     ! Nullify pointers
-    IF ( ASSOCIATED ( FjxState%Species   ) ) FjxState%Species   => NULL()
-    IF ( ASSOCIATED ( FjxState%TO3_Daily ) ) FjxState%TO3_Daily => NULL()
+    IF ( ASSOCIATED ( FjxState%Species       ) ) FjxState%Species   => NULL()
+    IF ( ASSOCIATED ( FjxState%TO3_Daily     ) ) FjxState%TO3_Daily => NULL()
+    IF ( ASSOCIATED ( FjxState%UVFluxDiffuse ) ) THEN
+       FjxState%UVFluxDiffuse     => NULL()
+       FjxState%Map_UVFluxDiffuse => NULL()
+    ENDIF
+    IF ( ASSOCIATED ( FjxState%UVFluxDirect ) ) THEN
+       FjxState%UVFluxDirect     => NULL()
+       FjxState%Map_UVFluxDirect => NULL()
+    ENDIF
+    IF ( ASSOCIATED ( FjxState%UVFluxNet    ) ) THEN
+       FjxState%UVFluxNet     => NULL()
+       FjxState%Map_UVFluxNet => NULL()
+    ENDIF
+#ifdef MODEL_GEOS
+    IF ( ASSOCIATED ( FjxState%EXTRALNLEVS  ) ) FjxState%EXTRALNLEVS => NULL()
+    IF ( ASSOCIATED ( FjxState%EXTRALNITER  ) ) FjxState%EXTRALNITER => NULL()
+#endif
 
     ! Deallocate grid information
     IF ( ASSOCIATED ( FjxState%Grid) ) THEN
-       FjxState%Grid%YMID       => NULL()
+       FjxState%Grid%YMID => NULL()
        DEALLOCATE(FjxState%Grid)
     ENDIF
 
@@ -427,7 +458,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FAST_JX( WLAOD, FjxState, State_Diag, RC )
+  SUBROUTINE FAST_JX( WLAOD, FjxState, RC )
 !
 ! !USES:
 !
@@ -435,7 +466,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
     USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
     USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
@@ -461,10 +491,6 @@ CONTAINS
     INTEGER,         INTENT(IN)    :: WLAOD       ! AOD calculated how?
                                                   ! (1: 550 nm, 0: 999 nm)
     TYPE(Fjx_State), INTENT(IN)    :: FjxState    ! FAST-JX options
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -540,14 +566,14 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-       State_Diag%UVFluxDiffuse = 0.0_f4
+    IF ( ASSOCIATED ( FjxState%UVFluxDiffuse ) ) THEN
+       FjxState%UVFluxDiffuse = 0.0_f4
     ENDIF
-    IF ( State_Diag%Archive_UVFluxDirect ) THEN
-       State_Diag%UVFluxDirect = 0.0_f4
+    IF ( ASSOCIATED ( FjxState%UVFluxDirect ) ) THEN
+       FjxState%UVFluxDirect = 0.0_f4
     ENDIF
-    IF ( State_Diag%Archive_UVFluxNet ) THEN
-       State_Diag%UVFluxNet = 0.0_f4
+    IF ( ASSOCIATED ( FjxState%UVFluxNet ) ) THEN
+       FjxState%UVFluxNet = 0.0_f4
     ENDIF
 
     !-----------------------------------------------------------------
@@ -686,7 +712,7 @@ CONTAINS
                       O3_CTM,     O3_TOMS,   AOD999, OPTAER, &
                       OPTDUST,    OPTD,      NLON,   NLAT,   &
                       YLAT,       DAY_OF_YR, MONTH,  DAY,    &
-                      State_Diag, FjxState )
+                      FjxState )
 
 #elif defined( USE_APPROX_RANDOM_OVERLAP )
        !===========================================================
@@ -711,7 +737,7 @@ CONTAINS
                       O3_CTM,     O3_TOMS,   AOD999, OPTAER, &
                       OPTDUST,    OPTD,      NLON,   NLAT,   &
                       YLAT,       DAY_OF_YR, MONTH,  DAY,    &
-                      State_Diag, FjxState )
+                      FjxState )
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
        !===========================================================
@@ -1735,11 +1761,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EXTRAL (FjxState,State_Diag,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
+  SUBROUTINE EXTRAL (FjxState,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
 !
 ! !USES:
 !
-    USE State_Diag_Mod, ONLY : DgnState
 !
 !
 ! !INPUT PARAMETERS:
@@ -1749,10 +1774,6 @@ CONTAINS
     integer,         intent(in) :: NX          !Mie scattering array size
     real(fp),        intent(in) :: DTAUX(L1X)  !cloud+3aerosol OD in each layer
     integer,         intent(in) :: ILON, ILAT  !lon,lat index
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1885,13 +1906,16 @@ CONTAINS
     !enddo
     !10 continue
 
+#ifdef MODEL_GEOS
     ! Fill diagnostics arrays
-    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
-       State_Diag%EXTRALNLEVS(ILON,ILAT) = SUM(JXTRA(:))
+    IF ( ASSOCIATED ( FjxState%EXTRALNLEVS ) ) THEN
+       FjxState%EXTRALNLEVS(ILON,ILAT) = SUM(JXTRA(:))
     ENDIF
-    IF ( State_Diag%Archive_EXTRALNITER ) THEN
-       State_Diag%EXTRALNITER(ILON,ILAT) = N
+    IF ( ASSOCIATED ( FjxState%EXTRALNITER ) ) THEN
+       FjxState%EXTRALNITER(ILON,ILAT) = N
     ENDIF
+#endif
+
 #else
     JTOTL    = L2X + 2
     do L2 = L2X,1,-1
@@ -1956,13 +1980,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_FJX( FjxState, State_Diag, RC )
+  SUBROUTINE INIT_FJX( FjxState, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE inquireMod,     ONLY : findFreeLUN
-    USE State_Diag_Mod, ONLY : DgnState
 #if defined( MODEL_CESM )
     USE UNITS,          ONLY : freeUnit
 #endif
@@ -1971,7 +1994,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(Fjx_State), INTENT(IN)  :: FjxState    ! FAST-JX object
-    TYPE(DgnState),  INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2054,9 +2076,9 @@ CONTAINS
 
     ! Compute factors for UV flux diagnostics
     IF ( notDryRun ) THEN
-       IF ( State_Diag%Archive_UVFluxNet      .or. &
-            State_Diag%Archive_UVFluxDirect   .or. &
-            State_Diag%Archive_UVFluxDiffuse ) THEN
+       IF ( ASSOCIATED ( FjxState%UVFluxNet     )  .or. &
+            ASSOCIATED ( FjxState%UVFluxDirect  )  .or. &
+            ASSOCIATED ( FjxState%UVFluxDiffuse ) ) THEN
           UVXFACTOR = 0e+0_fp
           ND64MULT  = UVXPLANCK*UVXCCONST*1.0e+13_fp
           DO J = 1, W_
@@ -3653,12 +3675,11 @@ CONTAINS
                        AOD999,         ODAER_COL,  ODMDUST_COL, &
                        ODCLOUD_COL_IN, ILON,       ILAT,        &
                        YLAT,           DAY_OF_YR,  MONTH,       &
-                       DAY,            State_Diag, FjxState )
+                       DAY,            FjxState )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod,   ONLY : NRH, NRHAER
-    USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3676,10 +3697,6 @@ CONTAINS
     REAL(fp),       INTENT(IN), DIMENSION(L_      ) :: ODCLOUD_COL_IN
     LOGICAL,        INTENT(IN)                      :: AOD999
     TYPE(Fjx_State),INTENT(IN)                      :: FjxState
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(DgnState), INTENT(INOUT)                   :: State_Diag
 !
 ! !REMARKS:
 !
@@ -3750,13 +3767,13 @@ CONTAINS
     ! PHOTO_JX begins here!
     !=================================================================
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! Initialize diagnostics arrays
-    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
-       State_Diag%EXTRALNLEVS(ILON,ILAT) = 0.0 
+    IF ( ASSOCIATED ( FjxState%EXTRALNLEVS ) ) THEN
+       FjxState%EXTRALNLEVS(ILON,ILAT) = 0.0 
     ENDIF
-    IF ( State_Diag%Archive_EXTRALNITER ) THEN
-       State_Diag%EXTRALNITER(ILON,ILAT) = 0.0 
+    IF ( ASSOCIATED ( FjxState%EXTRALNITER ) ) THEN
+       FjxState%EXTRALNITER(ILON,ILAT) = 0.0 
     ENDIF
 #endif
 
@@ -3962,7 +3979,7 @@ CONTAINS
     ! Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
     !  additonal levels at top of clouds (now uses log spacing)
     ! --------------------------------------------------------------------
-    call EXTRAL(FjxState,State_Diag,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
+    call EXTRAL(FjxState,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
     ! --------------------------------------------------------------------
 
     ! set surface reflectance
@@ -4059,9 +4076,9 @@ CONTAINS
     !    3 - Diffuse flux
     ! Convention: negative is downwards
     !=================================================================
-    IF ( State_Diag%Archive_UVFluxDiffuse .or. &
-         State_Diag%Archive_UVFluxDirect .or. &
-         State_Diag%Archive_UVFluxNet ) THEN
+    IF ( ASSOCIATED ( FjxState%UVFluxDiffuse ) .or. &
+         ASSOCIATED ( FjxState%UVFluxDirect  ) .or. &
+         ASSOCIATED ( FjxState%UVFluxNet     ) ) THEN
 
        ! Loop over wavelength bins
        DO K = 1, W_
@@ -4084,29 +4101,29 @@ CONTAINS
           ! Archive into diagnostic arrays
           DO L = 1, FjxState%Grid%NZ
 
-             IF ( State_Diag%Archive_UVFluxNet ) THEN
-                S = State_Diag%Map_UvFluxNet%id2slot(K)
+             IF ( ASSOCIATED ( FjxState%UVFluxNet ) ) THEN
+                S = FjxState%Map_UvFluxNet(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%UVFluxNet(ILON,ILAT,L,S) =                     &
-                   State_Diag%UVFluxNet(ILON,ILAT,L,S) +                     &
+                   FjxState%UVFluxNet(ILON,ILAT,L,S) =                     &
+                   FjxState%UVFluxNet(ILON,ILAT,L,S) +                     &
                         ( ( FDIRECT(L) + FDIFFUSE(L) ) * UVX_CONST )
                 ENDIF
              ENDIF
 
-             IF ( State_Diag%Archive_UVFluxDirect ) THEN
-                S = State_Diag%Map_UvFluxDirect%id2slot(K)
+             IF ( ASSOCIATED ( FjxState%UVFluxDirect ) ) THEN
+                S = FjxState%Map_UvFluxDirect(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%UVFluxDirect(ILON,ILAT,L,S) =                  &
-                   State_Diag%UVFluxDirect(ILON,ILAT,L,S) +                  &
+                   FjxState%UVFluxDirect(ILON,ILAT,L,S) =                  &
+                   FjxState%UVFluxDirect(ILON,ILAT,L,S) +                  &
                         ( FDIRECT(L) * UVX_CONST )
                 ENDIF
              ENDIF
 
-             IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-                S = State_Diag%Map_UvFluxDiffuse%id2slot(K)
+             IF ( ASSOCIATED ( FjxState%UVFluxDiffuse ) ) THEN
+                S = FjxState%Map_UvFluxDiffuse(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%UVFluxDiffuse(ILON,ILAT,L,S) =                 &
-                   State_Diag%UVFluxDiffuse(ILON,ILAT,L,S) +                 &
+                   FjxState%UVFluxDiffuse(ILON,ILAT,L,S) =                 &
+                   FjxState%UVFluxDiffuse(ILON,ILAT,L,S) +                 &
                         ( FDIFFUSE(L) * UVX_CONST )
                 ENDIF
              ENDIF
@@ -5109,7 +5126,7 @@ CONTAINS
     ! Updated with UCX
     ! Since we now have stratospheric ozone calculated online, use
     ! this instead of archived profiles for all chemistry-grid cells
-    ! The variable O3_CTM is obtained from State_Met%Species, and will be 0
+    ! The variable O3_CTM is obtained from State_Chm%Species, and will be 0
     ! outside the chemgrid (in which case we use climatology)
 
     ! Scale monthly O3 profile to the daily O3 profile (if available)

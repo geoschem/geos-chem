@@ -127,7 +127,7 @@ CONTAINS
     FjxState%Config%hvAerNIT_JNIT     = Input_Opt%hvAerNIT_JNIT
     FjxState%Config%JNITChanA         = Input_Opt%JNITChanA
     FjxState%Config%JNITChanB         = Input_Opt%JNITChanB
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     FjxState%Config%FJX_EXTRAL_ITERMAX= Input_Opt%FJX_EXTRAL_ITERMAX
     FjxState%Config%FJX_EXTRAL_ERR    = Input_Opt%FJX_EXTRAL_ERR
 #endif
@@ -156,7 +156,27 @@ CONTAINS
     FjxState%Met%OPTD        => State_Met%OPTD
     FjxState%Met%CLDF        => State_Met%CLDF
 
-    ! State_Diag vals needed: todo
+    ! Set diagnostics pointers if using
+    IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
+       FjxState%UVFluxDiffuse     => State_Diag%UVFluxDiffuse
+       FjxState%Map_UVFluxDiffuse => State_Diag%Map_UVFluxDiffuse%id2slot
+    ENDIF
+    IF ( State_Diag%Archive_UVFluxDirect ) THEN
+       FjxState%UVFluxDirect      => State_Diag%UVFluxDirect
+       FjxState%Map_UVFluxDirect  => State_Diag%Map_UVFluxDirect%id2slot
+    ENDIF
+    IF ( State_Diag%Archive_UVFluxNet ) THEN
+       FjxState%UVFluxNet         => State_Diag%UVFluxNet
+       FjxState%Map_UVFluxNet     => State_Diag%Map_UVFluxNet%id2slot
+    ENDIF
+#ifdef MODEL_GEOS
+    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
+       FjxState%EXTRALNLEVS       => State_Diag%EXTRALNLEVS
+    ENDIF
+    IF ( State_Diag%Archive_EXTRALNITER ) THEN
+       FjxState%EXTRALNITER       => State_Diag%EXTRALNITER
+    ENDIF
+#endif
 
   END SUBROUTINE FjxState_GC_Set
 !EOC
@@ -215,6 +235,9 @@ CONTAINS
        ! input configuration
        print *, ' '
        print *, '=== Printing FAST-JX State Object ==='
+       print *, ' '
+       print *, 'Values from Input_Opt'
+       print *, '-------------------------'
        print *, 'FjxState%Config%amIRoot: ',         FjxState%Config%amIRoot
        print *, 'FjxState%Config%DryRun: ',          FjxState%Config%DryRun
        print *, 'FjxState%Config%LPRT: ',            FjxState%Config%LPRT
@@ -230,13 +253,16 @@ CONTAINS
        print *, 'FjxState%Config%JNITChanB: ',       FjxState%Config%JNITChanB
        print *, 'FjxState%Config%NWVSELECT: ',       FjxState%Config%NWVSELECT       
        print *, 'FjxState%Config%WVSELECT: ',        FjxState%Config%WVSELECT
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        print *, 'FjxState%Config%FJX_EXTRAL_ITERMAX: ', &
                                                      FjxState%Config%FJX_EXTRAL_ITERMAX
-       print *, 'FjxState%Config%FJX_EXTRAL_ERR: ', FjxState%Config%FJX_EXTRAL_ERR
+       print *, 'FjxState%Config%FJX_EXTRAL_ERR: ',  FjxState%Config%FJX_EXTRAL_ERR
 #endif
        
        ! grid quantities
+       print *, ' '
+       print *, 'Values from to State_Grid'
+       print *, '-------------------------'
        print *, 'FjxState%Grid%NX: ',         FjxState%Grid%NX
        print *, 'FjxState%Grid%NY: ',         FjxState%Grid%NY
        print *, 'FjxState%Grid%NZ: ',         FjxState%Grid%NZ
@@ -244,6 +270,9 @@ CONTAINS
        print *, 'FjxState%Grid%YMID max: ',   MAXVAL(FjxState%Grid%YMID)
        
        ! met quantities
+       print *, ' '
+       print *, 'Values from to State_Met'
+       print *, '-------------------------'
        print *, 'FjxState%Met%ChemGridLev max: ',MAXVAL(FjxState%Met%ChemGridLev)
        print *, 'FjxState%Met%SuncosMid max: ',  MAXVAL(FjxState%Met%SuncosMid)
        print *, 'FjxState%Met%UVALBEDO max: ',   MAXVAL(FjxState%Met%UVALBEDO)
@@ -254,9 +283,30 @@ CONTAINS
        print *, 'FjxState%Met%OPTD max: ',       MAXVAL(FjxState%Met%OPTD)
        print *, 'FjxState%Met%CLDF max: ',       MAXVAL(FjxState%Met%CLDF)
        
-       
-       ! State_Diag vals needed (move elsewhere, last)
-      
+       ! diagnostic quantities
+       print *, ' '
+       print *, 'Values from State_Diag'
+       print *, '-------------------------'
+#ifdef MODEL_GEOS
+       print *, 'FjxState%EXTRALNLEVS: ', MAXVAL(FjxState%EXTRALNLEVS )      
+       print *, 'FjxState%EXTRALNITER: ', MAXVAL(FjxStateEXTRALNITER% )      
+#endif
+       print *, 'FjxState%UVFluxDiffuse: ', MAXVAL(FjxState%UVFluxDiffuse )      
+       print *, 'FjxState%UVFluxDirect: ', MAXVAL(FjxState%UVFluxDirect )      
+       print *, 'FjxState%UVFluxNet: ', MAXVAL(FjxState%UVFluxNet )      
+       print *, 'FjxState%Map_UVFluxDiffuse: ',MAXVAL(FjxState%Map_UVFluxDiffuse)
+       print *, 'FjxState%Map_UVFluxDirect: ',MAXVAL(FjxState%Map_UVFluxDirect)
+       print *, 'FjxState%Map_UVFluxNet: ', MAXVAL(FjxState%Map_UVFluxNet ) 
+
+       ! other values
+       print *, ' '
+       print *, 'Values from State_Chm'
+       print *, '-------------------------'
+       print *, 'FjxState%nPhotol: ', FjxState%nPhotol
+       print *, 'FjxState%id_O3: ', FjxState%id_O3
+       print *, 'FjxState%Species: ', MAXVAL(FjxState%Species)
+       print *, 'FjxState%TO3_Daily: ', MAXVAL(FjxState%TO3_Daily)
+       print *, ' '
        print *, '======'
 
     ENDIF

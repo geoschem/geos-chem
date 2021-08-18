@@ -814,7 +814,7 @@ PROGRAM GEOS_Chem
      ENDIF
 
      ! Consolidate with above?
-     CALL Init_FJX( FjxState, State_Diag, RC )
+     CALL Init_FJX( FjxState, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_FJX"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
