@@ -223,7 +223,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: Iodide       (:,:  ) ! Ocn surf iodide [nM]
      REAL(fp),          POINTER :: Salinity     (:,:  ) ! Ocn surf salinity [PSU]
      REAL(fp),          POINTER :: DryDepFreq (:,:,:  ) ! Drydep freq [s-1]
-     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities 
+     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities
                                                         ! [m/s] - use REAL8 in drydep
 #if defined( MODEL_GEOS )
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
@@ -257,6 +257,13 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: TO3_DAILY  (:,:    ) ! Daily overhead ozone
      REAL(fp),          POINTER :: TOMS1      (:,:    )
      REAL(fp),          POINTER :: TOMS2      (:,:    )
+
+     !-----------------------------------------------------------------------
+     ! Switches to enable SO2 cloud chemistry and seasalt chemistry in
+     ! sulfate_mod (TRUE) or in the KPP mechanism (FALSE).
+     !-----------------------------------------------------------------------
+     LOGICAL                    :: Do_SulfateMod_Cld     = .FALSE.
+     LOGICAL                    :: Do_SulfateMod_SeaSalt = .FALSE.
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm

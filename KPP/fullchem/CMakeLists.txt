@@ -10,8 +10,9 @@ target_link_libraries(KPPFirstPass_fullchem
 
 # Add libKPP.a
 add_library(KPP_fullchem STATIC EXCLUDE_FROM_ALL
-      fullchem_HetStateMod.F90
+      fullchem_HetStateFuncs.F90
       fullchem_RateLawFuncs.F90
+      fullchem_SulfurChemFuncs.F90
       gckpp_Function.F90
       gckpp_Global.F90
       gckpp_Initialize.F90
@@ -24,7 +25,6 @@ add_library(KPP_fullchem STATIC EXCLUDE_FROM_ALL
       gckpp_Parameters.F90
       gckpp_Precision.F90
       gckpp_Rates.F90
-      gckpp_Sulfate.F90
       gckpp_Util.F90
       rateLawUtilFuncs.F90
 )

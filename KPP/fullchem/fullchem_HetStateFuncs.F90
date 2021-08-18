@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: fullchem_HetStateMod.F90
+! !MODULE: fullchem_HetStateFuncs.F90
 !
 ! !DESCRIPTION: Module for initializing the HetState object, which passes
 !  arguments from GEOS-Chem to the heterogeneous chemistry routines.
@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 
-MODULE FullChem_HetStateMod
+MODULE fullchem_HetStateFuncs
 !
 ! !USES:
 !
@@ -56,7 +56,7 @@ CONTAINS
     USE GcKpp_Parameters
     USE PhysConstants,    ONLY : AVO, PI
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE rateLawUtilFuncs, ONLY :
+    USE rateLawUtilFuncs
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
 !
@@ -125,8 +125,8 @@ CONTAINS
     H%HSO3_aq       = State_Chm%HSO3_aq(I,J,L)
     H%SO3_aq        = State_Chm%SO3_aq(I,J,L)
     H%TSO3_aq       = H%HSO3_aq + H%SO3_aq
-    H%frac_HSO3_aq  = H%HSO3_aq / H%TSO3_aq
-    H%frac_SO3_aq   = H%SO3_aq  / H%TSO3_aq
+    H%frac_HSO3_aq  = SafeDiv( H%HSO3_aq, H%TSO3_aq, 0.0_dp )
+    H%frac_SO3_aq   = SafeDiv( H%SO3_aq,  H%TSO3_aq, 0.0_dp )
 
     ! Concentrations from ISORROPIA
     H%HSO4_molal    = State_Chm%IsorropBisulfate(I,J,L)
@@ -798,4 +798,4 @@ CONTAINS
 
   END SUBROUTINE Compute_L2G_Local
 !EOC
-END MODULE fullchem_HetStateMod
+END MODULE fullchem_HetStateFuncs

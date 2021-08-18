@@ -3,31 +3,29 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gckpp_Sulfate
+! !MODULE: fullchem_SulfurChemFuncs
 !
 ! !DESCRIPTION: FlexChem module for multiphase sulfate chemistry, via KPP.
 !\\
 !\\
 ! !INTERFACE:
 
-MODULE GCKPP_SULFATE
+MODULE fullchem_SulfurChemFuncs
 !
 ! !USES:
 !
-  USE PhysConstants    ! Physical constants
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
-  USE GCKPP_Global,    ONLY : K_MT, K_CLD, NUMDEN
-  USE Error_Mod,       ONLY : SAFE_DIV
+  USE PhysConstants
+  USE Precision_Mod
+  USE GcKpp_Global,     ONLY : K_CLD, NUMDEN
   USE rateLawUtilFuncs
-! USE gckpp_HetRates
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: SET_CLD_S
-  PUBLIC :: INIT_SULFATE
+  PUBLIC :: fullchem_SulfurCldChem
+  PUBLIC :: fullchem_InitSulfurCldChem
 
   ! Species ID flags
   INTEGER                :: id_DMS,    id_DST1
@@ -57,22 +55,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_sulfate
+! !IROUTINE: fullchem_SulfurCldChem
 !
-! !DESCRIPTION: Subroutine SET_CLD_S is the interface between KPP 
-! and the sulfate chemistry rates.
-!
+! !DESCRIPTION: Routine that compute reaction rates for sulfur chemistry
+!  in cloud, so that these can be passed to the KPP chemical solver.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_CLD_S( I, J, L, Input_Opt,  State_Chm, State_Diag, State_Grid, &
-                          State_Met,  RC )
+  SUBROUTINE fullchem_SulfurCldChem( I,         J,         L,                &
+                                    Input_Opt,  State_Chm, State_Diag,       &
+                                    State_Grid, State_Met, RC               )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -104,44 +101,47 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL                  :: prtDebug
-    INTEGER                  :: N
-    CHARACTER(LEN=63)        :: OrigUnit
+    LOGICAL            :: prtDebug
+    INTEGER            :: N
+    CHARACTER(LEN=63)  :: OrigUnit
 
     ! Strings
-    CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    !=================================================================
-    ! SET_CLD_S begins here!
-    !=================================================================
+    !========================================================================
+    ! fullchem_SulfurCldChem begins here!
+    !========================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at SET_CLD_S (in module GeosCore/sulfate_mod.F90)'
+    ThisLoc  = &
+  ' -> at fullchem_SulfurCldChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
 
     ! Should we print debug output?
     prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    !-----------------------
+    !------------------------------------------------------------------------
     ! SO2 chemistry
-    !-----------------------
-    CALL SET_SO2( I, J, L, Input_Opt, State_Chm, State_Diag, State_Grid, &
-         State_Met, RC )
-    
+    !------------------------------------------------------------------------
+    CALL SET_SO2( I,          J,         L,                                  &
+                  Input_Opt,  State_Chm, State_Diag,                         &
+                  State_Grid, State_Met, RC                                 )
+
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "SET_SO2"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    
+
     ! Debug info
     IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### SET_CLD_S: a SET_SO2' )
+       WRITE( 6, '(a)' ) '### fullchem_SulfurCldChem a SET_SO2'
+       CALL Flush(6)
     ENDIF
-    
-  END SUBROUTINE SET_CLD_S
+
+  END SUBROUTINE fullchem_SulfurCldChem
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -165,7 +165,6 @@ CONTAINS
     USE CMN_SIZE_Mod,         ONLY : NDSTBIN
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : IS_SAFE_EXP
-    USE ERROR_MOD,            ONLY : SAFE_DIV
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
@@ -300,6 +299,8 @@ CONTAINS
     State_Chm%pHCloud(I,J,L)    =  0.0_fp
     State_Chm%QLxpHCloud(I,J,L) =  0.0_fp
     DTCHEM                      =  GET_TS_CHEM()  ! Timestep [s]
+    IS_FULLCHEM                 =  Input_Opt%ITS_A_FULLCHEM_SIM
+    IS_OFFLINE                  =  ( .not. IS_FULLCHEM )
 
     ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
     F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -316,7 +317,7 @@ CONTAINS
     ! Initialize for safety's sake
     Ld       = 0.0_fp
     LSTOT    = 0.0_fp
-       
+
     RHO    = State_Met%AIRDEN(I,J,L)
     CVFAC  = 1.E3_fp * AIRMW / ( RHO * AVO ) ! mcl/cm3 -> v/v, or v/v -> cm3/mcl
 
@@ -335,7 +336,7 @@ CONTAINS
     ! PATM  : Atmospheric pressure in atm
     ! Now use dry air partial pressure (ewl, 4/28/15)
     PATM = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.e-2_fp )
-    
+
     ! TK : Temperature [K]
     TK = State_Met%T(I,J,L)
 
@@ -365,7 +366,7 @@ CONTAINS
     ! get the appropriate grid-box averaged mass of SO2 and sulfate by
     ! multiplying these quantities by FC AFTER computing the aqueous
     ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
-    LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
+    LWC     = SafeDiv( LWC, FC, 0e+0_fp )
 
     ! Zero variables
     KaqH2O2 = 0.e+0_fp
@@ -454,11 +455,11 @@ CONTAINS
        ! Note...Exactly same method can be applied to O3 reaction
        ! in aqueous phase with different rate constants.
        !===========================================================
-       
+
        ! Get concentrations for cloud pH calculation (bec, 12/23/11)
-       
+
        ! <<>><<>><<>><<>>
-       ! HAVE TO DO SOME UNIT CONVERSION HERE. THIS ROUTINE IS CALLED 
+       ! HAVE TO DO SOME UNIT CONVERSION HERE. THIS ROUTINE IS CALLED
        ! WITHIN FLEXCHEM_MOD WHERE SPECIES ARE IN MOLEC/CM3
        ! <<>><<>><<>><<>>
 
@@ -472,14 +473,14 @@ CONTAINS
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
           ! Get HMS cloud concentration and convert from [v/v] to
           ! [moles/liter] (jmm, 06/13/2018)
-          ! Use a cloud scavenging ratio of 0.7 
+          ! Use a cloud scavenging ratio of 0.7
           ! assume nonvolatile like sulfate for realistic cloud pH
           HMSc  =  Spc(id_HMS) * State_Met%AIRDEN(I,J,L) * &
                0.7e+0_fp * CVFAC / ( AIRMW * LWC )
        ELSE
           HMSc = 0e+0_fp
        ENDIF
-          
+
        ! Get total ammonia (NH3 + NH4+) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7 for NH4+
        TNH3     = ( ( Spc(id_NH4) * 0.7e+0_fp ) + Spc(id_NH3) ) * &
@@ -564,7 +565,7 @@ CONTAINS
           ! TOMAS uses its own dust tracers and does not
           ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
           DUST = 0e+0_fp
-#endif 
+#endif
           ! Calculate Fe and Mn natural [ng m-3]
           ! Assume that Fe is 3.5% of total dust mass based on
           ! Taylor and McLennan [1985]
@@ -628,7 +629,7 @@ CONTAINS
              ! oxidation state during the nighttime
              FeIII = Fe_d * 0.9e+0_fp
           ENDIF
-          
+
           ! Assume that dissolved Mn is in Mn(II) oxidation state all of
           ! the time
           MnII = Mn_d
@@ -667,7 +668,7 @@ CONTAINS
        ! carry ALKdst.  Set ALKdst to zero here. (bmy, 1/28/14)
        ALKdst = 0e+0_fp
 #else
-       
+
        ! For other simulations, Sum up the contributions from
        ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
        ! mcl/cm3 -> ug/m3
@@ -677,22 +678,22 @@ CONTAINS
             / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
             / State_Met%AIRVOL(I,J,L)
 #endif
-       
+
        ! mcl/cm3 -> ug/m3
        ALKss  = ( Spc(id_SALA  ) + Spc(id_SALC) ) * CVFAC * &
             1.e+9_fp * State_Met%AD(I,J,L)                       &
             / ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
             / State_Met%AIRVOL(I,J,L)
-       
+
        ALKds = ALKdst + ALKss
-       
+
        ! Get NH3 concentrations (v/v)
        NH3 = Spc(id_NH3)*CVFAC
-       
+
        ! Initialize
        BULK = 0
        SIZE_RES = 0
-       
+
        ! Fahey and Seinfeld decision algorithm
        IF ( Spc(id_H2O2)*CVFAC > SO2_AfterSS + 1e-9_fp ) THEN
           BULK = 1
@@ -868,7 +869,7 @@ CONTAINS
        ! Avoid divide-by-zero errors
        State_Chm%HSO3_AQ(I,J,L)     = 1.0e-32_fp
        State_Chm%SO3_AQ(I,J,L)      = 1.0e-32_fp
-       
+
     ENDIF
 
 !>>    !=================================================================
@@ -994,7 +995,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     REAL(fp),  INTENT(IN)    :: SO4nss ! Total nss sulfate mixing ratio [M]
-    REAL(fp),  INTENT(IN)    :: HMSc ! Total HMS mixing ratio [M]    
+    REAL(fp),  INTENT(IN)    :: HMSc ! Total HMS mixing ratio [M]
     REAL(fp),  INTENT(IN)    :: TNO3   ! Total nitrate (gas+particulate) mixing
                                        ! ratio [v/v]
     REAL(fp),  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
@@ -1268,8 +1269,7 @@ CONTAINS
   END FUNCTION kCO21
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model
-!                  !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2542,7 +2542,7 @@ CONTAINS
     REAL(fp), INTENT(IN)  :: MnII    ! Concentration of MnII [mole/l]
     REAL(fp), INTENT(IN)  :: FeIII   ! Concentration of FeIII [mole/l]
     REAL(fp), INTENT(IN)  :: HCHO    ! HCHO   mixing ratio [v/v] (jmm, 06/13/18)
-    
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2572,7 +2572,7 @@ CONTAINS
 !       d[S(VI)]/dt = (k0[SO2(aq)] + k1[HSO3-] + K2[SO3--])[O3(aq)]
 !       [Seinfeld and Pandis, 1998, page 363]
 !                                                                             .
-!  (R3) HSO3-   + HCHO(aq) => HMS 
+!  (R3) HSO3-   + HCHO(aq) => HMS
 !       SO3--   + HCHO(aq) => HMS + OH-
 !       [Moch et al., 2018; Olson and Hoffman, 1986]
 !                                                                             .
@@ -2584,7 +2584,7 @@ CONTAINS
 !        (note treated as 1st order in contrast to other reactions here)
 !
 !  (R5) HMS + OH(aq) =(SO2,HO2,O2)=> HCHO + 2SO4-- + O2 + 3H+ + 2H2O
-!       [Jacob et al, 1986, Olson and Fessenden, 1992; 
+!       [Jacob et al, 1986, Olson and Fessenden, 1992;
 !        Seinfeld and Pandis, 2016, Table 7A.7]
 !          Net reaction (R5):
 !           HMS + OH(aq) =(O2)=> SO5- + HCHO + H2O
@@ -2631,7 +2631,7 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     REAL(fp), PARAMETER   :: R = 0.08205e+0_fp
-    REAL(fp), PARAMETER   :: dOH = 1.0e-19_fp ! [M cm^3 molec^-1] (jmm, 06/28/18)    
+    REAL(fp), PARAMETER   :: dOH = 1.0e-19_fp ! [M cm^3 molec^-1] (jmm, 06/28/18)
 !
 ! !LOCAL VARIABLES:
 !
@@ -2641,8 +2641,8 @@ CONTAINS
     REAL(fp)              :: XH2O2G, H2O2aq, KO0, KO1,    KO2
     REAL(fp)              :: HCO3,   XO3g,   O3aq, XHCHOg, HCHCHO ! (jmm, 06/13/18)
     REAL(fp)              :: FHCHCHO,KHCHO1, KHCHO2,  KHMS  ! (jmm, 06/13/18)
-    REAL(fp)              :: KW1,    KHC1,   KHMS2          ! (jmm, 06/15/18)    
-    
+    REAL(fp)              :: KW1,    KHC1,   KHMS2          ! (jmm, 06/15/18)
+
 
     !=================================================================
     ! AQCHEM_SO2 begins here!
@@ -2795,7 +2795,7 @@ CONTAINS
             LWC * R * T   ! [s-1]
 
     !=================================================================
-    !  Aqueous reactions of SO2 with HCHO 
+    !  Aqueous reactions of SO2 with HCHO
     !     HSO3-   + HCHO(aq) => HMS + OH-           (1)
     !     SO3--   + HCHO(aq) => HMS                 (2)
     !
@@ -2804,11 +2804,11 @@ CONTAINS
     !        KHCHO1  = 7.9E2 * EXP( -16.435 * ((298.15/T) - 1.))
     !        KHCHO2  = 2.5E7 * EXP( -6.037 * ((298.15/T) - 1.))
     !
-    !  
+    !
     !  Aqueous reaction of HMS with OH-
     !    HMS + OH- => HCHO(aq) + SO3--             (3)
     !
-    !     NOTE: unclear where B (E/R) value in Seinfeld and Pandis from, 
+    !     NOTE: unclear where B (E/R) value in Seinfeld and Pandis from,
     !     but close to Deister. Using Seinfeld and Pandis value for now
     !     [Deister et al., 1986]
     !        KHMS    = 3.6E3 * EXP( -22.027 * ((298.15/T) - 1.))
@@ -2818,7 +2818,7 @@ CONTAINS
     !
     !  Aqueous reaction of HMS with OH(aq)
     !    HMS + OH(aq) =(SO2,O2,HO2)=> 2SO4-- + HCHO + O2 + 3H+ + 2H2O  (4)
-    !  
+    !
     !    NOTE: O2, SO2, and HO2 particpate in the stoichiometry but not kinetics.
     !          Assume steady state for sulfur radicals and the following reaction chain:
     !            HMS + OH(aq) =(O2)=> SO5- + HCHO + H2O [Olsen and Fessenden, 1992]
@@ -2827,13 +2827,13 @@ CONTAINS
     !            SO2(aq) <=> HSO3- + H+
     !            H+ + OH- <=> H2O
     !            HSO5- + HSO3- => 2SO4-- + 2H+          [Jacob, 1986]
-    !       Instead of assuming Henry's law for OH, use the parameter from 
+    !       Instead of assuming Henry's law for OH, use the parameter from
     !       Jacob et al, 2005 that relates gas phase OH to aqueous phase OH
     !       accounting for the HO2(aq)/O2- cylcing in cloud droplets:
     !        dOH = 1E-19 [M cm^3 molec^-1]
     !     [Olson and Fessenden, 1992]
-    !        KHMS2    = 6.2E8 * EXP( -5.03 * ((298.15/T) -1.)) 
-    !   
+    !        KHMS2    = 6.2E8 * EXP( -5.03 * ((298.15/T) -1.))
+    !
     !
     ! (jmm, 06/28/18)
     !=================================================================
@@ -2848,7 +2848,7 @@ CONTAINS
 
     !=================================================================
     ! HCHO equilibrium reaction
-    ! HCHO(aq) + H2O   = HCH(OH)2 
+    ! HCHO(aq) + H2O   = HCH(OH)2
     !
     ! Reaction rate dependent on Temperature is given
     !   H = A exp ( B (T./T - 1) )
@@ -2918,7 +2918,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_SULFATE( RC )
+  SUBROUTINE fullchem_InitSulfurCldChem( RC )
 !
 ! !USES:
 !
@@ -2982,7 +2982,7 @@ CONTAINS
     id_CH2O  = Ind_('CH2O'     ) ! msl
     id_HMS   = Ind_('HMS'      ) ! msl
 
-  END SUBROUTINE INIT_SULFATE
+  END SUBROUTINE fullchem_InitSulfurCldChem
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3238,7 +3238,7 @@ CONTAINS
     FHCH2O2 = HCH2O2 * (1.e+0_fp + (Kh1 / Hplus))
 
     XH2O2g  = 1.e+0_fp / ( 1.e+0_fp + ( FHCH2O2 * R * T * LWC ) )
-       
+
 !    KaqH2O2  = kh2o2 * Ks1 * FHCH2O2 * HCSO2 * XH2O2g * XSO2g &
 
     A = SO2
@@ -3253,13 +3253,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(IN) :: FC         ! Cloud Fraction [0-1]
-      REAL(fp),         INTENT(IN) :: A, B       ! Reactant Abundances
-      REAL(fp),         INTENT(IN) :: KAB        ! Bimolecular Rate Constant
+    REAL(fp), INTENT(IN) :: FC         ! Cloud Fraction [0-1]
+    REAL(fp), INTENT(IN) :: A, B       ! Reactant Abundances
+    REAL(fp), INTENT(IN) :: KAB        ! Bimolecular Rate Constant
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                     :: KX ! Grid-average loss frequency, cm3/mcl/s
+    REAL(fp)             :: KX ! Grid-average loss frequency, cm3/mcl/s
 !
 ! !REVISION HISTORY:
 !  23 Aug 2018 - C. D. Holmes - Initial version
@@ -3270,20 +3270,20 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Residence time of air in clouds, s
-      REAL(FP), PARAMETER :: TAUC = 3600
+    ! Residence time of air in clouds, s
+    REAL(FP), PARAMETER :: TAUC = 3600.0_fp
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(FP) :: KAO, KBO
-      REAL(FP) :: FF
+    REAL(FP) :: KAO, KBO
+    REAL(FP) :: FF
 !
 !------------------------------------------------------------------------------
 !
-      
+
       ! Ratio of volume inside to outside cloud
       ! FF has a range [0,+inf], so cap it at 1e30
-      FF = SAFE_DIV( FC, (1e0_fp - FC), 1e30_fp )
+      FF = SafeDiv( FC, (1e0_fp - FC), 1e30_fp )
       FF = MAX( FF, 1e30_fp )
 
       KAO = 1e0_fp/((TAUC/FF)+(1e0_fp/(FC*KAB*B))) ! 1/s
@@ -3296,103 +3296,105 @@ CONTAINS
       ENDIF
 
   END FUNCTION CloudHet2R
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CloudHet
+! !IROUTINE: CloudHet1R
 !
 ! !DESCRIPTION: Function CloudHet calculates the loss frequency (1/s) of gas
 !  species due to heterogeneous chemistry on clouds in a partially cloudy grid
 !  cell. The function uses the "entrainment limited uptake" equations of
 !  Holmes et al. (2019). Both liquid and ice water clouds are treated.
 !
-!  For gasses that are that are consumed in multiple aqueous reactions with different
-!  products, CloudHet can provide the loss frequency for each reaction branch using the
-!  optional branch ratios (branchLiq, branchIce) as arguments.
+!  For gasses that are that are consumed in multiple aqueous reactions with
+!  different products, CloudHet can provide the loss frequency for each reaction
+!  branch using the optional branch ratios (branchLiq, branchIce) as arguments.
 !
-!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K., Graham, K. A.,
-!    Shah, V. (2019) The role of clouds in the tropospheric NOx cycle: a new modeling
-!    approach for cloud chemistry and its global implications, Geophys. Res. Lett. 46,
-!    4980-4990, https://doi.org/10.1029/2019GL081990
+!  Holmes, C.D., Bertram, T. H., Confer, K. L., Ronan, A. C., Wirks, C. K.,
+!    Graham, K. A., Shah, V. (2019) The role of clouds in the tropospheric
+!    NOx cycle: a new modeling approach for cloud chemistry and its global
+!    implications, Geophys. Res. Lett. 46, 4980-4990,
+!    https://doi.org/10.1029/2019GL081990
 !\\
 !\\
 ! !INTERFACE:
 !
-    FUNCTION CloudHet1R( fc, rate) &
-                       RESULT( kHet )
+  FUNCTION CloudHet1R( fc, rate ) RESULT( kHet )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(IN) :: fc         ! Cloud Fraction [0-1]
-      REAL(fp),         INTENT(IN) :: rate       ! 1st order reaction rate (1/s)
+    REAL(fp), INTENT(IN) :: fc     ! Cloud Fraction [0-1]
+    REAL(fp), INTENT(IN) :: rate   ! 1st order reaction rate (1/s)
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                     :: kHet ! Grid-average loss frequency, 1/s
+    REAL(fp)             :: kHet   ! Grid-average loss frequency, 1/s
 !
 ! !REVISION HISTORY:
 !  23 Aug 2018 - C. D. Holmes - Initial version
-!  25 May 2021 - M. S. Long - Modified for 1st order aqueous reaction where diffusion is not limiting
+!  25 May 2021 - M. S. Long - Modified for 1st order aqueous reaction
+!                             where diffusion is not limiting
 !  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Residence time of air in clouds, s
-      real(fp), parameter :: tauc = 3600
+    ! Residence time of air in clouds, s
+    real(fp), parameter :: tauc = 3600.0_fp
 !
 ! !LOCAL VARIABLES:
 !
-      real(fp) :: kI, gam
-      real(fp) :: kk, ff, xx
+    real(fp) :: kI, gam
+    real(fp) :: kk, ff, xx
 !
 !------------------------------------------------------------------------------
 !
-      ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface area,
-      ! then return zero uptake
-      if ( (fc < 0.0001) .or. (rate <= 0) ) then
-         kHet = 0.0_fp
-         return
-      endif
+    ! If cloud fraction < 0.0001 (0.01%) or there is zero cloud surface area,
+    ! then return zero uptake
+    if ( ( fc < 0.0001_fp ) .or. ( rate <= 0.0_fp ) ) then
+       kHet = 0.0_fp
+       return
+    endif
 
-      !------------------------------------------------------------------------
-      ! Loss frequency inside cloud
-      !
-      ! Assume both water and ice phases are inside the same cloud, so mass
-      ! transport to both phases works in parallel (additive)
-      !------------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Loss frequency inside cloud
+    !
+    ! Assume both water and ice phases are inside the same cloud, so mass
+    ! transport to both phases works in parallel (additive)
+    !------------------------------------------------------------------------
 
-      ! initialize loss, 1/s
-      kI  = rate ! total loss rate of a gas in cloud
+    ! initialize loss, 1/s
+    kI  = rate ! total loss rate of a gas in cloud
 
-      !------------------------------------------------------------------------
-      ! Grid-average loss frequency
-      !
-      ! EXACT expression for entrainment-limited uptake
-      !------------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Grid-average loss frequency
+    !
+    ! EXACT expression for entrainment-limited uptake
+    !------------------------------------------------------------------------
 
-      ! Ratio (in cloud) of heterogeneous loss to detrainment, s/s
-      kk = kI * tauc
+    ! Ratio (in cloud) of heterogeneous loss to detrainment, s/s
+    kk = kI * tauc
 
-      ! Ratio of volume inside to outside cloud
-      ! ff has a range [0,+inf], so cap it at 1e30
-      ff = safe_div( fc, (1e0_fp - fc), 1e30_fp )
-      ff = max( ff, 1e30_fp )
+    ! Ratio of volume inside to outside cloud
+    ! ff has a range [0,+inf], so cap it at 1e30
+    ff = SafeDiv( fc, (1e0_fp - fc), 1e30_fp )
+    ff = max( ff, 1e30_fp )
 
-      ! Ratio of mass inside to outside cloud
-      ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-      xx =     ( ff - kk - 1e0_fp ) / 2e0_fp + &
-           sqrt( 1e0_fp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_fp
+    ! Ratio of mass inside to outside cloud
+    ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
+    xx = ( ff - kk - 1e0_fp ) / 2e0_fp + &
+         sqrt( 1e0_fp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_fp
 
-      ! Overall heterogeneous loss rate, grid average, 1/s
-      ! kHet = kI * xx / ( 1d0 + xx )
-      !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
-      !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
-      kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) )
+    ! Overall heterogeneous loss rate, grid average, 1/s
+    ! kHet = kI * xx / ( 1d0 + xx )
+    !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
+    !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
+    kHet = kI / ( 1e0_fp + SafeDiv( 1e0_fp, xx, 1e30_fp ) )
 
-    end function CloudHet1R
+  END FUNCTION CloudHet1R
 !EOC
-END MODULE GCKPP_SULFATE
+END MODULE fullchem_SulfurChemFuncs

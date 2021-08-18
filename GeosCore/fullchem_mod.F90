@@ -95,46 +95,45 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
+    USE AEROSOL_MOD,              ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
-    USE DUST_MOD,             ONLY : RDUST_ONLINE
+    USE DUST_MOD,                 ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE GcKpp_Sulfate,        ONLY : SET_CLD_S
-    USE GcKpp_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
+    USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
+    USE fullchem_SulfurChemFuncs, ONLY : fullchem_SulfurCldChem
+    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,     ONLY : INTEGRATE, NHnew
+    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
     USE GcKpp_Function
     USE GcKpp_Model
     USE GcKpp_Global
-    USE GcKpp_Rates,          ONLY : UPDATE_RCONST, RCONST
-    USE GcKpp_Initialize,     ONLY : Init_KPP => Initialize
-    USE GcKpp_Util,           ONLY : Get_OHreactivity
-    USE Input_Opt_Mod,        ONLY : OptInput
-    USE PhysConstants,        ONLY : AVO
-    USE PhysConstants,        ONLY : DO_SULFATEMOD_SEASALT, DO_SULFATEMOD_CLD
+    USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
+    USE GcKpp_Initialize,         ONLY : Init_KPP => Initialize
+    USE GcKpp_Util,               ONLY : Get_OHreactivity
+    USE Input_Opt_Mod,            ONLY : OptInput
+    USE PhysConstants,            ONLY : AVO
     USE PRESSURE_MOD
-    USE Species_Mod,          ONLY : Species
-    USE State_Chm_Mod,        ONLY : ChmState
-    USE State_Chm_Mod,        ONLY : Ind_
-    USE State_Diag_Mod,       ONLY : DgnState
-    USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Met_Mod,        ONLY : MetState
-    USE Strat_Chem_Mod,       ONLY : SChem_Tend
-    USE TIME_MOD,             ONLY : GET_TS_CHEM
-    USE TIME_MOD,             ONLY : Get_Day
-    USE TIME_MOD,             ONLY : Get_Month
-    USE TIME_MOD,             ONLY : Get_Year
+    USE Species_Mod,              ONLY : Species
+    USE State_Chm_Mod,            ONLY : ChmState
+    USE State_Chm_Mod,            ONLY : Ind_
+    USE State_Diag_Mod,           ONLY : DgnState
+    USE State_Grid_Mod,           ONLY : GrdState
+    USE State_Met_Mod,            ONLY : MetState
+    USE Strat_Chem_Mod,           ONLY : SChem_Tend
+    USE TIME_MOD,                 ONLY : GET_TS_CHEM
+    USE TIME_MOD,                 ONLY : Get_Day
+    USE TIME_MOD,                 ONLY : Get_Month
+    USE TIME_MOD,                 ONLY : Get_Year
     USE Timers_Mod
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
-    USE UCX_MOD,              ONLY : CALC_STRAT_AER
-    USE UCX_MOD,              ONLY : SO4_PHOTFRAC
-    USE UCX_MOD,              ONLY : UCX_NOX
-    USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
+    USE UnitConv_Mod,             ONLY : Convert_Spc_Units
+    USE UCX_MOD,                  ONLY : CALC_STRAT_AER
+    USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
+    USE UCX_MOD,                  ONLY : UCX_NOX
+    USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
 #ifdef BPCH_DIAG
-    USE TOMAS_MOD,            ONLY : H2SO4_RATE
+    USE TOMAS_MOD,                ONLY : H2SO4_RATE
 #endif
 #endif
 !
@@ -281,7 +280,7 @@ CONTAINS
 #endif
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FullChem",     RC ) ! started in Do_Chemistry
+       CALL Timer_End  ( "=> FlexChem",     RC ) ! started in Do_Chemistry
        CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
@@ -373,7 +372,7 @@ CONTAINS
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> Aerosol chem", RC )
-       CALL Timer_Start( "=> FullChem",   RC )
+       CALL Timer_Start( "=> FlexChem",   RC )
     ENDIF
 
     !=======================================================================
@@ -444,7 +443,7 @@ CONTAINS
                             'molec/cm3', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, 'FullChem_mod.F90')
+       CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90')
        RETURN
     ENDIF
 
@@ -452,7 +451,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !=======================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FullChem",     RC )
+       CALL Timer_End  ( "=> FlexChem",     RC )
        CALL Timer_Start( "=> FAST-JX photolysis", RC )
     ENDIF
 
@@ -474,7 +473,7 @@ CONTAINS
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> FAST-JX photolysis", RC )
-       CALL Timer_Start( "=> FullChem",     RC ) ! ended in Do_Chemistry
+       CALL Timer_Start( "=> FlexChem",     RC ) ! ended in Do_Chemistry
     ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
@@ -568,7 +567,7 @@ CONTAINS
            'Hnew, last predicted step (not yet taken):', f11.4 )
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "  -> FullChem loop", RC )
+       CALL Timer_Start( "  -> FlexChem loop", RC )
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -793,7 +792,8 @@ CONTAINS
        ! Initialize KPP for this grid box
        CALL Init_KPP()
 
-       ! Copy values at each gridbox into variables in gckpp_Global.F90
+       ! Copy values at each gridbox into KPP global variables
+       ! in gckpp_Global.F90 and into the HetChem state object
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
                                     J          = J,                          &
                                     L          = L,                          &
@@ -809,42 +809,50 @@ CONTAINS
        ENDIF
 
        !====================================================================
-       ! The SET_ routines below are based on or meant to replace
-       !   reactions computed outside of KPP within sulfate_mod.
+       ! The routines below are based on or meant to replace
+       ! reactions computed outside of KPP within sulfate_mod.
        !
        ! Rates are set for the following:
-       ! 1) Seasalt aerosol chemistry
-       ! 2) Cloud S chemistry
-       ! 3) (If Dust acid uptake) Dust acid uptake reactions
+       ! 1) Cloud sulfur chemistry
+       ! 2) (If Dust acid uptake) Dust acid uptake reactions
        ! - MSL, 29-Mar-2021, 7-May-2021
+       !
+       ! Seasalt aerosol chemistry reaction rate-law functions
+       ! are now contained in module fullchem_RateLawFuncs.F90.
        !====================================================================
 
-       ! Set seasalt alkalinity
-       !----------------------------------------------------------------------
-       ! From Alexander et al., buffering capacity (or alkalinity) of sea-salt
-       ! aerosols is equal to 0.07 equivalents per kg dry sea salt emitted
-       ! Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
+       ! From Alexander et al., buffering capacity (or alkalinity) of
+       ! sea-salt aerosols is equal to 0.07 equivalents per kg dry sea salt
+       ! emitted Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
        ! tdf; MSL
-       !----------------------------------------------------------------------
 
-       IF (.not. DO_SULFATEMOD_SEASALT) THEN
-
+       ! Do this when KPP is computing seasalt rxn rates ...
+       IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
           ! NOTE: We have saved the original concentrations in
           ! State_Het%SALAAL_save and State_Het%SALCAL_save, as these
           ! are needed in the AqRate_* functions (bmy, 6/9/21)
           C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
           C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
-
-          ! ALSO NOTE: code in set_seasalt_s has been moved into
-          ! aerochem_RateLawFunctions.F90 (bmy, 7/26/21)
        ENDIF
 
-       IF (.not. DO_SULFATEMOD_CLD) THEN
-          CALL SET_CLD_S( I, J, L, Input_Opt,  State_Chm, State_Diag, State_Grid, &
-               State_Met,  RC )
+       ! Do this when KPP is handling SO2 cloud chemistry ...
+       IF ( .not. State_Chm%Do_SulfateMod_Cld ) THEN
 
-          C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L) ! mcl/cm3. Set in SET_CLD_S
-          C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)  ! mcl/cm3. Set in SET_CLD_S
+          ! Compute reaction rates for sulfate in cloud for KPP chem mech
+          CALL fullchem_SulfurCldChem(                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Diag = State_Diag,                                      &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               RC         = RC                                              )
+
+          ! Update HSO3- and SO3-- concentrations [molec/cm3]
+          C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L)
+          C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)
 
           State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
           State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
@@ -1098,10 +1106,11 @@ CONTAINS
        C(1:NVAR)       = VAR(:)
        C(NVAR+1:NSPEC) = FIX(:)
 
-       IF (.not. DO_SULFATEMOD_SEASALT) THEN
-          ! Revert Alkalinity
-          C(ind_SALAAL) = C(ind_SALAAL) / ( State_Chm%SpcData(id_SALAAL)%Info%MW_g * 7.e-5_fp )
-          C(ind_SALCAL) = C(ind_SALCAL) / ( State_Chm%SpcData(id_SALCAL)%Info%MW_g * 7.e-5_fp )
+       ! Revert Alkalinity
+       ! Do this only if computing seasalt rxn rates for KPP chemistry
+       IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
+          C(ind_SALAAL) = C(ind_SALAAL) / ( MW(ind_SALAAL) * 7.0e-5_fp )
+          C(ind_SALCAL) = C(ind_SALCAL) / ( MW(ind_SALCAL) * 7.0e-5_fp )
        ENDIF
 
        ! Save for next integration time step
@@ -1165,7 +1174,7 @@ CONTAINS
                                  1e+6_fp / DT
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
-              write(*,*) "H2SO4_RATE negative in FullChem_mod.F90!!", &
+              write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
                  I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
               H2SO4_RATE(I,J,L) = 0.0d0
             ENDIF
@@ -1263,7 +1272,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "  -> FullChem loop", RC )
+       CALL Timer_End( "  -> FlexChem loop", RC )
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
@@ -1279,7 +1288,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Archive OH, HO2, O1D, O3P concentrations after FullChem solver
+    ! Archive OH, HO2, O1D, O3P concentrations after solver
     !=======================================================================
     IF ( Do_Diag_OH_HO2_O1D_O3P ) THEN
 
@@ -1325,7 +1334,7 @@ CONTAINS
                             OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, 'FullChem_mod.F90' )
+       CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )
        RETURN
     ENDIF
 
@@ -1422,15 +1431,15 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE FullChem_HetStateMod, ONLY : FullChem_SetStateHet
+    USE fullchem_HetStateFuncs, ONLY : fullchem_SetStateHet
     USE GcKpp_Global
     USE GcKpp_Parameters
-    USE Input_Opt_Mod,        ONLY : OptInput
-    USE PhysConstants,        ONLY : CONSVAP, RGASLATM, RSTARG
-    USE Pressure_Mod,         ONLY : Get_Pcenter
-    USE State_Chm_Mod,        ONLY : ChmState
-    USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Met_Mod,        ONLY : MetState
+    USE Input_Opt_Mod,          ONLY : OptInput
+    USE PhysConstants,          ONLY : CONSVAP, RGASLATM, RSTARG
+    USE Pressure_Mod,           ONLY : Get_Pcenter
+    USE State_Chm_Mod,          ONLY : ChmState
+    USE State_Grid_Mod,         ONLY : GrdState
+    USE State_Met_Mod,          ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1513,7 +1522,7 @@ CONTAINS
     !========================================================================
     ! Populate variables in the HetChem state object
     !========================================================================
-    CALL FullChem_SetStateHet(                                               &
+    CALL fullchem_SetStateHet(                                               &
          I         = I,                                                      &
          J         = J,                                                      &
          L         = L,                                                      &
@@ -1525,7 +1534,7 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Set_State_Het"!'
+       ErrMsg = 'Error encountered in routine "fullchem_SetStateHet"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -2083,7 +2092,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_FullChem
+! !IROUTINE: init_fullchem
 !
 ! !DESCRIPTION: Subroutine Init\_FullChem is used to allocate arrays for the
 !  KPP solver.
@@ -2096,15 +2105,15 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
+    USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Precision
-    USE Gckpp_Parameters, ONLY : nFam,     nReact,   ind_SALAAL, ind_SALCAL
-    USE Gckpp_Global,     ONLY : Henry_K0, Henry_CR, MW,         SR_MW
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Chm_Mod,    ONLY : Ind_
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE GcKpp_Sulfate,    ONLY : INIT_SULFATE
+    USE Gckpp_Parameters,         ONLY : nFam, nReact, ind_SALAAL, ind_SALCAL
+    USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
+    USE Input_Opt_Mod,            ONLY : OptInput
+    USE State_Chm_Mod,            ONLY : ChmState
+    USE State_Chm_Mod,            ONLY : Ind_
+    USE State_Diag_Mod,           ONLY : DgnState
+    USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurCldChem
 !
 ! !INPUT PARAMETERS:
 !
@@ -2154,7 +2163,7 @@ CONTAINS
     ! Debug output
     IF ( prtDebug ) THEN
        WRITE( 6, 100 )
-100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays for FLEX_CHEMISTRY' )
+100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays' )
 
        WRITE( 6 ,'(a)' ) ' KPP Reaction Reference '
        DO N = 1, NREACT
@@ -2282,7 +2291,7 @@ CONTAINS
 
        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
        ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
-       CALL GC_CheckVar( 'FullChem_mod.F90:PL_Kpp_Id', 0, RC )
+       CALL GC_CheckVar( 'fullchem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Loop over all KPP prod/loss species
@@ -2337,9 +2346,9 @@ CONTAINS
     ENDIF
 
     ! Initialize sulfate chemistry code (Mike Long)
-    CALL Init_Sulfate( RC )
+    CALL fullchem_InitSulfurCldChem( RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Init_Sulfate"!'
+       ErrMsg = 'Error encountered in "fullchem_InitSulfurCldChem"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -2351,9 +2360,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_FullChem
+! !IROUTINE: cleanup_fullchem
 !
-! !DESCRIPTION: Subroutine Cleanup\_FullChem deallocate module variables.
+! !DESCRIPTION: Subroutine Cleanup\_FullChem deallocates module variables.
 !\\
 !\\
 ! !INTERFACE:
