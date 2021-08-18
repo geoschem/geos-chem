@@ -547,9 +547,12 @@ replace_val NY            ${NY}                 GCHP.rc
 replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 
 #### If # cores exceeds 1000 then write restart via o-server
-if [ ${TOTAL_CORES} -gt 1000 ]; then
-   print_msg "WARNING: write restarts by o-server is enabled since >1000 cores"
+if [ ${TOTAL_CORES} -ge 1000 ]; then
+   print_msg "WARNING: write restarts by o-server is enabled since >=1000 cores"
    replace_val WRITE_RESTART_BY_OSERVER   YES   GCHP.rc
+else
+   print_msg "WARNING: write restarts by o-server is disabled since <1000 cores"
+   replace_val WRITE_RESTART_BY_OSERVER   NO    GCHP.rc
 fi
 
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
