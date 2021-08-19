@@ -56,20 +56,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GCHP_Chunk_Init( nymdB,         nhmsB,      nymdE,           &
-                              nhmsE,         tsChem,     tsDyn,           &
+  SUBROUTINE GCHP_Chunk_Init( nymdB,         nhmsB,         nymdE,        &
+                              nhmsE,         tsChem,        tsDyn,        &
                               lonCtr,        latCtr,                      &
 #if !defined( MODEL_GEOS )
                               GC,            EXPORT,                      &
 #endif
-                              Input_Opt,     State_Chm,  State_Diag,      &
-                              State_Grid,    State_Met,  HcoConfig,       &
-                              HistoryConfig, RC )
+                              Input_Opt,     State_Chm,     State_Diag,   &
+                              State_Grid,    State_Met,     FjxState,     &
+                              HcoConfig,     HistoryConfig, RC )
 !
 ! !USES:
 !
     USE Chemistry_Mod,           ONLY : Init_Chemistry
     USE Emissions_Mod,           ONLY : Emissions_Init
+    USE Fast_jx_Mod,             ONLY : Fjx_State, Init_FJX
+    USE Fjx_GC_Interface_Mod,    ONLY : FjxState_GC_Set, Set_GC_Photol_Ids
     USE GC_Environment_Mod
     USE GC_Grid_Mod,             ONLY : SetGridFromCtr
     USE GCHP_HistoryExports_Mod, ONLY : HistoryConfigObj
@@ -122,6 +124,7 @@ CONTAINS
     TYPE(DgnState),      INTENT(INOUT) :: State_Diag     ! Diag State object
     TYPE(GrdState),      INTENT(INOUT) :: State_Grid     ! Grid State object
     TYPE(MetState),      INTENT(INOUT) :: State_Met      ! Met State object
+    TYPE(Fjx_State),     INTENT(INOUT) :: FjxState       ! Fast-JX State object
     TYPE(ConfigObj),     POINTER       :: HcoConfig      ! HEMCO config obj
     TYPE(HistoryConfigObj), POINTER    :: HistoryConfig  ! History config obj
 !
@@ -512,11 +515,21 @@ CONTAINS
     State_Chm%Spc_Units = 'v/v dry'
 #endif
 
-    ! Initialize chemistry mechanism
+    ! Initialize chemistry mechanism, including FAST-JX
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        CALL INIT_CHEMISTRY ( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
+
+       ! Set Fast-JX object with GEOS-Chem state information
+       ! Only do this if fullchem or aerosol sim???
+       CALL FjxState_GC_Set( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                             State_Diag, FjxState, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error encountered in "FjxState_GC_Set"!')
+       
+       ! Consolidate with above?
+       CALL Init_FJX( FjxState, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error encountered in "Init_FJX"!')
     ENDIF
 
 #if defined( RRTMG )
@@ -590,7 +603,7 @@ CONTAINS
                              day,        dayOfYr,    hour,       minute,     &
                              second,     utc,        hElapsed,   Input_Opt,  &
                              State_Chm,  State_Diag, State_Grid, State_Met,  &
-                             Phase,      IsChemTime, IsRadTime,              &
+                             FjxState,   Phase,      IsChemTime, IsRadTime,  &
 #if defined( MODEL_GEOS )
                              FrstRewind, &
 #endif
@@ -603,6 +616,7 @@ CONTAINS
 !
     ! GEOS-Chem state objects
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Fast_JX_Mod,        ONLY : Fjx_State
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod
     USE State_Grid_Mod,     ONLY : GrdState
@@ -695,6 +709,7 @@ CONTAINS
     TYPE(DgnState),      INTENT(INOUT) :: State_Diag  ! Diagnostics State obj
     TYPE(GrdState),      INTENT(INOUT) :: State_Grid  ! Grid State obj
     TYPE(MetState),      INTENT(INOUT) :: State_Met   ! Meteorology State obj
+    TYPE(Fjx_State),     INTENT(INOUT) :: FjxState    ! Fast-JX State obj
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1123,8 +1138,8 @@ CONTAINS
     ! that the HEMCO clock and the HEMCO data list are up to date.
     !=======================================================================
     HCO_PHASE = 1
-    CALL EMISSIONS_RUN( Input_Opt, State_Chm, State_Diag, &
-                        State_Grid, State_Met, DoEmis, HCO_PHASE, RC  )
+    CALL EMISSIONS_RUN( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                        State_Met, FjxState,  DoEmis,     HCO_PHASE, RC  )
     _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_RUN')
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1196,8 +1211,8 @@ CONTAINS
        ! Do emissions. Pass HEMCO Phase 2 which performs the emissions
        ! calculations.
        HCO_PHASE = 2
-       CALL EMISSIONS_RUN( Input_Opt, State_Chm, State_Diag, &
-                           State_Grid, State_Met, DoEmis, HCO_PHASE, RC )
+       CALL EMISSIONS_RUN( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                           State_Met, FjxState,  DoEmis,     HCO_PHASE, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_RUN')
 
        CALL MAPL_TimerOff( STATE, 'GC_EMIS' )
@@ -1334,8 +1349,8 @@ CONTAINS
        endif
 
        ! Do chemistry
-       CALL Do_Chemistry( Input_Opt, State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+       CALL Do_Chemistry( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, FjxState, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Do_Chemistr')
 
        CALL MAPL_TimerOff( STATE, 'GC_CHEM' )

@@ -58,6 +58,7 @@ MODULE Chem_GridCompMod
   USE GCHP_ProviderServices_Mod
 #endif
   USE ErrCode_Mod                                    ! Error numbers
+  USE Fast_JX_Mod                                    ! Fast-JX state obj
   USE State_Chm_Mod                                  ! Chemistry State obj
   USE State_Diag_Mod                                 ! Diagnostics State obj
   USE State_Grid_Mod                                 ! Grid State obj
@@ -134,6 +135,7 @@ MODULE Chem_GridCompMod
   TYPE(DgnState)                   :: State_Diag     ! Diagnostics state 
   TYPE(GrdState)                   :: State_Grid     ! Grid state 
   TYPE(MetState)                   :: State_Met      ! Meteorology state
+  TYPE(Fjx_State)                  :: FjxState       ! Fast-JX state
   TYPE(Species),          POINTER  :: ThisSpc => NULL()
   TYPE(HistoryConfigObj), POINTER  :: HistoryConfig
   TYPE(ConfigObj),        POINTER  :: HcoConfig
@@ -1796,6 +1798,7 @@ CONTAINS
                           State_Diag= State_Diag, & ! Diagnostics State obj
                           State_Grid= State_Grid, & ! Grid State obj
                           State_Met = State_Met,  & ! Meteorology State obj
+                          FjxState  = FjxState,   & ! Fast-JX State obj
                           HcoConfig = HcoConfig,  & ! HEMCO config obj 
                           HistoryConfig = HistoryConfig, & ! History Config Obj
                           __RC__                 )
@@ -3607,6 +3610,7 @@ CONTAINS
                                   State_Diag = State_Diag, & ! Diagnostics State
                                   State_Grid = State_Grid, & ! Grid State
                                   State_Met  = State_Met,  & ! Meteorology State
+                                  FjxState   = FjxState,   & ! Fast-JX State
                                   Phase      = Phase,      & ! Run phase
                                   IsChemTime = IsChemTime, & ! Time for chem?
                                   IsRadTime  = IsRadTime,  & ! Time for RRTMG?
@@ -3876,6 +3880,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Fast_JX_Mod,           ONLY : FjxState_Final
     USE Input_Opt_Mod,         ONLY : OptInput
 #if !defined( MODEL_GEOS )
     USE Input_Opt_Mod,         ONLY : Cleanup_Input_Opt
@@ -4211,6 +4216,16 @@ CONTAINS
 1047   FORMAT('  SPC(', i2, ', ', i2, ', ', i2, ') = ', e22.10)
     ENDIF
 #endif
+
+    ! Finalize FAST-JX
+    CALL FjxState_Final( FjxState, RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'FAST-JX::Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'FAST-JX::Finalize... FAILURE.'
+       ENDIF
+    ENDIF
 
     ! Finalize HEMCO
     CALL HCOI_GC_FINAL( .FALSE., RC )
