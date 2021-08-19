@@ -5139,7 +5139,11 @@ CONTAINS
        ! then all Ca is dissolved else [Ca2+] varies with [H+]
        IF ( fCa .ge. TDCA ) THEN
           ! Non-volatile aerosol concentration [M]
+#ifdef LUO_WETDEP
+          D = (1.5e+0_fp*SO4nss) - (TNA+2.e+0_fp*TDCA)
+#else
           D = (2.e+0_fp*SO4nss) - (TNA+2.e+0_fp*TDCA)
+#endif
 
           ! Define f(x)
           f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * &
@@ -5153,7 +5157,11 @@ CONTAINS
 
        ELSE
           ! Non-volatile aerosol concentration [M]
+#ifdef LUO_WETDEP
+          D = (1.5e+0_fp * SO4nss) - TNA
+#else
           D = (2.e+0_fp * SO4nss) - TNA
+#endif
 
           ! Define f(x)
           f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * fCO3 + &
