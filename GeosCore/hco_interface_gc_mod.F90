@@ -795,13 +795,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Run( Input_Opt, State_Chm, State_Grid,  &
-                          State_Met, EmisTime,  Phase,  RC )
+  SUBROUTINE HCOI_GC_Run( Input_Opt, State_Chm, State_Grid, State_Met, &
+                          FjxState,  EmisTime,  Phase,      RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Get_Ndep_Mod,    ONLY : Reset_Dep_N   ! For soilnox
+    USE Fast_JX_Mod,     ONLY : Fjx_State
     USE Input_Opt_Mod,   ONLY : OptInput
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
@@ -827,6 +828,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step?
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase (see remarks)
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
+    TYPE(Fjx_State),  INTENT(IN   )  :: FjxState   ! FAST-JX state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1089,8 +1091,8 @@ CONTAINS
 
           ! Update fields directly from State_Met.
           ! Regrid those for ImGrid.
-          CALL ExtState_UpdateFields( Input_Opt, State_Chm,            &
-                                      State_Grid, State_Met, HcoState, &
+          CALL ExtState_UpdateFields( Input_Opt, State_Chm, State_Grid, &
+                                      State_Met, FjxState,  HcoState,   &
                                       ExtState,   HMRC )
 
           ! Trap potential errors
@@ -2888,15 +2890,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( Input_Opt,  State_Chm,             &
-                                    State_Grid, State_Met, HcoState,   &
+  SUBROUTINE ExtState_UpdateFields( Input_Opt, State_Chm, State_Grid, &
+                                    State_Met, FjxState,  HcoState,   &
                                     ExtState,   RC )
 !
 ! !USES:
 !
     USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
+    USE Fast_JX_Mod,          ONLY : Fjx_State
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -2916,6 +2918,7 @@ CONTAINS
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Meteorology state
+    TYPE(Fjx_State),  INTENT(IN   )  :: FjxState   ! FAST-JX state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3029,15 +3032,15 @@ CONTAINS
           ELSE
              IF ( ExtState%JNO2%DoUse ) THEN
                 ! RXN_NO2: NO2 + hv --> NO  + O
-                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
+                JNO2(I,J) = ZPJ(L,FjxState%RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
                 IF ( Input_Opt%LUCX ) THEN
                    ! RXN_O3_1: O3  + hv --> O2  + O
-                   JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
+                   JOH(I,J) = ZPJ(L,FjxState%RXN_O3_1,I,J)
                 ELSE
                    ! RXN_O3_2a: O3 + hv --> 2OH
-                   JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
+                   JOH(I,J) = ZPJ(L,FjxState%RXN_O3_2a,I,J)
                 ENDIF
              ENDIF
           ENDIF

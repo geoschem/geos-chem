@@ -313,8 +313,8 @@ CONTAINS
              CALL Timer_Start( "=> FlexChem", RC )
           ENDIF
 
-          CALL Do_FlexChem( FjxState, Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
+          CALL Do_FlexChem( Input_Opt,  State_Grid, FjxState, State_Chm, &
+                            State_Diag, State_Met, RC )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN

@@ -60,134 +60,108 @@ MODULE FAST_JX_MOD
 !
 ! !PUBLIC DERIVED TYPES
 !
-  ! Parameters - private? define here or externally from fjx dir?
-  TYPE, PUBLIC :: Fjx_Params
-  END TYPE Fjx_Params
-
-  ! Run-time configurables - private?
-  TYPE, PUBLIC :: Fjx_Config
-    LOGICAL :: amIRoot
-    LOGICAL :: DryRun
-    LOGICAL :: LPRT
-    LOGICAL :: USE_ONLINE_O3
-    LOGICAL :: LUCX
-    LOGICAL :: LBRC
-    CHARACTER(LEN=255) :: FAST_JX_DIR
-    CHARACTER(LEN=255) :: CHEM_INPUTS_DIR
-    LOGICAL :: hvAerNIT
-    REAL    :: hvAerNIT_JNITs
-    REAL    :: hvAerNIT_JNIT
-    REAL    :: JNITChanA
-    REAL    :: JNITChanB
-    INTEGER :: NWVSELECT
-    REAL(8), POINTER :: WVSELECT(:) => NULL()
+  ! Run settings
+  TYPE :: Fjx_Config
+     LOGICAL :: amIRoot
+     LOGICAL :: DryRun
+     LOGICAL :: LPRT
+     LOGICAL :: USE_ONLINE_O3
+     LOGICAL :: LUCX
+     LOGICAL :: LBRC
+     CHARACTER(LEN=255) :: FAST_JX_DIR
+     CHARACTER(LEN=255) :: CHEM_INPUTS_DIR
+     LOGICAL :: hvAerNIT
+     REAL    :: hvAerNIT_JNITs
+     REAL    :: hvAerNIT_JNIT
+     REAL    :: JNITChanA
+     REAL    :: JNITChanB
+     INTEGER :: NWVSELECT
+     REAL(8), POINTER :: WVSELECT(:) => NULL()
 #if defined( MODEL_GEOS )
-    INTEGER :: FJX_EXTRAL_ITERMAX
-    LOGICAL :: FJX_EXTRAL_ERR
+     INTEGER :: FJX_EXTRAL_ITERMAX
+     LOGICAL :: FJX_EXTRAL_ERR
 #endif
   END TYPE Fjx_Config
 
-  ! Grid parameters - private?
-  TYPE, PUBLIC :: Fjx_Grid
-    INTEGER           :: NX
-    INTEGER           :: NY
-    INTEGER           :: NZ
-    INTEGER           :: MaxChemLev
-    REAL(fp), POINTER :: YMID(:,:) => NULL()
+  ! Grid
+  TYPE :: Fjx_Grid
+     INTEGER           :: NX
+     INTEGER           :: NY
+     INTEGER           :: NZ
+     INTEGER           :: MaxChemLev
+     REAL(fp), POINTER :: YMID(:,:) => NULL()
   END TYPE Fjx_Grid
 
-  ! Meterology - private?
-  TYPE, PUBLIC :: Fjx_Met
-    INTEGER,  POINTER :: ChemGridLev(:,:)   => NULL()
-    REAL(fp), POINTER :: SUNCOSmid  (:,:)   => NULL()
-    REAL(fp), POINTER :: UVALBEDO   (:,:)   => NULL()
-    REAL(fp), POINTER :: PEDGE      (:,:,:) => NULL()
-    REAL(fp), POINTER :: T          (:,:,:) => NULL()
-    REAL(fp), POINTER :: AIRNUMDEN  (:,:,:) => NULL()
-    REAL(fp), POINTER :: AVGW       (:,:,:) => NULL()
-    REAL(fp), POINTER :: OPTD       (:,:,:) => NULL()
-    REAL(fp), POINTER :: CLDF       (:,:,:) => NULL()
+  ! Meteorology
+  TYPE :: Fjx_Met
+     INTEGER,  POINTER :: ChemGridLev(:,:)   => NULL()
+     REAL(fp), POINTER :: SUNCOSmid  (:,:)   => NULL()
+     REAL(fp), POINTER :: UVALBEDO   (:,:)   => NULL()
+     REAL(fp), POINTER :: PEDGE      (:,:,:) => NULL()
+     REAL(fp), POINTER :: T          (:,:,:) => NULL()
+     REAL(fp), POINTER :: AIRNUMDEN  (:,:,:) => NULL()
+     REAL(fp), POINTER :: AVGW       (:,:,:) => NULL()
+     REAL(fp), POINTER :: OPTD       (:,:,:) => NULL()
+     REAL(fp), POINTER :: CLDF       (:,:,:) => NULL()
   END TYPE Fjx_Met
-
-  ! Reaction flags
-  TYPE, PUBLIC :: Fjx_RxnFlags
-     ! Flags for certain photo-reactions that will be adjusted by
-     ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
-     INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
-     INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
-     INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
-     ! O3  + hv --> O2  + O(1D) (UCX #1)
-     INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
-     INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
-     INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
-   
-     INTEGER, PUBLIC :: RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
-     INTEGER, PUBLIC :: RXN_JNITSa = -1   ! NITs  + hv --> HNO2
-     INTEGER, PUBLIC :: RXN_JNITSb = -1   ! NITs  + hv --> NO2
-     INTEGER, PUBLIC :: RXN_JNITa  = -1   ! NIT + hv --> HNO2
-     INTEGER, PUBLIC :: RXN_JNITb  = -1   ! NIT + hv --> NO2
-   
-     ! Needed for UCX_MOD
-     INTEGER, PUBLIC :: RXN_NO    = -1
-     INTEGER, PUBLIC :: RXN_NO3   = -1
-     INTEGER, PUBLIC :: RXN_N2O   = -1
-  END TYPE Fjx_RxnFlags
 
   ! State
   TYPE, PUBLIC :: Fjx_State
-    INTEGER  :: nPhotol
-    INTEGER  :: id_O3
 
-    REAL(fp),            POINTER :: Species  (:,:,:,:) => NULL()
-    REAL(fp),            POINTER :: TO3_Daily(:,:)     => NULL()
+     ! Derived types
+     TYPE(Fjx_Config),    POINTER :: Config             => NULL()
+     TYPE(Fjx_Grid  ),    POINTER :: Grid               => NULL()
+     TYPE(Fjx_Met   ),    POINTER :: Met                => NULL()
 
-    TYPE(Fjx_Config),    POINTER :: Config             => NULL()
-    TYPE(Fjx_Grid  ),    POINTER :: Grid               => NULL()
-    TYPE(Fjx_Met   ),    POINTER :: Met                => NULL()
-    TYPE(Fjx_RxnFlags ), POINTER :: RxnFlags           => NULL()
-
-    ! Diagnostics
-    REAL(f4), POINTER :: UVFluxDiffuse    (:,:,:,:)
-    REAL(f4), POINTER :: UVFluxDirect     (:,:,:,:)
-    REAL(f4), POINTER :: UVFluxNet        (:,:,:,:)
-    INTEGER,  POINTER :: Map_UVFluxDiffuse(:)
-    INTEGER,  POINTER :: Map_UVFluxDirect (:)
-    INTEGER,  POINTER :: Map_UVFluxNet    (:)
+     ! Integers
+     INTEGER :: nPhotol
+     INTEGER :: id_O3
+     
+     ! Flags for certain photo-reactions that will be adjusted by
+     ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
+     INTEGER :: RXN_O2           ! O2  + jv --> O   + O
+     INTEGER :: RXN_O3_1         ! O3  + hv --> O2  + O
+     INTEGER :: RXN_O3_2a        ! O3  + hv --> 2OH         (Tropchem)
+     ! O3  + hv --> O2  + O(1D) (UCX #1)
+     INTEGER :: RXN_O3_2b        ! O3  + hv --> O2  + O(1D) (UCX #2)
+     INTEGER :: RXN_H2SO4        ! SO4 + hv --> SO2 + 2OH
+     INTEGER :: RXN_NO2          ! NO2 + hv --> NO  + O
+     
+     INTEGER :: RXN_JHNO3        ! HNO3 + hv --> OH + NO2
+     INTEGER :: RXN_JNITSa       ! NITs  + hv --> HNO2
+     INTEGER :: RXN_JNITSb       ! NITs  + hv --> NO2
+     INTEGER :: RXN_JNITa        ! NIT + hv --> HNO2
+     INTEGER :: RXN_JNITb        ! NIT + hv --> NO2
+     
+     ! Needed for UCX_MOD
+     INTEGER :: RXN_NO
+     INTEGER :: RXN_NO3
+     INTEGER :: RXN_N2O
+     
+     ! Pointers
+     REAL(fp), POINTER :: Species  (:,:,:,:) => NULL()
+     REAL(fp), POINTER :: TO3_Daily(:,:)     => NULL()
+          
+     ! For diagnostics
+     REAL(f4), POINTER :: UVFluxDiffuse    (:,:,:,:)
+     REAL(f4), POINTER :: UVFluxDirect     (:,:,:,:)
+     REAL(f4), POINTER :: UVFluxNet        (:,:,:,:)
+     INTEGER,  POINTER :: Map_UVFluxDiffuse(:)
+     INTEGER,  POINTER :: Map_UVFluxDirect (:)
+     INTEGER,  POINTER :: Map_UVFluxNet    (:)
 #ifdef MODEL_GEOS
-    REAL(f4), POINTER :: EXTRALNLEVS      (:,:)
-    REAL(f4), POINTER :: EXTRALNITER      (:,:)
+     REAL(f4), POINTER :: EXTRALNLEVS      (:,:)
+     REAL(f4), POINTER :: EXTRALNITER      (:,:)
 #endif
 
   END TYPE Fjx_State
+
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-  ! Flags for certain photo-reactions that will be adjusted by
-  ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
-  INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
-  INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
-  INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
-  ! O3  + hv --> O2  + O(1D) (UCX #1)
-  INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
-  INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
-  INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
-
-  INTEGER, PUBLIC :: RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
-  INTEGER, PUBLIC :: RXN_JNITSa = -1   ! NITs  + hv --> HNO2
-  INTEGER, PUBLIC :: RXN_JNITSb = -1   ! NITs  + hv --> NO2
-  INTEGER, PUBLIC :: RXN_JNITa  = -1   ! NIT + hv --> HNO2
-  INTEGER, PUBLIC :: RXN_JNITb  = -1   ! NIT + hv --> NO2
-
-  ! Needed for UCX_MOD
-  INTEGER, PUBLIC :: RXN_NO    = -1
-  INTEGER, PUBLIC :: RXN_NO3   = -1
-  INTEGER, PUBLIC :: RXN_N2O   = -1
-
-  ! Needed for scaling JNIT/JNITs photolysis to JHNO3
-  REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
 
 CONTAINS
 !EOC
@@ -315,28 +289,22 @@ CONTAINS
     !=====================================================================
     ! rxn flags
     !=====================================================================
-    ALLOCATE ( FjxState%RxnFlags, STAT = AS )
-    IF ( AS /= 0 ) THEN
-       ErrMsg = 'FjxState rxn flags'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    FjxState%RxnFlags%RXN_O2     = -1   ! O2  + jv --> O   + O
-    FjxState%RxnFlags%RXN_O3_1   = -1   ! O3  + hv --> O2  + O
-    FjxState%RxnFlags%RXN_O3_2a  = -1   ! O3  + hv --> 2OH         (Tropchem)
+    FjxState%RXN_O2     = -1   ! O2  + jv --> O   + O
+    FjxState%RXN_O3_1   = -1   ! O3  + hv --> O2  + O
+    FjxState%RXN_O3_2a  = -1   ! O3  + hv --> 2OH         (Tropchem)
     ! O3  + hv --> O2  + O(1D) (UCX #1)
-    FjxState%RxnFlags%RXN_O3_2b  = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
-    FjxState%RxnFlags%RXN_H2SO4  = -1   ! SO4 + hv --> SO2 + 2OH
-    FjxState%RxnFlags%RXN_NO2    = -1   ! NO2 + hv --> NO  + O
-    FjxState%RxnFlags%RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
-    FjxState%RxnFlags%RXN_JNITSa = -1   ! NITs  + hv --> HNO2
-    FjxState%RxnFlags%RXN_JNITSb = -1   ! NITs  + hv --> NO2
-    FjxState%RxnFlags%RXN_JNITa  = -1   ! NIT + hv --> HNO2
-    FjxState%RxnFlags%RXN_JNITb  = -1   ! NIT + hv --> NO2
+    FjxState%RXN_O3_2b  = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
+    FjxState%RXN_H2SO4  = -1   ! SO4 + hv --> SO2 + 2OH
+    FjxState%RXN_NO2    = -1   ! NO2 + hv --> NO  + O
+    FjxState%RXN_JHNO3  = -1   ! HNO3 + hv --> OH + NO2
+    FjxState%RXN_JNITSa = -1   ! NITs  + hv --> HNO2
+    FjxState%RXN_JNITSb = -1   ! NITs  + hv --> NO2
+    FjxState%RXN_JNITa  = -1   ! NIT + hv --> HNO2
+    FjxState%RXN_JNITb  = -1   ! NIT + hv --> NO2
     ! Needed for UCX_MOD
-    FjxState%RxnFlags%RXN_NO     = -1
-    FjxState%RxnFlags%RXN_NO3    = -1
-    FjxState%RxnFlags%RXN_N2O    = -1
+    FjxState%RXN_NO     = -1
+    FjxState%RXN_NO3    = -1
+    FjxState%RXN_N2O    = -1
 
     !=====================================================================
     ! diagnostics quantitites (move elsewhere, last?)
@@ -437,9 +405,6 @@ CONTAINS
        FjxState%Config%WVSELECT => NULL()
        DEALLOCATE(FjxState%Config)
     ENDIF
-
-    ! Cleanup various types
-    IF ( ASSOCIATED ( FjxState%RxnFlags ) ) DEALLOCATE ( FjxState%RxnFlags )
 
   END SUBROUTINE FjxState_Final
 !EOC
@@ -1991,13 +1956,13 @@ CONTAINS
 #endif
 
 !
-! !INPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(Fjx_State), INTENT(IN)  :: FjxState    ! FAST-JX object
+    TYPE(Fjx_State), INTENT(INOUT) :: FjxState    ! FAST-JX object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,        INTENT(OUT)    :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
@@ -3205,7 +3170,10 @@ CONTAINS
     INTEGER,          INTENT(IN)                  :: NJXX
     CHARACTER(LEN=*), INTENT(IN)                  :: NAMFIL
     CHARACTER(LEN=6), INTENT(IN), DIMENSION(NJXX) :: TITLEJX
-    TYPE(Fjx_State),  INTENT(IN)                  :: FjxState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(Fjx_State),  INTENT(INOUT)               :: FjxState
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3401,11 +3369,11 @@ CONTAINS
 
        ! O2 + hv -> O + O
        CASE( 'O2PHOTONOO' )
-          RXN_O2 = K
+          FjxState%RXN_O2 = K
 
        ! O3 + hv -> O2 + O
        CASE( 'O3PHOTONO2O' )
-          RXN_O3_1 = K
+          FjxState%RXN_O3_1 = K
 
        ! O3 + hv -> O2 + O(1D)
        CASE( 'O3PHOTONO2O(1D)' )
@@ -3413,51 +3381,51 @@ CONTAINS
           ! NOTE: There are 2 reactions of this form.  We shall save
           ! the first one that is encountered in RXN_O3_2a and the
           ! second one in RXN_O3_2b. (bmy, 3/29/16)
-          IF ( RXN_O3_2a > 0 ) THEN
-             RXN_O3_2b = K
+          IF ( FjxState%RXN_O3_2a > 0 ) THEN
+             FjxState%RXN_O3_2b = K
           ELSE
-             RXN_O3_2a = K
+             FjxState%RXN_O3_2a = K
           ENDIF
 
        ! SO4 + hv -> SO2 + OH + OH
        CASE( 'SO4PHOTONSO2OHOH' )
-          RXN_H2SO4 = K
+          FjxState%RXN_H2SO4 = K
 
        ! NO2 + hv -> NO + O
        CASE( 'NO2PHOTONNOO' )
-          RXN_NO2 = K
+          FjxState%RXN_NO2 = K
 
        ! NO + hv -> N + O
        CASE( 'NOPHOTONNO' )
-          RXN_NO = K
+          FjxState%RXN_NO = K
 
        ! NO3 + hv -> NO2 + O
        CASE( 'NO3PHOTONNO2O' )
-          RXN_NO3 = K
+          FjxState%RXN_NO3 = K
 
        ! N2O + hv -> N2 + O
        CASE( 'N2OPHOTONN2O' )
-          RXN_N2O = K
+          FjxState%RXN_N2O = K
 
        ! NITs + hv -> HNO2
        CASE( 'NITsPHOTONHNO2' )
-          RXN_JNITSa = K
+          FjxState%RXN_JNITSa = K
 
        ! NITs + hv -> NO2
        CASE( 'NITsPHOTONNO2' )
-          RXN_JNITSb = K
+          FjxState%RXN_JNITSb = K
 
        ! NIT + hv -> HNO2
        CASE( 'NITPHOTONHNO2' )
-          RXN_JNITa = K
+          FjxState%RXN_JNITa = K
 
        ! NIT + hv -> NO2
        CASE( 'NITPHOTONNO2' )
-          RXN_JNITb = K
+          FjxState%RXN_JNITb = K
 
        ! HNO3 + hv = OH + NO2
        CASE( 'HNO3PHOTONNO2OH' )
-          RXN_JHNO3 = K
+          FjxState%RXN_JHNO3 = K
 
        CASE DEFAULT
           ! Nothing
@@ -3468,60 +3436,60 @@ CONTAINS
     !---------------------------------------------------------------------
     ! Error check the various rxn flags
     !---------------------------------------------------------------------
-    IF ( RXN_O2 < 0 ) THEN
+    IF ( FjxState%RXN_O2 < 0 ) THEN
        ErrMsg = 'Could not find rxn O2 + hv -> O + O'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_O3_1 < 0 ) THEN
+    IF ( FjxState%RXN_O3_1 < 0 ) THEN
        ErrMsg = 'Could not find rxn O3 + hv -> O2 + O'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_O3_2a < 0 ) THEN
+    IF ( FjxState%RXN_O3_2a < 0 ) THEN
        ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_O3_2b  < 0 ) THEN
+    IF ( FjxState%RXN_O3_2b  < 0 ) THEN
        ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
     ENDIF
 
-    IF ( RXN_NO2 < 0 ) THEN
+    IF ( FjxState%RXN_NO2 < 0 ) THEN
        ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_NO2 < 0 ) THEN
+    IF ( FjxState%RXN_NO2 < 0 ) THEN
        ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_JNITSa < 0 ) THEN
+    IF ( FjxState%RXN_JNITSa < 0 ) THEN
        ErrMsg = 'Could not find rxn NITS + hv -> HNO2'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_JNITSb < 0 ) THEN
+    IF ( FjxState%RXN_JNITSb < 0 ) THEN
        ErrMsg = 'Could not find rxn NITS + hv -> NO2'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_JNITa < 0 ) THEN
+    IF ( FjxState%RXN_JNITa < 0 ) THEN
        ErrMsg = 'Could not find rxn NIT + hv -> HNO2'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    IF ( RXN_JNITb < 0 ) THEN
+    IF ( FjxState%RXN_JNITb < 0 ) THEN
        ErrMsg = 'Could not find rxn NIT + hv -> NO2'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -3532,25 +3500,25 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( FjxState%Config%LUCX ) THEN
 
-       IF ( RXN_H2SO4  < 0 ) THEN
+       IF ( FjxState%RXN_H2SO4  < 0 ) THEN
           ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       IF ( RXN_NO3 < 0 ) THEN
+       IF ( FjxState%RXN_NO3 < 0 ) THEN
           ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       IF ( RXN_NO < 0 ) THEN
+       IF ( FjxState%RXN_NO < 0 ) THEN
           ErrMsg = 'Could not find rxn NO + hv -> O + N'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
-       IF ( RXN_N2O < 0 ) THEN
+       IF ( FjxState%RXN_N2O < 0 ) THEN
           ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
@@ -3564,34 +3532,34 @@ CONTAINS
     IF ( FjxState%Config%amIRoot ) THEN
        WRITE( 6, 100 ) REPEAT( '=', 79 )
        WRITE( 6, 110 )
-       WRITE( 6, 120 ) RXN_O2
-       WRITE( 6, 130 ) RXN_O3_1
-       WRITE( 6, 140 ) RXN_O3_2a
-       WRITE( 6, 150 ) RXN_O3_2b
-       WRITE( 6, 180 ) RXN_JNITSa
-       WRITE( 6, 190 ) RXN_JNITSb
-       WRITE( 6, 200 ) RXN_JNITa
-       WRITE( 6, 210 ) RXN_JNITb
+       WRITE( 6, 120 ) FjxState%RXN_O2
+       WRITE( 6, 130 ) FjxState%RXN_O3_1
+       WRITE( 6, 140 ) FjxState%RXN_O3_2a
+       WRITE( 6, 150 ) FjxState%RXN_O3_2b
+       WRITE( 6, 180 ) FjxState%RXN_JNITSa
+       WRITE( 6, 190 ) FjxState%RXN_JNITSb
+       WRITE( 6, 200 ) FjxState%RXN_JNITa
+       WRITE( 6, 210 ) FjxState%RXN_JNITb
        IF ( FjxState%Config%LUCX ) THEN
-          WRITE( 6, 160 ) RXN_H2SO4
+          WRITE( 6, 160 ) FjxState%RXN_H2SO4
        ENDIF
-       WRITE( 6, 170 ) RXN_NO2
+       WRITE( 6, 170 ) FjxState%RXN_NO2
        WRITE( 6, 100 ) REPEAT( '=', 79 )
     ENDIF
 
     ! FORMAT statements
 100 FORMAT( a                                                 )
 110 FORMAT( 'Photo rxn flags saved for use in PHOTRATE_ADJ:', / )
-120 FORMAT( 'RXN_O2    [ O2  + hv -> O + O         ]  =  ', i5 )
-130 FORMAT( 'RXN_O3_1  [ O3  + hv -> O2 + O        ]  =  ', i5 )
-140 FORMAT( 'RXN_O3_2a [ O3  + hv -> O2 + O(1D) #1 ]  =  ', i5 )
-150 FORMAT( 'RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
-160 FORMAT( 'RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
-170 FORMAT( 'RXN_NO2   [ NO2 + hv -> NO + O        ]  =  ', i5 )
-180 FORMAT( 'RXN_JNITSa [ NITS + hv -> HNO2        ]  =  ', i5 )
-190 FORMAT( 'RXN_JNITSb [ NITS + hv -> NO2         ]  =  ', i5 )
-200 FORMAT( 'RXN_JNITa  [ NIT + hv -> HNO2         ]  =  ', i5 )
-210 FORMAT( 'RXN_JNITb  [ NIT + hv -> NO2          ]  =  ', i5 )
+120 FORMAT( 'FjxState%RXN_O2    [ O2  + hv -> O + O         ]  =  ', i5 )
+130 FORMAT( 'FjxState%RXN_O3_1  [ O3  + hv -> O2 + O        ]  =  ', i5 )
+140 FORMAT( 'FjxState%RXN_O3_2a [ O3  + hv -> O2 + O(1D) #1 ]  =  ', i5 )
+150 FORMAT( 'FjxState%RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
+160 FORMAT( 'FjxState%RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
+170 FORMAT( 'FjxState%RXN_NO2   [ NO2 + hv -> NO + O        ]  =  ', i5 )
+180 FORMAT( 'FjxState%RXN_JNITSa [ NITS + hv -> HNO2        ]  =  ', i5 )
+190 FORMAT( 'FjxState%RXN_JNITSb [ NITS + hv -> NO2         ]  =  ', i5 )
+200 FORMAT( 'FjxState%RXN_JNITa  [ NIT + hv -> HNO2         ]  =  ', i5 )
+210 FORMAT( 'FjxState%RXN_JNITb  [ NIT + hv -> NO2          ]  =  ', i5 )
 
   END SUBROUTINE RD_JS_JX
 !EOC
@@ -5520,6 +5488,7 @@ CONTAINS
 !
     REAL(fp) :: C_O2,     C_N2, C_H2,   ITEMPK, RO1DplH2O
     REAL(fp) :: RO1DplH2, RO1D, NUMDEN, TEMP,   C_H2O
+    REAL(fp) :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
 
     !=================================================================
     ! PHOTRATE_ADJ begins here!
@@ -5543,28 +5512,29 @@ CONTAINS
        JNITChanB  = FjxState%Config%JNITChanB
        JNITChanA  = JNITChanA / 100.0_fp
        JNITChanB  = JNITChanB / 100.0_fp
+
        ! Set the photolysis rate of NITs
-       ZPJ(L,RXN_JNITSa,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNITs
-       ZPJ(L,RXN_JNITSb,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNITs
+       ZPJ(L,FjxState%RXN_JNITSa,I,J) = ZPJ(L,FjxState%RXN_JHNO3,I,J) * JscaleNITs
+       ZPJ(L,FjxState%RXN_JNITSb,I,J) = ZPJ(L,FjxState%RXN_JHNO3,I,J) * JscaleNITs
        ! Set the photolysis rate of NIT
-       ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
-       ZPJ(L,RXN_JNITb,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
+       ZPJ(L,FjxState%RXN_JNITa,I,J) = ZPJ(L,FjxState%RXN_JHNO3,I,J) * JscaleNIT
+       ZPJ(L,FjxState%RXN_JNITb,I,J) = ZPJ(L,FjxState%RXN_JHNO3,I,J) * JscaleNIT
        ! Adjust to scaling for channels set in input.geos
        ! NOTE: channel scaling is 1 in FJX_j2j.dat, then updated here
-       ZPJ(L,RXN_JNITSa,I,J) = ZPJ(L,RXN_JNITSa,I,J) * JNITChanA
-       ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JNITa,I,J) * JNITChanA
-       ZPJ(L,RXN_JNITSb,I,J) = ZPJ(L,RXN_JNITSb,I,J) * JNITChanB
-       ZPJ(L,RXN_JNITb,I,J) = ZPJ(L,RXN_JNITb,I,J) * JNITChanB
+       ZPJ(L,FjxState%RXN_JNITSa,I,J) = ZPJ(L,FjxState%RXN_JNITSa,I,J) * JNITChanA
+       ZPJ(L,FjxState%RXN_JNITa,I,J)  = ZPJ(L,FjxState%RXN_JNITa,I,J) * JNITChanA
+       ZPJ(L,FjxState%RXN_JNITSb,I,J) = ZPJ(L,FjxState%RXN_JNITSb,I,J) * JNITChanB
+       ZPJ(L,FjxState%RXN_JNITb,I,J)  = ZPJ(L,FjxState%RXN_JNITb,I,J) * JNITChanB
 
     ! Gotcha to set JNIT and JNITs to zero if hvAerNIT switch is off
     ELSE
 
        ! Set the photolysis rate of NITs to zero
-       ZPJ(L,RXN_JNITSa,I,J) = 0.0_fp
-       ZPJ(L,RXN_JNITSb,I,J) = 0.0_fp
+       ZPJ(L,FjxState%RXN_JNITSa,I,J) = 0.0_fp
+       ZPJ(L,FjxState%RXN_JNITSb,I,J) = 0.0_fp
        ! Set the photolysis rate of NIT to zero
-       ZPJ(L,RXN_JNITa,I,J) = 0.0_fp
-       ZPJ(L,RXN_JNITb,I,J) = 0.0_fp
+       ZPJ(L,FjxState%RXN_JNITa,I,J) = 0.0_fp
+       ZPJ(L,FjxState%RXN_JNITb,I,J) = 0.0_fp
 
     ENDIF
 
@@ -5585,7 +5555,7 @@ CONTAINS
        ! Calculate if H2SO4 expected to be gaseous or aqueous
        ! Only allow photolysis above 6 hPa
        ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
-       ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
+       ZPJ(L,FjxState%RXN_H2SO4,I,J) = ZPJ(L,FjxState%RXN_H2SO4,I,J) * FRAC
 
        !==============================================================
        ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5606,8 +5576,8 @@ CONTAINS
        ! Need to subtract O3->O1D from rate
        ! RXN_O3_1  specifies: O3 + hv -> O2 + O
        ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-       ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) &
-                           - ZPJ(L,RXN_O3_2a,I,J)
+       ZPJ(L,FjxState%RXN_O3_1,I,J) = ZPJ(L,FjxState%RXN_O3_1,I,J) &
+                           - ZPJ(L,FjxState%RXN_O3_2a,I,J)
 
     ELSE
 
@@ -5666,10 +5636,10 @@ CONTAINS
        IF ( RO1D > 0.0_fp ) THEN
 
           ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
-          ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
+          ZPJ(L,FjxState%RXN_O3_2a,I,J) = ZPJ(L,FjxState%RXN_O3_2a,I,J) * RO1DplH2O / RO1D
 
-          ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
-          ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
+          ! FjxState%RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
+          ZPJ(L,FjxState%RXN_O3_2b,I,J) = ZPJ(L,FjxState%RXN_O3_2b,I,J) * RO1DplH2  / RO1D
 
        ENDIF
 

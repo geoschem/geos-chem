@@ -90,8 +90,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( FjxState, Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+  SUBROUTINE Do_FlexChem( Input_Opt,  State_Grid, FjxState, State_Chm, &
+                          State_Diag, State_Met,  RC )
 !
 ! !USES:
 !
@@ -100,7 +100,7 @@ CONTAINS
     USE DUST_MOD,             ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX, Fjx_State
+    USE Fast_JX_Mod,          ONLY : PHOTRATE_ADJ, FAST_JX, Fjx_State
     USE GCKPP_HetRates,       ONLY : SET_HET
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
@@ -139,15 +139,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Fjx_State), INTENT(IN)    :: FjxState   ! FAST-JX object
     TYPE(OptInput),  INTENT(IN)    :: Input_Opt  ! Input Options object
     TYPE(GrdState),  INTENT(IN)    :: State_Grid ! Grid State object
+    TYPE(Fjx_State), INTENT(IN)    :: FjxState   ! FAST-JX object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState),  INTENT(INOUT) :: State_Met  ! Meteorology State object
     TYPE(ChmState),  INTENT(INOUT) :: State_Chm  ! Chemistry State object
     TYPE(DgnState),  INTENT(INOUT) :: State_Diag ! Diagnostics State object
+    TYPE(MetState),  INTENT(INOUT) :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1284,12 +1284,13 @@ CONTAINS
        ! active nitrogen partitioning and H2SO4 photolysis
        ! approximations  outside the chemgrid
        !--------------------------------------------------------------------
-       CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
+       CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met, FjxState )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
        ENDIF
 
-       CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
+       CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met, &
+                           FjxState )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
        ENDIF

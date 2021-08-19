@@ -372,7 +372,7 @@ CONTAINS
        ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
        DO J = 1, JVN_
 
-          IF ( J == FjxState%RxnFlags%Rxn_O3_2a ) THEN
+          IF ( J == FjxState%Rxn_O3_2a ) THEN
 
              !------------------------------------------------------------
              ! O3 + hv = O + O(1D) branch 1
@@ -382,7 +382,7 @@ CONTAINS
              !------------------------------------------------------------
              GC_Photo_Id(J) = FjxState%nPhotol + 1
 
-          ELSE IF ( J == FjxState%RxnFlags%Rxn_O3_1 ) THEN
+          ELSE IF ( J == FjxState%Rxn_O3_1 ) THEN
 
              !------------------------------------------------------------
              ! O3 + hv -> O + O
@@ -396,7 +396,7 @@ CONTAINS
                 GC_Photo_Id(J) = -999
              ENDIF
 
-          ELSE IF ( J == FjxState%RxnFlags%Rxn_O3_2b ) THEN
+          ELSE IF ( J == FjxState%Rxn_O3_2b ) THEN
 
              !------------------------------------------------------------
              ! O3 + hv -> O2 + O(1d) branch 2

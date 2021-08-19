@@ -219,12 +219,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
+  SUBROUTINE UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met, FjxState )
 !
 ! !USES:
 !
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : DEBUG_MSG
+    USE Fast_JX_Mod,        ONLY : Fjx_State
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -237,13 +238,13 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_LOCALTIME
     USE TIME_MOD,           ONLY : GET_MINUTE
     USE CMN_FJX_MOD,        ONLY : ZPJ
-    USE FAST_JX_MOD,        ONLY : RXN_NO, RXN_NO2, RXN_NO3, RXN_N2O
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(OptInput),  INTENT(IN)   :: Input_Opt   ! Input options
+    TYPE(GrdState),  INTENT(IN)   :: State_Grid  ! Grid State object
+    TYPE(MetState),  INTENT(IN)   :: State_Met   ! Meteorology State object
+    TYPE(Fjx_State), INTENT(IN)   :: FjxState    ! FAST-JX State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -476,13 +477,13 @@ CONTAINS
           RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
           ! 4:  NO2 + hv -> NO + O1D
           !RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
-          RRATE(k_JNO2) = ZPJ(LMINPHOT,RXN_NO2,I,J)
+          RRATE(k_JNO2) = ZPJ(LMINPHOT,FjxState%RXN_NO2,I,J)
           ! 5:  NO3 + hv -> NO2 + O
           !RRATE(k_JNO3) = NOX_J(I,J,L,JNO3IDX)*DAYFRAC
-          RRATE(k_JNO3) = ZPJ(LMINPHOT,RXN_NO3,I,J)
+          RRATE(k_JNO3) = ZPJ(LMINPHOT,FjxState%RXN_NO3,I,J)
           ! 6:  NO + hv -> N + O
           !RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
-          RRATE(k_JNO) = ZPJ(LMINPHOT,RXN_NO,I,J)
+          RRATE(k_JNO) = ZPJ(LMINPHOT,FjxState%RXN_NO,I,J)
           ! 7:  N + NO2 -> N2O + O
           RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
           ! 8:  N + NO -> N2 + O
@@ -495,7 +496,7 @@ CONTAINS
           RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
           ! 12:  N2O + hv -> N2 + O1D
           !RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
-          RRATE(k_JN2O) = ZPJ(LMINPHOT,RXN_N2O,I,J)
+          RRATE(k_JN2O) = ZPJ(LMINPHOT,FjxState%RXN_N2O,I,J)
 
           ! Sanity check
           Where(RRate.lt.0.0e+0_fp) RRate = 0.0e+0_fp
@@ -3833,12 +3834,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
+  SUBROUTINE UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            FjxState )
 !
 ! !USES:
 !
     USE CMN_FJX_MOD,        ONLY : ZPJ
-    USE FAST_JX_MOD,        ONLY : RXN_H2SO4
+    USE FAST_JX_MOD,        ONLY : Fjx_State
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -3847,9 +3849,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState),  INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(Fjx_State), INTENT(IN)    :: FjxState    ! FAST-JX State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3905,7 +3908,7 @@ CONTAINS
           LMINPHOT  = State_Met%ChemGridLev(I,J)
 
           ! Retrieve photolysis rate as a fraction of gaseous SO4
-          PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM
+          PHOTDELTA = ZPJ(LMINPHOT,FjxState%RXN_H2SO4,I,J) * DTCHEM
           PHOTDELTA = MIN(1.e+0_fp,PHOTDELTA)
 
           DO L=LMINPHOT+1,State_Grid%NZ

@@ -744,8 +744,8 @@ PROGRAM GEOS_Chem
 
   ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
   ! and restart file fields
-  CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid,  &
-                      State_Met, TimeForEmis, 0,          RC )
+  CALL Emissions_Run( Input_Opt, State_Chm, State_Diag,  State_Grid,  &
+                      State_Met, FjxState,  TimeForEmis, 0,          RC )
 
   ! Trap potential errors
   IF ( RC /= GC_SUCCESS ) THEN
@@ -990,8 +990,8 @@ PROGRAM GEOS_Chem
        TimeForEmis = ITS_TIME_FOR_EMIS()
 
        ! Run HEMCO Phase 1
-       CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid, &
-                           State_Met, TimeForEmis, 1,          RC )
+       CALL Emissions_Run( Input_Opt, State_Chm, State_Diag,  State_Grid, &
+                           State_Met, FjxState,  TimeForEmis, 1,          RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1495,8 +1495,8 @@ PROGRAM GEOS_Chem
           ! only calculates emissions. All data has been read to disk
           ! in phase 1 at the beginning of the time step.
           ! (ckeller, 4/1/15)
-          CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid, &
-                              State_Met, TimeForEmis, 2,          RC )
+          CALL Emissions_Run( Input_Opt, State_Chm, State_Diag,  State_Grid, &
+                              State_Met, FjxState,  TimeForEmis, 2,          RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

@@ -138,14 +138,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( Input_Opt, State_Chm, State_Diag, &
-                            State_Grid, State_Met, EmisTime,  Phase, RC   )
+  SUBROUTINE Emissions_Run( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                            State_Met, FjxState,  EmisTime,   Phase, RC   )
 !
 ! !USES:
 !
     USE CARBON_MOD,         ONLY : EMISSCARBON
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
+    USE Fast_JX_Mod,        ONLY : Fjx_State
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -164,17 +165,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
-    INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
-    TYPE(GrdState), INTENT(IN   )  :: State_Grid ! Grid State object
+    LOGICAL,         INTENT(IN   )  :: EmisTime   ! Emissions in this time step
+    INTEGER,         INTENT(IN   )  :: Phase      ! Run phase
+    TYPE(GrdState),  INTENT(IN   )  :: State_Grid ! Grid State object
+    TYPE(Fjx_State), INTENT(IN   )  :: FjxState   ! Fast-JX State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT)  :: State_Diag ! Diagnostics State object
-    TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Meteorology State object
-    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
-    INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(ChmState),  INTENT(INOUT)  :: State_Chm  ! Chemistry State object
+    TYPE(DgnState),  INTENT(INOUT)  :: State_Diag ! Diagnostics State object
+    TYPE(MetState),  INTENT(INOUT)  :: State_Met  ! Meteorology State object
+    TYPE(OptInput),  INTENT(INOUT)  :: Input_Opt  ! Input Options object
+    INTEGER,         INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
@@ -200,7 +202,7 @@ CONTAINS
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the
     ! HEMCO data list, phase 2 will perform the emission calculations.
     CALL HCOI_GC_Run( Input_Opt, State_Chm, State_Grid, &
-                      State_Met, EmisTime,  Phase,     RC          )
+                      State_Met, FjxState, EmisTime,  Phase,     RC          )
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "HCOI_GC_Run"!'
