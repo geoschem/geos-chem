@@ -41,6 +41,7 @@ MODULE FAST_JX_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: FJX_Error
   PRIVATE :: SOLAR_JX
   PRIVATE :: OPMIE
   PRIVATE :: MIESCT
@@ -60,6 +61,15 @@ MODULE FAST_JX_MOD
 !
 ! !PUBLIC DERIVED TYPES
 !
+  ! Physical constants
+  TYPE :: Fjx_PhysConst
+     REAL(fp) :: PI    ! Double-Precision value of PI (and radians per degree) 
+     REAL(fp) :: AIRMW ! Average molecular weight of dry air [g/mol]
+     REAL(fp) :: AVO   ! Avogadro's number [particles/mol] 
+     REAL(fp) :: g0    ! Acceleration due to gravity at earth's surface [m/s^2]
+     REAL(fp) :: BOLTZ ! Boltzmann's constant [J/K]
+  END TYPE Fjx_PhysConst
+
   ! Run settings
   TYPE :: Fjx_Config
      LOGICAL :: amIRoot
@@ -109,9 +119,10 @@ MODULE FAST_JX_MOD
   TYPE, PUBLIC :: Fjx_State
 
      ! Derived types
-     TYPE(Fjx_Config),    POINTER :: Config             => NULL()
-     TYPE(Fjx_Grid  ),    POINTER :: Grid               => NULL()
-     TYPE(Fjx_Met   ),    POINTER :: Met                => NULL()
+     TYPE(Fjx_PhysConst), POINTER :: PhysConst  => NULL()
+     TYPE(Fjx_Config   ), POINTER :: Config     => NULL()
+     TYPE(Fjx_Grid     ), POINTER :: Grid       => NULL()
+     TYPE(Fjx_Met      ), POINTER :: Met        => NULL()
 
      ! Integers
      INTEGER :: nPhotol
@@ -155,7 +166,11 @@ MODULE FAST_JX_MOD
 #endif
 
   END TYPE Fjx_State
-
+!
+! !DEFINED PARAMETERS: should actually set these to model's def... ewl
+!
+  INTEGER, PUBLIC, PARAMETER :: FJX_SUCCESS =  0   ! Routine returns success
+  INTEGER, PUBLIC, PARAMETER :: FJX_FAILURE = -1   ! Routine returns failure
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -184,7 +199,6 @@ CONTAINS
 !
 ! !USES:
 !
-  USE ERRCODE_MOD
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -211,7 +225,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC          = GC_SUCCESS
+    RC          = FJX_SUCCESS
     ErrMsg      = ''
     ThisLoc     = ' -> at FjxState_Init (in module GeosCore/fast_jx_mod.F90)'
 
@@ -224,12 +238,27 @@ CONTAINS
     FjxState%TO3_Daily => NULL()
 
     !=====================================================================
+    ! physical constants
+    !=====================================================================
+    ALLOCATE ( FjxState%PhysConst, STAT = AS )
+    IF ( AS /= 0 ) THEN
+       ErrMsg = 'FjxState physical constants'
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    FjxState%PhysConst%PI    = 0.0_fp
+    FjxState%PhysConst%AIRMW = 0.0_fp
+    FjxState%PhysConst%AVO   = 0.0_fp
+    FjxState%PhysConst%g0    = 0.0_fp
+    FjxState%PhysConst%BOLTZ = 0.0_fp
+
+    !=====================================================================
     ! input configuration
     !=====================================================================
     ALLOCATE ( FjxState%Config, STAT = AS )
     IF ( AS /= 0 ) THEN
        ErrMsg = 'FjxState config'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     FjxState%Config%amIRoot         = .FALSE. !Input_Opt%amIRoot
@@ -258,7 +287,7 @@ CONTAINS
     ALLOCATE ( FjxState%Grid, STAT = AS )
     IF ( AS /= 0 ) THEN
        ErrMsg = 'FjxState grid'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     FjxState%Grid%NX         = 0       !State_Grid%NX
@@ -273,7 +302,7 @@ CONTAINS
     ALLOCATE ( FjxState%Met, STAT = AS )
     IF ( AS /= 0 ) THEN
        ErrMsg = 'FjxState met'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     FjxState%Met%ChemGridLev => NULL() !State_Met%ChemGridLev
@@ -329,7 +358,6 @@ CONTAINS
 !
 ! !USES:
 !
-  USE ERRCODE_MOD
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -356,7 +384,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC          = GC_SUCCESS
+    RC          = FJX_SUCCESS
     ErrMsg      = ''
     ThisLoc     = ' -> at FjxState_Final (in module GeosCore/fast_jx_mod.F90)'
 
@@ -428,7 +456,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,       ONLY : NDUST, NRH
-    USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
@@ -511,7 +538,7 @@ CONTAINS
     !=================================================================
 
     ! Error handling
-    RC        = GC_SUCCESS
+    RC        = FJX_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' -> at Fast_JX (in module GeosCore/fast_jx_mod.F)'
     prtDebug  = ( FjxState%Config%LPRT .and. FjxState%Config%amIRoot)
@@ -548,7 +575,7 @@ CONTAINS
        ! Check there's a valid species ID for O3
        IF ( FjxState%id_O3 < 0 ) THEN
           ErrMsg = 'O3 is not a defined species!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -1948,7 +1975,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE inquireMod,     ONLY : findFreeLUN
 #if defined( MODEL_CESM )
     USE UNITS,          ONLY : freeUnit
@@ -1988,7 +2014,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC           = GC_SUCCESS
+    RC           = FJX_SUCCESS
     ErrMsg       = ''
     ThisLoc      = ' -> at Init_FJX (in module GeosCore/fast_jx_mod.F90)'
     notDryRun    = ( .not. FjxState%Config%DryRun )
@@ -2002,7 +2028,7 @@ CONTAINS
 
           if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
              ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             CALL FJX_Error( ErrMsg, RC, ThisLoc )
              RETURN
           endif
        ENDIF
@@ -2032,9 +2058,9 @@ CONTAINS
     CALL RD_XXX( JXUNIT, TRIM( FILENAME ), FjxState, RC)
 
     ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= FJX_SUCCESS ) THEN
        ErrMsg = 'Error encountered in FAST-JX routine "RD_XXX"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2061,9 +2087,9 @@ CONTAINS
     CALL RD_MIE( JXUNIT, TRIM( FILENAME ), FjxState, RC )
 
     ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= FJX_SUCCESS ) THEN
        ErrMsg = 'Error encountered in FAST-JX routine "RD_MIE"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2074,9 +2100,9 @@ CONTAINS
     CALL RD_AOD( JXUNIT, FjxState, RC )
 
     ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= FJX_SUCCESS ) THEN
        ErrMsg = 'Error encountered in FAST-JX routine "RD_AOD"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2092,9 +2118,9 @@ CONTAINS
     CALL RD_PROF_NC( FjxState, RC )
 
     ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= FJX_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Rd_Prof_Nc"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2116,9 +2142,9 @@ CONTAINS
     CALL RD_JS_JX( JXUNIT, TRIM( FILENAME ), TITLEJXX, NJXX, FjxState, RC )
 
     ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
+    IF ( RC /= FJX_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Rd_Js_Jx"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -2152,7 +2178,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2222,7 +2247,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
+    RC      = FJX_SUCCESS
     ErrMsg  = ''
     ThisLoc = '-> at RD_XXX (in module GeosCore/fast_jx_mod.F)'
 
@@ -2249,7 +2274,7 @@ CONTAINS
     ELSE
        IF ( .not. FileExists ) THEN
           WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
@@ -2509,7 +2534,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2556,7 +2580,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC = FJX_SUCCESS
     ErrMsg = ''
     ThisLoc = ' -> at RD_MIE (in module GeosCore/fast_jx_mod.F90)'
 
@@ -2583,7 +2607,7 @@ CONTAINS
     ELSE
        IF ( .not. FileExists ) THEN
           WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
@@ -2683,7 +2707,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2743,7 +2766,7 @@ CONTAINS
     !================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
+    RC       = FJX_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at RD_AOD (in module GeosCore/fast_jx_mod.F90)'
     LBRC     = FjxState%Config%LBRC
@@ -2807,7 +2830,7 @@ CONTAINS
        ELSE
           IF ( .not. FileExists ) THEN
              WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             CALL FJX_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDIF
@@ -2827,7 +2850,7 @@ CONTAINS
        ! Error check
        IF ( RC /= 0 ) THEN
           ErrMsg = 'Error opening file: ' // TRIM( ThisFile )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -3161,7 +3184,6 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,   ONLY : CStrip
-    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3210,7 +3232,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
+    RC       = FJX_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at Rd_Js_Jx (in module GeosCore/fast_jx_mod.F90)'
 
@@ -3242,7 +3264,7 @@ CONTAINS
     ELSE
        IF ( .not. FileExists ) THEN
           WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
@@ -3280,7 +3302,7 @@ CONTAINS
           ELSE
              ErrMsg = 'Number of reactions in FJX_j2j.dat exceeds JVN_.' //&
                       'Adjust JVN_ in CMN_FJX_mod.F90 to get past this error.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             CALL FJX_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDIF
@@ -3437,60 +3459,60 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( FjxState%RXN_O2 < 0 ) THEN
        ErrMsg = 'Could not find rxn O2 + hv -> O + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_O3_1 < 0 ) THEN
        ErrMsg = 'Could not find rxn O3 + hv -> O2 + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_O3_2a < 0 ) THEN
        ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_O3_2b  < 0 ) THEN
        ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
     ENDIF
 
     IF ( FjxState%RXN_NO2 < 0 ) THEN
        ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_NO2 < 0 ) THEN
        ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_JNITSa < 0 ) THEN
        ErrMsg = 'Could not find rxn NITS + hv -> HNO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_JNITSb < 0 ) THEN
        ErrMsg = 'Could not find rxn NITS + hv -> NO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_JNITa < 0 ) THEN
        ErrMsg = 'Could not find rxn NIT + hv -> HNO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     IF ( FjxState%RXN_JNITb < 0 ) THEN
        ErrMsg = 'Could not find rxn NIT + hv -> NO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL FJX_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -3501,25 +3523,25 @@ CONTAINS
 
        IF ( FjxState%RXN_H2SO4  < 0 ) THEN
           ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        IF ( FjxState%RXN_NO3 < 0 ) THEN
           ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        IF ( FjxState%RXN_NO < 0 ) THEN
           ErrMsg = 'Could not find rxn NO + hv -> O + N'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        IF ( FjxState%RXN_N2O < 0 ) THEN
           ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -3574,16 +3596,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOLAR_JX(NDAY,COSSZA,SZA,SOLFX)
+  SUBROUTINE SOLAR_JX(FjxState,NDAY,COSSZA,SZA,SOLFX)
 !
 ! !USES:
 !
-    USE PhysConstants,ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(fp), INTENT(IN)  ::  COSSZA
-    INTEGER,  INTENT(IN)  ::  NDAY
+    TYPE(Fjx_State), INTENT(IN)  ::  FjxState
+    REAL(fp),        INTENT(IN)  ::  COSSZA
+    INTEGER,         INTENT(IN)  ::  NDAY
 !
 ! !OUTPUT VARIABLES:
 !
@@ -3612,13 +3634,13 @@ CONTAINS
     ! SOLAR_JX begins here!
     !=================================================================
 
-    PI180  = PI/180.e+0_fp
+    PI180  = FjxState%PhysConst%PI/180.e+0_fp
     SZA    = acos(MIN(MAX(COSSZA,-1._fp),1._fp))/PI180
 
     ! Offset used for GEOS-Chem slightly different
     !SOLFX  = 1.e+0_fp-(0.034e+0_fp*cos(dble(NDAY-186)*2.e+0_fp*PI/365.e+0_fp))
     SOLFX  = 1.e+0_fp-(0.034e+0_fp*cos(dble(NDAY-172) &
-            *2.e+0_fp*PI/365.e+0_fp))
+            *2.e+0_fp*FjxState%PhysConst%PI/365.e+0_fp))
 
   END SUBROUTINE SOLAR_JX
 !EOC
@@ -3755,7 +3777,7 @@ CONTAINS
 
     ! Input conversion (SDE 03/29/13)
     ! Calculate solar zenith angle (degrees)
-    CALL SOLAR_JX(DAY_OF_YR,U0,SZA,SOLF)
+    CALL SOLAR_JX(FjxState,DAY_OF_YR,U0,SZA,SOLF)
 
     L2EDGE = L_ + L_ + 2
     FFF(:,:) = 0.e+0_fp
@@ -4853,7 +4875,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_Mod,       ONLY : NAER, NRH
-    USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
 !
 ! !INPUT PARAMETERS:
 !
@@ -4941,7 +4962,8 @@ CONTAINS
     PSTD(52) = 0.e+0_fp
 
     ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-    MASFAC = 100.e+0_fp * AVO / ( AIRMW * g0 * 10.e+0_fp )
+    MASFAC = 100.e+0_fp * FjxState%PhysConst%AVO &
+             / ( FjxState%PhysConst%AIRMW * FjxState%PhysConst%g0 * 10.e+0_fp )
 
     ! Select appropriate monthly and latitudinal profiles
     ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99)
@@ -4978,7 +5000,7 @@ CONTAINS
     !=================================================================
     Z_CLIM(1) = 0.e+0_fp
     DO I = 1, L_
-       SCALEH = BOLTZ * 1.e+4_fp * MASFAC * T_CLIM(I)
+       SCALEH = FjxState%PhysConst%BOLTZ * 1.e+4_fp * MASFAC * T_CLIM(I)
 
        Z_CLIM(I+1) = Z_CLIM(I) - ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
     ENDDO
@@ -5229,7 +5251,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
 
 #if defined( MODEL_CESM )
     USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
@@ -5300,7 +5321,7 @@ CONTAINS
 
     ! Initialize
     ! Assume success
-    RC      = GC_SUCCESS
+    RC      = FJX_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/fast_jx_mod.F90)'
 
@@ -5337,7 +5358,7 @@ CONTAINS
     ELSE
        IF ( .not. FileExists ) THEN
           WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL FJX_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
@@ -5455,7 +5476,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -5494,7 +5514,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
+    RC      = FJX_SUCCESS
     TEMP    = FjxState%Met%T(I,J,L)                                 ! K
     NUMDEN  = FjxState%Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
     C_H2O   = FjxState%Met%AVGW(I,J,L) * FjxState%Met%AIRNUMDEN(I,J,L) ! molec/cm3
@@ -5645,5 +5665,88 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE PHOTRATE_ADJ
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FJX_Error
+!
+! !DESCRIPTION: Subroutine FJX\_Error prints an error message and sets RC to
+!  FJX\_FAILURE. Note that this routine does not stop a run, but it will cause
+!  a stop at a higher level if you add a catch for RC /= FJX\_SUCCESS.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FJX_Error( ErrMsg, RC, ThisLoc, Instr )
+!
+! !USES:
+!
+    USE Charpak_Mod,    ONLY : WordWrapPrint
+#if defined( MODEL_CESM )
+    USE CAM_ABORTUTILS, ONLY : ENDRUN
+#endif
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg  ! Message to display
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc ! Location of error
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: Instr   ! Other instructions
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC      ! Error code
+!
+! !REVISION HISTORY:
+!  20 Aug 2021 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    CHARACTER(LEN=1000) :: Message
+
+    !=======================================================================
+    ! FJX_ERROR begins here
+    !=======================================================================
+
+    ! Separator
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+    ! Print error message to log
+    Message =  'Fast-JX ERROR: ' // TRIM( ErrMsg )
+    CALL WordWrapPrint( Message, 78 )
+
+    ! Print error location to log
+    IF ( PRESENT( ThisLoc ) ) THEN
+       Message = 'ERROR LOCATION: ' // TRIM( ThisLoc )
+       WRITE( 6, '(a)' ) TRIM( ThisLoc )
+    ENDIF
+
+    ! Print additional instructions to log
+    IF ( PRESENT( Instr ) ) THEN
+       WRITE( 6, '(a)' )
+       CALL WordWrapPrint( Instr, 78 )
+    ENDIF
+
+    ! Separators
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    WRITE( 6, '(a)' ) ''
+
+    ! Force the message to be flushed to the log file
+    CALL Flush( 6 )
+
+#if defined( MODEL_CESM )
+    CALL ENDRUN('GEOS-Chem failure!')
+#endif
+
+    ! Return with failure, but preserve existing error code
+    IF ( RC == FJX_SUCCESS ) THEN
+       RC = FJX_FAILURE
+    ENDIF
+
+  END SUBROUTINE FJX_Error
 !EOC
 END MODULE FAST_JX_MOD

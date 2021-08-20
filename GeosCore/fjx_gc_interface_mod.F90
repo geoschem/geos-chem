@@ -62,6 +62,7 @@ CONTAINS
     USE ERRCODE_MOD
     USE Fast_JX_Mod,        ONLY : Fjx_State, FjxState_Init
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : PI, AIRMW, AVO, g0, BOLTZ
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
@@ -112,6 +113,13 @@ CONTAINS
     FjxState%id_O3     =  Ind_('O3')
     FjxState%Species   => State_Chm%Species
     FjxState%TO3_Daily => State_Chm%TO3_Daily
+
+    ! Set physical constants to values used in GEOS-Chem
+    FjxState%PhysConst%PI    = PI
+    FjxState%PhysConst%AIRMW = AIRMW
+    FjxState%PhysConst%AVO   = AVO
+    FjxState%PhysConst%g0    = g0
+    FjxState%PhysConst%BOLTZ = BOLTZ
 
     ! Set Config from GEOS-Chem object Input_Opt
     FjxState%Config%DryRun            = Input_Opt%DryRun
