@@ -357,7 +357,7 @@ def create_download_script(paths, args):
     if "AWS" in args["remote"]:
         cmd_prefix = "aws s3 cp --request-payer=requester "
         quote = ""
-    if "CC" in args["remote"]:
+    if ("WUSTL" in args["remote"]) or ("CC" in args["remote"]):
         cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' + \
                      paths["local_prefix"] + " "
         quote = '"'
@@ -398,7 +398,7 @@ def create_download_script(paths, args):
 
                 # If the file does not exist in the run directory,
                 # then copy it from the restart folder.
-                # This only has to be done from CC or UR,
+                # This only has to be done from WUSTL, CC, or UR,
                 # since AWS will download directly to the rundir.
                 if "AWS" not in args["remote"]:
                     if not os.path.exists(local_rst):
@@ -619,6 +619,9 @@ def parse_args():
         elif "CC" in sys.argv[i].upper():
             remote = "CC"
             remote_root = "http://geoschemdata.computecanada.ca/ExtData"
+        elif "WUSTL" in sys.argv[i].upper():
+            remote = "WUSTL"
+            remote_root = "http://geoschemdata.wustl.edu/ExtData"
         elif "UR" in sys.argv[i].upper():
             remote = "UR"
             remote_root = "http://atmos.earth.rochester.edu/input/gc/ExtData/"
@@ -646,6 +649,7 @@ def main():
     Calling sequence:
     -----------------
         ./download_data.py log -aws            # from AWS
+        ./download_data.py log -wustl          # from Washington University in St. Louis
         ./download_data.py log -cc             # from ComputeCanada
         ./download_data.py log -ur             # from U. Rochester
         ./download_data.py log -skip-download  # Print unique log & exit
