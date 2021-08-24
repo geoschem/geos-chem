@@ -93,14 +93,15 @@ Warnings:                    1
 ###    --> OTD-LIS scaling   :       0.634
 #C720   --> OTD-LIS scaling   :       1.4152E-3
 #C180   --> OTD-LIS scaling   :       1.527e-2
-    --> OTD-LIS scaling   :       0.1    
+    --> OTD-LIS scaling   :       0.12
     --> CDF table         :       /discover/nobackup/cakelle2/data/light_dist.ott2010.dat
     --> Use CNV_FRC       :       false
     --> OTD-LIS factors   :       false
 104     SoilNOx           : on    NO 
     --> Use fertilizer NOx:       true
 105     DustDead          : on    DST1/DST2/DST3/DST4
-    --> Mass tuning factor:       4.0e-4 
+    --> Mass tuning factor:       2.454e-4 
+####    --> Mass tuning factor:       4.0e-4 
 ####    --> Mass tuning factor:       5.0416e-4
 #C48    --> Mass tuning factor:       5.0416e-4
 #C720   --> Mass tuning factor:       2.3e-4

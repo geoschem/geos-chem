@@ -102,13 +102,13 @@ ARCHIVED_CONV:        0
 
 # %%% Use MOIST module for convective transport (including washout)
 # Make species friendly to moist? If turned on, convection must be turned off in input.geos
-Species_friendly_to_moist: 0
+Species_friendly_to_moist: 1
 # Turn off washout for SO2?
 TurnOff_SO2_washout: 1
 # Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
 Online_CLDLIQ: 1
 # Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
-Online_VUD: 0
+Online_VUD: 1
 
 #
 # %%% Tuning parameter to reduce washout efficiency 
@@ -141,8 +141,12 @@ Prescribe_strat_H2O: 1
 # %%% instead of internal state
 #
 INIT_SPC_FROM_FILE: 0
-INIT_SPC_FILE: /discover/nobackup/cakelle2/GEOS_CF/v11-02e/GC_v1102e/21_v11-02e_UCX_PL/GEOSChem_restart.201308010000.edit.nc 
+INIT_SPC_FILE: /discover/nobackup/cakelle2/GCC_Restarts/v13.1.0-beta.1/GEOSChem.Restart.20190801_0000z.edit.incHEMCO.nc4
 UNIFORM_IF_MISSING: 1.0e-12
+DATA_IS_IN_PPBV: 1
+ONLY_ON_FIRST_STEP: 1
+DATA_ON_GEOS_LEVELS: 1
+DO_NOT_OVERWRITE_ABOVE_LEVEL: 59
 
 USE_GMI_MESO: 0
 GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf.nc
@@ -164,7 +168,7 @@ Use_GMI_O3_PL:        0
 # must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
 # If no file is found for a given time step, nudging is skipped. Diagnostics 'ANA_O3_INC' outputs the ozone increments added to 
 # the GEOS-Chem ozone field.
-Use_ANA_O3: 0
+Use_ANA_O3: 1
 ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
 ANAO3L1: 38
 ANAO3L2: 40
@@ -179,16 +183,16 @@ Use_PCHEM_O3: 0
 # Input source for flash rates: If set to 'LFR' or 'LFR_GCC', the corresponding MOIST export is used. If set to any other
 # name, will search for that name in the import state. For instance, set it to 'LFR_OFFLINE' and then define an import via
 # ExtData to use LFR values from a file. Default is LFR_GCC. All values expected in [flashes km-2 s-1].
-# Scale factors can be defined to adjust the imported LFR field for the southern extratropics (<23S), tropics (23S-23N), and 
+# Scale factors can be defined to adjust the imported LFR field for the southern extratropics (<23S), tropics (23S-23N), and
 # the northern extratropics (>23N). In addition, a global scale factor can be set to rescale the overall LFR.
 # These factors can be used to better match the expected global annual average flash rate of 46 flashes s-1, and a distribution
 # of ~65% in the tropics and ~23% in the N extratropics.
 #
 LIGHTNING_FLASH_RATE_SOURCE: LFR_GCC
-LFR_SCALING_SOUTHERN_TROP:   1.0
-LFR_SCALING_NORTHERN_TROP:   1.0
-LFR_SCALING_TROPICS:         1.0
-LFR_SCALING_GLOBAL:          1.0
+LFR_SCALING_SOUTHERN_TROP:   2.0
+LFR_SCALING_NORTHERN_TROP:   1.1
+LFR_SCALING_TROPICS:         0.4
+LFR_SCALING_GLOBAL:          2.0
 
 #
 # Input source for convective height: If set to 'CNV_MFC', will compute the convective height from convective mass fluxes
