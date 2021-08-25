@@ -237,7 +237,7 @@ CONTAINS
     REAL(fp)              :: K0,     Ki,      KK,     M,    L1
     REAL(fp)              :: L2,     L3,      Ld,     F,    Fc
     REAL(fp)              :: RK,     RKT,     DTCHEM, DT_T, TK
-    REAL(fp)              :: F1,     RK1,    RK3,  SO20
+    REAL(fp)              :: F1,     RK1,    RK3,     SO20, AVO_over_LWC
     REAL(fp)              :: SO2_cd, H2O20,   O3,     L2S,  L3S
     REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM, RHO, CVFAC
     REAL(fp)              :: ALK,    ALK1,    ALK2,    SO2_AfterSS
@@ -293,55 +293,45 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at SET_SO2 (in module GeosCore/sulfate_mod.F90)'
 
+    ! Initialize variables
     Spc                         => State_Chm%Species(I,J,L,:)
     SSAlk                       => State_Chm%SSAlk(I,J,L,:)
     State_Chm%isCloud(I,J,L)    =  0.0_fp
     State_Chm%pHCloud(I,J,L)    =  0.0_fp
     State_Chm%QLxpHCloud(I,J,L) =  0.0_fp
+    State_Chm%HSO3_aq(I,J,L)    =  1.0e-32_fp
+    State_Chm%SO3_aq(I,J,L)     =  1.0e-32_fp
     DTCHEM                      =  GET_TS_CHEM()  ! Timestep [s]
     IS_FULLCHEM                 =  Input_Opt%ITS_A_FULLCHEM_SIM
     IS_OFFLINE                  =  ( .not. IS_FULLCHEM )
+    Ld                          = 0.0_fp
+    LSTOT                       = 0.0_fp
+    RHO                         = State_Met%AIRDEN(I,J,L)
+    CVFAC                       = 1.E3_fp * AIRMW / ( RHO * AVO ) !mcl/cm3->v/v
+    SO20                        = Spc(id_SO2)  * CVFAC
+    SO2_AfterSS                 = Spc(id_SO2)  * CVFAC
+    H2O20                       = Spc(id_H2O2) * CVFAC
+    KaqH2O2                     = 0.0_fp
+    KaqO3                       = 0.0_fp
+    KaqO3_1                     = 0.0_fp
+    KaqO2                       = 0.0_fp
+    K_CLD                       = 0.0_fp
+    HPLUS                       = 0.0_fp
 
     ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
-    F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
+    F                           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
-    ! On first call, get pointers to HEMCO diagnostics arrays.
-    ! These are the sea salt aerosol number densities for the fine
-    ! and coarse mode, respectively. Values are in # / surface grid
-    ! box. These values are needed in the GET_ALK call below.
-    ! If the diagnostics are not being found, e.g. because the
-    ! sea salt emissions extension is turned off, the passed
-    ! pointers NDENS_SALA and NDENS_SALC will stay nullified.
-    ! Values of zero will be used in this case! (ckeller, 01/12/2015)
-
-    ! Initialize for safety's sake
-    Ld       = 0.0_fp
-    LSTOT    = 0.0_fp
-
-    RHO    = State_Met%AIRDEN(I,J,L)
-    CVFAC  = 1.E3_fp * AIRMW / ( RHO * AVO ) ! mcl/cm3 -> v/v, or v/v -> cm3/mcl
-
-    ! Initial SO2, H2O2, HOBr, and O3 [v/v]
-    SO20   = Spc(id_SO2)*CVFAC
-    H2O20  = Spc(id_H2O2)*CVFAC
+    ! Meteorological data
+    PATM = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.e-2_fp ) ! Press, dry [atm]
+    TK   = State_Met%T(I,J,L)                                 ! Temperature [K]
+    FC   = State_Met%CLDF(I,J,L)                              ! Cloud frac [1]
 
     ! Calculate O3, defined only in the chemistry grid
     ! Get O3 from State_Chm%Species [v/v]
+    O3 = 0e+0_fp
     IF ( State_Met%InChemGrid(I,J,L) ) THEN
        O3 = State_Chm%Species(I,J,L,id_O3)
-    ELSE
-       O3 = 0e+0_fp
     ENDIF
-
-    ! PATM  : Atmospheric pressure in atm
-    ! Now use dry air partial pressure (ewl, 4/28/15)
-    PATM = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.e-2_fp )
-
-    ! TK : Temperature [K]
-    TK = State_Met%T(I,J,L)
-
-    ! Get cloud fraction from met fields
-    FC      = State_Met%CLDF(I,J,L)
 
     ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
     ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
@@ -358,7 +348,8 @@ CONTAINS
     LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
 #endif
 
-    LWC  = MAX( 0.0e+0_fp, LWC )
+    ! QL can sometimes be negative, so force LWC to be positive
+    LWC = MAX( 0.0_fp, LWC )
 
     ! LWC is a grid-box averaged quantity. To improve the representation
     ! of sulfate chemistry, we divide LWC by the cloud fraction and
@@ -366,25 +357,15 @@ CONTAINS
     ! get the appropriate grid-box averaged mass of SO2 and sulfate by
     ! multiplying these quantities by FC AFTER computing the aqueous
     ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
-    LWC     = SafeDiv( LWC, FC, 0e+0_fp )
+    LWC = SafeDiv( LWC, FC, 0.0_fp )
 
-    ! Zero variables
-    KaqH2O2 = 0.e+0_fp
-    KaqO3   = 0.e+0_fp
-    KaqO3_1 = 0.e+0_fp !(qjc, 04/10/16)
-    KaqO2   = 0.e+0_fp
 
-    SO2_AfterSS = Spc(id_SO2) * CVFAC
+    ! If (1) there is cloud, (2) there is SO2 present, (3) T > -15 C, and
+    ! (4) liquid water content (LWC) is present (but not small enough to
+    ! make divisions blow up), then compute sulfate production in cloud.
+    IF ( ( FC > 1.0e-4_fp ) .and. ( SO2_AfterSS > MINDAT      )  .and.       &
+         ( TK > 258.0_fp  ) .and. ( LWC         > 1.0e-20_fp  ) ) THEN
 
-    K_CLD    = 0.0_fp
-
-    ! If (1) there is cloud, (2) there is SO2 present, and
-    ! (3) the T > -15 C, then compute aqueous SO2 chemistry
-    ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
-    IF ( ( FC     > 1.e-4_fp   )  .AND. &
-         ( SO2_AfterSS > MINDAT )  .AND. &
-         ( TK     > 258.0  )  .AND. &
-         ( LWC    > 0.e+0_fp   ) ) THEN
        !===========================================================
        ! NOTE...Sulfate production from aquatic reactions of SO2
        ! with H2O2 & O3 is computed here and followings are
@@ -856,21 +837,11 @@ CONTAINS
        ENDIF
 
        ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-       State_Chm%HSO3_AQ(I,J,L) = HSO3aq * 1.e-3*AVO/LWC ! mol/L -> mcl/cm3  !!*(1+rSIV)/2
-       State_Chm%SO3_AQ(I,J,L)  = SO3aq  * 1.e-3*AVO/LWC ! mol/L -> mcl/cm3  !! *(1+rSIV)/2
+       ! Make sure that the unit conversion doesn't blow up
+       State_Chm%HSO3_AQ(I,J,L) = HSO3aq * 1.e-3_fp*AVO/LWC ! mol/L -> mcl/cm3
+       State_Chm%SO3_AQ(I,J,L)  = SO3aq  * 1.e-3_fp*AVO/LWC ! mol/L -> mcl/cm3
 
        K_CLD(3) = CloudHet1R( FC, KaqO2 )
-    ELSE
-
-       ! Otherwise, don't do aqueous chemistry, and
-       ! save the original concentrations into SO2 and H2O2
-       HPLUS        = 0.e+0_fp
-
-       ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-       ! Avoid divide-by-zero errors
-       State_Chm%HSO3_AQ(I,J,L)     = 1.0e-32_fp
-       State_Chm%SO3_AQ(I,J,L)      = 1.0e-32_fp
-
     ENDIF
 
 !>>    !=================================================================
