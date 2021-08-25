@@ -826,8 +826,6 @@ CONTAINS
                 !          %%%%%%% UCX-based mechanisms %%%%%%%
                 !--------------------------------------------------------
 
-                !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
-                !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
                 O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
                                 State_Chm%SpcData(id_O3)%Info%MW_g
 
