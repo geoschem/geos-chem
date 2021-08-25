@@ -377,7 +377,8 @@ CONTAINS
     INTEGER                       :: Nadv, landTypeInt
     LOGICAL                       :: FOUND 
     LOGICAL                       :: EOF
-    CHARACTER(LEN=60)             :: rstFile, landTypeStr, importName, simType
+    CHARACTER(LEN=60)             :: landTypeStr, importName, simType
+    CHARACTER(LEN=ESMF_MAXPATHLEN):: rstFile
     INTEGER                       :: restartAttr
     CHARACTER(LEN=ESMF_MAXSTR)    :: HistoryConfigFile ! HISTORY config file
     INTEGER                       :: T
