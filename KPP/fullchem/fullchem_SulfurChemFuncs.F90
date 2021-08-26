@@ -296,14 +296,14 @@ CONTAINS
     ! Initialize variables
     Spc                         => State_Chm%Species(I,J,L,:)
     SSAlk                       => State_Chm%SSAlk(I,J,L,:)
-    State_Chm%isCloud(I,J,L)    =  0.0_fp
-    State_Chm%pHCloud(I,J,L)    =  0.0_fp
-    State_Chm%QLxpHCloud(I,J,L) =  0.0_fp
-    State_Chm%HSO3_aq(I,J,L)    =  1.0e-32_fp
-    State_Chm%SO3_aq(I,J,L)     =  1.0e-32_fp
-    DTCHEM                      =  GET_TS_CHEM()  ! Timestep [s]
-    IS_FULLCHEM                 =  Input_Opt%ITS_A_FULLCHEM_SIM
-    IS_OFFLINE                  =  ( .not. IS_FULLCHEM )
+    State_Chm%isCloud(I,J,L)    = 0.0_fp
+    State_Chm%pHCloud(I,J,L)    = 0.0_fp
+    State_Chm%QLxpHCloud(I,J,L) = 0.0_fp
+    State_Chm%HSO3_aq(I,J,L)    = 1.0e-32_fp
+    State_Chm%SO3_aq(I,J,L)     = 1.0e-32_fp
+    DTCHEM                      = GET_TS_CHEM()  ! Timestep [s]
+    IS_FULLCHEM                 = Input_Opt%ITS_A_FULLCHEM_SIM
+    IS_OFFLINE                  = ( .not. IS_FULLCHEM )
     Ld                          = 0.0_fp
     LSTOT                       = 0.0_fp
     RHO                         = State_Met%AIRDEN(I,J,L)
@@ -532,6 +532,9 @@ CONTAINS
        State_Chm%QLxpHCloud(I,J,L) = State_Chm%pHCloud(I,J,L)             &
             * State_Met%QL(I,J,L)
 
+
+       FeIII = 0.0_fp
+       MnII  = 0.0_fp
        IF ( Input_Opt%LMETALCATSO2 ) THEN
 
           !--------------------------------------------------------
@@ -611,13 +614,6 @@ CONTAINS
           ! Assume that dissolved Mn is in Mn(II) oxidation state all of
           ! the time
           MnII = Mn_d
-
-       ELSE
-
-          ! Set Fe and Mn concentrations to zero
-          FeIII = 0.0e+0_fp
-          MnII  = 0.0e+0_fp
-
        ENDIF
 
        ! Compute aqueous rxn rates for SO2
@@ -632,7 +628,7 @@ CONTAINS
             KaqHCHO, KaqHMS, KaqHMS2  )
 
        K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2*CVFAC )
-       K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3), FC, KaqO3*CVFAC )
+       K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3  *CVFAC )
        !K_CLD(3) computed below
 
        ! HMS reaction rates (skip if HMS isn't defined)
@@ -3189,7 +3185,7 @@ CONTAINS
     REAL(FP) :: SO2, H2O2, A, B, KAB, CVFAC, P
 
     ! [Jacob, 1986]
-    KH2O2 = 6.31e+14_fp * EXP( -4.76e+3_fp / T )
+    KH2O2  = 6.31e+14_fp * EXP( -4.76e+3_fp / T )
     Ks1    = 1.30e-2_fp * EXP( 6.75e+0_fp * ( 298.15e+0_fp / T - 1.e+0_fp ) )
     Ks2    = 6.31e-8_fp * EXP( 5.05e+0_fp * ( 298.15e+0_fp / T - 1.e+0_fp ) )
 
@@ -3247,25 +3243,43 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(FP) :: KAO, KBO
-    REAL(FP) :: FF
-!
+    REAL(FP) :: KAO, KBO, FF, denom, term1, term2
+!EOC
 !------------------------------------------------------------------------------
 !
 
-      ! Ratio of volume inside to outside cloud
-      ! FF has a range [0,+inf], so cap it at 1e30
-      FF = SafeDiv( FC, (1e0_fp - FC), 1e30_fp )
-      FF = MAX( FF, 1e30_fp )
+    ! Ratio of volume inside to outside cloud
+    ! FF has a range [0,+inf], so cap it at 1e30
+    FF = SafeDiv( FC, ( 1.0_fp - FC ), 1e30_fp )
+    FF = MAX( FF, 1e30_fp )
 
-      KAO = 1e0_fp/((TAUC/FF)+(1e0_fp/(FC*KAB*B))) ! 1/s
-      KBO = 1e0_fp/((TAUC/FF)+(1e0_fp/(FC*KAB*A))) ! 1/s
+    ! Avoid div by zero for the TAUC/FF term
+    term1 = 0.0_fp
+    IF ( ff > 0.0_fp ) term1 = tauc / ff
 
-      IF ( KAO*A .LE. KBO*B ) THEN
-         KX = KAO/B
-      ELSE
-         KX = KBO/A
-      ENDIF
+    ! Compute KAO and avoid div by zero
+    !             term 1      term 2
+    ! KAO = 1 / ( (TAUC/FF) + ( 1/(FC*KAB*B) ) ), units: 1/s
+    denom = FC * KAB * B
+    term2 = SafeDiv( 1.0_fp, denom, 0.0_fp )
+    denom = term1 + term2
+    KAO   = SafeDiv( 1.0_fp, denom, 0.0_fp )
+
+    ! Compute KBO and avoid div by zero
+    !             term 1      term 2
+    ! KBO = 1 / ( (TAUC/FF) + ( 1/(FC*KAB*A) ) ), units: 1/s
+    denom = FC * KAB * A
+    term2 = SafeDiv( 1.0_fp, denom, 0.0_fp )
+    denom = term1 + term2
+    KBO   = SafeDiv( 1.0_fp, denom, 0.0_fp )
+
+    IF ( KAO*A <= KBO*B ) THEN
+       !KX = KAO/B
+       KX = SafeDiv( KAO, B, 0.0_fp )
+    ELSE
+       !KX = KBO/A
+       KX = SafeDiv( KBO, A, 0.0_fp )
+    ENDIF
 
   END FUNCTION CloudHet2R
 !EOC
