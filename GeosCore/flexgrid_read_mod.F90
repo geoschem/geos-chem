@@ -722,23 +722,21 @@ CONTAINS
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%OPTD = Q
 
-    ! Read QI
+    ! Read QI (and set negative or denormal values to zero)
     v_name = "QI"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-#ifdef LUO_WETDEP
-    State_Met%QI = MAX( 0.0_4, Q )
-#else
+    WHERE( Q < 1.0e-30_f4 )
+       Q = 0.0_f4
+    ENDWHERE
     State_Met%QI = Q
-#endif
 
-    ! Read QL
+    ! Read QL (and set negative or denormal values to zero)
     v_name = "QL"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-#ifdef LUO_WETDEP
-    State_Met%QL = MAX( 0.0_4, Q )
-#else
+    WHERE( Q < 1.0e-30_f4 )
+       Q = 0.0_f4
+    ENDWHERE
     State_Met%QL = Q
-#endif
 
     ! Read TAUCLI
     v_name = "TAUCLI"
