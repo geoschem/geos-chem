@@ -2148,7 +2148,7 @@ CONTAINS
 !
     USE CMN_FJX_MOD,      ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,      ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
+    USE FAST_JX_MOD,      ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
@@ -2286,13 +2286,8 @@ CONTAINS
                 JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
-                IF ( Input_Opt%LUCX ) THEN
-                   ! RXN_O3_1: O3  + hv --> O2  + O
-                   JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-                ELSE
-                   ! RXN_O3_2a: O3 + hv --> 2OH
-                   JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
-                ENDIF
+                ! RXN_O3_1: O3  + hv --> O2  + O
+                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
              ENDIF
           ENDIF
 
