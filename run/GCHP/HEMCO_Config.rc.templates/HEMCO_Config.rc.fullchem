@@ -4220,9 +4220,9 @@ Warnings:                    1
 # --- CEDS vertical partitioning ---
 #==============================================================================
 (((CEDS
-315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2020-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1 
-316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2020-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1 
-317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2020-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1 
+315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1 
+316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1 
+317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1 
 )))CEDS
 
 #==============================================================================

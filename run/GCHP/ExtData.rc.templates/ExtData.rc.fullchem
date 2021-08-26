@@ -1951,9 +1951,9 @@ NEI99_DOW_OCPI 1 D N F1999-%m2-01T00:00:00 none none OCPI ./HcoDir/NEI2005/v2014
 #==============================================================================
 # --- CEDS vertical partitioning ---
 #==============================================================================
-ENERGY_LEVS   1 N Y - none none g_energy   ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
-INDUSTRY_LEVS 1 N Y - none none g_industry ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
-SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2020-05/gc_layers.nc
+ENERGY_LEVS   1 N Y - none none g_energy   ./HcoDir/VerticalScaleFactors/v2021-05/gc_layers.nc
+INDUSTRY_LEVS 1 N Y - none none g_industry ./HcoDir/VerticalScaleFactors/v2021-05/gc_layers.nc
+SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-05/gc_layers.nc
 #
 ###############################################################################
 ###
