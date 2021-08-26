@@ -1130,7 +1130,7 @@ CONTAINS
                         TRIM( State_Grid%GridRes )
        WRITE( 6, 110 ) 'Min/max longitude           : ', &
                         State_Grid%XMin, State_Grid%XMax
-       WRITE( 6, 110 ) 'Min/max longitude           : ', &
+       WRITE( 6, 110 ) 'Min/max latitude            : ', &
                         State_Grid%YMin, State_Grid%YMax
        WRITE( 6, 120 ) 'X grid dimension            : ', &
                         State_Grid%NX

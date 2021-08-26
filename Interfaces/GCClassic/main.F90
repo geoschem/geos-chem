@@ -2777,7 +2777,7 @@ CONTAINS
     WRITE( U, 100 ) '!!! You will NOT get output for this run!'
     WRITE( U, 100 ) '!!! Use this command to validate a '         // &
                     'GEOS-Chem run configuration:'
-    WRITE( U, 100 ) '!!!   ./gcclassi --dryrun > log'
+    WRITE( U, 100 ) '!!!   ./gcclassic --dryrun > log'
     WRITE( U, 100 ) '!!!'
     WRITE( U, 100 ) '!!! REMOVE THE --dryrun ARGUMENT FROM THE '   // &
                     'COMMAND LINE'
