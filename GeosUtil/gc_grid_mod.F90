@@ -95,6 +95,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL  :: is_GMAO
     INTEGER  :: I, J, L, IG, JG
     REAL(fp) :: YEDGE_VAL, YSIN_VAL
     REAL(fp) :: SIN_N, SIN_S, SIN_DIFF
@@ -152,6 +153,15 @@ CONTAINS
        State_Grid%MaxChemLev  = State_Grid%MaxTropLev
     ENDIF
 
+    ! Set a flag to denote if this is a GMAO met field
+    ! (which has half-sized polar grid boxes)
+    SELECT CASE( TRIM( Input_Opt%MetField ) )
+       CASE( 'MERRA2', 'GEOS_FP' )
+          is_GMAO = .TRUE.
+       CASE DEFAULT
+          is_GMAO = .FALSE.
+    END SELECT
+
     !======================================================================
     ! Global Horizontal Grid
     !
@@ -162,7 +172,7 @@ CONTAINS
 
     ! Compute number of grid boxes on global grid
     State_Grid%GlobalNX =   360.0_fp / State_Grid%DX
-    IF ( State_Grid%HalfPolar ) THEN
+    IF ( State_Grid%HalfPolar .or. is_GMAO ) THEN
        State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY ) + 1
     ELSE
        State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY )
@@ -198,44 +208,66 @@ CONTAINS
     State_Grid%GlobalYEdge = 0e+0_fp
 
     !======================================================================
-    ! Global Horizontal Grid
+    ! Global Horizontal Grid: Edges
     !======================================================================
     DO J = 1, State_Grid%GlobalNY
     DO I = 1, State_Grid%GlobalNX
 
-      IF ( J == 1 ) THEN
-         State_Grid%GlobalYEdge(I,J) = -90.0
-      ELSE
-         IF ( State_Grid%HalfPolar ) THEN
-            State_Grid%GlobalYEdge(I,J) = -90.0 - State_Grid%DY/2.0 + State_Grid%DY*(J-1)  
-         ELSE
-            State_Grid%GlobalYEdge(I,J) = -90.0 + State_Grid%DY*(J-1)  
-         ENDIF
-         IF ( J == State_Grid%GlobalNY ) THEN
-            State_Grid%GlobalYEdge(I,J+1) = 90.0
-         ENDIF
-      ENDIF
+       ! Latitude edge: South pole
+       IF ( J == 1 ) THEN
+          State_Grid%GlobalYEdge(I,J) = -90.0_fp
+       ENDIF
 
-      IF ( I == 1 ) THEN
-         IF ( State_Grid%Center180 ) THEN
-            State_Grid%GlobalXEdge(I,J) = -180.0 - State_Grid%DX / 2.0
-         ELSE
-            State_Grid%GlobalXEdge(I,J) = -180.0 
-         ENDIF
-      ELSE
-         State_Grid%GlobalXEdge(I,J) = State_Grid%GlobalXEdge(1,J) + State_Grid%DX * ( I - 1 )
-         IF ( I == State_Grid%GlobalNX ) THEN
-            State_Grid%GlobalXEdge(I+1,J) = State_Grid%GlobalXEdge(1,J) + 360.0
-         ENDIF
-      ENDIF
+       ! Latitude edges
+       IF ( State_Grid%HalfPolar .or. is_GMAO ) THEN
+          State_Grid%GlobalYEdge(I,J) = -90.0_fp                             &
+                                      - ( State_Grid%DY * 0.5_fp    )        &
+                                      + ( State_Grid%DY * ( J - 1 ) )
+       ELSE
+          State_Grid%GlobalYEdge(I,J) = -90.0_fp                             &
+                                      + ( State_Grid%DY * ( J - 1 ) )
+       ENDIF
+
+       ! Latitude edge: North pole
+       IF ( J == State_Grid%GlobalNY ) THEN
+          State_Grid%GlobalYEdge(I,J+1) = +90.0_fp
+       ENDIF
+
+       ! Longitude edges
+       IF ( I == 1 ) THEN
+          IF ( State_Grid%Center180 ) THEN
+             State_Grid%GlobalXEdge(I,J) = -180.0_fp                         &
+                                         - ( State_Grid%DX * 0.5_fp )
+          ELSE
+             State_Grid%GlobalXEdge(I,J) = -180.0_fp
+          ENDIF
+       ELSE
+          State_Grid%GlobalXEdge(I,J) = State_Grid%GlobalXEdge(1,J)          &
+                                      + ( State_Grid%DX * ( I - 1 ) )
+
+          IF ( I == State_Grid%GlobalNX ) THEN
+             State_Grid%GlobalXEdge(I+1,J) = State_Grid%GlobalXEdge(1,J)     &
+                                           + 360.0_fp
+          ENDIF
+       ENDIF
 
     ENDDO
     ENDDO
 
+    !======================================================================
+    ! Global Horizontal Grid: Centers
+    !======================================================================
     DO J = 1, State_Grid%GlobalNY
     DO I = 1, State_Grid%GlobalNX
-       State_Grid%GlobalYMid(I,J) = 0.5 * ( State_Grid%GlobalYEdge(I,J) + State_Grid%GlobalYEdge(I,J+1) )
-       State_Grid%GlobalXMid(I,J) = 0.5 * ( State_Grid%GlobalXEdge(I,J) + State_Grid%GlobalXEdge(I+1,J) )
+
+       ! Latitude centers
+       State_Grid%GlobalYMid(I,J) = 0.5_fp *                                 &
+            ( State_Grid%GlobalYEdge(I,J) + State_Grid%GlobalYEdge(I,J+1) )
+
+       ! Longitude centers
+       State_Grid%GlobalXMid(I,J) = 0.5_fp *                                 &
+            ( State_Grid%GlobalXEdge(I,J) + State_Grid%GlobalXEdge(I+1,J) )
+
     ENDDO
     ENDDO
 
@@ -286,7 +318,7 @@ CONTAINS
        !--------------------------------
        ! Longitude centers [degrees]
        !--------------------------------
-       State_Grid%XMid(I,J) = State_Grid%GlobalXMid( IG, JG ) 
+       State_Grid%XMid(I,J) = State_Grid%GlobalXMid( IG, JG )
 
        !--------------------------------
        ! Longitude edges [degrees]
@@ -301,7 +333,7 @@ CONTAINS
        !--------------------------------
        ! Latitude centers [degrees]
        !--------------------------------
-       State_Grid%YMid(I,J) = State_Grid%GlobalYMid( IG, JG ) 
+       State_Grid%YMid(I,J) = State_Grid%GlobalYMid( IG, JG )
 
        !--------------------------------
        ! Latitude centers [radians]
@@ -311,7 +343,7 @@ CONTAINS
        !-----------------------------------------
        ! Latitude edges [degrees; rad; sin(lat)]
        !-----------------------------------------
-       State_Grid%YEdge(I,J)   = State_Grid%GlobalYEdge( IG, JG ) 
+       State_Grid%YEdge(I,J)   = State_Grid%GlobalYEdge( IG, JG )
        State_Grid%YEdge_R(I,J) = ( PI_180  * State_Grid%YEdge(I,J) )
        State_Grid%YSIN(I,J)    = SIN( State_Grid%YEdge_R(I,J) )
 
@@ -465,9 +497,9 @@ CONTAINS
 !
 ! !IROUTINE: Compute_Scaled_Grid
 !
-! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid 
+! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid
 !  State object ("Destination") by performing a linear scaling refinement
-!  of the primary ("Source") Grid. e.g. a scale of 2 will yield 
+!  of the primary ("Source") Grid. e.g. a scale of 2 will yield
 !  2 x 2.5 -> 1 x 1.25.
 !\\
 !\\
