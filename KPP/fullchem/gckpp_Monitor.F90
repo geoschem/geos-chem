@@ -144,7 +144,7 @@ MODULE gckpp_Monitor
      '         HO2 + OH --> H2O + O2                                                                      ', & ! index 17
      '        H2O2 + OH --> H2O + HO2                                                                     ', & ! index 18
      '         NO + HO2 --> POx + NO2 + OH                                                                ', & ! index 19
-     '         HO2 + O2 --> PH2O2 + H2O2 + O2                                                             ', & ! index 20
+     '            2 HO2 --> PH2O2 + H2O2 + O2                                                             ', & ! index 20
      '          CO + OH --> CO2 + LCO + HO2                                                               ', & ! index 21
      '         CH4 + OH --> LCH4 + MO2 + H2O                                                              ', & ! index 22
      '         MO2 + NO --> POx + CH2O + NO2 + HO2                                                        ', & ! index 23
