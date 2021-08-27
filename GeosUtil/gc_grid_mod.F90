@@ -156,7 +156,7 @@ CONTAINS
     ! Set a flag to denote if this is a GMAO met field
     ! (which has half-sized polar grid boxes)
     SELECT CASE( TRIM( Input_Opt%MetField ) )
-       CASE( 'MERRA2', 'GEOS_FP' )
+       CASE( 'MERRA2', 'GEOSFP' )
           is_GMAO = .TRUE.
        CASE DEFAULT
           is_GMAO = .FALSE.
