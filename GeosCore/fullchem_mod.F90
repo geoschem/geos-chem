@@ -26,11 +26,6 @@ MODULE FullChem_Mod
   PUBLIC  :: Init_FullChem
   PUBLIC  :: Cleanup_FullChem
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: Diag_OH_HO2_O1D_O3P
-  PRIVATE :: Diag_Metrics
-!
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -101,7 +96,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
-    USE fullchem_SulfurChemFuncs, ONLY : fullchem_SulfurCldChem
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
@@ -765,6 +759,41 @@ CONTAINS
        ENDIF
 
        !=====================================================================
+       ! Initialize the KPP "C" vector of species concentrations [molec/cm3]
+       !=====================================================================
+       DO N = 1, NSPEC
+          SpcID = State_Chm%Map_KppSpc(N)
+          C(N)  = 0.0_dp
+          IF ( SpcId > 0 ) C(N) = State_Chm%Species(I,J,L,SpcID)
+       ENDDO
+
+       !=====================================================================
+       ! Update reaction rates [1/s] for sulfate chemistry.  
+       ! These will be passed to the KPP chemical solver.
+       !
+       ! NOTE: This has to be done before Set_Kpp_Gridbox_Values so that
+       ! State_Chm%HSO3_aq and State_Chm%SO3_aq will be populated properly!
+       !=====================================================================
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread) 
+       ENDIF
+
+       ! Compute reaction rates [1/s]
+       CALL Set_Sulfur_Chem_Rates( I          = I,                           &
+                                   J          = J,                           &
+                                   L          = L,                           &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Diag = State_Diag,                  &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   RC         = RC                          )
+
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread ) 
+       ENDIF
+
+       !=====================================================================
        ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
        !=====================================================================
        IF ( Input_Opt%useTimers ) THEN
@@ -791,57 +820,6 @@ CONTAINS
                             InLoop=.TRUE.,   ThreadNum=Thread               )
        ENDIF
 
-       !====================================================================
-       ! The routines below are based on or meant to replace
-       ! reactions computed outside of KPP within sulfate_mod.
-       !
-       ! Rates are set for the following:
-       ! 1) Cloud sulfur chemistry
-       ! 2) (If Dust acid uptake) Dust acid uptake reactions
-       ! - MSL, 29-Mar-2021, 7-May-2021
-       !
-       ! Seasalt aerosol chemistry reaction rate-law functions
-       ! are now contained in module fullchem_RateLawFuncs.F90.
-       !====================================================================
-
-       ! From Alexander et al., buffering capacity (or alkalinity) of
-       ! sea-salt aerosols is equal to 0.07 equivalents per kg dry sea salt
-       ! emitted Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
-       ! tdf; MSL
-
-       ! Do this when KPP is computing seasalt rxn rates ...
-       IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
-          ! NOTE: We have saved the original concentrations in
-          ! State_Het%SALAAL_save and State_Het%SALCAL_save, as these
-          ! are needed in the AqRate_* functions (bmy, 6/9/21)
-          C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
-          C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
-       ENDIF
-
-       ! Do this when KPP is handling SO2 cloud chemistry ...
-       IF ( .not. State_Chm%Do_SulfateMod_Cld ) THEN
-
-          ! Compute reaction rates for sulfate in cloud for KPP chem mech
-          CALL fullchem_SulfurCldChem(                                       &
-               I          = I,                                               &
-               J          = J,                                               &
-               L          = L,                                               &
-               Input_Opt  = Input_Opt,                                       &
-               State_Chm  = State_Chm,                                       &
-               State_Diag = State_Diag,                                      &
-               State_Grid = State_Grid,                                      &
-               State_Met  = State_Met,                                       &
-               RC         = RC                                              )
-
-          ! Update HSO3- and SO3-- concentrations [molec/cm3]
-          C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L)
-          C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)
-
-          State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
-          State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
-       ENDIF
-
-       ! SET_DUSTUP() ! Holding...
 
        !====================================================================
        ! Start KPP main timer and prepare arrays
@@ -865,7 +843,7 @@ CONTAINS
        ! Update reaction rates
        !====================================================================
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread)
        ENDIF
 
        ! Update the array of rate constants
@@ -1380,6 +1358,120 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: set_sulfate_chem_rates
+!
+! !DESCRIPTION: Calls functions from the KPP rate-law library to compute
+!  rates for sulfate chemistry reactions.  These are passed to the KPP
+!  mechanism.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_Sulfur_Chem_Rates( I,          J,          L,               &
+                                    Input_Opt,  State_Chm,  State_Diag,      &
+                                    State_Grid, State_Met,  RC              )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE GcKpp_Global
+    USE GcKpp_Parameters
+    USE fullchem_SulfurChemFuncs, ONLY : fullchem_SulfurCldChem
+    USE Input_Opt_Mod,            ONLY : OptInput
+    USE State_Chm_Mod,            ONLY : ChmState
+    USE State_Diag_Mod,           ONLY : DgnState
+    USE State_Grid_Mod,           ONLY : GrdState
+    USE State_Met_Mod,            ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! X, Y, Z gridbox indices
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure!
+!
+! !REMARKS:
+!  The routines below are based on or meant to replace reactions computed 
+!  outside of KPP within sulfate_mod.
+!
+!  Rates are set for the following:
+!  1) Cloud sulfur chemistry
+!  2) (If Dust acid uptake) Dust acid uptake reactions
+!  - MSL, 29-Mar-2021, 7-May-2021
+!
+!  Seasalt aerosol chemistry reaction rate-law functions are now contained 
+!  in module fullchem_RateLawFuncs.F90.
+!
+!  NOTE: This call must come before Set_Kpp_Gridbox_Values, or else 
+!  State_Chm%HSO3_aq and State_Chm%SO3aq will be zero!
+!    -- Mike Long, Bob Yantosca (30 Aug 2021)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    !========================================================================
+    ! Save the concentrations of SALAAL and SALCAL before they get
+    ! converted to equivalents (by multiplying by MW * 7e-5).
+    ! These original concentrations will be needed in the AqRate_*
+    ! rate-law functions (bmy, 6/9/21)
+    !
+    ! From Alexander et al., buffering capacity (or alkalinity) of
+    ! sea-salt aerosols is equal to 0.07 equivalents per kg dry sea salt
+    ! emitted Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
+    ! tdf; MSL   
+    !========================================================================
+    IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
+
+       ! SALAAL = Seasalt alkalinkity, fine mode
+       State_Het%SALAAL_save = C(ind_SALAAL)
+       C(ind_SALAAL)         = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
+
+       ! SALCAL = Seasalt alkalinity, coarse mode
+       State_Het%SALCAL_save = C(ind_SALCAL)
+       C(ind_SALCAL)         = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
+    ENDIF
+
+    !========================================================================
+    ! Do this when KPP is handling SO2 cloud chemistry ...
+    !========================================================================
+    IF ( .not. State_Chm%Do_SulfateMod_Cld ) THEN
+       
+       ! Compute reaction rates for sulfate in cloud for KPP chem mech
+       CALL fullchem_SulfurCldChem(  I          = I,                         &
+                                     J          = J,                         &
+                                     L          = L,                         &
+                                     Input_Opt  = Input_Opt,                 &
+                                     State_Chm  = State_Chm,                 &
+                                     State_Diag = State_Diag,                &
+                                     State_Grid = State_Grid,                &
+                                     State_Met  = State_Met,                 &
+                                     RC         = RC                        )
+
+       ! Update HSO3- and SO3-- concentrations [molec/cm3]
+       C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L)
+       C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)
+
+       State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
+       State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
+    ENDIF
+
+    ! SET_DUSTUP() ! Holding...
+
+  END SUBROUTINE Set_Sulfur_Chem_Rates
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Set_Kpp_GridBox_Values
 !
 ! !DESCRIPTION: Populates KPP variables in the gckpp_Global.F90 module
@@ -1439,22 +1531,6 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = &
      ' -> at Set_Kpp_Gridbox_Values (in module GeosCore/fullchem_mod.F90)'
-
-    !========================================================================
-    ! Copy species concentrations into gckpp_Global variables [molec/cm3]
-    !========================================================================
-    DO N = 1, NSPEC
-       SpcID = State_Chm%Map_KppSpc(N)
-       C(N)  = 0.0_dp
-       IF ( SpcId > 0 ) C(N) = State_Chm%Species(I,J,L,SpcID)
-    ENDDO
-
-    ! Save the concentrations of SALAAL and SALCAL before they get
-    ! converted to equivalents (by multiplying by MW * 7e-5).
-    ! These original concentrations will be needed in the AqRate_*
-    ! rate-law functions (bmy, 6/9/21)
-    IF ( ind_SALAAL > 0 ) State_Het%SALAAL_save = C(ind_SALAAL)
-    IF ( ind_SALCAL > 0 ) State_Het%SALCAL_save = C(ind_SALCAL)
 
     !========================================================================
     ! Populate global variables in gckpp_Global.F90
