@@ -2761,15 +2761,16 @@ CONTAINS
 
           IF ( LAnthroHgOnly ) THEN
              ! No other emissions
-             EHg0_bb(I,J)      = 0e+0_fp
-             EHg0_oc(I,J,:)    = 0e+0_fp
-             EHg0_snow(I,J,:)  = 0e+0_fp
+             EHg0_bb(I,J)      = 0.0_fp
+             EHg0_oc(I,J,:)    = 0.0_fp
+             EHg0_snow(I,J,:)  = 0.0_fp
+             EHg0_geo(I,J,:)   = 0.0_fp
              IF ( LGTMM ) THEN
-                EHg0_gtm(I,J) = 0e+0_fp
+                EHg0_gtm(I,J)  = 0.0_fp
              ELSE
-                EHg0_ln(I,J,:) = 0e+0_fp
-                EHg0_vg(I,J)   = 0e+0_fp
-                EHg0_so(I,J)   = 0e+0_fp
+                EHg0_ln(I,J,:) = 0.0_fp
+                EHg0_vg(I,J)   = 0.0_fp
+                EHg0_so(I,J)   = 0.0_fp
              ENDIF
           ENDIF
 
