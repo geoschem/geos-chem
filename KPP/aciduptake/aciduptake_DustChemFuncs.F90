@@ -3,9 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gckpp_Sulfate
+! !MODULE: aciduptake_DustChemFuncs
 !
-! !DESCRIPTION: FlexChem module for multiphase sulfate chemistry, via KPP.
+! !DESCRIPTION: Module containing rate-law functions for the dust acid
+!  uptake species, in the aciduptake mechanism.
 !\\
 !\\
 ! !INTERFACE:
@@ -21,7 +22,13 @@ MODULE aciduptake_DustChemFuncs
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: SET_CLD_
+  PUBLIC :: aciduptake_DustChem
+  PUBLIC :: aciduptake_InitDustChem
+!
+! !PRIVATE DATA MEMBERS:
+!
+  INTEGER, PRIVATE :: id_DSTAL1, id_DSTAL2, id_DSTAL3, id_DSTAL4
+  INTEGER, PRIVATE :: id_DST1,   id_DST2,   id_DST3,   id_DST4
 
 CONTAINS
 !EOC
@@ -47,6 +54,8 @@ CONTAINS
     USE CMN_SIZE_Mod,     ONLY : NDSTBIN
     USE ErrCode_Mod
     USE GcKpp_Global,     ONLY : C, K_DST
+    USE GcKpp_Parameters
+    USE GcKpp_Precision
     USE Input_Opt_Mod,    ONLY : OptInput
     USE PhysConstants,    ONLY : AIRMW, AVO
     USE State_Chm_Mod,    ONLY : ChmState
@@ -113,34 +122,34 @@ CONTAINS
                         KTH       = KTH,                                     &
                         Input_Opt = Input_Opt,                               &
                         State_Met = State_Met,                               &
-                        State_Chm = State_Chm,                               &
-                        RC        = RC                                      )
+                        State_Chm = State_Chm                               )
 
     !========================================================================
-    ! 
     ! Get dust alkalinity ALK_d (NDSTBIN) [v/v], Uptake rates for
-    ! sulfate, KTS(NDSTBIN), and nitrate, KTN(NDSTBIN) on dust [s-1]
+    ! sulfate = KTS(NDSTBIN) on dust [s-1]
+    ! nitrate = KTN(NDSTBIN) on dust [s-1]
+    ! H2SO4   = KTH(NDSTBIN) on dust [s-1]
     !========================================================================
 
-    K_DST(1)  = KIIR1Ltd( C(ind_SO2), 2.e0*C(ind_DSTAL1), KTS(1) )
-    K_DST(2)  = KIIR1Ltd( C(ind_SO2), 2.e0*C(ind_DSTAL2), KTS(2) )
-    K_DST(3)  = KIIR1Ltd( C(ind_SO2), 2.e0*C(ind_DSTAL3), KTS(3) )
-    K_DST(4)  = KIIR1Ltd( C(ind_SO2), 2.e0*C(ind_DSTAL4), KTS(4) ) 
+    K_DST(1)  = KIIR1Ltd( C(ind_SO2),   2.0_dp*C(ind_DSTAL1), KTS(1) )
+    K_DST(2)  = KIIR1Ltd( C(ind_SO2),   2.0_dp*C(ind_DSTAL2), KTS(2) )
+    K_DST(3)  = KIIR1Ltd( C(ind_SO2),   2.0_dp*C(ind_DSTAL3), KTS(3) )
+    K_DST(4)  = KIIR1Ltd( C(ind_SO2),   2.0_dp*C(ind_DSTAL4), KTS(4) ) 
 
-    K_DST(5)  = KIIR1Ltd( C(ind_HNO3), C(ind_DSTAL1), KTN(1) )
-    K_DST(6)  = KIIR1Ltd( C(ind_HNO3), C(ind_DSTAL2), KTN(2) )
-    K_DST(7)  = KIIR1Ltd( C(ind_HNO3), C(ind_DSTAL3), KTN(3) )
-    K_DST(8)  = KIIR1Ltd( C(ind_HNO3), C(ind_DSTAL4), KTN(4) )
+    K_DST(5)  = KIIR1Ltd( C(ind_HNO3),  C(ind_DSTAL1),        KTN(1) )
+    K_DST(6)  = KIIR1Ltd( C(ind_HNO3),  C(ind_DSTAL2),        KTN(2) )
+    K_DST(7)  = KIIR1Ltd( C(ind_HNO3),  C(ind_DSTAL3),        KTN(3) )
+    K_DST(8)  = KIIR1Ltd( C(ind_HNO3),  C(ind_DSTAL4),        KTN(4) )
 
-    K_DST(9)  = KIIR1Ltd( C(ind_H2SO4), 2.e0*C(ind_DSTAL1), KTH(1) )
-    K_DST(10) = KIIR1Ltd( C(ind_H2SO4), 2.e0*C(ind_DSTAL2), KTH(2) )
-    K_DST(11) = KIIR1Ltd( C(ind_H2SO4), 2.e0*C(ind_DSTAL3), KTH(3) )
-    K_DST(12) = KIIR1Ltd( C(ind_H2SO4), 2.e0*C(ind_DSTAL4), KTH(4) )
+    K_DST(9)  = KIIR1Ltd( C(ind_H2SO4), 2.0_dp*C(ind_DSTAL1), KTH(1) )
+    K_DST(10) = KIIR1Ltd( C(ind_H2SO4), 2.0_dp*C(ind_DSTAL2), KTH(2) )
+    K_DST(11) = KIIR1Ltd( C(ind_H2SO4), 2.0_dp*C(ind_DSTAL3), KTH(3) )
+    K_DST(12) = KIIR1Ltd( C(ind_H2SO4), 2.0_dp*C(ind_DSTAL4), KTH(4) )
 
     !========================================================================
     ! Gas phase SO4 production is done here in offline run only
     !========================================================================
-    K0        = 3.3e-31_dp * ( 300.0_dp / TEMP )**4.3_dp
+    K0        = 3.3e-31_dp * ( 300.0_dp / State_Met%T(I,J,L) )**4.3_dp
     Ki        = 1.6e-12_dp
     F         = 1000.0_dp / AIRMW * AVO * 1.e-6_dp
     M         = State_Met%AIRDEN(I,J,L) * F
@@ -172,12 +181,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,  ONLY : NDUST, NDSTBIN
-    USE ERROR_MOD,     ONLY : IT_IS_NAN
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE PhysConstants, ONLY : PI, AIRMW
-    USE State_Chm_Mod, ONLY : ChmState
-    USE State_Met_Mod, ONLY : MetState
+    USE CMN_SIZE_MOD,    ONLY : NDUST, NDSTBIN
+    USE ERROR_MOD,       ONLY : IT_IS_NAN
+    USE GcKpp_Parameters
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE PhysConstants,   ONLY : PI, AIRMW
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Met_Mod,   ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -303,10 +313,10 @@ CONTAINS
     AIR_DENS  = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L)
 
     ! Retrieve Dust Alkalinity [v/v dry from Spc array
-    ALK_d(1)  = Spc(I,J,L,id_DAL1)
-    ALK_d(2)  = Spc(I,J,L,id_DAL2)
-    ALK_d(3)  = Spc(I,J,L,id_DAL3)
-    ALK_d(4)  = Spc(I,J,L,id_DAL4)
+    ALK_d(1)  = Spc(I,J,L,id_DSTAL1)
+    ALK_d(2)  = Spc(I,J,L,id_DSTAL2)
+    ALK_d(3)  = Spc(I,J,L,id_DSTAL3)
+    ALK_d(4)  = Spc(I,J,L,id_DSTAL4)
 
     ! Dust [kg/m3] from Spc, used to compute dust surface area
     ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
@@ -511,10 +521,10 @@ CONTAINS
        ELSE IF ( IRH >= 50.0_dp ) THEN
           GAMN = GAMMA_HNO3                                                  &
                * ( 0.7_dp  + 0.3_dp   * (IRH - 50.0_dp) / 10.0_dp )
-       ELSE IF ( IRH >= 30_f[ ) THEN
+       ELSE IF ( IRH >= 30.0_dp ) THEN
           GAMN = GAMMA_HNO3                                                  &
                * ( 0.19_dp + 0.255_dp * (IRH - 30.0_dp) / 10.0_dp )
-       ELSE IF (IRH >= 10 ) THEN
+       ELSE IF ( IRH >= 10.0_dp ) THEN
           GAMN = GAMMA_HNO3                                                  &
                * ( 0.03_dp + 0.08_dp  * (IRH - 10.0_dp) / 10.0_dp )
        ELSE
@@ -597,5 +607,48 @@ CONTAINS
     TAREA   => NULL()
 
   END SUBROUTINE Get_Dust_Alk
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aciduptake_InitDustChem
+!
+! !DESCRIPTION: Defines species indices used for the dust acid uptake 
+!  rate-law functions.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE aciduptake_InitDustChem( RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod, ONLY : Ind_
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    INTEGER, INTENT(INOUT) :: RC   ! Success or failure
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! Initialize
+    RC        = GC_SUCCESS
+
+    ! Dust alkalinity species
+    id_DSTAL1 = Ind_( 'DSTAL1' )
+    id_DSTAL2 = Ind_( 'DSTAL2' )
+    id_DSTAL3 = Ind_( 'DSTAL3' )
+    id_DSTAL4 = Ind_( 'DSTAL4' )
+
+    ! Dust species
+    id_DST1   = Ind_( 'DST1'   )
+    id_DST2   = Ind_( 'DST2'   )    
+    id_DST3   = Ind_( 'DST3'   ) 
+    id_DST4   = Ind_( 'DST4'   ) 
+
+  END SUBROUTINE aciduptake_InitDustChem
 !EOC
 END MODULE aciduptake_DustChemFuncs

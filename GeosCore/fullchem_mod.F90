@@ -579,7 +579,6 @@ CONTAINS
        ! Initialize private loop variables for each (I,J,L)
        ! Other private variables will be assigned in Set_Kpp_GridBox_Values
        !=====================================================================
-       HET       = 0.0_dp                   ! Het chem array
        IERR      = 0                        ! KPP success or failure flag
        ISTATUS   = 0.0_dp                   ! Rosenbrock output
        PHOTOL    = 0.0_dp                   ! Photolysis array for KPP
@@ -2144,6 +2143,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE aciduptake_DustChemFuncs, ONLY : aciduptake_InitDustChem
     USE ErrCode_Mod
     USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Precision
@@ -2217,6 +2217,8 @@ CONTAINS
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
+    id_SALAAL   = Ind_( 'SALAAL'       )
+    id_SALCAL   = Ind_( 'SALCAL'       )
 
 #ifdef MODEL_GEOS
     ! ckeller
@@ -2258,9 +2260,6 @@ CONTAINS
     id_ICNOO    = Ind_( 'ICNOO'        )
     id_IDNOO    = Ind_( 'IDNOO'        )
 #endif
-! MSL
-    id_SALAAL                = Ind_( 'SALAAL'       )
-    id_SALCAL                = Ind_( 'SALCAL'       )
 
     ! Set flags to denote if each species is defined
     ok_HO2      = ( id_HO2 > 0         )
@@ -2389,6 +2388,14 @@ CONTAINS
     CALL fullchem_InitSulfurCldChem( RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "fullchem_InitSulfurCldChem"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Initialize dust acid uptake code (Mike Long, Bob Yantosca)
+    CALL aciduptake_InitDustChem( RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "aciduptake_InitDustChem"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

@@ -1,7 +1,7 @@
-# KPP/custom/CMakeLists.txt
+# KPP/aciduptake/CMakeLists.txt
 
 #----------------------------------------------------------------------------
-# Add libKPPFirstPass.a -- custom mechanism
+# Add libKPPFirstPass.a -- aciduptake mechanism
 #----------------------------------------------------------------------------
 add_library(KPP_FirstPass
   STATIC EXCLUDE_FROM_ALL
@@ -14,10 +14,11 @@ add_library(KPP_FirstPass
 target_link_libraries(KPP_FirstPass PUBLIC GEOSChemBuildProperties)
 
 #----------------------------------------------------------------------------
-# Add libKPP.a -- custom mechanism (edit as necessary)
+# Add libKPP.a -- aciduptake mechanism
 #----------------------------------------------------------------------------
-add_library(KPP 
+add_library(KPP
   STATIC EXCLUDE_FROM_ALL
+  aciduptake_DustChemFuncs.F90
   fullchem_HetStateFuncs.F90
   fullchem_RateLawFuncs.F90
   fullchem_SulfurChemFuncs.F90
@@ -41,7 +42,7 @@ add_library(KPP
 target_link_libraries(KPP PUBLIC GeosUtil)
 
 # When building libKPP.a, treat REAL as if it were REAL*8
-target_compile_options(KPP 
+target_compile_options(KPP
   PRIVATE ""
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>

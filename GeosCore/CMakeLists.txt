@@ -117,22 +117,13 @@ if(("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU") AND NOT (CMAKE_Fortran_COMPIL
   )
 endif()
 
-# Dependencies
-target_link_libraries(GeosCore
-  PUBLIC
-  Transport ObsPack History Isorropia
+# Define dependencies for libGeosCore.a
+target_link_libraries(GeosCore PUBLIC
+  Transport ObsPack History Isorropia KPP
   
-  $<LINK_ONLY:HCOI_Shared>  #  link only to avoid gathering the rest of the TURs
+  $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
 
-  # Add dependency on the correct KPP library
-  $<$<STREQUAL:${MECH},fullchem>:KPP_fullchem>
-  $<$<STREQUAL:${MECH},custom>:KPP_custom>
-  #------------------------------------------------------------------
-  # Kludge for KPP development, can remove it later (bmy, 3/16/21)
-  $<$<STREQUAL:${MECH},aerochem>:KPP_aerochem>
-  #------------------------------------------------------------------
-
-  $<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
-  $<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
-  $<$<BOOL:${GTMM}>:Hg>				# depends on Hg iff GTMM is true
+  $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
+  $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
+  $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
 )
