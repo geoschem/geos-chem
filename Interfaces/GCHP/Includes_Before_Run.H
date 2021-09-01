@@ -86,6 +86,17 @@
   ENDIF
 
   !=========================================================================
+  ! Check whether vertical indexing is bottom-up or top-down
+  !=========================================================================
+  if (meteorology_vertical_index_is_top_down) then
+    CMFMC(:,:,:) = CMFMC(:,:,LM+1:1:-1)
+    PFICU(:,:,:) = PFICU(:,:,LM+1:1:-1)
+    PFILSAN(:,:,:) = PFILSAN(:,:,LM+1:1:-1)
+    PFLCU(:,:,:) = PFLCU(:,:,LM+1:1:-1)
+    PFLLSAN(:,:,:) = PFLLSAN(:,:,LM+1:1:-1)
+  end if
+
+  !=========================================================================
   ! Three-dimensional fields on level edges
   !=========================================================================
 
@@ -126,6 +137,29 @@
   ! The third dimension is land type and not level, possible to do with MAPL
   ! only because the # of land types is the same as # of level edges.
   State_Met%XLAI_NATIVE(:,:,:) = XLAIMULTI
+
+  !=========================================================================
+  ! Check whether vertical indexing is bottom-up or top-down
+  !=========================================================================
+  if (meteorology_vertical_index_is_top_down) then
+    CLDF(:,:,:) = CLDF(:,:,LM:1:-1)
+    DTRAIN(:,:,:) = DTRAIN(:,:,LM:1:-1)
+    DQRCU(:,:,:) = DQRCU(:,:,LM:1:-1)
+    DQRLSAN(:,:,:) = DQRLSAN(:,:,LM:1:-1)
+    QI(:,:,:) = QI(:,:,LM:1:-1)
+    QL(:,:,:) = QL(:,:,LM:1:-1)
+
+    RH(:,:,:) = RH(:,:,LM:1:-1)
+    TAUCLI(:,:,:) = TAUCLI(:,:,LM:1:-1)
+    TAUCLW(:,:,:) = TAUCLW(:,:,LM:1:-1)
+    REEVAPCN(:,:,:) = REEVAPCN(:,:,LM:1:-1)    
+    REEVAPLS(:,:,:) = REEVAPLS(:,:,LM:1:-1)
+
+    SPHU1(:,:,:) = SPHU1(:,:,LM:1:-1)
+    SPHU2(:,:,:) = SPHU2(:,:,LM:1:-1)
+    TMPU1(:,:,:) = TMPU1(:,:,LM:1:-1)
+    TMPU2(:,:,:) = TMPU2(:,:,LM:1:-1)
+  end if
  
   !=========================================================================
   ! Three-dimensional fields on level centers
