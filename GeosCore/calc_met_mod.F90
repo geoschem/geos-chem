@@ -225,6 +225,7 @@ CONTAINS
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
     REAL(fp)            :: Pb,        Pt,         XH2O,      ADmoist
     LOGICAL             :: UpdtMR
+    REAL(fp)            :: FRLAND_NOSNO_NOICE, FRWATER, FRICE, FRSNO
 
     ! Arrays
     LOGICAL             :: IsLocNoon (State_Grid%NX,State_Grid%NY)
@@ -275,7 +276,7 @@ CONTAINS
     ! Pre-compute local solar time = UTC + Lon/15
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J   )
+    !$OMP PRIVATE( I, J, FRLAND_NOSNO_NOICE, FRWATER, FRICE, FRSNO )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -291,20 +292,22 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-       ! Land: LWI=1 and ALBEDO less than 69.5%
-       State_Met%IsLand(I,J) = ( NINT( State_Met%LWI(I,J) ) == 1 .and. &
-                               State_Met%ALBD(I,J)  <  0.695e+0_fp )
+       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNO(I,J) - State_Met%FRLANDIC(I,J)
 
-       ! Water: LWI=0 and ALBEDO less than 69.5%
-       State_Met%IsWater(I,J) = ( NINT( State_Met%LWI(I,J) ) == 0 .and. &
-                                State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-       ! Ice: LWI=2 or ALBEDO > 69.5%
-       State_Met%IsIce(I,J) = ( NINT( State_Met%LWI(I,J) ) == 2 .or. &
-                              State_Met%ALBD(I,J)  >= 0.695e+0_fp )
-
-       ! Snow covered: ALBEDO > 40%
-       State_Met%IsSnow(I,J) = ( State_Met%ALBD(I,J)  > 0.40e+0_fp )
+       ! Water without sea ice
+       FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)
+      
+       ! Land and sea ice 
+       FRICE = State_Met%FRLANDIC(I,J) + State_Met%FRSEAICE(I,J)
+      
+       ! Land snow
+       FRSNO = State_Met%FRSNO(I,J)
+      
+       ! Set IsLand, IsWater, IsIce, IsSnow based on max fractional area
+       State_Met%IsLand(I,J)  = (FRLAND_NOSNO_NOICE > MAX(FRWATER, FRICE, FRSNO))
+       State_Met%IsWater(I,J) = (FRWATER > MAX(FRLAND_NOSNO_NOICE, FRICE, FRSNO))
+       State_Met%IsIce(I,J)   = (FRICE > MAX(FRLAND_NOSNO_NOICE, FRWATER, FRSNO))
+       State_Met%IsSnow(I,J)  = (FRSNO > MAX(FRLAND_NOSNO_NOICE, FRWATER, FRICE))
 
     ENDDO
     ENDDO
