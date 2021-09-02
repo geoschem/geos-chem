@@ -406,7 +406,7 @@ CONTAINS
     __Iam__('SetServices')
 
 
-    lgr => logging%get_logger('GEOS-Chem')
+    lgr => logging%get_logger('GCHPchem')
 
     !=======================================================================
     ! Set services begins here 
@@ -545,9 +545,9 @@ CONTAINS
     call ESMF_ConfigGetAttribute(myState%myCF,value=meteorology_vertical_index_is_top_down, &
     label='METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN:', Default=.false., __RC__ )
     if (meteorology_vertical_index_is_top_down) then
-        call lgr%info('The user specified that the vertical index of the meteorological data is top-down (flipping enabled).')
+       call lgr%info('Configured to expect ''top-down'' meteorological data from ''ExtData''')
     else
-        call lgr%info('The user specified that the vertical index of the meteorological data is bottom-up.')
+       call lgr%info('Configured to expect ''bottom-up'' meteorological data from ''ExtData''')
     end if
 
 #if defined( MODEL_GEOS )
