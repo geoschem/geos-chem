@@ -16,11 +16,8 @@
 
 # Load modules (so software dependencies are available)
 module purge
-module load comp-intel/2018.3.222
-module load mpi-hpcx/2.4.0
-module load hdf4/4.2.12
-module load hdf5/1.8.18_serial
-module load netcdf/4.4.1.1_serial
+module use /nobackup/lbindle/modulefiles
+module load gchp-env/2021.06-gnu
 
 # Misc. configuration
 module list     # print loaded modules
