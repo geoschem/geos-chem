@@ -2306,6 +2306,11 @@ CONTAINS
        Collection%OnLevelEdges = Item%OnLevelEdges
     ENDIF
 
+    ! NB is always two (lon0, lon1) or (lat0, lat1)
+    IF ( Collection%NB == UNDEFINED_INT ) THEN
+       Collection%NB = 2
+    ENDIF
+
     !=======================================================================
     ! Make sure that all the HISTORY ITEMS in this collection are
     ! placed on the level centers or edges, but not both.  The netCDF

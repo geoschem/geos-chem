@@ -45,11 +45,12 @@ MODULE HistItem_Mod
      !----------------------------------------------------------------------
      ! netCDF variable attributes (for COARDS-compliance)
      !----------------------------------------------------------------------
-     INTEGER            :: NcXDimId              ! Id of netCDF X (lon  ) dim
-     INTEGER            :: NcYdimId              ! Id of netCDF Y (lat  ) dim
-     INTEGER            :: NcZDimId              ! Id of netCDF Z (lev C) dim
-     INTEGER            :: NcIDimId              ! ID of netCDF I (lev E) dim
-     INTEGER            :: NcTdimId              ! Id of netCDF T (time ) dim
+     INTEGER            :: NcXDimId              ! Id of netCDF X (lon   ) dim
+     INTEGER            :: NcYDimId              ! Id of netCDF Y (lat   ) dim
+     INTEGER            :: NcZDimId              ! Id of netCDF Z (lev C ) dim
+     INTEGER            :: NcIDimId              ! ID of netCDF I (lev E ) dim
+     INTEGER            :: NcTDimId              ! Id of netCDF T (time  ) dim
+     INTEGER            :: NcBdimId              ! Id of netCDF B (bounds) dim
      INTEGER            :: NcVarId               ! netCDF variable ID
      CHARACTER(LEN=255) :: LongName              ! Item description
      CHARACTER(LEN=255) :: Units                 ! Units of data
@@ -362,7 +363,8 @@ CONTAINS
     Item%NcYDimId = UNDEFINED_INT
     Item%NcZDimId = UNDEFINED_INT
     Item%NcIDimId = UNDEFINED_INT
-    Item%NcTdimId = UNDEFINED_INT
+    Item%NcTDimId = UNDEFINED_INT
+    Item%NcBDimId = UNDEFINED_INT
     Item%NcVarId  = UNDEFINED_INT
 
     !========================================================================
@@ -560,7 +562,7 @@ CONTAINS
        ! Attach pointer to 2D data source, depending on its type
        CASE( 2 )
 
-          ! Subsets: assume all 2D are xy (for now)
+          ! Subsets: These will be xy, bx, or by
           X0 = Subset_X(1); X1 = Subset_X(2)
           Y0 = Subset_Y(1); Y1 = Subset_Y(2)
 
@@ -691,12 +693,14 @@ CONTAINS
           ! Allocate the NcChunkSizes array
           ALLOCATE( Item%NcChunkSizes( 3 ), STAT=rC )
           IF ( RC == GC_SUCCESS ) THEN
-             IF ( TRIM( Item%DimNames ) == 'xy' ) THEN
-                Item%NcChunkSizes = (/ Dims(1), Dims(2), 1 /)   ! xy
-             ELSE
-                Item%NcChunkSizes = (/ Dims(1), 1,       1 /)   ! xz or yz
-             ENDIF
-
+             SELECT CASE( TRIM( Item%DimNames ) )
+                CASE( 'xy' )
+                   Item%NcChunkSizes = (/ Dims(1), Dims(2), 1 /)   ! xy
+                CASE( 'bx', 'by' )
+                   Item%NcChunkSizes = (/ Dims(1), 1          /)   ! bx, by
+                CASE DEFAULT
+                   Item%NcChunkSizes = (/ Dims(1), 1,       1 /)   ! xz or yz
+             END SELECT
           ELSE
              ErrMsg = 'Could not allocate "Item%NcChunkSizes" array (2d)!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )

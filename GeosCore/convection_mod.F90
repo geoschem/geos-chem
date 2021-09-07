@@ -462,6 +462,9 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
+#ifdef LUO_WETDEP
+    REAL(fp), PARAMETER    :: pHRain = 5.6_fp
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -1095,6 +1098,9 @@ CONTAINS
                               K,         IC,         BXHEIGHT(K),   &
                               T(K),      QDOWN,      SDT,           &
                               F_WASHOUT, H2O2s(K),   SO2s(K),       &
+#ifdef LUO_WETDEP
+                              pHRain,                               &
+#endif
                               WASHFRAC,  AER,        Input_Opt,     &
                               State_Chm, State_Grid, State_Met,  RC )
 

@@ -303,7 +303,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: Iodide       (:,:  ) ! Ocn surf iodide [nM]
      REAL(fp),          POINTER :: Salinity     (:,:  ) ! Ocn surf salinity [PSU]
      REAL(fp),          POINTER :: DryDepFreq (:,:,:  ) ! Drydep freq [s-1]
-     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities 
+     REAL(f8),          POINTER :: DryDepVel  (:,:,:  ) ! Dry deposition velocities
                                                         ! [m/s] - use REAL8 in drydep
 #if defined( MODEL_GEOS )
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
@@ -322,9 +322,12 @@ MODULE State_Chm_Mod
 
      !------------------------------------------------------------------------
      ! Fields for Gan Luo et al Wetdep scheme (GMD-12-3439-2019)
-     !------------------------------------------------------------------------
-     REAL(fp),          POINTER :: PSO4s      (:,:,:  )
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: KRATE      (:,:,:  )
      REAL(fp),          POINTER :: QQ3D       (:,:,:  )
+     REAL(fp),          POINTER :: pHRain     (:,:,:  ) ! Rain pH [-]
+     REAL(fp),          POINTER :: QQpHRain   (:,:,:  ) ! Rain pH*QQ3D [-]
+     REAL(fp),          POINTER :: QQRain     (:,:,:  ) ! Rain QQ3D [-]
 
      !-----------------------------------------------------------------------
      ! Fields for setting mean surface CH4 from HEMCO
@@ -525,8 +528,12 @@ CONTAINS
     ! Wetdep quantities
     State_Chm%H2O2AfterChem     => NULL()
     State_Chm%SO2AfterChem      => NULL()
-    State_Chm%PSO4s             => NULL()
     State_Chm%QQ3D              => NULL()
+    State_Chm%KRATE             => NULL()
+    State_Chm%QQ3D              => NULL()
+    State_Chm%pHRain            => NULL()
+    State_Chm%QQpHRain          => NULL()
+    State_Chm%QQRain            => NULL()
 
     ! Isoprene SOA
     State_Chm%IsorropAeropH     => NULL()
@@ -1337,24 +1344,6 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
-       ! phCloud
-       !---------------------------------------------------------------------
-       chmId = 'pHCloud'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%pHCloud,                                  &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !---------------------------------------------------------------------
        ! QLxphCloud
        !---------------------------------------------------------------------
        chmId = 'QLxpHCloud'
@@ -1698,20 +1687,43 @@ CONTAINS
        RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! phCloud
+    !------------------------------------------------------------------------
+    chmId = 'pHCloud'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%pHcloud,                                     &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Set default pHcloud value to 5.6, which is typical values of cloud
+    ! water pH in the atmosphere.  This pH value reflects dissolved CO2
+    ! in cloud water.  See geoschem/geos-chem Pull Request #779.
+    State_Chm%pHCloud = 5.6_fp
+
 #ifdef LUO_WETDEP
-    !------------------------------------------------------------------
-    ! Gan Luo et al wetdep fields
-    !------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Gan Luo et al 2020 wetdep fields
+    !------------------------------------------------------------------------
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-        ! PSO4s
-       chmId = 'PSO4s'
+       ! %%% QQ3D %%%
+       chmId = 'QQ3D'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%PSO4s,                                    &
+            Ptr2Data   = State_Chm%QQ3D,                                     &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1720,14 +1732,62 @@ CONTAINS
           RETURN
        ENDIF
 
-        ! QQ3D
-       chmId = 'QQ3D'
+       ! %%% KRATE %%%
+       chmId = 'KRATE'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%QQ3D,                                     &
+            Ptr2Data   = State_Chm%KRATE,                                    &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! %%% phRain %%%
+       chmId = 'pHrain'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%pHrain,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! %%% QQpHrain %%%
+       chmId = 'QQpHrain'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%QQpHrain,                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! %%% QQrain %%%
+       chmId = 'QQrain'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%QQrain,                                   &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -3134,18 +3194,39 @@ CONTAINS
     ENDIF
 
 #ifdef LUO_WETDEP
-    IF ( ASSOCIATED( State_Chm%PSO4s ) ) THEN
-       DEALLOCATE( State_Chm%PSO4s, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%PSO4s', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%PSO4s => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Chm%QQ3D ) ) THEN
        DEALLOCATE( State_Chm%QQ3D, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%QQ3D', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%QQ3D => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%KRATE ) ) THEN
+       DEALLOCATE( State_Chm%KRATE, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KRATE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KRATE => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%pHrain ) ) THEN
+       DEALLOCATE( State_Chm%pHrain, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%pHrain', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%pHrain => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%QQpHrain ) ) THEN
+       DEALLOCATE( State_Chm%QQpHrain, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QQpHrain', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%QQpHrain => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%QQrain ) ) THEN
+       DEALLOCATE( State_Chm%QQrain, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QQrain', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%QQrain => NULL()
     ENDIF
 #endif
 
@@ -4057,14 +4138,29 @@ CONTAINS
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
 
-       CASE( 'PSO4S' )
-          IF ( isDesc  ) Desc  = 'PSO4s'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 3
-
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
           IF ( isUnits ) Units = 'cm3 H2O cm-3 air'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'KRATE' )
+          IF ( isDesc  ) Desc  = 'KRATE'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'PHRAIN' )
+          IF ( isDesc  ) Desc  = 'Rain pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'QQPHRAIN' )
+          IF ( isDesc  ) Desc  = 'QQRain pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'QQRAIN' )
+          IF ( isDesc  ) Desc  = 'QQRain'
+          IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE DEFAULT

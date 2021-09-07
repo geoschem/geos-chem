@@ -1137,7 +1137,7 @@ CONTAINS
     ! Pressure
     CALL NcDef_Variable( fId, 'pressure', NF_FLOAT, 1, dims_1d, vId         )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'pressure'            )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'Pa'                  )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'                 )
 
     ! Temperature
     CALL NcDef_Variable( fId, 'temperature', NF_FLOAT, 1, dims_1d, vId      )
