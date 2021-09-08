@@ -213,35 +213,44 @@ CONTAINS
     DO J = 1, State_Grid%GlobalNY
     DO I = 1, State_Grid%GlobalNX
 
-       ! Latitude edge: South pole
-       IF ( J == 1 ) THEN
-          State_Grid%GlobalYEdge(I,J) = -90.0_fp
-       ENDIF
-
        ! Latitude edges
-       IF ( State_Grid%HalfPolar .or. is_GMAO ) THEN
-          State_Grid%GlobalYEdge(I,J) = -90.0_fp                             &
-                                      - ( State_Grid%DY * 0.5_fp    )        &
-                                      + ( State_Grid%DY * ( J - 1 ) )
-       ELSE
-          State_Grid%GlobalYEdge(I,J) = -90.0_fp                             &
-                                      + ( State_Grid%DY * ( J - 1 ) )
-       ENDIF
+       IF ( J == 1 ) THEN
 
-       ! Latitude edge: North pole
-       IF ( J == State_Grid%GlobalNY ) THEN
-          State_Grid%GlobalYEdge(I,J+1) = +90.0_fp
+          ! South Pole
+          State_Grid%GlobalYEdge(I,J) = -90.0_fp
+
+       ELSE
+
+          IF ( State_Grid%HalfPolar .or. is_GMAO ) THEN
+             State_Grid%GlobalYEdge(I,J) = -90.0_fp                          &
+                                         - ( State_Grid%DY * 0.5_fp    )     &
+                                         + ( State_Grid%DY * ( J - 1 ) )
+          ELSE
+             State_Grid%GlobalYEdge(I,J) = -90.0_fp                          &
+                                         + ( State_Grid%DY * ( J - 1 ) )
+          ENDIF
+
+          IF ( J == State_Grid%GlobalNY ) THEN
+
+             ! North pole
+             State_Grid%GlobalYEdge(I,J+1) = +90.0_fp
+
+          ENDIF
+
        ENDIF
 
        ! Longitude edges
        IF ( I == 1 ) THEN
+
           IF ( State_Grid%Center180 ) THEN
              State_Grid%GlobalXEdge(I,J) = -180.0_fp                         &
                                          - ( State_Grid%DX * 0.5_fp )
           ELSE
              State_Grid%GlobalXEdge(I,J) = -180.0_fp
           ENDIF
+
        ELSE
+
           State_Grid%GlobalXEdge(I,J) = State_Grid%GlobalXEdge(1,J)          &
                                       + ( State_Grid%DX * ( I - 1 ) )
 
@@ -249,6 +258,7 @@ CONTAINS
              State_Grid%GlobalXEdge(I+1,J) = State_Grid%GlobalXEdge(1,J)     &
                                            + 360.0_fp
           ENDIF
+
        ENDIF
 
     ENDDO

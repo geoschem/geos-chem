@@ -16,32 +16,40 @@
 #
 # Special Notes:
 #
-#  1. Configure the total number of runs within runConfig.sh. This is 
+#  1. Configure the total number of runs via command line argument. This is 
 #     equivalent to how many jobs will be submitted to SLURM. Make sure that 
-#     the end date in runConfig.sh is sufficiently past the start date to 
-#     accommodate all configured runs.
+#     the end date in runConfig.sh is sufficiently PAST the start date to 
+#     accommodate all configured runs. It does not need to equal actual last
+#     run end date.
 #
 #  2. This script uses a special run script for multi-run segments 
 #     (gchp.multirun.run). Using the default run script instead (gchp.run) 
 #     will not work for multi-segmented runs without updates. 
 #
 #  3. The run script submitted on loop in this shell script will send stdout to
-#     to gchp.log. Log output is not over-written by subsequent runs. 
+#     to slurm-jobid.out. Log output is not over-written by subsequent runs. 
 #
-#  4. Because GCHP output diagnostics files contain the date, diagnostic output
+#  4. Because GCHP output diagnostic files contain the date, diagnostic output
 #     files will also not be over-written by subsequent runs. 
 #
 #  5. Restart files will always be produced at the end of a run for use in 
-#     the next run, but will not include the date in the filename. They will 
-#     therefore be over-written. However, you can configure regular restart
-#     output with the Checkpoint_Freq option in runConfig.sh. This will
-#     regularly output restart files with date/time in the filenames. 
+#     the next run, but will not include the date in the filename. The run
+#     script therefore renames them to include the date. If your run fails
+#     mid-run then that renaming does not happen. In that case you may see 
+#     a restart file called gcchem_internal_checkpoint. It will get deleted
+#     upon rerun of the multi-run script. Properly renamed restart files
+#     will not get deleted.
 # 
-#  6. gchp.log and cap_restart.log are both deleted at the top of this script.
-#     If you want to keep logs from a prior run you must archive elsewhere.
-#     Use the archiveRun.sh script to archive past runs. Using this script
-#     at the end of a multi-segmented run will archive files for all segements
-#     into one archive directory.
+#  6. You may use the archiveRun.sh script to archive ALL runs in the multi-run. However,
+#     note that the config files saved will only reflect settings for the last run in the
+#     series.
+
+# Set argument to number of runs
+Num_Runs=${1}
+if [[ "x${Num_Runs}" == "x" ]]; then
+    echo "ERROR: Specify number of runs as argument, e.g. ./gchp.multirun.sh 12"
+    exit
+fi
 
 # Set multirun log filename (separate from GEOS-Chem log file gchp.log)
 multirunlog="multirun.log"

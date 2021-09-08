@@ -31,9 +31,9 @@ if [[ -e cap_restart ]]; then
 fi
 
 # Update runConfig.sh to use 24 cores
-sed -i -e "s/TOTAL_CORES=48/TOTAL_CORES=24/"               ./runConfig.sh
-sed -i -e "s/NUM_NODES=2/NUM_NODES=1/"                     ./runConfig.sh
-sed -i -e "s/NUM_CORES_PER_NODE=48/NUM_CORES_PER_NODE=24/" ./runConfig.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/"               ./runConfig.sh
+sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/"                     ./runConfig.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ./runConfig.sh
 
 # Sync all config files with settings in runConfig.sh                           
 source runConfig.sh > ${log}

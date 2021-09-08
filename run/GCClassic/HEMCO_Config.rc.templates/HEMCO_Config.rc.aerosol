@@ -60,8 +60,9 @@ Warnings:                    1
     --> NEI2011_MONMEAN        :       false    # 2006-2013
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
-    --> CEDS                   :       true     # 1970-2017
-    --> CEDS_byFuelType        :       false    # 1970-2017
+    --> CEDSv2                 :       true     # 1750-2019
+    --> CEDS_GBDMAPS           :       false    # 1970-2017
+    --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
     --> EDGARv43               :       false    # 1970-2010
     --> HTAP                   :       false    # 2008-2010
     --> GEIA_NH3               :       true     # 1990
@@ -71,8 +72,9 @@ Warnings:                    1
     --> AFCID                  :       true     # 2015
 # ----- SHIP EMISSIONS ----------------------------------------
     --> SHIP                   :       true
-    --> CEDS_SHIP              :       true     # 1970-2017
-    --> CEDS_SHIP_byFuelType   :       false    # 1970-2017
+    --> CEDSv2_SHIP            :       true     # 1750-2017
+    --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
+    --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
     --> HTAP_SHIP              :       false    # 2008-2010
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
@@ -113,7 +115,7 @@ Warnings:                    1
     --> OMOC_RATIO             :       false    # 2010
     --> OXIDANT_FIELDS         :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
-    --> YUAN_MODIS_LAI         :       true     # 2005-2016
+    --> YUAN_MODIS_LAI         :       true     # 2000-2020
     --> RRTMG                  :       false    # 2002
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
@@ -126,6 +128,15 @@ Warnings:                    1
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
+    --> Reduce SS cold water   :       true
+    --> Blowing Snow SS        :       true
+    --> NH FYI snow salinity   :       0.1
+    --> NH MYI snow salinity   :       0.05
+    --> SH FYI snow salinity   :       0.03
+    --> SH MYI snow salinity   :       0.015
+    --> NH snow age            :       3.0
+    --> SH snow age            :       1.5
+    --> N per snowflake        :       5.0
     --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : {ONLINE}   ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
@@ -568,10 +579,82 @@ Warnings:                    1
 )))DICE_Africa
 
 #==============================================================================
-# --- CEDS ---
+# --- CEDS v2 ---
 #
 # %%% This is the default global inventory. You may select either CEDS,
-# EDGAR, or HTAP for the global base emissions %%%
+# EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
+#==============================================================================
+(((CEDSv2
+0 CEDS_SOAP_ENE   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_ene            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
+0 CEDS_SOAP_IND   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_ind            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
+0 CEDS_SOAP_TRA   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_tra            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
+0 CEDS_SOAP_RCO   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_rco            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
+0 CEDS_SOAP_SLV   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_slv            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
+0 CEDS_SOAP_WST   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_wst            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
+
+0 CEDS_SO2_AGR    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_agr           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_AGR    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_AGR    -                                                                    -                 -                  - -  -       pFe   66        1 5
+0 CEDS_SO2_ENE    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_ene           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_ENE    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_ENE    -                                                                    -                 -                  - -  -       pFe   66        1 5
+0 CEDS_SO2_IND    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_ind           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_IND    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_IND    -                                                                    -                 -                  - -  -       pFe   66        1 5
+0 CEDS_SO2_TRA    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_tra           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_TRA    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_TRA    -                                                                    -                 -                  - -  -       pFe   66        1 5
+0 CEDS_SO2_RCO    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_rco           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_RCO    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_RCO    -                                                                    -                 -                  - -  -       pFe   66        1 5
+0 CEDS_SO2_SLV    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_slv           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_SLV    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_SLV    -                                                                    -                 -                  - -  -       pFe   66        1 5
+0 CEDS_SO2_WST    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_wst           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
+0 CEDS_SO4_WST    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_pFe_WST    -                                                                    -                 -                  - -  -       pFe   66        1 5
+
+0 CEDS_NH3_AGR    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_agr           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+0 CEDS_NH3_ENE    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_ene           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+0 CEDS_NH3_IND    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_ind           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+0 CEDS_NH3_TRA    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_tra           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+0 CEDS_NH3_RCO    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_rco           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+0 CEDS_NH3_SLV    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_slv           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+0 CEDS_NH3_WST    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_wst           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
+
+0 CEDS_BCPI_AGR   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_agr            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_AGR   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+0 CEDS_BCPI_ENE   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_ene            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_ENE   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+0 CEDS_BCPI_IND   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_ind            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_IND   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+0 CEDS_BCPI_TRA   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_tra            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_TRA   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+0 CEDS_BCPI_RCO   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_rco            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_RCO   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+0 CEDS_BCPI_SLV   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_slv            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_SLV   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+0 CEDS_BCPI_WST   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_wst            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
+0 CEDS_BCPO_WST   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+
+0 CEDS_OCPI_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_agr            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_AGR   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_ene            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_ENE   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_ind            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_IND   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_tra            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_TRA   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_rco            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_RCO   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_slv            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_SLV   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_wst            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
+0 CEDS_OCPO_WST   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+)))CEDSv2
+
+#==============================================================================
+# --- CEDS GBD-MAPS ---
 #
 # NOTES:
 #  -- Reference: McDuffie et al. (2020, Earth System Science Data)
@@ -581,105 +664,15 @@ Warnings:                    1
 #  -- Fuel categories: the combustion of total coal, solid biofuel, liquid oil
 #       and gas, and all remaining sources
 #       **To use, enable CEDS_byFuelType and CEDS_SHIP_byFuelType**
-#  -- CEDS ship emissions are listed in the ship emissions section below
-#  -- CEDS includes trash emissions (Cat=12) from Wiedinmyer et al. (2014)
 #==============================================================================
-(((CEDS
-0 CEDS_SOAP_AGR      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_agr             1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SOAP_ENE      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_ene             1970-2017/1-12/1/0 C xyL* kg/m2/s SOAP  26/280/37/35/315  1 5
-0 CEDS_SOAP_IND      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_ind             1970-2017/1-12/1/0 C xyL* kg/m2/s SOAP  26/280/316        1 5
-0 CEDS_SOAP_NRTR     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_nrtr            1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SOAP_ROAD     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_road            1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SOAP_RCOR     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_rcor            1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SOAP_RCOC     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_rcoc            1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SOAP_RCOO     $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_rcoo            1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SOAP_SLV      $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc   CO_slv             1970-2017/1-12/1/0 C xy   kg/m2/s SOAP  26/280            1 5
-0 CEDS_SO2_AGR       $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_agr            1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_AGR       -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_AGR       -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_ENE       $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_ene            1970-2017/1-12/1/0 C xyL* kg/m2/s SO2   34/315            1 5
-0 CEDS_SO4_ENE       -                                                            -                  -                  - -    -       SO4   63/34/315         1 5
-0 CEDS_pFe_ENE       -                                                            -                  -                  - -    -       pFe   66/34/315         1 5
-0 CEDS_SO2_IND       $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_ind            1970-2017/1-12/1/0 C xyL* kg/m2/s SO2   316               1 5
-0 CEDS_SO4_IND       -                                                            -                  -                  - -    -       SO4   63/316            1 5
-0 CEDS_pFe_IND       -                                                            -                  -                  - -    -       pFe   66/316            1 5
-0 CEDS_SO2_NRTR      $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_nrtr           1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_NRTR      -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_NRTR      -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_ROAD      $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_road           1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_ROAD      -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_ROAD      -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_RCOR      $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_rcor           1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_RCOR      -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_RCOR      -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_RCOC      $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_rcoc           1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_RCOC      -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_RCOC      -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_RCOO      $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_rcoo           1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_RCOO      -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_RCOO      -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_SLV       $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_slv            1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_SLV       -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_SLV       -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_SO2_WST       $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc  SO2_wst            1970-2017/1-12/1/0 C xy   kg/m2/s SO2   -                 1 5
-0 CEDS_SO4_WST       -                                                            -                  -                  - -    -       SO4   63                1 5
-0 CEDS_pFe_WST       -                                                            -                  -                  - -    -       pFe   66                1 5
-0 CEDS_NH3_AGR       $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_agr            1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_ENE       $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_ene            1970-2017/1-12/1/0 C xyL* kg/m2/s NH3   315               1 5
-0 CEDS_NH3_IND       $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_ind            1970-2017/1-12/1/0 C xyL* kg/m2/s NH3   316               1 5
-0 CEDS_NH3_NRTR      $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_nrtr           1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_ROAD      $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_road           1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_RCOR      $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_rcor           1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_RCOC      $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_rcoc           1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_RCOO      $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_rcoo           1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_SLV       $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_slv            1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_NH3_WST       $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc  NH3_wst            1970-2017/1-12/1/0 C xy   kg/m2/s NH3   -                 1 5
-0 CEDS_BCPI_AGR      $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_agr             1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_AGR      -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_ENE      $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_ene             1970-2017/1-12/1/0 C xyL* kg/m2/s BCPI  70/35/315         1 5
-0 CEDS_BCPO_ENE      -                                                            -                  -                  - -    -       BCPO  71/35/315         1 5
-0 CEDS_BCPI_IND      $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_ind             1970-2017/1-12/1/0 C xyL* kg/m2/s BCPI  70/316            1 5
-0 CEDS_BCPO_IND      -                                                            -                  -                  - -    -       BCPO  71/316            1 5
-0 CEDS_BCPI_NRTR     $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_nrtr            1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_NRTR     -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_ROAD     $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_road            1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_ROAD     -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_RCOR     $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_rcor            1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_RCOR     -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_RCOC     $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_rcoc            1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_RCOC     -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_RCOO     $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_rcoo            1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_RCOO     -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_SLV      $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_slv             1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_SLV      -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_BCPI_WST      $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc   BC_wst             1970-2017/1-12/1/0 C xy   kg/m2/s BCPI  70                1 5
-0 CEDS_BCPO_WST      -                                                            -                  -                  - -    -       BCPO  71                1 5
-0 CEDS_OCPI_AGR      $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_agr             1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_AGR      -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_ENE      $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_ene             1970-2017/1-12/1/0 C xyL* kg/m2/s OCPI  72/35/315         1 5
-0 CEDS_OCPO_ENE      -                                                            -                  -                  - -    -       OCPO  73/35/315         1 5
-0 CEDS_OCPI_IND      $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_ind             1970-2017/1-12/1/0 C xyL* kg/m2/s OCPI  72/316            1 5
-0 CEDS_OCPO_IND      -                                                            -                  -                  - -    -       OCPO  73/316            1 5
-0 CEDS_OCPI_NRTR     $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_nrtr            1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_NRTR     -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_ROAD     $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_road            1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_ROAD     -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_RCOR     $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_rcor            1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_RCOR     -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_RCOC     $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_rcoc            1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_RCOC     -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_RCOO     $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_rcoo            1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_RCOO     -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_SLV      $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_slv             1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_SLV      -                                                            -                  -                  - -    -       OCPO  73                1 5
-0 CEDS_OCPI_WST      $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc   OC_wst             1970-2017/1-12/1/0 C xy   kg/m2/s OCPI  72                1 5
-0 CEDS_OCPO_WST      -                                                            -                  -                  - -    -       OCPO  73                1 5
-)))CEDS
-(((CEDS_byFuelType
-(((.not.CEDS
->>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_byFuelType.rc
-))).not.CEDS
-)))CEDS_byFuelType
+(((CEDS_GBDMAPS
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS.rc
+)))CEDS_GBDMAPS
+(((CEDS_GBDMAPS_byFuelType
+(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_byFuelType.rc
+))).not.CEDS_GBDMAPS.and..not.CEDSv2
+)))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
 # --- CMIP6_SFC_LAND_ANTHRO ---
@@ -993,21 +986,26 @@ Warnings:                    1
 0 HTAP_SHIP_SOAP       $ROOT/HTAP/v2015-03/EDGAR_HTAP_CO_SHIPS.generic.01x01.nc        emi_co          2008-2010/1/1/0        C xy kg/m2/s  SOAP 6/28/280    10 4
 )))HTAP_SHIP
 
-(((CEDS_SHIP
-0 CEDS_SOAP_SHP   $ROOT/CEDS/v2020-08/$YYYY/CO-em-total-anthro_CEDS_$YYYY.nc  CO_shp            1970-2017/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 5
-0 CEDS_SO2_SHP    $ROOT/CEDS/v2020-08/$YYYY/SO2-em-total-anthro_CEDS_$YYYY.nc SO2_shp           1970-2017/1-12/1/0 C xy kg/m2/s SO2   -      10 5
-0 CEDS_SO4_SHP    -                                                           -                 -                  - -  -       SO4   63     10 5
-0 CEDS_pFe_SHP    -                                                           -                 -                  - -  -       pFe   66     10 5
-0 CEDS_NH3_SHP    $ROOT/CEDS/v2020-08/$YYYY/NH3-em-total-anthro_CEDS_$YYYY.nc NH3_shp           1970-2017/1-12/1/0 C xy kg/m2/s NH3   -      10 5
-0 CEDS_BCPI_SHP   $ROOT/CEDS/v2020-08/$YYYY/BC-em-total-anthro_CEDS_$YYYY.nc  BC_shp            1970-2017/1-12/1/0 C xy kg/m2/s BCPI  70     10 5
-0 CEDS_BCPO_SHP   -                                                           -                 -                  - -  -       BCPO  71     10 5
-0 CEDS_OCPI_SHP   $ROOT/CEDS/v2020-08/$YYYY/OC-em-total-anthro_CEDS_$YYYY.nc  OC_shp            1970-2017/1-12/1/0 C xy kg/m2/s OCPI  72     10 5
-0 CEDS_OCPO_SHP   -                                                           -                 -                  - -  -       OCPO  73     10 5
-)))CEDS_SHIP
+(((CEDSv2_SHIP
+0 CEDS_SOAP_SHP   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_shp            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 5
+0 CEDS_SO2_SHP    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_shp           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -      10 5
+0 CEDS_SO4_SHP    -                                                                    -                 -                  - -  -       SO4   63     10 5
+0 CEDS_pFe_SHP    -                                                                    -                 -                  - -  -       pFe   66     10 5
+0 CEDS_NH3_SHP    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_shp           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -      10 5
+0 CEDS_BCPI_SHP   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_shp            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70     10 5
+0 CEDS_BCPO_SHP   -                                                                    -                 -                  - -  -       BCPO  71     10 5
+0 CEDS_OCPI_SHP   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_shp            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72     10 5
+0 CEDS_OCPO_SHP   -                                                                    -                 -                  - -  -       OCPO  73     10 5
+)))CEDSv2_SHIP
+
+(((CEDS_GBDMAPS_SHIP
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_SHIP.rc
+)))CEDS_GBDMAPS_SHIP
+
 (((CEDS_SHIP_byFuelType
-(((.not.CEDS_SHIP
->>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_SHIP_byFuelType.rc
-))).not.CEDS_SHIP
+(((.not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+>>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_SHIP_byFuelType.rc
+))).not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
 )))CEDS_SHIP_byFuelType
 
 #==============================================================================
@@ -1264,7 +1262,8 @@ Warnings:                    1
 # MODIS Chlorophyll-A fields used for emissions of marine organic aerosols
 #==============================================================================
 (((SeaSalt
-107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS 2005-2014/1-12/1/0 C xy 1 * - 1 1
+107 MODIS_CHLR  $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS    2005-2014/1-12/1/0    C xy 1 * - 1 1
+107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
 
 # Climatology CHLR
 #107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1
@@ -1550,79 +1549,79 @@ Warnings:                    1
 # (3) Data is timestamped every 8 days, starting from the 2nd of the month.
 #==============================================================================
 (((YUAN_MODIS_LAI
-* XLAI00 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI00 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI01 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI01 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI02 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI02 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI03 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI03 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI04 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI04 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI05 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI05 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI06 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI06 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI07 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI07 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI08 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI08 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI09 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI09 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI10 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI10 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI11 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI11 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI12 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI12 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI13 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI13 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI14 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI14 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI15 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI15 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI16 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI16 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI17 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI17 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI18 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI18 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI19 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI19 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI20 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI20 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI21 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI21 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI22 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI22 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI23 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI23 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI24 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI24 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI25 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI25 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI26 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI26 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI27 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI27 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI28 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI28 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI29 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI29 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI30 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI30 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI31 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI31 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI32 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI32 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI33 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI33 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI34 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI34 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI35 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI35 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI36 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI36 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI37 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI37 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI38 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI38 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI39 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI39 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI40 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI40 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI41 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI41 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI42 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI42 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI43 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI43 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI44 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI44 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI45 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI45 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI46 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI46 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI47 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI47 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI48 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI48 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI49 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI49 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI50 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI50 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI51 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI51 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI52 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI52 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI53 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI53 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI54 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI54 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI55 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI55 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI56 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI56 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI57 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI57 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI58 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI58 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI59 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI59 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI60 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI60 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI61 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI61 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI62 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI62 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI63 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI63 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI64 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI64 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI65 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI65 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI66 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI66 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI67 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI67 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI68 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI68 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI69 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI69 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI70 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI70 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI71 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI71 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
-* XLAI72 $ROOT/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2005-2016/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI00 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI00 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI01 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI01 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI02 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI02 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI03 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI03 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI04 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI04 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI05 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI05 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI06 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI06 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI07 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI07 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI08 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI08 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI09 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI09 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI10 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI10 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI11 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI11 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI12 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI12 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI13 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI13 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI14 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI14 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI15 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI15 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI16 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI16 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI17 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI17 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI18 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI18 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI19 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI19 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI20 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI20 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI21 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI21 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI22 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI22 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI23 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI23 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI24 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI24 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI25 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI25 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI26 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI26 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI27 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI27 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI28 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI28 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI29 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI29 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI30 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI30 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI31 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI31 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI32 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI32 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI33 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI33 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI34 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI34 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI35 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI35 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI36 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI36 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI37 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI37 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI38 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI38 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI39 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI39 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI40 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI40 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI41 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI41 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI42 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI42 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI43 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI43 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI44 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI44 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI45 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI45 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI46 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI46 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI47 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI47 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI48 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI48 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI49 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI49 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI50 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI50 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI51 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI51 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI52 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI52 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI53 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI53 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI54 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI54 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI55 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI55 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI56 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI56 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI57 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI57 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI58 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI58 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI59 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI59 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI60 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI60 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI61 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI61 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI62 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI62 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI63 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI63 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI64 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI64 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI65 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI65 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI66 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI66 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI67 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI67 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI68 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI68 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI69 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI69 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI70 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI70 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI71 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI71 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI72 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 )))YUAN_MODIS_LAI
 
 #==============================================================================
@@ -1702,10 +1701,8 @@ Warnings:                    1
 #==============================================================================
 # --- Diurnal scale factors ---
 #==============================================================================
-(((APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8.or.CMIP6_SHIP.or.CMIP6_SFC_LAND_ANTHRO.or.CMIP6_AIRCRAFT
 25 EDGAR_TODNOX $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless 1
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
-)))APEI.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8.or.CMIP6_SHIP.or.CMIP6_SFC_LAND_ANTHRO.or.CMIP6_AIRCRAFT
 
 # Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019)
 33 PKU_pow_NOx              0.94/0.93/0.93/0.92/0.93/0.96/0.98/0.99/0.98/1.00/1.05/1.03/1.01/1.04/1.05/1.05/1.07/1.06/1.05/1.05/1.03/1.01/0.99/0.96 - - - xy unitless 1 1009
@@ -1966,11 +1963,11 @@ Warnings:                    1
 #==============================================================================
 # --- CEDS vertical partitioning ---
 #==============================================================================
-(((CEDS
+(((CEDSv2.or.CEDS_GBDMAPS
 315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1 
 316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1 
 317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1 
-)))CEDS
+)))CEDSv2.or.CEDS_GBDMAPS
 
 #==============================================================================
 # --- DICE-Africa ---
