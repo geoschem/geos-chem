@@ -26,11 +26,11 @@
   ! If meteorology vertical index is top down, flip imports coming from ExtData.
   if (meteorology_vertical_index_is_top_down) then
     ! Level-edge imports
-    CMFMC(:,:,:) = CMFMC(:,:,LM+1:1:-1)
-    PFICU(:,:,:) = PFICU(:,:,LM+1:1:-1)
-    PFILSAN(:,:,:) = PFILSAN(:,:,LM+1:1:-1)
-    PFLCU(:,:,:) = PFLCU(:,:,LM+1:1:-1)
-    PFLLSAN(:,:,:) = PFLLSAN(:,:,LM+1:1:-1)
+    CMFMC(:,:,:) = CMFMC(:,:,State_Grid%NZ:0:-1)
+    PFICU(:,:,:) = PFICU(:,:,State_Grid%NZ:0:-1)
+    PFILSAN(:,:,:) = PFILSAN(:,:,State_Grid%NZ:0:-1)
+    PFLCU(:,:,:) = PFLCU(:,:,State_Grid%NZ:0:-1)
+    PFLLSAN(:,:,:) = PFLLSAN(:,:,State_Grid%NZ:0:-1)
 
     ! Level-center imports
     CLDF(:,:,:) = CLDF(:,:,LM:1:-1)
