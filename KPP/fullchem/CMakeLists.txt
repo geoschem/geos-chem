@@ -18,7 +18,7 @@ target_link_libraries(KPP_FirstPass PUBLIC GEOSChemBuildProperties)
 #----------------------------------------------------------------------------
 add_library(KPP 
   STATIC EXCLUDE_FROM_ALL
-  aciduptake_DustChemFuncs.F90  # temporary kludge
+  aciduptake_DustChemFuncs.F90  # Stub module for fullchem
   fullchem_HetStateFuncs.F90
   fullchem_RateLawFuncs.F90
   fullchem_SulfurChemFuncs.F90

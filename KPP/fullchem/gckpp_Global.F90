@@ -139,14 +139,12 @@ MODULE gckpp_Global
   REAL(dp) :: HENRY_K0(NSPEC)
   REAL(dp) :: HENRY_CR(NSPEC)
 
-  ! Array for aqueous rates (1/s)
-  ! - number of reactions set to 50 arbitrarily
-  REAL(kind=dp) :: K_MT(20)
+  ! Array for aqueous sulfur chemistry rates (1/s)
+  REAL(dp) :: K_MT(6)
   !$OMP THREADPRIVATE( K_MT )
 
-  ! Array for cloud rates (1/s)
-  ! - number of reactions set to 50 arbitrarily
-  REAL(dp) :: K_CLD(20)
+  ! Array for sulfur chemistry rates in cloud (1/s)
+  REAL(dp) :: K_CLD(6)
   !$OMP THREADPRIVATE( K_CLD )
 
   ! Liquid water conversion factor
@@ -156,13 +154,8 @@ MODULE gckpp_Global
 
   ! Proton activity [unitless] and H+ concentration [M]
   ! (assumed equivalent - for now):
-  REAL(kind=dp) :: H_PLUS
+  REAL(dp) :: H_PLUS
   !$OMP THREADPRIVATE( H_PLUS )
-
-  !### NOTE: The HET array is deprecated
-  !### These are the only slots left to convert
-  REAL(kind=dp) :: HET(NSPEC,8)
-  !$OMP THREADPRIVATE( HET )
 
   ! Array for photolysis rates (increase size if necessary)
   REAL(dp) :: PHOTOL(1000)
@@ -236,8 +229,6 @@ MODULE gckpp_Global
      REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
      REAL(dp) :: rIce           ! Ice radius
      REAL(dp) :: rLiq           ! Liquid radius
-     REAL(dp) :: SALAAL_save    ! Conc of SALAAL before conv [molec/cm3]
-     REAL(dp) :: SALCAL_save    ! Conc of SALCAL before conv [molec/cm3]
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
      LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?
      LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt acidic?

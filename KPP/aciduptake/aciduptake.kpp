@@ -76,7 +76,11 @@ PH2O2 : H2O2;
   REAL(dp) :: HENRY_K0(NSPEC)
   REAL(dp) :: HENRY_CR(NSPEC)
 
-  ! Array for cloud rates [1/s]
+  ! Array for aqueous sulfur chemistry rates (1/s)
+  REAL(dp) :: K_MT(6)
+  !$OMP THREADPRIVATE( K_MT )
+
+  ! Array for sulfur chemistry rates in cloud (1/s)
   REAL(dp) :: K_CLD(6)
   !$OMP THREADPRIVATE( K_CLD )
 

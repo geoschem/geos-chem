@@ -79,7 +79,7 @@ CONTAINS
     ! Calculates the 1st-order loss rate of species on wet aerosol surface.
     !
     REAL(dp), INTENT(IN) :: area, radius, gamma, srMw
-    REAL(dp)             :: k, dfkg
+    REAL(dp)             :: k,    dfkg
     !
     ! If gamma or radius is very small, set rate to zero and return
     IF ( gamma < 1.0e-30_dp .or. radius < 1.0e-30_dp ) THEN

@@ -16,7 +16,7 @@ MODULE fullchem_SulfurChemFuncs
 !
   USE PhysConstants
   USE Precision_Mod
-  USE GcKpp_Global,     ONLY : K_CLD, NUMDEN
+  USE GcKpp_Global
   USE rateLawUtilFuncs
 
   IMPLICIT NONE
@@ -24,31 +24,222 @@ MODULE fullchem_SulfurChemFuncs
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: fullchem_SulfurAqChem
   PUBLIC :: fullchem_SulfurCldChem
-  PUBLIC :: fullchem_InitSulfurCldChem
-
+  PUBLIC :: fullchem_InitSulfurChem
+!
+! !PUBLIC TYPES:
+!
   ! Species ID flags
-  INTEGER                :: id_DMS,    id_DST1
-  INTEGER                :: id_DST2,   id_DST3,   id_DST4
-  INTEGER                :: id_H2O2,   id_HNO3
-  INTEGER                :: id_MSA,    id_NH3,    id_NH4
-  INTEGER                :: id_NIT
-  INTEGER                :: id_NITs
-  INTEGER                :: id_NO3,    id_O3,     id_OH
-  INTEGER                :: id_SALA,   id_SALC
-  INTEGER                :: id_SO2,    id_SO4
-  INTEGER                :: id_SO4s,   id_pFe
-  INTEGER                :: id_SALACL, id_HCL,    id_SALCCL
-  INTEGER                :: id_SALAAL, id_SALCAL
-  INTEGER                :: id_HCOOH,  id_ACTA            !jmm 1/31/19
-  INTEGER                :: id_CH2O,   id_HMS             ! msl
-
-  REAL(fp),  PARAMETER   :: TCVV_S      = AIRMW / 32e+0_fp ! hard-coded MW
-  REAL(fp),  PARAMETER   :: TCVV_N      = AIRMW / 14e+0_fp ! hard-coded MW
-  REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
-  REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
+  INTEGER                :: id_ACTA,   id_CH2O,   id_DMS,    id_DST1
+  INTEGER                :: id_DST2,   id_DST3,   id_DST4,   id_H2O2
+  INTEGER                :: id_HCL,    id_HCOOH,  id_HMS,    id_HNO3
+  INTEGER                :: id_MSA,    id_NH3,    id_NH4,    id_NIT
+  INTEGER                :: id_NITs,   id_O3,     id_OH,     id_pFe
+  INTEGER                :: id_SALA,   id_SALAAL, id_SALACL, id_SALC
+  INTEGER                :: id_SALCAL, id_SALCCL, id_SO2,    id_SO4
+  INTEGER                :: id_SO4s
+!
+! !DEFINED_PARAMETERS
+!
+  REAL(fp),  PARAMETER   :: TCVV_S    = AIRMW / 32e+0_fp ! hard-coded MW
+  REAL(fp),  PARAMETER   :: TCVV_N    = AIRMW / 14e+0_fp ! hard-coded MW
+  REAL(fp),  PARAMETER   :: SMALLNUM  = 1e-20_fp
+  REAL(fp),  PARAMETER   :: CM3PERM3  = 1.e6_fp
 
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fullchem_SulfurAqchem
+!
+! !DESCRIPTION: Main aqueous/aerosol chemistry driver routine.  Sets up the
+!  vector of aqueous chemistry rates for the KPP chemistry solver.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE fullchem_SulfurAqChem( I,         J,          L,                &
+                                    Input_Opt, State_Chm,  State_Grid,       &
+                                    State_Met, RC                           )
+!
+! !USES:
+!
+
+    USE ErrCode_Mod
+    USE GcKpp_Parameters
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Met_Mod,    ONLY : MetState
+    USE State_Grid_Mod,   ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, level indices
+    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
+!
+! !REMARKS:
+!
+!  ! Reaction List (by K_MT() index)
+!    1) SO2 + O3 + 2SALAAL --> SO4mm + O2 : From Sulfate_mod - 24 Mar 2021
+!
+! !REVISION HISTORY:
+!  24 Mar 2021 - M. Long - Initial Version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+
+    ! Scalars
+    LOGICAL            :: SALAAL_gt_0_1
+    LOGICAL            :: SALCAL_gt_0_1
+    REAL(fp)           :: k_ex
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
+
+    !======================================================================
+    ! fullchem_SulfurAqChem begins here!
+    !======================================================================
+
+    ! Initialize
+    RC            = GC_SUCCESS
+    K_MT          = 0.0_dp
+    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
+    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
+    errMsg        = ''
+    thisLoc       = &
+   ' -> at fullchem_SulfurAqChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
+
+    !======================================================================
+    ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
+    !
+    ! K_MT(1) : SALAAL + SO2 + O3 = SO4 - SALAAL
+    ! K_MT(2) : SALAAL + HCl      = SALACL
+    ! K_MT(3) : SALAAL + HNO3     = NIT
+    !
+    ! NOTE: SALAAL_gt_0_1 prevents div-by-zero errors
+    !======================================================================
+
+    !------------------------------------------------------------------------
+    ! SALAAL + SO2 + O3 = SO4 - SALAAL
+    !------------------------------------------------------------------------
+    IF ( SALAAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
+                       radius = State_Het%xRadi(11),                         &
+                       gamma  = 0.11_dp,                                     &
+                       srMw   = SR_MW(ind_SO2)                              )
+
+       ! Assume SO2 is limiting, so recompute rxn rate accordingly
+       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
+               / State_Chm%Species(I,J,L,id_SALAAL)
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALAAL + HCL = SALACL
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
+                    radius = State_Het%xRadi(11),                            &
+                    gamma  = 0.074_dp,                                       &
+                    srMw   = SR_MW(ind_HCl)                                 )
+
+    ! Assume HCl is limiting, so recompute reaction rate accordingly
+    IF ( SALAAL_gt_0_1 ) THEN
+       K_MT(2) = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k_ex )
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALAAL + HNO3 = NIT
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
+                    radius = State_Het%xRadi(11),                            &
+                    gamma  = 0.5_dp,                                         &
+                    srMw   = SR_MW(ind_HNO3)                                )
+
+    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
+    IF ( SALAAL_gt_0_1 ) THEN
+       K_MT(3) = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k_ex )
+    ENDIF
+
+    !========================================================================
+    ! Reaction rates [1/s] for coarse sea salt alkalinity (aka SALAAL)
+    !
+    ! K_MT(4) : SALCAL + SO2 + O3 = SO4s - SALCAL
+    ! K_MT(5) : SALCAL + HCl      = SALCCL
+    ! K_MT(6) : SALCAL + HNO3     = NITs
+    !
+    ! NOTE: SALCAL_gt_0_1 prevents div-by-zero errors
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! SALCAL + SO2 + O3 = SO4s - SALCAL
+    !------------------------------------------------------------------------
+    IF ( SALCAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
+                       radius = State_Het%xRadi(12),                         &
+                       gamma  = 0.11_dp,                                     &
+                       srMw   = SR_MW(ind_SO2)                              )
+
+       ! Assume SO2 is limiting, so recompute rxn rate accordingly
+       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
+               / State_Chm%Species(I,J,L,id_SALCAL)
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALCAL + HCl = SALCCL
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
+                    radius = State_Het%xRadi(12),                            &
+                    gamma  = 0.074_dp,                                       &
+                    srMw   = SR_MW(ind_HCl)                                 )
+
+    ! Assume HCl is limiting, so recompute rxn rate accordingly
+    IF ( SALCAL_gt_0_1 ) THEN
+       K_MT(5) = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k_ex )
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALCAL + HNO3 = NITs
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
+                    radius = State_Het%xRadi(12),                            &
+                    gamma  = 0.5_dp,                                         &
+                    srMw   = SR_MW(ind_HNO3)                                )
+
+    ! Assume HNO3 is limiting, so recompute rxn rate accordingly
+    IF ( SALCAL_gt_0_1 ) THEN
+       K_MT(6) = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k_ex )
+    ENDIF
+
+  END SUBROUTINE fullchem_SulfurAqChem
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2878,85 +3069,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_sulfate
-!
-! !DESCRIPTION: Subroutine INIT\_SULFATE initializes and zeros all allocatable
-!  arrays declared in "sulfate\_mod.F90" (bmy, 6/2/00, 10/15/09)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE fullchem_InitSulfurCldChem( RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE State_Chm_Mod,  ONLY : Ind_
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  02 Jun 2000 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: I, J, N
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=================================================================
-    ! INIT_SULFATE begins here!
-    !=================================================================
-
-    ! Initialize
-    RC       = GC_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F90)'
-
-    ! Define flags for species ID's
-    id_DMS   = Ind_('DMS'      )
-    id_DST1  = Ind_('DST1'     )
-    id_DST2  = Ind_('DST2'     )
-    id_DST3  = Ind_('DST3'     )
-    id_DST4  = Ind_('DST4'     )
-    id_H2O2  = Ind_('H2O2'     )
-    id_HNO3  = Ind_('HNO3'     )
-    id_MSA   = Ind_('MSA'      )
-    id_NH3   = Ind_('NH3'      )
-    id_NH4   = Ind_('NH4'      )
-    id_NIT   = Ind_('NIT'      )
-    id_NITs  = Ind_('NITs'     )
-    id_O3    = Ind_('O3'       )
-    id_OH    = Ind_('OH'       )
-    id_pFe   = Ind_('pFe'      )
-    id_SALA  = Ind_('SALA'     )
-    id_SALC  = Ind_('SALC'     )
-    id_SO2   = Ind_('SO2'      )
-    id_SO4   = Ind_('SO4'      )
-    id_SO4s  = Ind_('SO4s'     )
-    id_SALACL= Ind_('SALACL'   )
-    id_HCL   = Ind_('HCL'     )
-    id_SALCCL= Ind_('SALCCL'   )
-    id_HCOOH = Ind_('HCOOH'    ) ! (jmm, 12/3/18)
-    id_ACTA  = Ind_('ACTA'     ) ! (jmm, 12/3/18)
-    id_CH2O  = Ind_('CH2O'     ) ! msl
-    id_HMS   = Ind_('HMS'      ) ! msl
-
-  END SUBROUTINE fullchem_InitSulfurCldChem
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: het_drop_chem
 !
 ! !DESCRIPTION: Subroutine HET\_DROP\_CHEM estimates the in-cloud sulfate
@@ -3382,5 +3494,86 @@ CONTAINS
     kHet = kI / ( 1e0_fp + SafeDiv( 1e0_fp, xx, 1e30_fp ) )
 
   END FUNCTION CloudHet1R
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fullchem_InitSulfurChem
+!
+! !DESCRIPTION: Stores species indices in module variables for fast lookup.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE fullchem_InitSulfurChem( RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod,  ONLY : Ind_
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  02 Jun 2000 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: I, J, N
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=================================================================
+    ! INIT_SULFATE begins here!
+    !=================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = &
+ ' -> at fullchem_InitSulfurChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
+
+    ! Define flags for species ID's
+    id_ACTA   = Ind_( 'ACTA'   )
+    id_CH2O   = Ind_( 'CH2O'   )
+    id_DMS    = Ind_( 'DMS'    )
+    id_DST1   = Ind_( 'DST1'   )
+    id_DST2   = Ind_( 'DST2'   )
+    id_DST3   = Ind_( 'DST3'   )
+    id_DST4   = Ind_( 'DST4'   )
+    id_H2O2   = Ind_( 'H2O2'   )
+    id_HCL    = Ind_( 'HCL'    )
+    id_HCOOH  = Ind_( 'HCOOH'  )
+    id_HMS    = Ind_( 'HMS'    )
+    id_HNO3   = Ind_( 'HNO3'   )
+    id_MSA    = Ind_( 'MSA'    )
+    id_NH3    = Ind_( 'NH3'    )
+    id_NH4    = Ind_( 'NH4'    )
+    id_NIT    = Ind_( 'NIT'    )
+    id_NITs   = Ind_( 'NITs'   )
+    id_O3     = Ind_( 'O3'     )
+    id_OH     = Ind_( 'OH'     )
+    id_pFe    = Ind_( 'pFe'    )
+    id_SALA   = Ind_( 'SALA'   )  ! Sea salt aerosol     (fine mode  )
+    id_SALAAL = Ind_( 'SALAAL' )  ! Sea salt alkalinity  (fine mode  )
+    id_SALACL = Ind_( 'SALACL' )  ! Cl- on sea salt      (fine mode  )
+    id_SALC   = Ind_( 'SALC'   )  ! Sea salt aerosol     (coarse mode)
+    id_SALCAL = Ind_( 'SALCAL' )  ! Sea salt alkalinity  (coarse mode)
+    id_SALCCL = Ind_( 'SALCCL' )  ! Cl- on sea salt      (coarse mode)
+    id_SO2    = Ind_( 'SO2'    )
+    id_SO4    = Ind_( 'SO4'    )
+    id_SO4s   = Ind_( 'SO4s'   )
+
+  END SUBROUTINE fullchem_InitSulfurChem
 !EOC
 END MODULE fullchem_SulfurChemFuncs

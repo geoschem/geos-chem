@@ -767,14 +767,14 @@ CONTAINS
        ENDDO
 
        !=====================================================================
-       ! Update reaction rates [1/s] for sulfate chemistry.  
-       ! These will be passed to the KPP chemical solver.
+       ! Update reaction rates [1/s] for sulfur chemistry in cloud and on
+       ! seasalt.  These will be passed to the KPP chemical solver.
        !
        ! NOTE: This has to be done before Set_Kpp_Gridbox_Values so that
        ! State_Chm%HSO3_aq and State_Chm%SO3_aq will be populated properly!
        !=====================================================================
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread) 
+          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread)
        ENDIF
 
        ! Compute reaction rates [1/s]
@@ -789,7 +789,7 @@ CONTAINS
                                    RC         = RC                          )
 
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread ) 
+          CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
        ENDIF
 
        !=====================================================================
@@ -818,7 +818,6 @@ CONTAINS
           CALL Timer_End  ( "  -> Init KPP", RC,                             &
                             InLoop=.TRUE.,   ThreadNum=Thread               )
        ENDIF
-
 
        !====================================================================
        ! Start KPP main timer and prepare arrays
@@ -1357,7 +1356,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_sulfate_chem_rates
+! !IROUTINE: set_sulfur_chem_rates
 !
 ! !DESCRIPTION: Calls functions from the KPP rate-law library to compute
 !  rates for sulfate chemistry reactions.  These are passed to the KPP
@@ -1375,6 +1374,7 @@ CONTAINS
     USE ErrCode_Mod
     USE GcKpp_Global
     USE GcKpp_Parameters
+    USE fullchem_SulfurChemFuncs, ONLY : fullchem_SulfurAqChem
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_SulfurCldChem
     USE Input_Opt_Mod,            ONLY : OptInput
     USE State_Chm_Mod,            ONLY : ChmState
@@ -1382,24 +1382,24 @@ CONTAINS
     USE State_Grid_Mod,           ONLY : GrdState
     USE State_Met_Mod,            ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)    :: I, J, L      ! X, Y, Z gridbox indices
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC           ! Success or failure!
 !
 ! !REMARKS:
-!  The routines below are based on or meant to replace reactions computed 
+!  The routines below are based on or meant to replace reactions computed
 !  outside of KPP within sulfate_mod.
 !
 !  Rates are set for the following:
@@ -1407,43 +1407,47 @@ CONTAINS
 !  2) (If Dust acid uptake) Dust acid uptake reactions
 !  - MSL, 29-Mar-2021, 7-May-2021
 !
-!  Seasalt aerosol chemistry reaction rate-law functions are now contained 
+!  Seasalt aerosol chemistry reaction rate-law functions are now contained
 !  in module fullchem_RateLawFuncs.F90.
 !
-!  NOTE: This call must come before Set_Kpp_Gridbox_Values, or else 
+!  NOTE: This call must come before Set_Kpp_Gridbox_Values, or else
 !  State_Chm%HSO3_aq and State_Chm%SO3aq will be zero!
 !    -- Mike Long, Bob Yantosca (30 Aug 2021)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
     !========================================================================
-    ! Save the concentrations of SALAAL and SALCAL before they get
-    ! converted to equivalents (by multiplying by MW * 7e-5).
-    ! These original concentrations will be needed in the AqRate_*
-    ! rate-law functions (bmy, 6/9/21)
+    ! Do this when KPP is handling aqueous sulfur chemistry
     !
     ! From Alexander et al., buffering capacity (or alkalinity) of
     ! sea-salt aerosols is equal to 0.07 equivalents per kg dry sea salt
     ! emitted Gurciullo et al., 1999. JGR 104(D17) 21,719-21,731.
-    ! tdf; MSL   
+    ! tdf; MSL
     !========================================================================
     IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
 
-       ! SALAAL = Seasalt alkalinkity, fine mode
-       State_Het%SALAAL_save = C(ind_SALAAL)
-       C(ind_SALAAL)         = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
+       ! Convert alkalinity from [molec/cm3] to equivalents
+       C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
+       C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
 
-       ! SALCAL = Seasalt alkalinity, coarse mode
-       State_Het%SALCAL_save = C(ind_SALCAL)
-       C(ind_SALCAL)         = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
+       ! Compute reaction rates for aqueous sulfur chemistry
+       ! (i.e. S(IV)->S(VI), HCl,  and HNO3)
+       CALL fullchem_SulfurAqchem( I          = I,                           &
+                                   J          = J,                           &
+                                   L          = L,                           &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   RC         = RC                          )
     ENDIF
 
     !========================================================================
     ! Do this when KPP is handling SO2 cloud chemistry ...
     !========================================================================
     IF ( .not. State_Chm%Do_SulfateMod_Cld ) THEN
-       
-       ! Compute reaction rates for sulfate in cloud for KPP chem mech
+
+       ! Compute reaction rates [1/s\ for sulfate in cloud for KPP chem mech
        CALL fullchem_SulfurCldChem(  I          = I,                         &
                                      J          = J,                         &
                                      L          = L,                         &
@@ -1461,8 +1465,6 @@ CONTAINS
        State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
        State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
     ENDIF
-
-    ! SET_DUSTUP() ! Holding...
 
   END SUBROUTINE Set_Sulfur_Chem_Rates
 !EOC
@@ -2145,6 +2147,7 @@ CONTAINS
 !
     USE aciduptake_DustChemFuncs, ONLY : aciduptake_InitDustChem
     USE ErrCode_Mod
+    USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurChem
     USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Precision
     USE Gckpp_Parameters,         ONLY : nFam, nReact, ind_SALAAL, ind_SALCAL
@@ -2153,7 +2156,6 @@ CONTAINS
     USE State_Chm_Mod,            ONLY : ChmState
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
-    USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurCldChem
 !
 ! !INPUT PARAMETERS:
 !
@@ -2384,20 +2386,26 @@ CONTAINS
 
     ENDIF
 
-    ! Initialize sulfate chemistry code (Mike Long)
-    CALL fullchem_InitSulfurCldChem( RC )
+    !--------------------------------------------------------------------
+    ! Initialize sulfate chemistry code (cf Mike Long)
+    !--------------------------------------------------------------------
+    CALL fullchem_InitSulfurChem( RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "fullchem_InitSulfurCldChem"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !--------------------------------------------------------------------
     ! Initialize dust acid uptake code (Mike Long, Bob Yantosca)
-    CALL aciduptake_InitDustChem( RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "aciduptake_InitDustChem"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    !--------------------------------------------------------------------
+    IF ( Input_Opt%LDSTUP ) THEN
+       CALL aciduptake_InitDustChem( RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "aciduptake_InitDustChem"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE Init_FullChem
