@@ -2747,15 +2747,20 @@ CONTAINS
           RK1 = 0.e+0_fp
        ENDIF
 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!@@@@@ NOTE: The computation of sea salt alkalinity should eventually
+!@@@@@ be abstracted out of sulfate_mod.F90 so that the KPP/fullchem/fullchem_*
+!@@@@@ modules can make use of it.
+!@@@@@   -- Bob Yantosca (09 Sep 2021)
        !==============================================================
        ! Update SO2 conc. after seasalt chemistry (bec, 12/7/04)
        !==============================================================
 
        ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
-       CALL GET_ALK( I,    J,         L,           ALK1,      ALK2,          &
-                     Kt1,  Kt2,       Kt1N,        Kt2N,      Kt1L,          &
-                     Kt2L, Input_Opt, State_Chm, State_Grid,  State_Met,     &
-                     RC                                                     )
+       CALL GET_ALK( I,         J,           L,          ALK1,               &
+                     ALK2,      Kt1,         Kt2,        Kt1N,               &
+                     Kt2N,      Kt1L,        Kt2L,       Input_Opt,          &
+                     State_Chm, State_Grid,  State_Met,  RC                 ) 
 
        ! Total alkalinity [kg]
        ALK = ALK1 + ALK2
@@ -2808,14 +2813,27 @@ CONTAINS
                = AlkC                                                        &
                * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
                / ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
+
+          ! We also need to update the SALAAL and SALCAL species here
+          ! when we are using KPP to perform sulfur chemistry, otherwise
+          ! SALAAL and SALCAL will not get set properly.  Think about
+          ! a better way to abstract this code later. 
+          !   -- Bob Yantosca (09 Sep 2021)
+          IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
+             Spc(I,J,L,id_SALAAL) = AlkA
+             Spc(I,J,L,id_SALCAL) = AlkC
+          ENDIF
        ENDIF
 
        ! If we are not using KPP to compute seasalt reaction rates,
        ! then update sea salt alkalinity [v/v] in FullRun (XW 12/8/17)
+       ! This will make sure that SALAAL and SALCAL have the proper
+       ! values befoe sulfate chemistry is computed below.
        IF ( FullRun .and. State_Chm%Do_SulfateMod_SeaSalt ) Then
           Spc(I,J,L,id_SALAAL) = AlkA
           Spc(I,J,L,id_SALCAL) = AlkC
        ENDIF
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
        IF ( LDSTUP .and. FullRun ) THEN
 
