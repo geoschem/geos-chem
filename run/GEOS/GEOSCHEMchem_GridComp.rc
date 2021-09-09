@@ -102,7 +102,7 @@ ARCHIVED_CONV:        0
 
 # %%% Use MOIST module for convective transport (including washout)
 # Make species friendly to moist? If turned on, convection must be turned off in input.geos
-Species_friendly_to_moist: 1
+Species_friendly_to_moist: 0
 # Turn off washout for SO2?
 TurnOff_SO2_washout: 1
 # Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
@@ -172,7 +172,7 @@ Use_GMI_O3_PL:        0
 # must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
 # If no file is found for a given time step, nudging is skipped. Diagnostics 'GCC_ANA_O3_INC' outputs the ozone increments 
 # added to the GEOS-Chem ozone field.
-Use_ANA_O3: 1
+Use_ANA_O3: 0
 ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
 NUDGE_RELATIVE_TO_TROPOPAUSE: 1
 ANAO3L1: 38
