@@ -725,17 +725,21 @@ CONTAINS
     ! Read QI (and set negative or denormal values to zero)
     v_name = "QI"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
     WHERE( Q < 1.0e-30_f4 )
        Q = 0.0_f4
     ENDWHERE
+#endif
     State_Met%QI = Q
 
     ! Read QL (and set negative or denormal values to zero)
     v_name = "QL"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
     WHERE( Q < 1.0e-30_f4 )
        Q = 0.0_f4
     ENDWHERE
+#endif
     State_Met%QL = Q
 
     ! Read TAUCLI
