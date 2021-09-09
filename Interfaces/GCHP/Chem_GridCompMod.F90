@@ -394,7 +394,7 @@ CONTAINS
     CHARACTER(LEN=255)            :: MYFRIENDLIES
     CHARACTER(LEN=127)            :: FullName
     INTEGER                       :: DoIt
-    LOGICAL                       :: FriendMoist
+    LOGICAL                       :: FriendMoist, SpcInRestart
 #endif
 #ifdef ADJOINT
     INTEGER                       :: restartAttrAdjoint
@@ -588,6 +588,7 @@ CONTAINS
     ! ewl TODO: This works but is not ideal. Look into how to remove it.
 
 #if defined( MODEL_GEOS )
+    ! Check if species are friendly to moist
     CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
                                   Label = "Species_friendly_to_moist:",&
                                   Default = 0, &                          
@@ -595,6 +596,17 @@ CONTAINS
     FriendMoist = (DoIt==1)
     IF ( MAPL_am_I_Root() ) THEN
        WRITE(*,*) 'GCC species friendly to MOIST: ',FriendMoist
+    ENDIF
+    ! Determine if non-advected species shall be included in restart file
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Shortlived_species_in_restart:", &
+                                  Default = 1, __RC__ )
+    IF ( DoIt==1 ) THEN
+       restartAttr  = MAPL_RestartOptional
+       SpcInRestart = .TRUE.
+    ELSE
+       restartAttr  = MAPL_RestartSkip
+       SpcInRestart = .FALSE.
     ENDIF
 #endif
 
@@ -682,17 +694,22 @@ CONTAINS
        DO I=1,NSPEC
           FOUND = .false.
        
+#if defined( MODEL_GEOS )
+          ! Don't need to do anything if short-lived species are not in restart file
+          IF ( .NOT. SpcInRestart ) CYCLE
+#endif
+
           ! Skip dummy RR species for prod/loss diagnostic (mps, 8/23/16)
           SpcName = ADJUSTL( Spc_Names(I) )
           IF ( SpcName(1:2) == 'RR' ) CYCLE
-       
+
           DO J=1,Nadv !Size of AdvSpc
              IF (trim(AdvSpc(J)) .eq. trim(SpcName)) THEN
                 FOUND = .true.
                 EXIT
              ENDIF
           END DO
-       
+
           ! Add non-advected species to internal state 
           IF ( .NOT. Found ) THEN 
 #if defined( MODEL_GEOS )
@@ -722,6 +739,7 @@ CONTAINS
                 !!!PRECISION          = ESMF_KIND_R8,          &
                 DIMS               = MAPL_DimsHorzVert,    &
                 FRIENDLYTO         = COMP_NAME,            &
+                RESTART            = restartAttr,          &
                 VLOCATION          = MAPL_VLocationCenter, &
                                                      __RC__ )
              ! verbose
@@ -5989,6 +6007,7 @@ CONTAINS
     INTEGER                    :: nymd, nhms, yy, mm, dd, h, m, s, incSecs
     REAL                       :: MW
     REAL                       :: UniformIfMissing
+    LOGICAL                    :: ShortlivedOnly
     LOGICAL                    :: FileExists
     INTEGER                    :: DoIt, idx, x1, x2
     LOGICAL                    :: ReadGMI 
@@ -6064,6 +6083,8 @@ CONTAINS
     ENDIF
 
     ! Check for other flags
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = 'ONLY_SHORTLIVED_SPECIES:', Default=0, __RC__ )
+    ShortlivedOnly = ( DoIt == 1 )
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = 'DATA_ON_GEOS_LEVELS:', Default=0, __RC__ )
     OnGeosLev = ( DoIt == 1 )
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = 'ONLY_ABOVE_TROPOPAUSE:', Default=0, __RC__ )
@@ -6078,6 +6099,7 @@ CONTAINS
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(*,*) 'Will use the following settings to overwrite restart variables:'
+       WRITE(*,*) 'Only overwrite short-lived species: ',ShortlivedOnly
        WRITE(*,*) 'Variable prefix: ',TRIM(VarPrefix)
        WRITE(*,*) 'External data is in ppbv: ',IsInPPBV
        WRITE(*,*) 'External data is on GEOS levels: ',OnGeosLev
@@ -6126,12 +6148,20 @@ CONTAINS
     ! Loop over all species
     DO N = 1, State_Chm%nSpecies
 
+       ! Get species name 
+       SpcName = TRIM(State_Chm%SpcData(N)%Info%Name)
+
+       ! Check for short-lived species only
+       IF ( ShortlivedOnly ) THEN
+          IF ( State_Chm%SpcData(N)%Info%Is_Advected ) THEN
+             IF ( am_I_Root ) WRITE(*,*) 'Do not initialize species from external field because it is not short-lived: ',TRIM(SpcName)
+             CYCLE
+          ENDIF
+       ENDIF
+
        ! Molecular weight
        MW = State_Chm%SpcData(N)%Info%MW_g
        IF ( MW < 0.0 ) MW = 1.0
-
-       ! Construct field name
-       SpcName = TRIM(State_Chm%SpcData(N)%Info%Name)
 
        ! Check if variable is in file
        FldName = TRIM(VarPrefix)//TRIM(SpcName)
@@ -6692,7 +6722,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,             INTENT(OUT)           :: RC        ! Success or failure?
+    INTEGER,             INTENT(INOUT)         :: RC        ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -6755,7 +6785,9 @@ CONTAINS
 
        ! Get field
        FieldName = TRIM(SPFX)//TRIM(SpcInfo%name)
-       CALL ESMF_StateGet(Internal, TRIM(FieldName), Field, __RC__ )
+       CALL ESMF_StateGet(Internal, TRIM(FieldName), Field, RC=RC )
+       ! Skip to next species if not found. This can happen if not all species are in the internal state
+       IF ( RC /= ESMF_SUCCESS ) CYCLE
 
        ! Scavenging efficiency
        fscav = MIN(MAX(SpcInfo%WD_AerScavEff,0.0),1.0)

@@ -137,11 +137,17 @@ Use_ozonopause: -999.0
 Prescribe_strat_H2O: 1
 
 #
+# %%% Include short-lived species in internal restart file?
+#
+Shortlived_species_in_restart: 1
+
+#
 # %%% Read initial conditions from external file
 # %%% instead of internal state
 #
 INIT_SPC_FROM_FILE: 0
 INIT_SPC_FILE: /discover/nobackup/cakelle2/GCC_Restarts/v13.1.0-beta.1/GEOSChem.Restart.20190801_0000z.edit.incHEMCO.nc4
+ONLY_SHORTLIVED_SPECIES: 0
 UNIFORM_IF_MISSING: 1.0e-12
 DATA_IS_IN_PPBV: 1
 ONLY_ON_FIRST_STEP: 1
