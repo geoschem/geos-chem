@@ -422,12 +422,16 @@ CONTAINS
     PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
 
-    !=================================================================
-    ! Call individual chemistry routines for sulfate/aerosol tracers
-    !=================================================================
+    !=========================================================================
+    ! Call individual chemistry routines for sulfate/aerosol speccies
+    !=========================================================================
 
     ! Perform all routines only when doing a "full" run
     IF ( FullRun ) THEN
+
+       !---------------------------------------------------------------------
+       ! FullRun = T: Do all sulfate chemistry
+       !---------------------------------------------------------------------
 
        ! SO4s [kg] gravitational settling
        IF ( id_SO4s > 0 ) THEN
@@ -658,8 +662,12 @@ CONTAINS
 
     ELSE
 
+       !---------------------------------------------------------------------
+       ! FullRun = F: Just set up Cloud pH & related parameters, and exit
+       !---------------------------------------------------------------------
+
        ! Convert species to [v/v dry]
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,  &
                                'v/v dry', RC, OrigUnit=OrigUnit )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
@@ -671,8 +679,8 @@ CONTAINS
        ENDIF
 
        ! Call the SO2 routine to get cloud pH parameters
-       CALL CHEM_SO2( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                      State_Met, .FALSE.,    RC )
+       CALL CHEM_SO2( Input_Opt, State_Chm, State_Diag, State_Grid,          &
+                      State_Met, .FALSE.,   RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -688,7 +696,7 @@ CONTAINS
     ENDIF ! FullRun
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
                             OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
@@ -2387,6 +2395,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL               :: DO_SEASALT_CHEM
     LOGICAL               :: IS_OFFLINE
     LOGICAL               :: IS_FULLCHEM
     LOGICAL               :: LDSTUP
@@ -2451,7 +2460,7 @@ CONTAINS
 
     ! Pointers
     REAL(fp), POINTER     :: Spc(:,:,:,:)
-    REAL(fp), POINTER     :: SSAlk(:,:,:,:)
+    !REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
     REAL(f4), POINTER     :: Ptr2D(:,:) => NULL()
@@ -2477,7 +2486,6 @@ CONTAINS
     LDSTUP               =  Input_Opt%LDSTUP
     DTCHEM               =  GET_TS_CHEM()
     Spc                  => State_Chm%Species
-    SSAlk                => State_Chm%SSAlk
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
@@ -2488,6 +2496,11 @@ CONTAINS
     State_Chm%QQpHrain   =  0.0_fp
     State_Chm%QQrain     =  0.0_fp
 #endif
+
+    ! Set a flag for when to call the SeaSalt_Chem routine
+    DO_SEASALT_CHEM =                                                        &
+         ( State_Chm%Do_SulfateMod_SeaSalt                           ) .or.  &
+         ( .not. FullRun .and. .not. State_Chm%Do_SulfateMod_SeaSalt )
 
     ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
     F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -2739,19 +2752,22 @@ CONTAINS
        !==============================================================
 
        ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
-       CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N, Kt1L, Kt2L, &
-                     Input_Opt, State_Chm, State_Grid,  State_Met, RC )
+       CALL GET_ALK( I,    J,         L,           ALK1,      ALK2,          &
+                     Kt1,  Kt2,       Kt1N,        Kt2N,      Kt1L,          &
+                     Kt2L, Input_Opt, State_Chm, State_Grid,  State_Met,     &
+                     RC                                                     )
 
        ! Total alkalinity [kg]
        ALK = ALK1 + ALK2
 
-       ! If we are not using KPP to compute seasalt reaction rates, then
-       ! compute seasalt reaction rates here (1) if there is alkalinity,
-       ! (2) if there is SO2 present, and (3) if O3 is in excess.
-       IF ( ( State_Chm%Do_SulfateMod_SeaSalt )  .and.                       &
-            ( ALK    > MINDAT                 )  .and.                       &
-            ( SO2_cd > MINDAT                 )  .and.                       &
-            ( SO2_cd < O3                     ) ) THEN
+       ! Compute seasalt reaction rates here if:
+       ! (1 ) there is alkalinity,
+       ! (2 ) there is SO2 present, and
+       ! (3 ) O3 is in excess. AND
+       ! (4a) we are computing sulfate chemistry in sulfate_mod.F90, or
+       ! (4b) we are computing sulfate chemistry in KPP and FULLRUN = F.
+       IF ( ( DO_SEASALT_CHEM ) .and. ( ALK    > MINDAT )  .and.             &
+            ( SO2_cd > MINDAT ) .and. ( SO2_cd < O3     ) ) THEN
 
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
@@ -2766,24 +2782,32 @@ CONTAINS
 
           ! Otherwise set equal to zero
           SO2_ss       = SO2_cd
-          PSO4E        = 0.e+0_fp
-          PSO4F        = 0.e+0_fp
-          PNITS(I,J,L) = 0.e+0_fp
-          AlkA         = 0.e+0_fp
-          AlkC         = 0.e+0_fp
-          PNIT(I,J,L)  = 0.e+0_fp
-          PACL(I,J,L)  = 0.e+0_fp
-          PCCL(I,J,L)  = 0.e+0_fp
+          PSO4E        = 0.0_fp
+          PSO4F        = 0.0_fp
+          PNITS(I,J,L) = 0.0_fp
+          AlkA         = 0.0_fp
+          AlkC         = 0.0_fp
+          PNIT(I,J,L)  = 0.0_fp
+          PACL(I,J,L)  = 0.0_fp
+          PCCL(I,J,L)  = 0.0_fp
 
        ENDIF
 
-       ! We must store alkalinity first for gas phase chemsitry
-       ! XW 6/9/19
-       IF ( .NOT. FullRun) Then
-          SSAlk(I,J,L,1) = AlkA * (7.0d-2 * State_Met%AD(I,J,L)) / &
-                (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g)
-          SSAlk(I,J,L,2) = AlkC * (7.0d-2 * State_Met%AD(I,J,L)) / &
-                (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g)
+       ! We must store alkalinity first for gas phase chemistry
+       ! (convert from kg to equivalents) -- Xuan Wang 6/9/19
+       IF ( .NOT. FullRun ) Then
+
+          ! Fine mode seasalt alkalinity
+          State_Chm%SSAlk(I,J,L,1)                                           &
+               =  AlkA                                                       &
+               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
+               / ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
+
+          ! Coarse mode seasalt alkalinity
+          State_Chm%SSAlk(I,J,L,2)                                           &
+               = AlkC                                                        &
+               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
+               / ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
        ENDIF
 
        ! If we are not using KPP to compute seasalt reaction rates,
@@ -3957,7 +3981,7 @@ CONTAINS
 
     ! Free pointers
     Spc        => NULL()
-    SSAlk      => NULL()
+    !SSAlk      => NULL()
     H2O2s      => NULL()
     SO2s       => NULL()
     NDENS_SALA => NULL()
