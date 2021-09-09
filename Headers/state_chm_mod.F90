@@ -725,7 +725,7 @@ CONTAINS
     SpcDictLocal = State_Chm%SpcDict
 
     !### Debug: Show the values in the lookup table
-    CALL State_Chm%SpcDict%Show()
+    !CALL State_Chm%SpcDict%Show()
 
     !========================================================================
     ! Exit if this is a dry-run simulation
