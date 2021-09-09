@@ -147,6 +147,7 @@ MODULE Chem_GridCompMod
   ! To set ozone from PCHEM 
   LOGICAL                          :: LANAO3
   LOGICAL                          :: LPCHEMO3
+  INTEGER                          :: ANAO3TROPP
   INTEGER                          :: ANAO3L1
   INTEGER                          :: ANAO3L2
   INTEGER                          :: ANAO3L3
@@ -2405,10 +2406,13 @@ CONTAINS
     ANAO3L3 = LM
     ANAO3L4 = LM
     ANAO3FR = 1.0
+    ANAO3TROPP = 0
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_ANA_O3:", &
                                   Default = 0, __RC__ ) 
     IF ( DoIt == 1 ) THEN
        LANAO3 = .TRUE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3TROPP, Label = "NUDGE_RELATIVE_TO_TROPOPAUSE:", &
+                                     Default = 0, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3L1, Label = "ANAO3L1:", &
                                      Default = value_LLSTRAT, __RC__ ) 
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3L2, Label = "ANAO3L2:", &
@@ -2436,6 +2440,7 @@ CONTAINS
     IF ( am_I_Root ) THEN
        WRITE(*,*) 'Overwrite with analysis ozone?  ',LANAO3
        IF ( LANAO3 ) THEN 
+          WRITE(*,*) '-> Nudge above tropopause level  : ',ANAO3TROPP
           WRITE(*,*) '-> Use internal PCHEM field?     : ',LPCHEMO3
           WRITE(*,*) '-> Analysis ozone bottom level 1 : ',ANAO3L1
           WRITE(*,*) '-> Analysis ozone bottom level 2 : ',ANAO3L2
@@ -3491,7 +3496,7 @@ CONTAINS
        !=======================================================================
        IF ( PHASE /= 2 .AND. LANAO3 ) THEN
           CALL SetAnaO3_( GC, Import, INTSTATE, Export, Clock, &
-                          Input_Opt,  State_Met, State_Chm, Q, __RC__ ) 
+                          Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ ) 
        ENDIF
 #endif
 
@@ -6402,7 +6407,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE SetAnaO3_( GC, Import, Internal, Export, Clock, &
-                        Input_Opt,  State_Met, State_Chm, Q, RC )
+                        Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -6418,6 +6423,8 @@ CONTAINS
     TYPE(MetState)                             :: State_Met 
     TYPE(ChmState)                             :: State_Chm 
     REAL,                INTENT(IN)            :: Q(:,:,:)
+    REAL,                POINTER               :: PLE(:,:,:)
+    REAL,                POINTER               :: TROPP(:,:)  
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -6446,7 +6453,9 @@ CONTAINS
     INTEGER                    :: I, J, L, N, LR, IM, JM, LM 
     INTEGER                    :: STATUS
     REAL                       :: O3new, MW, ifrac
+    REAL                       :: ITROPP
     INTEGER                    :: idx
+    INTEGER                    :: LB, L0, L1, L2, L3, L4
     CHARACTER(LEN=2)           :: SL1, SL2 
 
     ! To read from file
@@ -6490,14 +6499,22 @@ CONTAINS
     ! Diagnostics
     CALL MAPL_GetPointer ( Export, O3INC, 'GCC_ANA_O3_INC', NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(O3INC) ) O3INC = 0.0
+
+    ! Get lower bound of PLE array
+    LB = LBOUND(PLE,3)
    
     ! Get target ozone field 
     IF ( TimeForAna ) THEN
 
        ! Verbose
-       WRITE(SL1,'(I2)') ANAO3L1
        WRITE(SL2,'(I2)') ANAO3L4
-       IF ( am_I_Root ) WRITE(*,*) 'GEOS-Chem: nudging ozone between level '//SL1//' and '//SL2
+       IF ( ANAO3TROPP <= 0 ) THEN
+          WRITE(SL1,'(I2)') ANAO3L1
+          IF ( am_I_Root ) WRITE(*,*) 'GEOS-Chem: nudging ozone between level '//SL1//' and '//SL2
+       ELSE
+          WRITE(SL1,'(I2)') ANAO3TROPP
+          IF ( am_I_Root ) WRITE(*,*) 'GEOS-Chem: nudging ozone from tropopause +'//SL1//' levels to '//SL2
+       ENDIF
 
        ! Get analysis O3 field from import in kg/kg
        IF ( LPCHEMO3 ) THEN
@@ -6571,46 +6588,69 @@ CONTAINS
        ENDDO
        ASSERT_(N > 0)
 
-       ! Molecular weight
-       !MW = State_Chm%SpcData(I)%Info%MW_g
-       !IF ( MW < 0.0 ) MW = 48.0 
-   
-       ! # of vertical levels of Q
+       ! array dimensions 
        IM = SIZE(ANAO3,1)
        JM = SIZE(ANAO3,2)
        LM = SIZE(ANAO3,3)
-   
-       ! Loop over all relevant levels
-       DO L = ANAO3L1, ANAO3L4
-   
-          ! LR is the reverse of L
-          LR = LM - L + 1
-   
-          ! Get fraction of analysis field to be used. 
-          ! This goes gradually from 0.0 to ANAO3FR between ANAO3L1 to ANAO3L2, 
-          ! and is ANAO3FR above
-          !IF ( ( L >= ANAO3L2 ) .OR. ( ANAO3L1 == ANAO3L2 ) ) THEN
-          ifrac = 0.0
-          IF ( L >= ANAO3L2 .AND. L <=  ANAO3L3 ) THEN
-             ifrac = ANAO3FR 
-          ELSEIF ( L < ANAO3L2 ) THEN
-             ifrac = ANAO3FR * ( (L-ANAO3L1) / (ANAO3L2-ANAO3L1) )
-          ELSEIF ( L > ANAO3L3 ) THEN
-             ifrac = ANAO3FR * ( (ANAO3L4-L) / (ANAO3L4-ANAO3L3) )
-          ENDIF
-          ifrac = max(0.0,min(1.0,ifrac))
-   
-          ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
-          DO J = 1,JM
-          DO I = 1,IM
+
+       DO J=1,JM
+       DO I=1,IM
+ 
+          ! Determine levels to loop over: upper level is always the same
+          ! Lower level may be dynamic if along tropopause. In that case 
+          ! find lowest level above tropopause as reference point. 
+          L3 = ANAO3L3
+          L4 = ANAO3L4
+          IF ( ANAO3TROPP > 0 ) THEN
+             ! Find first level edge above tropopause.
+             ITROPP = TROPP(I,J)
+             L0 = -1
+             DO L=1,LM
+                IF ( PLE(I,J,LM-L+LB) < ITROPP ) THEN
+                   L0 = L
+                   EXIT
+                ENDIF
+             ENDDO
+             ! Set lower nudging levels based on tropopause level L0.
+             ! The lowest level is determined based on L0 and the offset
+             ! value ANAO3TROPP (provided in GEOSCHEMchem_GridComp.rc).
+             ASSERT_(L0>0)
+             L1 = L0 - 1 + ANAO3TROPP
+             L2 = L1 + ( ANAO3L2 - ANAO3L1 )
+          ELSE
+             L1 = ANAO3L1
+             L2 = ANAO3L2
+          ENDIF 
+
+          ! Loop over all relevant levels
+          DO L = L1, L4
+ 
+             ! LR is the reverse of L
+             LR = LM - L + 1
+
+             ! Get fraction of analysis field to be used. 
+             ! This goes gradually from 0.0 to ANAO3FR between ANAO3L1 to ANAO3L2, 
+             ! and is ANAO3FR above
+             ifrac = 0.0
+             IF ( L >= L2 .AND. L <= L3 ) THEN
+                ifrac = ANAO3FR 
+             ELSEIF ( L < L2 ) THEN
+                ifrac = ANAO3FR * ( (L-L1) / (L2-L1) )
+             ELSEIF ( L > L3 ) THEN
+                ifrac = ANAO3FR * ( (L4-L) / (L4-L3) )
+             ENDIF
+             ifrac = max(0.0,min(1.0,ifrac))
+             IF ( ifrac == 0.0 ) CYCLE  
+ 
+             ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
              IF ( ANAO3(I,J,LR) > 0.0 ) THEN
                 O3new = ( (1.0-ifrac) * State_Chm%Species(I,J,L,N) ) &
                       + (      ifrac  * ANAO3(I,J,LR)              )
                 IF ( ASSOCIATED(O3INC) ) O3INC(I,J,LR) = O3new - State_Chm%Species(I,J,L,N) 
                 State_Chm%Species(I,J,L,N) = O3new 
              ENDIF
-          ENDDO
-          ENDDO
+          ENDDO ! L 
+       ENDDO
        ENDDO
    
        ! Clean up
