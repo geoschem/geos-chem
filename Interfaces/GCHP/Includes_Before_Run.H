@@ -92,13 +92,13 @@
   State_Met%PFLLSAN(:,:,1:State_Grid%NZ+1) = PFLLSAN(:,:,0:State_Grid%NZ)
 
   if (meteorology_vertical_index_is_top_down) then
-    z_lb = lbound(State_Met%CLDF,3)
-    z_ub = ubound(State_Met%CLDF,3)
-    CMFMC(:,:,:) = CMFMC(:,:,z_ub:z_lb:-1)
-    PFICU(:,:,:) = PFICU(:,:,z_ub:z_lb:-1)
-    PFILSAN(:,:,:) = PFILSAN(:,:,z_ub:z_lb:-1)
-    PFLCU(:,:,:) = PFLCU(:,:,z_ub:z_lb:-1)
-    PFLLSAN(:,:,:) = PFLLSAN(:,:,z_ub:z_lb:-1)
+    z_lb = lbound(State_Met%CMFMC,3)
+    z_ub = ubound(State_Met%CMFMC,3)
+    State_Met%CMFMC(:,:,:)     = State_Met%CMFMC(:,:,z_ub:z_lb:-1)
+    State_Met%PFICU(:,:,:)     = State_Met%PFICU(:,:,z_ub:z_lb:-1)
+    State_Met%PFILSAN(:,:,:)   = State_Met%PFILSAN(:,:,z_ub:z_lb:-1)
+    State_Met%PFLCU(:,:,:)     = State_Met%PFLCU(:,:,z_ub:z_lb:-1)
+    State_Met%PFLLSAN(:,:,:)   = State_Met%PFLLSAN(:,:,z_ub:z_lb:-1)
   end if
 
   ! NOTE: PLE is reversed in the vertical! Note that this will end up
