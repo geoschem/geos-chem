@@ -370,27 +370,13 @@ CONTAINS
     JTAUMX = ( N_ - 4*JXL_ ) / 2  ! Maximum number of divisions ( i.e., may
                                   ! not get to ATAUMN)
 
-    !-----------------------------------------------------------------------
-    !  Variables that differ for UCX-based mechanisms (mps, 1/3/18)
-    !-----------------------------------------------------------------------
+    AN_       = 37  ! # of separate aerosols per layer; Including PSCs
+    W_        = 18  ! # of wavelength bins
 
-    IF ( Input_Opt%LUCX ) THEN
-       AN_          = 37  ! # of separate aerosols per layer; Including PSCs
-       W_           = 18  ! # of wavelength bins
-
-       ! For RRTMG:
-       NSPAA        = 8   ! number of species in LUT
-       NASPECRAD    = 16  ! aerosol species in RT
-       NSPECRAD     = 18  ! aerosol+gas species in RT
-    ELSE
-       AN_          = 35  ! # of separate aerosols per layer
-       W_           = 12  ! # of wavelength bins
-
-       ! For RRTMG:
-       NSPAA        = 6   ! number of species in LUT
-       NASPECRAD    = 14  ! aerosol species in RT
-       NSPECRAD     = 16  ! aerosol+gas species in RT
-    ENDIF
+    ! For RRTMG:
+    NSPAA     = 8   ! number of species in LUT
+    NASPECRAD = 16  ! aerosol species in RT
+    NSPECRAD  = 18  ! aerosol+gas species in RT
 
     IF ( .not. Input_Opt%DryRun ) THEN
        !-----------------------------------------------------------------------

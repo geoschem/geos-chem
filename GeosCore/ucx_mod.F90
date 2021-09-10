@@ -4314,7 +4314,6 @@ CONTAINS
 
     ! Local variables for quantities from Input_Opt
     LOGICAL            :: prtDebug
-    LOGICAL            :: LUCX
 
     ! Strings
     CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
@@ -4328,7 +4327,6 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-    LUCX     = Input_Opt%LUCX
 
     ! Initialize species ID flags
     id_BCPI  = Ind_('BCPI'      )

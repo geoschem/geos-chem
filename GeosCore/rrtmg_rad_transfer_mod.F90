@@ -759,146 +759,59 @@ CONTAINS
              !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
              !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 
-             IF ( Input_Opt%LUCX ) THEN
+             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
+                O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
+                                State_Chm%SpcData(id_O3)%Info%MW_g
 
-                !--------------------------------------------------------
-                !          %%%%%%% UCX-based mechanisms %%%%%%%
-                !--------------------------------------------------------
-
-                IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-                   O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
-                                   State_Chm%SpcData(id_O3)%Info%MW_g
-
-                ENDIF
-
-                IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-                   CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                   State_Chm%SpcData(id_CH4)%Info%MW_g
-
-                ENDIF
-
-                N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
-                                State_Chm%SpcData(id_N2O)%Info%MW_g
-
-                CFC11VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
-                                  State_Chm%SpcData(id_CFC11)%Info%MW_g
-
-                CFC12VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
-                                  State_Chm%SpcData(id_CFC12)%Info%MW_g
-
-                CCL4VMR(I,J,L)  = State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
-                                  State_Chm%SpcData(id_CCL4)%Info%MW_g
-
-                CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) * AIRMW / &
-                                  State_Chm%SpcData(id_HCFC22)%Info%MW_g
-
-             ELSE
-
-                !--------------------------------------------------------
-                !        %%%%%%% Tropchem only mechanisms %%%%%%%
-                !--------------------------------------------------------
-
-                IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-                   O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
-                                   State_Chm%SpcData(id_O3)%Info%MW_g
-                ENDIF
-                IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-                   CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                   State_Chm%SpcData(id_CH4)%Info%MW_g
-                ENDIF
-                N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
-
-                !CFC CLIMATOLOGY FROM UARS AND MIPAS
-                CFC11VMR(I,J,L) = CFC11CLIM(I,J,L)/1E9
-                CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
-                CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
-                CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
              ENDIF
+
+             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
+                CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
+                                State_Chm%SpcData(id_CH4)%Info%MW_g
+
+             ENDIF
+
+             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
+                             State_Chm%SpcData(id_N2O)%Info%MW_g
+
+             CFC11VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
+                               State_Chm%SpcData(id_CFC11)%Info%MW_g
+
+             CFC12VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
+                               State_Chm%SpcData(id_CFC12)%Info%MW_g
+
+             CCL4VMR(I,J,L)  = State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
+                               State_Chm%SpcData(id_CCL4)%Info%MW_g
+
+             CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) * AIRMW / &
+                               State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
           ELSE
              !-----------------------------
              ! WE ARE IN THE STRATOSPHERE
              !-----------------------------
 
-             IF ( Input_Opt%LUCX ) THEN
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
+                             State_Chm%SpcData(id_O3)%Info%MW_g
 
-                !--------------------------------------------------------
-                !          %%%%%%% UCX-based mechanisms %%%%%%%
-                !--------------------------------------------------------
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
+                             State_Chm%SpcData(id_CH4)%Info%MW_g
 
-                O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
-                                State_Chm%SpcData(id_O3)%Info%MW_g
+             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
+                             State_Chm%SpcData(id_N2O)%Info%MW_g
 
-                CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                State_Chm%SpcData(id_CH4)%Info%MW_g
+             CFC11VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
+                              State_Chm%SpcData(id_CFC11)%Info%MW_g
 
-                N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
-                                State_Chm%SpcData(id_N2O)%Info%MW_g
+             CFC12VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
+                              State_Chm%SpcData(id_CFC12)%Info%MW_g
 
-                CFC11VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
-                                 State_Chm%SpcData(id_CFC11)%Info%MW_g
+             CCL4VMR(I,J,L)  =State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
+                              State_Chm%SpcData(id_CCL4)%Info%MW_g
 
-                CFC12VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
-                                 State_Chm%SpcData(id_CFC12)%Info%MW_g
+             CFC22VMR(I,J,L) =State_Chm%Species(I,J,L,id_HCFC22) * AIRMW/ &
+                              State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
-                CCL4VMR(I,J,L)  =State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
-                                 State_Chm%SpcData(id_CCL4)%Info%MW_g
-
-                CFC22VMR(I,J,L) =State_Chm%Species(I,J,L,id_HCFC22) * AIRMW/ &
-                                 State_Chm%SpcData(id_HCFC22)%Info%MW_g
-
-
-                ! TEST IMPACT OF STRAT CHEM
-                !O3VMR(I,J,L)  = 0.0d0
-                !CH4VMR(I,J,L) = 0.0d0
-                !N2OVMR(I,J,L) = 0.0d0
-                !CFC11VMR(I,J,L) = 0.0d0
-                !CFC12VMR(I,J,L) = 0.0d0
-                !CCL4VMR(I,J,L)  = 0.0d0
-                !CFC22VMR(I,J,L) = 0.0d0
-
-             ELSE
-
-                !--------------------------------------------------------
-                !        %%%%%%% Tropchem only mechanisms %%%%%%%
-                !--------------------------------------------------------
-
-                !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
-                !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
-
-                !! DENSITY OF AIR IN G/CM2
-                AIR_TMP = State_Met%AIRDEN(I,J,L)* &
-                          State_Met%BXHEIGHT(I,J,L)*1.0E-1
-                !! DENSITY OF AIR IN MOLEC/CM2
-                AIR_TMP = AVO*AIR_TMP/AIRMW
-
-                CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,      &
-                                  T_CTM,  P_CTM,               &
-                                  O3_CTM, O3COL, T_CLIM,       &
-                                  O3_CLIM,  Z_CLIM,  AIR_CLIM, &
-                                  Input_Opt, State_Grid )
-                O3VMR(I,J,L) = O3_CLIM(L)/AIR_TMP
-
-                !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
-                IF (FLG_FIRST_STRAT(I,J).EQ.0) THEN
-                   FLG_FIRST_STRAT(I,J) = 1
-                   CH4SCL(I,J) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
-                                 State_Chm%SpcData(id_CH4)%Info%MW_g /     &
-                                 (CH4CLIM(I,J,L)/1E9)
-                ENDIF
-
-                !TES PROFILES INTERPOLATED TO GC GRID WHEN SAVED
-                !SO WE JUST NEED TO SCALE TO CURRENT CONC AT TOP OF TROP
-
-                CH4VMR(I,J,L) = CH4SCL(I,J)*CH4CLIM(I,J,L)/1E9
-                N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
-
-                !CFC CLIMATOLOGY FROM UARS AND MIPAS
-                CFC11VMR(I,J,L) = CFC11CLIM(I,J,L)/1E9
-                CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
-                CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
-                CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
-             ENDIF
           ENDIF
        ENDDO
     ENDDO
@@ -933,10 +846,10 @@ CONTAINS
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
 
-                !if UCX on, we need to go above the tropopause to get
-                !the strat AOD, but only for IS=8 and IS=9
+                ! We need to go above the tropopause to get
+                ! the strat AOD, but only for IS=8 and IS=9
                 IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                     (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+                     ( (IS.EQ.8) .OR. (IS.EQ.9) ) ) THEN
 
                    !MAKE SURE WE HAVE SENSIBLE DATA
                    !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
@@ -994,13 +907,6 @@ CONTAINS
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
 
-                ! SDE 2020-06-08 IS was a loop variable, so this
-                ! was just never evaluated in the stratosphere.
-                !if UCX on, we need to go above the tropopause to get
-                !the strat AOD, but only for IS=8 and IS=9
-                !IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                !   (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
-
                 ! Needs to be run on every cell, as stratosphere may contain
                 ! some aerosol
                 IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND. &
@@ -1046,12 +952,6 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-             ! SDE 2020-06-08 IS was a loop variable, so this
-             ! was just never evaluated in the stratosphere.
-             !if UCX on, we need to go above the tropopause to get
-             !the strat AOD, but only for IS=8 and IS=9
-             !IF ( State_Met%InTroposphere(I,J,L) .OR. &
-             !   (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
              IF (IB.LE.16) THEN
                 TAUAER_LW(I,J,L,IB)    = 0.0
              ELSE
@@ -1842,7 +1742,7 @@ CONTAINS
     !EXTRA SPECIES ARE ADDED AFTER NAER (BEFORE NDUST AND GASES)
     !SO WE NEED TO BUMP ALL THE SPECIES AFTER THAT BY NXTRA
     !WHERE NXTRA=NUMBER OF NEW SPECIES ADDED ABOVE THE STANDARD CODE
-    !E.G. IF UCX=YES THEN NSPECRAD=18 AND STS AND NAT ARE INCLUDED
+    !E.G. FOR UCX NSPECRAD=18 AND STS AND NAT ARE INCLUDED
     !IN RTODAER INDEX 8 AND 9, BEFORE DUST
     NXTRA=NSPECRAD-16
 
@@ -1905,7 +1805,7 @@ CONTAINS
              SPECMASK(II)=10
           ENDDO
 
-       ! ST = STRAT AEROSOL (UCX only)
+       ! ST = STRAT AEROSOL
        CASE( 11 )
 
           !LSA
@@ -1993,7 +1893,7 @@ CONTAINS
     !
     ! Optional outputs (requested via HISTORY.rc)
     !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
-    !   7=OA  8=SS  9=DU  10=PM  11=ST (11 UCX only)
+    !   7=OA  8=SS  9=DU  10=PM  11=ST
     !
     ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
     ! the bpch code is removed from GEOS-Chem.  This array is still

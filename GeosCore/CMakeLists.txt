@@ -72,6 +72,7 @@ add_library(GeosCore
   input_mod.F90
   isorropiaII_mod.F90
   land_mercury_mod.F90
+  linear_chem_mod.F90
   linoz_mod.F90
   mapping_mod.F90
   mercury_mod.F90
@@ -90,7 +91,6 @@ add_library(GeosCore
   set_global_ch4_mod.F90
   set_prof_o3.F90
   sfcvmr_mod.F90
-  strat_chem_mod.F90
   sulfate_mod.F90
   tagged_co_mod.F90
   tagged_o3_mod.F90

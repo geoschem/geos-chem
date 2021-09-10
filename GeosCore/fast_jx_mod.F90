@@ -2508,8 +2508,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ThisLoc
 
     ! String arrays
-    CHARACTER(LEN=30)  :: SPECFIL(6)
-    CHARACTER(LEN=30)  :: SPECFIL_UCX(8)
+    CHARACTER(LEN=30)  :: SPECFIL(8)
 
     !================================================================
     ! RD_AOD begins here!
@@ -2523,12 +2522,6 @@ CONTAINS
     DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
 
     ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
-    DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
-                  "ssa.dat","ssc.dat", "dust.dat"/
-
-    ! For simulations with UCX (online trop+strat chem) enabled:
-    !
-    ! Extra two LUT dat files for strat H2SO4 and NAT particles
     !
     ! Treating strat sulfate with GADS data but modified to match
     ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
@@ -2537,21 +2530,17 @@ CONTAINS
     ! but for now we are just treating the NAT like the sulfate... limited
     ! info but ref index is similar e.g. Scarchilli et al. (2005)
     !(DAR 05/2015)
-    DATA SPECFIL_UCX /"so4.dat","soot.dat","org.dat", &
-                      "ssa.dat","ssc.dat",            &
-                      "h2so4.dat","h2so4.dat",        &
-                      "dust.dat"/
+    DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
+                  "ssa.dat","ssc.dat",            &
+                  "h2so4.dat","h2so4.dat",        &
+                  "dust.dat"/
 
     ! Loop over the array of filenames
     DO k = 1, NSPAA
 
        ! Choose different set of input files for standard (trop+strat chenm)
        ! and tropchem (trop-only chem) simulations
-       IF ( Input_Opt%LUCX) THEN
-          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL_UCX(k) )
-       ELSE
-          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
-       ENDIF
+       THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
 
        !--------------------------------------------------------------
        ! In dry-run mode, print file path to dryrun log and cycle.
@@ -3620,40 +3609,36 @@ CONTAINS
           !to the new speciated LUT
           KMIE2=LUTIDX(KMIE)
 
-          IF ( Input_Opt%LUCX ) THEN
+          ! Stratospheric aerosols
+          IM=10+(NRHAER*NRH)+1
+          DO M=IM,IM+1
+             IDXAER=M-IM+6 !6-STS, 7-NAT
 
-             ! Strat aerosols for UCX simulations
-             IM=10+(NRHAER*NRH)+1
-             DO M=IM,IM+1
-                IDXAER=M-IM+6 !6-STS, 7-NAT
-
-                IF (AERX_COL(M,L).gt.0d0) THEN
-                   IF (AOD999) THEN
-                      ! Aerosol/dust (999 nm scaling)
-                      ! Fixed to dry radius
-                      QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(10,1,IDXAER)
-                   ELSE
-                      ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(5,1,IDXAER)
-                   ENDIF
-                   LOCALOD    = QSCALING*AERX_COL(M,L)
-                   LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
-                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
-                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-                   DO I=1,8
-                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
-                                       (PAA(I,KMIE,IDXAER)*LOCALSSA)
-                   ENDDO     ! I (Phase function)
+             IF (AERX_COL(M,L).gt.0d0) THEN
+                IF (AOD999) THEN
+                   ! Aerosol/dust (999 nm scaling)
+                   ! Fixed to dry radius
+                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(10,1,IDXAER)
+                ELSE
+                   ! Aerosol/dust (550 nm scaling)
+                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(5,1,IDXAER)
                 ENDIF
+                LOCALOD    = QSCALING*AERX_COL(M,L)
+                LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
+                OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                DO I=1,8
+                   SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
+                                    (PAA(I,KMIE,IDXAER)*LOCALSSA)
+                ENDDO     ! I (Phase function)
+             ENDIF
 
-             ENDDO           ! M (Aerosol)
-
-          ENDIF ! LUCX
+          ENDDO           ! M (Aerosol)
 
           ! Mineral dust (from new optics LUT)
           DO M=4,10
              IF (AERX_COL(M,L).gt.0d0) THEN
-                IDXAER=NSPAA !dust is last in LUT (6, or 8 if UCX=y)
+                IDXAER=NSPAA !dust is last in LUT
                 IR=M-3
                 IF (AOD999) THEN
                    QSCALING = QQAA(KMIE2,IR,IDXAER)/ &
@@ -4865,7 +4850,6 @@ CONTAINS
     ! TOMS_200701 directory.
     !=================================================================
 
-    ! Updated with UCX
     ! Since we now have stratospheric ozone calculated online, use
     ! this instead of archived profiles for all chemistry-grid cells
     ! The variable O3_CTM is obtained from State_Met%Species, and will be 0
@@ -4965,11 +4949,9 @@ CONTAINS
        ENDDO
     ENDDO
 
-    IF ( Input_Opt%LUCX ) THEN
-       ! Stratospheric aerosols - SSA/STS and solid PSCs
-       MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
-       MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
-    endif
+    ! Stratospheric aerosols - SSA/STS and solid PSCs
+    MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
+    MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 
     ! Ensure all 'AN_' types are valid selections
     do i=1,AN_

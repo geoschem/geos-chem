@@ -4129,36 +4129,6 @@ CONTAINS
 
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! PSC STATE (for UCX)
-    !-----------------------------------------------------------------------
-#if !defined( ESMF_ )
-    IF ( Input_Opt%LUCX ) THEN
-
-       CALL GetExtOpt( HcoConfig, -999, 'STATE_PSC',          &
-                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "GetExtOpt( STATE_PSC )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-       IF ( .not. FOUND ) THEN
-          ErrMsg = 'STATE_PSC not found in HEMCO_Config.rc file!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       IF ( .not. LTMP ) THEN
-          ErrMsg = 'STATE_PSC is set to false in HEMCO_Config.rc ' // &
-                   'but should be set to true for this simulation.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-#endif
-
 #ifdef ESMF_
     !-----------------------------------------------------------------------
     ! Also check that HEMCO_RESTART is not set in ESMF

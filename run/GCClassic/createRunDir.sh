@@ -121,23 +121,6 @@ sim_extra_option=none
 # Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
 
-    printf "${thinline}Choose chemistry domain:${thinline}"
-    printf "  1. Troposphere + stratosphere (Recommended)\n"
-    printf "  2. Troposphere only\n"
-    valid_chemgrid=0
-    while [ "${valid_chemgrid}" -eq 0 ]; do
-	read chemgrid_num
-	if [[ ${chemgrid_num} = "1" ]]; then
-	    chemgrid="trop+strat"
-	    valid_chemgrid=1
-	elif [[ ${chemgrid_num} = "2" ]]; then
-	    chemgrid="trop_only"
-	    valid_chemgrid=1
-	else
-	    printf "Invalid chemistry domain option. Try again.\n"
-	fi
-    done
-
     printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
@@ -988,21 +971,6 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     if [[ "x${met_name}" == "xMERRA2" && "x${grid_res}" == "x2x25" ]]; then
 	replace_colon_sep_val "--> Mass tuning factor" 4.7586e-4 HEMCO_Config.rc
     fi
-fi
-
-# Modify input files for troposphere-only chemistry grids
-if [[ "x${chemgrid}" == "xtrop_only" ]]; then
-    replace_colon_sep_val "=> Set init. strat. H2O"  F input.geos
-    replace_colon_sep_val "Settle strat. aerosols"   F input.geos
-    replace_colon_sep_val "Online PSC AEROSOLS"      F input.geos
-    replace_colon_sep_val "Perform PSC het. chem.?"  F input.geos
-    replace_colon_sep_val "Calc. strat. aero. OD?"   F input.geos
-    replace_colon_sep_val "Use UCX strat. chem?"     F input.geos
-    replace_colon_sep_val "Active strat. H2O?"       F input.geos
-    replace_colon_sep_val "--> STATE_PSC"        false HEMCO_Config.rc
-    replace_colon_sep_val "--> GMI_PROD_LOSS"    false HEMCO_Config.rc
-    replace_colon_sep_val "--> UCX_PROD_LOSS"     true HEMCO_Config.rc
-    sed_ie "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
 fi
 
 # Modify input files for nested-grid simulations

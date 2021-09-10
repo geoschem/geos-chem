@@ -147,11 +147,7 @@ CONTAINS
     ENDIF
 
     ! Set maximum number of levels in the chemistry grid
-    IF ( Input_Opt%LUCX ) THEN
-       State_Grid%MaxChemLev  = State_Grid%MaxStratLev
-    ELSE
-       State_Grid%MaxChemLev  = State_Grid%MaxTropLev
-    ENDIF
+    State_Grid%MaxChemLev  = State_Grid%MaxStratLev
 
     ! Set a flag to denote if this is a GMAO met field
     ! (which has half-sized polar grid boxes)

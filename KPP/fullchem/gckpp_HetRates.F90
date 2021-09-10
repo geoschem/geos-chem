@@ -1599,13 +1599,11 @@ MODULE GCKPP_HETRATES
       ! Reaction rate for surface of aerosol
       kISum = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_fp))
 
-      IF ( Input_Opt%LUCX ) THEN
-         ! For UCX-based mechanisms also allow reaction on stratospheric
-         ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
-         IF (N.eq.8) THEN
-            kISum = kISum + ARSL1K(XAREA(13),XRADI(13),XDENA,B,XTEMP, &
-                    (A**0.5_fp))
-         ENDIF
+      ! Allow reaction on stratospheric sulfate (N=13) if
+      ! tropospheric sulfate is requested (N=8)
+      IF (N.eq.8) THEN
+         kISum = kISum + ARSL1K(XAREA(13),XRADI(13),XDENA,B,XTEMP, &
+                 (A**0.5_fp))
       ENDIF
 
     END FUNCTION HETIUptake
@@ -2087,7 +2085,6 @@ MODULE GCKPP_HETRATES
          ELSEIF ((N==8) .or. (N==10) .or. (N==11) .or. (N==12)) THEN
             XSTKCF = 0.0e+0_fp
          ELSE
-            ! For UCX-based mechanisms ABSHUMK is set to Spc(I,J,L,id_H2O)
             XSTKCF = N2O5( N, TEMP, RELHUM )
          ENDIF
 
@@ -4049,9 +4046,6 @@ MODULE GCKPP_HETRATES
 !
       REAL(fp)                   :: kISum
 !
-! !REMARKS:
-!  This routine is only activated for UCX-based mechanisms.
-!
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
@@ -4089,8 +4083,8 @@ MODULE GCKPP_HETRATES
 	    ENDIF
          ENDIF
 
-         ! For UCX-based mechanisms only consider PSC reactions in strat
-         IF ( Input_Opt%LUCX .and. STRATBOX ) THEN
+         ! Only consider PSC reactions in the stratosphere
+         IF ( STRATBOX ) THEN
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(2)
             ELSEIF (N.eq.14) THEN
@@ -5156,7 +5150,7 @@ MODULE GCKPP_HETRATES
             ! sulfate aerosol
             ! This seems not to happen
 
-         ELSEIF ( Input_Opt%LUCX .and. STRATBOX ) THEN
+         ELSEIF ( STRATBOX ) THEN
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(5)
                ! Turn off het rates in stratosphere
@@ -5348,7 +5342,7 @@ MODULE GCKPP_HETRATES
          XSTKCF = 0e+0_fp
          ! Get the aerosol type
 
-         IF ( Input_Opt%LUCX .and. STRATBOX) THEN
+         IF ( STRATBOX) THEN
             ! add limitation to stratosphere, xnw 1/25/18
             IF ( N == 8 ) THEN
                XSTKCF = 0.2e+0_fp ! Sulfate, [Hanson and Ravishankara, 1995]
@@ -5438,7 +5432,7 @@ MODULE GCKPP_HETRATES
          XSTKCF = 0e+0_fp
 
          ! Get the aerosol type
-         IF ( Input_Opt%LUCX .and. STRATBOX ) THEN
+         IF ( STRATBOX ) THEN
             ! add limitation to stratosphere, xnw 1/25/18
             IF ( N == 8 ) THEN
                XSTKCF = 0.25e+0_fp ! Sulfate, [Abbatt, 1995]
@@ -6499,9 +6493,6 @@ MODULE GCKPP_HETRATES
 !
       REAL(fp)             :: kISum
 !
-! !REMARKS:
-!  This routine is only activated for UCX-based mechanisms.
-!
 ! !REVISION HISTORY:
 !  29 Jan 2016 - M. Sulprizio- Initial version, adapted from code previously
 !                              in calcrate.F
@@ -6703,9 +6694,9 @@ MODULE GCKPP_HETRATES
 
          XSTKCF        = 0.0_fp
 
-         ! For UCX-based mechanisms only consider PSC reactions in strat
+         ! Only consider PSC reactions in the stratosphere
          ! restore limitation to stratosphere - TMS 17/04/10
-         IF ( Input_Opt%LUCX .and. STRATBOX) THEN
+         IF ( STRATBOX) THEN
 	    IF (N.eq.8) THEN
 	       XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -6789,9 +6780,9 @@ MODULE GCKPP_HETRATES
 
          XSTKCF        = 0.0_fp
 
-         ! For UCX-based mechanisms only consider PSC reactions in strat
+         ! Only consider PSC reactions in the stratosphere
          ! restore limitation to stratosphere - TMS 17/04/10
-         IF ( Input_Opt%LUCX .and. STRATBOX ) THEN
+         IF ( STRATBOX ) THEN
 	    IF (N.eq.8) THEN
  	       XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -8332,9 +8323,6 @@ MODULE GCKPP_HETRATES
       LOGICAL,        INTENT(OUT) :: IS_NAT     ! Is surface NAT?
       LOGICAL,        INTENT(OUT) :: IS_PSC     ! Are there solid PSCs?
       LOGICAL,        INTENT(OUT) :: IS_STRAT   ! Are we in the strat?
-!
-! !REMARKS:
-!  This routine is only activated for UCX-based mechanisms
 !
 ! !REVISION HISTORY:
 !  17 Apr 2013 - S. D. Eastham - Initial version
