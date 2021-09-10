@@ -2860,6 +2860,7 @@ CONTAINS
     REAL              , POINTER  :: fPtrArray(:,:,:)
     REAL(ESMF_KIND_R8), POINTER  :: fPtrVal, fPtr1D(:)
     INTEGER                      :: IMAXLOC(1)
+    INTEGER                      :: z_lb, z_ub
 
 #endif
 

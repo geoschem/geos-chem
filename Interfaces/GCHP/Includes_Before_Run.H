@@ -23,39 +23,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-  ! If meteorology vertical index is top down, flip imports coming from ExtData.
-  if (meteorology_vertical_index_is_top_down) then
-    ! Level-edge imports
-    CMFMC(:,:,:) = CMFMC(:,:,State_Grid%NZ:0:-1)
-    PFICU(:,:,:) = PFICU(:,:,State_Grid%NZ:0:-1)
-    PFILSAN(:,:,:) = PFILSAN(:,:,State_Grid%NZ:0:-1)
-    PFLCU(:,:,:) = PFLCU(:,:,State_Grid%NZ:0:-1)
-    PFLLSAN(:,:,:) = PFLLSAN(:,:,State_Grid%NZ:0:-1)
-
-    ! Level-center imports
-    CLDF(:,:,:) = CLDF(:,:,LM:1:-1)
-    DTRAIN(:,:,:) = DTRAIN(:,:,LM:1:-1)
-    DQRCU(:,:,:) = DQRCU(:,:,LM:1:-1)
-    DQRLSAN(:,:,:) = DQRLSAN(:,:,LM:1:-1)
-    QI(:,:,:) = QI(:,:,LM:1:-1)
-    QL(:,:,:) = QL(:,:,LM:1:-1)
-    RH(:,:,:) = RH(:,:,LM:1:-1)
-    TAUCLI(:,:,:) = TAUCLI(:,:,LM:1:-1)
-    TAUCLW(:,:,:) = TAUCLW(:,:,LM:1:-1)
-    REEVAPCN(:,:,:) = REEVAPCN(:,:,LM:1:-1)    
-    REEVAPLS(:,:,:) = REEVAPLS(:,:,LM:1:-1)
-    SPHU1(:,:,:) = SPHU1(:,:,LM:1:-1)
-    SPHU2(:,:,:) = SPHU2(:,:,LM:1:-1)
-    TMPU1(:,:,:) = TMPU1(:,:,LM:1:-1)
-    TMPU2(:,:,:) = TMPU2(:,:,LM:1:-1)
-    UA(:,:,:) = UA(:,:,LM:1:-1)
-    VA(:,:,:) = VA(:,:,LM:1:-1)
-    OMEGA(:,:,:) = OMEGA(:,:,LM:1:-1)
-    XLAIMULTI(:,:,:) = XLAIMULTI(:,:,LM:1:-1)
-    OPTDEP(:,:,:) = OPTDEP(:,:,LM:1:-1)
-  end if
-
-  
 
   !=========================================================================
   ! Two-dimensional fields
@@ -72,8 +39,7 @@
   State_Met%PHIS                = PHIS / 9.80665d0           ! m
   State_Met%GWETROOT            = GWETROOT                   ! 1
   State_Met%GWETTOP             = GWETTOP                    ! 1
-  State_Met%LAI                 = LAI                        ! 1  
-  State_Met%OMEGA               = OMEGA                      ! Pa s-1
+  State_Met%LAI                 = LAI                        ! Pa s-1
   State_Met%PARDR               = PARDR                      ! W/m2
   State_Met%PARDF               = PARDF                      ! W/m2
   State_Met%PBLH                = PBLH                       ! m
@@ -81,8 +47,6 @@
   State_Met%PS1_WET             = PS1                        ! hPa
   State_Met%PS2_WET             = PS2                        ! hPa
   State_Met%SLP                 = SLP                        ! hPa
-  State_Met%TMPU1               = TMPU1
-  State_Met%TMPU2               = TMPU2
   State_Met%TS                  = TS                         ! K
   State_Met%TSKIN               = TSKIN                      ! K
   State_Met%SWGDN               = RADSWG                     ! W/m2
@@ -91,10 +55,8 @@
   State_Met%SNOMAS              = SNOMAS                     ! kg/m2
   State_Met%SUNCOS              = zenith                     ! unitless
   State_Met%SUNCOSmid           = zenith                     ! 1
-  State_Met%U                   = UA                         ! m/s
   State_Met%U10M                = U10M                       ! m/s
   State_Met%USTAR               = USTAR                      ! m/s
-  State_Met%V                   = VA                         ! m/s
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
 
@@ -128,6 +90,16 @@
   State_Met%PFILSAN(:,:,1:State_Grid%NZ+1) = PFILSAN(:,:,0:State_Grid%NZ)
   State_Met%PFLCU  (:,:,1:State_Grid%NZ+1) = PFLCU  (:,:,0:State_Grid%NZ)
   State_Met%PFLLSAN(:,:,1:State_Grid%NZ+1) = PFLLSAN(:,:,0:State_Grid%NZ)
+
+  if (meteorology_vertical_index_is_top_down) then
+    z_lb = lbound(State_Met%CLDF,3)
+    z_ub = ubound(State_Met%CLDF,3)
+    CMFMC(:,:,:) = CMFMC(:,:,z_ub:z_lb:-1)
+    PFICU(:,:,:) = PFICU(:,:,z_ub:z_lb:-1)
+    PFILSAN(:,:,:) = PFILSAN(:,:,z_ub:z_lb:-1)
+    PFLCU(:,:,:) = PFLCU(:,:,z_ub:z_lb:-1)
+    PFLLSAN(:,:,:) = PFLLSAN(:,:,z_ub:z_lb:-1)
+  end if
 
   ! NOTE: PLE is reversed in the vertical! Note that this will end up
   ! affecting DELP and therefore State_Met%PEDGE_DRY, but that the 
@@ -174,13 +146,43 @@
   State_Met%TAUCLW              = TAUCLW                     ! 1
   State_Met%REEVAPCN            = REEVAPCN                   ! kg/kg/s
   State_Met%REEVAPLS            = REEVAPLS                   ! kg/kg/s
-
+  State_Met%TMPU1               = TMPU1
+  State_Met%TMPU2               = TMPU2
+  State_Met%OMEGA               = OMEGA  
+  State_Met%U                   = UA
+  State_Met%V                   = VA
   ! These fields are set to match the GCC conventions and to ensure that 
   ! transport is correctly implemented.
-  State_Met%SPHU                =(SPHU1+SPHU2)*0.5d3         ! kg/kg -> g/kg
   State_Met%SPHU1               = SPHU1       *1.0d3         ! kg/kg -> g/kg
   State_Met%SPHU2               = SPHU2       *1.0d3         ! kg/kg -> g/kg
-  State_Met%T                   =(TMPU1+TMPU2)*0.5d0         ! K
+
+    ! If meteorology vertical index is top down, flip imports coming from ExtData.
+  if (meteorology_vertical_index_is_top_down) then
+    z_lb = lbound(State_Met%CLDF,3)
+    z_ub = ubound(State_Met%CLDF,3)
+
+    State_Met%CLDF(:,:,:)     = State_Met%CLDF(:,:,z_ub:z_lb:-1)
+    State_Met%DTRAIN(:,:,:)   = State_Met%DTRAIN(:,:,z_ub:z_lb:-1)
+    State_Met%DQRCU(:,:,:)    = State_Met%DQRCU(:,:,z_ub:z_lb:-1)
+    State_Met%DQRLSAN(:,:,:)  = State_Met%DQRLSAN(:,:,z_ub:z_lb:-1)
+    State_Met%QI(:,:,:)       = State_Met%QI(:,:,z_ub:z_lb:-1)
+    State_Met%QL(:,:,:)       = State_Met%QL(:,:,z_ub:z_lb:-1)
+    State_Met%RH(:,:,:)       = State_Met%RH(:,:,z_ub:z_lb:-1)
+    State_Met%TAUCLI(:,:,:)   = State_Met%TAUCLI(:,:,z_ub:z_lb:-1)
+    State_Met%TAUCLW(:,:,:)   = State_Met%TAUCLW(:,:,z_ub:z_lb:-1)
+    State_Met%REEVAPCN(:,:,:) = State_Met%REEVAPCN(:,:,z_ub:z_lb:-1)    
+    State_Met%REEVAPLS(:,:,:) = State_Met%REEVAPLS(:,:,z_ub:z_lb:-1)
+    State_Met%SPHU1(:,:,:)     = State_Met%SPHU1(:,:,z_ub:z_lb:-1)
+    State_Met%SPHU2(:,:,:)     = State_Met%SPHU2(:,:,z_ub:z_lb:-1)
+    State_Met%TMPU1(:,:,:)     = State_Met%TMPU1(:,:,z_ub:z_lb:-1)
+    State_Met%TMPU2(:,:,:)     = State_Met%TMPU2(:,:,z_ub:z_lb:-1)
+    State_Met%U(:,:,:)         = State_Met%U(:,:,z_ub:z_lb:-1)
+    State_Met%V(:,:,:)         = State_Met%V(:,:,z_ub:z_lb:-1)
+    State_Met%OMEGA(:,:,:)     = State_Met%OMEGA(:,:,z_ub:z_lb:-1)
+  end if
+
+  State_Met%SPHU                =(State_Met%SPHU1+State_Met%SPHU2)*0.5d3 ! kg/kg -> g/kg
+  State_Met%T                   =(State_Met%TMPU1+State_Met%TMPU2)*0.5d0 ! K
 
   ! Create total optical depth field                         ! 1
   State_Met%OPTD                = State_Met%TAUCLI + State_Met%TAUCLW
