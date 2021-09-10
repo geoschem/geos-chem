@@ -118,6 +118,7 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
     USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Diag_Mod,       ONLY : DgnMap
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Strat_Chem_Mod,       ONLY : SChem_Tend
@@ -207,6 +208,9 @@ CONTAINS
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapData => NULL()
 
     !=======================================================================
     ! Do_FlexChem begins here!
@@ -476,6 +480,26 @@ CONTAINS
        State_Diag%KppError(:,:,:) = 0.0
     ENDIF
 #endif
+
+    !=======================================================================
+    ! Archive concentrations before chemistry 
+    !=======================================================================
+    IF ( State_Diag%Archive_ConcBeforeChem ) THEN
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       mapData => State_Diag%Map_ConcBeforeChem
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+    ENDIF
 
     !=======================================================================
     ! Set up integration convergence conditions and timesteps
@@ -1262,6 +1286,26 @@ CONTAINS
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after Diag_Metrics' )
+    ENDIF
+
+    !=======================================================================
+    ! Archive concentrations after chemistry 
+    !=======================================================================
+    IF ( State_Diag%Archive_ConcAfterChem ) THEN
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       mapData => State_Diag%Map_ConcAfterChem
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
     ENDIF
 
     !=======================================================================

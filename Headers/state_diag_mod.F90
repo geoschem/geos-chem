@@ -113,6 +113,15 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SpeciesConc
      LOGICAL                     :: Archive_SpeciesConc
 
+     !%%%%%  ML diagnostics %%%%%
+     REAL(f8),           POINTER :: ConcBeforeChem(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ConcBeforeChem
+     LOGICAL                     :: Archive_ConcBeforeChem
+
+     REAL(f8),           POINTER :: ConcAfterChem(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ConcAfterChem
+     LOGICAL                     :: Archive_ConcAfterChem
+
 #ifdef ADJOINT
      ! Adjoint variables for diagnostic output
      REAL(f8),           POINTER :: SpeciesAdj(:,:,:,:)
@@ -1138,6 +1147,14 @@ CONTAINS
     State_Diag%Map_SpeciesConc                     => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
 
+    State_Diag%ConcBeforeChem                      => NULL()
+    State_Diag%Map_ConcBeforeChem                  => NULL()
+    State_Diag%Archive_ConcBeforeChem              = .FALSE.
+
+    State_Diag%ConcAfterChem                       => NULL()
+    State_Diag%Map_ConcAfterChem                   => NULL()
+    State_Diag%Archive_ConcAfterChem               = .FALSE.
+
 #ifdef ADJOINT
     State_Diag%SpeciesAdj                          => NULL()
     State_Diag%Map_SpeciesAdj                      => NULL()
@@ -2144,6 +2161,48 @@ CONTAINS
          Ptr2Data       = State_Diag%SpeciesConc,                            &
          archiveData    = State_Diag%Archive_SpeciesConc,                    &
          mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagId  = 'ConcBeforeChem'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%ConcBeforeChem,                         &
+         archiveData    = State_Diag%Archive_ConcBeforeChem,                 &
+         mapData        = State_Diag%Map_ConcBeforeChem,                     &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagId  = 'ConcAfterChem'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%ConcAfterChem,                          &
+         archiveData    = State_Diag%Archive_ConcAfterChem,                  &
+         mapData        = State_Diag%Map_ConcAfterChem,                      &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -8724,6 +8783,18 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'ConcBeforeChem',                              &
+                   Ptr2Data = State_Diag%ConcBeforeChem,                     &
+                   mapData  = State_Diag%Map_ConcBeforeChem,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcAfterChem',                               &
+                   Ptr2Data = State_Diag%ConcAfterChem,                      &
+                   mapData  = State_Diag%Map_ConcAfterChem,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
 #ifdef ADJOINT
     CALL Finalize( diagId   = 'SpeciesAdj',                                  &
                    Ptr2Data = State_Diag%SpeciesAdj,                         &
@@ -10153,6 +10224,20 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBEFORECHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration before chemistry of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration after chemistry of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
