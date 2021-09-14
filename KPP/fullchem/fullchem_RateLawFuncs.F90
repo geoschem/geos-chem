@@ -1134,7 +1134,7 @@ CONTAINS
        CALL Gam_ClNO2(                                                       &
             H,             H%rLiq, H%phCloud, H%Cl_conc_Cld,                 &
             H%Br_conc_Cld, gamma,  dummy,     branchBr                      )
-       branch = branchBr * H%frac_Cl_CldG
+       branch = branchBr * H%frac_Br_CldG
        k      = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
