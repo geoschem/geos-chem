@@ -348,8 +348,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_SO2( I, J, L, Input_Opt, State_Chm,  State_Diag, State_Grid, &
-                       State_Met, RC )
+  SUBROUTINE SET_SO2( I,          J,         L,                              &
+                      Input_Opt,  State_Chm, State_Diag,                     &
+                      State_Grid, State_Met, RC                             )
 !
 ! !USES:
 !
@@ -369,10 +370,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indices
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-    INTEGER,        INTENT(IN)    :: I, J, L
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -428,10 +429,10 @@ CONTAINS
     REAL(fp)              :: K0,     Ki,      KK,     M,    L1
     REAL(fp)              :: L2,     L3,      Ld,     F,    Fc
     REAL(fp)              :: RK,     RKT,     DTCHEM, DT_T, TK
-    REAL(fp)              :: F1,     RK1,    RK3,     SO20, AVO_over_LWC
-    REAL(fp)              :: SO2_cd, H2O20,   O3,     L2S,  L3S
+    REAL(fp)              :: F1,     RK1,     RK3,    SO20, AVO_over_LWC
+    REAL(fp)              :: SO2_cd, H2O20,   L2S,    L3S
     REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM, RHO, CVFAC
-    REAL(fp)              :: ALK,    ALK1,    ALK2,    SO2_AfterSS
+    REAL(fp)              :: ALK,    ALK1,    ALK2,   SO2_AfterSS
     REAL(fp)              :: AlkA,   AlkC
     REAL(fp)              :: Kt1,    Kt2
     REAL(fp)              :: PSO4E,  PSO4F,   Kt1N,    Kt2N
@@ -517,13 +518,6 @@ CONTAINS
     TK   = State_Met%T(I,J,L)                                 ! Temperature [K]
     FC   = State_Met%CLDF(I,J,L)                              ! Cloud frac [1]
 
-    ! Calculate O3, defined only in the chemistry grid
-    ! Get O3 from State_Chm%Species [v/v]
-    O3 = 0e+0_fp
-    IF ( State_Met%InChemGrid(I,J,L) ) THEN
-       O3 = State_Chm%Species(I,J,L,id_O3)
-    ENDIF
-
     ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
     ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
 #ifdef LUO_WETDEP
@@ -554,8 +548,14 @@ CONTAINS
     ! If (1) there is cloud, (2) there is SO2 present, (3) T > -15 C, and
     ! (4) liquid water content (LWC) is present (but not small enough to
     ! make divisions blow up), then compute sulfate production in cloud.
-    IF ( ( FC > 1.0e-4_fp ) .and. ( SO2_AfterSS > MINDAT      )  .and.       &
-         ( TK > 258.0_fp  ) .and. ( LWC         > 1.0e-20_fp  ) ) THEN
+    IF ( ( FC          > 1.0e-4_fp )  .and.                                  &
+         ( SO2_AfterSS > MINDAT    )  .and.                                  &
+#ifdef LUO_WETDEP
+         ( TK          > 237.0_fp  )  .and.                                  &
+#else
+         ( TK          > 258.0_fp  )  .and.                                  &
+#endif
+         ( LWC         > 0.0_fp    ) ) THEN
 
        !===========================================================
        ! NOTE...Sulfate production from aquatic reactions of SO2
@@ -808,24 +808,38 @@ CONTAINS
        ENDIF
 
        ! Compute aqueous rxn rates for SO2
-       CALL AQCHEM_SO2( I, J, L, LWC,     TK,    PATM, &
-            SO2_AfterSS, &
-            Spc(id_H2O2)*CVFAC, &
-            Spc(id_O3)*CVFAC, &
-            Spc(id_CH2O)*CVFAC, &
-            HPLUS, MnII,    FeIII, &
-            KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
-            HSO3aq,  SO3aq, &
-            KaqHCHO, KaqHMS, KaqHMS2  )
+       CALL AQCHEM_SO2( I       = I,                                         &
+                        J       = J,                                         &
+                        L       = L,                                         &
+                        LWC     = LWC,                                       &
+                        T       = TK,                                        &
+                        P       = PATM,                                      &
+                        SO2     = SO2_AfterSS,                               &
+                        H2O2    = Spc(id_H2O2) * CVFAC,                      &
+                        O3      = Spc(id_O3)   * CVFAC,                      &
+                        HCHO    = Spc(id_CH2O) * CVFAC,                      &
+                        Hplus   = Hplus,                                     &
+                        MnII    = MnII,                                      &
+                        FeIII   = FeIII,                                     &
+                        KaqH2O2 = KaqH2O2,                                   &
+                        KaqO3   = KaqO3,                                     &
+                        KaqO3_1 = KaqO3_1,                                   &
+                        KaqO2   = KaqO2,                                     &
+                        HSO3aq  = HSO3aq,                                    &
+                        SO3aq   = SO3aq,                                     &
+                        KaqHCHO = KaqHCHO,                                   &
+                        KaqHMS  = KaqHMS,                                    &
+                        KaqHMS2 = KaqHMS2                                   )
 
-       K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2*CVFAC )
-       K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3  *CVFAC )
+       ! Compute rxn rate in cloudy part of grid box [1/s]
+       K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )
+       K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
        !K_CLD(3) computed below
 
        ! HMS reaction rates (skip if HMS isn't defined)
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
           K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
-          K_CLD(5) = CloudHet1R( FC, KaqHMS) ! KaqHMS is pseudo-1st order
+          K_CLD(5) = CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
           K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
                KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
           ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
@@ -869,111 +883,111 @@ CONTAINS
        ELSEIF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
           SIZE_RES = 1
        ELSEIF( gno3 > NH3 ) THEN
-          IF ( SO2_AfterSS >= 5.e-9_fp          .and. &
-               H2O20  >= SO20   )                &
+          IF ( SO2_AfterSS >= 5.e-9_fp     .and.                             &
+               H2O20  >= SO20   )                                            &
                BULK    = 1
-          IF ( LWC    >= 0.3e-6_fp         .and. &
-               SO2_AfterSS >= 3.e-9_fp          .and. &
-               H2O20  >= SO2_AfterSS )                &
+          IF ( LWC    >= 0.3e-6_fp         .and.                             &
+               SO2_AfterSS >= 3.e-9_fp     .and.                             &
+               H2O20  >= SO2_AfterSS )                                       &
                BULK    = 1
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               LWC    >= 0.5e-6_fp         .and. &
-               H2O20  >= SO2_AfterSS )                &
+          IF ( ALKds  >= 5.e+0_fp          .and.                             &
+               LWC    >= 0.5e-6_fp         .and.                             &
+               H2O20  >= SO2_AfterSS )                                       &
                BULK    = 1
-          IF ( LWC    >= 0.1e-6_fp         .and. &
-               gno3   <= (NH3 + 2.e-9_fp) )      &
+          IF ( LWC    >= 0.1e-6_fp         .and.                             &
+               gno3   <= (NH3 + 2.e-9_fp) )                                  &
                BULK    = 1
        ELSEIF( LWC    >= 0.5e-6_fp ) THEN
-          IF ( H2O20  >= (0.9e+0_fp * SO2_AfterSS) )  &
+          IF ( H2O20  >= (0.9e+0_fp * SO2_AfterSS) )                         &
                BULK    = 1
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 5.e+0_fp          .and. &
-               SO2_AfterSS <= 10.e-9_fp )             &
+          IF ( NH3    <= 1.e-9_fp          .and.                             &
+               ALKds  >= 5.e+0_fp          .and.                             &
+               SO2_AfterSS <= 10.e-9_fp )                                    &
                BULK    = 1
        ELSEIF( LWC    >= 0.3e-6_fp ) THEN
-          IF ( NH3    >= (gno3 + 5.e-9_fp) .and. &
-               SO2_AfterSS <= 10.e-9_fp )             &
+          IF ( NH3    >= (gno3 + 5.e-9_fp) .and.                             &
+               SO2_AfterSS <= 10.e-9_fp )                                    &
                BULK    = 1
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) )     &
+          IF ( gno3   <= 1.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 2.e-9_fp) )                                 &
                BULK    = 1
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) )     &
+          IF ( gno3   <= 7.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 3.e-9_fp) )                                 &
                BULK    = 1
-          IF ( ALKds  >= 3.e+0_fp          .and. &
-               NH3 <= 10e-9_fp             .and. &
-               SO2_AfterSS <= 5e-9_fp )               &
+          IF ( ALKds  >= 3.e+0_fp          .and.                             &
+               NH3 <= 10e-9_fp             .and.                             &
+               SO2_AfterSS <= 5e-9_fp )                                      &
                BULK    = 1
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               NH3    <= 10.e-9_fp         .and. &
-               SO2_AfterSS <= 5.e-9_fp )              &
+          IF ( ALKds  >= 5.e+0_fp          .and.                             &
+               NH3    <= 10.e-9_fp         .and.                             &
+               SO2_AfterSS <= 5.e-9_fp )                                     &
                BULK    = 1
-          IF ( SO2_AfterSS >= 1.5e-9_fp         .and. &
-               H2O20  >= SO2_AfterSS )                &
+          IF ( SO2_AfterSS >= 1.5e-9_fp    .and.                             &
+               H2O20  >= SO2_AfterSS )                                       &
                BULK    = 1
-          IF ( NH3    <= 12.e-9_fp         .and. &
-               ALKds  >=10.e+0_fp )              &
+          IF ( NH3    <= 12.e-9_fp         .and.                             &
+               ALKds  >=10.e+0_fp )                                          &
                BULK    = 1
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 4.e+0_fp          .and. &
-               SO2_AfterSS <= 10.e-9_fp )             &
+          IF ( NH3    <= 1.e-9_fp          .and.                             &
+               ALKds  >= 4.e+0_fp          .and.                             &
+               SO2_AfterSS <= 10.e-9_fp )                                    &
                BULK    = 1
-          IF ( NH3    <= 5.e-9_fp          .and. &
-               ALKds  >= 6.e+0_fp          .and. &
-               SO2_AfterSS <= 10.e-9_fp )             &
+          IF ( NH3    <= 5.e-9_fp          .and.                             &
+               ALKds  >= 6.e+0_fp          .and.                             &
+               SO2_AfterSS <= 10.e-9_fp )                                    &
                BULK    = 1
-          IF ( NH3    <= 7.e-9_fp          .and. &
-               ALKds   >-8.e+0_fp          .and. &
-               SO2_AfterSS <= 10.e-9_fp )             &
+          IF ( NH3    <= 7.e-9_fp          .and.                             &
+               ALKds   >-8.e+0_fp          .and.                             &
+               SO2_AfterSS <= 10.e-9_fp )                                    &
                BULK    = 1
        ELSEIF( LWC    >= 0.1e-6_fp ) THEN
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 5.e+0_fp   )            &
+          IF ( NH3    <= 1.e-9_fp          .and.                             &
+               ALKds  >= 5.e+0_fp   )                                        &
                BULK    = 1
-          IF ( NH3    <= 5.e-9_fp          .and. &
-               ALKds  >= 10.e+0_fp  )            &
+          IF ( NH3    <= 5.e-9_fp          .and.                             &
+               ALKds  >= 10.e+0_fp  )                                        &
                BULK    = 1
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) .and. &
-               SO2_AfterSS <= 7.e-9_fp )              &
+          IF ( gno3   <= 1.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 2.e-9_fp) .and.                             &
+               SO2_AfterSS <= 7.e-9_fp )                                     &
                BULK    = 1
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) .and. &
-               ALKds  >= 2.e+0_fp )              &
+          IF ( gno3   <= 1.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 2.e-9_fp) .and.                             &
+               ALKds  >= 2.e+0_fp )                                          &
                BULK = 1
-          IF ( gno3   <= 3.e-9_fp          .and. &
-               NH3    >= (gno3 + 4.e-9_fp) )     &
+          IF ( gno3   <= 3.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 4.e-9_fp) )                                 &
                BULK    = 1
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) .and. &
-               SO2_AfterSS <= 5.e-9_fp )              &
+          IF ( gno3   <= 7.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 3.e-9_fp) .and.                             &
+               SO2_AfterSS <= 5.e-9_fp )                                     &
                BULK    = 1
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) .and. &
-               ALKds  >= 4.e+0_fp          .and. &
-               SO2_AfterSS <= 9.e-9_fp  )             &
+          IF ( gno3   <= 7.e-9_fp          .and.                             &
+               NH3    >= (gno3 + 3.e-9_fp) .and.                             &
+               ALKds  >= 4.e+0_fp          .and.                             &
+               SO2_AfterSS <= 9.e-9_fp  )                                    &
                BULK    = 1
-          IF ( ALKds  >= 3.e+0_fp          .and. &
-               NH3    <= 3.e-9_fp          .and. &
-               SO2_AfterSS <= 4.e-9_fp )              &
+          IF ( ALKds  >= 3.e+0_fp          .and.                             &
+               NH3    <= 3.e-9_fp          .and.                             &
+               SO2_AfterSS <= 4.e-9_fp )                                     &
                BULK    = 1
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               SO2_AfterSS <= 5.e-9_fp          .and. &
-               NH3    <= 7.e-9_fp )              &
+          IF ( ALKds  >= 5.e+0_fp          .and.                             &
+               SO2_AfterSS <= 5.e-9_fp     .and.                             &
+               NH3    <= 7.e-9_fp )                                          &
                BULK    = 1
-          IF ( NH3    >= (gno3 + 2.e-9_fp) .and. &
-               SO2_AfterSS <= 5.e-9_fp )              &
+          IF ( NH3    >= (gno3 + 2.e-9_fp) .and.                             &
+               SO2_AfterSS <= 5.e-9_fp )                                     &
                BULK    = 1
-          IF ( NH3    >= (gno3 + 4.e-9_fp) .and. &
-               SO2_AfterSS <= 10.e-9_fp )             &
+          IF ( NH3    >= (gno3 + 4.e-9_fp) .and.                             &
+               SO2_AfterSS <= 10.e-9_fp )                                    &
                BULK    = 1
-          IF ( ALKds  >= 2.e+0_fp          .and. &
-               NH3    <= 10.e-9_fp         .and. &
-               H2O20  >= SO2_AfterSS )                &
+          IF ( ALKds  >= 2.e+0_fp          .and.                             &
+               NH3    <= 10.e-9_fp         .and.                             &
+               H2O20  >= SO2_AfterSS )                                       &
                BULK    = 1
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               SO2_AfterSS >= 3.e-9_fp          .and. &
-               H2O20  >= SO2_AfterSS )                &
+          IF ( NH3    <= 1.e-9_fp          .and.                             &
+               SO2_AfterSS >= 3.e-9_fp     .and.                             &
+               H2O20  >= SO2_AfterSS )                                       &
                BULK    = 1
        ELSE
           SIZE_RES = 1
@@ -1014,10 +1028,20 @@ CONTAINS
           !! <<>> SET THE INPUT UNITS! EITHER CONVERT IN THE ROUTINE OR
           !! <<>> CONVERT BEFOREHAND. BUT EVERYTHING IS CURRENTLY mcl/cm3
           !! <<>> AND HET_DROP_CHEM EXPECTS V/V
-
-          CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, &
-               aSO4, NH3, Spc(id_SO2)*CVFAC, Spc(id_H2O2)*CVFAC, &
-               GNO3,  SR, Input_Opt, State_Met, State_Chm )
+          CALL HET_DROP_CHEM( I        = I,                                  &
+                              J        = J,                                  &
+                              L        = L,                                  &
+                              LSTOT    = LSTOT,                              &
+                              SSCvv    = SSCvv,                              &
+                              aSO4     = aSO4,                               &
+                              GNH3      = NH3,                               &
+                              SO2_sr   = Spc(id_SO2)  * CVFAC,               &
+                              H2O20    = Spc(id_H2O2) * CVFAC,               &
+                              GNO3     = GNO3,                               &
+                              SR       = SR,                                 &
+                              Input_Opt = Input_Opt,                         &
+                              State_Met = State_Met,                         &
+                              State_Chm = State_Chm                         )
 
           KaqO2 = KaqO2 + ( SR/(Spc(id_SO2)*CVFAC*DTCHEM) ) !1/s
 
@@ -2680,12 +2704,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AQCHEM_SO2( I, J, L, &
-                         LWC,     T,     P,       SO2,   H2O2, &
-                         O3,      HCHO,  Hplus,   MnII,  FeIII, &
-                         KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
-                         HSO3aq,  SO3aq, KaqHCHO,  &
-                         KaqHMS, KaqHMS2 )
+  SUBROUTINE AQCHEM_SO2( I,      J,       L,      LWC,     T,      P,        &
+                         SO2,    H2O2,    O3,     HCHO,    Hplus,  MnII,     &
+                         FeIII,  KaqH2O2, KaqO3,  KaqO3_1, KaqO2,  HSO3aq,   &
+                         SO3aq,  KaqHCHO, KaqHMS, KaqHMS2                   )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2711,7 +2733,7 @@ CONTAINS
     REAL(fp), INTENT(OUT) :: KaqO2   ! Reaction rate for O2 (metal cat)
     REAL(fp), INTENT(OUT) :: KaqHCHO ! Reaction rate for SO2 and HCHO (jmm, 06/13/18)
     REAL(fp), INTENT(OUT) :: KaqHMS  ! Reaction rate for HMS and OH- (jmm, 06/13/18)
-    REAL(fp), INTENT(OUT) :: KaqHMS2  ! Reaction rate for HMS and OH(aq) (jmm, 06/28/18)
+    REAL(fp), INTENT(OUT) :: KaqHMS2 ! Reaction rate for HMS and OH(aq) (jmm, 06/28/18)
     REAL(fp), INTENT(OUT) :: HSO3aq  ! Cloud bisulfite [mol/l] (qjc, 06/10/16)
     REAL(fp), INTENT(OUT) :: SO3aq   ! Cloud sulfite   [mol/l] (qjc, 06/10/16)
 !
@@ -2789,19 +2811,18 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL(fp), PARAMETER   :: R = 0.08205e+0_fp
-    REAL(fp), PARAMETER   :: dOH = 1.0e-19_fp ! [M cm^3 molec^-1] (jmm, 06/28/18)
+    REAL(fp), PARAMETER  :: R   = 0.08205e+0_fp
+    REAL(fp), PARAMETER  :: dOH = 1.0e-19_fp ! [M cm^3 molec^-1]
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)              :: KH2O2,  RA,     KS1, KS2,    HCSO2
-    REAL(fp)              :: FHCSO2, XSO2G,  SIV, HSO3,   XSO2AQ
-    REAL(fp)              :: XHSO3,  XSO3,   KH1, HCH2O2, FHCH2O2
-    REAL(fp)              :: XH2O2G, H2O2aq, KO0, KO1,    KO2
-    REAL(fp)              :: HCO3,   XO3g,   O3aq, XHCHOg, HCHCHO ! (jmm, 06/13/18)
-    REAL(fp)              :: FHCHCHO,KHCHO1, KHCHO2,  KHMS  ! (jmm, 06/13/18)
-    REAL(fp)              :: KW1,    KHC1,   KHMS2          ! (jmm, 06/15/18)
-
+    REAL(fp)             :: KH2O2,   RA,     KS1,    KS2,    HCSO2
+    REAL(fp)             :: FHCSO2,  XSO2G,  SIV,    HSO3,   XSO2AQ
+    REAL(fp)             :: XHSO3,   XSO3,   KH1,    HCH2O2, FHCH2O2
+    REAL(fp)             :: XH2O2G,  H2O2aq, KO0,    KO1,    KO2
+    REAL(fp)             :: HCO3,    XO3g,   O3aq,   XHCHOg, HCHCHO
+    REAL(fp)             :: FHCHCHO, KHCHO1, KHCHO2, KHMS,   KW1
+    REAL(fp)             :: KHC1,    KHMS2
 
     !=================================================================
     ! AQCHEM_SO2 begins here!
@@ -3248,7 +3269,7 @@ CONTAINS
 
     H   = DTCHEM * APV          ![m]
 
-    sum_gas = (alpha_NH3 * NH3) + (alpha_SO2 * SO2) + &
+    sum_gas = (alpha_NH3 * NH3)   + (alpha_SO2 * SO2) + &
               (alpha_H2O2 * H2O2) + (alpha_HNO3 * HNO3)
 
     DSVI = ( alpha_B * B ) + &
