@@ -70,8 +70,8 @@ Photolyse nitrate aer.? : F
 Turn on Dry Deposition? : F
 Turn on Wet Deposition? : F
 Turn on CO2 Effect?     : F
-CO2 level               : 600.0
-Reference CO2 level     : 380.0
+ => CO2 level           : 600.0
+ => Reference CO2 level : 380.0
 Diag alt above sfc [m]  : 10
 ------------------------+------------------------------------------------------
 %%% CHEMISTRY MENU %%%  :
