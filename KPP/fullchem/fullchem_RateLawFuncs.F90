@@ -2197,21 +2197,23 @@ CONTAINS
     REAL(dp) :: cavg,  gb_tot, H_X, k_Cl
     REAL(dp) :: k_SO3, k_tot,  l_r, M_X
     !
-    ! thermal velocity (cm/s)
-    M_X       = MW(ind_HOCl) * 1.0e-3_dp
-    cavg      = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
-    !
     ! Reaction rates, Cl and SO3 paths [1/s]
     k_Cl      = 1.5e+4_dp * H%H_Conc_LCL  * H%Cl_conc_Cld
     k_SO3     = 2.8e+5_dp * H%TSO3_aq
     k_tot     = k_Cl + k_SO3
-
+    !
     ! Compute reactive uptake coefficient [1] and branching ratio [1], Cl path
     ! but avoid division by zero
     gamma     = 0.0_dp
     branchCl  = 0.0_dp
     branchSO3 = 0.0_dp
+    !
     IF ( k_tot > 0.0_dp ) THEN
+       !
+       ! thermal velocity (cm/s)
+       M_X       = MW(ind_HOCl) * 1.0e-3_dp
+       cavg      = SQRT( EIGHT_RSTARG_T / ( H%Pi * M_X ) ) * 100.0_dp
+       !
        ! Henry's law
        H_X       = ( HENRY_K0(ind_HOCl) * CON_ATM_BAR )                      &
                  * EXP( HENRY_CR(ind_HOCl) * ( INV_TEMP - INV_T298 ) )
