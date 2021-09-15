@@ -96,6 +96,9 @@ CONTAINS
     ! Populate fields of the HetState object in gckpp_Global
     !========================================================================
 
+    ! Identify a box for debug printout within rate-law functions
+    H%debugBox      = .FALSE.
+
     ! Constants (so that we can use these within KPP)
     H%AVO           = AVO
     H%PI            = PI

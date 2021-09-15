@@ -2420,15 +2420,16 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
     !
-    ! Compute HOCl + SALACL uptake in tropospheric liquid cloud
+    ! Compute HOCl + HSO3m uptake in tropospheric liquid cloud
     IF ( .not. H%stratBox ) THEN
        !
-       ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
+       ! HOCl + HSO3mL uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
        branch = branchSO3 * H%frac_HSO3_aq
        !
-       ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
+       ! HOCl + HSO3m uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
+
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
@@ -2448,14 +2449,14 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
     !
-    ! Compute HOCl + SALACL uptake in tropospheric liquid cloud
+    ! Compute HOCl + SO3mm uptake in tropospheric liquid cloud
     IF ( .not. H%stratBox ) THEN
        !
-       ! HOCl + SALACL uptake coeff [1] & branch ratio [1], liquid path
+       ! HOCl + SO3mm  uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
        branch = branchSO3 * H%frac_SO3_aq
        !
-       ! HOCl + HCl uptake rate [1/s] accounting for cloud fraction
+       ! HOCl + SO3mm uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !

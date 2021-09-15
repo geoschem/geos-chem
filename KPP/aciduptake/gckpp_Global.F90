@@ -166,6 +166,7 @@ MODULE gckpp_Global
   !$OMP THREADPRIVATE( PHOTOL )
 
   TYPE, PUBLIC :: HetState
+     LOGICAL  :: debugBox       ! Are we in a debugging box?
      REAL(dp) :: AVO            ! Avogadro's constant [molec/mol]
      LOGICAL  :: natSurface     ! Is there NAT in this box?
      LOGICAL  :: pscBox         ! Are there polar strat clouds?
