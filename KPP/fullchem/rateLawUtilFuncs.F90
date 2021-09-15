@@ -112,7 +112,13 @@ CONTAINS
     kII     = 0.0_dp
     !
     ! Prevent div by zero
-    IF ( concEduct < 100.0_dp                            ) RETURN
+    !---------------------------------------------------------------------
+    ! NOTE: This line was presumably to prevent div-by-zero, but is
+    ! not really needed, as we now use SafeDiv to trap these errors.
+    ! This can prevent reaction rates from being computed if the
+    ! concEduct is very low.  Comment out for now. (bmy, 9/15/21)
+    !IF ( concEduct < 100.0_dp                            ) RETURN
+    !---------------------------------------------------------------------
     IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
     !
     ! Compute rates
