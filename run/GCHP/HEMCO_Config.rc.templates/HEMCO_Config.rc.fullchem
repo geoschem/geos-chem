@@ -115,7 +115,7 @@ Warnings:                    1
 # NOTE: The offline dust emissions are considered to be buggy.
 #  Until further notice online dust emissions are recommended.
 #--------------------------------------------------------------
-    --> OFFLINE_DUST           :       false    # 1980-2021
+    --> OFFLINE_DUST           :       true     # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       true     # 1980-2021
     --> OFFLINE_SEASALT        :       true     # 1980-2021
     --> OFFLINE_SOILNOX        :       true     # 1980-2021
@@ -142,7 +142,7 @@ Warnings:                    1
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : off   NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : on    DST1/DST2/DST3/DST4
+105     DustDead               : off    DST1/DST2/DST3/DST4
     --> Mass tuning factor     :       -999.0e0
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : off   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
@@ -2582,10 +2582,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 606 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 606 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 606 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 606 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 - 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 - 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 - 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 - 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -3872,16 +3872,6 @@ Warnings:                    1
 # in car OC emissions that results from incorrect emission factors used in the original inventory
 330 DICE_CAR_OC_SF    0.14 - - - xy 1 1
 )))DICE_Africa
-
-#==============================================================================
-# --- Offline dust scale factors ---
-#
-# Scale annual emission totals for offline dust to 2x2.5 online dust values
-# Use 6.42e-5 for GEOS-FP and 3.86e-4 for MERRA-2
-#==============================================================================
-(((OFFLINE_DUST
-606 DST_SF {DUST_SF} - - - xy 1 1
-)))OFFLINE_DUST
 
 #==============================================================================
 # --- Offline biogenic VOC scale factors ---

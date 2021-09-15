@@ -192,7 +192,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	dust_sf='3.86e-4'
+	dust_sf='4.7376e-04'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="merra2"
@@ -205,7 +205,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	dust_sf='6.42e-5'
+	dust_sf='5.7141e-04'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"

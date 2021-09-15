@@ -265,7 +265,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	offline_dust_sf='3.86e-4'
+	offline_dust_sf='4.7376e-04'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="geosfp"
@@ -278,7 +278,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	offline_dust_sf='6.42e-5'
+	offline_dust_sf='5.7141e-04'
     elif [[ ${met_num} = "3" ]]; then
 	met_name='ModelE2.1'
 	met_name_lc='modele2.1'
