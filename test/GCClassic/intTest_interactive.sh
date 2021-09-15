@@ -85,7 +85,7 @@ echo "Compilation tests finished"
 #=============================================================================
 ./intTestExecute_slurm.sh
 echo ""
-echo "Execution   tests submitted as SLURM job ${EXE_ID}"
+echo "Execution tests finished"
 
 # Change back to this directory
 cd ${THIS_DIR}
