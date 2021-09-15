@@ -192,7 +192,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	dust_sf='4.7376e-04'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="merra2"
@@ -205,7 +204,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	dust_sf='5.7141e-04'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -396,7 +394,6 @@ sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    HEMCO_Config.rc
 sed -i -e "s|{NATIVE_RES}|${met_native}|"     HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"         HEMCO_Config.rc
 sed -i -e "s|{LONRES}|${met_lonres}|"         HEMCO_Config.rc
-sed -i -e "s|{DUST_SF}|${dust_sf}|"           HEMCO_Config.rc
 sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 1st in line
 sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 2nd in line
 sed -i -e "s|{MET_RES}|${met_resolution}|"    ExtData.rc
