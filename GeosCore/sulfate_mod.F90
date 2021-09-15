@@ -3290,17 +3290,6 @@ CONTAINS
                            KaqH2O2, KaqO3, KaqO3_1, KaqO2, &
                            HSO3aq,  SO3aq )
 
-!### Debug
-!       if (i .eq. 61 .and. j .eq. 15  .and. L .eq. 1 ) then
-!          write(*,*) 'CloudHet 3: ', KaqH2O2*CVFAC, K_CLD(1), FC, Spc(I,J,L,id_SO2), Spc(I,J,L,id_H2O2)
-!          write(*,*) 'CloudHet 1: ', KaqH2O2*CVFAC*Spc(I,J,L,id_SO2), KaqH2O2*CVFAC*Spc(I,J,L,id_H2O2), 1./3600.
-!          write(*,*) 'CloudHet 2: ', K_CLD(1), KaqH2O2*CVFAC*FC
-!          write(*,*) 'HMS R1: ', KaqHCHO*CVFAC, I, J, L
-!          write(*,*) 'HMS R2: ', KaqHMS*CVFAC
-!          write(*,*) 'HMS R3: ', KaqHMS2*CVFAC
-!          write(*,*) 'KaqO2: ', KaqO2
-!          write(*,*) 'KaqH2O2: ', KaqH2O2, HPLUS
-!       endif
           !----------------------------------------------------------
           ! Compute loss by H2O2.  Prevent floating-point exception
           ! by not allowing the exponential to go to infinity if
@@ -3769,8 +3758,8 @@ CONTAINS
           rSIV = MIN(rSIV, 1.e+0_fp)
 
           ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-          State_Chm%HSO3_AQ(I,J,L) = HSO3aq*(1+rSIV)/2
-          State_Chm%SO3_AQ(I,J,L)  = SO3aq *(1+rSIV)/2
+          State_Chm%HSO3_AQ(I,J,L) = HSO3aq * ( 1.0_fp + rSIV ) / 2.0_fp
+          State_Chm%SO3_AQ(I,J,L)  = SO3aq  * ( 1.0_fp + rSIV ) / 2.0_fp
 
           ! Update SO2 level, save SO2[ppv], H2O2[ppv] for WETDEP
           SO2s( I,J,L) = SO2_ss

@@ -1047,13 +1047,13 @@ CONTAINS
 
        ENDIF
 
-       ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-       ! Make sure that the unit conversion doesn't blow up
-       State_Chm%HSO3_AQ(I,J,L) = HSO3aq * 1.e-3_fp*AVO/LWC ! mol/L -> mcl/cm3
-       State_Chm%SO3_AQ(I,J,L)  = SO3aq  * 1.e-3_fp*AVO/LWC ! mol/L -> mcl/cm3
+       ! Store HSO3aq, SO3aq [M] for use in gckpp_HetRates.F90
+       State_Chm%HSO3_AQ(I,J,L) = HSO3aq
+       State_Chm%SO3_AQ(I,J,L)  = SO3aq
 
        K_CLD(3) = CloudHet1R( FC, KaqO2 )
     ENDIF
+
 
 !>>    !=================================================================
 !>>    ! HISTORY (aka netCDF diagnostics)
