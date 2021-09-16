@@ -217,10 +217,13 @@ ClOO       = IGNORE; {ClOO; Chlorine dioxide}
 CO         = IGNORE; {CO; Carbon monoxide}
 CO2        = IGNORE; {CO2; Carbon dioxide}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
-DSTAL1	   = IGNORE; {Alkalinity of mineral dust bin 1}
-DSTAL2 	   = IGNORE; {Alkalinity of mineral dust bin 2}
-DSTAL3 	   = IGNORE; {Alkalinity of mineral dust bin 3}
-DSTAL4 	   = IGNORE; {Alkalinity of mineral dust bin 4}
+{
+// comment out for now
+DSTAL1	   = IGNORE; Alkalinity of mineral dust bin 1
+DSTAL2 	   = IGNORE; Alkalinity of mineral dust bin 2
+DSTAL3 	   = IGNORE; Alkalinity of mineral dust bin 3
+DSTAL4 	   = IGNORE; Alkalinity of mineral dust bin 4
+}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
 ETNO3      = IGNORE; {C2H5ONO2; Ethyl nitrate}
@@ -232,7 +235,9 @@ H          = IGNORE; {H; Atomic hydrogen}
 H1211      = IGNORE; {CBrClF2; H-1211}
 H1301      = IGNORE; {CBrF3; H-1301}
 H2402      = IGNORE; {C2Br2F4; H-2402}
-H2SO4      = IGNORE; {H2SO4: Sulfuric acid}
+{
+H2SO4      = IGNORE; H2SO4: Sulfuric acid
+}
 H2O        = IGNORE; {H2O; Water vapor}
 H2O2       = IGNORE; {H2O2; Hydrogen peroxide}
 HAC        = IGNORE; {HOCH2C(O)CH3; Hydroxyacetone}
@@ -264,7 +269,7 @@ HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
 HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
 HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
 HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
-HSO3m	   = IGNORE;
+HSO3m	   = IGNORE; {HSO3-}
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -375,10 +380,13 @@ N2O        = IGNORE; {N2O; Nitrous oxide}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
 NAP        = IGNORE; {C10H8; Naphthalene; IVOC surrogate}
 NIT        = IGNORE; {NIT; Fine mode inorganic nitrate}
-NITD1      = IGNORE; {NIT taken up on DST1}
-NITD2      = IGNORE; {NIT taken up on DST2}
-NITD3      = IGNORE; {NIT taken up on DST3}
-NITD4      = IGNORE; {NIT taken up on DST4}
+{
+Comment out for now
+NITD1      = IGNORE; NIT taken up on DST1
+NITD2      = IGNORE; NIT taken up on DST2
+NITD3      = IGNORE; NIT taken up on DST3
+NITD4      = IGNORE; NIT taken up on DST4
+}
 NITs       = IGNORE; {NITs; Coarse mode inorganic nitrate}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
@@ -431,12 +439,15 @@ SALCSO2    = IGNORE; {SO2; Coarse seasalt}
 SALASO3    = IGNORE; {SO3--; Fine seasalt}
 SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
-SO3mm      = IGNORE;
+SO3mm      = IGNORE; {SO3--}
 SO4        = IGNORE; {SO4; Sulfate}
-SO4D1      = IGNORE; {SO4 taken up on DST1}
-SO4D2      = IGNORE; {SO4 taken up on DST2}
-SO4D3      = IGNORE; {SO4 taken up on DST3}
-SO4D4      = IGNORE; {SO4 taken up on DST4}
+{
+comment out for now
+SO4D1      = IGNORE; SO4 taken up on DST1
+SO4D2      = IGNORE; SO4 taken up on DST2
+SO4D3      = IGNORE; SO4 taken up on DST3
+SO4D4      = IGNORE; SO4 taken up on DST4
+}
 SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
@@ -453,26 +464,27 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
+//####################################################################################
+//// NOTE: activate these reactions later, leave here for now (bmy, 9/16/21)
+//// Acid uptake on dust species
+//SO2   + 2DSTAL1    = SO4D1          : K_DST(1);
+//SO2   + 2DSTAL2    = SO4D2          : K_DST(2);
+//SO2   + 2DSTAL3    = SO4D3          : K_DST(3);
+//SO2   + 2DSTAL4    = SO4D4          : K_DST(4);
+//HNO3  + DSTAL1     = NITD1          : K_DST(5);
+//HNO3  + DSTAL2     = NITD2          : K_DST(6);
+//HNO3  + DSTAL3     = NITD3          : K_DST(7);
+//HNO3  + DSTAL4     = NITD4          : K_DST(8);
+//H2SO4 + 2DSTAL1    = SO4D1          : K_DST(9);
+//H2SO4 + 2DSTAL2    = SO4D2          : K_DST(10);
+//H2SO4 + 2DSTAL3    = SO4D3          : K_DST(11);
+//H2SO4 + 2DSTAL4    = SO4D4          : K_DST(12);
+//SO2   + 2OH        = H2SO4          : K_DST(13);
+//####################################################################################
 //
-// Acid uptake on dust species
+// Reactions extracted from sulfate_mod.F90 (MSL, BMY)
 //
-SO2   + 2DSTAL1    = SO4D1          : K_DST(1);
-SO2   + 2DSTAL2    = SO4D2          : K_DST(2);
-SO2   + 2DSTAL3    = SO4D3          : K_DST(3);
-SO2   + 2DSTAL4    = SO4D4          : K_DST(4);
-HNO3  + DSTAL1     = NITD1          : K_DST(5);
-HNO3  + DSTAL2     = NITD2          : K_DST(6);
-HNO3  + DSTAL3     = NITD3          : K_DST(7);
-HNO3  + DSTAL4     = NITD4          : K_DST(8);
-H2SO4 + 2DSTAL1    = SO4D1          : K_DST(9);
-H2SO4 + 2DSTAL2    = SO4D2          : K_DST(10);
-H2SO4 + 2DSTAL3    = SO4D3          : K_DST(11);
-H2SO4 + 2DSTAL4    = SO4D4          : K_DST(12);
-SO2   + 2OH        = H2SO4          : K_DST(13);
-//
-// Sulfur species reactions -- extracted from sulfate_mod.F90
-//
-// on seasalt
+// Seasalt
 SO2  + SALAAL + O3  = SO4 - SALAAL  : K_MT(1)
 HCl  + SALAAL       = SALACL        : K_MT(2)
 HNO3 + SALAAL       = NIT           : K_MT(3)
@@ -480,17 +492,19 @@ SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4)
 HCl  + SALCAL       = SALCCL        : K_MT(5)
 HNO3 + SALCAL       = NITs          : K_MT(6)
 //
-// in cloud
-// S(IV) --> S(VI)
-SO2 + H2O2 	    = SO4   	    : K_CLD(1);
-SO2 + O3            = SO4  	    : K_CLD(2);
-SO2 {+O2} 	    = SO4  	    : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
-//
-// HMS (Moch et al 2020)
-// NOTE: Turn off HMS rxns so that we can validate without them (bmy, 7/27/21)
-//CH2O + SO2       = HMS            : K_CLD(4);
-//HMS              = SO2 + CH2O     : K_CLD(5);
-//HMS + OH         = 2SO4 + CH2O    : K_CLD(6);
+//####################################################################################
+//// NOTE: activate these reactions later, leave here for now (bmy, 9/16/21)
+//// Cloud
+//// S(IV) --> S(VI)
+//SO2 + H2O2          = SO4           : K_CLD(1);
+//SO2 + O3            = SO4           : K_CLD(2);
+//SO2 {+O2}           = SO4           : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
+////
+//// HMS (Moch et al 2020)
+//CH2O + SO2          = HMS           : K_CLD(4);
+//HMS                 = SO2 + CH2O    : K_CLD(5);
+//HMS + OH            = 2SO4 + CH2O   : K_CLD(6);
+//#####################################################################################
 //
 // Gas-phase reactions
 //

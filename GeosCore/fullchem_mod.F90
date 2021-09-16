@@ -172,8 +172,6 @@ CONTAINS
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
 
-    ! For
-
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
     INTEGER, EXTERNAL      :: OMP_GET_THREAD_NUM
@@ -216,16 +214,12 @@ CONTAINS
     Year      =  Get_Year()   ! Current year
     Thread    =  1
 
-    ! Turn heterogeneous chemistry and photolysis on/off for testing
+    ! Set a switch that allows you to toggle off photolysis for testing
+    ! (default value : TRUE)
     DO_PHOTCHEM = .TRUE.
-    IF ( FIRSTCHEM .AND. Input_Opt%amIRoot ) THEN
-       IF ( .not. DO_PHOTCHEM ) THEN
-          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-          WRITE( 6, '(a)' )  ' # Do_FullChem: Photolysis chemistry' // &
-                             ' is turned off for testing purposes.'
-          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-       ENDIF
-    ENDIF
+
+    ! Print information the first time that DO_FULLCHEM is called
+    CALL PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem, Do_PhotChem )
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
@@ -1356,6 +1350,80 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: PrintFirstTimeInfo
+!
+! !DESCRIPTION: Prints information the first time DO_FULLCHEM is called
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem, Do_PhotChem )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN) :: Input_Opt     ! Input Options object
+    TYPE(ChmState), INTENT(IN) :: State_Chm     ! Chemistry State object
+    LOGICAL,        INTENT(IN) :: FirstChem     ! Is this the first call?
+    LOGICAL,        INTENT(IN) :: Do_PhotChem   ! Is photolysis turned on?
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Exit if we are not on the first chemistry timestep
+    IF ( .not. FirstChem ) RETURN
+
+    ! Print on the root CPU only
+    IF ( Input_Opt%AmIRoot ) THEN
+
+       ! Write header
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, 100 )
+ 100   FORMAT('DO_FULLCHEM : Interface between GEOS-Chem and the solver')
+       WRITE( 6, '(a)' )
+
+       ! Print where sulfur seasalt chemistry is done
+       IF ( State_Chm%Do_SulfateMod_Seasalt ) THEN
+          WRITE( 6, 110 )
+ 110      FORMAT( '* Sulfur sea salt chemistry is computed in sulfate_mod' )
+       ELSE
+          WRITE( 6, 120 )
+ 120      FORMAT( '* Sulfur sea salt chemistry is computed in KPP' )
+       ENDIF
+
+       ! Print where sulfur in-cloud chemistry is done
+       IF ( State_Chm%Do_SulfateMod_Cld ) THEN
+          WRITE( 6, 130 )
+ 130      FORMAT( '* Sulfur in-cloud chemistry is computed in sulfate_mod' )
+       ELSE
+          WRITE( 6, 140 )
+ 140      FORMAT( '* Sulfur in-cloud chemistry is computed in KPP' )
+       ENDIF
+
+       ! Print the status of photolysis: on or off
+       IF ( Do_Photchem ) THEN
+          WRITE( 6, 150 )
+ 150      FORMAT(  '* Photolysis is activated -- rates computed by FAST-JX' )
+       ELSE
+          WRITE( 6, 160 )
+ 160      FORMAT(  '* Photolysis has been deactivated for testing purposes'  )
+       ENDIF
+
+       ! Write footer
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+
+  END SUBROUTINE PrintFirstTimeInfo
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: set_sulfur_chem_rates
 !
 ! !DESCRIPTION: Calls functions from the KPP rate-law library to compute
@@ -1416,6 +1484,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+
     !========================================================================
     ! Do this when KPP is handling aqueous sulfur chemistry
     !

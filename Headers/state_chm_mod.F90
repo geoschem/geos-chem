@@ -270,8 +270,8 @@ MODULE State_Chm_Mod
      ! Switches to enable SO2 cloud chemistry and seasalt chemistry in
      ! sulfate_mod (TRUE) or in the KPP mechanism (FALSE).
      !-----------------------------------------------------------------------
-     LOGICAL                    :: Do_SulfateMod_Cld     = .FALSE.
-     LOGICAL                    :: Do_SulfateMod_SeaSalt = .FALSE.
+     LOGICAL                    :: Do_SulfateMod_Cld
+     LOGICAL                    :: Do_SulfateMod_SeaSalt
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -483,6 +483,12 @@ CONTAINS
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
 
+    ! Flags to toggle sulfate-mod computations or KPP computations
+    ! TRUE  = use sulfate_mod
+    ! FALSE = use KPP computations
+    State_Chm%Do_SulfateMod_Cld     = .TRUE.
+    State_Chm%Do_SulfateMod_SeaSalt = .TRUE.
+
   END SUBROUTINE Zero_State_Chm
 !EOC
 !------------------------------------------------------------------------------
@@ -579,6 +585,13 @@ CONTAINS
     IF ( nChmState == 1 ) THEN
        SpcDataLocal => NULL()
     ENDIF
+
+    ! Compute sulfur sea salt chemistry with KPP if it's a fullchem simulation
+    State_Chm%Do_SulfateMod_Seasalt = ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )
+
+    ! Always compute sulfur cloud chemistry in sulfate_mod
+    ! NOTE: This will be activated later, after validation
+    State_Chm%Do_SulfateMod_Cld = .TRUE.
 
     !========================================================================
     ! Populate the species database object field

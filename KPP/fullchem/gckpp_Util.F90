@@ -173,7 +173,7 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(173) = V_USER(8)
   V(234) = V_USER(9)
   V(38) = V_USER(10)
-  V(250) = V_USER(11)
+  V(262) = V_USER(11)
   V(114) = V_USER(12)
   V(121) = V_USER(13)
   V(45) = V_USER(14)
@@ -201,7 +201,7 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(214) = V_USER(36)
   V(92) = V_USER(37)
   V(35) = V_USER(38)
-  V(172) = V_USER(39)
+  V(185) = V_USER(39)
   V(94) = V_USER(40)
   V(39) = V_USER(41)
   V(163) = V_USER(42)
@@ -218,7 +218,7 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(5) = V_USER(53)
   V(81) = V_USER(54)
   V(117) = V_USER(55)
-  V(185) = V_USER(56)
+  V(187) = V_USER(56)
   V(78) = V_USER(57)
   V(195) = V_USER(58)
   V(99) = V_USER(59)
@@ -228,8 +228,8 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(52) = V_USER(63)
   V(40) = V_USER(64)
   V(41) = V_USER(65)
-  V(248) = V_USER(66)
-  V(188) = V_USER(67)
+  V(256) = V_USER(66)
+  V(171) = V_USER(67)
   V(226) = V_USER(68)
   V(257) = V_USER(69)
   V(170) = V_USER(70)
@@ -238,14 +238,14 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(89) = V_USER(73)
   V(90) = V_USER(74)
   V(264) = V_USER(75)
-  V(187) = V_USER(76)
+  V(188) = V_USER(76)
   V(63) = V_USER(77)
   V(74) = V_USER(78)
   V(75) = V_USER(79)
   V(165) = V_USER(81)
   V(244) = V_USER(82)
   V(95) = V_USER(83)
-  V(262) = V_USER(84)
+  V(248) = V_USER(84)
   V(241) = V_USER(85)
   V(247) = V_USER(86)
   V(200) = V_USER(87)
@@ -265,7 +265,7 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(34) = V_USER(102)
   V(67) = V_USER(103)
   V(155) = V_USER(104)
-  V(171) = V_USER(105)
+  V(172) = V_USER(105)
   V(93) = V_USER(106)
   V(217) = V_USER(107)
   V(133) = V_USER(108)
@@ -298,8 +298,8 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(111) = V_USER(135)
   V(6) = V_USER(136)
   V(53) = V_USER(137)
-  V(223) = V_USER(138)
-  V(224) = V_USER(139)
+  V(224) = V_USER(138)
+  V(223) = V_USER(139)
   V(160) = V_USER(140)
   V(134) = V_USER(141)
   V(243) = V_USER(142)
@@ -374,7 +374,7 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(266) = V_USER(211)
   V(79) = V_USER(212)
   V(15) = V_USER(213)
-  V(259) = V_USER(214)
+  V(250) = V_USER(214)
   V(265) = V_USER(215)
   V(267) = V_USER(216)
   V(100) = V_USER(219)
@@ -388,12 +388,12 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(210) = V_USER(227)
   V(107) = V_USER(228)
   V(186) = V_USER(229)
-  V(101) = V_USER(230)
+  V(102) = V_USER(230)
   V(43) = V_USER(231)
   V(180) = V_USER(232)
   V(175) = V_USER(233)
   V(235) = V_USER(234)
-  V(102) = V_USER(235)
+  V(103) = V_USER(235)
   V(96) = V_USER(236)
   V(178) = V_USER(237)
   V(232) = V_USER(238)
@@ -411,11 +411,11 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(86) = V_USER(250)
   V(131) = V_USER(251)
   V(124) = V_USER(252)
-  V(256) = V_USER(253)
+  V(259) = V_USER(253)
   V(255) = V_USER(254)
   V(258) = V_USER(259)
   V(70) = V_USER(260)
-  V(103) = V_USER(261)
+  V(101) = V_USER(261)
   V(24) = V_USER(262)
   V(25) = V_USER(263)
   V(26) = V_USER(264)
@@ -455,7 +455,7 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(8) = V(173)
   V_USER(9) = V(234)
   V_USER(10) = V(38)
-  V_USER(11) = V(250)
+  V_USER(11) = V(262)
   V_USER(12) = V(114)
   V_USER(13) = V(121)
   V_USER(14) = V(45)
@@ -483,7 +483,7 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(36) = V(214)
   V_USER(37) = V(92)
   V_USER(38) = V(35)
-  V_USER(39) = V(172)
+  V_USER(39) = V(185)
   V_USER(40) = V(94)
   V_USER(41) = V(39)
   V_USER(42) = V(163)
@@ -500,7 +500,7 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(53) = V(5)
   V_USER(54) = V(81)
   V_USER(55) = V(117)
-  V_USER(56) = V(185)
+  V_USER(56) = V(187)
   V_USER(57) = V(78)
   V_USER(58) = V(195)
   V_USER(59) = V(99)
@@ -510,8 +510,8 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(63) = V(52)
   V_USER(64) = V(40)
   V_USER(65) = V(41)
-  V_USER(66) = V(248)
-  V_USER(67) = V(188)
+  V_USER(66) = V(256)
+  V_USER(67) = V(171)
   V_USER(68) = V(226)
   V_USER(69) = V(257)
   V_USER(70) = V(170)
@@ -520,14 +520,14 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(73) = V(89)
   V_USER(74) = V(90)
   V_USER(75) = V(264)
-  V_USER(76) = V(187)
+  V_USER(76) = V(188)
   V_USER(77) = V(63)
   V_USER(78) = V(74)
   V_USER(79) = V(75)
   V_USER(81) = V(165)
   V_USER(82) = V(244)
   V_USER(83) = V(95)
-  V_USER(84) = V(262)
+  V_USER(84) = V(248)
   V_USER(85) = V(241)
   V_USER(86) = V(247)
   V_USER(87) = V(200)
@@ -547,7 +547,7 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(102) = V(34)
   V_USER(103) = V(67)
   V_USER(104) = V(155)
-  V_USER(105) = V(171)
+  V_USER(105) = V(172)
   V_USER(106) = V(93)
   V_USER(107) = V(217)
   V_USER(108) = V(133)
@@ -580,8 +580,8 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(135) = V(111)
   V_USER(136) = V(6)
   V_USER(137) = V(53)
-  V_USER(138) = V(223)
-  V_USER(139) = V(224)
+  V_USER(138) = V(224)
+  V_USER(139) = V(223)
   V_USER(140) = V(160)
   V_USER(141) = V(134)
   V_USER(142) = V(243)
@@ -656,7 +656,7 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(211) = V(266)
   V_USER(212) = V(79)
   V_USER(213) = V(15)
-  V_USER(214) = V(259)
+  V_USER(214) = V(250)
   V_USER(215) = V(265)
   V_USER(216) = V(267)
   V_USER(219) = V(100)
@@ -670,12 +670,12 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(227) = V(210)
   V_USER(228) = V(107)
   V_USER(229) = V(186)
-  V_USER(230) = V(101)
+  V_USER(230) = V(102)
   V_USER(231) = V(43)
   V_USER(232) = V(180)
   V_USER(233) = V(175)
   V_USER(234) = V(235)
-  V_USER(235) = V(102)
+  V_USER(235) = V(103)
   V_USER(236) = V(96)
   V_USER(237) = V(178)
   V_USER(238) = V(232)
@@ -693,11 +693,11 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(250) = V(86)
   V_USER(251) = V(131)
   V_USER(252) = V(124)
-  V_USER(253) = V(256)
+  V_USER(253) = V(259)
   V_USER(254) = V(255)
   V_USER(259) = V(258)
   V_USER(260) = V(70)
-  V_USER(261) = V(103)
+  V_USER(261) = V(101)
   V_USER(262) = V(24)
   V_USER(263) = V(25)
   V_USER(264) = V(26)
@@ -751,41 +751,41 @@ SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
 ! OHreact - OH reactivity [s-1]
   REAL(kind=dp) :: OHreact
 
-  OHreact = RR(11)*CC(267) + 2*RR(15) + 2*RR(16) + RR(17)*CC(262) + RR(18)*CC(188) &
-          + RR(21)*CC(246) + RR(22)*CC(163) + RR(28)*CC(123) + RR(29)*CC(123) + RR(30)*CC(173) &
-          + RR(31)*CC(173) + RR(32)*CC(238) + RR(33)*CC(261) + RR(34)*CC(244) + RR(35)*CC(249) &
-          + RR(36)*CC(165) + RR(39)*CC(95) + RR(42)*CC(266) + RR(45)*CC(187) + RR(46)*CC(196) &
-          + RR(49)*CC(242) + RR(54)*CC(142) + RR(58)*CC(110) + RR(59)*CC(110) + RR(63)*CC(104) &
-          + RR(73)*CC(232) + RR(74)*CC(197) + RR(75)*CC(236) + RR(80)*CC(192) + RR(89)*CC(230) &
-          + RR(99)*CC(117) + RR(100)*CC(141) + RR(110)*CC(235) + RR(112)*CC(215) + RR(113)*CC(215) &
-          + RR(115)*CC(191) + RR(116)*CC(211) + RR(119)*CC(226) + RR(120)*CC(226) + RR(127)*CC(102) &
-          + RR(128)*CC(99) + RR(129)*CC(84) + RR(130)*CC(85) + RR(131)*CC(83) + RR(132)*CC(86) &
-          + RR(133)*CC(101) + RR(134)*CC(20) + RR(135)*CC(64) + RR(160)*CC(81) + RR(161)*CC(81) &
-          + RR(163)*CC(258) + RR(167)*CC(257) + RR(172)*CC(114) + RR(175)*CC(254) + RR(184)*CC(66) &
-          + RR(185)*CC(72) + RR(186)*CC(92) + RR(198)*CC(268) + RR(199)*CC(259) + RR(204)*CC(60) &
-          + RR(239)*CC(174) + RR(241)*CC(260) + RR(242)*CC(260) + RR(243)*CC(100) + RR(244)*CC(71) &
-          + RR(245)*CC(264) + RR(246)*CC(247) + RR(247)*CC(216) + RR(248)*CC(239) + RR(249)*CC(94) &
-          + RR(250)*CC(73) + RR(251)*CC(69) + RR(252)*CC(35) + RR(253)*CC(90) + RR(254)*CC(87) &
-          + RR(255)*CC(89) + RR(256)*CC(82) + RR(322)*CC(126) + RR(323)*CC(63) + RR(324)*CC(200) &
-          + RR(331)*CC(39) + RR(332)*CC(185) + RR(333)*CC(175) + RR(347)*CC(38) + RR(348)*CC(44) &
-          + RR(349)*CC(88) + RR(357)*CC(137) + RR(358)*CC(138) + RR(368)*CC(151) + RR(376)*CC(107) &
-          + RR(390)*CC(159) + RR(391)*CC(176) + RR(397)*CC(119) + RR(398)*CC(77) + RR(399)*CC(78) &
-          + RR(400)*CC(76) + RR(401)*CC(79) + RR(403)*CC(202) + RR(404)*CC(202) + RR(405)*CC(202) &
-          + RR(406)*CC(202) + RR(433)*CC(166) + RR(434)*CC(168) + RR(435)*CC(115) + RR(436)*CC(112) &
-          + RR(437)*CC(170) + RR(438)*CC(155) + RR(439)*CC(98) + RR(440)*CC(140) + RR(441)*CC(140) &
-          + RR(442)*CC(143) + RR(443)*CC(143) + RR(444)*CC(140) + RR(445)*CC(143) + RR(446)*CC(152) &
-          + RR(447)*CC(146) + RR(460)*CC(105) + RR(461)*CC(120) + RR(462)*CC(120) + RR(463)*CC(116) &
-          + RR(464)*CC(116) + RR(483)*CC(128) + RR(484)*CC(128) + RR(485)*CC(125) + RR(486)*CC(125) &
-          + RR(487)*CC(199) + RR(488)*CC(199) + RR(489)*CC(190) + RR(490)*CC(190) + RR(491)*CC(199) &
-          + RR(492)*CC(190) + RR(530)*CC(160) + RR(531)*CC(134) + RR(532)*CC(160) + RR(533)*CC(134) &
-          + RR(534)*CC(134) + RR(535)*CC(160) + RR(536)*CC(134) + RR(537)*CC(134) + RR(546)*CC(217) &
-          + RR(547)*CC(217) + RR(550)*CC(220) + RR(553)*CC(228) + RR(555)*CC(227) + RR(556)*CC(227) &
-          + RR(559)*CC(218) + RR(560)*CC(208) + RR(561)*CC(209) + RR(562)*CC(177) + RR(563)*CC(156) &
-          + RR(570)*CC(144) + RR(571)*CC(139) + RR(572)*CC(106) + RR(573)*CC(164) + RR(574)*CC(150) &
-          + RR(575)*CC(118) + RR(581)*CC(122) + RR(593)*CC(136) + RR(594)*CC(75) + RR(595)*CC(183) &
-          + RR(596)*CC(113) + RR(597)*CC(127) + RR(598)*CC(145) + RR(599)*CC(189) + RR(600)*CC(219) &
-          + RR(602)*CC(96) + RR(603)*CC(74) + RR(605)*CC(153) + RR(606)*CC(153) + RR(607)*CC(16) &
-          + RR(620)*CC(256) + RR(621)*CC(255)
+  OHreact = RR(8)*CC(267) + 2*RR(12) + 2*RR(13) + RR(14)*CC(248) + RR(15)*CC(171) &
+          + RR(18)*CC(246) + RR(19)*CC(163) + RR(25)*CC(123) + RR(26)*CC(123) + RR(27)*CC(173) &
+          + RR(28)*CC(173) + RR(29)*CC(238) + RR(30)*CC(261) + RR(31)*CC(244) + RR(32)*CC(249) &
+          + RR(33)*CC(165) + RR(36)*CC(95) + RR(39)*CC(266) + RR(42)*CC(188) + RR(43)*CC(196) &
+          + RR(46)*CC(242) + RR(51)*CC(142) + RR(55)*CC(110) + RR(56)*CC(110) + RR(60)*CC(104) &
+          + RR(70)*CC(232) + RR(71)*CC(197) + RR(72)*CC(236) + RR(77)*CC(192) + RR(86)*CC(230) &
+          + RR(96)*CC(117) + RR(97)*CC(141) + RR(107)*CC(235) + RR(109)*CC(215) + RR(110)*CC(215) &
+          + RR(112)*CC(191) + RR(113)*CC(211) + RR(116)*CC(226) + RR(117)*CC(226) + RR(124)*CC(103) &
+          + RR(125)*CC(99) + RR(126)*CC(84) + RR(127)*CC(85) + RR(128)*CC(83) + RR(129)*CC(86) &
+          + RR(130)*CC(102) + RR(131)*CC(20) + RR(132)*CC(64) + RR(157)*CC(81) + RR(158)*CC(81) &
+          + RR(160)*CC(258) + RR(164)*CC(257) + RR(169)*CC(114) + RR(172)*CC(254) + RR(181)*CC(66) &
+          + RR(182)*CC(72) + RR(183)*CC(92) + RR(195)*CC(268) + RR(196)*CC(250) + RR(201)*CC(60) &
+          + RR(236)*CC(174) + RR(238)*CC(260) + RR(239)*CC(260) + RR(240)*CC(100) + RR(241)*CC(71) &
+          + RR(242)*CC(264) + RR(243)*CC(247) + RR(244)*CC(216) + RR(245)*CC(239) + RR(246)*CC(94) &
+          + RR(247)*CC(73) + RR(248)*CC(69) + RR(249)*CC(35) + RR(250)*CC(90) + RR(251)*CC(87) &
+          + RR(252)*CC(89) + RR(253)*CC(82) + RR(319)*CC(126) + RR(320)*CC(63) + RR(321)*CC(200) &
+          + RR(328)*CC(39) + RR(329)*CC(187) + RR(330)*CC(175) + RR(344)*CC(38) + RR(345)*CC(44) &
+          + RR(346)*CC(88) + RR(354)*CC(137) + RR(355)*CC(138) + RR(365)*CC(151) + RR(373)*CC(107) &
+          + RR(387)*CC(159) + RR(388)*CC(176) + RR(394)*CC(119) + RR(395)*CC(77) + RR(396)*CC(78) &
+          + RR(397)*CC(76) + RR(398)*CC(79) + RR(400)*CC(202) + RR(401)*CC(202) + RR(402)*CC(202) &
+          + RR(403)*CC(202) + RR(430)*CC(166) + RR(431)*CC(168) + RR(432)*CC(115) + RR(433)*CC(112) &
+          + RR(434)*CC(170) + RR(435)*CC(155) + RR(436)*CC(98) + RR(437)*CC(140) + RR(438)*CC(140) &
+          + RR(439)*CC(143) + RR(440)*CC(143) + RR(441)*CC(140) + RR(442)*CC(143) + RR(443)*CC(152) &
+          + RR(444)*CC(146) + RR(457)*CC(105) + RR(458)*CC(120) + RR(459)*CC(120) + RR(460)*CC(116) &
+          + RR(461)*CC(116) + RR(480)*CC(128) + RR(481)*CC(128) + RR(482)*CC(125) + RR(483)*CC(125) &
+          + RR(484)*CC(199) + RR(485)*CC(199) + RR(486)*CC(190) + RR(487)*CC(190) + RR(488)*CC(199) &
+          + RR(489)*CC(190) + RR(527)*CC(160) + RR(528)*CC(134) + RR(529)*CC(160) + RR(530)*CC(134) &
+          + RR(531)*CC(134) + RR(532)*CC(160) + RR(533)*CC(134) + RR(534)*CC(134) + RR(543)*CC(217) &
+          + RR(544)*CC(217) + RR(547)*CC(220) + RR(550)*CC(228) + RR(552)*CC(227) + RR(553)*CC(227) &
+          + RR(556)*CC(218) + RR(557)*CC(208) + RR(558)*CC(209) + RR(559)*CC(177) + RR(560)*CC(156) &
+          + RR(567)*CC(144) + RR(568)*CC(139) + RR(569)*CC(106) + RR(570)*CC(164) + RR(571)*CC(150) &
+          + RR(572)*CC(118) + RR(578)*CC(122) + RR(590)*CC(136) + RR(591)*CC(75) + RR(592)*CC(183) &
+          + RR(593)*CC(113) + RR(594)*CC(127) + RR(595)*CC(145) + RR(596)*CC(189) + RR(597)*CC(219) &
+          + RR(599)*CC(96) + RR(600)*CC(74) + RR(602)*CC(153) + RR(603)*CC(153) + RR(604)*CC(16) &
+          + RR(617)*CC(259) + RR(618)*CC(255)
 
 END SUBROUTINE Get_OHreactivity
 ! End of Get_OHreactivity subroutine
