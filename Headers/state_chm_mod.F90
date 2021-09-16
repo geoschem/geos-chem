@@ -586,8 +586,13 @@ CONTAINS
        SpcDataLocal => NULL()
     ENDIF
 
-    ! Compute sulfur sea salt chemistry with KPP if it's a fullchem simulation
-    State_Chm%Do_SulfateMod_Seasalt = ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )
+    !========================================================================
+    ! Decide how sulfur sea salt and cloud chemistry will be handled
+    !========================================================================
+
+    ! Always compute sulfur sea salt chemistry in sulfate_mod
+    ! NOTE: This will be activated later, after validation
+    State_Chm%Do_SulfateMod_Seasalt = .TRUE.
 
     ! Always compute sulfur cloud chemistry in sulfate_mod
     ! NOTE: This will be activated later, after validation

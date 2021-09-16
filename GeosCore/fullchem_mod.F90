@@ -1530,9 +1530,10 @@ CONTAINS
                                      State_Met  = State_Met,                 &
                                      RC         = RC                        )
 
+       ! NOTE: Comment these out when doing sulfur chemistry in sulfate_mod.F90
        ! Update HSO3- and SO3-- concentrations [molec/cm3]
-       C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L)
-       C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)
+       !C(ind_HSO3m) = State_Chm%HSO3_aq(I,J,L)
+       !C(ind_SO3mm) = State_Chm%SO3_aq(I,J,L)
 
        State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
        State_Chm%fupdateHOCl(I,J,L) = 1.0_fp

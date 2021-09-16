@@ -155,6 +155,10 @@ CONTAINS
     H%gamma_HO2     = Input_Opt%gamma_HO2
     H%is_UCX        = Input_Opt%LUCX
 
+    ! Correction factors for HOBr and HOCl removal by SO2 [1]
+    H%fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
+    H%fupdateHOCl  = State_Chm%fupdateHOCl(I,J,L)
+
     ! Cloud fields
     CALL Cld_Params( I, J, L, H, State_Met )
 

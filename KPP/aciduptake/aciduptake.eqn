@@ -269,7 +269,6 @@ HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
 HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
 HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
 HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
-HSO3m	   = IGNORE; {HSO3-}
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -439,15 +438,11 @@ SALCSO2    = IGNORE; {SO2; Coarse seasalt}
 SALASO3    = IGNORE; {SO3--; Fine seasalt}
 SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
-SO3mm      = IGNORE; {SO3--}
 SO4        = IGNORE; {SO4; Sulfate}
-{
-comment out for now
-SO4D1      = IGNORE; SO4 taken up on DST1
-SO4D2      = IGNORE; SO4 taken up on DST2
-SO4D3      = IGNORE; SO4 taken up on DST3
-SO4D4      = IGNORE; SO4 taken up on DST4
-}
+SO4D1      = IGNORE; {SO4 taken up on DST1}
+SO4D2      = IGNORE; {SO4 taken up on DST2}
+SO4D3      = IGNORE; {SO4 taken up on DST3}
+SO4D4      = IGNORE; {SO4 taken up on DST4}
 SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
@@ -1439,16 +1434,16 @@ HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                      
 HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
-HOCl + HSO3m = SO4 + HCl :     HOClUptkByHSO3m( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
-HOCl + SO3mm = SO4 + HCl :     HOClUptkBySO3mm( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
+HOCl = SO4H3 + HCl :           HOClHetSO4H3( State_Het );                                                   {2018/11/08; XW; June 6, 2021, MSL}
+HOCl = SO4H4 + HCl :           HOClHetSO4H4( State_Het );                                                   {2018/11/08; XW; June 6, 2021, MSL}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr + HSO3m = SO4 + HBr :     HOBrUptkByHSO3m( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
-HOBr + SO3mm = SO4 + HBr :     HOBrUptkBySO3mm( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr = SO4H1 + HBr :           HOBrHetSO4H1( State_Het );                                                   {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr = SO4H2 + HBr :           HOBrHetSO4H2( State_Het );                                                   {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
 O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
