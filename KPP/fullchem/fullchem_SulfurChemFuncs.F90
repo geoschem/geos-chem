@@ -354,19 +354,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,         ONLY : NDSTBIN
     USE ErrCode_Mod
-    USE ERROR_MOD,            ONLY : IS_SAFE_EXP
-    USE Input_Opt_Mod,        ONLY : OptInput
-    USE State_Chm_Mod,        ONLY : ChmState
-    USE State_Diag_Mod,       ONLY : DgnState
-    USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Met_Mod,        ONLY : MetState
-    USE TIME_MOD,             ONLY : GET_TS_CHEM
-#ifdef APM
-    USE APM_DRIV_MOD,         ONLY : PSO4GAS
-    USE APM_DRIV_MOD,         ONLY : XO3
-#endif
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod,       ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -1114,40 +1108,6 @@ CONTAINS
 !>>            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
 !>>    ENDIF
 !>>
-!>>    !-----------------------------------------------------------
-!>>    ! Diagnostics for acid uptake on dust aerosol simulations
-!>>    !-----------------------------------------------------------
-!>>    IF ( Input_Opt%LDSTUP ) THEN
-!>>
-!>>       ! Zero
-!>>       PSO4d_tot   = 0.e+0_fp
-!>>       PH2SO4d_tot = 0.e+0_fp
-!>>       PNITd_tot   = 0.e+0_fp
-!>>
-!>>       DO IBIN = 1, NDSTBIN
-!>>          PSO4d_tot   = PSO4d_tot   + PSO4_d(IBIN)
-!>>          PNITd_tot   = PNITd_tot   + PNIT_d(IBIN)
-!>>          PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
-!>>       END DO
-!>>
-!>>       ! P(SO4) from O3 oxidation on dust aerosols [kg S/s]
-!>>       IF ( State_Diag%Archive_ProdSO4fromOxidationOnDust ) THEN
-!>>          State_Diag%ProdSO4fromOxidationOnDust(I,J,L) = &
-!>>               ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
-!>>       ENDIF
-!>>
-!>>       ! P(NIT) from HNO3 uptake on dust [kg N/s]
-!>>       IF ( State_Diag%Archive_ProdNITfromHNO3uptakeOnDust ) THEN
-!>>          State_Diag%ProdNITfromHNO3uptakeOnDust(I,J,L) = &
-!>>               ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
-!>>       ENDIF
-!>>
-!>>       ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/s]
-!>>       IF ( State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
-!>>          State_Diag%ProdSO4fromUptakeOfH2SO4g(I,J,L) = &
-!>>               ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )/DTCHEM
-!>>       ENDIF
-!>>       ENDIF
 
     ! Free pointers
     Spc     => NULL()
