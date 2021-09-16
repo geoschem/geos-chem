@@ -1096,7 +1096,10 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
 	    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-	    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    # NOTE: For 13.3.0 and later, we need to use restart file
+	    # with additional species.
+	    #sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
