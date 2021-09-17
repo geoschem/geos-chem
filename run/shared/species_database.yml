@@ -1523,12 +1523,19 @@ HMML:
   MW_g: 102.10
   WD_RetFactor: 2.0e-2
 HMS:
-  Formula: CH3O4S
-  FullName: hydroxymethyl-methyl-a-lactone
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  FullName: Hydroxymethanesulfonate
   Is_Advected: true
+  Is_Aerosol: true
   Is_DryDep: true
-  Is_Gas: true
+  Is_WetDep: true
   MW_g: 111.10
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 HNO2:
   Background_VV: 4.0e-15
   Formula: HNO2
