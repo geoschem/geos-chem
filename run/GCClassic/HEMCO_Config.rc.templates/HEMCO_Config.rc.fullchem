@@ -100,16 +100,19 @@ Warnings:                    1
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       false    # 1850-2100
 # ----- OFFLINE EMISSIONS -------------------------------------
-# To use online emissions instead set the offline emissions to
-# 'false' and the corresponding HEMCO extension to 'on':
+# To use online emissions instead set the offline emissions to 'false' and the
+# corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
+#    - Note: The offline dust emissions are considered to be buggy. Until
+#      further notice online dust emissions are recommended.
 #   OFFLINE_BIOGENICVOC - MEGAN
-#    - Note: MEGAN must always be on for certain
-#            species not in OFFLINE_BIOGENICVOC
+#    - Note: MEGAN must always be on for species not in OFFLINE_BIOGENICVOC
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
-# NOTE: The offline dust emissions are considered to be buggy.
-#  Until further notice online dust emissions are recommended.
+#
+# NOTE: When switching between offline and online emissions, make sure to also
+# update ExtNr and Cat in HEMCO_Diagn.rc to properly save out emissions for
+# any affected species.
 #--------------------------------------------------------------
     --> OFFLINE_DUST           :       false    # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       true     # 1980-2021
