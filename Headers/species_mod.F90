@@ -86,7 +86,6 @@ MODULE Species_Mod
      CHARACTER(LEN=80)  :: Formula          ! Chemical formula
 
      ! Logical switches
-     LOGICAL            :: Is_Forge
      LOGICAL            :: Is_Advected      ! Is it advected?
      LOGICAL            :: Is_Aerosol       ! Is it an aerosol species?
      LOGICAL            :: Is_DryAlt        ! Is it a dry-dep species that we
