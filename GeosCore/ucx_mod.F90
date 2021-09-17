@@ -3419,8 +3419,14 @@ CONTAINS
        Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
        ! Catch for zero (ckeller, 12/29/17)
        IF ( Gsp == 0.0_fp .AND. Gb == 0.0_fp ) THEN
-          gClNO3_HCl  =  TINY(1e+0_f8)
-          gClNO3_H2O  =  TINY(1e+0_f8)
+          !--------------------------------------------------------------
+          ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+          ! that can cause floating-point issues (bmy, 06 Jul 2021)
+          !gClNO3_HCl  =  TINY(1e+0_f8)
+          !gClNO3_H2O  =  TINY(1e+0_f8)
+          !--------------------------------------------------------------
+          gClNO3_HCl  =  0.0_f8
+          gClNO3_H2O  =  0.0_f8
        ELSE
           gClNO3      =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(Gsp + Gb))
           gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
@@ -3431,8 +3437,14 @@ CONTAINS
        RXNGAMMA(3) =  gClNO3_H2O
        RXNGAMMA(4) =  gClNO3_HCl
     ELSE
-       RXNGAMMA(3) = TINY(1e+0_f8)
-       RXNGAMMA(4) = TINY(1e+0_f8)
+       !--------------------------------------------------------------
+       ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+       ! that can cause floating-point issues (bmy, 06 Jul 2021)
+       !RXNGAMMA(3) = TINY(1e+0_f8)
+       !RXNGAMMA(4) = TINY(1e+0_f8)
+       !--------------------------------------------------------------
+       RXNGAMMA(3) = 0.0_f8
+       RXNGAMMA(4) = 0.0_f8
     ENDIF
 
     ! Reaction 5. ClNO3 + HBr
@@ -3471,12 +3483,22 @@ CONTAINS
        !IF (fHOCl.eq.0.) THEN
        ! Catch for zero (ckeller, 12/29/17)
        IF ((fHOCl*GHOClrxn*FHCl).eq.0.) THEN
-          gHOCl_HCl =  TINY(1e+0_f8)
+          !--------------------------------------------------------------------
+          ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+          ! that can cause floating-point issues (bmy, 06 Jul 2021)
+          !gHOCl_HCl =  TINY(1e+0_f8)
+          !--------------------------------------------------------------------
+          gHOCl_HCl =  0.0_f8
        ELSE
           gHOCl_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOCl*GHOClrxn*FHCl))
        ENDIF
     ELSE
-       gHOCl_HCl = TINY(1e+0_f8)
+       !--------------------------------------------------------------------
+       ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+       ! that can cause floating-point issues (bmy, 06 Jul 2021)
+       !gHOCl_HCl = TINY(1e+0_f8)
+       !--------------------------------------------------------------------
+       gHOCl_HCl =  0.0_f8
     ENDIF
 
     RXNGAMMA(8) = gHOCl_HCl
@@ -3517,14 +3539,24 @@ CONTAINS
        endif
        ! catch for zeros (ckeller, 12/29/17)
        IF ((fHOBr*GHOBrrxn).eq.0.) THEN
-          gHOBr_HCl = TINY(1e+0_f8)
+          !------------------------------------------------------------------
+          ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+          ! that can cause floating-point issues (bmy, 06 Jul 2021)
+          !gHOBr_HCl = TINY(1e+0_f8)
+          !------------------------------------------------------------------
+          gHOBr_HCl = 0.0_f8
           !gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/TINY(1e+0_fp))
        ELSE
           gHOBr_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOBr*GHOBrrxn))
        ENDIF
        RXNGAMMA(10) = gHOBr_HCl
     ELSE
-       RXNGAMMA(10) = TINY(1e+0_f8)
+       !------------------------------------------------------------------
+       ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+       ! that can cause floating-point issues (bmy, 06 Jul 2021)
+       !RXNGAMMA(10) = TINY(1e+0_f8)
+       !------------------------------------------------------------------
+       RXNGAMMA(10) = 0.0_f8
     ENDIF
 
     ! Reaction 11. HOBr + HBr

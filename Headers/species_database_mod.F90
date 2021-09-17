@@ -183,8 +183,10 @@ CONTAINS
     SpcCount%nKppVar  = 0
     SpcCount%nKppFix  = 0
     SpcCount%nKppSpc  = 0
+    SpcCount%nOmitted = 0
     SpcCount%nPhotol  = 0
     SpcCount%nRadNucl = 0
+    SpcCount%nRealSpc = 0
     SpcCount%nWetDep  = 0
     SpcCount%nHg0     = 0
     SpcCount%nHg2     = 0
@@ -281,15 +283,30 @@ CONTAINS
     ! Loop over the number of species
     DO S = 1, nSpecies
 
-       ! Look up this species in the species database
-       ThisSpc => SpcData(S)%Info
+       ! Species name
+       spc = species_names(S)
 
        !--------------------------------------------------------------------
-       ! Set the Name and ModelID tags
-       !-------------------------------------------------------------------
-       spc             = species_names(S)
-       ThisSpc%Name    = TRIM( spc )
-       ThisSpc%ModelId = S
+       ! If the species is a "dummy" species (i.e. used for bookkeeping in
+       ! KPP rxns), then flag it as such and skip to the next species
+       !--------------------------------------------------------------------
+       v_bool = MISSING_BOOL
+       key    =  TRIM( spc ) // "%Is_Omitted"
+       CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+       IF ( v_bool ) THEN
+          SpcCount%nOmitted = SpcCount%nOmitted + 1
+          CYCLE
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Look up this species in the database, and assign its name to the
+       ! modelId field.  Subtract # of omitted species from the modelId.
+       !--------------------------------------------------------------------
+       N                 =  S - SpcCount%nOmitted
+       ThisSpc           => SpcData(N)%Info
+       ThisSpc%ModelId   =  N
+       ThisSpc%Name      =  TRIM( spc )
+       SpcCount%nRealSpc =  SpcCount%nRealSpc + 1
 
        !--------------------------------------------------------------------
        ! Set the Is_Advected tag (check against Input_Opt%AdvecSpc list)
@@ -705,7 +722,9 @@ CONTAINS
        ENDIF
 
        ! Is_Gas and Is_Aero tags cannot both be FALSE at the same time
-       IF ( ( .not. ThisSpc%Is_Gas ) .and. ( .not. ThisSpc%Is_Aerosol ) ) THEN
+       IF ( ( .not. ThisSpc%Is_Gas     )   .and.                             &
+            ( .not. ThisSpc%Is_Aerosol )   .and.                             &
+            ( .not. ThisSpc%Is_Omitted ) ) THEN
 
           ! Check if this is a KPP species, is so set Is_Gas to TRUE, otherwise
           ! return with an error. This will account for P/L families not
@@ -803,7 +822,7 @@ CONTAINS
 
        ! Debug printout
        IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
-
+       
        ! Free pointer
        ThisSpc => NULL()
     ENDDO

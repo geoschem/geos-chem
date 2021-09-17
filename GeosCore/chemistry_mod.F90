@@ -71,7 +71,7 @@ CONTAINS
     USE DUST_MOD,        ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FlexChem_Mod,    ONLY : Do_FlexChem
+    USE FullChem_Mod,    ONLY : Do_FullChem
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
     USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
@@ -152,7 +152,7 @@ CONTAINS
     LOGICAL            :: LNLPBL
     LOGICAL            :: prtDebug
     INTEGER            :: TS_Chem
-    REAL(f8)           :: DT_Chem
+    REAL(f8)           :: DT_Chem, sDTFC, fDTFC
 #ifdef APM
     INTEGER            :: I,J,L
     REAL*8             :: CONCTMPSO4(State_Grid%NX,                         &
@@ -306,12 +306,12 @@ CONTAINS
              CALL Timer_Start( "=> FlexChem", RC )
           ENDIF
 
-          CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
+          CALL Do_FullChem( Input_Opt,  State_Chm, State_Diag,               &
+                            State_Grid, State_Met, RC                       )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-             ErrMsg = 'Incorrect species units after FLEX_CHEMDR!'
+             ErrMsg = 'Incorrect species units after Do_FullChem!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1255,7 +1255,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE FAST_JX_MOD,    ONLY : Init_FJX
-    USE FlexChem_Mod,   ONLY : Init_FlexChem
+    USE FullChem_Mod,   ONLY : Init_FullChem
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
@@ -1311,7 +1311,7 @@ CONTAINS
        ! Initialize FlexChem (skip if it is a dry-run)
        !--------------------------------------------------------------------
        IF ( .not. Input_Opt%DryRun ) THEN
-          CALL Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
+          CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
