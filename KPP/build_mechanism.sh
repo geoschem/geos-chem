@@ -96,6 +96,11 @@ else
     exit 1
 fi
 
+# Remove the KPP Makefile (this is GNU Make, but we now use CMake)
+if [[ -f Makefile_gckpp ]]; then
+    rm -f Makefile_gckpp
+fi
+
 # If the gckpp_Rates.F90 file is not found, there was an error
 if [[ ! -e gckpp_Rates.F90 ]]; then
   echo "KPP failed to build gckpp_Rates.F90! Aborting."

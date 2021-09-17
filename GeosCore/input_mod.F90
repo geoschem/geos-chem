@@ -1126,7 +1126,7 @@ CONTAINS
                         TRIM( State_Grid%GridRes )
        WRITE( 6, 110 ) 'Min/max longitude           : ', &
                         State_Grid%XMin, State_Grid%XMax
-       WRITE( 6, 110 ) 'Min/max longitude           : ', &
+       WRITE( 6, 110 ) 'Min/max latitude            : ', &
                         State_Grid%YMin, State_Grid%YMax
        WRITE( 6, 120 ) 'X grid dimension            : ', &
                         State_Grid%NX
@@ -2211,15 +2211,15 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LCHEM
 
-    ! Turn on stratospheric chemistry?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSCHEM', RC )
+    ! Turn on linearized chemistry above chemistry grid?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LINEAR_CHEM', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LSCHEM
+    READ( SUBSTRS(1:N), * ) Input_Opt%LINEAR_CHEM
 
-    ! Use Linoz for stratospheric ozone? (Otherwise, Synoz is used)
+    ! Use Linoz for ozone above chemistry grid? (Otherwise, Synoz is used)
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LLINOZ', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2229,14 +2229,6 @@ CONTAINS
 
     ! Use Synoz if Linoz is turned off
     IF ( .not. Input_Opt%LLINOZ ) Input_Opt%LSYNOZ = .TRUE.
-
-    ! Turn on unified strat-trop chemistry?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LUCX', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LUCX
 
     ! Turn on online stratospheric H2O?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LACTIVEH2O', RC )
@@ -2306,20 +2298,14 @@ CONTAINS
 
 #ifndef MODEL_GEOS
     ! Cannot use Synoz with linearized mesospheric chemistry
-    IF ( Input_Opt%LUCX .and. Input_Opt%LSCHEM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LINEAR_CHEM ) THEN
        IF (.not.Input_Opt%LLINOZ) THEN
-          ErrMsg = 'Cannot use Synoz with linearized meso. chem.!'
+          ErrMsg = 'Cannot use Synoz with linearized mesospheric chem.!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 #endif
-
-    ! Cannot have active H2O without stratospheric chemistry
-    IF ( .not.Input_Opt%LUCX ) THEN
-       Input_Opt%LACTIVEH2O   = .FALSE.
-       Input_Opt%LStaticH2OBC = .FALSE.
-    ENDIF
 
     ! FAST-JX is only used for fullchem and offline aerosol
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or. &
@@ -2370,12 +2356,10 @@ CONTAINS
        WRITE( 6, '(  a)' ) '--------------'
        WRITE( 6, 100     ) 'Turn on chemistry?          : ', &
                             Input_Opt%LCHEM
-       WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', &
-                            Input_Opt%LSCHEM
+       WRITE( 6, 100     ) 'Use linear. mesospheric chem: ', &
+                            Input_Opt%LINEAR_CHEM
        WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', &
                             Input_Opt%LLINOZ
-       WRITE( 6, 100     ) 'Enable UCX?                 : ', &
-                            Input_Opt%LUCX
        WRITE( 6, 100     ) 'Online strat. H2O?          : ', &
                             Input_Opt%LACTIVEH2O
        WRITE( 6, 100     ) 'Use robust strat H2O BC?    : ', &
@@ -5972,16 +5956,12 @@ CONTAINS
     !=================================================================
     ! Error check stratospheric H2O
     !=================================================================
-    IF ( Input_Opt%LUCX .and. Input_Opt%LSETH2O ) THEN
-       IF (Ind_('H2O') < 0 ) THEN
-          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-          WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F90: ' &
-               // 'H2O is set but H2O species is undefined.'
-          Input_Opt%LSETH2O = .FALSE.
-          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-       ENDIF
-    ELSE
+    IF ( Input_Opt%LSETH2O .and. Ind_('H2O') < 0 ) THEN
+       WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+       WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F90: ' &
+            // 'H2O is set but H2O species is undefined.'
        Input_Opt%LSETH2O = .FALSE.
+       WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
     ENDIF
 
   END SUBROUTINE DO_ERROR_CHECKS

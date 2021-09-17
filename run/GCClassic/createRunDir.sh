@@ -121,23 +121,6 @@ sim_extra_option=none
 # Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
 
-    printf "${thinline}Choose chemistry domain:${thinline}"
-    printf "  1. Troposphere + stratosphere (Recommended)\n"
-    printf "  2. Troposphere only\n"
-    valid_chemgrid=0
-    while [ "${valid_chemgrid}" -eq 0 ]; do
-	read chemgrid_num
-	if [[ ${chemgrid_num} = "1" ]]; then
-	    chemgrid="trop+strat"
-	    valid_chemgrid=1
-	elif [[ ${chemgrid_num} = "2" ]]; then
-	    chemgrid="trop_only"
-	    valid_chemgrid=1
-	else
-	    printf "Invalid chemistry domain option. Try again.\n"
-	fi
-    done
-
     printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
@@ -704,6 +687,7 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
+cp ${gcdir}/run/shared/download_data.yml    ${rundir}
 cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
 cp ./README                                 ${rundir}
@@ -989,28 +973,18 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     fi
 fi
 
-# Modify input files for troposphere-only chemistry grids
-if [[ "x${chemgrid}" == "xtrop_only" ]]; then
-    replace_colon_sep_val "=> Set init. strat. H2O"  F input.geos
-    replace_colon_sep_val "Settle strat. aerosols"   F input.geos
-    replace_colon_sep_val "Online PSC AEROSOLS"      F input.geos
-    replace_colon_sep_val "Perform PSC het. chem.?"  F input.geos
-    replace_colon_sep_val "Calc. strat. aero. OD?"   F input.geos
-    replace_colon_sep_val "Use UCX strat. chem?"     F input.geos
-    replace_colon_sep_val "Active strat. H2O?"       F input.geos
-    replace_colon_sep_val "--> STATE_PSC"        false HEMCO_Config.rc
-    replace_colon_sep_val "--> GMI_PROD_LOSS"    false HEMCO_Config.rc
-    replace_colon_sep_val "--> UCX_PROD_LOSS"     true HEMCO_Config.rc
-    sed_ie "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
-fi
-
 # Modify input files for nested-grid simulations
 if [[ "x${nested_sim}" == "xT" ]]; then
     replace_colon_sep_val "--> GC_BCs" true HEMCO_Config.rc
     if [[ "x${domain_name}" == "xNA" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
-	replace_colon_sep_val "--> NEI2011_HOURLY"  true  HEMCO_Config.rc
+	replace_colon_sep_val "--> NEI2011_HOURLY"  false  HEMCO_Config.rc
     fi
+    
+    printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
+    printf "\n     by default. To improve run time, you may choose to use cropped"
+    printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"
+    printf "\n     to include the region string (e.g. 'AS', 'EU', 'NA').\n"
 fi
 
 # Modify input files for POPs simulations

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libKPPFirstPass_fullchem.a CMakeFiles/KPPFirstPass_fullchem.dir/gckpp_Precision.F90.o CMakeFiles/KPPFirstPass_fullchem.dir/gckpp_Parameters.F90.o CMakeFiles/KPPFirstPass_fullchem.dir/gckpp_Monitor.F90.o
-/usr/bin/ranlib libKPPFirstPass_fullchem.a

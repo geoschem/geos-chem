@@ -90,44 +90,43 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,              ONLY : SOILDUST, AEROSOL_CONC, RDAER
+    USE AEROSOL_MOD,        ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
-    USE DUST_MOD,                 ONLY : RDUST_ONLINE
+    USE DUST_MOD,           ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
-    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
+    USE FAST_JX_MOD,        ONLY : PHOTRATE_ADJ, FAST_JX
+    USE GcKpp_Monitor,      ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
+    USE GcKpp_Integrator,   ONLY : INTEGRATE, NHnew
     USE GcKpp_Function
     USE GcKpp_Model
     USE GcKpp_Global
-    USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
-    USE GcKpp_Initialize,         ONLY : Init_KPP => Initialize
-    USE GcKpp_Util,               ONLY : Get_OHreactivity
-    USE Input_Opt_Mod,            ONLY : OptInput
-    USE PhysConstants,            ONLY : AVO
+    USE GcKpp_Rates,        ONLY : UPDATE_RCONST, RCONST
+    USE GcKpp_Initialize,   ONLY : Init_KPP => Initialize
+    USE GcKpp_Util,         ONLY : Get_OHreactivity
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : AVO
     USE PRESSURE_MOD
-    USE Species_Mod,              ONLY : Species
-    USE State_Chm_Mod,            ONLY : ChmState
-    USE State_Chm_Mod,            ONLY : Ind_
-    USE State_Diag_Mod,           ONLY : DgnState
-    USE State_Grid_Mod,           ONLY : GrdState
-    USE State_Met_Mod,            ONLY : MetState
-    USE Strat_Chem_Mod,           ONLY : SChem_Tend
-    USE TIME_MOD,                 ONLY : GET_TS_CHEM
-    USE TIME_MOD,                 ONLY : Get_Day
-    USE TIME_MOD,                 ONLY : Get_Month
-    USE TIME_MOD,                 ONLY : Get_Year
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TIME_MOD,           ONLY : Get_Day
+    USE TIME_MOD,           ONLY : Get_Month
+    USE TIME_MOD,           ONLY : Get_Year
     USE Timers_Mod
-    USE UnitConv_Mod,             ONLY : Convert_Spc_Units
-    USE UCX_MOD,                  ONLY : CALC_STRAT_AER
-    USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
-    USE UCX_MOD,                  ONLY : UCX_NOX
-    USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UCX_MOD,            ONLY : CALC_STRAT_AER
+    USE UCX_MOD,            ONLY : SO4_PHOTFRAC
+    USE UCX_MOD,            ONLY : UCX_NOX
+    USE UCX_MOD,            ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
 #ifdef BPCH_DIAG
-    USE TOMAS_MOD,                ONLY : H2SO4_RATE
+    USE TOMAS_MOD,          ONLY : H2SO4_RATE
 #endif
 #endif
 !
@@ -183,8 +182,6 @@ CONTAINS
     INTEGER                :: ISTATUS(20)
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
-    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
-                                     State_Grid%NZ, State_Chm%nAdvect       )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -267,25 +264,27 @@ CONTAINS
     IF ( Input_Opt%LSULF .or. Input_Opt%LCARB .or. &
          Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
 
-       ! Special handling for UCX
-       IF ( Input_Opt%LUCX ) THEN
+       ! Calculate stratospheric aerosol properties (SDE 04/18/13)
+       CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
+                            State_Met, RC )
 
-          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-          CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
-                               State_Met, RC )
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-          ! Debug output
-          IF ( prtDebug ) THEN
-             CALL DEBUG_MSG( '### Do_FullChem: after CALC_PSC' )
-          ENDIF
-
+       ! Debug output
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### Do_FlexChem: after CALC_PSC' )
        ENDIF
 
        ! Compute aerosol concentrations
@@ -391,27 +390,6 @@ CONTAINS
 
     ENDDO
 
-    !=======================================================================
-    ! Archive initial species mass for stratospheric tendency
-    !=======================================================================
-    IF ( Input_Opt%LUCX  ) THEN
-
-       ! Loop over advected species
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N      )
-       DO NA = 1, State_Chm%nAdvect
-
-          ! Get the species ID from the advected species ID
-          N = State_Chm%Map_Advect(NA)
-
-          ! Archive initial mass [kg]
-          Before(:,:,:,N) = State_Chm%Species(:,:,:,N)
-
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
-
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
@@ -489,15 +467,7 @@ CONTAINS
     ATOL      = 1e-2_dp
 
     ! Relative tolerance
-    IF ( Input_Opt%LUCX  ) THEN
-       ! UCX-based mechanisms
-       !RTOL      = 2e-2_dp
-       !RTOL      = 1e-2_dp
-       RTOL      = 0.5e-2_dp
-    ELSE
-       ! Non-UCX mechanisms
-       RTOL      = 1e-2_dp
-    ENDIF
+    RTOL      = 0.5e-2_dp
 
     !%%%%% SOLVER OPTIONS %%%%%
 
@@ -619,17 +589,11 @@ CONTAINS
           ENDIF
 
           ! Get the fraction of H2SO4 that is available for photolysis
-          ! (this is only valid for UCX-enabled mechanisms)
-          IF ( Input_Opt%LUCX ) THEN
-             SO4_FRAC = SO4_PHOTFRAC( I, J, L )
-          ELSE
-             SO4_FRAC = 0.0_fp
-          ENDIF
+          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
 
           ! Adjust certain photolysis rates:
-          ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
-          ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
-          ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
+          ! (1) H2SO4 + hv -> SO2 + OH + OH
+          ! (2) O3    + hv -> O2  + O
           CALL PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met, I,            &
                              J,         L,          SO4_FRAC,  IERR         )
 
@@ -1286,58 +1250,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=======================================================================
-    ! Special handling for UCX chemistry
-    !=======================================================================
-    IF ( Input_Opt%LUCX ) THEN
 
-       !--------------------------------------------------------------------
-       ! If using stratospheric chemistry, applying high-altitude
-       ! active nitrogen partitioning and H2SO4 photolysis
-       ! approximations  outside the chemgrid
-       !--------------------------------------------------------------------
-       CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
-       ENDIF
+    !--------------------------------------------------------------------
+    ! Apply high-altitude active nitrogen partitioning and H2SO4 photolysis
+    ! approximations  outside the chemgrid
+    !--------------------------------------------------------------------
+    CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
+    IF ( prtDebug ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
+    ENDIF
 
-       CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Compute stratospheric chemical tendency for UCX simulations
-       !--------------------------------------------------------------------
-       IF ( Input_Opt%LSCHEM ) THEN
-
-          ! Loop over advected species
-          !$OMP PARALLEL DO               &
-          !$OMP DEFAULT( SHARED         ) &
-          !$OMP PRIVATE( I, J, L, N, NA )
-          DO NA = 1, State_Chm%nAdvect
-
-             ! Get the species ID from the advected species ID
-             N = State_Chm%Map_Advect(NA)
-
-             ! Loop over grid boxes
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-
-                ! Aggregate stratospheric chemical tendency [kg box-1]
-                ! for tropchem simulations
-                IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                   SChem_Tend(I,J,L,N) = SChem_Tend(I,J,L,N) + &
-                        ( State_Chm%Species(I,J,L,N) - Before(I,J,L,N) )
-                ENDIF
-
-             ENDDO
-             ENDDO
-             ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
-       ENDIF
+    CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
+    IF ( prtDebug ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
@@ -1915,32 +1840,25 @@ CONTAINS
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
-
          ENDIF
 
-         IF ( Input_Opt%LUCX ) THEN
-
-            !---------------------------------------------------------------
-            ! O1D concentration [molec/cm3]
-            !---------------------------------------------------------------
-            IF ( ok_O1D ) THEN
-               IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
-                  State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
-               ENDIF
-
+         !---------------------------------------------------------------
+         ! O1D concentration [molec/cm3]
+         !---------------------------------------------------------------
+         IF ( ok_O1D ) THEN
+            IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
+               State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
             ENDIF
+         ENDIF
 
 
-            !---------------------------------------------------------------
-            ! O3P concentration [molec/cm3]
-            !---------------------------------------------------------------
-            IF ( ok_O3P ) THEN
-               IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
-                  State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
-               ENDIF
-
+         !---------------------------------------------------------------
+         ! O3P concentration [molec/cm3]
+         !---------------------------------------------------------------
+         IF ( ok_O3P ) THEN
+            IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
+               State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
             ENDIF
-
          ENDIF
 
       ENDDO
@@ -2341,29 +2259,6 @@ CONTAINS
     ok_O1D      = ( id_O1D > 0         )
     ok_O3P      = ( id_O3P > 0         )
     ok_OH       = ( id_OH  > 0         )
-
-    ! Throw an error if certain diagnostics for UCX are turned on,
-    ! but the UCX mechanism is not used in this fullchem simulation
-    ! NOTE: Maybe eventually move this error check to state_diag_mod.F90
-    IF ( .not. Input_Opt%LUCX ) THEN
-
-       ! O1D diagnostic is only used w/ UCX
-       IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
-          ErrMsg = 'The "O1DconcAfterChem" diagnostic is turned on ' //      &
-                   'but the UCX mechanism is not being used!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! O3P diagnostic is only used w/ UCX
-       IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
-          ErrMsg = 'The "O3PconcAfterChem" diagnostic is turned on ' //      &
-                   'but the UCX mechanism is not being used!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P = (                                               &

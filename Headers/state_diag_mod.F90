@@ -1085,11 +1085,6 @@ MODULE State_Diag_Mod
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
 !
-! !PRIVATE TYPES:
-!
-  ! Shadow variables from Input_Opt
-  LOGICAL :: Is_UCX
-!
 ! !DEFINED PARAMETERS:
 !
   CHARACTER(LEN=5), PARAMETER :: UVFlux_Tag_Names(18) =                    (/&
@@ -2082,7 +2077,6 @@ CONTAINS
     TmpWL     = ''
     TmpHt     = AltAboveSfc
     am_I_Root = Input_Opt%amIRoot
-    Is_UCX    = Input_Opt%LUCX
 
     ! Nullify pointer fields and set logical fields to false
     CALL Zero_State_Diag( State_Diag, RC )
@@ -4070,7 +4064,7 @@ CONTAINS
        ! Noontime J-values
        !
        ! NOTE: Dimension array nPhotol+2 to archive special photolysis
-       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
+       ! reactions for O3_O1D and O3_O3P
        !--------------------------------------------------------------------
        diagID  = 'JNoon'
        CALL Init_and_Register(                                               &
@@ -8579,14 +8573,6 @@ CONTAINS
 
     ! Format statement
 20  FORMAT( 1x, a32, ' is registered as: ', a )
-
-    !-----------------------------------------------------------------
-    ! TODO:
-    ! 1. Hydroscopic growth - (:,:,:,N) where N is one of five hygro spc
-    ! 2. Optical depth for each of five hygro spc, for each wavelength
-    ! 3+ UCX-only strat diags - 5 or 7 total (hard-code)
-    ! 4? isoprene optical depth??? check if AD21(:,:,:,58) is actually set
-    !-----------------------------------------------------------------
 
     !!-------------------------------------------------------------------
     !! Template for adding more diagnostics arrays
@@ -13808,7 +13794,7 @@ CONTAINS
     ! index corresponding to each flux output type is:
     !
     !   0=BASE  1=O3  2=ME  3=SU   4=NI   5=AM
-    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST (11 is UCX only)
+    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -13850,14 +13836,7 @@ CONTAINS
           CASE( 'PM' )
              State_Diag%RadOutInd(N) = 10
           CASE( 'ST' )
-             IF ( Input_Opt%LUCX ) THEN
-                State_Diag%RadOutInd(N) = 11
-             ELSE
-                ErrMsg = 'RRTMG flux output "NOST (no strat aerosol is '  // &
-                         'selected, but the UCX mechanism is off!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
+             State_Diag%RadOutInd(N) = 11
           CASE DEFAULT
              ! Nothing
        END SELECT

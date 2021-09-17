@@ -274,7 +274,6 @@ CONTAINS
     ! Scalars
     LOGICAL                  :: LGRAVSTRAT
     LOGICAL                  :: LDSTUP
-    LOGICAL                  :: LUCX
     LOGICAL                  :: prtDebug
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
@@ -302,7 +301,6 @@ CONTAINS
       ! Copy fields from INPUT_OPT to local variables for use below
     LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
     LDSTUP               = Input_Opt%LDSTUP
-    LUCX                 = Input_Opt%LUCX
 
     ! Initialize pointers
     Spc                  => State_Chm%Species  ! Chemistry species [kg]
@@ -539,8 +537,8 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! Stratospheric aerosol gravitational settling for UCX simulations
-       IF ( LUCX .and. LGRAVSTRAT ) THEN
+       ! Stratospheric aerosol gravitational settling
+       IF ( LGRAVSTRAT ) THEN
           CALL SETTLE_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
                                  State_Met, RC )
           IF ( prtDebug ) THEN
@@ -5485,7 +5483,11 @@ CONTAINS
        ! then all Ca is dissolved else [Ca2+] varies with [H+]
        IF ( fCa .ge. TDCA ) THEN
           ! Non-volatile aerosol concentration [M]
+#ifdef LUO_WETDEP
+          D = (1.5e+0_fp*SO4nss) - (TNA+2.e+0_fp*TDCA)
+#else
           D = (2.e+0_fp*SO4nss) - (TNA+2.e+0_fp*TDCA)
+#endif
 
           ! Define f(x)
           f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * &
@@ -5499,7 +5501,11 @@ CONTAINS
 
        ELSE
           ! Non-volatile aerosol concentration [M]
+#ifdef LUO_WETDEP
+          D = (1.5e+0_fp * SO4nss) - TNA
+#else
           D = (2.e+0_fp * SO4nss) - TNA
+#endif
 
           ! Define f(x)
           f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * fCO3 + &

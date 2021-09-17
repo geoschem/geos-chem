@@ -273,17 +273,16 @@ Photolyse nitrate aer.? : F
 Turn on Dry Deposition? : T
 Turn on Wet Deposition? : T
 Turn on CO2 Effect?     : F
-CO2 level               : 600.0
-Reference CO2 level     : 380.0
+ => CO2 level           : 600.0
+ => Reference CO2 level : 380.0
 Diag alt above sfc [m]  : 10
 ------------------------+------------------------------------------------------
 %%% CHEMISTRY MENU %%%  :
 Turn on Chemistry?      : T
-Use linear. strat. chem?: T
+Use linear. chem aloft? : T
  => Use Linoz for O3?   : T
-Use UCX strat. chem?    : T
- => Active strat. H2O?  : T
- => Use static H2O BC   : T
+Use active strat. H2O?  : T
+Use static H2O BC?      : T
 Overhead O3 for FAST-JX :---
  => Online O3 from model: T
  => O3 from met fields  : T

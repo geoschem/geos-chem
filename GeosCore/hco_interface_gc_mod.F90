@@ -2896,7 +2896,7 @@ CONTAINS
 !
     USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
+    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -3032,13 +3032,8 @@ CONTAINS
                 JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
-                IF ( Input_Opt%LUCX ) THEN
-                   ! RXN_O3_1: O3  + hv --> O2  + O
-                   JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-                ELSE
-                   ! RXN_O3_2a: O3 + hv --> 2OH
-                   JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
-                ENDIF
+                ! RXN_O3_1: O3  + hv --> O2  + O
+                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
              ENDIF
           ENDIF
 
@@ -4133,36 +4128,6 @@ CONTAINS
        ENDIF
 
     ENDIF
-
-    !-----------------------------------------------------------------------
-    ! PSC STATE (for UCX)
-    !-----------------------------------------------------------------------
-#if !defined( ESMF_ )
-    IF ( Input_Opt%LUCX ) THEN
-
-       CALL GetExtOpt( HcoConfig, -999, 'STATE_PSC',          &
-                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "GetExtOpt( STATE_PSC )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-       IF ( .not. FOUND ) THEN
-          ErrMsg = 'STATE_PSC not found in HEMCO_Config.rc file!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       IF ( .not. LTMP ) THEN
-          ErrMsg = 'STATE_PSC is set to false in HEMCO_Config.rc ' // &
-                   'but should be set to true for this simulation.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-#endif
 
 #ifdef ESMF_
     !-----------------------------------------------------------------------
