@@ -182,6 +182,8 @@ BrO        = IGNORE; {BrO; Bromine monoxide}
 BRO2       = IGNORE; {C6H5O2 ; Peroxy radical from BENZ oxidation}
 BrSALA     = IGNORE; {Br; Fine sea salt bromine}
 BrSALC     = IGNORE; {Br; Course sea salt bromine}
+C2H2 	   = IGNORE; {C2H2; Ethyne}
+C2H4 	   = IGNORE; {Ethylene}
 C2H6       = IGNORE; {C2H6; Ethane}
 C3H8       = IGNORE; {C3H8; Propane}
 C4HVP1     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
@@ -219,7 +221,11 @@ CO2        = IGNORE; {CO2; Carbon dioxide}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
+ETHN 	   = IGNORE; {stable hydroxy-nitrooxy-ethane}
+ETHP 	   = IGNORE; {stable hydroxy-hydroperoxy-ethane}
 ETNO3      = IGNORE; {C2H5ONO2; Ethyl nitrate}
+ETO	   = IGNORE; {hydroxy-alkoxy-ethane radical}
+ETOO	   = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
 ETP        = IGNORE; {CH3CH2OOH; Ethylhydroperoxide}
 GLYC       = IGNORE; {HOCH2CHO; Glycoaldehyde}
@@ -442,6 +448,21 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
+// Reactions for C2H2 & C2H4 from KHB (MSL)
+C2H4 + O3 = CH2O + CH2OO :			GCARR_abc(9.10E-15, 0.0E+00, -2580.0);
+C2H4 + OH = ETOO : 	 			GCJPLPR_abab(1.10E-28, 3.5E+00, 8.4E-12, 1.75, 0.5) ;
+C2H2 + OH = 0.636GLYX + 0.636OH + 0.364CO + 0.364HO2 + 0.364HCOOH : GCJPLPR_abab(5.50E-30, 0.0E+00, 8.3E-13, -2.0, 0.5) ;
+ETOO + HO2 = ETHP :   		  	    	GCARR_abc(1.53E-13, 0.0E+00, 1300.0) ;
+ETOO + NO = 0.995ETO + 0.995NO2 + 0.005ETHN : 	GCARR_abc(2.7E-12, 0.0E+00, 360.0) ;
+ETOO + NO3 = ETO + NO2 : 	  	    	2.3E-12 ;
+ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O + 0.2MOH + 0.2ETHP + 0.2GLYC : 6.00E-13;
+ETO = HO2 + 2.000CH2O :        	       	 	GCARR_abc(9.5E-13, 0.0E+00, -5988.0) ;
+ETO + O2 = GLYC + HO2 : 			GCARR_abc(2.5E-14, 0.0E+00, -300.0) ;
+ETHN + OH = GLYC + NO2 : 			8.40E-13 ;
+ETHP + OH = ETOO :     				GCARR_abc(1.90E-12, 0.0E+00, 190.0) ;
+ETHP + OH = OH + GLYC : 			1.38E-11 ;
+ETHP + hv = ETO + OH : 				PHOTOL(162) ;
+// - - - - - -
 //
 // Reactions extracted from sulfate_mod.F90 (MSL, BMY)
 //
