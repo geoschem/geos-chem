@@ -381,6 +381,9 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: AerMassBC(:,:,:)
      LOGICAL                     :: Archive_AerMassBC
 
+     REAL(f4),           POINTER :: AerMassHMS(:,:,:)
+     LOGICAL                     :: Archive_AerMassHMS
+
      REAL(f4),           POINTER :: AerMassINDIOL(:,:,:)
      LOGICAL                     :: Archive_AerMassINDIOL
 
@@ -492,61 +495,61 @@ MODULE State_Diag_Mod
      !%%%%%  Sulfur aerosols prod & loss %%%%%
      REAL(f4),           POINTER :: ProdSO2fromDMSandOH(:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMSandOH
-                         
+
      REAL(f4),           POINTER :: ProdSO2fromDMSandNO3(:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMSandNO3
-                         
+
      REAL(f4),           POINTER :: ProdSO2fromDMS (:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMS
-                         
+
      REAL(f4),           POINTER :: ProdMSAfromDMS(:,:,:)
      LOGICAL                     :: Archive_ProdMSAfromDMS
-                         
+
      REAL(f4),           POINTER :: ProdNITfromHNO3uptakeOnDust(:,:,:)
      LOGICAL                     :: Archive_ProdNITfromHNO3uptakeOnDust
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromGasPhase(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromGasPhase
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromH2O2inCloud(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromH2O2inCloud
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromO3inCloud(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromO3inCloud
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromO2inCloudMetal(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromO2inCloudMetal
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromO3inSeaSalt(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromO3inSeaSalt
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromOxidationOnDust(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromOxidationOnDust
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromUptakeOfH2SO4g(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromUptakeOfH2SO4g
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromHOBrInCloud(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromHOBrInCloud
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromSRO3(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromSRO3
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromSRHOBr(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromSRHOBr
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromO3s(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromO3s
-                         
+
      REAL(f4),           POINTER :: LossHNO3onSeaSalt(:,:,:)
      LOGICAL                     :: Archive_LossHNO3onSeaSalt
-                         
+
      REAL(f4),           POINTER :: ProdHMSfromSO2andHCHOinCloud(:,:,:)
      LOGICAL                     :: Archive_ProdHMSfromSO2andHCHOinCloud
-                         
+
      REAL(f4),           POINTER :: ProdSO2andHCHOfromHMSinCloud(:,:,:)
      LOGICAL                     :: Archive_ProdSO2andHCHOfromHMSinCloud
-                         
+
      REAL(f4),           POINTER :: ProdSO4fromHMSinCloud(:,:,:)
      LOGICAL                     :: Archive_ProdSO4fromHMSinCloud
 
@@ -1409,7 +1412,7 @@ CONTAINS
     State_Diag%Archive_AerMassBC                   = .FALSE.
 
     State_Diag%AerMassHMS                          => NULL()
-    State_Diag_Archive_AerMassHMS                  = .FALSE.
+    State_Diag%Archive_AerMassHMS                  = .FALSE.
 
     State_Diag%AerMassINDIOL                       => NULL()
     State_Diag%Archive_AerMassINDIOL               = .FALSE.
@@ -2970,7 +2973,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! O3_MASS 
+    ! O3_MASS
     !-----------------------------------------------------------------------
     diagID  = 'O3_MASS'
     CALL Init_and_Register(                                                  &
@@ -2992,7 +2995,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! GCCTO3 
+    ! GCCTO3
     !-----------------------------------------------------------------------
     diagID  = 'GCCTO3'
     CALL Init_and_Register(                                                  &
@@ -3014,7 +3017,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! GCCTTO3 
+    ! GCCTTO3
     !-----------------------------------------------------------------------
     diagID  = 'GCCTTO3'
     CALL Init_and_Register(                                                  &
@@ -3036,7 +3039,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! CHEMTOP 
+    ! CHEMTOP
     !-----------------------------------------------------------------------
     diagID  = 'CHEMTOP'
     CALL Init_and_Register(                                                  &
@@ -3058,7 +3061,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! CHEMTROPP 
+    ! CHEMTROPP
     !-----------------------------------------------------------------------
     diagID  = 'CHEMTROPP'
     CALL Init_and_Register(                                                  &
@@ -3080,7 +3083,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! CONVCLDTOP 
+    ! CONVCLDTOP
     !-----------------------------------------------------------------------
     diagID  = 'CONVCLDTOP'
     CALL Init_and_Register(                                                  &
@@ -6028,62 +6031,71 @@ CONTAINS
        ! Production of HMS from aqueous reaction of SO2 in cloud
        ! (jmm, 06/29/18)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdHMSfromSO2andHCHOinCloud'
        diagID  = 'ProdHMSfromSO2andHCHOinCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHMSfromSO2andHCHOinCloud( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdHMSfromSO2andHCHOinCloud = 0.0_f4
-          State_Diag%Archive_ProdHMSfromSO2andHCHOinCloud = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdHMSfromSO2andHCHOinCloud,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHMSfromSO2andHCHOinCloud,        &
+            archiveData    = State_Diag%Archive_ProdHMSfromSO2andHCHOinCloud,&
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO2 and HCHO from aqueous reaction of HMS in cloud
        ! (jmm, 06/29/18)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO2andHCHOfromHMSinCloud'
        diagID  = 'ProdSO2andHCHOfromHMSinCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO2andHCHOfromHMSinCloud( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO2andHCHOfromHMSinCloud = 0.0_f4
-          State_Diag%Archive_ProdSO2andHCHOfromHMSinCloud = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO2andHCHOfromHMSinCloud,  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO2andHCHOfromHMSinCloud,        &
+            archiveData    = State_Diag%Archive_ProdSO2andHCHOfromHMSinCloud,&
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        !--------------------------------------------------------------------
        ! Production of SO4 from aqueous oxidation of HMS in cloud
        ! (jmm, 06/29/18)
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdSO4fromHMSinCloud'
        diagID  = 'ProdSO4fromHMSinCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdSO4fromHMSinCloud( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%ProdSO4fromHMSinCloud = 0.0_f4
-          State_Diag%Archive_ProdSO4fromHMSinCloud = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%ProdSO4fromHMSinCloud,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromHMSinCloud,               &
+            archiveData    = State_Diag%Archive_ProdSO4fromHMSinCloud,       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
-       
+
        !--------------------------------------------------------------------
        ! Loss of HNO3 on sea salt
        !--------------------------------------------------------------------
@@ -6220,22 +6232,25 @@ CONTAINS
        ! Aerosol mass of HMS [ug/m3]
        ! (jmm, 06/29/18)
        !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassHMS'
        diagID  = 'AerMassHMS'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassHMS( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassHMS = 0.0_f4
-          State_Diag%Archive_AerMassHMS = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%AerMassHMS,                    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassHMS,                          &
+            archiveData    = State_Diag%Archive_AerMassHMS,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
-       
+
        !-------------------------------------------------------------------
        ! PM2.5, aka prticulate matter with (r < 2.5 um) [ug/m3]
        !-------------------------------------------------------------------
@@ -6426,7 +6441,7 @@ CONTAINS
             mapData        = State_Diag%Map_TotCol,                          &
             diagId         = diagId,                                         &
             diagFlag       = 'S',                                            &
-            RC             = RC                                             ) 
+            RC             = RC                                             )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -6564,7 +6579,7 @@ CONTAINS
              CASE( 24 ) ! (jmm, 06/29/18)
                 diagID = 'AerMassHMS'
              CASE( 25 ) ! (jmm, 06/29/18)
-                diagID = 'ProdSO2andHCHOfromHMSinCloud'                
+                diagID = 'ProdSO2andHCHOfromHMSinCloud'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -8661,7 +8676,7 @@ CONTAINS
                                    State_Diag%Archive_AerMassPOA        .or. &
                                    State_Diag%Archive_AerMassSAL        .or. &
                                    State_Diag%Archive_AerMassSO4        .or. &
-                                   State_Diag%Archive_AerMassHMS        .or. &  !(jmm, 06/29/18) 
+                                   State_Diag%Archive_AerMassHMS        .or. &  !(jmm, 06/29/18)
                                    State_Diag%Archive_AerMassSOAGX      .or. &
                                    State_Diag%Archive_AerMassSOAIE      .or. &
                                    State_Diag%Archive_AerMassTSOA       .or. &
@@ -10457,7 +10472,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'NOY' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates' 
+            'Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates'
        IF ( isUnits   ) Units = 'mol mol-1'
        IF ( isRank    ) Rank  = 3
 
@@ -10474,7 +10489,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'O3_MASS' ) THEN
-       IF ( isDesc    ) Desc  = 'O3_grid_cell_mass_per_area' 
+       IF ( isDesc    ) Desc  = 'O3_grid_cell_mass_per_area'
        IF ( isUnits   ) Units = 'kg m-2'
        IF ( isRank    ) Rank  = 3
 
@@ -11802,7 +11817,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Production of SO2 and HCHO from ' // &
                                 'aqueous reaction of HS and OH- in clouds'
        IF ( isUnits   ) Units = 'kg S s-1'
-       IF ( isRank    ) Rank  =  3      
+       IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INCLOUD' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
@@ -11813,7 +11828,7 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSHMS' ) THEN
        IF ( isDesc    ) Desc  = 'Mass of hydroxymethanesulfonate aerosol'
        IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3              
+       IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAGX' ) THEN
        IF ( isDesc    ) Desc  = 'Mass of aerosol-phase glyoxal'
@@ -14124,7 +14139,7 @@ CONTAINS
              mapData%slot2id(TagItem%index) = index
 
           ELSE
-             
+
              ! Otherwise, this is a defined species.
              ! Call Ind_() to get the proper index
              mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )

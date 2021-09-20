@@ -2636,7 +2636,7 @@ CONTAINS
     !$OMP PRIVATE( L6S,      fupdateHOBr_0, SRhocl,    L6_1,     SO4H3_vv   )&
     !$OMP PRIVATE( SO4H4_vv, fupdateHOCl_0, KaqO2,     TNA,      one_m_KRATE)&
     !$OMP PRIVATE( HCHO0,    HMSc,          HMS0,      OH0,      KaqHCHO    )&
-    !$OMP PRIVATE( KaqHMS,   KaqHMS2        L7,        L7S,      L7_b       )&
+    !$OMP PRIVATE( KaqHMS,   KaqHMS2,       L7,        L7S,      L7_b       )&
     !$OMP PRIVATE( L7S_b,    L8,            L8S,       LSTOT_HMS            )&
     !$OMP SCHEDULE( DYNAMIC, 1                                              )
     DO L = 1, State_Grid%NZ

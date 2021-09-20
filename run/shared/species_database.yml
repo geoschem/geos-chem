@@ -1523,6 +1523,7 @@ HMML:
   MW_g: 102.10
   WD_RetFactor: 2.0e-2
 HMS:
+  Background_VV: 1.0e-15
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
   DD_F0: 0.0
