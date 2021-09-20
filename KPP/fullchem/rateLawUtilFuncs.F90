@@ -111,14 +111,11 @@ CONTAINS
     kIEduct = 0.0_dp
     kII     = 0.0_dp
     !
-    ! Prevent div by zero
-    !---------------------------------------------------------------------
-    ! NOTE: This line was presumably to prevent div-by-zero, but is
-    ! not really needed, as we now use SafeDiv to trap these errors.
-    ! This can prevent reaction rates from being computed if the
-    ! concEduct is very low.  Comment out for now. (bmy, 9/15/21)
-    !IF ( concEduct < 100.0_dp                            ) RETURN
-    !---------------------------------------------------------------------
+    ! Prevent div by zero.   NOTE: Now use 1.0e-20 as the error trap for 
+    ! concEduct.  100 (the previous criterion) was too large.  We should
+    ! never have have a concentration as low as 1e-20 molec/cm3, as that 
+    ! will definitely blow up the division. (bmy, 9/20/21)
+    IF ( concEduct < 1.0e-20_dp                          ) RETURN
     IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
     !
     ! Compute rates
