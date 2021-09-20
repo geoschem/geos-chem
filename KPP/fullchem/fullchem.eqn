@@ -532,6 +532,7 @@ MO2 + NO = MENO3 :                           GC_RO2NO_A1_ac(2.80d-12, 300.0d0); 
 MO2 + HO2 = MP + O2 :                        GCARR_abc(4.10E-13, 0.0E+00, 750.0);
 MO2 + MO2 = MOH + CH2O + O2 :                GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 2.62d1, -1130.0d0);
 MO2 + MO2 = 2.000CH2O + 2.000HO2 :           GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 4.0d-2, 1130.0d0);
+MO2 + OH = 0.13MOH + 0.87CH2O + 1.74HO2 :    1.60d-10 ;
 MP + OH = MO2 + H2O :                        GCARR_ac(2.66d-12, 200.0d0);
 MP + OH = CH2O + OH + H2O :                  GCARR_ac(1.14d-12, 200.0d0);
 ATOOH + OH = ATO2 + H2O :                    GCARR_ac(2.66d-12, 200.0d0);                                                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
