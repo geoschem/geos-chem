@@ -1071,11 +1071,13 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 	    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
 
-	    # NOTE: When we add HSO3- and SO3-- as species (probably in
-	    # 13.4.0),  we will need to use the restart file in v2021-09.
-	    # Leave this commented out for the time being.  (bmy, 9/17/21).
-	    #sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
-	    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    # NOTE: We need to read the restart file in v2021-09 which
+	    # contains the same species concentrations as in the GC_13.0.0
+	    # folder, with HSO3-, SO3--, HMS, C2H2, and C2H4 appended to
+	    # it.  Because HEMCO_Config.rc uses flag EFYO, the run will
+	    # halt if not all species are found. (bmy, 9/21/21)
+	    #sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then

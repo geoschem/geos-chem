@@ -1528,6 +1528,7 @@ HMS:
   DD_DvzMinVal: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 0.0
+  Formula: HOCH2SO3−
   FullName: Hydroxymethanesulfonate
   Is_Advected: true
   Is_Aerosol: true
