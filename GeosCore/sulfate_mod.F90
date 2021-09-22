@@ -2669,10 +2669,10 @@ CONTAINS
           HMS0   = Spc(I,J,L,id_HMS)  !(jmm, 06/15/2018)
           OH0    = Spc(I,J,L,id_OH)   !(jmm, 06/26/18)          
        ELSE
+          HMS0   = Spc(I,J,L,id_HMS)  !(jmm, 06/15/2018)
           HOBr0  = 0.e+0_fp
           HOCl0  = 0.e+0_fp
           HCHO0  = 0.e+0_fp !(jmm 06/13/2018)
-          HMS0   = 0.e+0_fp !(jmm, 06/15/2018)
           OH0    = 0.e+0_fp !(jmm, 06/26/18)          
        ENDIF
 
