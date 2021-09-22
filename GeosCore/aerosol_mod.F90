@@ -467,29 +467,46 @@ CONTAINS
              ! distribution but are currently simply treated in the same
              ! way (size and optics) as all other sulfate aerosol (DAR
              ! 2013)
-             SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                        &
-                                +   Spc(I,J,L,id_HMS)                        &
-                                +   Spc(I,J,L,id_NH4)                        &
-                                +   Spc(I,J,L,id_NIT) )                      &
-                                / AIRVOL(I,J,L)
+
+             IF ( IS_HMS ) THEN
+
+                !%%%%% Fullchem simulations: add contribution from HMS
+                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
+                                   +   Spc(I,J,L,id_HMS)                     &
+                                   +   Spc(I,J,L,id_NH4)                     &
+                                   +   Spc(I,J,L,id_NIT) )                   &
+                                   / AIRVOL(I,J,L)
+
+                HMS(I,J,L) = Spc(I,J,L,id_HMS) / AIRVOL(I,J,L)
+
+             ELSE
+
+                !%%%%% Aerosol-only simulations: Skip contribution from HMS
+                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
+                                   +   Spc(I,J,L,id_NH4)                     &
+                                   +   Spc(I,J,L,id_NIT) )                   &
+                                   / AIRVOL(I,J,L)
+
+                HMS(I,J,L) = 0.0_fp
+             ENDIF
+
              SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
-             HMS(I,J,L) = Spc(I,J,L,id_HMS) / AIRVOL(I,J,L)
              NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
              NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
              SLA(I,J,L) = 0.0_fp
              SPA(I,J,L) = 0.0_fp
+
 
           ELSE
 
              ! Tropospheric sulfate is zero in stratosphere
              SO4_NH4_NIT(I,J,L) = 0.0_fp
              SO4(I,J,L) = 0.0_fp
-             HMS(I,J,L) = 0.0_fp ! (jmm, 06/30/18)                
+             HMS(I,J,L) = 0.0_fp ! (jmm, 06/30/18)
              NH4(I,J,L) = 0.0_fp
              NIT(I,J,L) = 0.0_fp
              SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
              SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
-
           ENDIF
 
           ! Add error check for safe division (bmy, 4/7/15)
@@ -497,17 +514,23 @@ CONTAINS
 
              ! Save these fractions for partitioning of optics
              ! until later when these may be treated independently
-             FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) +                    &
-                                     Spc(I,J,L,id_HMS ) )                    & 
-                                 /   AIRVOL(I,J,L)         )                 &
-                                 / SO4_NH4_NIT(I,J,L)
+             ! Only use HMS if it is defined (for fullchem sims)
+             IF ( IS_HMS ) THEN
+                FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) +                 &
+                                        Spc(I,J,L,id_HMS ) )                 &
+                                  /   AIRVOL(I,J,L)                      )   &
+                                  / SO4_NH4_NIT(I,J,L)
+             ELSE
+                FRAC_SNA(I,J,L,1) = ( Spc(I,J,L,id_SO4 ) / AIRVOL(I,J,L) )   &
+                                    / SO4_NH4_NIT(I,J,L)
+             ENDIF
 
-             FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT ) )                    &
-                                 /   AIRVOL(I,J,L)         )                 &
-                                 / SO4_NH4_NIT(I,J,L)
 
-             FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4)                         &
-                                 / AIRVOL(I,J,L) ) / SO4_NH4_NIT(I,J,L)
+             FRAC_SNA(I,J,L,2) = ( Spc(I,J,L,id_NIT) / AIRVOL(I,J,L) )       &
+                               / SO4_NH4_NIT(I,J,L)
+
+             FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4) / AIRVOL(I,J,L) )       &
+                               / SO4_NH4_NIT(I,J,L)
 
           ELSE
 
@@ -860,7 +883,7 @@ CONTAINS
        PM25(I,J,L) = NH4(I,J,L)        * SIA_GROWTH + &
                      NIT(I,J,L)        * SIA_GROWTH + &
                      SO4(I,J,L)        * SIA_GROWTH + &
-                     HMS(I,J,L)        * SIA_GROWTH + &   ! (jmm, 06/30/18)                     
+                     HMS(I,J,L)        * SIA_GROWTH + &   ! (jmm, 06/30/18)
                      BCPI(I,J,L)                    + &
                      BCPO(I,J,L)                    + &
                      OCPO(I,J,L)                    + &
@@ -1813,7 +1836,7 @@ CONTAINS
                    ! Volume of wet aerosol is also: VWet = 4/3*pi * RWet**3 * n
                    ! So RWet = ( 3*VWet / (4 pi n) )**(1/3)
                    ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
-                  
+
                    ! Wet effective radius, um
                    ! Here assume the dry radius of the mixture = SNA
                    REFF = RW(1) * min( 3d0, &
@@ -2285,7 +2308,7 @@ CONTAINS
     id_SALACL = Ind_( 'SALACL' )
     id_SO4    = Ind_( 'SO4'    )
     id_SO4s   = Ind_( 'SO4s'   )
-    id_HMS    = Ind_( 'HMS'    )  ! (jmm, 06/30/18)    
+    id_HMS    = Ind_( 'HMS'    )  ! (jmm, 06/30/18)
     id_NITs   = Ind_( 'NITs'   )
     id_POA1   = Ind_( 'POA1'   )
     id_POA2   = Ind_( 'POA2'   )
@@ -2362,7 +2385,7 @@ CONTAINS
     CALL GC_CheckVar( 'aerosol_mod.F:HMS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     HMS = 0.0_fp
-    
+
     ALLOCATE( NH4( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F:NH4', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2797,11 +2820,11 @@ CONTAINS
        ! jmm 3/6/19
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassHMS ) THEN
-          State_Diag%AerMassHMS(I,J,L) = HMS(I,J,L) * &          
+          State_Diag%AerMassHMS(I,J,L) = HMS(I,J,L) * &
                kgm3_to_ugm3
        ENDIF
 
-       
+
        !--------------------------------------
        ! AerMassSOAGX [ug/m3]
        !--------------------------------------
