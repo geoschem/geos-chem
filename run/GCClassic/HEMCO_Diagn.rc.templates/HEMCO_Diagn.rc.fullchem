@@ -82,19 +82,17 @@ EmisBENZ_Ship      BENZ   0      10  -1   2   kg/m2/s  BENZ_emission_flux_from_s
 ###############################################################################
 #####  C2H2 emissions                                                    ######
 ###############################################################################
-# C2H2 is not an active species in GEOS-Chem; disable for now
-#EmisC2H2_Total     C2H2   -1     -1  -1   3   kg/m2/s  C2H2_emission_flux_from_all_sectors
-#EmisC2H2_Anthro    C2H2   0      1   -1   3   kg/m2/s  C2H2_emission_flux_from_anthropogenic
-#EmisC2H2_Ship      C2H2   0      10  -1   2   kg/m2/s  C2H2_emission_flux_from_ships
+EmisC2H2_Total     C2H2   -1     -1  -1   3   kg/m2/s  C2H2_emission_flux_from_all_sectors
+EmisC2H2_Anthro    C2H2   0      1   -1   3   kg/m2/s  C2H2_emission_flux_from_anthropogenic
+EmisC2H2_Ship      C2H2   0      10  -1   2   kg/m2/s  C2H2_emission_flux_from_ships
 
 ###############################################################################
 #####  C2H4 emissions                                                    ######
 ###############################################################################
-# C2H4 is not an active species in GEOS-Chem; disable for now
-#EmisC2H4_Total     C2H4   -1     -1  -1   3   kg/m2/s  C2H4_emission_flux_from_all_sectors
-#EmisC2H4_Anthro    C2H4   0      1   -1   3   kg/m2/s  C2H4_emission_flux_from_anthropogenic
-#EmisC2H4_Biogenic  C2H4   0      4   -1   2   kg/m2/s  C2H4_emission_flux_from_biogenic_sources
-#EmisC2H4_Ship      C2H4   0      10  -1   2   kg/m2/s  C2H4_emission_flux_from_ships
+EmisC2H4_Total     C2H4   -1     -1  -1   3   kg/m2/s  C2H4_emission_flux_from_all_sectors
+EmisC2H4_Anthro    C2H4   0      1   -1   3   kg/m2/s  C2H4_emission_flux_from_anthropogenic
+EmisC2H4_Biogenic  C2H4   0      4   -1   2   kg/m2/s  C2H4_emission_flux_from_biogenic_sources
+EmisC2H4_Ship      C2H4   0      10  -1   2   kg/m2/s  C2H4_emission_flux_from_ships
 
 ###############################################################################
 #####  C2H6 emissions                                                    ######

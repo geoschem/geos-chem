@@ -448,34 +448,20 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
-// Reactions for C2H2 & C2H4 from KHB (MSL)
-C2H4 + O3 = CH2O + CH2OO :			GCARR_abc(9.10E-15, 0.0E+00, -2580.0);
-C2H4 + OH = ETOO : 	 			GCJPLPR_abab(1.10E-28, 3.5E+00, 8.4E-12, 1.75, 0.5) ;
-C2H2 + OH = 0.636GLYX + 0.636OH + 0.364CO + 0.364HO2 + 0.364HCOOH : GCJPLPR_abab(5.50E-30, 0.0E+00, 8.3E-13, -2.0, 0.5) ;
-ETOO + HO2 = ETHP :   		  	    	GCARR_abc(1.53E-13, 0.0E+00, 1300.0) ;
-ETOO + NO = 0.995ETO + 0.995NO2 + 0.005ETHN : 	GCARR_abc(2.7E-12, 0.0E+00, 360.0) ;
-ETOO + NO3 = ETO + NO2 : 	  	    	2.3E-12 ;
-ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O + 0.2MOH + 0.2ETHP + 0.2GLYC : 6.00E-13;
-ETO = HO2 + 2.000CH2O :        	       	 	GCARR_abc(9.5E-13, 0.0E+00, -5988.0) ;
-ETO + O2 = GLYC + HO2 : 			GCARR_abc(2.5E-14, 0.0E+00, -300.0) ;
-ETHN + OH = GLYC + NO2 : 			8.40E-13 ;
-ETHP + OH = ETOO :     				GCARR_abc(1.90E-12, 0.0E+00, 190.0) ;
-ETHP + OH = OH + GLYC : 			1.38E-11 ;
-ETHP + hv = ETO + OH : 				PHOTOL(162) ;
-// - - - - - -
+//----------------------------------------------------------------------------
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Reactions extracted from sulfate_mod.F90 (MSL, BMY)             %%%%%
+// %%%%% Activate these later, comment out for now (bmy, 9/22/21)        %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
-// Reactions extracted from sulfate_mod.F90 (MSL, BMY)
+//// Seasalt
+//SO2  + SALAAL + O3  = SO4 - SALAAL  : K_MT(1);
+//HCl  + SALAAL       = SALACL        : K_MT(2);
+//HNO3 + SALAAL       = NIT           : K_MT(3);
+//SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4);
+//HCl  + SALCAL       = SALCCL        : K_MT(5);
+//HNO3 + SALCAL       = NITs          : K_MT(6);
 //
-// Seasalt
-SO2  + SALAAL + O3  = SO4 - SALAAL  : K_MT(1);
-HCl  + SALAAL       = SALACL        : K_MT(2);
-HNO3 + SALAAL       = NIT           : K_MT(3);
-SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4);
-HCl  + SALCAL       = SALCCL        : K_MT(5);
-HNO3 + SALCAL       = NITs          : K_MT(6);
-//
-//##############################################################################
-// NOTE: activate these reactions later, leave here for now (bmy, 9/16/21)
 //// Cloud
 //// S(IV) --> S(VI)
 //SO2 + H2O2        = SO4             : K_CLD(1);
@@ -486,9 +472,11 @@ HNO3 + SALCAL       = NITs          : K_MT(6);
 //CH2O + SO2        = HMS             : K_CLD(4);
 //HMS               = SO2 + CH2O      : K_CLD(5);
 //HMS + OH          = 2SO4 + CH2O     : K_CLD(6);
-//##############################################################################
+//----------------------------------------------------------------------------
 //
-// Gas-phase reactions
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Gas-phase chemistry reactions                                   %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 // NOTES:
 // ------
@@ -512,7 +500,6 @@ HNO3 + SALCAL       = NITs          : K_MT(6);
 //     are called (sometimes multiple times) for each grid box where we
 //     perform chemistry.
 //        -- Bob Yantosca (25 Jan 2020)
-//]
 //
 O3 + NO = NO2 + O2 :                         GCARR_ac(3.00d-12, -1500.0d0);
 O3 + OH = HO2 + O2 :                         GCARR_ac(1.70d-12, -940.0d0);
@@ -1380,22 +1367,31 @@ NAP + OH = NRO2 + OH :                       GCARR_ac(1.56d-11, 117.0d0);       
 NRO2 + HO2 = LNRO2H + HO2 :                  GCARR_ac(1.40d-12, 700.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 //
-// Heterogeneous reactions
+C2H4 + O3 = CH2O + CH2OO :                   GCARR_abc(9.10d-15, 0.0d0, -2580.0d0);                                            {2021/09/22; KHB}
+C2H4 + OH = ETOO :                           GCJPLPR_abab(1.10d-28, 3.5d+00, 8.4d-12, 1.75d0, 0.5d0);                          {2021/09/22; KHB}
+C2H2 + OH = 0.636GLYX + 0.636OH + 
+ 0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13d0, -2.0d0, 0.5d0);                          {2021/09/22; KHB}
+ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; KHB}        
+ETOO + NO = 0.995ETO + 
+ 0.995NO2 + 0.005ETHN :                      GCARR_abc(2.7d-12, 0.0d+00, 360.0d0);                                             {2021/09/22; KHB}
+ETOO + NO3 = ETO + NO2 :                     2.3d-12;                                                                          {2021/09/22; KHB}
+ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O + 
+ 0.2MOH + 0.2ETHP + 0.2GLYC :                6.00d-13;                                                                         {2021/09/22; KHB}
+ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d-13, 0.0d0, -5988.0d0);                                             {2021/09/22; KHB}
+ETO + O2 = GLYC + HO2 :                      GCARR_abc(2.5d-14, 0.0d0, -300.0d0);                                              {2021/09/22; KHB}
+ETHN + OH = GLYC + NO2 :                     8.40d-13;  {2021/09/22; KHB}
+ETHP + OH = ETOO :                           GCARR_abc(1.90d-12, 0.0d+00, 190.0d0);                                            {2021/09/22; KHB}
+ETHP + OH = OH + GLYC :                      1.38d-11;
+//
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Heterogeneous chemistry reactions                               %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 HO2 = H2O :                    HO2uptk1stOrd( State_Het );                                                  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 NO2 = 0.500HNO3 + 0.500HNO2 :  NO2uptk1stOrdAndCloud( State_Het );
 NO3 = HNO3 :                   NO3uptk1stOrdAndCloud( State_Het );
 NO3 = NIT :                    NO3hypsisClonSALA( State_Het );                                              {2018/03/16; XW}
 NO3 = NITs :                   NO3hypsisClonSALC( State_Het );                                              {2018/03/16; XW}
-//
-// NOTE: N2O5 + H2O reaction rate is still calculated as first-order,
-// based on Evans and Jacob [2005]. However this is converted to a
-// second-order rate in gckpp_HetRates.F90 by dividing by [H2O],
-// allowing the reaction to be listed here as second order
-// (N2O5 + H2O -> 2HNO3) and thereby permitting chemical loss
-// of H2O in the stratosphere.
-//    -- Seb Eastham (14 May 2018)
-//
 N2O5 + H2O = 2.000HNO3 :       N2O5uptkByH2O( State_Het );
 N2O5 + HCl = ClNO2 + HNO3 :    N2O5uptkByStratHCl( State_Het );                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 N2O5 = 2.000HNO3 :             N2O5uptkByCloud( State_Het );                                                {2018/10/17; Cloud uptake, CDH}
@@ -1493,7 +1489,10 @@ ITHN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITHN), 5.0E-3_dp, State_
 MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, State_Het );                    {2019/11/06; Bates2019; KHB}
 MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
 //
-// Photolysis reactions
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Photolysis reactions                                            %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//
 //
 O3 + hv = O + O2 :                           PHOTOL(2);      {2014/02/03; Eastham2014; SDE}
 O3 + hv = O1D + O2 :                         PHOTOL(3);      {2014/02/03; Eastham2014; SDE}
@@ -1690,3 +1689,5 @@ ITHN + hv = NO2 + 0.8HAC + 0.7HO2 +
 ITCN + hv = MGLY + OH + NO2 + GLYC :         PHOTOL(160);    {2019/11/06; Bates2019; KHB}
 ITCN + hv = 0.5MVKHP + 0.5MCRHP + CO +
  NO2 + HO2 :                                 PHOTOL(161);    {2019/11/06; Bates2019; KHB}
+ETHP + hv = ETO + OH :                       PHOTOL(162);    {2021/09/22; KHB}
+
