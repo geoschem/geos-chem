@@ -418,8 +418,8 @@ RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
 RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
-SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
-SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
+//SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
+//SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
 SALACL     = IGNORE; {Cl; Fine chloride}
 SALCCL     = IGNORE; {Cl; Coarse chloride}
 SALASO2    = IGNORE; {SO2; Fine seasalt}
@@ -1370,7 +1370,7 @@ NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);       
 C2H4 + O3 = CH2O + CH2OO :                   GCARR_abc(9.10d-15, 0.0d0, -2580.0d0);                                            {2021/09/22; KHB}
 C2H4 + OH = ETOO :                           GCJPLPR_abab(1.10d-28, 3.5d+00, 8.4d-12, 1.75d0, 0.5d0);                          {2021/09/22; KHB}
 C2H2 + OH = 0.636GLYX + 0.636OH + 
- 0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13d0, -2.0d0, 0.5d0);                          {2021/09/22; KHB}
+ 0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13, -2.0d0, 0.5d0);                            {2021/09/22; KHB}
 ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; KHB}        
 ETOO + NO = 0.995ETO + 
  0.995NO2 + 0.005ETHN :                      GCARR_abc(2.7d-12, 0.0d+00, 360.0d0);                                             {2021/09/22; KHB}
