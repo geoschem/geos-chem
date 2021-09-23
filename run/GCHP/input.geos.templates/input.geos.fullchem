@@ -32,8 +32,8 @@ Species name            : BrNO3
 Species name            : BrO
 Species name            : BrSALA
 Species name            : BrSALC
-Species name		: C2H2
-Species name		: C2H4
+Species name            : C2H2
+Species name            : C2H4
 Species name            : C2H6
 Species name            : C3H8
 Species name            : CCl4
@@ -71,8 +71,8 @@ Species name            : DST3
 Species name            : DST4
 Species name            : EOH
 Species name            : ETHLN
-Species name		: ETHN
-Species name		: ETHP
+Species name            : ETHN
+Species name            : ETHP
 Species name            : ETNO3
 Species name            : ETP
 Species name            : GLYC
