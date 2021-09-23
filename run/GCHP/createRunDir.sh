@@ -370,7 +370,12 @@ do
     if [[ ${sim_name} = "fullchem" ]]; then
         start_date="20190701_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+	# NOTE: We must now link restart files from v2021-09, since these will
+	# have extra species such as HMS, C2H2, C2H4, etc. (bmy, 9/23/21)
+        #ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+        ln -s ${restarts}/v2021-09/${src_name} ${rundir}/${target_name}
     elif [[ ${sim_name} = "TransportTracers" ]]; then
         start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
@@ -387,7 +392,7 @@ cd ${rundir}
 sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
 sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
 if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig_adj.sh
+    sed -i -e "s|{SIMULATION}|${sim_name}|"   runConfig_adj.sh
 fi
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
 sed -i -e "s|{MET}|${met_name}|"              input.geos
@@ -427,8 +432,8 @@ fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
 if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE1}|${startdate}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE2}|${enddate}|"   ${rundir}/runConfig_adj.sh
 fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
