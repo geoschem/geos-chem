@@ -256,7 +256,7 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! ff has a range [0,+inf], so cap it at 1e30
     ff = SafeDiv( H%CldFr, H%ClearFr, 1.0e+30_dp )
-    ff = MAX( ff, 1.0e+30_dp )
+    ff = MIN( ff, 1.0e+30_dp )
 
     ! Ratio of mass inside to outside cloud
     ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow

@@ -3349,7 +3349,7 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! FF has a range [0,+inf], so cap it at 1e30
     FF = SafeDiv( FC, ( 1.0_fp - FC ), 1e30_fp )
-    FF = MAX( FF, 1e30_fp )
+    FF = MIN( FF, 1.0e30_fp )
 
     ! Avoid div by zero for the TAUC/FF term
     term1 = 0.0_fp
@@ -3466,7 +3466,7 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! ff has a range [0,+inf], so cap it at 1e30
     ff = SafeDiv( fc, (1e0_fp - fc), 1e30_fp )
-    ff = max( ff, 1e30_fp )
+    ff = MIN( ff, 1.0e30_fp )
 
     ! Ratio of mass inside to outside cloud
     ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
