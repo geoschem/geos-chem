@@ -397,6 +397,7 @@ C2H2:
 C2H4:
   Formula: C2H4
   FullName: Ethylene
+  Is_Advected: true
   Is_Gas: true
   MW_g: 28.05
 C2H6:
