@@ -75,6 +75,14 @@ Version 13.y.z (actual version TBA) (Dec 2020 onward)
      functions in the rate law functions, which wastes CPU cycles, and
      also is a "lossy" conversion. (BMY)
 
+13.3.0 (Sep 2021)
+------------------
+  (1) Added HMS chemistry (Moch2020)
+  (2) Added C2H2/C2H4 chemistry (Kwon2020)
+  (3) Added CH3O2 + OH reaction (Bates2021)
+  (4) Added sulfur reactions for future development (commented out)
+  (5) Added dust uptake reactions for future development (commented out)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
@@ -115,6 +123,7 @@ REFERENCES (alphabetical order)
 * Atkinson2003: Atkinson and Arey, Chem. Rev., doi:10.1021/cr0206420, 2003.
 * Bates2014:    Bates et al., J. Phys. Chem A, 118, doi:10.1021/jp4107958, 2014.
 * Bates2019:    Bates and Jacob, Atmos. Chem. Phys., doi:10.5194/acp-19-9613-2019, 2019.
+* Bates2021:    Bates et al, JGR, https://doi.org/10.1029/2020JD033439, 2021.
 * Browne2011:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-11-4209-2011, 2011.
 * Browne2014:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-14-1225-2014, 2014.
 * Chen2017:     Chen et al., Geophys. Res. Lett., doi:10.1002/2017GL073812, 2017.
@@ -131,10 +140,12 @@ REFERENCES (alphabetical order)
 * Kasibhatla2018: Kasibhatla et al., Atmos. Chem. Phys., doi:10.5194/acp-18-11185-2018, 2018
 * JPL 10-6:     JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
 * JPL 15-10:    JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
+* Kwon2020:     Kwon et al, Elementa, https://doi.org/10.1525/elementa.2021.00109, 2020.
 * Lee2014:      Lee et al., J. Phys. Chem. A, doi:10.1021/jp4107603, 2014.
 * Marais2016:   Marais et al., Atmos. Chem. Phys, doi:10.5194/acp-16-1603-2016, 2016.
 * Miller2017:   Miller et al., Atmos. Chem. Phys. Discuss., doi:10.5194/acp-2016-1042, 2017.
 * Millet2015:   Millet et al., Atmos. Chem. Phys., doi:10.5194/acp-15-6283-2015, 2015.
+* Moch2020:     Moch et al, JGR, https;//doi.org/10.1029/2020JD032706, 2020.
 * Muller2014:   Muller et al., Atmos. Chem. Phys., doi:10.5194/acp-14-2497-2014, 2014.
 * Parrella2012: Parrella et al. Atmos. Chem. Phys, doi:10.5194/acp-12-6723-2012, 2012.
 * Paulot2009:   Paulot et al., Atmos. Chem. Phys., doi:10.5194/acp-9-1479-2009, 2009a and
@@ -1399,13 +1410,13 @@ NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);       
 //
 C2H4 + O3 = CH2O + CH2OO :                   GCARR_abc(9.10d-15, 0.0d0, -2580.0d0);                                            {2021/09/22; KHB}
 C2H4 + OH = ETOO :                           GCJPLPR_abab(1.10d-28, 3.5d+00, 8.4d-12, 1.75d0, 0.5d0);                          {2021/09/22; KHB}
-C2H2 + OH = 0.636GLYX + 0.636OH + 
+C2H2 + OH = 0.636GLYX + 0.636OH +
  0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13, -2.0d0, 0.5d0);                            {2021/09/22; KHB}
-ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; KHB}        
-ETOO + NO = 0.995ETO + 
+ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; KHB}
+ETOO + NO = 0.995ETO +
  0.995NO2 + 0.005ETHN :                      GCARR_abc(2.7d-12, 0.0d+00, 360.0d0);                                             {2021/09/22; KHB}
 ETOO + NO3 = ETO + NO2 :                     2.3d-12;                                                                          {2021/09/22; KHB}
-ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O + 
+ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O +
  0.2MOH + 0.2ETHP + 0.2GLYC :                6.00d-13;                                                                         {2021/09/22; KHB}
 ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d-13, 0.0d0, -5988.0d0);                                             {2021/09/22; KHB}
 ETO + O2 = GLYC + HO2 :                      GCARR_abc(2.5d-14, 0.0d0, -300.0d0);                                              {2021/09/22; KHB}
