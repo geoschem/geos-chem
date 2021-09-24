@@ -1,6 +1,11 @@
 # GEOS-Chem Species Database
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them.
+A3O2:
+  Formula: CH3CH2CH2OO
+  FullName: Primary peroxy radical from C3H8
+  Is_Gas: true
+  MW_g: 75.10
 ACET:
   DD_F0: 1.0
   DD_Hstar: 1.0e+5
@@ -85,7 +90,7 @@ DST3_PROP: &DST3properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-  WD_RainoutEff_Luo: [1.0, 0.1, 0.0] 
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 DST4_PROP: &DST4properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -100,7 +105,7 @@ DST4_PROP: &DST4properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-  WD_RainoutEff_Luo: [1.0, 0.1, 0.0] 
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 AlF1:
   << : *DST1properties
   Formula: Al
@@ -390,7 +395,7 @@ C:
   MW_g: 12.01
 C2H2:
   Formula: C2H2
-  FullName: Acetylene
+  FullName: Acetylene (aka Ethyne)
   Is_Advected: true
   Is_Gas: true
   MW_g: 26.05
@@ -960,23 +965,6 @@ ETHLN:
   Is_WetDep: true
   MW_g: 105.06
   WD_RetFactor: 2.0e-2
-ETNO3:
-  DD_F0: 0.1
-  DD_Hstar: 1.6
-  Formula: C2H5ONO2
-  FullName: Ethyl nitrate
-  Henry_CR: 5400.0
-  Henry_K0: 1.6
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  MW_g: 91.08
-ETO2:
-  Formula: CH3CH2OO
-  FullName: ETO2
-  Is_Gas: true
-  MW_g: 61.07
 ETHN:
   Formula: HOCH2CH2ONO2
   FullName: hydroxy-nitrooxy-ethane
@@ -1004,11 +992,23 @@ ETHP:
   DD_Hstar: 6.50e+5
   Henry_CR: 8800.0
   Henry_K0: 6.50e+5
-ETOO:
-  Formula: HOCH2CH2OO
-  FullName: peroxy radical from ethene
+ETNO3:
+  DD_F0: 0.1
+  DD_Hstar: 1.6
+  Formula: C2H5ONO2
+  FullName: Ethyl nitrate
+  Henry_CR: 5400.0
+  Henry_K0: 1.6
+  Is_Advected: true
+  Is_DryDep: true
   Is_Gas: true
-  MW_g: 77.06
+  Is_Photolysis: true
+  MW_g: 91.08
+ETO2:
+  Formula: CH3CH2OO
+  FullName: ETO2
+  Is_Gas: true
+  MW_g: 61.07
 ETO:
   Formula: HOCH2CH2O
   FullName: alkoxy radical from ETOO
@@ -1018,6 +1018,11 @@ ETO:
   FullName: Primary peroxy radical from C3H8
   Is_Gas: true
   MW_g: 75.10
+ETOO:
+  Formula: HOCH2CH2OO
+  FullName: peroxy radical from ethene
+  Is_Gas: true
+  MW_g: 77.06
 ETP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
