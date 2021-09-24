@@ -78,6 +78,7 @@ Version 13.y.z (actual version TBA) (Dec 2020 onward)
 13.3.0 (Sep 2021)
 ------------------
   (1) Added HMS chemistry (Moch2020)
+       -- note, currently done in sulfate_mod, equations are commented out
   (2) Added C2H2/C2H4 chemistry (Kwon2020)
   (3) Added CH3O2 + OH reaction (Bates2021)
   (4) Added sulfur reactions for future development (commented out)
@@ -477,12 +478,12 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 //// S(IV) --> S(VI)
 //SO2 + H2O2        = SO4             : K_CLD(1);
 //SO2 + O3          = SO4             : K_CLD(2);
-//SO2 {+O2}         = SO4             : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
+//SO2 {+O2}         = SO4             : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
 //// HMS
-//CH2O + SO2        = HMS             : K_CLD(4);
-//HMS               = SO2 + CH2O      : K_CLD(5);
-//HMS + OH          = 2SO4 + CH2O     : K_CLD(6);
+//CH2O + SO2        = HMS             : K_CLD(4);    {Sep 2021; Moch2020; MSL}
+//HMS               = SO2 + CH2O      : K_CLD(5);    {Sep 2021; Moch2020; MSL}
+//HMS + OH          = 2SO4 + CH2O     : K_CLD(6);    {Sep 2021; Moch2020; MSL}
 //----------------------------------------------------------------------------
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -530,7 +531,7 @@ MO2 + NO = MENO3 :                           GC_RO2NO_A1_ac(2.80d-12, 300.0d0); 
 MO2 + HO2 = MP + O2 :                        GCARR_abc(4.10E-13, 0.0E+00, 750.0);
 MO2 + MO2 = MOH + CH2O + O2 :                GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 2.62d1, -1130.0d0);
 MO2 + MO2 = 2.000CH2O + 2.000HO2 :           GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 4.0d-2, 1130.0d0);
-MO2 + OH = 0.13MOH + 0.87CH2O + 1.74HO2 :    1.60d-10 ;
+MO2 + OH = 0.13MOH + 0.87CH2O + 1.74HO2 :    1.60d-10 ;                                                                        {2021/09/22; Bates2021; KHB,MSL}
 MP + OH = MO2 + H2O :                        GCARR_ac(2.66d-12, 200.0d0);
 MP + OH = CH2O + OH + H2O :                  GCARR_ac(1.14d-12, 200.0d0);
 ATOOH + OH = ATO2 + H2O :                    GCARR_ac(2.66d-12, 200.0d0);                                                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -1378,21 +1379,21 @@ NAP + OH = NRO2 + OH :                       GCARR_ac(1.56d-11, 117.0d0);       
 NRO2 + HO2 = LNRO2H + HO2 :                  GCARR_ac(1.40d-12, 700.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 //
-C2H4 + O3 = CH2O + CH2OO :                   GCARR_abc(9.10d-15, 0.0d0, -2580.0d0);                                            {2021/09/22; KHB}
-C2H4 + OH = ETOO :                           GCJPLPR_abab(1.10d-28, 3.5d+00, 8.4d-12, 1.75d0, 0.5d0);                          {2021/09/22; KHB}
+C2H4 + O3 = CH2O + CH2OO :                   GCARR_abc(9.10d-15, 0.0d0, -2580.0d0);                                            {2021/09/22; Kwon2020; KHB,MSL}
+C2H4 + OH = ETOO :                           GCJPLPR_abab(1.10d-28, 3.5d+00, 8.4d-12, 1.75d0, 0.5d0);                          {2021/09/22; Kwon2020; KHB,MSL}
 C2H2 + OH = 0.636GLYX + 0.636OH +
- 0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13, -2.0d0, 0.5d0);                            {2021/09/22; KHB}
-ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; KHB}
+ 0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13, -2.0d0, 0.5d0);                            {2021/09/22; Kwon2020; KHB,MSL}
+ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
 ETOO + NO = 0.995ETO +
- 0.995NO2 + 0.005ETHN :                      GCARR_abc(2.7d-12, 0.0d+00, 360.0d0);                                             {2021/09/22; KHB}
-ETOO + NO3 = ETO + NO2 :                     2.3d-12;                                                                          {2021/09/22; KHB}
+ 0.995NO2 + 0.005ETHN :                      GCARR_abc(2.7d-12, 0.0d+00, 360.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
+ETOO + NO3 = ETO + NO2 :                     2.3d-12;                                                                          {2021/09/22; Kwon2020; KHB,MSL}
 ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O +
- 0.2MOH + 0.2ETHP + 0.2GLYC :                6.00d-13;                                                                         {2021/09/22; KHB}
-ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d-13, 0.0d0, -5988.0d0);                                             {2021/09/22; KHB}
-ETO + O2 = GLYC + HO2 :                      GCARR_abc(2.5d-14, 0.0d0, -300.0d0);                                              {2021/09/22; KHB}
-ETHN + OH = GLYC + NO2 :                     8.40d-13;  {2021/09/22; KHB}
-ETHP + OH = ETOO :                           GCARR_abc(1.90d-12, 0.0d+00, 190.0d0);                                            {2021/09/22; KHB}
-ETHP + OH = OH + GLYC :                      1.38d-11;
+ 0.2MOH + 0.2ETHP + 0.2GLYC :                6.00d-13;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
+ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d-13, 0.0d0, -5988.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
+ETO + O2 = GLYC + HO2 :                      GCARR_abc(2.5d-14, 0.0d0, -300.0d0);                                              {2021/09/22; Kwon2020; KHB,MSL}
+ETHN + OH = GLYC + NO2 :                     8.40d-13;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
+ETHP + OH = ETOO :                           GCARR_abc(1.90d-12, 0.0d+00, 190.0d0);                                            {2021/09/22; Kwon2020; KHB,MSL}
+ETHP + OH = OH + GLYC :                      1.38d-11;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Heterogeneous chemistry reactions                               %%%%%
