@@ -43,7 +43,7 @@ Warnings:                    1
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
-0       Base                   : on    *           
+0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     {MET_AVAIL}
@@ -56,7 +56,7 @@ Warnings:                    1
     --> GC_BCs                 :       false    # 1980-2021
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> APEI                   :       false    # 1989-2014
-    --> NEI2016_MONMEAN        :       false    # 2016
+    --> NEI2016_MONMEAN        :       false    # 2002-2020
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> CEDSv2                 :       true     # 1750-2019
@@ -188,241 +188,645 @@ Warnings:                    1
 )))APEI
 
 #==============================================================================
-# --- NEI 2016v1 (USA) ---
+# --- EPA NEI2016 v1 (USA) ---
 #
 # NOTES:
-#  - Barron Henderson wrote, "The EPA emission modeling platform always
+#  * Barron Henderson wrote, "The EPA emission modeling platform always
 #    includes our best estimate of that year's emissions for Canada and Mexico
 #    (othpt, othar, ptfire_oth). Using that estimate is likely good. However,
 #    that can lead to a discontinuity in Mexico and Canada."
-#  - By default only emissions over the CONUS are used (via Mask #1007)
-#  - To include emissions over Canada and Mexico, users may revert to the old
-#    US mask file $ROOT/MASKS/v2018-09/USA_LANDMASK_NEI2011_0.1x0.1.20160921.nc
+#    - By default only emissions over the CONUS are used (via Mask #1007)
+#    - To include emissions over Canada and Mexico, users may revert to the old
+#      US mask file $ROOT/MASKS/v2018-09/USA_LANDMASK_NEI2011_0.1x0.1.20160921.nc
+#  * The base year of these emissions is 2016 and emissions are scaled to
+#    2002-2020 using data from the EPA Trends Report for Tier 1 CAPS (obtained
+#    21 Sep 2021).
+#    - See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
+#    - Cl2 and HCl emissions are only available for 2016 because those species
+#      aren't included in the Tier 1 CAPS file/
 #==============================================================================
 (((NEI2016_MONMEAN
-0 EPA16_BCPI__afdustPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__afdustPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__afdustPNH4          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__afdustPNO3          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__afdustPSO4          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_NH3__agNH3               $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_SOAP__airportsSOAP       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_BCPI__airportsPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__airportsPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__airportsPNH4        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__airportsPNO3        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__airportsPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__airportsPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__airportsPSO4        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__airportsSO2         $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_airportspFe          -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__airportsSULF        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__nonptSOAP          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__nonptNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__nonptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__nonptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__nonptPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__nonptPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__nonptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__nonptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__nonptPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__nonptSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_nonptpFe             -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__nonptSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__nonroadSOAP        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__nonroadNH3          $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__nonroadPEC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__nonroadPEC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__nonroadPNH4         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__nonroadPNO3         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__nonroadPOC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__nonroadPOC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__nonroadPSO4         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__nonroadSO2          $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_nonroadspFe          -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__nonroadSULF         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__npogSOAP           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__npogNH3             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__npogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__npogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__npogPNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__npogPNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__npogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__npogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__npogPSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__npogSO2             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_npogpFe              -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__npogSULF            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__onroadSOAP         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__onroadNH3           $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__onroadPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__onroadPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__onroadPNH4          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__onroadPNO3          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__onroadPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__onroadPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__onroadPSO4          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__onroadSO2           $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_onroadpFe            -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SOAP__onroad_caSOAP      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__onroad_caNH3        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__onroad_caPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__onroad_caPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__onroad_caPNH4       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__onroad_caPNO3       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__onroad_caPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__onroad_caPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__onroad_caPSO4       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__onroad_caSO2        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_onroad_capFe         -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SOAP__railSOAP           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__railNH3             $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__railPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__railPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__railPNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__railPNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__railPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__railPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__railPSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__railSO2             $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_railpFe              -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__railSULF            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__rwcSOAP            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__rwcNH3              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__rwcPEC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__rwcPEC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__rwcPNH4             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__rwcPNO3             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__rwcPOC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__rwcPOC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__rwcPSO4             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__rwcSO2              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_rwcpFe               -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__rwcSULF             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__c1c2SOAP           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__c1c2NH3             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__c1c2PEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__c1c2PEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__c1c2PNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__c1c2PNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__c1c2POC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__c1c2POC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__c1c2PSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__c1c2SO2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_clcpFe               -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__c1c2SULF            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__c3SOAP             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__c3NH3               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__c3PEC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__c3PEC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__c3PNH4              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__c3PNO3              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__c3POC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__c3POC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__c3PSO4              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__c3SO2               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_c2pFe                -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__c3SULF              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__pteguSOAP          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__pteguNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__pteguPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__pteguPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__pteguPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__pteguPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__pteguPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__pteguPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__pteguPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__pteguSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_ptegupFe             -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__pteguSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__ptogSOAP           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__ptogNH3             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__ptogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__ptogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__ptogPNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__ptogPNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__ptogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__ptogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__ptogPSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__ptogSO2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_ptogpFe              -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__ptogSULF            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__ptnonipmSOAP       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__ptnonipmNH3         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__ptnonipmPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__ptnonipmPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__ptnonipmPNH4        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__ptnonipmPNO3        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__ptnonipmPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__ptnonipmPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_C3H8__ptnonipmPRPA       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PRPA       2016/1-12/1/0 C xyz  kg/m2/s    C3H8   26/216/1007        1 50
-0 EPA16_SO2__ptnonipmSO2         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_ptnonipmpFe          -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__ptnonipmSULF        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__onroad_canSOAP     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__onroad_canNH3       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__onroad_canPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__onroad_canPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__onroad_canPNH4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__onroad_canPNO3      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__onroad_canPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__onroad_canPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__onroad_canPSO4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__onroad_canSO2       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_onroad_canpFe        -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__onroad_canSULF      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_SOAP__onroad_mexSOAP     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__onroad_mexNH3       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__onroad_mexPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__onroad_mexPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__onroad_mexPNH4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__onroad_mexPNO3      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__onroad_mexPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__onroad_mexPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__onroad_mexPSO4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__onroad_mexSO2       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_onroad_mexpFe        -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__onroad_mexSULF      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_BCPI__othafdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__othafdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__othafdustPNH4       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__othafdustPNO3       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__othafdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__othafdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__othafdustPSO4       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SOAP__otharSOAP          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__otharNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__otharPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__otharPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__otharPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__otharPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__otharPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__otharPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__otharPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__otharSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_otharpFe             -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__otharSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
-0 EPA16_BCPI__othptdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__othptdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__othptdustPNH4       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__othptdustPNO3       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__othptdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__othptdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__othptdustPSO4       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SOAP__othptSOAP          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO         2016/1-12/1/0 C xyz  kg/m2/s    SOAP   26/211/1007/280    1 50
-0 EPA16_NH3__othptNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 NH3        2016/1-12/1/0 C xyz  kg/m2/s    NH3    26/213/1007        1 50
-0 EPA16_BCPI__othptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPI   26/221/1007/70     1 50
-0 EPA16_BCPO__othptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PEC        2016/1-12/1/0 C xyz  kg/m2/s    BCPO   26/221/1007/71     1 50
-0 EPA16_NH4__othptPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PNH4       2016/1-12/1/0 C xyz  kg/m2/s    NH4    26/218/1007        1 50
-0 EPA16_NIT__othptPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PNO3       2016/1-12/1/0 C xyz  kg/m2/s    NIT    26/218/1007        1 50
-0 EPA16_OCPI__othptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPI   26/222/1007/72     1 50
-0 EPA16_OCPO__othptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 POC        2016/1-12/1/0 C xyz  kg/m2/s    OCPO   26/222/1007/73     1 50
-0 EPA16_SO4__othptPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PSO4       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/219/1007        1 50
-0 EPA16_SO2__othptSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 SO2        2016/1-12/1/0 C xyz  kg/m2/s    SO2    26/218/1007        1 50
-0 EPA16_pFe_othptpFe             -                                                                                     -          -             - -    -          pFe    26/218/1007/69     1 50
-0 EPA16_SO4__othptSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 SULF       2016/1-12/1/0 C xyz  kg/m2/s    SO4    26/218/1007        1 50
+0 EPA16_BCPI__afdustPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__afdustPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__afdustPNA          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__afdustPNH4          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__afdustPNO3          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_SO4__afdustPSO4          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_ACET__agACET             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_ALD2__agALD2             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__agALDX             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__agBENZ             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_C2H4__agETH              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__agETHA             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__agETOH              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__agFORM             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_PRPE__agIOLE             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__agKET               $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__agMEOH              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__agNH3               $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_PRPE__agOLE              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__agPAR              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_C3H8__agPRPA             $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_TOLU__agTOL              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__agXYLMN            $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__airportsACET       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__airportsACROLEIN   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__airportsALD2       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__airportsALDX       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__airportsBENZ       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__airportsCO           $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__airportsSOAP       -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__airportsETH        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__airportsETHA       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__airportsETOH        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__airportsFORM       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__airportsHONO       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__airportsIOLE       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__airportsKET         $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__airportsMEOH        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NO__airportsNO           $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__airportsNO2         $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__airportsOLE        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__airportsPAR        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__airportsPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__airportsPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__airportsPNA        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__airportsPNH4        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__airportsPNO3        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__airportsPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__airportsPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__airportsPRPA       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__airportsPSO4        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__airportsSO2         $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__airportspFe         -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__airportsSULF        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__airportsTOL        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__airportsXYLMN      $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__nonptACET          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__nonptACROLEIN      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__nonptALD2          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__nonptALDX          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__nonptBENZ          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_Cl2__nonptCL2            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CL2        2016/1-12/1/0      CR  xyz  kg/m2/s    Cl2    1007                   1 50
+0 EPA16_CO__nonptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__nonptSOAP          -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__nonptETH           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__nonptETHA          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__nonptETOH           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__nonptFORM          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HCl__nonptHCL            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      HCL        2016/1-12/1/0      CR  xyz  kg/m2/s    HCl    1007                   1 50
+0 EPA16_HNO2__nonptHONO          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__nonptIOLE          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__nonptKET            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__nonptMEOH           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__nonptNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__nonptNO              $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__nonptNO2            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__nonptOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__nonptPAR           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__nonptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__nonptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__nonptPNA           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__nonptPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__nonptPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__nonptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__nonptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__nonptPRPA          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__nonptPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__nonptSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__nonptpFe            -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__nonptSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__nonptTOL           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__nonptXYLMN         $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__nonroadACET        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__nonroadACROLEIN    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__nonroadALD2        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__nonroadALDX        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__nonroadBENZ        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__nonroadCO            $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__nonroadSOAP        -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__nonroadETH         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__nonroadETHA        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__nonroadETOH         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__nonroadFORM        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__nonroadHONO        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__nonroadIOLE        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__nonroadKET          $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__nonroadMEOH         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__nonroadNH3          $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__nonroadNO            $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__nonroadNO2          $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__nonroadOLE         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__nonroadPAR         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__nonroadPEC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__nonroadPEC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__nonroadPNA         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__nonroadPNH4         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__nonroadPNO3         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__nonroadPOC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__nonroadPOC         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__nonroadPRPA        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__nonroadPSO4         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__nonroadSO2          $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__nonroadspFe         -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__nonroadSULF         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__nonroadTOL         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__nonroadXYLMN       $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__npogACET           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__npogACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__npogALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__npogALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__npogBENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_Cl2__npogCL2             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CL2        2016/1-12/1/0      CR  xyz  kg/m2/s    Cl2    1007                   1 50
+0 EPA16_CO__npogCO               $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__npogSOAP           -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__npogETH            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__npogETHA           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__npogETOH            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__npogFORM           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__npogHONO           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__npogIOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__npogKET             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__npogMEOH            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__npogNH3             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__npogNO               $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__npogNO2             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__npogOLE            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__npogPAR            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__npogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__npogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__npogPNA            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__npogPNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__npogPNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__npogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__npogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__npogPRPA           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__npogPSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__npogSO2             $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__npogpFe             -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__npogSULF            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__npogTOL            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__npogXYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__onroadACET         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__onroadACROLEIN     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__onroadALD2         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__onroadALDX         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__onroadBENZ         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__onroadCO             $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__onroadSOAP         -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__onroadETH          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__onroadETHA         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__onroadETOH          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__onroadFORM         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__onroadHONO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__onroadIOLE         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__onroadKET           $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__onroadMEOH          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__onroadNH3           $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__onroadNO             $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__onroadNO2           $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__onroadOLE          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__onroadPAR          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__onroadPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__onroadPEC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__onroadPNA          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__onroadPNH4          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__onroadPNO3          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__onroadPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__onroadPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__onroadPRPA         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__onroadPSO4          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__onroadSO2           $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__onroadpFe           -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_TOLU__onroadTOL          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__onroadXYLMN        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__onroad_caACET      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__onroad_caACROLEIN  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__onroad_caALD2      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__onroad_caALDX      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__onroad_caBENZ      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__onroad_caCO          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP_onroad__caSOAP      -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__onroad_caETH       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__onroad_caETHA      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__onroad_caETOH       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__onroad_caFORM      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__onroad_caHONO      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__onroad_caIOLE      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__onroad_caKET        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__onroad_caMEOH       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__onroad_caNH3        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__onroad_caNO          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__onroad_caNO2        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__onroad_caOLE       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__onroad_caPAR       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__onroad_caPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__onroad_caPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__onroad_caPNA       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__onroad_caPNH4       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__onroad_caPNO3       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__onroad_caPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__onroad_caPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__onroad_caPRPA      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__onroad_caPSO4       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__onroad_caSO2        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__onroad_capFe        -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_TOLU__onroad_caTOL       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__onroad_caXYLMN     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__railACET           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__railACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__railALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__railALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__railBENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__railCO               $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__railSOAP           -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__railETH            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__railETHA           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__railETOH            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__railFORM           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__railHONO           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__railIOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__railKET             $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__railMEOH            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__railNH3             $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__railNO               $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__railNO2             $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__railOLE            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__railPAR            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__railPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__railPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__railPNA            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__railPNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__railPNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__railPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__railPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__railPRPA           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__railPSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__railSO2             $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__railpFe             -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__railSULF            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__railTOL            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__railXYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__rwcACET            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__rwcACROLEIN        $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__rwcALD2            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__rwcALDX            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__rwcBENZ            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_Cl2__rwcCL2              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        CL2        2016/1-12/1/0      CR  xyz  kg/m2/s    Cl2    1007                   1 50
+0 EPA16_CO__rwcCO                $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__rwcSOAP            -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__rwcETH             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__rwcETHA            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__rwcETOH             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__rwcFORM            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__rwcHONO            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__rwcIOLE            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__rwcKET              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__rwcMEOH             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__rwcNH3              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__rwcNO                $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__rwcNO2              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__rwcOLE             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__rwcPAR             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__rwcPEC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__rwcPEC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__rwcPNA             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__rwcPNH4             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__rwcPNO3             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__rwcPOC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__rwcPOC             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__rwcPRPA            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__rwcPSO4             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__rwcSO2              $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__rwcpFe              -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__rwcSULF             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__rwcTOL             $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__rwcXYLMN           $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__c1c2ACET           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_ALD2__c1c2ALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__c1c2ALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__c1c2BENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__c1c2CO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__clc2SOAP           -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__c1c2ETH            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__c1c2ETHA           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__c1c2ETOH            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__c1c2FORM           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__c1c2HONO           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__c1c2IOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__c1c2KET             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__c1c2MEOH            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__c1c2NH3             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__c1c2NO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__c1c2NO2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__c1c2OLE            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__c1c2PAR            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__c1c2PEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__c1c2PEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__c1c2PNA            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__c1c2PNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__c1c2PNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__c1c2POC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__c1c2POC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__c1c2PRPA           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__c1c2PSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__c1c2SO2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__clcpFe              -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__c1c2SULF            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__c1c2TOL            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__c1c2XYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__c3ACET             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_ALD2__c3ALD2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__c3ALDX             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__c3BENZ             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__c3CO                 $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__c3SOAP             -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__c3ETH              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__c3ETHA             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__c3ETOH              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__c3FORM             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__c3HONO             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__c3IOLE             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__c3KET               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__c3MEOH              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__c3NH3               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__c3NO                 $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__c3NO2               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__c3OLE              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__c3PAR              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__c3PEC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__c3PEC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__c3PNA              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__c3PNH4              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__c3PNO3              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__c3POC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__c3POC              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__c3PRPA             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__c3PSO4              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__c3SO2               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__c2pFe               -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__c3SULF              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__c3TOL              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__c3XYLMN            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__pteguACET          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__pteguACROLEIN      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__pteguALD2          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__pteguALDX          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__pteguBENZ          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_Cl2__pteguCL2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CL2        2016/1-12/1/0      CR  xyz  kg/m2/s    Cl2    1007                   1 50
+0 EPA16_CO__pteguCO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__pteguSOAP          -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__pteguETH           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__pteguETHA          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__pteguETOH           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__pteguFORM          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HCl__pteguHCL            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              HCL        2016/1-12/1/0      CR  xyz  kg/m2/s    HCl    1007                   1 50
+0 EPA16_HNO2__pteguHONO          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__pteguIOLE          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__pteguKET            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__pteguMEOH           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__pteguNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__pteguNO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__pteguNO2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__pteguOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__pteguPAR           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__pteguPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__pteguPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__pteguPNA           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__pteguPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__pteguPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__pteguPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__pteguPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__pteguPRPA          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__pteguPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__pteguSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__ptegupFe            -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__pteguSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__pteguTOL           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__pteguXYLMN         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__ptogACET           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__ptogACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__ptogALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__ptogALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__ptogBENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_Cl2__ptogCL2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CL2        2016/1-12/1/0      CR  xyz  kg/m2/s    Cl2    1007                   1 50
+0 EPA16_CO__ptogCO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__ptogSOAP           -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__ptogETH            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__ptogETHA           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__ptogETOH            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__ptogFORM           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HCl__ptogHCL             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  HCL        2016/1-12/1/0      CR  xyz  kg/m2/s    HCl    1007                   1 50
+0 EPA16_HNO2__ptogHONO           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__ptogIOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__ptogKET             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__ptogMEOH            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__ptogNH3             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__ptogNO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  NO         2002-2020/1-12/1/0 CRF xyz  kgNO2/m2/s NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__ptogNO2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__ptogOLE            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__ptogPAR            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__ptogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__ptogPEC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__ptogPNA            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__ptogPNH4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__ptogPNO3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__ptogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__ptogPOC            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__ptogPRPA           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__ptogPSO4            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__ptogSO2             $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__ptogpFe             -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__ptogSULF            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__ptogTOL            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__ptogXYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__ptnonipmACET       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__ptnonipmACROLEIN   $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__ptnonipmALD2       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__ptnonipmALDX       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__ptnonipmBENZ       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_Cl2__ptnonipmCL2         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CL2        2002-2020/1-12/1/0 CR  xyz  kg/m2/s    Cl2    1007                   1 50
+0 EPA16_CO__ptnonipmCO           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__ptnonipmSOAP       -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__ptnonipmETH        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__ptnonipmETHA       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__ptnonipmETOH        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__ptnonipmFORM       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HCl__ptnonipmHCL         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   HCL        2002-2020/1-12/1/0 CR  xyz  kg/m2/s    HCl    1007                   1 50
+0 EPA16_HNO2__ptnonipmHONO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__ptnonipmIOLE       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__ptnonipmKET         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__ptnonipmMEOH        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__ptnonipmNH3         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__ptnonipmNO           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__ptnonipmNO2         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__ptnonipmOLE        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__ptnonipmPAR        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__ptnonipmPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__ptnonipmPEC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__ptnonipmPNA        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__ptnonipmPNH4        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__ptnonipmPNO3        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__ptnonipmPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__ptnonipmPOC        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__ptnonipmPRPA       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__ptnonipmPSO4        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__ptnonipmSO2         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__ptnonipmpFe         -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__ptnonipmSULF        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__ptnonipmTOL        $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__ptnonipmXYLMN      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__onroad_canACET     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_ALD2__onroad_canALD2     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__onroad_canALDX     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__onroad_canBENZ     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__onroad_canCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__onroad_canSOAP     -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__onroad_canETH      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__onroad_canETHA     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__onroad_canETOH      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__onroad_canFORM     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__onroad_canHONO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__onroad_canIOLE     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__onroad_canKET       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__onroad_canMEOH      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__onroad_canNH3       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__onroad_canNO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__onroad_canNO2       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__onroad_canOLE      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__onroad_canPAR      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__onroad_canPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__onroad_canPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__onroad_canPNA      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__onroad_canPNH4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__onroad_canPNO3      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__onroad_canPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__onroad_canPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__onroad_canPRPA     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__onroad_canPSO4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__onroad_canSO2       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__onroad_canpFe       -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__onroad_canSULF      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__onroad_canTOL      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__onroad_canXYLMN    $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_ACET__onroad_mexACET     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_MACR__onroad_mexACROLEIN $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ACROLEIN   2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_ALD2__onroad_mexALD2     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__onroad_mexALDX     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__onroad_mexBENZ     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__onroad_mexCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__onroad_mexSOAP     -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__onroad_mexETH      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__onroad_mexETHA     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__onroad_mexETOH      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__onroad_mexFORM     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__onroad_mexHONO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__onroad_mexIOLE     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__onroad_mexKET       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__onroad_mexMEOH      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__onroad_mexNH3       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__onroad_mexNO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__onroad_mexNO2       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__onroad_mexOLE      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__onroad_mexPAR      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__onroad_mexPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__onroad_mexPEC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__onroad_mexPNA      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__onroad_mexPNH4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__onroad_mexPNO3      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__onroad_mexPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__onroad_mexPOC      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__onroad_mexPRPA     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__onroad_mexPSO4      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__onroad_mexSO2       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__onroad_mexpFe       -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__onroad_mexSULF      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__onroad_mexTOL      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__onroad_mexXYLMN    $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_BCPI__othafdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__othafdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__othafdustPNA       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__othafdustPNH4       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__othafdustPNO3       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__othafdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__othafdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_SO4__othafdustPSO4       $ROOT/NEI2016/v2021-06/2016fh_16j_othafdust_adj_0pt1degree_month_$MM.ncf              PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_ACET__otharACET          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_ALD2__otharALD2          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__otharALDX          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__otharBENZ          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__otharCO              $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__otharSOAP          -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__otharETH           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__otharETHA          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__otharETOH           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__otharFORM          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__otharHONO          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__otharIOLE          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__otharKET            $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__otharMEOH           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__otharNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__otharNO              $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__otharNO2            $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__otharOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__otharPAR           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__otharPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__otharPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__otharPNA           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__otharPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__otharPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__otharPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__otharPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__otharPRPA          $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__otharPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__otharSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__otharpFe            -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__otharSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__otharTOL           $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__otharXYLMN         $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
+0 EPA16_BCPI__othptdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__othptdustPEC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__othptdustPNA       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__othptdustPNH4       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__othptdustPNO3       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__othptdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__othptdustPOC       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_SO4__othptdustPSO4       $ROOT/NEI2016/v2021-06/2016fh_16j_othptdust_adj_0pt1degree_month_$MM.ncf              PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_ACET__othptACET          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 ACET       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
+0 EPA16_ALD2__othptALD2          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 ALD2       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
+0 EPA16_RCHO__othptALDX          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 ALDX       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
+0 EPA16_BENZ__othptBENZ          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 BENZ       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
+0 EPA16_CO__othptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_SOAP__othptSOAP          -                                                                                     -          -                  -RF -    -          SOAP   26/211/252/1007/280    1 50
+0 EPA16_C2H4__othptETH           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 ETH        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H4   26/213/254/1007        1 50
+0 EPA16_C2H6__othptETHA          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 ETHA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C2H6   26/217/254/1007        1 50
+0 EPA16_EOH__othptETOH           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 ETOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    EOH    26/213/254/1007        1 50
+0 EPA16_CH2O__othptFORM          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 FORM       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    CH2O   26/213/254/1007        1 50
+0 EPA16_HNO2__othptHONO          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 HONO       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO2   25/210/251/1007        1 50
+0 EPA16_PRPE__othptIOLE          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 IOLE       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_MEK__othptKET            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 KET        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MEK    26/214/254/1007        1 50
+0 EPA16_MOH__othptMEOH           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 MEOH       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    MOH    26/213/254/1007        1 50
+0 EPA16_NH3__othptNH3            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 NH3        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH3    26/213/253/1007        1 50
+0 EPA16_NO__othptNO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 NO         2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO     115/25/210/251/1007    1 50
+0 EPA16_NO2__othptNO2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 NO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NO2    25/210/251/1007        1 50
+0 EPA16_PRPE__othptOLE           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 OLE        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    PRPE   26/215/254/1007        1 50
+0 EPA16_ALK4__othptPAR           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PAR        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    ALK4   26/212/254/1007        1 50
+0 EPA16_BCPI__othptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPI   26/221/256/1007/70     1 50
+0 EPA16_BCPO__othptPEC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PEC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    BCPO   26/221/256/1007/71     1 50
+0 EPA16_HNO4__othptPNA           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PNA        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    HNO4   26/213/251/1007        1 50
+0 EPA16_NH4__othptPNH4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PNH4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NH4    26/218/255/1007        1 50
+0 EPA16_NIT__othptPNO3           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PNO3       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
+0 EPA16_OCPI__othptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
+0 EPA16_OCPO__othptPOC           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
+0 EPA16_C3H8__othptPRPA          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PRPA       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    C3H8   26/216/254/1007        1 50
+0 EPA16_SO4__othptPSO4           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 PSO4       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_SO2__othptSO2            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 SO2        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO2    26/218/255/1007        1 50
+0 EPA16_pFe__othptpFe            -                                                                                     -          -                  -RF -    -          pFe    26/218/255/1007/69     1 50
+0 EPA16_SO4__othptSULF           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 SULF       2002-2020/1-12/1/0 CRF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
+0 EPA16_TOLU__othptTOL           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 TOL        2002-2020/1-12/1/0 CRF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
+0 EPA16_XYLE__othptXYLMN         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 XYLMN      2002-2020/1-12/1/0 CRF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
 )))NEI2016_MONMEAN
 
 #==============================================================================
@@ -1206,10 +1610,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2017/1-12/1-31/* C xy kg/m2/s DST1 606 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2017/1-12/1-31/* C xy kg/m2/s DST2 606 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2017/1-12/1-31/* C xy kg/m2/s DST3 606 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2017/1-12/1-31/* C xy kg/m2/s DST4 606 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 606 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 606 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 606 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2019-01/{NATIVE_RES}/$YYYY/$MM/dust_emissions_{LATRES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 606 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -1217,24 +1621,24 @@ Warnings:                    1
 # --- Offline biogenic VOC emissions ---
 #==============================================================================
 (((OFFLINE_BIOGENICVOC
-0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s ACET 40  4 2
-0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s ALD2 41  4 2
-0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s C2H4 44  4 2
-0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2017/1-12/1-31/* C xy kgC/m2/s EOH  47  4 2
-0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s ISOP 61  4 2
+0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ACET 40  4 2
+0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ALD2 41  4 2
+0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s C2H4 44  4 2
+0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2021/1-12/1-31/* C xy kgC/m2/s EOH  47  4 2
+0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ISOP 61  4 2
 0 BIOGENIC_ISOP_SOAP -                                                                                   -             -                     - -  -        SOAP 610 4 2
 0 BIOGENIC_ISOP_SOAS -                                                                                   -             -                     - -  -        SOAS 610 4 2
-0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s LIMO -   4 2
+0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s LIMO -   4 2
 0 BIOGENIC_LIMO_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
 0 BIOGENIC_LIMO_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s MTPA -   4 2
+0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPA -   4 2
 0 BIOGENIC_MTPA_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
 0 BIOGENIC_MTPA_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s MTPO -   4 2
+0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPO -   4 2
 0 BIOGENIC_MTPO_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
 0 BIOGENIC_MTPO_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s PRPE 49  4 2
-0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2017/1-12/1-31/* C xy kgC/m2/s SESQ -   4 2
+0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s PRPE 49  4 2
+0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/$YYYY/$MM/biovoc_{LATRES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s SESQ -   4 2
 0 BIOGENIC_SESQ_SOAP -                                                                                   -             -                     - -  -        SOAP 612 4 2
 0 BIOGENIC_SESQ_SOAS -                                                                                   -             -                     - -  -        SOAS 612 4 2
 )))OFFLINE_BIOGENICVOC
@@ -1244,10 +1648,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_SEASALT
 (((.not.SeaSalt
-0 SEASALT_SALA   $ROOT/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/$YYYY/$MM/seasalt_{LATRES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2017/1-12/1-31/* C xy kg/m2/s SALA   -   3 2
+0 SEASALT_SALA   $ROOT/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/$YYYY/$MM/seasalt_{LATRES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA   -   3 2
 0 SEASALT_SALAAL -                                                                                     -            -                     - -  -       SALAAL 615 3 2
 0 SEASALT_SALACL -                                                                                     -            -                     - -  -       SALACL 616 3 2
-0 SEASALT_SALC   $ROOT/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/$YYYY/$MM/seasalt_{LATRES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2017/1-12/1-31/* C xy kg/m2/s SALC   -   3 2
+0 SEASALT_SALC   $ROOT/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/$YYYY/$MM/seasalt_{LATRES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC   -   3 2
 0 SEASALT_SALCAL -                                                                                     -            -                     - -  -       SALCAL 615 3 2
 0 SEASALT_SALCCL -                                                                                     -            -                     - -  -       SALCCL 616 3 2
 ))).not.SeaSalt
@@ -1267,22 +1671,22 @@ Warnings:                    1
 # --- Seawater concentrations for oceanic emissions (Extension 101) ---
 #==============================================================================
 (((SeaFlux
-101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc          DMS_OCEAN  1985/1-12/1/0 C xy kg/m3 DMS  - 1 1
-101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc ACET       2005/1/1/0    C xy kg/m3 ACET - 1 1
+101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc          DMS_OCEAN  1985/1-12/1/0 C xy kg/m3  DMS  -  1 1
+101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc ACET       2005/1/1/0    C xy kgC/m3 ACET 40 1 1
 )))SeaFlux
 
 #==============================================================================
 # --- Dust emissions using DEAD model (Extension 105) ---
 #==============================================================================
 (((DustDead
-105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  MF_SND   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc                  SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc              GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc                  VAI      1985/1-12/1/0 C xy unitless *    -    1 1
+105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
+105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
+105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_SND   1985/1/1/0    C xy fraction *    -    1 1
+105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
+105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
+105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
 )))DustDead
 
 #==============================================================================
@@ -1741,7 +2145,9 @@ Warnings:                    1
 25 EDGAR_TODNOX $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless 1
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
 
+#==============================================================================
 # Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019)
+#==============================================================================
 33 PKU_pow_NOx              0.94/0.93/0.93/0.92/0.93/0.96/0.98/0.99/0.98/1.00/1.05/1.03/1.01/1.04/1.05/1.05/1.07/1.06/1.05/1.05/1.03/1.01/0.99/0.96 - - - xy unitless 1 1009
 34 PKU_pow_SO2              0.92/0.91/0.90/0.89/0.90/0.93/0.97/0.98/0.99/1.02/1.07/1.04/1.03/1.06/1.06/1.07/1.10/1.10/1.06/1.05/1.03/1.01/0.99/0.93 - - - xy unitless 1 1009
 35 PKU_pow_PM_BC_POC_VOC_CO 0.95/0.93/0.92/0.91/0.90/0.93/0.97/0.97/0.99/1.03/1.04/1.03/1.02/1.03/1.05/1.07/1.07/1.07/1.06/1.04/1.03/1.02/1.00/0.97 - - - xy unitless 1 1009
@@ -1804,10 +2210,10 @@ Warnings:                    1
 51 KET2ACET   0.75  - - - xy unitless 1
 )))RCP_3PD.or.RCP_45.or.RCP_60.or.RCP_85
 
-(((APEI.or.EDGARv43.or.DICE_Africa
+(((APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 52 COPROD_FOSSIL    1.02  - - - xy unitless 1
 54 COPROD_BIOMASS   1.05  - - - xy unitless 1
-)))APEI.or.EDGARv43.or.DICE_Africa
+)))APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 
 # RCP acids to HCOOH conversion
 (((RCP_3PD.or.RCP_45.or.RCP_60.or.RCP_85
@@ -1965,6 +2371,25 @@ Warnings:                    1
 )))NEI2016_MONMEAN
 
 #==============================================================================
+# --- EPA NEI2016 annual scale factors ---
+#
+# Annual scale factors were computed from the EPA Trends Report for Tier 1 CAPS
+# (obtained 21 Sep 2021) using the "Total without wildfires" field. NH3 and
+# PM2.5 only had values for 2002-2020, while the remaining species had yearly
+# values for 1990-2020 (we include only 2002-2020 here).
+#
+# See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
+#==============================================================================
+(((NEI2016_MONMEAN
+251 NEI2016_NOx_YRSCALE  2.341/2.213/2.083/1.989/1.879/1.768/1.651/1.539/1.448/1.407/1.345/1.282/1.224/1.135/1.000/0.943/0.895/0.840/0.785 - 2002-2020/1/1/0 C xy 1 1
+252 NEI2016_CO_YRSCALE   1.817/1.767/1.716/1.666/1.610/1.554/1.393/1.251/1.272/1.261/1.220/1.178/1.137/1.095/1.000/0.973/0.950/0.927/0.904 - 2002-2020/1/1/0 C xy 1 1
+253 NEI2016_NH3_YRSCALE  0.996/0.999/1.002/1.005/1.043/1.082/1.100/1.088/1.077/1.012/0.957/0.954/0.899/0.950/1.000/1.052/1.051/1.050/1.049 - 2002-2020/1/1/0 C xy 1 1
+254 NEI2016_VOC_YRSCALE  1.314/1.285/1.255/1.223/1.234/1.246/1.148/1.135/1.154/1.175/1.153/1.131/1.110/1.067/1.000/0.970/0.956/0.941/0.926 - 2002-2020/1/1/0 C xy 1 1
+255 NEI2016_SO2_YRSCALE  4.773/4.701/4.626/4.625/4.171/3.717/3.273/2.879/2.446/2.038/1.591/1.525/1.469/1.237/1.000/0.767/0.735/0.641/0.583 - 2002-2020/1/1/0 C xy 1 1
+256 NEI2016_PM25_YRSCALE 1.120/1.140/1.159/1.178/1.213/1.248/1.202/1.195/1.190/1.192/1.153/1.115/1.077/1.040/1.000/0.964/0.961/0.958/0.955 - 2002-2020/1/1/0 C xy 1 1
+)))NEI2016_MONMEAN
+
+#==============================================================================
 # --- GFAS scale factors ---
 #==============================================================================
 (((GFAS
@@ -2098,8 +2523,9 @@ Warnings:                    1
 1008 AFRICA_MASK $ROOT/MASKS/v2018-09/AF_LANDMASK.geos.05x0666.global.nc       LANDMASK 1985/1/1/0 C xy 1 1 -20/-37/54/40
 )))DICE_Africa
 
-(((AFCID
 1009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc                MASK     2000/1/1/0 C xy 1 1  70/10/150/60
+
+(((AFCID
 1010 INDIA_MASK  $ROOT/MASKS/v2019-05/India_mask.generic.1x1.nc                MASK     2000/1/1/0 C xy 1 1  67/7/99/39
 )))AFCID
 

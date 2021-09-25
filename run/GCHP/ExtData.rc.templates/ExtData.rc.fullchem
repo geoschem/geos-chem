@@ -317,7 +317,7 @@ APEI_OCPI kg/m2/s N Y F%y4-01-01T00:00:00 none none OC  ./HcoDir/APEI/v2016-11/A
 APEI_OCPO kg/m2/s N Y F%y4-01-01T00:00:00 none none OC  ./HcoDir/APEI/v2016-11/APEI.0.1x0.1.nc
 #
 #==============================================================================
-# --- NEI2016 USA monthly mean (NEI2016_MONMEAN) ---
+# --- EPA NEI2016 USA monthly mean (NEI2016_MONMEAN) ---
 #==============================================================================
 EPA16_BCPI__afdustPEC          kg/m2/s  Y Y F2016-%m2-01T00:00:00 none none PEC        ./HcoDir/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_%m2.ncf               
 EPA16_BCPO__afdustPEC          kg/m2/s  Y Y F2016-%m2-01T00:00:00 none none PEC        ./HcoDir/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_%m2.ncf               
