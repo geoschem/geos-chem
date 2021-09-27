@@ -3470,9 +3470,9 @@ CONTAINS
 
     ! Ratio of mass inside to outside cloud
     ! xx has range [0,+inf], but ff is capped at 1e30, so shouldn't overflow
-    xx =     ( ff        - kk        - 1.0_dp       ) / 2.0_dp +             &
+    xx =     ( ff        - kk        - 1.0_fp       ) / 2.0_fp +             &
          sqrt( 1.0_fp    + ff*ff     + kk*kk                   +             &
-               2.0_dp*ff + 2.0_dp*kk - 2.0_dp*ff*kk ) / 2.0_dp
+               2.0_fp*ff + 2.0_fp*kk - 2.0_fp*ff*kk ) / 2.0_fp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )

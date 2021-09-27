@@ -261,7 +261,7 @@ CONTAINS
     ! Ratio of mass inside to outside cloud
     ! xx has range [0,+inf], but ff is capped at 1e30, so shouldn't overflow.
     xx =     ( ff        - kk        - 1.0_dp       ) / 2.0_dp +             &
-         sqrt( 1.0_fp    + ff*ff     + kk*kk                   +             &
+         SQRT( 1.0_dp    + ff*ff     + kk*kk                   +             &
                2.0_dp*ff + 2.0_dp*kk - 2.0_dp*ff*kk ) / 2.0_dp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
