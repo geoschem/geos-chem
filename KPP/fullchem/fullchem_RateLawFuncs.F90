@@ -238,6 +238,31 @@ CONTAINS
     k  = k0 * k1 * f / ( k0 + k1 )
   END FUNCTION GC_PAN_acac
 
+  FUNCTION GC_PAN_abab( a0, c0, a1, b1, cf ) RESULT( k )
+    ! Used to compute the rate for these reactions:
+    !    MACR1OO + NO2 = MPAN
+    !    MACRNO2 + NO2 = MPAN + NO2
+    !
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    EXP(b0/T)
+    !    EXP(b1/T)
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+    !
+    ! Sept 27 2012: Added GC_PAN_abab per Kelvin Bates' requirements
+    !               for aromatic chem.
+    REAL(dp), INTENT(IN) :: a0, c0, a1, b1, cf
+    REAL(dp)             :: k0, k1, kr, nc, f,  k
+    !
+    k0 = a0 * EXP( b0 / TEMP )
+    k1 = a1 * EXP( b1 / TEMP )
+    k0 = k0 * NUMDEN
+    kr = k0 / k1
+    nc = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
+    f  = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
+    k  = k0 * k1 * f / ( k0 + k1 )
+  END FUNCTION GC_PAN_acac
+
   FUNCTION GC_NIT( a0, b0, c0, n, x0, y0 ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    IHOO1    + NO = IHN2
