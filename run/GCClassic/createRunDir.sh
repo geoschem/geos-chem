@@ -265,7 +265,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	offline_dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="geosfp"
@@ -278,7 +277,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	offline_dust_sf='6.42e-5'
     elif [[ ${met_num} = "3" ]]; then
 	met_name='ModelE2.1'
 	met_name_lc='modele2.1'
@@ -291,7 +289,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='1950'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	offline_dust_sf='1.0'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -777,7 +774,6 @@ sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
 sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
 sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
 sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed_ie "s|{DUST_SF}|${offline_dust_sf}|"  HEMCO_Config.rc
 sed_ie "s|{DEAD_TF}|${dead_tf}|"          HEMCO_Config.rc
 sed_ie "s|{MET_AVAIL}|${met_avail}|"      HEMCO_Config.rc
 
