@@ -163,7 +163,13 @@ EmisCH3I_Ocean     CH3I   0     1    -1   2   kg/m2/s  CH3I_emission_flux_from_o
 EmisCHBr3_Ocean    CHBr3  0      1   -1   2   kg/m2/s  CHBr3_emission_flux_from_ocean
 
 ###############################################################################
-#####  CO sources                                                         #####
+#####  Cl2 emissions                                                      #####
+###############################################################################
+EmisCl2_Total      Cl2    -1     -1  -1   3   kg/m2/s  Cl2_emission_flux_from_all_sectors
+EmisCl2_Anthro     Cl2    0      1   -1   3   kg/m2/s  Cl2_emission_flux_from_anthropogenic
+
+###############################################################################
+#####  CO emissions                                                       #####
 ###############################################################################
 EmisCO_Total       CO     -1     -1  -1   3   kg/m2/s  CO_emission_flux_from_all_sectors
 EmisCO_Aircraft    CO     0      20  -1   3   kg/m2/s  CO_emission_flux_from_aircraft
@@ -214,6 +220,12 @@ EmisETNO3_Ocean    ETNO3  101    -1  -1   2   kg/m2/s  ETNO3_emission_flux_from_
 ###############################################################################
 EmisHAC_Total      HAC    -1     -1  -1   3   kg/m2/s  HAC_emission_flux_from_all_sectors
 EmisHAC_Anthro     HAC    0      1   -1   3   kg/m2/s  HAC_emission_flux_from_anthropogenic
+
+###############################################################################
+#####  HCl emissions                                                      #####
+###############################################################################
+EmisHCl_Total      HCl    -1     -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
+EmisHCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
 
 ###############################################################################
 #####  GLYC emissions                                                     #####
@@ -505,37 +517,42 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvAPEI_SOAP         SOAP   0    1   30  2   kg/m2/s  SOAP_emission_flux_from_APEI_inventory
 
 #=============================
-# NEI2011
+# NEI2016
 #=============================
-#InvNEI2011_ACET      ACET   0    1   50  3   kg/m2/s  ACET_emission_flux_from_NEI2011_inventory
-#InvNEI2011_ALD2      ALD2   0    1   50  3   kg/m2/s  ALD2_emission_flux_from_NEI2011_inventory
-#InvNEI2011_ALK4      ALK4   0    1   50  3   kg/m2/s  ALK4_emission_flux_from_NEI2011_inventory
-#InvNEI2011_BCPI      BCPI   0    1   50  3   kg/m2/s  BCPI_emission_flux_from_NEI2011_inventory
-#InvNEI2011_BCPO      BCPO   0    1   50  3   kg/m2/s  BCPO_emission_flux_from_NEI2011_inventory
-#InvNEI2011_BENZ      BENZ   0    1   50  3   kg/m2/s  BENZ_emission_flux_from_NEI2011_inventory
-#InvNEI2011_C2H4      C2H4   0    1   50  3   kg/m2/s  C2H4_emission_flux_from_NEI2011_inventory
-#InvNEI2011_C2H6      C2H6   0    1   50  3   kg/m2/s  C2H6_emission_flux_from_NEI2011_inventory
-#InvNEI2011_C3H8      C3H8   0    1   50  3   kg/m2/s  C3H8_emission_flux_from_NEI2011_inventory
-#InvNEI2011_CH2O      CH2O   0    1   50  3   kg/m2/s  CH2O_emission_flux_from_NEI2011_inventory
-#InvNEI2011_CO        CO     0    1   50  3   kg/m2/s  CO_emission_flux_from_NEI2011_inventory
-#InvNEI2011_EOH       EOH    0    1   50  3   kg/m2/s  EOH_emission_flux_from_NEI2011_inventory
-#InvNEI2011_HONO      HONO   0    1   50  3   kg/m2/s  HONO_emission_flux_from_NEI2011_inventory
-#InvNEI2011_MACR      MACR   0    1   50  3   kg/m2/s  MACR_emission_flux_from_NEI2011_inventory
-#InvNEI2011_MEK       MEK    0    1   50  3   kg/m2/s  MEK_emission_flux_from_NEI2011_inventory
-#InvNEI2011_MOH       MOH    0    1   50  3   kg/m2/s  MOH_emission_flux_from_NEI2011_inventory
-#InvNEI2011_NH3       NH3    0    1   50  3   kg/m2/s  NH3_emission_flux_from_NEI2011_inventory
-#InvNEI2011_NO        NO     0    1   50  3   kg/m2/s  NO_emission_flux_from_NEI2011_inventory
-#InvNEI2011_NO2       NO2    0    1   50  3   kg/m2/s  NO2_emission_flux_from_NEI2011_inventory
-#InvNEI2011_pFe       pFe    0    1   50  3   kg/m2/s  pFe_emission_flux_from_NEI2011_inventory
-#InvNEI2011_PRPE      PRPE   0    1   50  3   kg/m2/s  PRPE_emission_flux_from_NEI2011_inventory
-#InvNEI2011_OCPI      OCPI   0    1   50  3   kg/m2/s  OCPI_emission_flux_from_NEI2011_inventory
-#InvNEI2011_OCPO      OCPO   0    1   50  3   kg/m2/s  OCPO_emission_flux_from_NEI2011_inventory
-#InvNEI2011_RCHO      RCHO   0    1   50  3   kg/m2/s  RCHO_emission_flux_from_NEI2011_inventory
-#InvNEI2011_SO2       SO2    0    1   50  3   kg/m2/s  SO2_emission_flux_from_NEI2011_inventory
-#InvNEI2011_SO4       SO4    0    1   50  3   kg/m2/s  SO4_emission_flux_from_NEI2011_inventory
-#InvNEI2011_SOAP      SOAP   0    1   50  3   kg/m2/s  SOAP_emission_flux_from_NEI2011_inventory
-#InvNEI2011_TOLU      TOLU   0    1   50  3   kg/m2/s  TOLU_emission_flux_from_NEI2011_inventory
-#InvNEI2011_XYLE      XYLE   0    1   50  3   kg/m2/s  XYLE_emission_flux_from_NEI2011_inventory
+#InvNEI2016_ACET      ACET   0    1   50  3   kg/m2/s  ACET_emission_flux_from_NEI2016_inventory
+#InvNEI2016_ALD2      ALD2   0    1   50  3   kg/m2/s  ALD2_emission_flux_from_NEI2016_inventory
+#InvNEI2016_ALK4      ALK4   0    1   50  3   kg/m2/s  ALK4_emission_flux_from_NEI2016_inventory
+#InvNEI2016_BCPI      BCPI   0    1   50  3   kg/m2/s  BCPI_emission_flux_from_NEI2016_inventory
+#InvNEI2016_BCPO      BCPO   0    1   50  3   kg/m2/s  BCPO_emission_flux_from_NEI2016_inventory
+#InvNEI2016_BENZ      BENZ   0    1   50  3   kg/m2/s  BENZ_emission_flux_from_NEI2016_inventory
+#InvNEI2016_C2H4      C2H4   0    1   50  3   kg/m2/s  C2H4_emission_flux_from_NEI2016_inventory
+#InvNEI2016_C2H6      C2H6   0    1   50  3   kg/m2/s  C2H6_emission_flux_from_NEI2016_inventory
+#InvNEI2016_C3H8      C3H8   0    1   50  3   kg/m2/s  C3H8_emission_flux_from_NEI2016_inventory
+#InvNEI2016_CH2O      CH2O   0    1   50  3   kg/m2/s  CH2O_emission_flux_from_NEI2016_inventory
+#InvNEI2016_Cl2       Cl2    0    1   50  3   kg/m2/s  Cl2_emission_flux_from_NEI2016_inventory
+#InvNEI2016_CO        CO     0    1   50  3   kg/m2/s  CO_emission_flux_from_NEI2016_inventory
+#InvNEI2016_EOH       EOH    0    1   50  3   kg/m2/s  EOH_emission_flux_from_NEI2016_inventory
+#InvNEI2016_HCl       HCl    0    1   50  3   kg/m2/s  HCl_emission_flux_from_NEI2016_inventory
+#InvNEI2016_HNO2      HNO2   0    1   50  3   kg/m2/s  HNO2_emission_flux_from_NEI2016_inventory
+#InvNEI2016_HNO4      HNO4   0    1   50  3   kg/m2/s  HNO4_emission_flux_from_NEI2016_inventory
+#InvNEI2016_MACR      MACR   0    1   50  3   kg/m2/s  MACR_emission_flux_from_NEI2016_inventory
+#InvNEI2016_MEK       MEK    0    1   50  3   kg/m2/s  MEK_emission_flux_from_NEI2016_inventory
+#InvNEI2016_MOH       MOH    0    1   50  3   kg/m2/s  MOH_emission_flux_from_NEI2016_inventory
+#InvNEI2016_NH3       NH3    0    1   50  3   kg/m2/s  NH3_emission_flux_from_NEI2016_inventory
+#InvNEI2016_NH4       NH4    0    1   50  3   kg/m2/s  NH4_emission_flux_from_NEI2016_inventory
+#InvNEI2016_NIT       NIT    0    1   50  3   kg/m2/s  NIT_emission_flux_from_NEI2016_inventory
+#InvNEI2016_NO        NO     0    1   50  3   kg/m2/s  NO_emission_flux_from_NEI2016_inventory
+#InvNEI2016_NO2       NO2    0    1   50  3   kg/m2/s  NO2_emission_flux_from_NEI2016_inventory
+#InvNEI2016_pFe       pFe    0    1   50  3   kg/m2/s  pFe_emission_flux_from_NEI2016_inventory
+#InvNEI2016_PRPE      PRPE   0    1   50  3   kg/m2/s  PRPE_emission_flux_from_NEI2016_inventory
+#InvNEI2016_OCPI      OCPI   0    1   50  3   kg/m2/s  OCPI_emission_flux_from_NEI2016_inventory
+#InvNEI2016_OCPO      OCPO   0    1   50  3   kg/m2/s  OCPO_emission_flux_from_NEI2016_inventory
+#InvNEI2016_RCHO      RCHO   0    1   50  3   kg/m2/s  RCHO_emission_flux_from_NEI2016_inventory
+#InvNEI2016_SO2       SO2    0    1   50  3   kg/m2/s  SO2_emission_flux_from_NEI2016_inventory
+#InvNEI2016_SO4       SO4    0    1   50  3   kg/m2/s  SO4_emission_flux_from_NEI2016_inventory
+#InvNEI2016_SOAP      SOAP   0    1   50  3   kg/m2/s  SOAP_emission_flux_from_NEI2016_inventory
+#InvNEI2016_TOLU      TOLU   0    1   50  3   kg/m2/s  TOLU_emission_flux_from_NEI2016_inventory
+#InvNEI2016_XYLE      XYLE   0    1   50  3   kg/m2/s  XYLE_emission_flux_from_NEI2016_inventory
 
 #=============================
 # MIX
