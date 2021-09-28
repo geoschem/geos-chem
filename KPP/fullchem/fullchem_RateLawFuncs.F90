@@ -2661,7 +2661,9 @@ CONTAINS
     k = k + Ars_L1K( area, H%xRadi(IIC), gamma, srMw )
     !
     ! Also account for cloudy grid box
-    k = k + CloudHet( H, srMw, gamma, 1.0_dp, 0.0_dp, 0.0_dp )
+    ! Use gamma(liquid) = gamma(ice) = 0.01, to make the uptake coefficient
+    ! consistent with hydrolysis in aerosols (T. Sherwen, 28 Sep 2021)
+    k = k + CloudHet( H, srMw, 0.01_dp, 0.01_dp, 1.0_dp, 1.0_dp )
     !
     ! Assume IONO2 is limiting, so update the reaction rate accordingly
     k = kIIR1Ltd( C(ind_IONO2), C(ind_H2O), k )
