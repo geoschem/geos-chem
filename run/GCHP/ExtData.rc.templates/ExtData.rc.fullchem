@@ -1469,9 +1469,9 @@ GEOSCCM_HBr_NIGHT   pptv  Y Y F2007-%m2-01T00:00:00 none none HBR    ./HcoDir/ST
 GEOSCCM_HOBr_NIGHT  pptv  Y Y F2007-%m2-01T00:00:00 none none HOBR   ./HcoDir/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007%m2.night.nc
 #
 #==============================================================================
-#--- Archived GMI OH concentrations (GMI_STRAT_OH) ---
+#--- Archived GMI OH concentrations (GMI_OH) ---
 #==============================================================================
-STRAT_OH v/v Y N 2005-%m2-01T00:00:00 none none species ./HcoDir/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc
+GMI_OH v/v Y N 2005-%m2-01T00:00:00 none none species ./HcoDir/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc
 #
 #==============================================================================
 #--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---

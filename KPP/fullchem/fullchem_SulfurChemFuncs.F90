@@ -121,123 +121,128 @@ CONTAINS
     ! Initialize
     RC            = GC_SUCCESS
     K_MT          = 0.0_dp
-    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
-    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
-    errMsg        = ''
-    thisLoc       = &
-   ' -> at fullchem_SulfurAqChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
+!-----------------------------------------------------------------------------
+! Comment out this code, until we restore these reactions
+! because KPP will not have SALAAL and SALCAL indices defined (bmy, 9/23/21)
+!    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
+!    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
+!    errMsg        = ''
+!    thisLoc       = &
+!   ' -> at fullchem_SulfurAqChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
+!
+!    !======================================================================
+!    ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
+!    !
+!    ! K_MT(1) : SALAAL + SO2 + O3 = SO4 - SALAAL
+!    ! K_MT(2) : SALAAL + HCl      = SALACL
+!    ! K_MT(3) : SALAAL + HNO3     = NIT
+!    !
+!    ! NOTE: SALAAL_gt_0_1 prevents div-by-zero errors
+!    !======================================================================
+!
+!    !------------------------------------------------------------------------
+!    ! SALAAL + SO2 + O3 = SO4 - SALAAL
+!    !------------------------------------------------------------------------
+!    IF ( SALAAL_gt_0_1 ) THEN
+!
+!       ! 1st order uptake
+!       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
+!                       radius = State_Het%xRadi(11),                         &
+!                       gamma  = 0.11_dp,                                     &
+!                       srMw   = SR_MW(ind_SO2)                              )
+!
+!       ! Assume SO2 is limiting, so recompute rxn rate accordingly
+!       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
+!               / State_Chm%Species(I,J,L,id_SALAAL)
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! SALAAL + HCL = SALACL
+!    !------------------------------------------------------------------------
+!
+!    ! 1st order uptake
+!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
+!                    radius = State_Het%xRadi(11),                            &
+!                    gamma  = 0.074_dp,                                       &
+!                    srMw   = SR_MW(ind_HCl)                                 )
+!
+!    ! Assume HCl is limiting, so recompute reaction rate accordingly
+!    IF ( SALAAL_gt_0_1 ) THEN
+!       K_MT(2) = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k_ex )
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! SALAAL + HNO3 = NIT
+!    !------------------------------------------------------------------------
+!
+!    ! 1st order uptake
+!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
+!                    radius = State_Het%xRadi(11),                            &
+!                    gamma  = 0.5_dp,                                         &
+!                    srMw   = SR_MW(ind_HNO3)                                )
+!
+!    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
+!    IF ( SALAAL_gt_0_1 ) THEN
+!       K_MT(3) = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k_ex )
+!    ENDIF
+!
+!    !========================================================================
+!    ! Reaction rates [1/s] for coarse sea salt alkalinity (aka SALAAL)
+!    !
+!    ! K_MT(4) : SALCAL + SO2 + O3 = SO4s - SALCAL
+!    ! K_MT(5) : SALCAL + HCl      = SALCCL
+!    ! K_MT(6) : SALCAL + HNO3     = NITs
+!    !
+!    ! NOTE: SALCAL_gt_0_1 prevents div-by-zero errors
+!    !========================================================================
+!
+!    !------------------------------------------------------------------------
+!    ! SALCAL + SO2 + O3 = SO4s - SALCAL
+!    !------------------------------------------------------------------------
+!    IF ( SALCAL_gt_0_1 ) THEN
+!
+!       ! 1st order uptake
+!       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
+!                       radius = State_Het%xRadi(12),                         &
+!                       gamma  = 0.11_dp,                                     &
+!                       srMw   = SR_MW(ind_SO2)                              )
+!
+!       ! Assume SO2 is limiting, so recompute rxn rate accordingly
+!       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
+!               / State_Chm%Species(I,J,L,id_SALCAL)
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! SALCAL + HCl = SALCCL
+!    !------------------------------------------------------------------------
+!
+!    ! 1st order uptake
+!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
+!                    radius = State_Het%xRadi(12),                            &
+!                    gamma  = 0.074_dp,                                       &
+!                    srMw   = SR_MW(ind_HCl)                                 )
+!
+!    ! Assume HCl is limiting, so recompute rxn rate accordingly
+!    IF ( SALCAL_gt_0_1 ) THEN
+!       K_MT(5) = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k_ex )
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! SALCAL + HNO3 = NITs
+!    !------------------------------------------------------------------------
+!
+!    ! 1st order uptake
+!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
+!                    radius = State_Het%xRadi(12),                            &
+!                    gamma  = 0.5_dp,                                         &
+!                    srMw   = SR_MW(ind_HNO3)                                )
+!
+!    ! Assume HNO3 is limiting, so recompute rxn rate accordingly
+!    IF ( SALCAL_gt_0_1 ) THEN
+!       K_MT(6) = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k_ex )
+!    ENDIF
+!-----------------------------------------------------------------------------
 
-    !======================================================================
-    ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
-    !
-    ! K_MT(1) : SALAAL + SO2 + O3 = SO4 - SALAAL
-    ! K_MT(2) : SALAAL + HCl      = SALACL
-    ! K_MT(3) : SALAAL + HNO3     = NIT
-    !
-    ! NOTE: SALAAL_gt_0_1 prevents div-by-zero errors
-    !======================================================================
-
-    !------------------------------------------------------------------------
-    ! SALAAL + SO2 + O3 = SO4 - SALAAL
-    !------------------------------------------------------------------------
-    IF ( SALAAL_gt_0_1 ) THEN
-
-       ! 1st order uptake
-       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
-                       radius = State_Het%xRadi(11),                         &
-                       gamma  = 0.11_dp,                                     &
-                       srMw   = SR_MW(ind_SO2)                              )
-
-       ! Assume SO2 is limiting, so recompute rxn rate accordingly
-       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%Species(I,J,L,id_SALAAL)
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! SALAAL + HCL = SALACL
-    !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
-                    radius = State_Het%xRadi(11),                            &
-                    gamma  = 0.074_dp,                                       &
-                    srMw   = SR_MW(ind_HCl)                                 )
-
-    ! Assume HCl is limiting, so recompute reaction rate accordingly
-    IF ( SALAAL_gt_0_1 ) THEN
-       K_MT(2) = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k_ex )
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! SALAAL + HNO3 = NIT
-    !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
-                    radius = State_Het%xRadi(11),                            &
-                    gamma  = 0.5_dp,                                         &
-                    srMw   = SR_MW(ind_HNO3)                                )
-
-    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
-    IF ( SALAAL_gt_0_1 ) THEN
-       K_MT(3) = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k_ex )
-    ENDIF
-
-    !========================================================================
-    ! Reaction rates [1/s] for coarse sea salt alkalinity (aka SALAAL)
-    !
-    ! K_MT(4) : SALCAL + SO2 + O3 = SO4s - SALCAL
-    ! K_MT(5) : SALCAL + HCl      = SALCCL
-    ! K_MT(6) : SALCAL + HNO3     = NITs
-    !
-    ! NOTE: SALCAL_gt_0_1 prevents div-by-zero errors
-    !========================================================================
-
-    !------------------------------------------------------------------------
-    ! SALCAL + SO2 + O3 = SO4s - SALCAL
-    !------------------------------------------------------------------------
-    IF ( SALCAL_gt_0_1 ) THEN
-
-       ! 1st order uptake
-       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
-                       radius = State_Het%xRadi(12),                         &
-                       gamma  = 0.11_dp,                                     &
-                       srMw   = SR_MW(ind_SO2)                              )
-
-       ! Assume SO2 is limiting, so recompute rxn rate accordingly
-       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%Species(I,J,L,id_SALCAL)
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! SALCAL + HCl = SALCCL
-    !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
-                    radius = State_Het%xRadi(12),                            &
-                    gamma  = 0.074_dp,                                       &
-                    srMw   = SR_MW(ind_HCl)                                 )
-
-    ! Assume HCl is limiting, so recompute rxn rate accordingly
-    IF ( SALCAL_gt_0_1 ) THEN
-       K_MT(5) = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k_ex )
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! SALCAL + HNO3 = NITs
-    !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
-                    radius = State_Het%xRadi(12),                            &
-                    gamma  = 0.5_dp,                                         &
-                    srMw   = SR_MW(ind_HNO3)                                )
-
-    ! Assume HNO3 is limiting, so recompute rxn rate accordingly
-    IF ( SALCAL_gt_0_1 ) THEN
-       K_MT(6) = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k_ex )
-    ENDIF
 
   END SUBROUTINE fullchem_SulfurAqChem
 !EOC
@@ -3344,7 +3349,7 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! FF has a range [0,+inf], so cap it at 1e30
     FF = SafeDiv( FC, ( 1.0_fp - FC ), 1e30_fp )
-    FF = MAX( FF, 1e30_fp )
+    FF = MIN( FF, 1.0e30_fp )
 
     ! Avoid div by zero for the TAUC/FF term
     term1 = 0.0_fp
@@ -3461,12 +3466,13 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! ff has a range [0,+inf], so cap it at 1e30
     ff = SafeDiv( fc, (1e0_fp - fc), 1e30_fp )
-    ff = max( ff, 1e30_fp )
+    ff = MIN( ff, 1.0e30_fp )
 
     ! Ratio of mass inside to outside cloud
-    ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-    xx = ( ff - kk - 1e0_fp ) / 2e0_fp + &
-         sqrt( 1e0_fp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_fp
+    ! xx has range [0,+inf], but ff is capped at 1e30, so shouldn't overflow
+    xx =     ( ff        - kk        - 1.0_fp       ) / 2.0_fp +             &
+         sqrt( 1.0_fp    + ff*ff     + kk*kk                   +             &
+               2.0_fp*ff + 2.0_fp*kk - 2.0_fp*ff*kk ) / 2.0_fp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )

@@ -254,7 +254,7 @@ CONTAINS
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)                :: MWkg, DENOM
     LOGICAL                 :: FND
-    LOGICAL                 :: PBL_DRYDEP, LSCHEM, ChemGridOnly
+    LOGICAL                 :: PBL_DRYDEP, LINEAR_CHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
     REAL(f8)                :: DT_Tend
@@ -306,7 +306,7 @@ CONTAINS
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%DoEmissions ) RETURN
 
     ! Initialize
-    LSCHEM            = Input_Opt%LSCHEM
+    LINEAR_CHEM       = Input_Opt%LINEAR_CHEM
     LEMIS             = Input_Opt%DoEmissions
     LDRYD             = Input_Opt%LDRYD
     PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
@@ -539,20 +539,12 @@ CONTAINS
        ! Therefore avoid any emissions of these compounds above the
        ! chemistry grid (lin. strat. chem. applies above chemistry grid
        ! only).
-       IF ( LSCHEM ) THEN
+       IF ( LINEAR_CHEM ) THEN
           IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
                N == id_Br   .OR. N == id_HOBr  .OR. &
                N == id_HBr  .OR. N == id_BrNO3       ) THEN
              ChemGridOnly = .TRUE.
           ENDIF
-       ENDIF
-
-       ! For non-UCX runs, never emit above the chemistry grid.
-       ! (ckeller, 6/18/15)
-       ! Exclude all specialty simulations (ewl, 3/17/16)
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .AND.  &
-            .NOT. Input_Opt%LUCX ) THEN
-          ChemGridOnly = .TRUE.
        ENDIF
 
        !--------------------------------------------------------------------

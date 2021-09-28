@@ -215,9 +215,9 @@ Warnings:                    1
 #==============================================================================
 
 (((STREETS
-0 STREETS_HG0 $ROOT/MERCURY/v2020-07/Streets/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy kg/m2/s Hg0 - 1 1
-0 STREETS_HG2 $ROOT/MERCURY/v2020-07/Streets/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
-0 STREETS_HGP $ROOT/MERCURY/v2020-07/Streets/Streets2019_Hg.nc HgP 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 STREETS_HG0 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 STREETS_HG2 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
+0 STREETS_HGP $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc HgP 2015/1/1/0 C xy kg/m2/s Hg2 - 1 1
 )))STREETS
 
 #==============================================================================
