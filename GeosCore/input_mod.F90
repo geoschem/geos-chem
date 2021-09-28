@@ -3850,6 +3850,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
+	USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3932,7 +3933,26 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+	
+    IF ( N > 85 .AND. Input_Opt%amIRoot) THEN 
+	   WRITE( 6, '(/,a)' ) 'OBSPACK_MENU'
+       WRITE( 6, '(  a)' ) '----------------'
+       WRITE( 6, '(a)') 'WARNING: Too many ObsPack individual output species detected on one line input.'
+       WRITE( 6, '(a)') 'Consider using wildcard SpeciesConc_?ALL? to track all advected species.'  
+       CALL GEOS_CHEM_STOP
+    ENDIF
 
+    ! Test if there is an "?ALL" wildcard present as the FIRST substring
+    ! argument to the ObsPack output Species Line. 
+    IF ( N==1 .AND. INDEX( SUBSTRS(1) , '?ALL' ) >  0)  THEN
+      ! If wildcard for all species is requested then update the 
+      ! list of species to track to be the list of advected species 
+      SUBSTRS= Input_Opt%AdvectSpc_Name
+
+      ! And update the number of species to track with ObsPack as the # of advected species.  
+      N =Input_Opt%N_ADVECT			
+    ENDIF  
+	
     ! Populate the ObsPack species name list
     Input_Opt%ObsPack_nSpc = N
     DO S = 1, Input_Opt%ObsPack_nSpc
