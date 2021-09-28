@@ -111,14 +111,11 @@ CONTAINS
     kIEduct = 0.0_dp
     kII     = 0.0_dp
     !
-    ! Prevent div by zero
-    !---------------------------------------------------------------------
-    ! NOTE: This line was presumably to prevent div-by-zero, but is
-    ! not really needed, as we now use SafeDiv to trap these errors.
-    ! This can prevent reaction rates from being computed if the
-    ! concEduct is very low.  Comment out for now. (bmy, 9/15/21)
-    !IF ( concEduct < 100.0_dp                            ) RETURN
-    !---------------------------------------------------------------------
+    ! Prevent div by zero.   NOTE: Now use 1.0e-20 as the error trap for
+    ! concEduct.  100 (the previous criterion) was too large.  We should
+    ! never have have a concentration as low as 1e-20 molec/cm3, as that
+    ! will definitely blow up the division. (bmy, 9/20/21)
+    IF ( concEduct < 1.0e-20_dp                          ) RETURN
     IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
     !
     ! Compute rates
@@ -259,12 +256,13 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! ff has a range [0,+inf], so cap it at 1e30
     ff = SafeDiv( H%CldFr, H%ClearFr, 1.0e+30_dp )
-    ff = MAX( ff, 1.0e+30_dp )
+    ff = MIN( ff, 1.0e+30_dp )
 
     ! Ratio of mass inside to outside cloud
-    ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-    xx =     ( ff - kk - 1.0_dp ) / 2.0_dp +                                 &
-         SQRT( 1e0_dp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2.0_dp
+    ! xx has range [0,+inf], but ff is capped at 1e30, so shouldn't overflow.
+    xx =     ( ff        - kk        - 1.0_dp       ) / 2.0_dp +             &
+         SQRT( 1.0_dp    + ff*ff     + kk*kk                   +             &
+               2.0_dp*ff + 2.0_dp*kk - 2.0_dp*ff*kk ) / 2.0_dp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )

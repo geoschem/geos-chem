@@ -2882,6 +2882,10 @@ CONTAINS
        ! Their paper suggested an approximated value of A = 3.2D-8
        A = ( ( 4.0_dp * volTotal ) / ( speed * areaTotal ) ) * KH
 
+       ! Cap A at 3.2D-8 to prevent high gamma values when vol/area is high.
+       ! See Github issue: https://github.com/geoschem/geos-chem/issues/907
+       A = MIN( A, 3.2e-8_dp )
+
        ! k2f - reaction rate constant of N2O5 with H2O
        ! From McDuffie (2018): k2f = 2.14D5 * H2O
        ! This linear water dependence is not accurate at large

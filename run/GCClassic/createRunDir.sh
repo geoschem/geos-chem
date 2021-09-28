@@ -1061,21 +1061,21 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 
-	# For TOMAS simulations, use restarts provided by the TOMAS team
-	# For other fullchem simulations, use restart from latest benchmark
+        # NOTE: We need to read the fullchem and TOMAS restart files from
+	# the v2021-09/ folder.  These contain extra species (e.g HMS),
+	# for chemistry updates that were added in 13.3.0.  This is necessary
+	# to avoid GEOS-Chem Classic simulations from halting if these
+	# species are not found in the restart file (time cycle flag "EFYO").
+	#   -- Bob Yantosca (22 Sep 2021)
+	#
 	# Aerosol-only simulations can use the fullchem restart since all of the
-	#  aerosol species are included
+	# aerosol species are included.
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-
-	    # NOTE: When we add HSO3- and SO3-- as species (probably in
-	    # 13.4.0),  we will need to use the restart file in v2021-09.
-	    # Leave this commented out for the time being.  (bmy, 9/17/21).
-	    #sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
-	    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then

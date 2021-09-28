@@ -1023,12 +1023,15 @@ CONTAINS
        C(1:NVAR)       = VAR(:)
        C(NVAR+1:NSPEC) = FIX(:)
 
-       ! Revert Alkalinity
-       ! Do this only if computing seasalt rxn rates for KPP chemistry
-       IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
-          C(ind_SALAAL) = C(ind_SALAAL) / ( MW(ind_SALAAL) * 7.0e-5_fp )
-          C(ind_SALCAL) = C(ind_SALCAL) / ( MW(ind_SALCAL) * 7.0e-5_fp )
-       ENDIF
+!----------------------------------------------------------------------------
+! NOTE: Comment this out until we restore sulfur chemistry via KPP
+!       ! Revert Alkalinity
+!       ! Do this only if computing seasalt rxn rates for KPP chemistry
+!       IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
+!          C(ind_SALAAL) = C(ind_SALAAL) / ( MW(ind_SALAAL) * 7.0e-5_fp )
+!          C(ind_SALCAL) = C(ind_SALCAL) / ( MW(ind_SALCAL) * 7.0e-5_fp )
+!       ENDIF
+!----------------------------------------------------------------------------
 
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
@@ -1423,9 +1426,12 @@ CONTAINS
     !========================================================================
     IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
 
-       ! Convert alkalinity from [molec/cm3] to equivalents
-       C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
-       C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
+!------------------------------------------------------------------------------
+! Comment this out until we restore sulfur chemistry via KPP
+!       ! Convert alkalinity from [molec/cm3] to equivalents
+!       C(ind_SALAAL) = C(ind_SALAAL) * ( MW(ind_SALAAL) * 7.0e-5_fp )
+!       C(ind_SALCAL) = C(ind_SALCAL) * ( MW(ind_SALCAL) * 7.0e-5_fp )
+!------------------------------------------------------------------------------
 
        ! Compute reaction rates for aqueous sulfur chemistry
        ! (i.e. S(IV)->S(VI), HCl,  and HNO3)
@@ -2141,7 +2147,11 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurChem
     USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Precision
-    USE Gckpp_Parameters,         ONLY : nFam, nReact, ind_SALAAL, ind_SALCAL
+    USE Gckpp_Parameters,         ONLY : nFam, nReact
+!-----------------------------------------------------------------------------
+! Comment this out until we restore sulfur chemistry via KPP
+!    USE Gckpp_Parameters,         ONLY : ind_SALAAL, ind_SALCAL
+!-----------------------------------------------------------------------------
     USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,            ONLY : OptInput
     USE State_Chm_Mod,            ONLY : ChmState

@@ -171,10 +171,10 @@ create_rundir "1\n7\n1\n2\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 #create_rundir "1\n1\n2\n1\n2\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_complexSOA_merra2"
-create_rundir "1\n3\n1\n2\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n3\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_complexSOA_SVPOA_merra2"
-create_rundir "1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n3\n2\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_2x25_fullchem_marinePOA_merra2"
 create_rundir "1\n4\n1\n2\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
@@ -303,10 +303,10 @@ dir="gc_4x5_fullchem_RRTMG_merra2"
 create_rundir "1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_TOMAS15_merra2"
-create_rundir "1\n6\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n6\n1\n1\n1\n2\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_TOMAS40_merra2"
-create_rundir "1\n6\n2\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n6\n2\n1\n1\n2\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_Hg_merra2"
 create_rundir "5\n1\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
@@ -343,43 +343,43 @@ dir="gc_4x5_aerosol_geosfp"
 create_rundir "2\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_geosfp"
-create_rundir "1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n1\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_LuoWd_geosfp"
-create_rundir "1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n1\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_aciduptake_geosfp"
-create_rundir "1\n5\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n5\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_APM_geosfp"
-create_rundir "1\n7\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n7\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_benchmark_geosfp"
-create_rundir "1\n2\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n2\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_complexSOA_geosfp"
-create_rundir "1\n3\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n3\n1\n2\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_complexSOA_SVPOA_geosfp"
-create_rundir "1\n3\n2\n1\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_marinePOA_geosfp"
-create_rundir "1\n4\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n4\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_RRTMG_geosfp"
-create_rundir "1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "1\n8\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_TOMAS15_geosfp"
-create_rundir "1\n6\n1\n2\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n6\n1\n2\n1\n2\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_fullchem_TOMAS40_geosfp"
-create_rundir "1\n6\n2\n2\n1\n1\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
+create_rundir "1\n6\n2\n2\n1\n2\n${root}\n${dir}\nn\n"    ${root} ${dir} ${log}
 
 dir="gc_4x5_Hg_geosfp"
 create_rundir "5\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
 
 dir="gc_4x5_POPs_BaP_geosfp"
-create_rundir "6\n2\n1\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
+create_rundir "6\n1\n2\n1\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 dir="gc_4x5_tagCH4_geosfp"
 create_rundir "7\n2\n1\n1\n${root}\n${dir}\nn\n"          ${root} ${dir} ${log}
