@@ -176,6 +176,7 @@ Comment format is
 #include atoms
 
 #DEFVAR
+
 A3O2       = IGNORE; {CH3CH2CH2OO; Primary RO2 from C3H8}
 ACET       = IGNORE; {CH3C(O)CH3; Acetone}
 ACTA       = IGNORE; {CH3C(O)OH; Acetic acid}
@@ -460,7 +461,7 @@ SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
 SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
 SO4H3      = IGNORE; {SO4; Sulfate produced by HOCl}
 SO4H4      = IGNORE; {SO4; Sulfate produced by HOCl}
-SO4s       = IGNORE; {SO4; Sulfate}
+SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
 TOLU       = IGNORE; {C7H8; Toluene}
@@ -1590,7 +1591,6 @@ NPHEN = AONITA :               VOCuptk1stOrd( SR_MW(ind_NPHEN), 1.0E-2_dp, State
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Photolysis reactions                                            %%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//
 //
 O3 + hv = O + O2 :                           PHOTOL(2);      {2014/02/03; Eastham2014; SDE}
 O3 + hv = O1D + O2 :                         PHOTOL(3);      {2014/02/03; Eastham2014; SDE}
