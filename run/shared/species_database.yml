@@ -137,47 +137,47 @@ ALK4:
   Is_Gas: true
   MW_g: 58.12
 AONITA:
+  DD_F0: 1.0
+  DD_Hstar: 2.9e+3
   Formula: C6H6O6N
   FullName: Aerosol-phase organonitrates from aromatics
   Is_Advected: true
-  MW_g: 189.12
+  Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  Is_Aerosol: true
+  Henry_CR: 6800.0
+  Henry_K0: 2.9e+3
+  MW_g: 189.12
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
   WD_RetFactor: 2.0e-2
-  DD_F0: 1.0
-  DD_Hstar: 2.9e+3
-  Henry_CR: 6800.0
-  Henry_K0: 2.9e+3
 AROMP4:
+  DD_F0: 1.0
+  DD_Hstar: 4.1e+5
   Formula: C4H4O2
   FullName: Generic C4 product of aromatics
   Is_Advected: true
-  Is_Gas: true
-  MW_g: 68.08
   Is_DryDep: true
+  Is_Gas: true
   Is_WetDep: true
-  WD_RetFactor: 2.0e-2
-  DD_F0: 1.0
-  DD_Hstar: 4.1e+5
+  MW_g: 68.08
   Henry_CR: 7500.0
   Henry_K0: 4.1e+5
+  WD_RetFactor: 2.0e-2
 AROMP5:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H6O2
   FullName: C5 unsaturated dicarbonyl
   Is_Advected: true
-  Is_Gas: true
-  MW_g: 98.10
   Is_DryDep: true
+  Is_Gas: true
   Is_WetDep: true
-  WD_RetFactor: 2.0e-2
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
+  MW_g: 98.10
   Henry_CR: 7500.0
   Henry_K0: 2.0e+6
+  WD_RetFactor: 2.0e-2
 AROMRO2:
   Formula: C6H7O3
   FullName: hydroxy-peroxy radical from aromatics
@@ -259,19 +259,19 @@ B3O2:
   Is_Gas: true
   MW_g: 75.10
 BALD:
-  Formula: C7H6O
-  FullName: Benzaldehyde
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 106.12
-  Is_DryDep: true
-  Is_WetDep: true
-  Is_Photolysis: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 3.8e+1
+  Formula: C7H6O
+  FullName: Benzaldehyde
   Henry_CR: 5500.0
   Henry_K0: 3.8e+1
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 106.12
+  WD_RetFactor: 2.0e-2
 BCPI:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -356,19 +356,19 @@ BENZO2:
   Is_Gas: true
   MW_g: 109.00
 BENZP:
-  Formula: C6H6O2
-  FullName: Phenyl hydroperoxide
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 110.11
-  Is_DryDep: true
-  Is_WetDep: true
-  Is_Photolysis: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 2.9e+3
+  Formula: C6H6O2
+  FullName: Phenyl hydroperoxide
   Henry_CR: 6800.0
   Henry_K0: 2.9e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 110.11
+  WD_RetFactor: 2.0e-2
 Br:
   Formula: Br
   FullName: Atomic bromine
@@ -459,32 +459,32 @@ BZCO3:
   Is_Gas: true
   MW_g: 137.00
 BZCO3H:
-  Formula: C6H5CO3H
-  FullName: Perbenzoic acid
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 138.12
-  Is_DryDep: true
-  Is_WetDep: true
-  Is_Photolysis: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 2.4e+4
+  Formula: C6H5CO3H
+  FullName: Perbenzoic acid
   Henry_CR: 0.0
   Henry_K0: 2.4e+4
-BZPAN:
-  Formula: C7H5O5N
-  FullName: Peroxybenzoylnitrate
   Is_Advected: true
-  Is_Gas: true
-  MW_g: 183.12
   Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
+  MW_g: 138.12
   WD_RetFactor: 2.0e-2
+BZPAN:
   DD_F0: 1.0
   DD_Hstar: 7.0e+1
+  Formula: C7H5O5N
+  FullName: Peroxybenzoylnitrate
   Henry_CR: 4600.0
   Henry_K0: 7.0e+1
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 183.12
+  WD_RetFactor: 2.0e-2
 SALC_PROP: &SALCproperties
   DD_AeroDryDep: true
   DD_F0: 0.0
@@ -1016,18 +1016,18 @@ COus:
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
 CSL:
-  Formula: C7H8O
-  FullName: Cresols
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 108.14
-  Is_DryDep: true
-  Is_WetDep: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
+  Formula: C7H8O
+  FullName: Cresols
   Henry_CR: 8500.0
   Henry_K0: 4.2e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 108.14
+  WD_RetFactor: 2.0e-2
 DMS:
   Formula: (CH3)2S
   FullName: Dimethyl sulfide
@@ -2687,18 +2687,18 @@ MCROHOO:
   Is_Gas: true
   MW_g: 119.11
 MCT:
-  Formula: C7H8O2
-  FullName: Catechols and methyl catechols
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 124.0
-  Is_DryDep: true
-  Is_WetDep: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
+  Formula: C7H8O2
+  FullName: Catechols and methyl catechols
   Henry_CR: 8500.0
   Henry_K0: 4.2e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 124.0
+  WD_RetFactor: 2.0e-2
 MEK:
   Formula: RC(O)R
   FullName: Methyl Ethyl Ketone
@@ -3193,19 +3193,19 @@ NO3:
   Is_Photolysis: true
   MW_g: 62.01
 NPHEN:
-  Formula: C6H5NO3
-  FullName: Nitrophenols
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 139.11
-  Is_DryDep: true
-  Is_WetDep: true
-  Is_Photolysis: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 2.3e+3
+  Formula: C6H5NO3
+  FullName: Nitrophenols
   Henry_CR: 0.0
   Henry_K0: 2.3e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 139.11
+  WD_RetFactor: 2.0e-2
 NPRNO3:
   DD_F0: 0.1
   DD_Hstar: 1.1
@@ -3505,18 +3505,18 @@ PH2O2:
   Is_Gas: true
   MW_g: 34.02
 PHEN:
-  Formula: C6H6O
-  FullName: Phenol
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 94.11
-  Is_DryDep: true
-  Is_WetDep: true
-  WD_RetFactor: 2.0e-2
   DD_F0: 1.0
   DD_Hstar: 2.8e+3
+  Formula: C6H6O
+  FullName: Phenol
   Henry_CR: 2700.0
-  Henry_K0: 2.8e+38e+3
+  Henry_K0: 2.8e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 94.11
+  WD_RetFactor: 2.0e-2
 PIO2:
   Formula: C10H17O3
   FullName: Peroxy radical from MTPA
