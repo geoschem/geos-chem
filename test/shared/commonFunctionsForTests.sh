@@ -153,15 +153,20 @@ function update_config_files() {
     sed_ie "${SED_INPUT_GEOS_6}" "${root}/${runDir}/input.geos"
     sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc"
     sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
-    sed_ie "${SED_HEMCO_CONF_3}" "${root}/${runDir}/HEMCO_Config.rc"
     sed_ie "${SED_HISTORY_RC_1}" "${root}/${runDir}/HISTORY.rc"
     sed_ie "${SED_HISTORY_RC_2}" "${root}/${runDir}/HISTORY.rc"
 
-    # For GCHP only
+    # For nested-grid rundirs, add a NA into the entries for met fields
+    if grep -q "025x03125" <<< "${runDir}"; then
+	sed_ie "${SED_HEMCO_CONF_3}" "${root}/${runDir}/HEMCO_Config.rc"
+    fi
+    if grep -q "05x0625" <<< "${runDir}"; then
+	sed_ie "${SED_HEMCO_CONF_3}" "${root}/${runDir}/HEMCO_Config.rc"
+    fi
+
+    # For GCHP only: replace text in runConfig.sh
     expr=$(is_gchp_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-
-	# Replace text in run.config.sh
 	sed_ie "${SED_RUN_CONFIG_1}" ${root}/${runDir}/runConfig.sh
 	sed_ie "${SED_RUN_CONFIG_2}" ${root}/${runDir}/runConfig.sh
 	sed_ie "${SED_RUN_CONFIG_3}" ${root}/${runDir}/runConfig.sh
