@@ -272,6 +272,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld     = .FALSE.
      LOGICAL                    :: Do_SulfateMod_SeaSalt = .FALSE.
+     LOGICAL                    :: SIZE_RES ! For HET_DROP_CHEM() - MSL
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
