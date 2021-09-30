@@ -14,6 +14,9 @@ if(POLICY CMP0079)
     cmake_policy(SET CMP0079 NEW)
 endif()
 
+# Add GEOS-Chem CMake helpers to MODULE_PATH
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts)
+include(GC-Helpers)
 #-----------------------------------------------------------------------------
 # Print header
 #-----------------------------------------------------------------------------

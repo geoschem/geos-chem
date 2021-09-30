@@ -107,11 +107,11 @@ MODULE TOMAS_MOD
 !
   ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN -->
   ! which defines how many size bins (win, 7/7/09)
-#if   defined ( TOMAS12 )
+#if defined(TOMAS12)
   INTEGER, PARAMETER   :: IBINS = 12
-#elif defined ( TOMAS15 )
+#elif defined(TOMAS15)
   INTEGER, PARAMETER   :: IBINS = 15
-#elif defined ( TOMAS40 )
+#elif defined(TOMAS40)
   INTEGER, PARAMETER   :: IBINS = 40
 #else
   INTEGER, PARAMETER   :: IBINS = 30
@@ -175,33 +175,33 @@ MODULE TOMAS_MOD
 #if  defined( TOMAS12 ) || defined( TOMAS15 )
   !tomas12 or tomas15
   data OCSCALE30/ &
-# if  defined( TOMAS15)
+#ifdef TOMAS15
        0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-# endif
+#endif
        1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02, &
        1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01, &
        9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
 
   data OCSCALE100/ &
-# if  defined( TOMAS15)
+#ifdef TOMAS15
        0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-# endif
+#endif
        1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03, &
        2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01, &
        2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
 
   data ECSCALE30/ &
-# if  defined( TOMAS15)
+#ifdef TOMAS15
        0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-# endif
+#endif
        1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02, &
        1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01, &
        9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
 
   data ECSCALE100/ &
-# if  defined( TOMAS15)
+#ifdef TOMAS15
        0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-# endif
+#endif
        1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03, &
        2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01, &
        2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
@@ -209,10 +209,10 @@ MODULE TOMAS_MOD
 #else
   !tomas30 or tomas40
   DATA OCSCALE30/  &     ! use for fossil fuel
-# if  defined( TOMAS40)
+#ifdef TOMAS40
        0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
        0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
-# endif
+#endif
        1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02, &
        4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01, &
        1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02, &
@@ -221,10 +221,10 @@ MODULE TOMAS_MOD
        1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
 
   DATA OCSCALE100/  &    ! use for biomass burning
-# if  defined( TOMAS40)
+#ifdef TOMAS40
        0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
        0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
-# endif
+#endif
        3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664, &
        0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  , &
        0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   , &
@@ -233,10 +233,10 @@ MODULE TOMAS_MOD
        0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
 
   DATA ECSCALE30/  &     ! use for fossil fuel
-# if  defined( TOMAS40)
+#ifdef TOMAS40
        0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
        0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
-# endif
+#endif
        1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02, &
        4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01, &
        1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02, &
@@ -245,10 +245,10 @@ MODULE TOMAS_MOD
        1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
 
   DATA ECSCALE100/  &    ! use for biomass burning
-# if  defined( TOMAS40)
+#ifdef TOMAS40
        0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
        0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
-# endif
+#endif
        3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664, &
        0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  , &
        0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   , &
@@ -1729,7 +1729,7 @@ CONTAINS
        else
           !nothing in this bin - set to "typical value"
           density=1500.
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
           mp=sqrt(xk(k)*xk(k+1))
 #else
           mp=1.4*xk(k)
@@ -3645,7 +3645,7 @@ CONTAINS
     UNITCHANGE_KGM2 = .FALSE.
     IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
        UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, .FALSE., RC )
     ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial species units: ' // TRIM(State_Chm%Spc_Units)
        LOC = 'Routine AQOXID in tomas_mod.F90'
@@ -3665,7 +3665,7 @@ CONTAINS
     ENDDO
 
 
-#if   defined ( TOMAS12 ) || defined ( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
     thresh = 4.0
 #else
     thresh = 1.0
@@ -3871,7 +3871,7 @@ CONTAINS
     ! Convert State_Chm%Species units back to original units
     ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
     IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
     ENDIF
 
     ! Check that species units are as expected (ewl, 9/29/15)
@@ -3988,7 +3988,7 @@ CONTAINS
 
     pdbg = .false.
 
-#if   defined ( TOMAS12 ) || defined ( TOMAS15 )
+#if defined (TOMAS12) || defined (TOMAS15)
     thresh = 1.0
 #else
     thresh = 1.0
@@ -4255,7 +4255,7 @@ CONTAINS
 
     REAL(fp)    :: mi, mf   !initial and final masses
 
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
     parameter(zeta=1.28125 , dtlimit=0.25, itlimit=10.)
 #else
     parameter(zeta=1.0625, dtlimit=0.25, itlimit=10.)
@@ -4280,7 +4280,7 @@ CONTAINS
     do k=1,ibins
        if (Nk(k) .lt. Neps) then
           Nk(k)=Neps
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
           Mk(k,srtso4)=Neps*sqrt( xk(k)*xk(k+1) ) !make the added particles SO4
 #else
           Mk(k,srtso4)=Neps*1.4e+0_fp*xk(k) !make the added particles SO4
@@ -4346,7 +4346,7 @@ CONTAINS
     if(pdbg) print*,'In the time steps loop +++++++++++++'
 
     ! Calculate xbar, phi and eff
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
     do k=1,ibins
 
        xbar(k)=0.0
@@ -4431,7 +4431,7 @@ CONTAINS
        k1mxtot=0.0
 
        !Calculate sums
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
        do j=1,icomp-idiag
           if (k .gt. 1.and.k.lt.ibins) then
              do i=1,k-1
@@ -4468,7 +4468,7 @@ CONTAINS
        endif
 
        !Calculate rates of change
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
        if(k.lt.ibins-1)then
 
           dNdt(k)= -Nk(k)*High_in-kij(k,k)*Nk(k)**2.*1.125 &
@@ -4711,7 +4711,7 @@ CONTAINS
        else
           !nothing in this bin - don't let it affect time step
           Nk(k)=Neps
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
           Mk(k,srtso4)=Neps*sqrt(xk(k)*xk(k+1)) !make the added particles SO4
 #else
           Mk(k,srtso4)=Neps*1.4e+0_fp*xk(k) !make the added particles SO4
@@ -4992,7 +4992,7 @@ CONTAINS
        else
           !nothing in this bin - set to "typical value"
           density=1500.
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
           mp=sqrt(xk(k)*xk(k+1))
 #else
           mp=1.4*xk(k)
@@ -5578,7 +5578,7 @@ CONTAINS
           AVG=AMKDRY(L)/ANKD(L)
           XX=X(L)/AVG
 
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
           if(l.lt.ibins-1)then ! bin quadrupuling
              XI=.5e+0_fp + XX*(2.5e+0_fp - 2.0e+0_fp*XX)
              !XI<1 means the AVG falls out of bin bounds
@@ -6273,9 +6273,9 @@ CONTAINS
        SGCTSCALE = 0.5*3600.
     ENDIF
 
-#if    defined( TOMAS40 )
+#if defined(TOMAS40)
     Mo = 1.0e-21_fp*2.e+0_fp**(-10)
-#elif  defined( TOMAS15 )
+#elif defined(TOMAS15)
     Mo = 1.0e-21_fp*4.e+0_fp**(-3)
 #else
     Mo = 1.0e-21_fp
@@ -6341,7 +6341,7 @@ CONTAINS
     ! Calculate aerosol size bin boundaries (dry mass / particle)
     !=================================================================
 
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
+#if defined(TOMAS12) || defined(TOMAS15)
     DO K = 1, IBINS + 1
        if(k.lt.ibins)then
           xk(k)=Mo * 4.e+0_fp**(k-1) !mass quadrupling
@@ -6671,9 +6671,9 @@ CONTAINS
     ! subroutine was written considering bin 1 is 10nm
     ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
     !==========================================================
-#if    defined( TOMAS40 )
+#if defined(TOMAS40)
     OFFSET = 10
-#elif  defined( TOMAS15 )
+#elif  defined(TOMAS15)
     OFFSET = 3
 #else
     OFFSET = 0
@@ -6821,9 +6821,9 @@ CONTAINS
     ! subroutine was written considering bin 1 is 10nm
     ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
     !==========================================================
-#if   defined( TOMAS40 )
+#if defined(TOMAS40)
     OFFSET = 10
-#elif  defined( TOMAS15 )
+#elif defined(TOMAS15)
     OFFSET = 3
 #else
     OFFSET = 0

@@ -37,8 +37,8 @@ EmisBCPI_Aircraft  BCPI   0      20  -1   3   kg/m2/s  BCPI_emission_flux_from_a
 EmisBCPI_Anthro    BCPI   0      1   -1   3   kg/m2/s  BCPI_emission_flux_from_anthropogenic
 EmisBCPI_BioBurn   BCPI   111    -1  -1   2   kg/m2/s  BCPI_emission_flux_from_biomass_burning
 EmisBCPI_Ship      BCPI   0      10  -1   2   kg/m2/s  BCPI_emission_flux_from_ships
-EmisBCPO_Total     BCPO   -1     -1  -1   2   kg/m2/s  BCPO_emission_flux_from_all_sectors
-EmisBCPO_Anthro    BCPO   0      1   -1   2   kg/m2/s  BCPO_emission_flux_from_anthropogenic
+EmisBCPO_Total     BCPO   -1     -1  -1   3   kg/m2/s  BCPO_emission_flux_from_all_sectors
+EmisBCPO_Anthro    BCPO   0      1   -1   3   kg/m2/s  BCPO_emission_flux_from_anthropogenic
 EmisBCPO_BioBurn   BCPO   111    -1  -1   2   kg/m2/s  BCPO_emission_flux_from_biomass_burning
 EmisBCPO_Ship      BCPO   0      10  -1   2   kg/m2/s  BCPO_emission_flux_from_ships
 
@@ -77,8 +77,8 @@ EmisMTPO_Biogenic  MTPO   0      3   -1   2   kg/m2/s  MTPO_emission_flux_from_b
 ###############################################################################
 #####  NH3 emissions                                                      #####
 ###############################################################################
-EmisNH3_Total      NH3    -1     -1  -1   2   kg/m2/s  NH3_emission_flux_from_all_sectors
-EmisNH3_Anthro     NH3    0      1   -1   2   kg/m2/s  NH3_emission_flux_from_anthropogenic
+EmisNH3_Total      NH3    -1     -1  -1   3   kg/m2/s  NH3_emission_flux_from_all_sectors
+EmisNH3_Anthro     NH3    0      1   -1   3   kg/m2/s  NH3_emission_flux_from_anthropogenic
 EmisNH3_BioBurn    NH3    111    -1  -1   2   kg/m2/s  NH3_emission_flux_from_biomass_burning
 EmisNH3_Natural    NH3    0      3   -1   2   kg/m2/s  NH3_emission_flux_from_natural_sources
 EmisNH3_Seabirds   NH3    0      30  -1   2   kg/m2/s  NH3_emission_flux_from_seabirds
@@ -89,11 +89,11 @@ EmisNH3_Ship       NH3    0      10  -1   2   kg/m2/s  NH3_emission_flux_from_sh
 ###############################################################################
 EmisOCPI_Total     OCPI   -1     -1  -1   3   kg/m2/s  OCPI_emission_flux_from_all_sectors
 EmisOCPI_Aircraft  OCPI   0      20  -1   3   kg/m2/s  OCPI_emission_flux_from_aircraft
-EmisOCPI_Anthro    OCPI   0      1   -1   2   kg/m2/s  OCPI_emission_flux_from_anthropogenic
+EmisOCPI_Anthro    OCPI   0      1   -1   3   kg/m2/s  OCPI_emission_flux_from_anthropogenic
 EmisOCPI_BioBurn   OCPI   111    -1  -1   2   kg/m2/s  OCPI_emission_flux_from_biomass_burning
 EmisOCPI_Ship      OCPI   0      10  -1   2   kg/m2/s  OCPI_emission_flux_from_ships
-EmisOCPO_Total     OCPO   -1     -1  -1   2   kg/m2/s  OCPO_emission_flux_from_all_sectors
-EmisOCPO_Anthro    OCPO   0      1   -1   2   kg/m2/s  OCPO_emission_flux_from_anthropogenic
+EmisOCPO_Total     OCPO   -1     -1  -1   3   kg/m2/s  OCPO_emission_flux_from_all_sectors
+EmisOCPO_Anthro    OCPO   0      1   -1   3   kg/m2/s  OCPO_emission_flux_from_anthropogenic
 EmisOCPO_BioBurn   OCPO   111    -1  -1   2   kg/m2/s  OCPO_emission_flux_from_biomass_burning
 EmisOCPO_Ship      OCPO   0      10  -1   2   kg/m2/s  OCPO_emission_flux_from_ships
 

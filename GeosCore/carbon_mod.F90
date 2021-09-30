@@ -141,9 +141,6 @@ MODULE CARBON_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-
-  ! Molecules OH  per kg OH [molec/kg]
-  REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
   REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
 
   ! SOAupdate:(hotp 5/20/10) new mtp
@@ -313,8 +310,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState                      ! APM: for HEMCO diags
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -323,19 +320,19 @@ CONTAINS
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef APM
-    USE APM_INIT_MOD,       ONLY : APMIDS
-    USE APM_INIT_MOD,       ONLY : NBCOC,CEMITBCOC1
+    USE APM_INIT_MOD,         ONLY : APMIDS
+    USE APM_INIT_MOD,         ONLY : NBCOC,CEMITBCOC1
     USE HCO_DIAGN_MOD
-    USE HCO_TYPES_MOD,      ONLY : DiagnCont
-    USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+    USE HCO_TYPES_MOD,        ONLY : DiagnCont
+    USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
 #endif
 #ifdef BPCH_DIAG
-    USE CMN_O3_MOD,         ONLY : SAVEOA
+    USE CMN_O3_MOD,           ONLY : SAVEOA
 #endif
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : SOACOND, IBINS              !(win, 1/25/10)
-    USE TOMAS_MOD,          ONLY : CHECKMN                     !(sfarina)
-    USE PRESSURE_MOD,       ONLY : GET_PCENTER
+    USE TOMAS_MOD,            ONLY : SOACOND, IBINS              !(win, 1/25/10)
+    USE TOMAS_MOD,            ONLY : CHECKMN                     !(sfarina)
+    USE PRESSURE_MOD,         ONLY : GET_PCENTER
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -405,7 +402,7 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT to local variables for use below
     LSOA                 = Input_Opt%LSOA
-    LEMIS                = Input_Opt%LEMIS
+    LEMIS                = Input_Opt%DoEmissions
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
     DTCHEM               = GET_TS_CHEM()
@@ -478,7 +475,7 @@ CONTAINS
     IF ( IT_IS_AN_AEROSOL_SIM .AND. LSOA ) THEN
 
        ! Evaluate offline oxidant fields from HEMCO: global OH
-       CALL HCO_EvalFld(HcoState, 'GLOBAL_OH', OFFLINE_OH, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', OFFLINE_OH, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, LOC )
@@ -486,7 +483,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline oxidant fields from HEMCO: global O3
-       CALL HCO_EvalFld( HcoState, 'GLOBAL_O3', OFFLINE_O3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', OFFLINE_O3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, LOC )
@@ -494,7 +491,7 @@ CONTAINS
        ENDIF
 
        ! Evaluate offline oxidant fields from HEMCO: global NO3
-       CALL HCO_EvalFld(HcoState, 'GLOBAL_NO3', OFFLINE_NO3, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', OFFLINE_NO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, LOC )
@@ -4637,7 +4634,7 @@ CONTAINS
    USE HCO_Error_Mod
    USE HCO_State_Mod,         ONLY : HCO_GetHcoID
    USE HCO_State_GC_Mod,      ONLY : HcoState
-   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
+   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis, LoadHcoValEmis
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState
@@ -4744,6 +4741,11 @@ CONTAINS
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
 
+   ! First load SESQID into emissions buffer if available
+   IF ( SESQID > 0 ) THEN
+       CALL LoadHcoValEmis ( Input_Opt, State_Grid, SESQID )
+   ENDIF
+
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
    !$OMP PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
@@ -4757,7 +4759,7 @@ CONTAINS
       ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
       ! We assume all SESQ emissions are placed in surface level.
       IF ( SESQID > 0 ) THEN
-         CALL GetHcoValEmis ( SESQID, I, J, 1, FOUND, EMIS )
+         CALL GetHcoValEmis ( Input_Opt, State_Grid, SESQID, I, J, 1, FOUND, EMIS )
          IF ( FOUND ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX           = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
@@ -4819,9 +4821,9 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE ERROR_MOD
-   USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
+   USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-   USE HCO_Interface_Common, ONLY : GetHcoDiagn
+   USE HCO_Interface_Common, ONLY : GetHcoDiagn! TOMAS: HEMCO diags (not IMGrid ready)
    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
    USE Input_Opt_Mod,        ONLY : OptInput
    USE State_Chm_Mod,        ONLY : ChmState
@@ -5053,7 +5055,7 @@ CONTAINS
       ! Number of BB fires for parameterization (ramnarine 12/27/2018)
       ! Evalulate the fire number from HEMCO every timestep to apply masks
       ! and scaling configured in HEMCO config
-      CALL HCO_EvalFld( HcoState, 'FINN_DAILY_NUMBER', FIRE_NUM, RC )
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'FINN_DAILY_NUMBER', FIRE_NUM, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error evaluating FINN_DAILY_NUMBER in HEMCO data list!'
          CALL GC_Error( ErrMsg, RC, 'carbon_mod.F90: EMISSCARBONTOMAS' )
@@ -5502,13 +5504,13 @@ CONTAINS
       ! Test for sunlight...
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
+         ! OH from HEMCO is in mol/mol, convert to molec/cm3
+         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+
          ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OFFLINE_OH(I,J,L)                        * &
+         OH_MOLEC_CM3 = OH_MOLEC_CM3 * &
                         ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   * &
                         ( 86400e+0_fp / GET_TS_CHEM() )
-
-         ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
-         OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -5577,14 +5579,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-   REAL(fp),  PARAMETER :: XNUMOL_NO3 = AVO / 62e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
    REAL(fp)             :: NO3_MW_kg  ! kg NO3 / mol
-   REAL(fp)             :: BOXVL
 
    !=================================================================
    ! GET_NO3 begins here!
@@ -5592,7 +5589,7 @@ CONTAINS
    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
       !----------------------
-      ! Fullchem simulation
+      ! Coupled simulation
       !----------------------
 
       ! NO3 is defined only in the chemistry grid
@@ -5613,29 +5610,9 @@ CONTAINS
 
    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-      !==============================================================
-      ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
-      ! in [v/v].  Convert these to [molec/cm3] as follows:
-      !
-      !  vol NO3   moles NO3    kg air     kg NO3/mole NO3
-      !  ------- = --------- * -------- * ---------------- =  kg NO3
-      !  vol air   moles air      1        kg air/mole air
-      !
-      ! And then we convert [kg NO3] to [molec NO3/cm3] by:
-      !
-      !  kg NO3   molec NO3   mole NO3     1     molec NO3
-      !  ------ * --------- * -------- * ----- = ---------
-      !     1     mole NO3     kg NO3     cm3       cm3
-      !          ^                    ^
-      !          |____________________|
-      !            this is XNUMOL_NO3
-      !
-      ! If at nighttime, use the monthly mean NO3 concentration from
-      ! the NO3 array of "global_no3_mod.f".  If during the daytime,
-      ! set the NO3 concentration to zero.  We don't have to relax to
-      ! the monthly mean concentration every 3 hours (as for HNO3)
-      ! since NO3 has a very short lifetime. (rjp, bmy, 12/16/02)
-      !==============================================================
+      !---------------------
+      ! Offline simulation
+      !---------------------
 
       ! Test if daylight
       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
@@ -5645,13 +5622,8 @@ CONTAINS
 
       ELSE
 
-         ! At night: Get NO3 [v/v] and convert it to [kg]
-         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AD(I,J,L) &
-                         * ( 62e+0_fp/AIRMW )
-
-         ! Convert NO3 from [kg] to [molec/cm3]
-         BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-         NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL
+         ! NO3 from HEMCO is in mol/mol, convert to molec/cm3
+         NO3_MOLEC_CM3 = OFFLINE_NO3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
       ENDIF
 
@@ -5716,14 +5688,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-   REAL(fp),  PARAMETER :: XNUMOL_O3 = AVO / 48e-3_fp ! hard-coded MW
-!
 ! !LOCAL VARIABLES:
 !
    REAL(fp)             :: O3_MW_kg   ! kg O3 / mol
-   REAL(fp)             :: BOXVL
 
    !=================================================================
    ! GET_O3 begins here!
@@ -5760,13 +5727,8 @@ CONTAINS
       ! O3 is defined only in the chemistry grid
       IF ( L <= State_Grid%MaxChemLev ) THEN
 
-         ! Get O3 [v/v] and convert it to [kg]
-         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AD(I,J,L) * &
-                        ( 48e+0_fp / AIRMW )            ! hard-coded MW
-
-         ! Convert O3 from [kg] to [molec/cm3]
-         BOXVL        = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-         O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL
+         ! O3 from HEMCO is in mol/mol, convert to molec/cm3
+         O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
       ELSE
          O3_MOLEC_CM3 = 0e+0_fp

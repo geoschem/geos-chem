@@ -49,7 +49,6 @@ MODULE UCX_MOD
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
   PUBLIC :: T_STS          ! Max temperature of STS formation (K)
   PUBLIC :: NDENS_AER      ! See below
 !
@@ -144,12 +143,11 @@ MODULE UCX_MOD
   !=================================================================
 
   ! Scalars
-  CHARACTER(LEN=255)   :: NOON_FILE_ROOT
   REAL(fp)             :: SLA_VA
   REAL(fp)             :: SLA_RR
   REAL(fp)             :: SLA_VR
-  REAL(fp), PARAMETER  :: NATMW   = 117.0
-  REAL(fp), PARAMETER  :: ICEMW   = 18.0
+  REAL(fp), PARAMETER  :: NATMW   = 117.0_fp
+  REAL(fp), PARAMETER  :: ICEMW   = 18.0_fp
   REAL(fp), PARAMETER  :: DENSNAT = 1626.e+0_fp
   REAL(fp), PARAMETER  :: DENSICE = 990.0e+0_fp
   REAL(fp), PARAMETER  :: ISR_ClNO3=1.e+0_fp/sqrt(97.46e+0_fp)
@@ -1771,10 +1769,14 @@ CONTAINS
     !$OMP PRIVATE( HBr_BOX_L,    HOBr_BOX_G,         HOBr_BOX_L    ) &
     !$OMP PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC ) &
     !$OMP PRIVATE( VOL_TOT,      BOX_LAT                           ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP SCHEDULE( DYNAMIC, 1                                     )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       !--------------------------------------------------------------------
+       ! Initialize met-field-related quantities
+       !--------------------------------------------------------------------
 
        ! Now do IS_POLAR check for every grid box separately
        ! and using mid-point instead of edges. This is to be
@@ -1797,34 +1799,7 @@ CONTAINS
                          (PCENTER_PA.gt.PSC_PMAX)))
        IS_VALID = (IS_VALID.or.PSC_FULL)
 
-       ! Initialize variables
-       VOL_NAT      = 0.0e+0_fp
-       KG_NAT       = 0.0e+0_fp
-       VOL_ICE      = 0.0e+0_fp
-       KG_ICE       = 0.0e+0_fp
-
-       RAD_AER_BOX  = 0.0e+0_fp
-       RHO_AER_BOX  = 0.0e+0_fp
-       KG_AER_BOX   = 0.0e+0_fp
-       NDENS_AER_BOX= 0.0e+0_fp
-
-       H2O_BOX_S    = 0.0e+0_fp
-       H2O_BOX_L    = 0.0e+0_fp
-       H2O_BOX_G    = 0.0e+0_fp
-       HNO3_BOX_S   = 0.0e+0_fp
-       HNO3_BOX_L   = 0.0e+0_fp
-       HNO3_BOX_G   = 0.0e+0_fp
-       H2SO4_BOX_L  = 0.0e+0_fp
-       H2SO4_BOX_G  = 0.0e+0_fp
-       HCl_BOX_L    = 0.0e+0_fp
-       HCl_BOX_G    = 0.0e+0_fp
-       HOCl_BOX_L   = 0.0e+0_fp
-       HOCl_BOX_G   = 0.0e+0_fp
-       HBr_BOX_L    = 0.0e+0_fp
-       HBr_BOX_G    = 0.0e+0_fp
-       HOBr_BOX_L   = 0.0e+0_fp
-       HOBr_BOX_G   = 0.0e+0_fp
-
+       ! Polar strat clouds in grid box
        STATE_LOCAL  = NINT(STATE_PSC(I,J,L))
 
        ! Calculate local air density
@@ -1839,11 +1814,73 @@ CONTAINS
        HNO3SUM = Spc(I,J,L,id_HNO3) * INVAIR / HNO3_MW_G
        HNO3SUM = HNO3SUM + Spc(I,J,L,id_NIT) * INVAIR / NIT_MW_G
 
+       ! Calculate H2O mixing ratio
        H2OSUM = Spc(I,J,L,id_H2O) * INVAIR / H2O_MW_G
 
        ! Calculate partial pressures (Pa)
        HNO3PP = PCENTER_PA * HNO3SUM
        H2OPP  = PCENTER_PA * H2OSUM
+
+       !--------------------------------------------------------------------
+       ! Zero non-initialized PRIVATE variables for safety's sake
+       !--------------------------------------------------------------------
+       BrNO3SUM           = 0.0_fp
+       ClNO3SUM           = 0.0_fp
+       GAMMA_BOX          = 0.0_fp
+       H2O_BOX_G          = 0.0_fp
+       H2O_BOX_L          = 0.0_fp
+       H2O_BOX_S          = 0.0_fp
+       H2SO4_BOX_G        = 0.0_fp
+       H2SO4_BOX_L        = 0.0_fp
+       H2SO4SUM           = 0.0_fp
+       HBr_BOX_G          = 0.0_fp
+       HBr_BOX_L          = 0.0_fp
+       HBrGASFRAC         = 0.0_fp
+       HBrSUM             = 0.0_fp
+       HCl_BOX_G          = 0.0_fp
+       HCl_BOX_L          = 0.0_fp
+       HClGASFRAC         = 0.0_fp
+       HClSUM             = 0.0_fp
+       HOBr_BOX_G         = 0.0_fp
+       HOBr_BOX_L         = 0.0_fp
+       HOBrGASFRAC        = 0.0_fp
+       HOBrSUM            = 0.0_fp
+       HOCl_BOX_G         = 0.0_fp
+       HOCl_BOX_L         = 0.0_fp
+       HOClGASFRAC        = 0.0_fp
+       HOClSUM            = 0.0_fp
+       HNO3_BOX_G         = 0.0_fp
+       HNO3_BOX_S         = 0.0_fp
+       HNO3_BOX_L         = 0.0_fp
+       HNO3GASFRAC        = 0.0_fp
+       KG_AER_BOX         = 0.0_fp
+       KG_NAT             = 0.0_fp
+       KG_ICE             = 0.0_fp
+       KHET_COMMON        = 0.0_fp
+       KHET_SPECIFIC      = 0.0_fp
+       NDENS_AER_BOX      = 0.0_fp
+       PSATHNO3           = 0.0_fp
+       PSATH2O            = 0.0_fp
+       PSATHNO3_SUPERCOOL = 0.0_fp
+       RAD_AER_BOX        = 0.0_fp
+       RHO_AER_BOX        = 0.0_fp
+       SAD_AER_BOX        = 0.0_fp
+       TOFFSET            = 0.0_fp
+       VOL_ICE            = 0.0_fp
+       VOL_NAT            = 0.0_fp
+       VOL_SLA            = 0.0_fp
+       VOL_TOT            = 0.0_fp
+       W_HBr              = 0.0_fp
+       W_HCl              = 0.0_fp
+       W_HOBr             = 0.0_fp
+       W_HOCl             = 0.0_fp
+       W_H2O              = 0.0_fp
+       W_H2SO4            = 0.0_fp
+       W_HNO3             = 0.0_fp
+
+       !--------------------------------------------------------------------
+       ! Continue computations ...
+       !--------------------------------------------------------------------
 
        IF (.not.IS_VALID) THEN
           ! No PSCs (SSA only)
@@ -2213,10 +2250,10 @@ CONTAINS
        KHETI_SLA(I,J,L,11) = GAMMA_BOX(11)*KHET_SPECIFIC
 
        RAD_AER(I,J,L,I_SLA)  = RAD_AER_BOX*1.e+2_fp ! cm
-       RHO_AER(I,J,L,I_SLA)  = RHO_AER_BOX      ! kg/m3
-       KG_AER(I,J,L,I_SLA)   = KG_AER_BOX       ! kg
-       NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
-       SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
+       RHO_AER(I,J,L,I_SLA)  = RHO_AER_BOX          ! kg/m3
+       KG_AER(I,J,L,I_SLA)   = KG_AER_BOX           ! kg
+       NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX        ! #/m3
+       SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX          ! cm2/cm3
 
     ENDDO
     ENDDO
@@ -3342,7 +3379,12 @@ CONTAINS
 
     ! Reaction 2. N2O5 + HCl
     ! JPL 10-06 suggests near-zero gamma
-    RXNGAMMA(2) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+    ! that can cause floating-point issues (bmy, 06 Jul 2021)
+    !RXNGAMMA(2) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    RXNGAMMA(2) = 0.0_f8
 
     ! Reactions 3/4. ClNO3 + H2O/HCl
     ! Now od only if HCl concentrations are large enough
@@ -3377,8 +3419,14 @@ CONTAINS
        Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
        ! Catch for zero (ckeller, 12/29/17)
        IF ( Gsp == 0.0_fp .AND. Gb == 0.0_fp ) THEN
-          gClNO3_HCl  =  TINY(1e+0_f8)
-          gClNO3_H2O  =  TINY(1e+0_f8)
+          !--------------------------------------------------------------
+          ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+          ! that can cause floating-point issues (bmy, 06 Jul 2021)
+          !gClNO3_HCl  =  TINY(1e+0_f8)
+          !gClNO3_H2O  =  TINY(1e+0_f8)
+          !--------------------------------------------------------------
+          gClNO3_HCl  =  0.0_f8
+          gClNO3_H2O  =  0.0_f8
        ELSE
           gClNO3      =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(Gsp + Gb))
           gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
@@ -3389,13 +3437,24 @@ CONTAINS
        RXNGAMMA(3) =  gClNO3_H2O
        RXNGAMMA(4) =  gClNO3_HCl
     ELSE
-       RXNGAMMA(3) = TINY(1e+0_f8)
-       RXNGAMMA(4) = TINY(1e+0_f8)
+       !--------------------------------------------------------------
+       ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+       ! that can cause floating-point issues (bmy, 06 Jul 2021)
+       !RXNGAMMA(3) = TINY(1e+0_f8)
+       !RXNGAMMA(4) = TINY(1e+0_f8)
+       !--------------------------------------------------------------
+       RXNGAMMA(3) = 0.0_f8
+       RXNGAMMA(4) = 0.0_f8
     ENDIF
 
     ! Reaction 5. ClNO3 + HBr
     ! Not present in JPL 10-06 for H2SO4
-    RXNGAMMA(5) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+    ! that can cause floating-point issues (bmy, 06 Jul 2021)
+    !RXNGAMMA(5) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    RXNGAMMA(5) = 0.0_f8
 
     ! Reaction 6. BrNO3 + H2O
     !RXNGAMMA(6) = 1.0/(1.0/0.88+exp(-17.832+0.245*WT))
@@ -3424,12 +3483,22 @@ CONTAINS
        !IF (fHOCl.eq.0.) THEN
        ! Catch for zero (ckeller, 12/29/17)
        IF ((fHOCl*GHOClrxn*FHCl).eq.0.) THEN
-          gHOCl_HCl =  TINY(1e+0_f8)
+          !--------------------------------------------------------------------
+          ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+          ! that can cause floating-point issues (bmy, 06 Jul 2021)
+          !gHOCl_HCl =  TINY(1e+0_f8)
+          !--------------------------------------------------------------------
+          gHOCl_HCl =  0.0_f8
        ELSE
           gHOCl_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOCl*GHOClrxn*FHCl))
        ENDIF
     ELSE
-       gHOCl_HCl = TINY(1e+0_f8)
+       !--------------------------------------------------------------------
+       ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+       ! that can cause floating-point issues (bmy, 06 Jul 2021)
+       !gHOCl_HCl = TINY(1e+0_f8)
+       !--------------------------------------------------------------------
+       gHOCl_HCl =  0.0_f8
     ENDIF
 
     RXNGAMMA(8) = gHOCl_HCl
@@ -3438,7 +3507,12 @@ CONTAINS
     ! Not yet implemented for STS; JPL 10-06 suggests complex
     ! relationship, not yet sufficiently well understood or
     ! parameterized for the purposes of simulation. Ignore for now
-    RXNGAMMA(9) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+    ! that can cause floating-point issues (bmy, 06 Jul 2021)
+    !RXNGAMMA(9) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    RXNGAMMA(9) = 0.0_f8
 
     ! Reaction 10. HOBr + HCl
     IF ((HClOK).and.(HOBrOK)) THEN
@@ -3465,19 +3539,34 @@ CONTAINS
        endif
        ! catch for zeros (ckeller, 12/29/17)
        IF ((fHOBr*GHOBrrxn).eq.0.) THEN
-          gHOBr_HCl = TINY(1e+0_f8)
+          !------------------------------------------------------------------
+          ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+          ! that can cause floating-point issues (bmy, 06 Jul 2021)
+          !gHOBr_HCl = TINY(1e+0_f8)
+          !------------------------------------------------------------------
+          gHOBr_HCl = 0.0_f8
           !gHOBr_HCl =  1.e+0_fp/(1.e+0_fp+1.e+0_fp/TINY(1e+0_fp))
        ELSE
           gHOBr_HCl =  1.e+0_f8/(1.e+0_f8+1.e+0_f8/(fHOBr*GHOBrrxn))
        ENDIF
        RXNGAMMA(10) = gHOBr_HCl
     ELSE
-       RXNGAMMA(10) = TINY(1e+0_f8)
+       !------------------------------------------------------------------
+       ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+       ! that can cause floating-point issues (bmy, 06 Jul 2021)
+       !RXNGAMMA(10) = TINY(1e+0_f8)
+       !------------------------------------------------------------------
+       RXNGAMMA(10) = 0.0_f8
     ENDIF
 
     ! Reaction 11. HOBr + HBr
     ! Data from JPL limited; ignore for now
-    RXNGAMMA(11) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    ! NOTE: Use 0.0_fp instead of TINY, which is a denormal number
+    ! that can cause floating-point issues (bmy, 06 Jul 2021)
+    !RXNGAMMA(11) = TINY(1e+0_f8)
+    !----------------------------------------------------------------------
+    RXNGAMMA(11) = 0.0_f8
 
     ! SDE 2013-10-18: DEBUG
     DO I=1,11
@@ -3678,8 +3767,12 @@ CONTAINS
        IF ( ABS(State_Grid%YMid(I,J)) <= 30 ) THEN
           ! Level with minimum temperature,
           ! use MASK to screen for >10 hPa
-          LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, &
-                           MASK=(State_Met%PMID(I,J,:) >= 10) )
+          If (Input_Opt%LStaticH2OBC) Then
+             LEVCPT = MINLOC(ABS(State_Met%PMID(I,J,:) - 70), DIM=1)
+          Else
+             LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, &
+                              MASK=(State_Met%PMID(I,J,:) >= 10) )
+          End If
        ELSE
           LEVCPT = -1
        ENDIF
@@ -3926,6 +4019,8 @@ CONTAINS
     CHARACTER(LEN=255) :: TARG_TRAC
     CHARACTER(LEN=255) :: DBGMSG
     CHARACTER(LEN=255) :: FileMsg
+    CHARACTER(LEN=255) :: GridSpec
+    CHARACTER(LEN=255) :: NOON_FILE_ROOT
 
     !=================================================================
     ! NOXCOEFF_INIT begins here!
@@ -3933,6 +4028,27 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+
+    ! --------------------------------------------------------------
+    ! Input data sources
+    ! --------------------------------------------------------------
+
+    ! For ASCII input, use 2x25 grid for all other grids than 4x5.
+    ! This is ok for the NOx coeffs which can be regridded on the fly
+    ! from 2x25 onto any other grid. This won't work for the 2D
+    ! boundary conditions, but those have been checked in the logical
+    ! check above (USE2DDATA).
+    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+       GRIDSPEC = 'Grid4x5/InitCFC_'
+    ELSE
+       GRIDSPEC = 'Grid2x25/InitCFC_'
+    ENDIF
+    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
+#ifdef MODEL_GEOS
+         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
+#else
+         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
+#endif
 
     !=================================================================
     ! In dry-run mode, print file paths to dryrun log and exit.
@@ -4230,7 +4346,6 @@ CONTAINS
 
     ! Local variables for quantities from Input_Opt
     LOGICAL            :: prtDebug
-    LOGICAL            :: LUCX
 
     ! Strings
     CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
@@ -4244,7 +4359,6 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-    LUCX     = Input_Opt%LUCX
 
     ! Initialize species ID flags
     id_BCPI  = Ind_('BCPI'      )
@@ -4274,74 +4388,21 @@ CONTAINS
        WRITE( 6,'(a)') REPEAT( '=', 79 )
     ENDIF
 
-    ! --------------------------------------------------------------
-    ! Input data sources
-    ! --------------------------------------------------------------
-
-    ! For ASCII input, use 2x25 grid for all other grids than 4x5.
-    ! This is ok for the NOx coeffs which can be regridded on the fly
-    ! from 2x25 onto any other grid. This won't work for the 2D
-    ! boundary conditions, but those have been checked in the logical
-    ! check above (USE2DDATA).
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       GRIDSPEC = 'Grid4x5/InitCFC_'
-    ELSE
-       GRIDSPEC = 'Grid2x25/InitCFC_'
-    ENDIF
-    WRITE(   NOON_FILE_ROOT,'(a,a,a)') TRIM(Input_Opt%CHEM_INPUTS_DIR), &
-#ifdef MODEL_GEOS
-         'UCX_201902/NoonTime/', TRIM(GRIDSPEC)
-#else
-         'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
-#endif
-
     !=================================================================
     ! In dry-run mode, print file path to dryrun log and return.
     !=================================================================
     IF ( Input_Opt%DryRun ) THEN
 
-       ! Test if the file exists and define an output string
-       FileName = Noon_File_Root
-       INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
-       IF ( FileExists ) THEN
-          FileMsg = 'UCX (SFCMR_READ): Opening'
-       ELSE
-          FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
-       ENDIF
-
-       ! Write to stdout for the dry-run simulation
-       IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
-300       FORMAT( a, ' ', a )
-       ENDIF
-
        ! Get dry-run output from NOXCOEFF_INIT as well
        CALL NOXCOEFF_INIT( Input_Opt, State_Grid )
-       
+
        ! Exit without doing any computation (dry-run only)
        RETURN
     ENDIF
 
     !=================================================================
-    ! For regular simulations, read data from files
+    ! For regular simulations, allocate arrays
     !=================================================================
-
-    ! Write the status of Noon_File_Root to stdout
-    INQUIRE( FILE=TRIM( Noon_File_Root ), EXIST=FileExists )
-    IF ( FileExists ) THEN
-       FileMsg = 'UCX (SFCMR_READ): Opening'
-    ELSE
-       FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
-    ENDIF
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Noon_File_Root )
-    ENDIF
-
-    IF ( prtDebug ) THEN
-       WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ', &
-            TRIM(NOON_FILE_ROOT)
-       CALL DEBUG_MSG( TRIM(DBGMSG) )
-    ENDIF
 
     ! Allocate arrays of input pressure levels and lat edges
     ALLOCATE( UCX_PLEVS( UCX_NLEVS ), STAT=AS )

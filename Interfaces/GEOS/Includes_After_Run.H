@@ -50,6 +50,8 @@
      ELSE
         Int2Spc(I)%Internal(:,:,:) = State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID) 
      ENDIF
+     ! testing only
+     !if(MAPL_am_I_Root()) write(*,*) 'Copied to internal: ',I,Int2Spc(I)%ID,trim(Int2Spc(I)%Name),MINVAL(State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID)),MAXVAL(State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID)),SUM(State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID))/IM/JM/LM
   ENDDO
   State_Chm%Spc_Units = 'kg/kg total'
 

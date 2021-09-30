@@ -78,6 +78,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: ITS_A_TRACEMETAL_SIM
      LOGICAL                     :: LPRT
      LOGICAL                     :: useTimers
 
@@ -136,20 +137,24 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
-     ! EMISSIONS MENU fields
+     ! EMISSIONS fields
      !----------------------------------------
-     LOGICAL                     :: LEMIS
-     CHARACTER(LEN=255)          :: HcoConfigFile
+     LOGICAL                     :: DoEmissions
      INTEGER                     :: TS_EMIS
      LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
-     LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
+     LOGICAL                     :: LStaticH2OBC
      LOGICAL                     :: LHCodedOrgHal
      LOGICAL                     :: LCMIP6OrgHal
      LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
+
+     ! For HEMCO "intermediate" grid (hplin, 6/2/20)
+     LOGICAL                     :: LIMGRID    ! Use different grid resolution for HEMCO?
+     INTEGER                     :: IMGRID_XSCALE
+     INTEGER                     :: IMGRID_YSCALE
 
      !----------------------------------------
      ! CO MENU fields
@@ -177,12 +182,11 @@ MODULE Input_Opt_Mod
      ! CHEMISTRY MENU fields
      !----------------------------------------
      LOGICAL                     :: LCHEM
-     LOGICAL                     :: LSCHEM
+     LOGICAL                     :: LINEAR_CHEM
      LOGICAL                     :: LLINOZ
      LOGICAL                     :: LSYNOZ
      INTEGER                     :: TS_CHEM
      REAL(fp)                    :: GAMMA_HO2
-     LOGICAL                     :: LUCX
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LINITSPEC
      LOGICAL                     :: USE_ONLINE_O3
@@ -264,7 +268,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND59   ! TOMAS
      INTEGER                     :: ND60   ! TOMAS
      INTEGER                     :: ND61   ! TOMAS
-     INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
      INTEGER,            POINTER :: TINDEX(:,:)
@@ -415,6 +418,21 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
      LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
 #endif
+
+#ifdef ADJOINT
+     !----------------------------------------
+     ! GCHP adjoint fields
+     !---------------------------------------
+     LOGICAL                     :: IS_ADJOINT
+     LOGICAL                     :: IS_FD_SPOT, IS_FD_GLOBAL
+     INTEGER                     :: FD_STEP
+     LOGICAL                     :: IS_FD_SPOT_THIS_PET
+     INTEGER                     :: IFD, JFD, NFD, LFD, NFD_ADJ
+     INTEGER                     :: CF_IMIN, CF_IMAX
+     INTEGER                     :: CF_JMIN, CF_JMAX
+     INTEGER                     :: CF_LMIN, CF_LMAX
+#endif
+
      !----------------------------------------
      ! Fields for LINOZ strat chem
      !----------------------------------------
@@ -557,6 +575,7 @@ CONTAINS
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
+    Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%useTimers              = .FALSE.
 
@@ -636,16 +655,18 @@ CONTAINS
     !----------------------------------------
     ! EMISSIONS MENU fields
     !----------------------------------------
-    Input_Opt%LEMIS                  = .FALSE.
-    Input_Opt%HcoConfigFile          = ''
+    Input_Opt%DoEmissions            = .TRUE. ! On by default
     Input_Opt%TS_EMIS                = 0
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
+    Input_Opt%LStaticH2OBC           = .FALSE.
     Input_Opt%LHCodedOrgHal          = .FALSE.
     Input_Opt%LCMIP6OrgHal           = .FALSE.
     Input_Opt%DoLightNOx             = .FALSE.
+    Input_Opt%LIMGRID                = .FALSE.
+    Input_Opt%IMGRID_XSCALE          = 1
+    Input_Opt%IMGRID_YSCALE          = 1
 
     !----------------------------------------
     ! CO MENU fields
@@ -674,7 +695,7 @@ CONTAINS
     ! CHEMISTRY MENU fields
     !----------------------------------------
     Input_Opt%LCHEM                  = .FALSE.
-    Input_Opt%LSCHEM                 = .FALSE.
+    Input_Opt%LINEAR_CHEM            = .FALSE.
     Input_Opt%LLINOZ                 = .FALSE.
     Input_Opt%LSYNOZ                 = .FALSE.
 #ifdef MODEL_GEOS
@@ -682,7 +703,6 @@ CONTAINS
 #endif
     Input_Opt%TS_CHEM                = 0
     Input_Opt%GAMMA_HO2              = 0e+0_fp
-    Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
     Input_Opt%USE_ONLINE_O3          = .FALSE.
@@ -795,7 +815,6 @@ CONTAINS
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
-    Input_Opt%ND72                   = 0
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -927,6 +946,21 @@ CONTAINS
 #else
     Input_Opt%AlwaysSetH2O           = .FALSE.
     Input_Opt%TurnOffHetRates        = .FALSE.
+#endif
+
+#ifdef ADJOINT
+    !----------------------------------------
+    ! Fields for adoint
+    !---------------------------------------
+    Input_Opt%IS_ADJOINT             = .FALSE.
+    Input_Opt%IS_FD_SPOT             = .FALSE.
+    Input_Opt%IS_FD_GLOBAL           = .FALSE.
+    Input_Opt%IS_FD_SPOT_THIS_PET    = .FALSE.
+    Input_Opt%FD_STEP                = -999
+    Input_Opt%IFD                    = -999
+    Input_Opt%JFD                    = -999
+    Input_Opt%NFD                    = -999
+    Input_Opt%LFD                    = -999
 #endif
 
     !----------------------------------------

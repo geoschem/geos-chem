@@ -2,9 +2,9 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-16:00
+#SBATCH -t 0-05:00
 #SBATCH -p huce_cascade
-#SBATCH --mem=60000
+#SBATCH --mem=80000
 #SBATCH --mail-type=END
 
 #------------------------------------------------------------------------------
@@ -42,6 +42,7 @@ if [[ "x${SLURM_JOBID}" == "x" ]]; then
 else
     . ~/.bashrc
     . ${root}/gcclassic_env.sh
+    export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
 
 # Load common functions for tests

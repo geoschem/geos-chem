@@ -35,6 +35,8 @@ intTestExecute_slurm.sh    : Script to run GCClassic
 commonFunctionsForTests.sh : Bash script with reusable functions 
 intTestCreate.sh           : Script to create GCClassic run directories
 
+# For interactive sessions:
+intTest_interactive.sh           : Driver script to run GCClassic integration test
 
 Running integration tests:
 --------------------------

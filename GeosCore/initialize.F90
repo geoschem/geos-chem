@@ -110,13 +110,6 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
      IF ( ND61 > 0 ) AD61 = 0e0
 #endif
 
-#ifdef RRTMG
-     !------------------------------
-     ! RRTMG-specific diagnostics
-     !------------------------------
-     IF ( ND72 > 0 ) AD72 = 0e0
-#endif
-
      ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
      IF ( ND03 > 0 ) THEN
         CALL ZERO_DIAG03

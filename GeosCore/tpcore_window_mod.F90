@@ -609,8 +609,15 @@ CONTAINS
  js1gd = max(1,  jfirst-ng)         ! NG latitudes on S (starting at 1)
  jn1gd = min(jm,jlast+ng)           ! NG latitudes on N (ending at jm)
 
- iord_bg = 1
- jord_bg = 1
+! Eloise Marais questioned why iord_bg and jord_bg are set to 1 instead of
+! being set to the iord and jord values from input.geos.  I looked back
+! into the Git history and couldn't find where this change was made, so
+! this issue has probably persisted for quite some time.  We will set these
+! values to iord and jord in an attempt to avoid negative values.
+! See Github issue: https://github.com/geoschem/geos-chem/issues/840.
+!    -- Bob Yantosca (31 Aug 2021)
+ iord_bg = iord
+ jord_bg = jord
 
  iv = 1       ! Enforce strong constraint at top & bottom
               ! May want to change to iv=0 if diffusion is a problem

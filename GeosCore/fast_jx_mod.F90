@@ -63,9 +63,7 @@ MODULE FAST_JX_MOD
   ! subroutine PHOTRATE_ADJ, which is called by FlexChem (bmy 3/29/16)
   INTEGER, PUBLIC :: RXN_O2    = -1   ! O2  + jv --> O   + O
   INTEGER, PUBLIC :: RXN_O3_1  = -1   ! O3  + hv --> O2  + O
-  INTEGER, PUBLIC :: RXN_O3_2a = -1   ! O3  + hv --> 2OH         (Tropchem)
-  ! O3  + hv --> O2  + O(1D) (UCX #1)
-  INTEGER, PUBLIC :: RXN_O3_2b = -1   ! O3  + hv --> O2  + O(1D) (UCX #2)
+  INTEGER, PUBLIC :: RXN_O3_2  = -1   ! O3  + hv --> O2  + O(1D)
   INTEGER, PUBLIC :: RXN_H2SO4 = -1   ! SO4 + hv --> SO2 + 2OH
   INTEGER, PUBLIC :: RXN_NO2   = -1   ! NO2 + hv --> NO  + O
 
@@ -88,11 +86,6 @@ MODULE FAST_JX_MOD
 
   ! Needed for scaling JNIT/JNITs photolysis to JHNO3
   REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
-
-#ifdef MODEL_GEOS
-  ! Diagnostics arrays (ckeller, 5/22/18)
-  REAL, ALLOCATABLE, PUBLIC :: EXTRAL_NLEVS(:,:), EXTRAL_NITER(:,:)
-#endif
 
 CONTAINS
 !EOC
@@ -195,7 +188,7 @@ CONTAINS
     INTEGER       :: KTOP(State_Grid%NZ)
     INTEGER       :: INDICATOR(State_Grid%NZ+2)
     REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
-                                              !  in a block, size can be to 
+                                              !  in a block, size can be to
                                               !  FIX(State_Grid%NZ)+1
     REAL(fp)      :: CLDF1D(State_Grid%NZ)
     REAL(fp)      :: ODNEW(State_Grid%NZ)
@@ -1324,11 +1317,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef MODEL_GEOS
     INTEGER, PARAMETER  ::  LSPH_ = 200
-#else
-    INTEGER, PARAMETER  ::  LSPH_ = 100
-#endif
 
     ! RZ      Distance from centre of Earth to each point (cm)
     ! RQ      Square of radius ratios
@@ -1393,7 +1382,7 @@ CONTAINS
 
        ! fix above top-of-atmos (L=L1U+1), must set DTAU(L1U+1)=0
        AMF2(2*L1U+1,J) = 1.e+0_fp
-       
+
        ! Twilight case - Emergent Beam, calc air mass factors below layer
        if (U0 .ge. 0.0e+0_fp) goto 16
 
@@ -1435,10 +1424,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EXTRAL (Input_Opt,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
+  SUBROUTINE EXTRAL (Input_Opt,State_Diag,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
 !
 ! !USES:
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Diag_Mod, ONLY : DgnState
 !
 !
 ! !INPUT PARAMETERS:
@@ -1448,6 +1438,10 @@ CONTAINS
     integer,        intent(in) :: NX          !Mie scattering array size
     real(fp),       intent(in) :: DTAUX(L1X)  !cloud+3aerosol OD in each layer
     integer,        intent(in) :: ILON, ILAT  !lon,lat index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1570,7 +1564,7 @@ CONTAINS
     ! print error and cut off JXTRAL at lower L if too many levels
     if ( failed ) then
        IF ( Input_Opt%FJX_EXTRAL_ERR ) THEN
-          write(6,'(A,3I5)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
        ENDIF
        do L = L2,1,-1
           JXTRA(L) = 0
@@ -1581,14 +1575,18 @@ CONTAINS
     !10 continue
 
     ! Fill diagnostics arrays
-    EXTRAL_NLEVS(ILON,ILAT) = SUM(JXTRA(:))
-    EXTRAL_NITER(ILON,ILAT) = N
+    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
+       State_Diag%EXTRALNLEVS(ILON,ILAT) = SUM(JXTRA(:))
+    ENDIF
+    IF ( State_Diag%Archive_EXTRALNITER ) THEN
+       State_Diag%EXTRALNITER(ILON,ILAT) = N
+    ENDIF
 #else
     JTOTL    = L2X + 2
     do L2 = L2X,1,-1
        JTOTL  = JTOTL + JXTRA(L2)
        if (JTOTL .gt. NX/2)  then
-          write(6,'(A,3I5)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          write(6,'(A,7I5)') 'N_/L2_/L2-cutoff JXTRA:',ILON,ILAT,NX,L2X,L2,JXTRA(L2),JTOTL
           do L = L2,1,-1
              JXTRA(L) = 0
           enddo
@@ -1859,13 +1857,12 @@ CONTAINS
        ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
        DO J = 1, JVN_
 
-          IF ( J == Rxn_O3_2a ) THEN
+          IF ( J == Rxn_O3_2 ) THEN
 
              !------------------------------------------------------------
-             ! O3 + hv = O + O(1D) branch 1
+             ! O3 + hv = O + O(1D)
              !
-             ! UCX     : Save this as JO3_O1D in the nPhotol+1 slot
-             ! non_UCX : Save this as JO3     in the nPhotol+1 slot
+             ! Save this as JO3_O1D in the nPhotol+1 slot
              !------------------------------------------------------------
              GC_Photo_Id(J) = State_Chm%nPhotol + 1
 
@@ -1874,30 +1871,9 @@ CONTAINS
              !------------------------------------------------------------
              ! O3 + hv -> O + O
              !
-             ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
-             ! non-UCX : undefined
+             ! Save this as JO3_O3P in the nPhotol+2 slot
              !-------------------------------------------------------------
-             IF ( Input_Opt%LUCX ) THEN
-                GC_Photo_Id(J) = State_Chm%nPhotol + 2
-             ELSE
-                GC_Photo_Id(J) = -999
-             ENDIF
-
-          ELSE IF ( J == Rxn_O3_2b ) THEN
-
-             !------------------------------------------------------------
-             ! O3 + hv -> O2 + O(1d) branch 2
-             !
-             ! UCX     : undefined
-             ! non-UCX : Save into the nPhotol+2 slot
-             !           NOTE: The JPOH rate in the bpch diagnostic will
-             !           now be the sum of the nPhotol+1+nPhotol+2 slots!
-             !------------------------------------------------------------
-             IF ( Input_Opt%LUCX ) THEN
-                GC_Photo_Id(J) = -999
-             ELSE
-                GC_Photo_Id(J) = State_Chm%nPhotol + 2
-             ENDIF
+             GC_Photo_Id(J) = State_Chm%nPhotol + 2
 
           ELSE
 
@@ -1926,14 +1902,6 @@ CONTAINS
 #endif
 
     ENDIF
-
-#ifdef MODEL_GEOS
-    ! Diagnostics arrays
-    ALLOCATE(EXTRAL_NLEVS(State_Grid%NX,State_Grid%NY))
-    ALLOCATE(EXTRAL_NITER(State_Grid%NX,State_Grid%NY))
-    EXTRAL_NLEVS(:,:) = 0.0
-    EXTRAL_NITER(:,:) = 0.0
-#endif
 
   END SUBROUTINE INIT_FJX
 !EOC
@@ -2540,8 +2508,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ThisLoc
 
     ! String arrays
-    CHARACTER(LEN=30)  :: SPECFIL(6)
-    CHARACTER(LEN=30)  :: SPECFIL_UCX(8)
+    CHARACTER(LEN=30)  :: SPECFIL(8)
 
     !================================================================
     ! RD_AOD begins here!
@@ -2555,12 +2522,6 @@ CONTAINS
     DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
 
     ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
-    DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
-                  "ssa.dat","ssc.dat", "dust.dat"/
-
-    ! For UCX simulations:
-    !
-    ! Extra two LUT dat files for strat H2SO4 and NAT particles
     !
     ! Treating strat sulfate with GADS data but modified to match
     ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
@@ -2569,20 +2530,17 @@ CONTAINS
     ! but for now we are just treating the NAT like the sulfate... limited
     ! info but ref index is similar e.g. Scarchilli et al. (2005)
     !(DAR 05/2015)
-    DATA SPECFIL_UCX /"so4.dat","soot.dat","org.dat", &
-                      "ssa.dat","ssc.dat",            &
-                      "h2so4.dat","h2so4.dat",        &
-                      "dust.dat"/
+    DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
+                  "ssa.dat","ssc.dat",            &
+                  "h2so4.dat","h2so4.dat",        &
+                  "dust.dat"/
 
     ! Loop over the array of filenames
     DO k = 1, NSPAA
 
-       ! Choose different set of input files for UCX and tropchem simulations
-       IF ( Input_Opt%LUCX) THEN
-          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL_UCX(k) )
-       ELSE
-          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
-       ENDIF
+       ! Choose different set of input files for standard (trop+strat chenm)
+       ! and tropchem (trop-only chem) simulations
+       THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
 
        !--------------------------------------------------------------
        ! In dry-run mode, print file path to dryrun log and cycle.
@@ -2755,7 +2713,7 @@ CONTAINS
 !   UPDATE: because the RT optics output doesnt have access to the
 !   standard wavelengths we now calculate two sets of values: one
 !   for the ND21 and diag3 outputs that use the standard wavelengths
-!   and one for ND72 that interpolates the optics from RRTMG
+!   and one for RRTMG diagnostics that interpolate the optics from RRTMG
 !   wavelengths. Perhaps a switch needs adding to switch off the RT
 !   optics output (and interpolation) if this ends up costing too
 !   much and is not used, but it is ideal to have an optics output
@@ -3180,15 +3138,7 @@ CONTAINS
 
        ! O3 + hv -> O2 + O(1D)
        CASE( 'O3PHOTONO2O(1D)' )
-
-          ! NOTE: There are 2 reactions of this form.  We shall save
-          ! the first one that is encountered in RXN_O3_2a and the
-          ! second one in RXN_O3_2b. (bmy, 3/29/16)
-          IF ( RXN_O3_2a > 0 ) THEN
-             RXN_O3_2b = K
-          ELSE
-             RXN_O3_2a = K
-          ENDIF
+          RXN_O3_2 = K
 
        ! SO4 + hv -> SO2 + OH + OH
        CASE( 'SO4PHOTONSO2OHOH' )
@@ -3251,14 +3201,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( RXN_O3_2a < 0 ) THEN
-       ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    IF ( RXN_O3_2b  < 0 ) THEN
-       ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #2'
+    IF ( RXN_O3_2 < 0 ) THEN
+       ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
     ENDIF
 
@@ -3298,35 +3242,28 @@ CONTAINS
        RETURN
     ENDIF
 
-    !---------------------------------------------------------------------
-    ! These reactions are only defined for the UCX mechanism!
-    !---------------------------------------------------------------------
-    IF ( Input_Opt%LUCX ) THEN
+    IF ( RXN_H2SO4  < 0 ) THEN
+       ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-       IF ( RXN_H2SO4  < 0 ) THEN
-          ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( RXN_NO3 < 0 ) THEN
+       ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-       IF ( RXN_NO3 < 0 ) THEN
-          ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    IF ( RXN_NO < 0 ) THEN
+       ErrMsg = 'Could not find rxn NO + hv -> O + N'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-       IF ( RXN_NO < 0 ) THEN
-          ErrMsg = 'Could not find rxn NO + hv -> O + N'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       IF ( RXN_N2O < 0 ) THEN
-          ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
+    IF ( RXN_N2O < 0 ) THEN
+       ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     !------------------------------------
@@ -3337,15 +3274,12 @@ CONTAINS
        WRITE( 6, 110 )
        WRITE( 6, 120 ) RXN_O2
        WRITE( 6, 130 ) RXN_O3_1
-       WRITE( 6, 140 ) RXN_O3_2a
-       WRITE( 6, 150 ) RXN_O3_2b
+       WRITE( 6, 140 ) RXN_O3_2
        WRITE( 6, 180 ) RXN_JNITSa
        WRITE( 6, 190 ) RXN_JNITSb
        WRITE( 6, 200 ) RXN_JNITa
        WRITE( 6, 210 ) RXN_JNITb
-       IF ( Input_Opt%LUCX ) THEN
-          WRITE( 6, 160 ) RXN_H2SO4
-       ENDIF
+       WRITE( 6, 160 ) RXN_H2SO4
        WRITE( 6, 170 ) RXN_NO2
        WRITE( 6, 100 ) REPEAT( '=', 79 )
     ENDIF
@@ -3551,6 +3485,16 @@ CONTAINS
     ! PHOTO_JX begins here!
     !=================================================================
 
+#if defined( MODEL_GEOS )
+    ! Initialize diagnostics arrays
+    IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
+       State_Diag%EXTRALNLEVS(ILON,ILAT) = 0.0 
+    ENDIF
+    IF ( State_Diag%Archive_EXTRALNITER ) THEN
+       State_Diag%EXTRALNITER(ILON,ILAT) = 0.0 
+    ENDIF
+#endif
+
     if (State_Grid%NZ+1 .gt. JXL1_) then
        call EXITC(' PHOTO_JX: not enough levels in JX')
     endif
@@ -3665,40 +3609,36 @@ CONTAINS
           !to the new speciated LUT
           KMIE2=LUTIDX(KMIE)
 
-          IF ( Input_Opt%LUCX ) THEN
+          ! Stratospheric aerosols
+          IM=10+(NRHAER*NRH)+1
+          DO M=IM,IM+1
+             IDXAER=M-IM+6 !6-STS, 7-NAT
 
-             ! Strat aerosols for UCX simulations
-             IM=10+(NRHAER*NRH)+1
-             DO M=IM,IM+1
-                IDXAER=M-IM+6 !6-STS, 7-NAT
-
-                IF (AERX_COL(M,L).gt.0d0) THEN
-                   IF (AOD999) THEN
-                      ! Aerosol/dust (999 nm scaling)
-                      ! Fixed to dry radius
-                      QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(10,1,IDXAER)
-                   ELSE
-                      ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(5,1,IDXAER)
-                   ENDIF
-                   LOCALOD    = QSCALING*AERX_COL(M,L)
-                   LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
-                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
-                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-                   DO I=1,8
-                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
-                                       (PAA(I,KMIE,IDXAER)*LOCALSSA)
-                   ENDDO     ! I (Phase function)
+             IF (AERX_COL(M,L).gt.0d0) THEN
+                IF (AOD999) THEN
+                   ! Aerosol/dust (999 nm scaling)
+                   ! Fixed to dry radius
+                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(10,1,IDXAER)
+                ELSE
+                   ! Aerosol/dust (550 nm scaling)
+                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(5,1,IDXAER)
                 ENDIF
+                LOCALOD    = QSCALING*AERX_COL(M,L)
+                LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
+                OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                DO I=1,8
+                   SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
+                                    (PAA(I,KMIE,IDXAER)*LOCALSSA)
+                ENDDO     ! I (Phase function)
+             ENDIF
 
-             ENDDO           ! M (Aerosol)
-
-          ENDIF ! LUCX
+          ENDDO           ! M (Aerosol)
 
           ! Mineral dust (from new optics LUT)
           DO M=4,10
              IF (AERX_COL(M,L).gt.0d0) THEN
-                IDXAER=NSPAA !dust is last in LUT (6, or 8 if UCX=y)
+                IDXAER=NSPAA !dust is last in LUT
                 IR=M-3
                 IF (AOD999) THEN
                    QSCALING = QQAA(KMIE2,IR,IDXAER)/ &
@@ -3763,7 +3703,7 @@ CONTAINS
     ! Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
     !  additonal levels at top of clouds (now uses log spacing)
     ! --------------------------------------------------------------------
-    call EXTRAL(Input_Opt,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
+    call EXTRAL(Input_Opt,State_Diag,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
     ! --------------------------------------------------------------------
 
     ! set surface reflectance
@@ -4397,7 +4337,7 @@ CONTAINS
 
        ! at this point FTAU2(1:L2_+1) and POMEAGJ(1:8, 1:L2_+1)
        !     where FTAU2(L2_+1) = 1.0 = top-of-atmos, FTAU2(1) = surface
-       
+
        do L2 = 1,L2U+1          ! L2 = index of CTM edge- and mid-layers
           L2L = L2LEV(L2)        ! L2L = index for L2 in expanded scale(JADD)
           LZ  = ND + 2 - 2*L2L  ! LZ = index for L2 in scatt arrays
@@ -4910,7 +4850,6 @@ CONTAINS
     ! TOMS_200701 directory.
     !=================================================================
 
-    ! Updated with UCX
     ! Since we now have stratospheric ozone calculated online, use
     ! this instead of archived profiles for all chemistry-grid cells
     ! The variable O3_CTM is obtained from State_Met%Species, and will be 0
@@ -5010,11 +4949,9 @@ CONTAINS
        ENDDO
     ENDDO
 
-    IF ( Input_Opt%LUCX ) THEN
-       ! Stratospheric aerosols - SSA/STS and solid PSCs
-       MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
-       MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
-    endif
+    ! Stratospheric aerosols - SSA/STS and solid PSCs
+    MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
+    MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 
     ! Ensure all 'AN_' types are valid selections
     do i=1,AN_
@@ -5273,24 +5210,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag,       &
-                           I,         J,         L,     &
-                           NUMDEN,    TEMP,      C_H2O, &
-                           FRAC,      RC )
+  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met,                 &
+                           I,         J,          L,                         &
+                           FRAC,      RC                                    )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input_Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
     INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
-    REAL(fp),       INTENT(IN)    :: NUMDEN     ! Air # density [molec/m3]
-    REAL(fp),       INTENT(IN)    :: TEMP       ! Temperature [K]
-    REAL(fp),       INTENT(IN)    :: C_H2O      ! H2O conc [molec/cm3]
     REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
                                                 !  called from DO_FLEXCHEM
 ! !INPUT/OUTPUT PARAMETERS:
@@ -5318,9 +5253,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL  :: DO_ND22
-    REAL(fp) :: C_O2,      C_N2,     C_H2, ITEMPK
-    REAL(fp) :: RO1DplH2O, RO1DplH2, RO1D
+    REAL(fp) :: C_O2,     C_N2, C_H2,   ITEMPK, RO1DplH2O
+    REAL(fp) :: RO1DplH2, RO1D, NUMDEN, TEMP,   C_H2O
 
     !=================================================================
     ! PHOTRATE_ADJ begins here!
@@ -5328,6 +5262,9 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
+    TEMP    = State_Met%T(I,J,L)                                 ! K
+    NUMDEN  = State_Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
+    C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
     ! scaled value of JHNO3. NOTE: this is set in input.geos
@@ -5366,112 +5303,33 @@ CONTAINS
 
     ENDIF
 
-    ! Test if the UCX mechanism is being used
-    IF ( Input_Opt%LUCX ) THEN
+    !==============================================================
+    ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
+    !
+    ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
+    !==============================================================
 
-       !==============================================================
-       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! %%% FOR MECHANISMS WITH UCX                              %%%
-       ! %%% (standard, benchmark, *SOA*, marinePOA, aciduptake)  %%%
-       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       !
-       ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
-       !
-       ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
-       !==============================================================
+    ! Calculate if H2SO4 expected to be gaseous or aqueous
+    ! Only allow photolysis above 6 hPa
+    ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
+    ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
-       ! Calculate if H2SO4 expected to be gaseous or aqueous
-       ! Only allow photolysis above 6 hPa
-       ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
-       ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
+    !==============================================================
+    ! SPECIAL TREATMENT FOR O3+hv -> O+O2
+    !
+    ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
+    ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
+    !
+    ! We don't want to do this if strat-chem is in use, as all
+    ! the intermediate reactions are included - this would be
+    ! double-counting (SDE 04/01/13)
+    !==============================================================
 
-       !==============================================================
-       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! %%% FOR MECHANISMS WITH UCX                              %%%
-       ! %%% (standard, benchmark, *SOA*, marinePOA, aciduptake)  %%%
-       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       !
-       ! SPECIAL TREATMENT FOR O3+hv -> O+O2  (UCX simulation)
-       !
-       ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
-       ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
-       !
-       ! We don't want to do this if strat-chem is in use, as all
-       ! the intermediate reactions are included - this would be
-       ! double-counting (SDE 04/01/13)
-       !==============================================================
-
-       ! Need to subtract O3->O1D from rate
-       ! RXN_O3_1  specifies: O3 + hv -> O2 + O
-       ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-       ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) &
-                           - ZPJ(L,RXN_O3_2a,I,J)
-
-    ELSE
-
-       !==============================================================
-       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! %%% FOR MECHANISMS WITHOUT UCX %%%
-       ! %%% (tropchem)                 %%%
-       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       !
-       ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
-       ! than 2.6e-11.  The temperature dependence remains the
-       ! same, so the constant changes from 1.8e-11 to 2.14e-11
-       ! according to Heard, pers. comm.,2002. (amf, bmy, 1/7/02)
-       !==============================================================
-       ! Change the rate of O(1D)+H2O from 2.2e-10 to 1.45e-10*
-       ! exp(89/temp) on the basis of Dunlea and Ravishankara
-       ! 'Measurement of the Rate coefficient for the reaction
-       ! of O(1D) with H2O and re-evaluation of the atmospheric
-       ! OH Production Rate'.  One of the RSC Journals
-       ! (mje 4/5/04)
-       !==============================================================
-       ! Updated from JPL2006, the difference is pretty small.
-       ! (jmao,02/26/2009)
-       !==============================================================
-       ! Additional update from JPL 10-6 for reaction of
-       ! O3 + hv --> HO2 + OH and O1D + H2:
-       ! Includes calculation of k[O3], where
-       ! k[O3]  = J[O3]*1.2e-10/k[O1D], where
-       ! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
-       !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
-       ! (bhh, jmao, eam, 7/18/11)
-       !==============================================================
-
-       ! Inverse temperature [K-1]
-       ITEMPK    = 1.0_fp / TEMP
-
-       ! Set species concentrations [molec/m3] ???
-       C_O2      = 0.2095e+0_fp * NUMDEN
-       C_N2      = 0.7808e+0_fp * NUMDEN
-
-       ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
-       ! Seasonal variability of H2 may be important,
-       ! but not included in this update (bhh, jmao, eam, 7/18/11)
-       C_H2      = 0.5000e-6_fp * NUMDEN
-
-       RO1DplH2O = 1.63e-10_fp * EXP(  60.0_fp * ITEMPK ) * C_H2O
-
-       RO1DplH2  = 1.2e-10                                * C_H2
-
-       RO1D      = RO1DplH2O &
-                 + RO1DplH2  &
-                 + 2.15e-11_fp * EXP( 110.0_fp * ITEMPK ) * C_N2 &
-                 + 3.30e-11_fp * EXP(  55.0_fp * ITEMPK ) * C_O2
-
-       ! Prevent div-by-zero
-       IF ( RO1D > 0.0_fp ) THEN
-
-          ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D) #1
-          ZPJ(L,RXN_O3_2a,I,J) = ZPJ(L,RXN_O3_2a,I,J) * RO1DplH2O / RO1D
-
-          ! RXN_O3_2b specifies: O3 + hv -> O2 + O(1D) #2
-          ZPJ(L,RXN_O3_2b,I,J) = ZPJ(L,RXN_O3_2b,I,J) * RO1DplH2  / RO1D
-
-       ENDIF
-
-    ENDIF
+    ! Need to subtract O3->O1D from rate
+    ! RXN_O3_1 specifies: O3 + hv -> O2 + O
+    ! RXN_O3_2 specifies: O3 + hv -> O2 + O(1D)
+    ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) &
+                        - ZPJ(L,RXN_O3_2,I,J)
 
   END SUBROUTINE PHOTRATE_ADJ
 !EOC

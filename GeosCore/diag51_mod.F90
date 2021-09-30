@@ -359,15 +359,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL, SAVE     :: FIRST = .TRUE.
-    LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
-    LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
-    INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
-    INTEGER, SAVE     :: id_PAN,      id_MPAN,   id_PPN,  id_O3
-    INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
-    INTEGER, SAVE     :: id_SOAIE,    id_INDIOL, id_LVOCOA
-    INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
-    INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
+    LOGICAL,  SAVE    :: FIRST = .TRUE.
+    LOGICAL,  SAVE    :: IS_FULLCHEM, IS_SEASALT
+    LOGICAL,  SAVE    :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
+    INTEGER,  SAVE    :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
+    INTEGER,  SAVE    :: id_PAN,      id_MPAN,   id_PPN,  id_O3
+    INTEGER,  SAVE    :: id_R4N2,     id_SALA,   id_SALC, id_NO2
+    INTEGER,  SAVE    :: id_SOAIE,    id_INDIOL, id_LVOCOA
+    INTEGER,  SAVE    :: id_SO4,      id_NH4,    id_NIT
+    INTEGER,  SAVE    :: id_BCPI,     id_BCPO,   id_OH
+    REAL(fp), SAVE    :: CONV_OH
 
     ! Scalars
     LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
@@ -422,6 +423,11 @@ CONTAINS
        id_BCPI    = Ind_('BCPI'   )
        id_BCPO    = Ind_('BCPO'   )
        id_OH      = Ind_('OH'     )
+
+       ! Used to convert kg/kg dry to molec/cm3
+       IF ( id_OH > 0 ) THEN
+          CONV_OH = ( AVO / State_Chm%SpcData(id_OH)%Info%Mw_g ) / 1.0e+6_fp
+       ENDIF
 
        ! Set logical flags on first call
        IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -544,8 +550,10 @@ CONTAINS
                 !--------------------------------------
 
                 ! Accumulate data
-                Q(X,Y,K,W) = Q(X,Y,K,W) + &
-                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) )
+                Q(X,Y,K,W) = Q(X,Y,K,W) +                                    &
+                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) ) *          &
+                     ( State_Met%AIRDEN(I,J,L)        * CONV_OH )
+
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
 

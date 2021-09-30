@@ -1,6 +1,6 @@
 # GEOS-Chem Species Database
 # Core species only (neglecting microphysics)
-# NOTE: Anchors must be defined before any variables that reference them
+# NOTE: Anchors must be defined before any variables that reference them.
 A3O2:
   Formula: CH3CH2CH2OO
   FullName: Primary peroxy radical from C3H8
@@ -46,6 +46,77 @@ AERI:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
+DST1_PROP: &DST1properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 7.3e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DST2_PROP: &DST2properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 1.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DST3_PROP: &DST3properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 2.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DST4_PROP: &DST4properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+AlF1:
+  << : *DST1properties
+  Formula: Al
+  Fullname: Aluminium on dust Reff = 0.7 microns
+  MW_g: 26.98
+  WD_CoarseAer: true
+AlF2:
+  << : *DST2properties
+  Formula: Al
+  Fullname: Aluminium on dust, Reff = 1.4 microns
+  MW_g: 26.98
 ALD2:
   DD_F0: 1.0
   DD_Hstar: 1.1e+1
@@ -65,6 +136,64 @@ ALK4:
   Is_Advected: true
   Is_Gas: true
   MW_g: 58.12
+AONITA:
+  DD_F0: 1.0
+  DD_Hstar: 2.9e+3
+  Formula: C6H6O6N
+  FullName: Aerosol-phase organonitrates from aromatics
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Henry_CR: 6800.0
+  Henry_K0: 2.9e+3
+  MW_g: 189.12
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RetFactor: 2.0e-2
+AROMP4:
+  DD_F0: 1.0
+  DD_Hstar: 4.1e+5
+  Formula: C4H4O2
+  FullName: Generic C4 product of aromatics
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 68.08
+  Henry_CR: 7500.0
+  Henry_K0: 4.1e+5
+  WD_RetFactor: 2.0e-2
+AROMP5:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C5H6O2
+  FullName: C5 unsaturated dicarbonyl
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 98.10
+  Henry_CR: 7500.0
+  Henry_K0: 2.0e+6
+  WD_RetFactor: 2.0e-2
+AROMRO2:
+  Formula: C6H7O3
+  FullName: hydroxy-peroxy radical from aromatics
+  Is_Gas: true
+  MW_g: 127.00
+AsF1:
+  << : *DST1properties
+  Formula: As
+  Fullname: Arsenic on dust Reff = 0.7 microns
+  MW_g: 74.92
+  WD_CoarseAer: true
+AsF2:
+  << : *DST2properties
+  Formula: As
+  Fullname: Arsenic on dust, Reff = 1.4 microns
+  MW_g: 74.92
 ASOA_PROP: &ASOAproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -78,6 +207,7 @@ ASOA_PROP: &ASOAproperties
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 ASOA1:
   << : *ASOAproperties
 ASOA2:
@@ -128,6 +258,20 @@ B3O2:
   FullName: B3O2
   Is_Gas: true
   MW_g: 75.10
+BALD:
+  DD_F0: 1.0
+  DD_Hstar: 3.8e+1
+  Formula: C7H6O
+  FullName: Benzaldehyde
+  Henry_CR: 5500.0
+  Henry_K0: 3.8e+1
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 106.12
+  WD_RetFactor: 2.0e-2
 BCPI:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -144,7 +288,7 @@ BCPI:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-  WD_RainoutEff_Luo: [0.5, 0.0, 0.5]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.5]
 BCPO:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -161,6 +305,7 @@ BCPO:
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_KcScaleFac_Luo: [1.0, 1.0, 0.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.5, 0.05, 0.0]
 Be_PROP: &Beproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -173,6 +318,7 @@ Be_PROP: &Beproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 Be10:
   << : *Beproperties
   Formula: Be10
@@ -199,6 +345,30 @@ BENZ:
   Is_Advected: true
   Is_Gas: true
   MW_g: 78.12
+BENZO:
+  Formula: C6H5O
+  FullName: alkoxy radical from aromatics
+  Is_Gas: true
+  MW_g: 93.00
+BENZO2:
+  Formula: C6H5O2
+  FullName: peroxy radical from aromatics
+  Is_Gas: true
+  MW_g: 109.00
+BENZP:
+  DD_F0: 1.0
+  DD_Hstar: 2.9e+3
+  Formula: C6H6O2
+  FullName: Phenyl hydroperoxide
+  Henry_CR: 6800.0
+  Henry_K0: 2.9e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 110.11
+  WD_RetFactor: 2.0e-2
 Br:
   Formula: Br
   FullName: Atomic bromine
@@ -255,6 +425,7 @@ BrO:
   FullName: Bromine monoxide
   Is_Advected: true
   Is_Gas: true
+  Is_DryAlt: true
   Is_Photolysis: true
   MW_g: 95.90
 BRO2:
@@ -275,12 +446,45 @@ SALA_PROP: &SALAproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 BrSALA:
   << : *SALAproperties
   Formula: Br
   FullName: Fine sea salt bromine
   Is_HygroGrowth: false
   MW_g: 79.90
+BZCO3:
+  Formula: C7H5O3
+  FullName: Acyl peroxy radical from benzaldehyde
+  Is_Gas: true
+  MW_g: 137.00
+BZCO3H:
+  DD_F0: 1.0
+  DD_Hstar: 2.4e+4
+  Formula: C6H5CO3H
+  FullName: Perbenzoic acid
+  Henry_CR: 0.0
+  Henry_K0: 2.4e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 138.12
+  WD_RetFactor: 2.0e-2
+BZPAN:
+  DD_F0: 1.0
+  DD_Hstar: 7.0e+1
+  Formula: C7H5O5N
+  FullName: Peroxybenzoylnitrate
+  Henry_CR: 4600.0
+  Henry_K0: 7.0e+1
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 183.12
+  WD_RetFactor: 2.0e-2
 SALC_PROP: &SALCproperties
   DD_AeroDryDep: true
   DD_F0: 0.0
@@ -294,6 +498,7 @@ SALC_PROP: &SALCproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 BrSALC:
   << : *SALCproperties
   Formula: Br
@@ -305,9 +510,16 @@ C:
   Formula: C
   FullName: Atomic carbon
   MW_g: 12.01
+C2H2:
+  Formula: C2H2
+  FullName: Acetylene (aka Ethyne)
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 26.05
 C2H4:
   Formula: C2H4
   FullName: Ethylene
+  Is_Advected: true
   Is_Gas: true
   MW_g: 28.05
 C2H6:
@@ -336,6 +548,27 @@ C4HVP2:
   FullName: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
   MW_g: 103.11
+CaF1:
+  << : *DST1properties
+  Formula: Ca
+  Fullname: Calcium on dust Reff = 0.7 microns
+  MW_g: 40.08
+  WD_CoarseAer: true
+CaF2:
+  << : *DST2properties
+  Formula: Ca
+  Fullname: Calcium on dust, Reff = 1.4 microns
+  MW_g: 40.08
+CaC3:
+  << : *DST3properties
+  Formula: Ca
+  Fullname: Calcium on dust, Reff = 2.4 microns
+  MW_g: 40.08
+CaC4:
+  << : *DST4properties
+  Formula: Ca
+  Fullname: Calcium on dust, Reff = 4.5 microns
+  MW_g: 40.08
 CCl4:
   Formula: CCl4
   FullName: Carbon tetrachloride
@@ -343,6 +576,17 @@ CCl4:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 153.82
+CdF1:
+  << : *DST1properties
+  Formula: Cd
+  Fullname: Cadmium on dust Reff = 0.7 microns
+  MW_g: 112.41
+  WD_CoarseAer: true
+CdF2:
+  << : *DST2properties
+  Formula: Cd
+  Fullname: Cadmium on dust, Reff = 1.4 microns
+  MW_g: 112.41
 CFC11:
   Formula: CCl3F
   FullName: CFC-11
@@ -771,6 +1015,19 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
+CSL:
+  DD_F0: 1.0
+  DD_Hstar: 4.2e+2
+  Formula: C7H8O
+  FullName: Cresols
+  Henry_CR: 8500.0
+  Henry_K0: 4.2e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 108.14
+  WD_RetFactor: 2.0e-2
 DMS:
   Formula: (CH3)2S
   FullName: Dimethyl sulfide
@@ -779,89 +1036,38 @@ DMS:
   Is_Advected: true
   Is_Aerosol: true
   MW_g: 62.13
-DST1_PROP: &DST1properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2500.0
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  MW_g: 29.0
-  Radius: 7.3e-7
-  WD_AerScavEff: 1.0
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
-DST2_PROP: &DST2properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  MW_g: 29.0
-  Radius: 1.4e-6
-  WD_AerScavEff: 1.0
-  WD_CoarseAer: true
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
-DST3_PROP: &DST3properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  MW_g: 29.0
-  Radius: 2.4e-6
-  WD_AerScavEff: 1.0
-  WD_CoarseAer: true
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
-DST4_PROP: &DST4properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  MW_g: 29.0
-  Radius: 4.5e-6
-  WD_AerScavEff: 1.0
-  WD_CoarseAer: true
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
 DST1:
   << : *DST1properties
   FullName: Dust aerosol, Reff = 0.7 microns
+  MW_g: 29.0
 DST2:
   << : *DST2properties
   FullName: Dust aerosol, Reff = 1.4 microns
+  MW_g: 29.0
 DST3:
   << : *DST3properties
   FullName: Dust aerosol, Reff = 2.4 microns
+  MW_g: 29.0
 DST4:
   << : *DST4properties
   FullName: Dust aerosol, Reff = 4.5 microns
+  MW_g: 29.0
 DSTAL1:
   << : *DST1properties
   FullName: Dust alkalinity, Reff = 0.7 microns
+  MW_g: 29.0
 DSTAL2:
   << : *DST2properties
   FullName: Dust alkalinity, Reff = 1.4 microns
+  MW_g: 29.0
 DSTAL3:
   << : *DST3properties
   FullName: Dust alkalinity, Reff = 2.4 microns
+  MW_g: 29.0
 DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
+  MW_g: 29.0
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -873,7 +1079,7 @@ EOH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 46.08
+  MW_g: 46.07
   WD_RetFactor: 2.0e-2
 ETHLN:
   DD_F0: 1.0
@@ -889,6 +1095,33 @@ ETHLN:
   Is_WetDep: true
   MW_g: 105.06
   WD_RetFactor: 2.0e-2
+ETHN:
+  Formula: HOCH2CH2ONO2
+  FullName: hydroxy-nitrooxy-ethane
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 107.07
+  Is_DryDep: true
+  Is_WetDep: true
+  WD_RetFactor: 2.0e-2
+  DD_F0: 0.1
+  DD_Hstar: 3.90e+04
+  Henry_CR: 8600.0
+  Henry_K0: 3.90e+04
+ETHP:
+  Formula: HOCH2CH2OOH
+  FullName: hydroxy-hydroperoxy-ethane
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 78.07
+  Is_DryDep: true
+  Is_WetDep: true
+  Is_Photolysis: true
+  WD_RetFactor: 2.0e-2
+  DD_F0: 0.1
+  DD_Hstar: 6.50e+5
+  Henry_CR: 8800.0
+  Henry_K0: 6.50e+5
 ETNO3:
   DD_F0: 0.1
   DD_Hstar: 1.6
@@ -906,6 +1139,16 @@ ETO2:
   FullName: ETO2
   Is_Gas: true
   MW_g: 61.07
+ETO:
+  Formula: HOCH2CH2O
+  FullName: alkoxy radical from ETOO
+  Is_Gas: true
+  MW_g: 61.0
+ETOO:
+  Formula: HOCH2CH2OO
+  FullName: peroxy radical from ethene
+  Is_Gas: true
+  MW_g: 77.06
 ETP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -920,6 +1163,17 @@ ETP:
   Is_WetDep: true
   MW_g: 62.08
   WD_RetFactor: 2.0e-2
+FeF1:
+  << : *DST1properties
+  Formula: Fe
+  Fullname: Iron on dust. Reff = 0.7 microns
+  MW_g: 55.84
+  WD_CoarseAer: true
+FeF2:
+  << : *DST2properties
+  Formula: Fe
+  Fullname: Iron on dust, Reff = 1.4 microns
+  MW_g: 55.84
 GlobEmis90dayTracer:
   FullName: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
   Is_Advected: true
@@ -1314,6 +1568,7 @@ HgP_PROP: &HgPproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 1.0]
 HgP:
   << : *HgPproperties
   FullName: Particulate mercury
@@ -1441,6 +1696,22 @@ HMML:
   Is_WetDep: true
   MW_g: 102.10
   WD_RetFactor: 2.0e-2
+HMS:
+  Background_VV: 1.0e-15
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Formula: HOCH2SO3−
+  FullName: Hydroxymethanesulfonate
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 111.10
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 HNO2:
   Background_VV: 4.0e-15
   Formula: HNO2
@@ -1469,7 +1740,7 @@ HNO3:
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_KcScaleFac_Luo: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
-  WD_RainoutEff_Luo: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 HNO4:
   Background_VV: 4.0e-15
   Formula: HNO4
@@ -1603,6 +1874,11 @@ HPETHNL:
   Is_WetDep: true
   MW_g: 76.06
   WD_RetFactor: 2.0e-2
+HSO3m:
+  Formula: HSO3-
+  FullName: Hydrogen sulfite
+  Is_Gas: true
+  MW_g: 81.07
 I:
   Formula: I
   FullName: Atomic iodine
@@ -1987,6 +2263,7 @@ INDIOL:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 INO:
   Formula: INO
   FullName: Nitrosyl iodide
@@ -2052,6 +2329,7 @@ IONITA:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 IONO:
   DD_F0: 0.0
   DD_Hstar: 3.0e-1
@@ -2151,6 +2429,27 @@ ITHN:
   Is_WetDep: true
   MW_g: 197.17
   WD_RetFactor: 2.0e-2
+KF1:
+  << : *DST1properties
+  Formula: K
+  Fullname: Potassium on dust. Reff = 0.7 microns
+  MW_g: 39.10
+  WD_CoarseAer: true
+KF2:
+  << : *DST2properties
+  Formula: K
+  Fullname: Potassium on dust, Reff = 1.4 microns
+  MW_g: 39.10
+KC3:
+  << : *DST3properties
+  Formula: K
+  Fullname: Potassium on dust, Reff = 2.4 microns
+  MW_g: 39.10
+KC4:
+  << : *DST4properties
+  Formula: K
+  Fullname: Potassium on dust, Reff = 4.5 microns
+  MW_g: 39.10
 KO2:
   Formula: C4H5O3
   FullName: Peroxy radical from >3 ketones
@@ -2245,6 +2544,7 @@ LVOCOA:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 LXRO2H:
   FullName: Dummy species to track oxidation of XRO2 by HO2
   Is_Gas: true
@@ -2382,6 +2682,19 @@ MCROHOO:
   FullName: Peroxy radical from MACR + OH
   Is_Gas: true
   MW_g: 119.11
+MCT:
+  DD_F0: 1.0
+  DD_Hstar: 4.2e+2
+  Formula: C7H8O2
+  FullName: Catechols and methyl catechols
+  Henry_CR: 8500.0
+  Henry_K0: 4.2e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 124.0
+  WD_RetFactor: 2.0e-2
 MEK:
   Formula: RC(O)R
   FullName: Methyl Ethyl Ketone
@@ -2405,6 +2718,27 @@ MENO3:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 77.05
+MgF1:
+  << : *DST1properties
+  Formula: Mg
+  Fullname: Magnesium on dust. Reff = 0.7 microns
+  MW_g: 24.31
+  WD_CoarseAer: true
+MgF2:
+  << : *DST2properties
+  Formula: Mg
+  Fullname: Magnesium on dust, Reff = 1.4 microns
+  MW_g: 24.31
+MgC3:
+  << : *DST3properties
+  Formula: Mg
+  Fullname: Magnesium on dust, Reff = 2.4 microns
+  MW_g: 24.31
+MgC4:
+  << : *DST4properties
+  Formula: Mg
+  Fullname: Magnesium on dust, Reff = 4.5 microns
+  MW_g: 24.31
 MGLY:
   DD_F0: 1.0
   DD_Hstar: 3.7e+3
@@ -2419,6 +2753,17 @@ MGLY:
   Is_WetDep: true
   MW_g: 72.07
   WD_RetFactor: 2.0e-2
+MnF1:
+  << : *DST1properties
+  Formula: Mn
+  Fullname: Manganese on dust. Reff = 0.7 microns
+  MW_g: 54.94
+  WD_CoarseAer: true
+MnF2:
+  << : *DST2properties
+  Formula: Mn
+  Fullname: Manganese on dust, Reff = 1.4 microns
+  MW_g: 54.94
 MO2:
   Background_VV: 4.0e-15
   Formula: CH3O2
@@ -2451,6 +2796,7 @@ MONITA:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 MONITS:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
@@ -2494,6 +2840,7 @@ MOPI:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 MOPO:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -2561,6 +2908,7 @@ MSA:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 MTPA:
   DD_F0: 0.0
   DD_Hstar: 4.9e-2
@@ -2716,7 +3064,7 @@ N2O5:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: tr2ue
+  Is_Photolysis: true
   MW_g: 108.02
 NAP:
   Formula: C10H8
@@ -2727,12 +3075,15 @@ NAP:
 NH3:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.2, 0.3]
+  DD_DvzMinVal_Luo: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 2.0e+4
   Formula: NH3
   FullName: Ammonia
   Henry_CR: 4100.0
+  Henry_CR_Luo: 4200.0
   Henry_K0: 3.3e+6
+  Henry_K0_Luo: 59.78175
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2756,11 +3107,23 @@ NH4:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 NHEmis90dayTracer:
   FullName: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
   Is_Advected: true
   Is_Gas: true
   MW_g: 1.0
+NiF1:
+  << : *DST1properties
+  Formula: Ni
+  Fullname: Nickel on dust. Reff = 0.7 microns
+  MW_g: 58.69
+  WD_CoarseAer: true
+NiF2:
+  << : *DST2properties
+  Formula: Ni
+  Fullname: Nickel on dust, Reff = 1.4 microns
+  MW_g: 58.69
 NIT:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
@@ -2776,18 +3139,23 @@ NIT:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 NITD1:
   << : *DST1properties
   FullName: Nitrate on dust, Reff = 0.7 microns
+  MW_g: 29.0
 NITD2:
   << : *DST2properties
   FullName: Nitrate on dust, Reff = 1.4 microns
+  MW_g: 29.0
 NITD3:
   << : *DST3properties
   FullName: Nitrate on dust, Reff = 2.4 microns
+  MW_g: 29.0
 NITD4:
   << : *DST4properties
   FullName: Nitrate on dust, Reff = 4.5 microns
+  MW_g: 29.0
 NITs:
   << : *SALCproperties
   FullName: Inorganic nitrates on surface of seasalt aerosol
@@ -2820,6 +3188,20 @@ NO3:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 62.01
+NPHEN:
+  DD_F0: 1.0
+  DD_Hstar: 2.3e+3
+  Formula: C6H5NO3
+  FullName: Nitrophenols
+  Henry_CR: 0.0
+  Henry_K0: 2.3e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 139.11
+  WD_RetFactor: 2.0e-2
 NPRNO3:
   DD_F0: 0.1
   DD_Hstar: 1.1
@@ -2860,6 +3242,8 @@ O3_PROP: &O3properties
   DD_Hstar: 1.0e-2
   Formula: O3
   FullName: Ozone
+  Henry_CR: 2800.0
+  Henry_K0: 0.0101325e0
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2869,6 +3253,8 @@ O3:
   << : *O3properties
   Background_VV: 2.0e-8
   FullName: Ozone
+  Henry_CR: 2800.0
+  Henry_K0: 0.0101325e0
   Is_DryAlt: true
 O3afbl:
   << : *O3properties
@@ -2941,7 +3327,7 @@ OCPI:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_KcScaleFac_Luo: [0.5, 0.25, 0.5]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-  WD_RainoutEff_Luo: [0.5, 0.0, 0.5]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.5]
 OCPO:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3000,6 +3386,7 @@ OPOA1:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 OPOA2:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3012,6 +3399,7 @@ OPOA2:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 OPOG1:
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
@@ -3072,12 +3460,24 @@ Pb210_PROP: &Pbproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 Pb210:
   << : *Pbproperties
   FullName: Lead-210 isotope
 Pb210Strat:
   << : *Pbproperties
   FullName: Lead-210 isotope in stratosphere
+PbF1:
+  << : *DST1properties
+  Formula: Pb
+  Fullname: Lead on dust. Reff = 0.7 microns
+  MW_g: 210.0
+  WD_CoarseAer: true
+PbF2:
+  << : *DST2properties
+  Formula: Pb
+  Fullname: Lead on dust, Reff = 1.4 microns
+  MW_g: 210.0
 PCO:
   FullName: Dummy species to track production rate of CO
   Is_Gas: true
@@ -3095,10 +3495,24 @@ pFe:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
   MW_g: 34.02
+PHEN:
+  DD_F0: 1.0
+  DD_Hstar: 2.8e+3
+  Formula: C6H6O
+  FullName: Phenol
+  Henry_CR: 2700.0
+  Henry_K0: 2.8e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 94.11
+  WD_RetFactor: 2.0e-2
 PIO2:
   Formula: C10H17O3
   FullName: Peroxy radical from MTPA
@@ -3224,8 +3638,9 @@ POPPBCPI_BaP:
   Is_WetDep: true
   MW_g: 252.32
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3237,8 +3652,9 @@ POPPBCPI_PHE:
   Is_WetDep: true
   MW_g: 178.24
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3250,8 +3666,9 @@ POPPBCPI_PYR:
   Is_WetDep: true
   MW_g: 202.26
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [ 0.4, 0.0, 1.0]
 POPPBCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3265,6 +3682,7 @@ POPPBCPO_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 0.0]
 POPPBCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3278,6 +3696,7 @@ POPPBCPO_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 0.0]
 POPPBCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3291,6 +3710,7 @@ POPPBCPO_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [0.4, 1.0, 0.0]
 POPPOCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3304,6 +3724,7 @@ POPPOCPI_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 POPPOCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3317,6 +3738,7 @@ POPPOCPI_PHE:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 POPPOCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3330,6 +3752,7 @@ POPPOCPI_PYR:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 POPPOCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3677,13 +4100,25 @@ SHEmis90dayTracer:
   Is_Advected: true
   Is_Gas: true
   MW_g: 1.0
+SiF1:
+  << : *DST1properties
+  Fullname: Silicon on dust, Reff = 0.7 microns
+  MW_g: 28.09
+  WD_CoarseAer: true
+SiF2:
+  << : *DST2properties
+  Fullname: Silicon on dust, Reff = 1.4 microns
+  MW_g: 28.09
 SO2:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.2, 0.3]
+  DD_DvzMinVal_Luo: [0.01, 0.01]
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
   Formula: SO2
   FullName: Sulfur dioxide
+  Henry_CR_Luo: 3100.0
+  Henry_K0_Luo: 1.22
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -3693,6 +4128,15 @@ SO2:
   WD_Is_SO2: true
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
+  WD_RetFactor_Luo: 5.0e-2
+  WD_LiqAndGas_Luo: true
+  WD_ConvFacI2G_Luo: 6.17395e-1
+SO3mm:
+  Formula: SO3--
+  FullName: Sulfite
+  Is_Gas: true
+  MW_g: 80.07
 SO4:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
@@ -3711,18 +4155,23 @@ SO4:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 SO4D1:
   << : *DST1properties
   FullName: Sulfate on dust, Reff = 0.7 microns
+  MW_g: 29.0
 SO4D2:
   << : *DST2properties
   FullName: Sulfate on dust, Reff = 1.4 microns
+  MW_g: 29.0
 SO4D3:
   << : *DST3properties
   FullName: Sulfate on dust, Reff = 2.4 microns
+  MW_g: 29.0
 SO4D4:
   << : *DST4properties
   FullName: Sulfate on dust, Reff = 4.5 microns
+  MW_g: 29.0
 SO4H1:
   Formula: SO4
   FullName: Sulfate produced by HOBr
@@ -3761,6 +4210,7 @@ SOAGX:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 SOAIE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3775,6 +4225,7 @@ SOAIE:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 SOAP:
   FullName: SOA Precursor - lumped species for simplified SOA parameterization
   Is_Advected: true
@@ -3793,6 +4244,18 @@ SOAS:
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
+TiF1:
+  << : *DST1properties
+  Formula: Ti
+  Fullname: Titanium on dust, Reff = 0.7 microns
+  MW_g: 47.87
+  WD_CoarseAer: true
+TiF2:
+  << : *DST2properties
+  Formula: Ti
+  Fullname: Titanium on dust, Reff = 1.4 microns
+  MW_g: 47.87
 TOLU:
   Formula: C7H8
   FullName: Toluene
@@ -3817,6 +4280,7 @@ TSOA_PROP: &TSOAproperties
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+  WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 TSOA0:
   << : *TSOAproperties
 TSOA1:

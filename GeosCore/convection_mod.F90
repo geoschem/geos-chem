@@ -462,6 +462,9 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
+#ifdef LUO_WETDEP
+    REAL(fp), PARAMETER    :: pHRain = 5.6_fp
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -548,9 +551,15 @@ CONTAINS
     ! Convection timestep [s]
     NDT      = TS_DYN
 
-    ! Internal time step for convective mixing is 300 sec.
-    ! Doug Rotman (LLNL) says that 450 sec works just as well.
-    NS       = NDT / 300                ! Num internal timesteps (int)
+    IF ( State_Grid%NZ > 72 .or. &
+         Input_Opt%MetField == "MODELE2.1" ) THEN 
+       ! Higher vertical resolution runs need shorter convective timestep
+       NS       = NDT / 60
+    ELSE
+       ! Internal time step for convective mixing is 300 sec.
+       ! Doug Rotman (LLNL) says that 450 sec works just as well.
+       NS       = NDT / 300                ! Num internal timesteps (int)
+    ENDIF
     NS       = MAX( NS, 1 )             ! Set lower bound to 1
     DNS      = DBLE( NS )               ! Num internal timesteps (real)
     SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
@@ -941,7 +950,8 @@ CONTAINS
                 IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
                    WRITE( 6, 200 )
 200                FORMAT( 'Infinity in DO_CLOUD_CONVECTION!' )
-                   WRITE( 6, 255 ) K, IC, Q(K,IC)
+                   WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
+                   WRITE(*,*) T0,T1,T2,T3,T4,DELQ,SDT,TSUM
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
@@ -949,9 +959,9 @@ CONTAINS
                 ! Return if we encounter NaN
                 IF ( IT_IS_NAN( Q(K,IC) ) ) THEN
                    WRITE( 6, 250 )
-                   WRITE( 6, 255 ) K, IC, Q(K,IC)
+                   WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
 250                FORMAT( 'NaN encountered in DO_CLOUD_CONVECTION!' )
-255                FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
+255                FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6, 1x, a10 )
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
@@ -1088,6 +1098,9 @@ CONTAINS
                               K,         IC,         BXHEIGHT(K),   &
                               T(K),      QDOWN,      SDT,           &
                               F_WASHOUT, H2O2s(K),   SO2s(K),       &
+#ifdef LUO_WETDEP
+                              pHRain,                               &
+#endif
                               WASHFRAC,  AER,        Input_Opt,     &
                               State_Chm, State_Grid, State_Met,  RC )
 

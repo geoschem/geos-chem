@@ -88,13 +88,12 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Met_Mod,      ONLY : MetState
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE Species_Mod,        ONLY : Species
-    USE HCO_State_GC_Mod,   ONLY : HcoState
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Met_Mod,        ONLY : MetState
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE Species_Mod,          ONLY : Species
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -162,7 +161,7 @@ CONTAINS
 
        ! Check if file exists
        FldName = TRIM( Prefix ) // TRIM( SpcInfo%Name )
-       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find field : ' // TRIM( FldName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -229,18 +228,17 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Met_Mod,    ONLY : MetState
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Chm_Mod,    ONLY : Ind_
-    USE Species_Mod,      ONLY : Species
-    USE HCO_State_GC_Mod, ONLY : HcoState
-    USE HCO_Calc_Mod,     ONLY : Hco_EvalFld
-    USE TIME_MOD,         ONLY : Get_Month
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Met_Mod,        ONLY : MetState
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE Species_Mod,          ONLY : Species
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE TIME_MOD,             ONLY : Get_Month
 
     ! Needed for the new CHxCly boundary condition
-    Use PhysConstants,      Only : AirMW
+    Use PhysConstants,        ONLY : AirMW
 !
 ! !INPUT PARAMETERS:
 !
@@ -311,7 +309,7 @@ CONTAINS
     DO WHILE( ASSOCIATED( iObj ) )
 
        ! Get concentration for this species
-       CALL HCO_EvalFld( HcoState, Trim(iObj%FldName), Arr2D, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(iObj%FldName), Arr2D, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get surface VMR for species: '//               &
                    TRIM( iObj%FldName ) // '!'

@@ -161,6 +161,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_MENO3, id_ETNO3
   INTEGER                        :: id_NK1
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
+  INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -500,6 +501,13 @@ CONTAINS
                 ! (cf. the GOCART model).  NOTE: In practice this will
                 ! only apply to the species SO2, SO4, MSA, NH3, NH4, NIT.
                 DVZ = MAX( DVZ, DBLE( SpcInfo%DD_DvzMinVal(1) ) )
+#ifdef LUO_WETDEP
+                IF ( DBLE( SpcInfo%DD_DvzMinVal(1) ) > 0.0_fp ) THEN
+                   IF ( State_Met%TS(I,J) < 253.0_fp ) THEN
+                      DVZ = DBLE( SpcInfo%DD_DvzMinVal(1) )
+                   ENDIF
+                ENDIF
+#endif
 
              ENDIF
 
@@ -947,8 +955,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : NTYPE
-    USE Drydep_Toolbox_Mod, ONLY : BioFit
+    USE CMN_SIZE_MOD,         ONLY : NTYPE
+    USE Drydep_Toolbox_Mod,   ONLY : BioFit
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
@@ -961,10 +969,11 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #ifdef APM
-    USE APM_INIT_MOD,       ONLY : APMIDS
-    USE APM_INIT_MOD,       ONLY : RDRY, RSALT, RDST, DENDST
-    USE APM_DRIV_MOD,       ONLY : GFTOT3D, DENWET3D, MWSIZE3D
+    USE APM_INIT_MOD,         ONLY : APMIDS
+    USE APM_INIT_MOD,         ONLY : RDRY, RSALT, RDST, DENDST
+    USE APM_DRIV_MOD,         ONLY : GFTOT3D, DENWET3D, MWSIZE3D
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1122,6 +1131,10 @@ CONTAINS
     ! for corr O3, krt,11/2017
     REAL(f8) :: RA_Alt, DUMMY2_Alt, DUMMY4_Alt, Z0OBK_Alt
 
+#ifdef LUO_WETDEP
+    REAL(f8) :: HSTAR3D(State_Grid%NX,State_Grid%NY,NUMDEP)
+#endif
+
 #ifdef TOMAS
     ! For TOMAS aerosol (win, 7/15/09)
     INTEGER  :: BIN
@@ -1158,14 +1171,6 @@ CONTAINS
     REAL(fp)          :: XLAI_FP
     REAL(fp)          :: SUNCOS_FP
     REAL(fp)          :: CFRAC_FP
-
-#ifdef MODEL_GEOS
-    ! Archive Ra?
-    REAL(fp)          :: RA2M,  Z0OBK2M
-    REAL(fp)          :: RA10M, Z0OBK10M
-    !LOGICAL           :: WriteRa2m
-    !LOGICAL           :: WriteRa10m
-#endif
 
     ! For the species database
     INTEGER                :: SpcId
@@ -1213,13 +1218,13 @@ CONTAINS
 #if !defined( MODEL_CESM )
     ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
     IF ( id_O3 > 0 ) THEN
-       CALL HCO_EvalFld( HcoState, 'surf_iodide', State_Chm%Iodide, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'surf_iodide', State_Chm%Iodide, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
-       CALL HCO_EvalFld( HcoState, 'surf_salinity', State_Chm%Salinity, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'surf_salinity', State_Chm%Salinity, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
@@ -1230,12 +1235,6 @@ CONTAINS
 
     ! Initialize State_Chm%DryDepVel
     State_Chm%DryDepVel = 0.0e+0_f8
-
-#ifdef MODEL_GEOS
-    ! Logical flag for Ra (ckeller, 12/29/17)
-    State_Chm%DryDepRa2m  = 0.0_fp
-    State_Chm%DryDepRa10m = 0.0_fp
-#endif
 
     !***********************************************************************
     !
@@ -1255,6 +1254,11 @@ CONTAINS
           LDEP(K) = .FALSE.
        ENDIF
     ENDDO
+
+#ifdef LUO_WETDEP
+    ! Get the Henry's law constant as a function of lon, lat, and species
+    CALL Luo_Get_HStar3d( Input_Opt, State_Grid, State_Met, HStar3d, RC )
+#endif
 
     !***********************************************************************
     !*
@@ -1295,9 +1299,6 @@ CONTAINS
     !$OMP PRIVATE( C1X,     VK,      I,       J,      IW                ) &
     !$OMP PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP ) &
     !$OMP PRIVATE( N_SPC,   alpha,   DEPVw                              ) &
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( RA2M,    Z0OBK2M, RA10M, Z0OBK10M                    ) &
-#endif
 #ifdef TOMAS
     !$OMP PRIVATE( BIN                                                  ) &
 #endif
@@ -1526,12 +1527,22 @@ CONTAINS
 
                 !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
                 XMWH2O = H2OMW * 1.e-3_f8
+#ifdef LUO_WETDEP
+                RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
+                     DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
+                     + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0(K))
+#else
                 RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
                      DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
                      + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
+#endif
                 RLUXX = 1.e+12_f8
                 IF (RLU(LDT).LT.9999.e+0_f8) &
+#ifdef LUO_WETDEP
+                     RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0(K))
+#else
                      RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
+#endif
 
                 ! If POPs simulation, scale cuticular resistances with octanol-
                 ! air partition coefficient (Koa) instead of HSTAR 
@@ -1549,10 +1560,17 @@ CONTAINS
                 !* corresponding minimum resistance is 50 s m-1. This correction
                 !* was introduced by J.Y. Liang on 7/9/95.
                 !*
+#ifdef LUO_WETDEP
+                RGSX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RGSS(LDT) + &
+                       F0(K)/RGSO(LDT))
+                RCLX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RCLS(LDT) + &
+                       F0(K)/RCLO(LDT))
+#else
                 RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) + &
                        F0(K)/RGSO(LDT))
                 RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) + &
                        F0(K)/RCLO(LDT))
+#endif
                 !*
                 !** Get the bulk surface resistance of the canopy, RSURFC, from
                 !** the network of resistances in parallel and in series (Fig. 1
@@ -1839,10 +1857,6 @@ CONTAINS
 
           ! Define Z0OBK
           Z0OBK = ZO(I,J)/OBK(I,J)
-#ifdef MODEL_GEOS
-          Z0OBK2M  = MAX(Z0OBK,  2e+0_fp/OBK(I,J) )
-          Z0OBK10M = MAX(Z0OBK, 10e+0_fp/OBK(I,J) )
-#endif
           !--------------------------------------------------------
           ! Z0OBK_Alt is Z0OBK for a user-specified height above
           ! the surface.  This is required for diagnostics.
@@ -1902,20 +1916,10 @@ CONTAINS
                 !*... unstable condition; set RA to zero.
                 !*    (first implemented in V. 3.2)
                 RA     = 0.e+0_f8
-#ifdef MODEL_GEOS
-                RA2M   = 0.e+0_f8
-                RA10M  = 0.e+0_f8
-#endif
-
                 !*... error trap: prevent CORR1 or Z0OBK from being
                 !*... zero or close to zero (ckeller, 3/15/16)
              ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
                 RA = 0.e+0_f8
-#ifdef MODEL_GEOS
-                RA2M  = 0.e+0_f8
-                RA10M = 0.e+0_f8
-#endif
-
              ELSEIF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .GE. -1.e+0_f8) THEN
                 !*... unstable conditions;
                 !*... compute Ra as described above
@@ -1924,35 +1928,15 @@ CONTAINS
                 DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                 DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                 RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-#ifdef MODEL_GEOS
-                ! 2M
-                DUMMY1 = (1.e+0_f8 - 9e+0_f8*Z0OBK2M)**0.5e+0_f8
-                DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
-                RA2M   = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-                DUMMY1 = (1.e+0_f8 - 9e+0_f8*Z0OBK10M)**0.5e+0_f8
-                DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
-                RA10M  = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-#endif
 
              ELSEIF((CORR1.GT.0.0e+0_f8).AND.(.NOT.LRGERA(I,J)))  THEN
                 !*... moderately stable conditions (z/zMO <1);
                 !*... compute Ra as described above
                 RA = (1e+0_f8/CKUSTR) * (.74e+0_f8*LOG(CORR1/Z0OBK) + &
                      4.7e+0_f8*(CORR1-Z0OBK))
-#ifdef MODEL_GEOS
-                RA2M = (1e+0_f8/CKUSTR) * (0.74_f8*LOG(Z0OBK2M/Z0OBK)+4.7_f8* &
-                       (Z0OBK2M-Z0OBK))
-                RA10M = (1e+0_f8/CKUSTR) * (0.74_f8*LOG(Z0OBK10M/Z0OBK)+4.7_f8*&
-                        (Z0OBK10M-Z0OBK))
-#endif
-
              ELSEIF(LRGERA(I,J)) THEN
                 !*... very stable conditions
                 RA     = 1.e+04_f8
-#ifdef MODEL_GEOS
-                RA2M   = 1.e+04_f8
-                RA10M  = 1.e+04_f8
-#endif
              ENDIF
              !* check that RA is positive; if RA is negative (as occassionally
              !* happened in version 3.1) send a warning message.
@@ -1969,16 +1953,6 @@ CONTAINS
                 DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                 DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                 RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-#ifdef MODEL_GEOS
-                ! 2M
-                DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK2M)**0.5e+0_f8
-                DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
-                RA2M = 1.e+0_f8 * (1.e+0_f8/CKUSTR)*LOG(DUMMY3/DUMMY4)
-                ! 10M
-                DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK10M)**0.5e+0_f8
-                DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
-                RA10M= 1.e+0_f8 * (1.e+0_f8/CKUSTR)*LOG(DUMMY3/DUMMY4)
-#endif
                 !--------------------------------------------------
                 ! Compute RA at user-defined altitude above surface
                 ! (krt, bmy, 7/10/19)
@@ -1996,12 +1970,6 @@ CONTAINS
                 !coef_b=5.e+0_f8
                 RA = (1D0/CKUSTR) * (1.e+0_f8*LOG(CORR1/Z0OBK) + &
                      5.e+0_f8*(CORR1-Z0OBK))
-#ifdef MODEL_GEOS
-                RA2M = (1D0/CKUSTR) * (1.e+0_f8*LOG(Z0OBK2M/Z0OBK)+ &
-                        5.e+0_f8*(Z0OBK2M-Z0OBK))
-                RA10M = (1D0/CKUSTR) * (1.e+0_f8*LOG(Z0OBK10M/Z0OBK)+ &
-                        5.e+0_f8*(Z0OBK10M-Z0OBK))
-#endif
                 !--------------------------------------------------
                 ! Compute RA at user-defined altitude above surface
                 ! for diagnostic output (krt, bmy, 7/10/19)
@@ -2017,12 +1985,6 @@ CONTAINS
                 !coef_b=1.e+0_f8
                 RA = (1D0/CKUSTR) * (5.e+0_f8*LOG(CORR1/Z0OBK) + &
                      1.e+0_f8*(CORR1-Z0OBK))
-#ifdef MODEL_GEOS
-                RA2M = (1D0/CKUSTR) * (5.e+0_f8*LOG(Z0OBK2M/Z0OBK)+ &
-                       1.e+0_f8*(Z0OBK2M-Z0OBK))
-                RA10M = (1D0/CKUSTR) * (5.e+0_f8*LOG(Z0OBK10M/z0OBK)+ &
-                        1.e+0_f8*(Z0OBK10M-Z0OBK))
-#endif
                 !--------------------------------------------------
                 ! Compute RA at user-defined altitude above surface
                 ! for diagnostic output (krt, bmy, 7/10/19)
@@ -2037,20 +1999,11 @@ CONTAINS
           ENDIF
 
           RA   = MIN(RA,1.e+4_f8)
-#ifdef MODEL_GEOS
-          RA2M   = MIN(RA2M,  1.e+4_f8)
-          RA10M  = MIN(RA10M, 1.e+4_f8)
-#endif
           ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
           IF (RA .LT. 0.e+0_f8) THEN
              WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)
              RA = 0.0e+0_f8
           ENDIF
-#ifdef MODEL_GEOS
-          ! Adjust 2M Ra if needed
-          IF ( RA2M  < 0.e+0_f8 ) RA2M  = 0.e+0_f8
-          IF ( RA10M < 0.e+0_f8 ) RA10M = 0.e+0_f8
-#endif
           !----------------------------------------------------
           ! Compute RA at user-defined altitude above surface
           ! for diagnostic output (krt, bmy, 7/10/19)
@@ -2102,10 +2055,6 @@ CONTAINS
           DO 230 K = 1,NUMDEP
              IF ( LDEP(K) ) THEN
                 RA     = 1.0D4
-#ifdef MODEL_GEOS
-                RA2M   = 1.0D4
-                RA10M  = 1.0D4
-#endif
                 C1X(K) = RA + RSURFC(K,LDT)
              ENDIF
 230       CONTINUE
@@ -2121,22 +2070,6 @@ CONTAINS
              VK(K) = VD(K)
              VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
 400       CONTINUE
-
-#ifdef MODEL_GEOS
-          !--- Eventually archive aerodynamic resistance.
-          !--- Convert s m-1 to s cm-1.
-          !--- Ra is set to an arbitrary large value of 1.0e4 in stable
-          !--- conditions. Adjust archived Ra's downward to avoid excessive
-          !--- surface concentration adjustments when using C'=(1-Ra*vd)*C. 
-          !--- (ckeller, 2/2/18)
-          !IF ( RA2M >= 1.0d4 ) RA2M = 0.0
-          State_Chm%DryDepRa2m(I,J) = State_Chm%DryDepRa2m(I,J) + &
-               0.001d0 * DBLE(IUSE(I,J,LDT)) * ( MAX(0.0d0,RA-RA2M)/100.0d0 )
-          !IF ( RAKT >= 1.0d4 ) RAKT = 0.0
-          State_Chm%DryDepRa10m(I,J) = State_Chm%DryDepRa10m(I,J) + &
-               0.001d0 * DBLE(IUSE(I,J,LDT)) * ( MAX(0.0d0,RA-RA10M)/100.0d0 )
-#endif
-
 500    CONTINUE
 
        !** Load array State_Chm%DryDepVel
@@ -2220,6 +2153,163 @@ CONTAINS
 
   END SUBROUTINE DEPVEL
 !EOC
+#ifdef LUO_WETDEP
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Luo_Get_Hstar3d
+!
+! !DESCRIPTION: Computes the Henry's law constants for SO2, NH3, and H2O2
+!  as a function of longitude & latitude.  For all other species, will
+!  return a constant Henry's law constant.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Luo_Get_Hstar3d( Input_Opt, State_Grid, State_Met, HStar3d, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt
+    TYPE(GrdState), INTENT(IN)  :: State_Grid
+    TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(fp),       INTENT(OUT) :: Hstar3d(State_Grid%NX,State_Grid%NY,NUMDEP)
+    INTEGER,        INTENT(OUT) :: RC
+!
+! !REMARKS:
+!  For now, only used with the Luo et al 2020 wetdep option.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: I,     J,     K,       spcId
+    REAL(f8)            :: coeff, Hplus, inv_tAq, Ks1,  Ks2, tAq, t298_taq
+!
+! !DEFINED PARAMETERS:
+!
+    REAL(f8), PARAMETER :: INV_T298  = 1.0_f8 / 298.15_f8
+    REAL(f8), PARAMETER :: HPLUS_ice = 10.0_f8**(-5.4_f8) ! pH ice/snow
+    REAL(f8), PARAMETER :: HPLUS_lnd = 10.0_f8**(-7.0_f8) ! pH land
+    REAL(f8), PARAMETER :: HPLUS_ocn = 10.0_f8**(-8.2_f8) ! pH ocean
+
+    !=======================================================================
+    ! Luo_Get_Hstar3D begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       !====================================================================
+       ! For fullchem and aerosol simulations, the effective Henry's law 
+       ! constant for SO3, H2O2, and NH3 will be computed as a function
+       ! of lon & lat (i.e. as a function of temperature & land cover).
+       !
+       ! For all other species, assume that the effective Henry's law
+       ! constant does not vary with lon & lat.
+       !====================================================================
+
+       ! Loop over drydep species
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( K,       SpcId,    J,     I,   Hplus, tAq             )&
+       !$OMP PRIVATE( inv_tAq, t298_tAq, coeff, ks1, ks2                    )
+       DO K = 1, NUMDEP
+
+          ! Get the modelId from the drydep Id
+          SpcId = NTRAIND(K)
+
+          ! Loop over grid boxes
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Pick the proper Hplus value based on surface
+             !----------------------------------------------------------------
+             ! NOTE: Should be using these but the original code used LWI.  
+             ! Leave this comment here for now (bmy, 08 Jul 2021)
+             !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
+             !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
+             !IF ( State_Met%IsIce(I,J)   ) Hplus = HPLUS_ice
+             !----------------------------------------------------------------
+             IF ( State_Met%LWI(I,J) == 0 ) Hplus = HPLUS_ocn
+             IF ( State_Met%LWI(I,J) == 1 ) Hplus = HPLUS_lnd
+             IF ( State_Met%LWI(I,J) == 2 ) Hplus = HPLUS_ice
+
+             ! Temperature terms
+             tAq      = MAX( 253.0_f8, State_Met%TS(I,J) )
+             inv_tAq  = 1.0_f8    / tAq
+             t298_tAq = 298.15_f8 / tAq
+
+             ! Henry's constant [mol/l-atm] and Effective Henry's constant
+             IF ( SpcId == id_SO2 ) THEN
+
+                coeff = 1.22_f8    * EXP( 10.55_f8 * (t298_tAq - 1.0_f8)    )
+                Ks1   = 1.30e-2_f8 * EXP(  6.75_f8 * (t298_tAq - 1.0_f8)    )
+                Ks2   = 6.31e-8_fp * EXP(  5.05_f8 * (t298_tAq - 1.0_f8)    )
+
+                HSTAR3D(I,J,K) = coeff *                                     &
+                  ( 1.0_f8 + ( Ks1/Hplus ) + ( Ks1*Ks2 / ( HPlus*HPlus ) )  )
+
+             ELSE IF ( SpcId == id_H2O2 ) THEN
+
+                coeff = 8.3e+04_f8  * EXP(  24.82_f8 * (t298_tAq - 1.0_f8)  )
+                Ks1   = 2.20e-12_f8 * EXP( -12.52_f8 * (t298_tAq - 1.0_f8)  )
+
+                HSTAR3D(I,J,K) = coeff * ( 1.0_f8 + ( Ks1 / Hplus ) )
+
+             ELSE IF ( SpcId == id_NH3 ) THEN
+
+                coeff = 59.8_f8    * EXP(  4200.0_f8 * (inv_tAq - INV_T298) )
+                Ks1   = 1.0e-14_f8 * EXP( -6710.0_f8 * (inv_tAq - INV_T298) ) 
+                Ks2   = 1.7e-5_f8  * EXP( -4325.0_f8 * (inv_tAq - INV_T298) )
+             
+                HSTAR3D(I,J,K) = coeff *                                     &
+                                 ( 1.0_f8 + ( ( Ks2 * Hplus ) / Ks1 )       )
+                
+             ELSE
+
+                HSTAR3D(I,J,K) = HSTAR(K)
+
+             ENDIF
+
+          ENDDO
+          ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    ELSE
+
+       !====================================================================
+       ! None of the other simulation types include SO3, H2O2, and NH3,
+       ! so we can skip all of the computations above.  
+       !
+       ! For each species, we can return an effective Henry's law constant
+       ! that does not depend on lon & lat.
+       !====================================================================
+       DO K = 1, NUMDEP
+          HSTAR3D(:,:,K) = HSTAR(K)
+       ENDDO
+
+    ENDIF
+
+  END SUBROUTINE Luo_Get_Hstar3d
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4355,9 +4445,12 @@ CONTAINS
     id_ALD2   = 0
     id_MENO3  = 0
     id_ETNO3  = 0
-    id_HNO3   = IND_('HNO3'  )
-    id_PAN    = IND_('PAN'   )
-    id_IHN1   = IND_('IHN1'  )
+    id_HNO3   = Ind_('HNO3'  )
+    id_PAN    = Ind_('PAN'   )
+    id_IHN1   = Ind_('IHN1'  )
+    id_H2O2   = Ind_('H2O2'  )
+    id_SO2    = Ind_('SO2'   )
+    id_NH3    = Ind_('NH3'   )
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species

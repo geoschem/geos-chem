@@ -1,0 +1,262 @@
+EXPID:  OutputDir/GEOSChem
+EXPDSC: GEOS-Chem_devel
+CoresPerNode: 6
+VERSION: 1
+
+#==============================================================================
+# Define output grids different from the native cubed sphere in this section.
+# Each diagnostics collection will be output on the native resolution cubed
+# sphere grid unless a different grid is configured. A few examples are
+# provided below.
+#
+# To use a grid for a specific collection, include the 'grid_label' field
+# in the collection definition. For example, 
+#
+#   SpeciesConc.grid_label:   REGIONAL1x1
+#
+# If you are outputting on a lat/lon grid, be sure to specify conservative
+# regridding. Otherwise regridding will be bi-linear.
+#
+#   SpeciesConc.conservative: 1
+#
+#==============================================================================
+GRID_LABELS: PE24x144-CF
+             PC360x181-DC
+             REGIONAL1x1
+    ::
+
+    # Example of cubed-sphere grid at c24 resolution
+    PE24x144-CF.GRID_TYPE: Cubed-Sphere
+    PE24x144-CF.IM_WORLD: 24
+    PE24x144-CF.JM_WORLD: 144
+    PE24x144-CF.LM: 72
+
+    # Example of lat-lon global grid at 1x1 resolution
+    PC360x181-DC.GRID_TYPE: LatLon
+    PC360x181-DC.IM_WORLD: 360
+    PC360x181-DC.JM_WORLD: 181
+    PC360x181-DC.POLE: PC
+    PC360x181-DC.DATELINE: DC
+    PC360x181-DC.LM: 72
+
+    # Example of lat-lon regional grid at 1x1 resolution
+    REGIONAL1x1.GRID_TYPE: LatLon
+    REGIONAL1x1.IM_WORLD: 80
+    REGIONAL1x1.JM_WORLD: 40
+    REGIONAL1x1.POLE: XY
+    REGIONAL1x1.DATELINE: XY
+    REGIONAL1x1.LON_RANGE:   0 80
+    REGIONAL1x1.LAT_RANGE: -30 10
+    REGIONAL1x1.LM: 72
+
+#==============================================================================
+# Declare collection names and toggle on/off with #
+#==============================================================================
+COLLECTIONS: 'Emissions',
+             'Budget',
+             'CloudConvFlux',
+             'LevelEdgeDiags',      
+             'SpeciesConc',
+	     #'Adjoint',
+             'StateMet_avg',      
+             'StateMet_inst',      
+::
+#==============================================================================
+# Define collections
+# The rest of this file consists of collection definitions.
+# Above collections whose declarations are commented out will be ignored.
+# You can skip individual diagnostics by commenting them out.
+#
+# WARNING: Frequency, duration, and mode will be over-written with
+# settings in runConfig.sh. Edit those settings there. Add collections
+# as needed to that file as needed or edit in place new collections here.
+#
+# NOTES:
+#    (1) See the GRID_LABELS sections above for details about output grids
+#    (2) To output a reduced set of levels, use the levels keyword, e.g.:
+#           SpeciesConc.levels: 1 2 3
+#
+#==============================================================================
+# Emissions (see HEMCO_Diagn.rc for additional config settings)
+  Emissions.template:         '%y4%m2%d2_%h2%n2z.nc4',
+  Emissions.format:           'CFIO',
+  Emissions.timestampStart:   .true.
+  Emissions.monthly:          1
+  Emissions.frequency:        010000
+  Emissions.duration:         010000
+  Emissions.mode:             'time-averaged'
+  Emissions.fields:           'EmisCO2_Total               ', 'GCHPchem',
+                              'EmisCO2_Fossil              ', 'GCHPchem',
+                              'EmisCO2_Ocean               ', 'GCHPchem',
+                              'EmisCO2_Biological          ', 'GCHPchem',
+                              'EmisCO2_Biofuel             ', 'GCHPchem',
+                              'EmisCO2_Bionet              ', 'GCHPchem',
+::
+#==============================================================================
+# Budget defined as species kg/s in the column (full, troposphere, or PBL) 
+# due to a single component (e.g. chemistry); default = ozone only; add more 
+# species as needed to the example below (advected only)
+  Budget.template:            '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.format:              'CFIO',
+  Budget.timestampStart:      .true.
+  Budget.monthly:             1
+  Budget.frequency:           010000
+  Budget.duration:            010000
+  Budget.mode:                'time-averaged'
+  Budget.fields:              'BudgetEmisDryDepFull_CO2           ', 'GCHPchem',
+  			      'BudgetEmisDryDepFull_PassiveTracer ', 'GCHPchem',
+			      'BudgetEmisDryDepTrop_CO2           ', 'GCHPchem',
+			      'BudgetEmisDryDepTrop_PassiveTracer ', 'GCHPchem',
+			      'BudgetEmisDryDepPBL_CO2            ', 'GCHPchem',
+			      'BudgetEmisDryDepPBL_PassiveTracer  ', 'GCHPchem',
+			      'BudgetMixingFull_CO2               ', 'GCHPchem',
+			      'BudgetMixingFull_PassiveTracer     ', 'GCHPchem',
+			      'BudgetMixingTrop_CO2               ', 'GCHPchem',
+			      'BudgetMixingTrop_PassiveTracer     ', 'GCHPchem',
+			      'BudgetMixingPBL_CO2                ', 'GCHPchem',
+			      'BudgetMixingPBL_PassiveTracer      ', 'GCHPchem',
+			      'BudgetConvectionFull_CO2           ', 'GCHPchem',
+			      'BudgetConvectionFull_PassiveTracer ', 'GCHPchem',
+			      'BudgetConvectionTrop_CO2           ', 'GCHPchem',
+			      'BudgetConvectionTrop_PassiveTracer ', 'GCHPchem',
+			      'BudgetConvectionPBL_CO2            ', 'GCHPchem',
+			      'BudgetConvectionPBL_PassiveTracer  ', 'GCHPchem',
+::					     
+#===============================================================================
+  CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.format:         'CFIO',
+  CloudConvFlux.timestampStart: .true.
+  CloudConvFlux.monthly:        1
+  CloudConvFlux.frequency:      010000
+  CloudConvFlux.duration:       010000
+  CloudConvFlux.mode:           'time-averaged'
+  CloudConvFlux.fields:         'CloudConvFlux_CO2           ', 'GCHPchem',
+  			        'CloudConvFlux_PassiveTracer ', 'GCHPchem',
+::
+#==============================================================================
+  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  LevelEdgeDiags.format:         'CFIO',
+  LevelEdgeDiags.timestampStart: .true.
+  LevelEdgeDiags.monthly:        1
+  LevelEdgeDiags.frequency:      010000
+  LevelEdgeDiags.duration:       010000
+  LevelEdgeDiags.mode:           'time-averaged'
+  LevelEdgeDiags.fields:         'Met_CMFMC          ', 'GCHPchem',
+                                 'Met_PEDGE          ', 'GCHPchem',
+                                 'Met_PEDGEDRY       ', 'GCHPchem',
+                                 'Met_PFICU          ', 'GCHPchem',
+                                 'Met_PFILSAN        ', 'GCHPchem',
+                                 'Met_PFLCU          ', 'GCHPchem',
+                                 'Met_PFLLSAN        ', 'GCHPchem',
+::
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.timestampStart: .true.
+  SpeciesConc.monthly:        1
+  SpeciesConc.frequency:      010000
+  SpeciesConc.duration:       010000
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConc_CO2           ', 'GCHPchem',
+  			      'SpeciesConc_PassiveTracer ', 'GCHPchem',
+::
+#===================================================================
+# Species concentrations (per advected species) - time-averaged values
+  Adjoint.template:       '%y4%m2%d2.nc4',
+  Adjoint.format:         'CFIO',
+  Adjoint.timestampStart: .true.
+  Adjoint.frequency:      240000
+  Adjoint.duration:       240000
+  Adjoint.mode:           'instantaneous'
+  Adjoint.backwards:      1
+  Adjoint.fields:         'SpeciesAdj_CO2     ', 'GCHPchem',
+::
+#==============================================================================
+  StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMet.format:         'CFIO',
+  StateMet.timestampStart: .true.
+  StateMet.monthly:        1
+  StateMet.frequency:      010000
+  StateMet.duration:       010000
+  StateMet.mode:           'time-averaged'
+  StateMet.fields:         'Met_AD             ', 'GCHPchem',
+                           'Met_AIRDEN         ', 'GCHPchem',
+                           'Met_AIRVOL         ', 'GCHPchem',
+                           'Met_ALBD           ', 'GCHPchem',
+                           'Met_AREAM2         ', 'GCHPchem',
+                           'Met_AVGW           ', 'GCHPchem',
+                           'Met_BXHEIGHT       ', 'GCHPchem',
+                           'Met_ChemGridLev    ', 'GCHPchem',
+                           'Met_CLDF           ', 'GCHPchem',
+                           'Met_CLDFRC         ', 'GCHPchem',
+                           'Met_CLDTOPS        ', 'GCHPchem',
+                           'Met_DELP           ', 'GCHPchem',
+                           'Met_DQRCU          ', 'GCHPchem',
+                           'Met_DQRLSAN        ', 'GCHPchem',
+                           'Met_DTRAIN         ', 'GCHPchem',
+                           'Met_EFLUX          ', 'GCHPchem',
+                           'Met_FRCLND         ', 'GCHPchem',
+                           'Met_FRLAKE         ', 'GCHPchem',
+                           'Met_FRLAND         ', 'GCHPchem',
+                           'Met_FRLANDIC       ', 'GCHPchem',
+                           'Met_FROCEAN        ', 'GCHPchem',
+                           'Met_FRSEAICE       ', 'GCHPchem',
+                           'Met_FRSNO          ', 'GCHPchem',
+                           'Met_GWETROOT       ', 'GCHPchem',
+                           'Met_GWETTOP        ', 'GCHPchem',
+                           'Met_HFLUX          ', 'GCHPchem',
+                           'Met_LAI            ', 'GCHPchem',
+                           'Met_LWI            ', 'GCHPchem',
+                           'Met_PARDR          ', 'GCHPchem',
+                           'Met_PARDF          ', 'GCHPchem',
+                           'Met_PBLTOPL        ', 'GCHPchem',
+                           'Met_PBLH           ', 'GCHPchem',
+                           'Met_PHIS           ', 'GCHPchem',
+                           'Met_PMID           ', 'GCHPchem',
+                           'Met_PMIDDRY        ', 'GCHPchem',
+                           'Met_PRECANV        ', 'GCHPchem',
+                           'Met_PRECCON        ', 'GCHPchem',
+                           'Met_PRECLSC        ', 'GCHPchem',
+                           'Met_PRECTOT        ', 'GCHPchem',
+                           'Met_PS1DRY         ', 'GCHPchem',
+                           'Met_PS1WET         ', 'GCHPchem',
+                           'Met_PS2DRY         ', 'GCHPchem',
+                           'Met_PS2WET         ', 'GCHPchem',
+                           'Met_PSC2WET        ', 'GCHPchem',
+                           'Met_PSC2DRY        ', 'GCHPchem',
+                           'Met_QI             ', 'GCHPchem',
+                           'Met_QL             ', 'GCHPchem',
+                           'Met_OMEGA          ', 'GCHPchem',
+                           'Met_OPTD           ', 'GCHPchem',
+                           'Met_REEVAPCN       ', 'GCHPchem',
+                           'Met_REEVAPLS       ', 'GCHPchem',
+                           'Met_SLP            ', 'GCHPchem',
+                           'Met_SNODP          ', 'GCHPchem',
+                           'Met_SNOMAS         ', 'GCHPchem',
+                           'Met_SPHU           ', 'GCHPchem',
+                           'Met_SPHU1          ', 'GCHPchem',
+                           'Met_SPHU2          ', 'GCHPchem',
+                           'Met_SUNCOS         ', 'GCHPchem',
+                           'Met_SUNCOSmid      ', 'GCHPchem',
+                           'Met_SWGDN          ', 'GCHPchem',
+                           'Met_T              ', 'GCHPchem',
+                           'Met_TAUCLI         ', 'GCHPchem',
+                           'Met_TAUCLW         ', 'GCHPchem',
+                           'Met_THETA          ', 'GCHPchem',
+                           'Met_TMPU1          ', 'GCHPchem',
+                           'Met_TMPU2          ', 'GCHPchem',
+                           'Met_TO3            ', 'GCHPchem',
+                           'Met_TropHt         ', 'GCHPchem',
+                           'Met_TropLev        ', 'GCHPchem',
+                           'Met_TropP          ', 'GCHPchem',
+                           'Met_TS             ', 'GCHPchem',
+                           'Met_TSKIN          ', 'GCHPchem',
+                           'Met_TV             ', 'GCHPchem',
+                           'Met_U              ', 'GCHPchem',
+                           'Met_U10M           ', 'GCHPchem',
+                           'Met_USTAR          ', 'GCHPchem',
+                           'Met_UVALBEDO       ', 'GCHPchem',
+                           'Met_V              ', 'GCHPchem',
+                           'Met_V10M           ', 'GCHPchem',
+                           'Met_Z0             ', 'GCHPchem',
+::

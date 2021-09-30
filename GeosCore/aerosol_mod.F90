@@ -43,6 +43,7 @@ MODULE AEROSOL_MOD
   ! SALC        : Coarse mode seasalt aerosol        [kg/m3]
   ! SO4_NH4_NIT : Lumped SO4-NH4-NIT aerosol         [kg/m3]
   ! SO4         : Sulfate aerosol                    [kg/m3]
+  ! HMS         : Hydroxymethane sulfonate aerosol   [kg/m3] ! (jmm, 06/29/18)
   ! NH4         : Ammonium aerosol                   [kg/m3]
   ! NIT         : Inorganic nitrate aerosol          [kg/m3]
   ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
@@ -69,6 +70,7 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: SALC(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SO4_NH4_NIT(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SO4(:,:,:)
+  REAL(fp), ALLOCATABLE, PUBLIC :: HMS(:,:,:) ! (jmm, 06/29/18)
   REAL(fp), ALLOCATABLE, PUBLIC :: NH4(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: NIT(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: FRAC_SNA(:,:,:,:)
@@ -130,7 +132,7 @@ MODULE AEROSOL_MOD
   INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
   INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3, id_TSOA0
   INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
-  INTEGER :: id_DUST1, id_SOAS,  id_SALACL
+  INTEGER :: id_DUST1, id_SOAS,  id_SALACL, id_HMS   ! (jmm, 06/29/18)
   INTEGER :: id_SOAGX, id_SOAIE
   INTEGER :: id_INDIOL,id_LVOCOA
 
@@ -175,8 +177,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
-    USE HCO_State_GC_Mod,  ONLY : HcoState
-    USE HCO_Calc_Mod,      ONLY : HCO_EvalFld
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : ChmState
@@ -232,10 +234,9 @@ CONTAINS
     LOGICAL             :: LDUST
     LOGICAL             :: LSSALT
     LOGICAL             :: LSULF
-    LOGICAL             :: LUCX
     LOGICAL             :: IS_OCPO,  IS_OCPI,  IS_BC
     LOGICAL             :: IS_SO4,   IS_NH4,   IS_NIT
-    LOGICAL             :: IS_SAL,   IS_DST
+    LOGICAL             :: IS_SAL,   IS_DST,   IS_HMS ! (jmm, 06/29/18)
     LOGICAL             :: IS_TSOA,  IS_ASOA
     LOGICAL             :: IS_POA,   IS_OPOA
     LOGICAL             :: IS_SOAGX
@@ -274,7 +275,6 @@ CONTAINS
     LDUST   = Input_Opt%LDUST
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
-    LUCX    = Input_Opt%LUCX
 
     ! Do we have to print debug output?
     prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -284,6 +284,7 @@ CONTAINS
     IS_OCPO    = ( id_OCPO  > 0 )
     IS_BC      = ( id_BCPI  > 0 .AND. id_BCPO  > 0 )
     IS_SO4     = ( id_SO4   > 0 )
+    IS_HMS     = ( id_HMS   > 0 ) !(jmm, 06/29/18)
     IS_NH4     = ( id_NH4   > 0 )
     IS_NIT     = ( id_NIT   > 0 )
     IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
@@ -336,10 +337,9 @@ CONTAINS
        FieldName = 'OMOC_SON'
     ENDIF
 
-
     IF ( RC /= GC_SUCCESS ) RETURN
 #if !defined( MODEL_CESM )
-    CALL HCO_EvalFld( HcoState, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
 #else
     FND = .True.
     RC  = GC_SUCCESS
@@ -389,6 +389,9 @@ CONTAINS
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
+       ! Force SIA growth to 1.1 to treat as partially crystalline
+       SIA_GROWTH = 1.1_fp
+
        ! Growth factor for OCPI + SOA
        Rad_dry    = REAA(1,k_ORG)
        Rad_wet    = REAA(1,k_ORG) + 35e+0_fp * &
@@ -409,14 +412,17 @@ CONTAINS
        SSA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
 
-       ! Print debug info
-       IF ( prtDebug ) THEN
+       ! Print values to log file
+       IF ( Input_Opt%amIRoot ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'
           WRITE( 6, 100 ) SSA_GROWTH, ' for SALA'
 100       FORMAT(F5.2,A)
        ENDIF
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
 
     ENDIF
 
@@ -449,72 +455,58 @@ CONTAINS
        !==============================================================
        IF ( LSULF ) THEN
 
-          IF ( LUCX ) THEN
+          ! If we are using the full stratospheric chemistry mechanism,
+          ! stratospheric NH4 is ignored, stratospheric NIT is taken
+          ! as available for NAT formation and stratospheric SO4 is
+          ! taken as sulfuric acid
+          IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
-             !--------------------------------------------------------
-             !          %%%%%%% UCX-based mechanisms %%%%%%%
-             !--------------------------------------------------------
-
-             ! If we are using the full stratospheric chemistry mechanism,
-             ! stratospheric NH4 is ignored, stratospheric NIT is taken
-             ! as available for NAT formation and stratospheric SO4 is
-             ! taken as sulfuric acid
-             IF ( State_Met%InTroposphere(I,J,L) ) THEN
-
-                ! Tropospheric - keep as normal
-                ! now including sulfate and nitrate associated with sea-salt
-                ! NOTE: these should be treated as having a sea-salt size
-                ! distribution but are currently simply treated in the same
-                ! way (size and optics) as all other sulfate aerosol (DAR
-                ! 2013)
-                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + &
-                                       Spc(I,J,L,id_NH4)    + &
-                                       Spc(I,J,L,id_NIT))   / &
-                                       !Spc(I,J,L,id_SO4s)   + &
-                                       !Spc(I,J,L,id_NITs) ) / &
-                                       AIRVOL(I,J,L)
-                SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
-                NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
-                NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
-                SLA(I,J,L) = 0e+0_fp
-                SPA(I,J,L) = 0e+0_fp
-
-             ELSE
-
-                ! Tropospheric sulfate is zero in stratosphere
-                SO4_NH4_NIT(I,J,L) = 0e+0_fp
-                SO4(I,J,L) = 0e+0_fp
-                NH4(I,J,L) = 0e+0_fp
-                NIT(I,J,L) = 0e+0_fp
-                SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
-                SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
-
-             ENDIF
-
-          ELSE
-
-             !--------------------------------------------------------
-             !        %%%%%%% Tropchem only mechanism %%%%%%%
-             !--------------------------------------------------------
-
-             ! Compute SO4 aerosol concentration [kg/m3]
+             ! Tropospheric - keep as normal
              ! now including sulfate and nitrate associated with sea-salt
              ! NOTE: these should be treated as having a sea-salt size
              ! distribution but are currently simply treated in the same
              ! way (size and optics) as all other sulfate aerosol (DAR
              ! 2013)
-             ! With coarse SSA thermodynamcis, including NITs would
-             ! bias nitrate largely, alternatively, SO4s and NITs
-             ! should be considered as a part of sea-salt (XNW Dec 7 2017)
 
-             SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + &
-                                    Spc(I,J,L,id_NH4)    + &
-                                    Spc(I,J,L,id_NIT))   / &
-                                    AIRVOL(I,J,L)
+             IF ( IS_HMS ) THEN
+
+                !%%%%% Fullchem simulations: add contribution from HMS
+                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
+                                   +   Spc(I,J,L,id_HMS)                     &
+                                   +   Spc(I,J,L,id_NH4)                     &
+                                   +   Spc(I,J,L,id_NIT) )                   &
+                                   / AIRVOL(I,J,L)
+
+                HMS(I,J,L) = Spc(I,J,L,id_HMS) / AIRVOL(I,J,L)
+
+             ELSE
+
+                !%%%%% Aerosol-only simulations: Skip contribution from HMS
+                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
+                                   +   Spc(I,J,L,id_NH4)                     &
+                                   +   Spc(I,J,L,id_NIT) )                   &
+                                   / AIRVOL(I,J,L)
+
+                HMS(I,J,L) = 0.0_fp
+             ENDIF
+
              SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
              NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
              NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
+             SLA(I,J,L) = 0.0_fp
+             SPA(I,J,L) = 0.0_fp
 
+
+          ELSE
+
+             ! Tropospheric sulfate is zero in stratosphere
+             SO4_NH4_NIT(I,J,L) = 0.0_fp
+             SO4(I,J,L) = 0.0_fp
+             HMS(I,J,L) = 0.0_fp ! (jmm, 06/30/18)
+             NH4(I,J,L) = 0.0_fp
+             NIT(I,J,L) = 0.0_fp
+             SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
+             SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
           ENDIF
 
           ! Add error check for safe division (bmy, 4/7/15)
@@ -522,18 +514,23 @@ CONTAINS
 
              ! Save these fractions for partitioning of optics
              ! until later when these may be treated independently
-             FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) ) &
-!     &                           +     Spc(I,J,L,id_SO4s) )
-                                 /   AIRVOL(I,J,L)         ) &
-                                 / SO4_NH4_NIT(I,J,L)
+             ! Only use HMS if it is defined (for fullchem sims)
+             IF ( IS_HMS ) THEN
+                FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) +                 &
+                                        Spc(I,J,L,id_HMS ) )                 &
+                                  /   AIRVOL(I,J,L)                      )   &
+                                  / SO4_NH4_NIT(I,J,L)
+             ELSE
+                FRAC_SNA(I,J,L,1) = ( Spc(I,J,L,id_SO4 ) / AIRVOL(I,J,L) )   &
+                                    / SO4_NH4_NIT(I,J,L)
+             ENDIF
 
-             FRAC_SNA(I,J,L,2) = ( ( Spc(I,J,L,id_NIT ) ) &
-!     &                           +     Spc(I,J,L,id_NITs) )
-                                 /   AIRVOL(I,J,L)         )&
-                                 / SO4_NH4_NIT(I,J,L)
 
-             FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4) &
-                                 / AIRVOL(I,J,L) ) / SO4_NH4_NIT(I,J,L)
+             FRAC_SNA(I,J,L,2) = ( Spc(I,J,L,id_NIT) / AIRVOL(I,J,L) )       &
+                               / SO4_NH4_NIT(I,J,L)
+
+             FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4) / AIRVOL(I,J,L) )       &
+                               / SO4_NH4_NIT(I,J,L)
 
           ELSE
 
@@ -857,7 +854,7 @@ CONTAINS
        !
        ! Compute PM2.5 concentration [kg/m3]
        !
-       ! PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
+       ! PM25 = 1.33 (NH4 + NIT  + SO4 + HMS) + BCPI + BCPO +
        !        2.10 (OCPO + 1.16 OCPI) + 1.16 SOA*   +
        !        DST1 + 0.38 DST2 + 1.86 SALA
        !
@@ -867,6 +864,7 @@ CONTAINS
        ! NOTES:
        ! - We apply growth factors at 35% RH (computed above):
        !    1.33 for SO4, NIT, and NH4
+       !    1.33 for HMS (jmm, 06/30/18)
        !    1.16 for OCPI and SOA
        !    1.86 for SALA
        ! - Ratio of OM/OC = 2.1 is applied to OCPI and OCPO above
@@ -885,6 +883,7 @@ CONTAINS
        PM25(I,J,L) = NH4(I,J,L)        * SIA_GROWTH + &
                      NIT(I,J,L)        * SIA_GROWTH + &
                      SO4(I,J,L)        * SIA_GROWTH + &
+                     HMS(I,J,L)        * SIA_GROWTH + &   ! (jmm, 06/30/18)
                      BCPI(I,J,L)                    + &
                      BCPO(I,J,L)                    + &
                      OCPO(I,J,L)                    + &
@@ -1156,7 +1155,6 @@ CONTAINS
     LOGICAL             :: LSTRATOD
     LOGICAL             :: LRAD
     LOGICAL             :: LBCAE  ! (xnw, 8/24/15)
-    LOGICAL             :: LUCX
     LOGICAL             :: IS_POA, IS_OCPI
     REAL(fp)            :: GF_RH
     REAL(fp)            :: BCAE_1, BCAE_2
@@ -1201,7 +1199,6 @@ CONTAINS
     LBCAE                = Input_Opt%LBCAE !(xnw, 8/24/15)
     BCAE_1               = Input_Opt%BCAE_1
     BCAE_2               = Input_Opt%BCAE_2
-    LUCX                 = Input_Opt%LUCX
 
     ! Define logical flags
     IS_OCPI              = ( id_OCPI > 0 )
@@ -1383,12 +1380,10 @@ CONTAINS
 
     ENDIF
 
-    IF ( LUCX ) THEN
-       ! For UCX-based mechanisms transfer stratospheric aerosol data
-       ! SDE 04/17/13
-       WAERSL(:,:,:,NRHAER+1) = SLA
-       WAERSL(:,:,:,NRHAER+2) = SPA
-    ENDIF
+    ! Transfer stratospheric aerosol data
+    ! SDE 04/17/13
+    WAERSL(:,:,:,NRHAER+1) = SLA
+    WAERSL(:,:,:,NRHAER+2) = SPA
 
     !=================================================================
     ! Calculate optical depth and surface area at each timestep
@@ -1412,11 +1407,9 @@ CONTAINS
     MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
     MSDENS(5) = State_Chm%SpcData(id_SALC)%Info%Density
 
-    IF ( LUCX ) THEN
-       ! These default values unused (actively retrieved from ucx_mod)
-       MSDENS(NRHAER+1) = 1700.0d0 ! SSA/STS
-       MSDENS(NRHAER+2) = 1000.0d0 ! NAT/ice PSC
-    ENDIF
+    ! These default values unused (actively retrieved from ucx_mod)
+    MSDENS(NRHAER+1) = 1700.0d0 ! SSA/STS
+    MSDENS(NRHAER+2) = 1000.0d0 ! NAT/ice PSC
 
     !set default values for RH index array
     IRHARR(:,:,:)=1
@@ -1483,7 +1476,6 @@ CONTAINS
        ENDIF
 
        ! Loop over types of aerosol with hygroscopic growth
-       ! (this will include strat aerosol when using UCX)
        DO NA = 1, NAER
 
           ! Get ID following ordering of aerosol densities in RD_AOD
@@ -1645,7 +1637,7 @@ CONTAINS
              SCALER  = REFF / RW(1)
              SCALEOD = SCALEQ * SCALER * SCALER
 
-             IF ( .not. LUCX .or. ( LUCX .and. (N.LE.NRHAER)) ) THEN
+             IF ( N.LE.NRHAER ) THEN
 
                 !--------------------------------------------------------
                 ! %%%%%%% Aerosols undergoing hygroscopic growth %%%%%%%
@@ -1738,8 +1730,7 @@ CONTAINS
                 ENDDO
              ELSE
                 !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1)
-                !If strat aerosol switched on (UCX) then this will
-                !automatically be added after the standard aerosol
+                !This will automatically be added after the standard aerosol
                 !(NRHAER+1,2) but before dust
                 RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
                 RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
@@ -1845,7 +1836,7 @@ CONTAINS
                    ! Volume of wet aerosol is also: VWet = 4/3*pi * RWet**3 * n
                    ! So RWet = ( 3*VWet / (4 pi n) )**(1/3)
                    ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
-                  
+
                    ! Wet effective radius, um
                    ! Here assume the dry radius of the mixture = SNA
                    REFF = RW(1) * min( 3d0, &
@@ -1906,118 +1897,114 @@ CONTAINS
     ENDDO !End loop over NWVS
 
     !==============================================================
-    ! Account for stratospheric aerosols in UCX mechanisms (SDE 04/17/13)
+    ! Account for stratospheric aerosols (SDE 04/17/13)
     !==============================================================
-    IF ( LUCX ) THEN
+    ! Loop over stratospheric aerosols
+    DO ISTRAT = 1,NSTRATAER
 
-       ! Loop over stratospheric aerosols
-       DO ISTRAT = 1,NSTRATAER
+       ! Index for combination of aerosol type and RH
+       N = NRHAER + ISTRAT
 
-          ! Index for combination of aerosol type and RH
-          N = NRHAER + ISTRAT
+       ! Assume ISTRAT == 1 is strat liquid aerosol and
+       ! ISTRAT == 2 is polar strat cloud
+       IsSLA = .FALSE.
+       IsPSC = .FALSE.
+       SELECT CASE ( ISTRAT )
+       CASE ( 1 )
+          IsSLA = .TRUE.
+       CASE ( 2 )
+          IsPSC = .TRUE.
+       CASE DEFAULT
+          WRITE( 6,'(a)') "WARNING: aerosol diagnostics not defined " // &
+               "for NSTRATAER greater than 2!"
+       END SELECT
 
-          ! Assume ISTRAT == 1 is strat liquid aerosol and
-          ! ISTRAT == 2 is polar strat cloud
-          IsSLA = .FALSE.
-          IsPSC = .FALSE.
-          SELECT CASE ( ISTRAT )
-          CASE ( 1 )
-             IsSLA = .TRUE.
-          CASE ( 2 )
-             IsPSC = .TRUE.
-          CASE DEFAULT
-             WRITE( 6,'(a)') "WARNING: aerosol diagnostics not defined " // &
-                             "for NSTRATAER greater than 2!"
-          END SELECT
+       !$OMP PARALLEL DO                    &
+       !$OMP DEFAULT( SHARED )              &
+       !$OMP PRIVATE( I, J, L, RAER, REFF ) &
+       !$OMP PRIVATE( SADSTRAT, XSASTRAT )  &
+       !$OMP SCHEDULE( DYNAMIC )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
 
-          !$OMP PARALLEL DO                    &
-          !$OMP DEFAULT( SHARED )              &
-          !$OMP PRIVATE( I, J, L, RAER, REFF ) &
-          !$OMP PRIVATE( SADSTRAT, XSASTRAT )  &
-          !$OMP SCHEDULE( DYNAMIC )
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
+          ! Get aerosol effective radius
+          CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
-             ! Get aerosol effective radius
-             CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+          ! Moved this from a separate loop for clarity
+          IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-             ! Moved this from a separate loop for clarity
-             IF ( State_Met%InChemGrid(I,J,L) ) THEN
+             ! Add surface area to TAREA array
+             TAREA(I,J,L,NDUST+N)  = SADSTRAT
+             WTAREA(I,J,L,NDUST+N) = SADSTRAT
 
-                ! Add surface area to TAREA array
-                TAREA(I,J,L,NDUST+N)  = SADSTRAT
-                WTAREA(I,J,L,NDUST+N) = SADSTRAT
+             ! Store radius
+             ERADIUS(I,J,L,NDUST+N)  = RAER
+             WERADIUS(I,J,L,NDUST+N) = RAER
+          ENDIF
 
-                ! Store radius
-                ERADIUS(I,J,L,NDUST+N)  = RAER
-                WERADIUS(I,J,L,NDUST+N) = RAER
-             ENDIF
+          !----------------------------------------------------
+          ! Netcdf diagnostics computed here:
+          !  Strat aerosol liquid surface area
+          !  Polar strat cloud surface area
+          IF ( State_Diag%Archive_AerSurfAreaSLA .AND. ISTRAT==1 ) THEN
+             State_Diag%AerSurfAreaSLA(I,J,L) = SADSTRAT
+          ENDIF
+          IF ( State_Diag%Archive_AerSurfAreaPSC .AND. ISTRAT==2 ) THEN
+             State_Diag%AerSurfAreaPSC(I,J,L) = SADSTRAT
+          ENDIF
 
-             !----------------------------------------------------
-             ! Netcdf diagnostics computed here:
-             !  Strat aerosol liquid surface area
-             !  Polar strat cloud surface area
-             IF ( State_Diag%Archive_AerSurfAreaSLA .AND. ISTRAT==1 ) THEN
-                State_Diag%AerSurfAreaSLA(I,J,L) = SADSTRAT
-             ENDIF
-             IF ( State_Diag%Archive_AerSurfAreaPSC .AND. ISTRAT==2 ) THEN
-                State_Diag%AerSurfAreaPSC(I,J,L) = SADSTRAT
-             ENDIF
-
-             !----------------------------------------------------
-             ! Netcdf diagnostics computed here:
-             !  Strat. liquid aerosol optical depth     [unitless]
-             !  Strat. liquid aerosol number density    [#/cm3   ]
-             !  Strat. particulate aerosol opt. depth   [unitless]
-             !  Strat. particulate aerosol num. density [#/cm3   ]
-             ! NOTE: Diagnostic output for each wavelength
-             IF ( State_Diag%Archive_AODStrat .and. ODSWITCH .EQ. 1 ) THEN
-                IF ( IsSLA ) THEN
-                   IF ( State_Diag%Archive_AerNumDenSLA ) THEN
-                      State_Diag%AerNumDenSLA(I,J,L) = &
-                           NDENS_AER(I,J,L,ISTRAT)*1.d-6
-                   ENDIF
-                   IF ( State_Diag%Archive_AODSLAWL1 ) THEN
-                      State_Diag%AODSLAWL1(I,J,L) = &
-                           ODAER(I,J,L,IWVSELECT(1,1),N)
-                   ENDIF
-                   IF ( State_Diag%Archive_AODSLAWL2 ) THEN
-                      State_Diag%AODSLAWL2(I,J,L) = &
-                           ODAER(I,J,L,IWVSELECT(1,2),N)
-                   ENDIF
-                   IF ( State_Diag%Archive_AODSLAWL3 ) THEN
-                      State_Diag%AODSLAWL3(I,J,L) = &
-                           ODAER(I,J,L,IWVSELECT(1,3),N)
-                   ENDIF
-                ELSEIF ( IsPSC ) THEN
-                   IF ( State_Diag%Archive_AerNumDenPSC ) THEN
-                      State_Diag%AerNumDenPSC(I,J,L) = &
-                           NDENS_AER(I,J,L,ISTRAT)*1.d-6
-                   ENDIF
-                   IF ( State_Diag%Archive_AODPSCWL1 ) THEN
-                      State_Diag%AODPSCWL1(I,J,L) = &
-                           ODAER(I,J,L,IWVSELECT(1,1),N)
-                   ENDIF
-                   IF ( State_Diag%Archive_AODPSCWL2 ) THEN
-                      State_Diag%AODPSCWL2(I,J,L) = &
-                           ODAER(I,J,L,IWVSELECT(1,2),N)
-                   ENDIF
-                   IF ( State_Diag%Archive_AODPSCWL3 ) THEN
-                      State_Diag%AODPSCWL3(I,J,L) = &
-                           ODAER(I,J,L,IWVSELECT(1,3),N)
-                   ENDIF
+          !----------------------------------------------------
+          ! Netcdf diagnostics computed here:
+          !  Strat. liquid aerosol optical depth     [unitless]
+          !  Strat. liquid aerosol number density    [#/cm3   ]
+          !  Strat. particulate aerosol opt. depth   [unitless]
+          !  Strat. particulate aerosol num. density [#/cm3   ]
+          ! NOTE: Diagnostic output for each wavelength
+          IF ( State_Diag%Archive_AODStrat .and. ODSWITCH .EQ. 1 ) THEN
+             IF ( IsSLA ) THEN
+                IF ( State_Diag%Archive_AerNumDenSLA ) THEN
+                   State_Diag%AerNumDenSLA(I,J,L) = &
+                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                ENDIF
+                IF ( State_Diag%Archive_AODSLAWL1 ) THEN
+                   State_Diag%AODSLAWL1(I,J,L) = &
+                        ODAER(I,J,L,IWVSELECT(1,1),N)
+                ENDIF
+                IF ( State_Diag%Archive_AODSLAWL2 ) THEN
+                   State_Diag%AODSLAWL2(I,J,L) = &
+                        ODAER(I,J,L,IWVSELECT(1,2),N)
+                ENDIF
+                IF ( State_Diag%Archive_AODSLAWL3 ) THEN
+                   State_Diag%AODSLAWL3(I,J,L) = &
+                        ODAER(I,J,L,IWVSELECT(1,3),N)
+                ENDIF
+             ELSEIF ( IsPSC ) THEN
+                IF ( State_Diag%Archive_AerNumDenPSC ) THEN
+                   State_Diag%AerNumDenPSC(I,J,L) = &
+                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                ENDIF
+                IF ( State_Diag%Archive_AODPSCWL1 ) THEN
+                   State_Diag%AODPSCWL1(I,J,L) = &
+                        ODAER(I,J,L,IWVSELECT(1,1),N)
+                ENDIF
+                IF ( State_Diag%Archive_AODPSCWL2 ) THEN
+                   State_Diag%AODPSCWL2(I,J,L) = &
+                        ODAER(I,J,L,IWVSELECT(1,2),N)
+                ENDIF
+                IF ( State_Diag%Archive_AODPSCWL3 ) THEN
+                   State_Diag%AODPSCWL3(I,J,L) = &
+                        ODAER(I,J,L,IWVSELECT(1,3),N)
                 ENDIF
              ENDIF
+          ENDIF
 
-          ENDDO
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
 
-       ENDDO ! end loop over stratospheric aerosols
-
-    ENDIF    ! end if UCX
+    ENDDO ! end loop over stratospheric aerosols
 
     !==============================================================
     ! Non-stratospheric cloud diagnostics
@@ -2202,7 +2189,7 @@ CONTAINS
     ENDIF
 
     ! Turn off radiative effects of stratospheric aerosols?
-    IF ( LUCX .and. .not.(LSTRATOD)) THEN
+    IF ( .not. LSTRATOD ) THEN
        ODAER(:,:,:,:,NRH+1) = 0.d0
        ODAER(:,:,:,:,NRH+2) = 0.d0
     ENDIF
@@ -2321,6 +2308,7 @@ CONTAINS
     id_SALACL = Ind_( 'SALACL' )
     id_SO4    = Ind_( 'SO4'    )
     id_SO4s   = Ind_( 'SO4s'   )
+    id_HMS    = Ind_( 'HMS'    )  ! (jmm, 06/30/18)
     id_NITs   = Ind_( 'NITs'   )
     id_POA1   = Ind_( 'POA1'   )
     id_POA2   = Ind_( 'POA2'   )
@@ -2392,6 +2380,12 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     SO4 = 0.0_fp
 
+    ! (jmm, 06/30/18)
+    ALLOCATE( HMS( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F:HMS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    HMS = 0.0_fp
+
     ALLOCATE( NH4( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F:NH4', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2414,17 +2408,15 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     SOILDUST = 0.0_fp
 
-    IF ( Input_Opt%LUCX ) THEN
-       ALLOCATE( SLA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-       CALL GC_CheckVar( 'aerosol_mod.F90:SLA', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       SLA = 0.0_fp
+    ALLOCATE( SLA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SLA', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    SLA = 0.0_fp
 
-       ALLOCATE( SPA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-       CALL GC_CheckVar( 'aerosol_mod.F90:SPA', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       SPA   = 0.0_fp
-    ENDIF
+    ALLOCATE( SPA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SPA', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    SPA   = 0.0_fp
 
     ALLOCATE( TSOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F90:TSOA', 0, RC )
@@ -2521,6 +2513,7 @@ CONTAINS
     IF ( ALLOCATED( ACL         ) ) DEALLOCATE( ACL         )
     IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
     IF ( ALLOCATED( SO4         ) ) DEALLOCATE( SO4         )
+    IF ( ALLOCATED( HMS         ) ) DEALLOCATE( HMS         ) ! (jmm, 06/30/18)
     IF ( ALLOCATED( NH4         ) ) DEALLOCATE( NH4         )
     IF ( ALLOCATED( NIT         ) ) DEALLOCATE( NIT         )
     IF ( ALLOCATED( FRAC_SNA    ) ) DEALLOCATE( FRAC_SNA    )
@@ -2821,6 +2814,16 @@ CONTAINS
        IF ( State_Diag%Archive_AerMassSO4 ) THEN
           State_Diag%AerMassSO4(I,J,L) = SO4(I,J,L) * kgm3_to_ugm3
        ENDIF
+
+       !--------------------------------------
+       ! AerMassHMS [ug/m3]
+       ! jmm 3/6/19
+       !--------------------------------------
+       IF ( State_Diag%Archive_AerMassHMS ) THEN
+          State_Diag%AerMassHMS(I,J,L) = HMS(I,J,L) * &
+               kgm3_to_ugm3
+       ENDIF
+
 
        !--------------------------------------
        ! AerMassSOAGX [ug/m3]

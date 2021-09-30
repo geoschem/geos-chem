@@ -1,1 +1,0 @@
-../fullchem/gckpp_HetRates.F90
