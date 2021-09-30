@@ -2620,6 +2620,55 @@ CONTAINS
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
 
+  FUNCTION IONO2uptkByH2O( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for IONO2 + H2O = HOI + HNO3
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area, conc, gamma, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_IONO2)
+    !
+    ! Tropopsheric sulfate (use T-dependent gamma, cf Deiber et al 2004)
+    area  = H%ClearFr * H%xArea(SUL)
+    gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
+    k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
+    !
+    ! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
+    IF ( H%SSA_is_Alk ) THEN
+       area  = H%ClearFr * H%xArea(SSA)
+       gamma = 0.01_dp
+       k = k + Ars_L1K( area, H%xRadi(SSA), gamma, srMw )
+    ENDIF
+    !
+    ! Alkaline coarse sea salt (use gamma from Sherwen et al 2016)
+    IF ( H%SSC_is_Alk ) THEN
+       area  = H%ClearFr * H%xArea(SSC)
+       gamma = 0.01_dp
+       k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )
+    ENDIF
+    !
+    ! Stratospheric liquid aerosol
+    k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
+    !
+    ! Irregular ice cloud
+    area  = H%ClearFr * H%xArea(IIC)
+    gamma = 0.3_dp
+    IF ( H%natSurface ) gamma = 0.001_dp
+    k = k + Ars_L1K( area, H%xRadi(IIC), gamma, srMw )
+    !
+    ! Also account for cloudy grid box
+    ! Use gamma(liquid) = gamma(ice) = 0.01, to make the uptake coefficient
+    ! consistent with hydrolysis in aerosols (T. Sherwen, 28 Sep 2021)
+    k = k + CloudHet( H, srMw, 0.01_dp, 0.01_dp, 1.0_dp, 1.0_dp )
+    !
+    ! Assume IONO2 is limiting, so update the reaction rate accordingly
+    k = kIIR1Ltd( C(ind_IONO2), C(ind_H2O), k )
+  END FUNCTION IONO2uptkByH2O
+
   !=========================================================================
   ! Hetchem rate-law functions for N2O5
   !=========================================================================
