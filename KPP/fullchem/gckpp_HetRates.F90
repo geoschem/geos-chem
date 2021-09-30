@@ -1279,7 +1279,7 @@ MODULE GCKPP_HETRATES
       ! Ratio of volume inside to outside cloud
       ! ff has a range [0,+inf], so cap it at 1e30
       ff = safe_div( fc, (1e0_fp - fc), 1e30_fp )
-      ff = max( ff, 1e30_fp )
+      ff = min( ff, 1e30_fp )
 
       ! Ratio of mass inside to outside cloud
       ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
