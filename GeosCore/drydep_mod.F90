@@ -17,9 +17,9 @@ MODULE DRYDEP_MOD
 !
   USE CMN_SIZE_Mod,     ONLY : NPOLY, NSURFTYPE
   USE ERROR_MOD              ! Error handling routines
-#ifdef TOMAS                 
+#ifdef TOMAS
   USE TOMAS_MOD              ! For TOMAS microphysics
-#endif                       
+#endif
   USE PhysConstants          ! Physical constants
   USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
   USE TIME_MOD
@@ -112,8 +112,9 @@ MODULE DRYDEP_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  INTEGER,  PARAMETER :: NR_MAX    = 200       ! # of seasalt bins
-  INTEGER,  PARAMETER :: NDRYDTYPE = 11        ! # of drydep land types
+  INTEGER,  PARAMETER :: NR_MAX      = 200   ! # of seasalt bins
+  INTEGER,  PARAMETER :: NDRYDTYPE   = 11    ! # of drydep land types
+  REAL(f8), PARAMETER :: TWO_THIRDS  = 2.0_fp / 3.0_fp
 !
 ! PRIVATE TYPES:
 !
@@ -354,7 +355,7 @@ CONTAINS
 !
 ! !IROUTINE: update_DryDepFreq
 !
-! !DESCRIPTION: Subroutine UPDATE\_DRYDEPFREQ updates dry deposition 
+! !DESCRIPTION: Subroutine UPDATE\_DRYDEPFREQ updates dry deposition
 ! frequencies from dry deposition velocities
 !\\
 !\\
@@ -466,7 +467,7 @@ CONTAINS
                        / sqrt(SpcInfo%MW_g)
 
           ELSE IF ( FLAG(D) .eq. 2 ) THEN
-             
+
              ! Scale species to PAN
              DVZ = DVZ * sqrt(State_Chm%SpcData(id_PAN)%Info%MW_g) &
                        / sqrt(SpcInfo%MW_g)
@@ -588,12 +589,12 @@ CONTAINS
           ! Archive dry dep velocity for diagnostics in [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
-             IF ( S > 0 ) THEN 
+             IF ( S > 0 ) THEN
                 State_Diag%DryDepVel(I,J,S) = DVZ
              ENDIF
           ENDIF
 #endif
-          
+
           ! Archive dry dep velocity [cm/s] only for those species
           ! that are requested at a given altitude (e.g. 10m)
           IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
@@ -620,7 +621,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velocity of O3
 !     to the ocean using method described in Pound et.al (2019)
-!     currently under discussion in ACPD. 
+!     currently under discussion in ACPD.
 !     Accounts for the turbulence of the ocean surface,Iodide concentration
 !     and surface temperature effects on the dry deposition velocity of
 !     ozone to the ocean.
@@ -634,16 +635,16 @@ CONTAINS
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
-!     
-! !INPUT PARAMETERS: 
+!
+! !INPUT PARAMETERS:
 !
     REAL(f8), INTENT(IN)         :: TEMPK ! Temperature [K]
     REAL(f8), INTENT(IN)         :: USTAR ! Fictional Velocity [m/s]
     REAL(fp), INTENT(IN)         :: IODIDE_IN ! Surface iodide concentration [nM]
     INTEGER,  INTENT(IN)         :: I,J
     REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Aug 2018 - R. Pound - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
@@ -657,19 +658,19 @@ CONTAINS
     !=================================================================
     ! OCEANO3 begins here!
     !=================================================================
-      
+
     USTARWater = 0.0345_f8*USTAR !waterside friction velocity
-    
+
     Iodide = IODIDE_IN*1.0E-9_f8 ! Convert from nM to M
-     
+
     a = Iodide*EXP((-8772.2/TEMPK)+51.5) !chemical reactivity
 
     D = 1.1E-6*EXP(-1896.0/TEMPK) ! diffusivity
 
     DelM = SQRT(D/a) ! reaction-diffusion length
-      
+
     b = 2.0_f8/(0.4_f8*USTARWater)
-   
+
     LAM = DelM*SQRT(a/D) ! this cancels to 1 but here for completeness
                          ! of equations
 
@@ -681,7 +682,7 @@ CONTAINS
 
     DEPV = SQRT(a*D)*((PSI*K1*COSH(LAM)+K0*SINH(LAM))/(PSI*K1* &
            SINH(LAM)+K0*COSH(LAM)))
-   
+
   END SUBROUTINE OCEANO3
 !EOC
 !------------------------------------------------------------------------------
@@ -692,32 +693,32 @@ CONTAINS
 ! !IROUTINE: K0K1_APROX
 !
 ! !DESCRIPTION:  Function to estimate the modified Bessel functions of
-!     the second kind order zero and one (K0,K1). Approach initially based on 
+!     the second kind order zero and one (K0,K1). Approach initially based on
 !     that described in Numerical Recipes in Fortran 90 second edition
 !     (1996). This implementation is designed to be specific to the use
 !     case required for calculating oceanic deposition velocity. Uses a
 !     polynomial fit of each type of modified bessel function to
-!     estimate the value of the function for each input. 
+!     estimate the value of the function for each input.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE K0K1_APROX( input_arg, K0, K1 )
-!     
-! !INPUT PARAMETERS: 
-!     
+!
+! !INPUT PARAMETERS:
+!
     REAL(f8), INTENT(IN)  :: input_arg !the value we want the soln for
     REAL(f8), INTENT(OUT) :: K0,K1 !the values of the modified bessel fncs
-!     
-! !REVISION HISTORY: 
-!  21 Aug 2018 - R. Pound - Initial version    
+!
+! !REVISION HISTORY:
+!  21 Aug 2018 - R. Pound - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!     
+!
 ! !LOCAL VARIABLES:
-!    
+!
     REAL(f8), DIMENSION(7) :: coeff !coefficients for polynomial fit
                                     ! of each bessel function
     REAL(f8)               :: I0,I1 !modified bessel functions of
@@ -772,21 +773,21 @@ CONTAINS
 ! !INTERFACE:
 !
   FUNCTION poly_fit ( input, coeffs )
-!     
-! !INPUT PARAMETERS: 
-!     
+!
+! !INPUT PARAMETERS:
+!
     REAL(f8), INTENT(IN)               :: input
     REAL(f8), DIMENSION(:), INTENT(IN) :: coeffs
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  21 Aug 2018 - R. Pound - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!     
+!
 ! !LOCAL VARIABLES:
-!     
+!
     REAL(f8)                           :: poly_fit
     INTEGER                            :: i
 
@@ -1505,7 +1506,7 @@ CONTAINS
 
                    ! Now apply the Luhar et al. [2018] equations for the
                    ! special treatment of O3 dry deposition to the ocean
-                   ! surface 
+                   ! surface
                    CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),&
                                 State_Chm%IODIDE(I,J),I,J,DEPVw)
 
@@ -1545,7 +1546,7 @@ CONTAINS
 #endif
 
                 ! If POPs simulation, scale cuticular resistances with octanol-
-                ! air partition coefficient (Koa) instead of HSTAR 
+                ! air partition coefficient (Koa) instead of HSTAR
                 ! (clf, 1/3/2011)
                 IF (IS_POPS) &
                      RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0(K))
@@ -1615,7 +1616,7 @@ CONTAINS
                 ! Use size-resolved dry deposition calculations for
                 ! dust aerosols only.  Do not account for hygroscopic
                 ! growth of the dust aerosol particles.
-                !=====================================================  
+                !=====================================================
 #ifdef TOMAS
                 !-------------------------------
                 !%%% TOMAS SIMULATIONS %%%
@@ -1738,7 +1739,7 @@ CONTAINS
           DO 180 LDT = 1, IREG(I,J)
              IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
              ! because of high resistance values, different rule applied for
-             ! ocean ozone               
+             ! ocean ozone
              N_SPC = State_Chm%Map_DryDep(K)
              IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
                 RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),999999.e+0_f8))
@@ -1754,7 +1755,7 @@ CONTAINS
 180       CONTINUE
 190    CONTINUE
        !*
-       !*    Loop through the different landuse types present in 
+       !*    Loop through the different landuse types present in
        !*    the grid square
        !*
        DO 500 LDT = 1, IREG(I,J)
@@ -1891,7 +1892,7 @@ CONTAINS
           ! roughness Reynolds number Rr = U* Z0 / Nu and found the flow to
           ! be smooth for Rr < 0.13 and rough for Rr > 2.5 with a transition
           ! regime in between." (E.B. Kraus and J.A. Businger, Atmosphere-Ocean
-          ! Interaction, second edition, P.144-145, 1994). 
+          ! Interaction, second edition, P.144-145, 1994).
           ! Similar statements can be found in the books: Evaporation into the
           ! atmosphere, by Wilfried Brutsaert ,P.59,89, 1982; or Seinfeld &
           ! Pandis, P.858, 1998.
@@ -2037,7 +2038,7 @@ CONTAINS
           DO 215 K = 1,NUMDEP
              IF (.NOT.LDEP(K)) GOTO 215
              !** DAIR is the thermal diffusivity of air;
-             !** value of 0.2*1.E-4 m2 s-1 cited on p. 16,476 of 
+             !** value of 0.2*1.E-4 m2 s-1 cited on p. 16,476 of
              !** Jacob et al. [1992]
              DAIR = 0.2e0_f8*1.e-4_f8
              RB = (2.e+0_f8/CKUSTR)* &
@@ -2177,13 +2178,13 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)  :: Input_Opt
     TYPE(GrdState), INTENT(IN)  :: State_Grid
     TYPE(MetState), INTENT(IN)  :: State_Met
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(fp),       INTENT(OUT) :: Hstar3d(State_Grid%NX,State_Grid%NY,NUMDEP)
     INTEGER,        INTENT(OUT) :: RC
@@ -2216,7 +2217,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
        !====================================================================
-       ! For fullchem and aerosol simulations, the effective Henry's law 
+       ! For fullchem and aerosol simulations, the effective Henry's law
        ! constant for SO3, H2O2, and NH3 will be computed as a function
        ! of lon & lat (i.e. as a function of temperature & land cover).
        !
@@ -2240,7 +2241,7 @@ CONTAINS
 
              ! Pick the proper Hplus value based on surface
              !----------------------------------------------------------------
-             ! NOTE: Should be using these but the original code used LWI.  
+             ! NOTE: Should be using these but the original code used LWI.
              ! Leave this comment here for now (bmy, 08 Jul 2021)
              !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
              !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
@@ -2275,12 +2276,12 @@ CONTAINS
              ELSE IF ( SpcId == id_NH3 ) THEN
 
                 coeff = 59.8_f8    * EXP(  4200.0_f8 * (inv_tAq - INV_T298) )
-                Ks1   = 1.0e-14_f8 * EXP( -6710.0_f8 * (inv_tAq - INV_T298) ) 
+                Ks1   = 1.0e-14_f8 * EXP( -6710.0_f8 * (inv_tAq - INV_T298) )
                 Ks2   = 1.7e-5_f8  * EXP( -4325.0_f8 * (inv_tAq - INV_T298) )
-             
+
                 HSTAR3D(I,J,K) = coeff *                                     &
                                  ( 1.0_f8 + ( ( Ks2 * Hplus ) / Ks1 )       )
-                
+
              ELSE
 
                 HSTAR3D(I,J,K) = HSTAR(K)
@@ -2296,7 +2297,7 @@ CONTAINS
 
        !====================================================================
        ! None of the other simulation types include SO3, H2O2, and NH3,
-       ! so we can skip all of the computations above.  
+       ! so we can skip all of the computations above.
        !
        ! For each species, we can return an effective Henry's law constant
        ! that does not depend on lon & lat.
@@ -2564,7 +2565,7 @@ CONTAINS
 
     !=================================================================
     ! Open and read data
-    !=================================================================       
+    !=================================================================
 #if defined( MODEL_CESM )
     CALL CAM_PIO_OPENFILE( ncid, TRIM( nc_path ), PIO_NOWRITE )
 #else
@@ -3052,68 +3053,71 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
+! !DEFINED PARAMETERS
 !
-    INTEGER               :: N
-    REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8
-    REAL(f8), PARAMETER   :: C2 = 3.079e+0_f8
-    REAL(f8), PARAMETER   :: C3 = 2.573e-11_f8
-    REAL(f8), PARAMETER   :: C4 = -1.424e+0_f8
-    REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-    REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
-    REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
-    REAL(f8)  :: DP          ! Diameter of aerosol [um]
-    REAL(f8)  :: PDP         ! Press * Dp
-    REAL(f8)  :: CONST       ! Constant for settling velocity calculations
-    REAL(f8)  :: SLIP        ! Slip correction factor
-    REAL(f8)  :: VISC        ! Viscosity of air (Pa s)
-    REAL(f8)  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
-    REAL(f8)  :: SC, ST      ! Schmidt and Stokes number (nondim)
-    REAL(f8)  :: RHBL        ! Relative humidity local
-
-    ! replace RCM with RUM (radius in microns instead of cm) - jaegle 5/11/11
-    !REAL(f8)  :: DIAM, DEN, RATIO_R, RWET, RCM
-    REAL(f8)  :: DIAM, DEN, RATIO_R, RWET, RUM
-    REAL(f8)  :: FAC1, FAC2
-
-    ! Emerson et al. (2020) added parameters
-    REAL(f8), PARAMETER   :: UPSILON  = 0.8e+0_f8
-    REAL(f8), PARAMETER   :: BETA     = 1.7e+0_f8 !previously used
-     
-    REAL(f8), PARAMETER   :: CB       = 0.2e+0_f8
-    REAL(f8), PARAMETER   :: CIN      = 2.5e+0_f8
-    REAL(f8), PARAMETER   :: CIM      = 0.4e+0_f8
-
-    REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
-    ! New variables added (jaegle 5/11/11)
-    REAL(f8)  :: SW
-    REAL(f8)  :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! for weighting the settling velocity
-    REAL(f8)  :: D0, D1  !lower and upper bounds of sea-salt dry diameter bins
-    REAL(f8)  :: DEDGE
-    REAL(f8)  :: DEN1, WTP
-    INTEGER   :: ID,NR
-    LOGICAL, SAVE          :: FIRST = .TRUE.
-
-    !increment of radius for integration of settling velocity (um)
-    REAL(f8), PARAMETER      :: DR    = 5.e-2_f8
+    REAL(f8), PARAMETER   :: C1       =  0.7674_f8
+    REAL(f8), PARAMETER   :: C2       =  3.079_f8
+    REAL(f8), PARAMETER   :: C3       =  2.573e-11_f8
+    REAL(f8), PARAMETER   :: C4       = -1.424_f8
+    REAL(f8), PARAMETER   :: E0       =  3.0_f8
 
     ! Parameters for polynomial coefficients to derive seawater
     ! density. From Tang et al. (1997) - jaegle 5/11/11
-    REAL(f8),  PARAMETER     :: A1 =  7.93e-3_f8
-    REAL(f8),  PARAMETER     :: A2 = -4.28e-5_f8
-    REAL(f8),  PARAMETER     :: A3 =  2.52e-6_f8
-    REAL(f8),  PARAMETER     :: A4 = -2.35e-8_f8
-    REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8
+    REAL(f8),  PARAMETER  :: A1       =  7.93e-3_f8
+    REAL(f8),  PARAMETER  :: A2       = -4.28e-5_f8
+    REAL(f8),  PARAMETER  :: A3       =  2.52e-6_f8
+    REAL(f8),  PARAMETER  :: A4       = -2.35e-8_f8
+    REAL(f8),  PARAMETER  :: EPSI     =  1.0e-4_f8
 
     ! parameters for assumed size distribution of accumulation and coarse
     ! mode sea salt aerosols, as described in Jaegle et al. (ACP, 11, 2011)
     ! (jaegle, 5/11/11)
     ! 1) geometric dry mean diameters (microns)
-    REAL(f8),  PARAMETER     ::   RG_A = 0.085e+0_f8
-    REAL(f8),  PARAMETER     ::   RG_C = 0.4e+0_f8
+    REAL(f8),  PARAMETER  :: RG_A     =  0.085e+0_f8
+    REAL(f8),  PARAMETER  :: RG_C     =  0.4e+0_f8
     ! 2) sigma of the size distribution
-    REAL(f8),  PARAMETER     ::   SIG_A = 1.5e+0_f8
-    REAL(f8),  PARAMETER     ::   SIG_C = 1.8e+0_f8
+    REAL(f8),  PARAMETER  :: SIG_A    =  1.5e+0_f8
+    REAL(f8),  PARAMETER  :: SIG_C    =  1.8e+0_f8
+
+    !increment of radius for integration of settling velocity (um)
+    REAL(f8), PARAMETER   :: DR       =  5.0e-2_f8
+
+    ! Emerson et al. (2020) added parameters
+    REAL(f8), PARAMETER   :: UPSILON  =  0.8_f8
+    REAL(f8), PARAMETER   :: BETA     =  1.7_f8
+    REAL(f8), PARAMETER   :: CB       =  0.2_f8
+    REAL(f8), PARAMETER   :: CIN      =  2.5_f8
+    REAL(f8), PARAMETER   :: CIM      =  0.4_f8
+!
+! !LOCAL VARIABLES:
+!
+
+    ! SAVEd scalars
+    LOGICAL, SAVE :: FIRST = .TRUE.
+
+    !Scalars
+    INTEGER       :: N
+    REAL(f8)      :: AIRVS    ! kinematic viscosity of Air (m^2/s)
+    REAL(f8)      :: DP       ! Diameter of aerosol [um]
+    REAL(f8)      :: PDP      ! Press * Dp
+    REAL(f8)      :: CONST    ! Constant for settling velocity calculations
+    REAL(f8)      :: SLIP     ! Slip correction factor
+    REAL(f8)      :: VISC     ! Viscosity of air (Pa s)
+    REAL(f8)      :: DIFF     ! Brownian Diffusion constant for particles (m2/s)
+    REAL(f8)      :: SC, ST   ! Schmidt and Stokes number (nondim)
+    REAL(f8)      :: RHBL     ! Relative humidity local
+
+    REAL(f8)      :: DIAM, DEN, RATIO_R, RWET, RUM
+    REAL(f8)      :: FAC1, FAC2
+    REAL(f8)      :: EB, EIM, EIN, R1, AA, VTS
+
+    ! New variables added (jaegle 5/11/11)
+    REAL(f8)      :: SW
+    REAL(f8)      :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! for weighting the settling velocity
+    REAL(f8)      :: D0, D1  !lower and upper bounds of sea-salt dry diameter bins
+    REAL(f8)      :: DEDGE
+    REAL(f8)      :: DEN1, WTP
+    INTEGER       :: ID,NR
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -3180,19 +3184,19 @@ CONTAINS
     DATA   A /  2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                 2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                 2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   5.0e+0_f8,  10.0e+0_f8,  5.0e+0_f8, &
                 5.0e+0_f8,   5.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   5.0e+0_f8,  10.0e+0_f8,  5.0e+0_f8, &
                 5.0e+0_f8,   5.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                 2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8  /
@@ -3436,7 +3440,11 @@ CONTAINS
     ! Schmidt number
     SC   = AIRVS / DIFF
     !EB   = 1.e+0_f8/SC**(gamma(LUC))
-    EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
+    !-------------------------------------------------------------
+    ! NOTE: This loses precision, use TWO_THIRDS parameter instead
+    !EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
+    !-------------------------------------------------------------
+    EB   = CB/SC**TWO_THIRDS      ! Emerson 2020 update JRP
 
     ! Stokes number
     IF ( AA < 0e+0_f8 ) then
@@ -3623,15 +3631,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+    REAL(f8), PARAMETER   :: C1    =  0.7674_f8
+    REAL(f8), PARAMETER   :: C2    =  3.079_f8
+    REAL(f8), PARAMETER   :: C3    =  2.573e-11_f8
+    REAL(f8), PARAMETER   :: C4    = -1.424_f8
+    REAL(f8), PARAMETER   :: BETA  =  2.0_f8
+    REAL(f8), PARAMETER   :: E0    =  1.0_f8
+!
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N
-    REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8
-    REAL(f8), PARAMETER   :: C2 = 3.079e+0_f8
-    REAL(f8), PARAMETER   :: C3 = 2.573e-11_f8
-    REAL(f8), PARAMETER   :: C4 = -1.424e+0_f8
-    REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-    REAL(f8), PARAMETER   :: E0 = 1.e+0_f8
+    INTEGER   :: N
     REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
     REAL(f8)  :: DP          ! Diameter of aerosol [um]
     REAL(f8)  :: PDP         ! Press * Dp
@@ -3795,13 +3806,22 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N
-    REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8
-    REAL(f8), PARAMETER   :: C2 = 3.079e+0_f8
-    REAL(f8), PARAMETER   :: C3 = 2.573e-11_f8
-    REAL(f8), PARAMETER   :: C4 = -1.424e+0_f8
-    REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-    REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
+    REAL(f8), PARAMETER   :: C1       =  0.7674_f8
+    REAL(f8), PARAMETER   :: C2       =  3.079_f8
+    REAL(f8), PARAMETER   :: C3       =  2.573e-11_f8
+    REAL(f8), PARAMETER   :: C4       = -1.424_f8
+    REAL(f8), PARAMETER   :: E0       =  3.0_f8
+
+    ! Emerson et al. (2020) added parameters
+    REAL(f8), PARAMETER   :: UPSILON  =  0.8_f8
+    REAL(f8), PARAMETER   :: BETA     =  1.7_f8
+    REAL(f8), PARAMETER   :: CB       =  0.2_f8
+    REAL(f8), PARAMETER   :: CIN      =  2.5_f8
+    REAL(f8), PARAMETER   :: CIM      =  0.4_f8
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER   :: N
     REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
     REAL(f8)  :: DP          ! Diameter of aerosol [um]
     REAL(f8)  :: PDP         ! Press * Dp
@@ -3811,14 +3831,6 @@ CONTAINS
     REAL(f8)  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
     REAL(f8)  :: SC, ST      ! Schmidt and Stokes number (nondim)
     REAL(f8)  :: DIAM, DEN
-
-    ! Emerson et al. (2020) added parameters
-    REAL(f8), PARAMETER   :: UPSILON  = 0.8e+0_f8
-    REAL(f8), PARAMETER   :: BETA     = 1.7e+0_f8 !previously used
-     
-    REAL(f8), PARAMETER   :: CB       = 0.2e+0_f8
-    REAL(f8), PARAMETER   :: CIN      = 2.5e+0_f8
-    REAL(f8), PARAMETER   :: CIM      = 0.4e+0_f8
 
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
 
@@ -3854,7 +3866,7 @@ CONTAINS
     !   alpha  50.0,  1,3,  2.0, 50.0,100.0,100.0,  1.5
     !   gamma  0.54, 0.54, 0.54, 0.54, 0.50, 0.50, 0.56
     !=======================================================================
-    REAL(f8)  :: ALPHA(15) = (/   1.0e+0_f8,   0.6e+0_f8,  1.1e+0_f8, & 
+    REAL(f8)  :: ALPHA(15) = (/   1.0e+0_f8,   0.6e+0_f8,  1.1e+0_f8, &
                                   0.8e+0_f8,   0.8e+0_f8,  1.2e+0_f8, &
                                   1.2e+0_f8,  50.0e+0_f8, 50.0e+0_f8, &
                                   1.3e+0_f8,   2.0e+0_f8, 50.0e+0_f8, &
@@ -3887,19 +3899,19 @@ CONTAINS
     DATA   A / 2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
               10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-              
+
                2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
               10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-              
+
                2.0e+0_f8,   5.0e+0_f8,   5.0e+0_f8,  10.0e+0_f8,  5.0e+0_f8, &
                5.0e+0_f8,   5.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
               10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-              
+
                2.0e+0_f8,   5.0e+0_f8,   5.0e+0_f8,  10.0e+0_f8,  5.0e+0_f8, &
                5.0e+0_f8,   5.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
               10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-              
+
                2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
               10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8  /
@@ -4008,7 +4020,13 @@ CONTAINS
     ! Schmidt number
     SC   = AIRVS / DIFF
     !EB   = 1.e+0_f8/SC**(gamma(LUC))
-    EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
+
+    !--------------------------------------------------------------
+    ! NOTE: This loses precision, use TWO_THIRDS parameter instead
+    ! (bmy, 30 Sep 2021)
+    !EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
+    !--------------------------------------------------------------
+    EB   = CB/SC**TWO_THIRDS ! Emerson 2020 update JRP
 
     ! Stokes number
     IF ( AA < 0e+0_f8 ) then
@@ -4078,15 +4096,24 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS
+!
+    REAL(f8), PARAMETER   :: C1       =  0.7674_f8
+    REAL(f8), PARAMETER   :: C2       =  3.079_f8
+    REAL(f8), PARAMETER   :: C3       =  2.573e-11_f8
+    REAL(f8), PARAMETER   :: C4       = -1.424_f8
+    REAL(f8), PARAMETER   :: E0       =  3.0_f8
+
+    ! Emerson et al. (2020) added parameters
+    REAL(f8), PARAMETER   :: UPSILON  =  0.8_f8
+    REAL(f8), PARAMETER   :: BETA     =  1.7_f8
+    REAL(f8), PARAMETER   :: CB       =  0.2_f8
+    REAL(f8), PARAMETER   :: CIN      =  2.5_f8
+    REAL(f8), PARAMETER   :: CIM      =  0.4_f8
+!
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: N
-    REAL(f8), PARAMETER   :: C1 = 0.7674e+0_f8
-    REAL(f8), PARAMETER   :: C2 = 3.079e+0_f8
-    REAL(f8), PARAMETER   :: C3 = 2.573e-11_f8
-    REAL(f8), PARAMETER   :: C4 = -1.424e+0_f8
-    REAL(f8), PARAMETER   :: BETA  = 2.e+0_f8
-    REAL(f8), PARAMETER   :: E0 = 3.e+0_f8
+    INTEGER   :: N
     REAL(f8)  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
     REAL(f8)  :: DP          ! Diameter of aerosol [um]
     REAL(f8)  :: PDP         ! Press * Dp
@@ -4095,14 +4122,6 @@ CONTAINS
     REAL(f8)  :: VISC        ! Viscosity of air (Pa s)
     REAL(f8)  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
     REAL(f8)  :: SC, ST      ! Schmidt and Stokes number (nondim)
-    
-    ! Emerson et al. (2020) added parameters
-    REAL(f8), PARAMETER   :: UPSILON  = 0.8e+0_f8
-    REAL(f8), PARAMETER   :: BETA     = 1.7e+0_f8 !previously used
-     
-    REAL(f8), PARAMETER   :: CB       = 0.2e+0_f8
-    REAL(f8), PARAMETER   :: CIN      = 2.5e+0_f8
-    REAL(f8), PARAMETER   :: CIM      = 0.4e+0_f8
 
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
 
@@ -4171,19 +4190,19 @@ CONTAINS
     DATA   A /  2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                 2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                 2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   5.0e+0_f8,  10.0e+0_f8,  5.0e+0_f8, &
                 5.0e+0_f8,   5.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   5.0e+0_f8,  10.0e+0_f8,  5.0e+0_f8, &
                 5.0e+0_f8,   5.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
-               
+
                 2.0e+0_f8,   5.0e+0_f8,   2.0e+0_f8,   5.0e+0_f8,  5.0e+0_f8, &
                 2.0e+0_f8,   2.0e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8, &
                10.0e+0_f8, -999.e+0_f8, -999.e+0_f8, -999.e+0_f8, 10.0e+0_f8  /
@@ -4286,7 +4305,12 @@ CONTAINS
     ! Schmidt number
     SC   = AIRVS / DIFF
     !EB   = 1.e+0_f8/SC**(gamma(LUC))
-    EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
+    !---------------------------------------------------------------
+    ! NOTE: this loses precision, use TWO_THIRDS instead
+    ! (bmy, 30 Sep 2021)
+    !EB   = CB/SC**(0.6667e+0_f8) ! Emerson 2020 update JRP
+    !---------------------------------------------------------------
+    EB   = CB/SC**TWO_THIRDS  ! Emerson 2020 update JRP
 
     ! Stokes number
     IF ( AA < 0e+0_f8 ) then
@@ -4544,7 +4568,7 @@ CONTAINS
     ! KOA       POPs KOA parameter
     !
     ! NOTES:
-    ! (1) For XMW, we take the species molecular weight (MW_g * 1e-3). 
+    ! (1) For XMW, we take the species molecular weight (MW_g * 1e-3).
     ! (2) The deposition names of SO4s and NITs need to be in
     !      uppercase.  Therefore, we overwrite the values from
     !      the species database with SO4S, NITS.
@@ -4652,12 +4676,12 @@ CONTAINS
                 ! for the computation of Vd to work properly.
                 XMW(NUMDEP)  = State_Chm%SpcData(id_IHN1)%Info%MW_g * 1e-3_fp
                 FLAG(NUMDEP) = 3
-                
+
              CASE( 'SO4s', 'SO4S' )
                 ! DEPNAME for SO4s has to be in all caps, for
                 ! backwards compatibility with older code
                 DEPNAME(NUMDEP) = 'SO4S'
-                
+
              CASE DEFAULT
                 ! Do nothing
 
