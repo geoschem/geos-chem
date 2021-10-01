@@ -870,7 +870,7 @@ CONTAINS
        NH3 = Spc(id_NH3)*CVFAC
 
        ! Initialize
-       State_Chm%SIZE_RES = .FALSE
+       State_Chm%SIZE_RES = .FALSE.
 
        ! Fahey and Seinfeld decision algorithm
        ! NOTE: This is ugly, needs refactoring.  For now, just added 
