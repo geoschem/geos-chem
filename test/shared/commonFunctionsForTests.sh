@@ -27,11 +27,13 @@ SED_INPUT_GEOS_3='s/Start YYYYMMDD, hhmmss  : 20160101 000000/Start YYYYMMDD, hh
 SED_INPUT_GEOS_4='s/End   YYYYMMDD, hhmmss  : 20160201 000000/End   YYYYMMDD, hhmmss  : 20190101 010000/'
 SED_INPUT_GEOS_5='s/End   YYYYMMDD, hhmmss  : 20160101 010000/End   YYYYMMDD, hhmmss  : 20190101 010000/'
 SED_INPUT_GEOS_6='s/End   YYYYMMDD, hhmmss  : 20110201 000000/End   YYYYMMDD, hhmmss  : 20110101 010000/'
+SED_INPUT_GEOS_N='s/End   YYYYMMDD, hhmmss  : 20190801 000000/End   YYYYMMDD, hhmmss  : 20190701 002000/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
 SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
-SED_HEMCO_CONF_3='s/\$RES.\$NC/\$RES.NA.\$NC/'
+SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
 SED_HISTORY_RC_1='s/00000100 000000/00000000 010000/'
 SED_HISTORY_RC_2='s/7440000/010000/'
+SED_HISTORY_RC_N='s/00000100 000000/00000000 002000/'
 SED_RUN_CONFIG_1='s/20160101 000000/20190101 000000/'
 SED_RUN_CONFIG_2='s/20160201 000000/20190101 010000/'
 SED_RUN_CONFIG_3='s/20190201 000000/20190101 010000/'
@@ -144,27 +146,57 @@ function update_config_files() {
     root=${1}
     runDir=${2}
 
+    #------------------------------------------------------------------------
     # Replace text in input.geos
+    #------------------------------------------------------------------------
     sed_ie "${SED_INPUT_GEOS_1}" "${root}/${runDir}/input.geos"
     sed_ie "${SED_INPUT_GEOS_2}" "${root}/${runDir}/input.geos"
     sed_ie "${SED_INPUT_GEOS_3}" "${root}/${runDir}/input.geos"
     sed_ie "${SED_INPUT_GEOS_4}" "${root}/${runDir}/input.geos"
     sed_ie "${SED_INPUT_GEOS_5}" "${root}/${runDir}/input.geos"
     sed_ie "${SED_INPUT_GEOS_6}" "${root}/${runDir}/input.geos"
+
+    # For nested-grid fullchem runs, change simulation time to 20 minutes
+    # in order to reduce the run time of the whole set of integration tests.
+    if grep -q "025x03125_fullchem" <<< "${runDir}"; then
+	sed_ie "${SED_INPUT_GEOS_N}" "${root}/${runDir}/input.geos"
+    fi
+    if grep -q "05x0625_fullchem" <<< "${runDir}"; then
+	sed_ie "${SED_INPUT_GEOS_N}" "${root}/${runDir}/input.geos"
+    fi
+
+    #------------------------------------------------------------------------
+    # Replace text in HEMCO_Config.rc
+    #------------------------------------------------------------------------
     sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc"
     sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
+
+    # For all nested-grid rundirs, add a NA into the entries for met fields
+    if grep -q "025x03125" <<< "${runDir}"; then
+	sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc"
+    fi
+    if grep -q "05x0625" <<< "${runDir}"; then
+	sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc"
+    fi
+
+    #------------------------------------------------------------------------
+    # Replace text in HISTORY.rc
+    #------------------------------------------------------------------------
     sed_ie "${SED_HISTORY_RC_1}" "${root}/${runDir}/HISTORY.rc"
     sed_ie "${SED_HISTORY_RC_2}" "${root}/${runDir}/HISTORY.rc"
 
-    # For nested-grid rundirs, add a NA into the entries for met fields
-    if grep -q "025x03125" <<< "${runDir}"; then
-	sed_ie "${SED_HEMCO_CONF_3}" "${root}/${runDir}/HEMCO_Config.rc"
+    # For nested-grid fullchem runs, change frequency and duration to 20 mins
+    # in order to reduce the run time of the whole set of integration tests.
+    if grep -q "025x03125_fullchem" <<< "${runDir}"; then
+	sed_ie "${SED_HISTORY_RC_N}" "${root}/${runDir}/HISTORY.rc"
     fi
-    if grep -q "05x0625" <<< "${runDir}"; then
-	sed_ie "${SED_HEMCO_CONF_3}" "${root}/${runDir}/HEMCO_Config.rc"
+    if grep -q "05x0625_fullchem" <<< "${runDir}"; then
+	sed_ie "${SED_HISTORY_RC_N}" "${root}/${runDir}/HISTORY.rc"
     fi
 
-    # For GCHP only: replace text in runConfig.sh
+    #------------------------------------------------------------------------
+    # Replace text in runConfig.sh (GCHP_only)
+    #------------------------------------------------------------------------
     expr=$(is_gchp_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 	sed_ie "${SED_RUN_CONFIG_1}" ${root}/${runDir}/runConfig.sh
