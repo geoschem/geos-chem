@@ -149,12 +149,6 @@ function update_config_files() {
     #------------------------------------------------------------------------
     # Replace text in input.geos
     #------------------------------------------------------------------------
-    sed_ie "${SED_INPUT_GEOS_1}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_2}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_3}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_4}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_5}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_6}" "${root}/${runDir}/input.geos"
 
     # For nested-grid fullchem runs, change simulation time to 20 minutes
     # in order to reduce the run time of the whole set of integration tests.
@@ -165,11 +159,17 @@ function update_config_files() {
 	sed_ie "${SED_INPUT_GEOS_N}" "${root}/${runDir}/input.geos"
     fi
 
+    # Other text replacements
+    sed_ie "${SED_INPUT_GEOS_1}" "${root}/${runDir}/input.geos"
+    sed_ie "${SED_INPUT_GEOS_2}" "${root}/${runDir}/input.geos"
+    sed_ie "${SED_INPUT_GEOS_3}" "${root}/${runDir}/input.geos"
+    sed_ie "${SED_INPUT_GEOS_4}" "${root}/${runDir}/input.geos"
+    sed_ie "${SED_INPUT_GEOS_5}" "${root}/${runDir}/input.geos"
+    sed_ie "${SED_INPUT_GEOS_6}" "${root}/${runDir}/input.geos"
+
     #------------------------------------------------------------------------
     # Replace text in HEMCO_Config.rc
     #------------------------------------------------------------------------
-    sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc"
-    sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
 
     # For all nested-grid rundirs, add a NA into the entries for met fields
     if grep -q "025x03125" <<< "${runDir}"; then
@@ -179,11 +179,13 @@ function update_config_files() {
 	sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc"
     fi
 
+    # Other text replacements
+    sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc"
+    sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
+
     #------------------------------------------------------------------------
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
-    sed_ie "${SED_HISTORY_RC_1}" "${root}/${runDir}/HISTORY.rc"
-    sed_ie "${SED_HISTORY_RC_2}" "${root}/${runDir}/HISTORY.rc"
 
     # For nested-grid fullchem runs, change frequency and duration to 20 mins
     # in order to reduce the run time of the whole set of integration tests.
@@ -193,6 +195,10 @@ function update_config_files() {
     if grep -q "05x0625_fullchem" <<< "${runDir}"; then
 	sed_ie "${SED_HISTORY_RC_N}" "${root}/${runDir}/HISTORY.rc"
     fi
+
+    # Other text replacements
+    sed_ie "${SED_HISTORY_RC_1}" "${root}/${runDir}/HISTORY.rc"
+    sed_ie "${SED_HISTORY_RC_2}" "${root}/${runDir}/HISTORY.rc"
 
     #------------------------------------------------------------------------
     # Replace text in runConfig.sh (GCHP_only)
