@@ -153,7 +153,10 @@ CONTAINS
 
     ! Other fields
     H%gamma_HO2     = Input_Opt%gamma_HO2
-    H%is_UCX        = Input_Opt%LUCX
+
+    ! Correction factors for HOBr and HOCl removal by SO2 [1]
+    H%fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
+    H%fupdateHOCl  = State_Chm%fupdateHOCl(I,J,L)
 
     ! Cloud fields
     CALL Cld_Params( I, J, L, H, State_Met )
@@ -164,43 +167,22 @@ CONTAINS
     !========================================================================
     ! Copy quantities for UCX into gckpp_Global variables
     !========================================================================
-    IF ( Input_Opt%LUCX ) THEN
 
-       !---------------------------------------------------------------------
-       ! If UCX is turned on ...
-       !---------------------------------------------------------------------
+    ! ... copy uptake probabilities for PSC reactions on SLA
+    ! ... to the proper gckpp_Global variable
+    H%KHETI_SLA(1:11) = State_Chm%KHETI_SLA(I,J,L,1:11)
 
-       ! ... copy uptake probabilities for PSC reactions on SLA
-       ! ... to the proper gckpp_Global variable
-       H%KHETI_SLA(1:11) = State_Chm%KHETI_SLA(I,J,L,1:11)
+    ! ... check if we are in the stratosphere
+    H%stratBox = State_Met%InStratosphere(I,J,L)
 
-       ! ... check if we are in the stratosphere
-       H%STRATBOX = State_Met%InStratosphere(I,J,L)
+    ! ... check if there are solid PSCs at this grid box
+    H%pscBox  =                                                              &
+         ( ( Input_Opt%LPSCCHEM                ) .and.                       &
+           ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. H%stratBox           )
 
-       ! ... check if there are solid PSCs at this grid box
-       H%PSCBOX  =                                                           &
-          ( ( Input_Opt%LPSCCHEM                ) .and.                      &
-            ( State_Chm%STATE_PSC(I,J,L) >= 2.0 ) .and. H%STRATBOX          )
+    ! ... check if there is surface NAT at this grid box
+    H%natSurface = ( H%pscBox .and. ( C(ind_NIT) > 0.0_dp )                 )
 
-       ! ... check if there is surface NAT at this grid box
-       H%NATSURFACE = ( H%PSCBOX .and. ( C(ind_NIT) > 0.0_dp )              )
-
-    ELSE
-
-       !---------------------------------------------------------------------
-       ! If UCX is turned off ...
-       !---------------------------------------------------------------------
-
-       ! ... set H2O concentration from the meteorology
-       C(ind_H2O)   = H%H2O
-
-       ! ... zero out UCX-related quantities
-       H%KHETI_SLA  = 0.0_dp
-       H%STRATBOX   = .FALSE.
-       H%PSCBOX     = .FALSE.
-       H%NATSURFACE = .FALSE.
-
-    ENDIF
 
   END SUBROUTINE FullChem_SetStateHet
 !EOC

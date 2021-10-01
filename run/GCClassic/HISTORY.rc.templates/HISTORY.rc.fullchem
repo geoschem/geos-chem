@@ -143,6 +143,7 @@ COLLECTIONS: 'Restart',
   AerosolMass.mode:           'time-averaged'
   AerosolMass.fields:         'AerMassASOA                  ',
                               'AerMassBC                    ',
+                              'AerMassHMS                   ',
                               'AerMassINDIOL                ',
                               'AerMassLVOCOA                ',
                               'AerMassNH4                   ',
@@ -349,10 +350,10 @@ COLLECTIONS: 'Restart',
   DryDep.frequency:           {FREQUENCY}
   DryDep.duration:            {DURATION}
   DryDep.mode:                'time-averaged'
-  DryDep.fields:              'DryDepVel_?DRY?               ',
+  DryDep.fields:              'DryDep_?DRY?                  ',
+                              'DryDepVel_?DRY?               ',
                               ##'DryDepChm_?DRY?              ',
                               ##'DryDepMix_?DRY?              ',
-                              'DryDep_?DRY?                  ',
 ::
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
@@ -425,6 +426,9 @@ COLLECTIONS: 'Restart',
   ProdLoss.fields:            'Prod_?PRD?                    ',
                               'ProdBCPIfromBCPO              ',
                               'ProdOCPIfromOCPO              ',
+                              'ProdHMSfromSO2andHCHOinCloud  ',
+                              'ProdSO2andHCHOfromHMSinCloud  ',
+                              'ProdSO4fromHMSinCloud         ',
                               'ProdSO4fromH2O2inCloud        ',
                               'ProdSO4fromO2inCloudMetal     ',
                               'ProdSO4fromO3inCloud          ',
