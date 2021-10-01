@@ -2011,11 +2011,7 @@ CONTAINS
     k = kIIR1Ltd( C(ind_HOBr), C(ind_SALCCL), k )
   END FUNCTION HOBrUptkBySALCCL
 
-!-------------------------------------------------------------------------------
-! NOTE: These functions are for use with sulfur in-cloud chemistry
-! being computed in sulfate_mod.F90 (bmy, 9/16/21)
-!
-  FUNCTION HOBrHetSO4H1( H ) RESULT( k )
+  FUNCTION HOBrUptkByHSO3m( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + HSO3(-) reaction.
     !
@@ -2045,12 +2041,12 @@ CONTAINS
        k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
        !
     ENDIF
-    !
-    ! Make sure sulfate produced is less than SO2 available
-    k = k * H%fupdateHOBr
-  END FUNCTION HOBrHetSO4H1
 
-  FUNCTION HOBrHetSO4H2( H ) RESULT( k )
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_HSO3m), k )
+  END FUNCTION HOBrUptkByHSO3m
+
+  FUNCTION HOBrUptkBySO3mm( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOBr + HSO3(-) reaction.
     !
@@ -2078,82 +2074,10 @@ CONTAINS
        k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
        !
     ENDIF
-    !
-    ! Make sure sulfate produced is less than SO2 available
-    k = k * H%fupdateHOBr
-  END FUNCTION HOBrHetSO4H2
-!-------------------------------------------------------------------------------
-! NOTE: These functions are for use with sulfur in-cloud chemistry
-! being computed in KPP.  Comment out for now. (bmy, 9/16/21)
-!
-!  FUNCTION HOBrUptkByHSO3m( H ) RESULT( k )
-!    !
-!    ! Computes the uptake rate [1/s] for the HOBr + HSO3(-) reaction.
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    REAL(dp) :: brLiq,     gammaLiq,     k_HOBr_Cl
-!    REAL(dp) :: k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm
-!    REAL(dp) :: k_tot,     srMw
-!    !
-!    k        = 0.0_dp
-!    brLiq    = 0.0_dp
-!    gammaLiq = 0.0_dp
-!    srMw     = SR_MW(ind_HOBr)
-!    !
-!    IF ( .not. H%stratBox ) THEN
-!       !
-!       ! HOBr + HBr rxn probability in tropospheric liquid cloud
-!       CALL Gam_HOBr_CLD(                                                    &
-!            H,         gammaLiq,  k_tot,                                     &
-!            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm )
-!       !
-!       ! Branching ratio for liquid path of HOBr + HSO3m in cloud
-!       brLiq = k_HOBr_HSO3m / k_tot
-!       !
-!       ! Compute overall HOBr removal rate in cloud
-!       k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
-!       !
-!    ENDIF
-!
-!    ! Assume HOBr is limiting, so update the removal rate accordingly
-!    k = kIIR1Ltd( C(ind_HOBr), C(ind_HSO3m), k )
-!  END FUNCTION HOBrUptkByHSO3m
-!
-!  FUNCTION HOBrUptkBySO3mm( H ) RESULT( k )
-!    !
-!    ! Computes the uptake rate [1/s] for the HOBr + HSO3(-) reaction.
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    REAL(dp) :: brLiq,     gammaLiq,     k_HOBr_Cl
-!    REAL(dp) :: k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm
-!    REAL(dp) :: k_tot,     srMw
-!    !
-!    k    = 0.0_dp
-!    srMw = SR_MW(ind_HOBr)
-!    !
-!    IF ( .not. H%stratBox ) THEN
-!       !
-!       ! HOBr + HBr rxn probability in tropospheric liquid cloud
-!       CALL Gam_HOBr_CLD(                                                    &
-!            H,         gammaLiq,  k_tot,                                     &
-!            k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm )
-!       !
-!       ! Branching ratio for liquid path of HOBr + HSO3m in cloud
-!       brLiq = k_HOBr_SO3mm / k_tot
-!       !
-!       ! Compute overall HOBr removal rate in cloud
-!       k = k + CloudHet( H, srMw, gammaLiq, 0.0_dp, brLiq, 0.0_dp )
-!       !
-!    ENDIF
-!
-!    ! Assume HOBr is limiting, so update the removal rate accordingly
-!    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO3mm), k )
-!  END FUNCTION HOBrUptkBySO3mm
-!-------------------------------------------------------------------------------
+
+    ! Assume HOBr is limiting, so update the removal rate accordingly
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO3mm), k )
+  END FUNCTION HOBrUptkBySO3mm
 
   !=========================================================================
   ! Hetchem rate-law functions for HOCl
@@ -2387,11 +2311,7 @@ CONTAINS
     k = kIIR1Ltd( C(ind_HOCl), C(ind_SALCCL), k )
   END FUNCTION HOClUptkBySALCCL
 
-!------------------------------------------------------------------------------
-! NOTE: These functions are for use with sulfur in-cloud chemistry
-! being computed in sulfate_mod.F90 (bmy, 9/16/21)
-!
-  FUNCTION HOClHetSO4H3( H ) RESULT( k )
+  FUNCTION HOClUptkByHSO3m( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + HSO3- reaction.
     !
@@ -2415,10 +2335,11 @@ CONTAINS
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
-    k = k * H%fupdateHOCl
-  END FUNCTION HOClHetSO4H3
+    ! Assume HOCl is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_HOCl), C(ind_HSO3m), k )
+  END FUNCTION HOClUptkByHSO3m
 
-  FUNCTION HOClHetSO4H4( H ) RESULT( k )
+  FUNCTION HOClUptkBySO3mm( H ) RESULT( k )
     !
     ! Computes the uptake rate [1/s] for the HOCl + SO3-- reaction.
     !
@@ -2442,68 +2363,9 @@ CONTAINS
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
-    k = k * H%fupdateHOCl
-  END FUNCTION HOClHetSO4H4
-!------------------------------------------------------------------------------
-! NOTE: These functions are for use with sulfur in-cloud chemistry
-! being computed in KPP.  Comment out for now. (bmy, 9/16/21)
-!
-!  FUNCTION HOClUptkByHSO3m( H ) RESULT( k )
-!    !
-!    ! Computes the uptake rate [1/s] for the HOCl + HSO3- reaction.
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    REAL(dp) :: area,  branch, branchSO3
-!    REAL(dp) :: dummy, gamma,  srMw
-!    !
-!    k    = 0.0_dp
-!    srMw = SR_MW(ind_HOCl)
-!    !
-!    ! Compute HOCl + HSO3m uptake in tropospheric liquid cloud
-!    IF ( .not. H%stratBox ) THEN
-!       !
-!       ! HOCl + HSO3mL uptake coeff [1] & branch ratio [1], liquid path
-!       CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
-!       branch = branchSO3 * H%frac_HSO3_aq
-!       !
-!       ! HOCl + HSO3m uptake rate [1/s] accounting for cloud fraction
-!       k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
-!    ENDIF
-!    !
-!    ! Assume HOCl is limiting, so recompute reaction rate accordingly
-!    k = kIIR1Ltd( C(ind_HOCl), C(ind_HSO3m), k )
-!  END FUNCTION HOClUptkByHSO3m
-!
-!  FUNCTION HOClUptkBySO3mm( H ) RESULT( k )
-!    !
-!    ! Computes the uptake rate [1/s] for the HOCl + SO3-- reaction.
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    REAL(dp) :: area,  branch, branchSO3
-!    REAL(dp) :: dummy, gamma,  srMw
-!    !
-!    k    = 0.0_dp
-!    srMw = SR_MW(ind_HOCl)
-!    !
-!    ! Compute HOCl + SO3mm uptake in tropospheric liquid cloud
-!    IF ( .not. H%stratBox ) THEN
-!       !
-!       ! HOCl + SO3mm  uptake coeff [1] & branch ratio [1], liquid path
-!       CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
-!       branch = branchSO3 * H%frac_SO3_aq
-!       !
-!       ! HOCl + SO3mm uptake rate [1/s] accounting for cloud fraction
-!       k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
-!    ENDIF
-!    !
-!    ! Assume HOCl is limiting, so recompute reaction rate accordingly
-!    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO3mm), k )
-!  END FUNCTION HOClUptkBySO3mm
-!------------------------------------------------------------------------------
+    ! Assume HOCl is limiting, so recompute reaction rate accordingly
+    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO3mm), k )
+  END FUNCTION HOClUptkBySO3mm
 
   !=========================================================================
   ! Hetchem rate-law functions for iodine species
