@@ -1143,7 +1143,7 @@ ETO:
   Formula: HOCH2CH2O
   FullName: alkoxy radical from ETOO
   Is_Gas: true
-  MW_g: 61.0
+  MW_g: 61.06
 ETOO:
   Formula: HOCH2CH2OO
   FullName: peroxy radical from ethene
