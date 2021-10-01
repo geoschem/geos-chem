@@ -783,21 +783,21 @@ CONTAINS
        ENDIF
 
        SR = 0._fp
-       
+
        ! Execute HET_DROP_CHEM() from Sulfate_Mod
-       IF ( SIZE_RES                                  .AND.                  &
-            State_Met%IsWater(I,J)                    .AND.                  &
-            TEMP                  > 268.15_fp         .AND.   
+       IF ( SIZE_RES                            .and.                        &
+            State_Met%IsWater(I,J)              .and.                        &
+            TEMP                  > 268.15_fp   .and.                        &
             State_Met%CLDF(I,J,L) > 1.e-4_fp  ) THEN
 
-          CALL HET_DROP_CHEM( I        = I,                                  &
-                              J        = J,                                  &
-                              L        = L,                                  &
-                              SR       = SR,                                 &
+          CALL HET_DROP_CHEM( I         = I,                                 &
+                              J         = J,                                 &
+                              L         = L,                                 &
+                              SR        = SR,                                &
                               Input_Opt = Input_Opt,                         &
                               State_Met = State_Met,                         &
                               State_Chm = State_Chm                         )
-          
+
           ! Add result as an enhancement to O2 metal catalysis rate
           ! as a 1st order reaction
           K_CLD(3) = K_CLD(3) + SR
@@ -1546,7 +1546,7 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! Dry sea-salt density [kg/m3]
-    REAL(fp), PARAMETER   :: SS_DEN = 2200.0_fp   
+    REAL(fp), PARAMETER   :: SS_DEN = 2200.0_fp
 
     ! Sigma of the size distribution for sea-salt (Jaegle et al., 2011)
     REAL(fp), PARAMETER   :: SIG_S  = 1.8_fp
@@ -1596,11 +1596,11 @@ CONTAINS
     CVF    = 1.0e+3_fp * AIRMW / ( AIRDEN(I,J,L) * AVO )
     FC     = State_Met%CLDF(I,J,L)
     DTCHEM = GET_TS_CHEM()
-    
+
     !! <<>> SET THE INPUT UNITS! EITHER CONVERT IN THE ROUTINE OR
     !! <<>> CONVERT BEFOREHAND. BUT EVERYTHING IS CURRENTLY mcl/cm3
     !! <<>> AND HET_DROP_CHEM EXPECTS V/V
-    
+
     ! XX* are calculated below to be consistent with
     ! Sulfate_Mod(). Values are different when
     ! computed with KPP-based variables. HET_DROP_CHEM()
@@ -1610,14 +1610,14 @@ CONTAINS
     R2  = C(ind_H2O2)*CVF
     XX  = EXP(( R1 - R2 ) * (K_CLD(1)/CVF/FC) * DTCHEM)
     XX1 = (R1*R2)*(XX - 1.e+0_fp)/((R1 * XX) - R2)
-    
+
     R2  = C(ind_O3)*CVF
     XX  = EXP(( R1 - R2 ) * (K_CLD(2)/CVF/FC) * DTCHEM)
     XX2 = (R1*R2)*(XX - 1.e+0_fp)/((R1 * XX) - R2)
-    
+
     XX  = EXP((-K_CLD(3)/FC) * DTCHEM)
     XX3 = R1*(1.d0-XX)
-    
+
     R1  = C(ind_HSO3m)*CVF
     R2  = C(ind_HOCl)*CVF
     XX  = EXP( R1-R2 )*(HOClUptkByHSO3m(State_Het)/CVF*DTCHEM)
@@ -1625,7 +1625,7 @@ CONTAINS
     R1  = C(ind_SO3mm)*CVF
     XX  = EXP( R1-R2 )*(HOClUptkBySO3mm(State_Het)/CVF*DTCHEM)
     XX4 = XX4+((R1*R2)*(XX - 1.e+0_fp)/((R1 * XX) - R2))
-    
+
     R1  = C(ind_HSO3m)*CVF
     R2  = C(ind_HOBr)*CVF
     XX  = EXP( R1-R2 )*(HOBrUptkByHSO3m(State_Het)/CVF*DTCHEM)
@@ -1633,17 +1633,17 @@ CONTAINS
     R1  = C(ind_SO3mm)*CVF
     XX  = EXP( R1-R2 )*(HOBrUptkBySO3mm(State_Het)/CVF*DTCHEM)
     XX5 = XX5+((R1*R2)*(XX - 1.e+0_fp)/((R1 * XX) - R2))
-    
+
     LST = XX1+XX2+XX3+XX4+XX5
-    
+
     IF (LST > R1) THEN
-       
+
        XX1 = R1*XX1/LST
        XX2 = R1*XX2/LST
        XX3 = R1*XX3/LST
        XX4 = R1*XX4/LST
        XX5 = R1*XX5/LST
-       
+
     ENDIF
 
     ! Convert gas phase concentrations from [v/v] to [pptv]

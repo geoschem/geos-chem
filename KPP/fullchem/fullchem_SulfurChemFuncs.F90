@@ -121,6 +121,8 @@ CONTAINS
     ! Initialize
     RC            = GC_SUCCESS
     K_MT          = 0.0_dp
+    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
+    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
@@ -868,122 +870,133 @@ CONTAINS
        NH3 = Spc(id_NH3)*CVFAC
 
        ! Initialize
-       State_Chm%SIZE_RES = .false.
+       State_Chm%SIZE_RES = .FALSE
 
        ! Fahey and Seinfeld decision algorithm
+       ! NOTE: This is ugly, needs refactoring.  For now, just added 
+       ! whitespace to improve readability (bmy, 01 Oct 2021)
        IF ( H2O20 > SO2_afterss + 1e-9_fp ) THEN
-          State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
-          State_Chm%SIZE_RES = .true.
-       ELSEIF( gno3 > NH3 ) THEN
-          IF ( So2_afterss >= 5.e-9_fp          .and. &
-               H2O20  >= SO20   )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( LWC    >= 0.3e-6_fp         .and. &
-               So2_afterss >= 3.e-9_fp          .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               LWC    >= 0.5e-6_fp         .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( LWC    >= 0.1e-6_fp         .and. &
-               gno3   <= (NH3 + 2.e-9_fp) )      &
-               State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC    >= 0.5e-6_fp ) THEN
-          IF ( H2O20  >= (0.9e+0_fp * So2_afterss) )  &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 5.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC    >= 0.3e-6_fp ) THEN
-          IF ( NH3    >= (gno3 + 5.e-9_fp) .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) )     &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) )     &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 3.e+0_fp          .and. &
-               NH3 <= 10e-9_fp             .and. &
-               So2_afterss <= 5e-9_fp )               &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               NH3    <= 10.e-9_fp         .and. &
-               So2_afterss <= 5.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( So2_afterss >= 1.5e-9_fp         .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 12.e-9_fp         .and. &
-               ALKds  >=10.e+0_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 4.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 5.e-9_fp          .and. &
-               ALKds  >= 6.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 7.e-9_fp          .and. &
-               ALKds   >-8.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC    >= 0.1e-6_fp ) THEN
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 5.e+0_fp   )            &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 5.e-9_fp          .and. &
-               ALKds  >= 10.e+0_fp  )            &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) .and. &
-               So2_afterss <= 7.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) .and. &
-               ALKds  >= 2.e+0_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 3.e-9_fp          .and. &
-               NH3    >= (gno3 + 4.e-9_fp) )     &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) .and. &
-               So2_afterss <= 5.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) .and. &
-               ALKds  >= 4.e+0_fp          .and. &
-               So2_afterss <= 9.e-9_fp  )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 3.e+0_fp          .and. &
-               NH3    <= 3.e-9_fp          .and. &
-               So2_afterss <= 4.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               So2_afterss <= 5.e-9_fp          .and. &
-               NH3    <= 7.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    >= (gno3 + 2.e-9_fp) .and. &
-               So2_afterss <= 5.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    >= (gno3 + 4.e-9_fp) .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 2.e+0_fp          .and. &
-               NH3    <= 10.e-9_fp         .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               So2_afterss >= 3.e-9_fp          .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
+          State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
+          State_Chm%SIZE_RES = .TRUE.
+
+       ELSE IF( gno3 > NH3 ) THEN
+
+          IF ( So2_afterss >= 5.e-9_fp                                 .and. &
+               H2O20       >= SO20              ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( LWC         >= 0.3e-6_fp                                .and. &
+               So2_afterss >= 3.e-9_fp                                 .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               LWC         >= 0.5e-6_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( LWC         >= 0.1e-6_fp                                .and. &
+               gno3        <= (NH3 + 2.e-9_fp)  ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.5e-6_fp ) THEN
+
+          IF ( H2O20       >=                                                &
+               ( 0.9_fp * So2_afterss )         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 5.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.3e-6_fp ) THEN
+
+          IF ( NH3         >= (gno3 + 5.e-9_fp)                        .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 3.e+0_fp                                 .and. &
+               NH3         <= 10e-9_fp                                 .and. &
+               So2_afterss <= 5e-9_fp           ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               NH3         <= 10.e-9_fp                                .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( So2_afterss >= 1.5e-9_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 12.e-9_fp                                .and. &
+               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 4.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 5.e-9_fp                                 .and. &
+               ALKds       >= 6.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 7.e-9_fp                                 .and. &
+               ALKds       > -8.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.1e-6_fp ) THEN
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 5.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 5.e-9_fp                                 .and. &
+               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               So2_afterss <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               ALKds       >= 2.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 3.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 4.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp)                        .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp)                        .and. &
+               ALKds       >= 4.e+0_fp                                 .and. &
+               So2_afterss <= 9.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 3.e+0_fp                                 .and. &
+               NH3         <= 3.e-9_fp                                 .and. &
+               So2_afterss <= 4.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               So2_afterss <= 5.e-9_fp                                 .and. &
+               NH3         <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         >= (gno3 + 4.e-9_fp)                        .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 2.e+0_fp                                 .and. &
+               NH3         <= 10.e-9_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               So2_afterss >= 3.e-9_fp                                 .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
        ELSE
-          State_Chm%SIZE_RES = .true.
+
+          State_Chm%SIZE_RES = .TRUE.
+
        ENDIF
 
        
