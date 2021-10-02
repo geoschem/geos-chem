@@ -1645,6 +1645,8 @@ CONTAINS
        XX4 = R1*XX4/LST
        XX5 = R1*XX5/LST
        
+       LST = XX1+XX2+XX3+XX4+XX5
+
     ENDIF
 
     ! Convert gas phase concentrations from [v/v] to [pptv]
