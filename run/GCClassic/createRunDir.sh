@@ -121,23 +121,6 @@ sim_extra_option=none
 # Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
 
-    printf "${thinline}Choose chemistry domain:${thinline}"
-    printf "  1. Troposphere + stratosphere (Recommended)\n"
-    printf "  2. Troposphere only\n"
-    valid_chemgrid=0
-    while [ "${valid_chemgrid}" -eq 0 ]; do
-	read chemgrid_num
-	if [[ ${chemgrid_num} = "1" ]]; then
-	    chemgrid="trop+strat"
-	    valid_chemgrid=1
-	elif [[ ${chemgrid_num} = "2" ]]; then
-	    chemgrid="trop_only"
-	    valid_chemgrid=1
-	else
-	    printf "Invalid chemistry domain option. Try again.\n"
-	fi
-    done
-
     printf "${thinline}Choose additional simulation option:${thinline}"
     printf "  1. Standard\n"
     printf "  2. Benchmark\n"
@@ -282,7 +265,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	offline_dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="geosfp"
@@ -295,7 +277,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	offline_dust_sf='6.42e-5'
     elif [[ ${met_num} = "3" ]]; then
 	met_name='ModelE2.1'
 	met_name_lc='modele2.1'
@@ -308,7 +289,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='1950'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	offline_dust_sf='1.0'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -704,6 +684,7 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
+cp ${gcdir}/run/shared/download_data.yml    ${rundir}
 cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
 cp ./README                                 ${rundir}
@@ -793,7 +774,6 @@ sed_ie "s|{MET_DIR}|${met_dir}|"          HEMCO_Config.rc
 sed_ie "s|{NATIVE_RES}|${met_native}|"    HEMCO_Config.rc
 sed_ie "s|{LATRES}|${met_latres}|"        HEMCO_Config.rc
 sed_ie "s|{LONRES}|${met_lonres}|"        HEMCO_Config.rc
-sed_ie "s|{DUST_SF}|${offline_dust_sf}|"  HEMCO_Config.rc
 sed_ie "s|{DEAD_TF}|${dead_tf}|"          HEMCO_Config.rc
 sed_ie "s|{MET_AVAIL}|${met_avail}|"      HEMCO_Config.rc
 
@@ -989,28 +969,18 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
     fi
 fi
 
-# Modify input files for troposphere-only chemistry grids
-if [[ "x${chemgrid}" == "xtrop_only" ]]; then
-    replace_colon_sep_val "=> Set init. strat. H2O"  F input.geos
-    replace_colon_sep_val "Settle strat. aerosols"   F input.geos
-    replace_colon_sep_val "Online PSC AEROSOLS"      F input.geos
-    replace_colon_sep_val "Perform PSC het. chem.?"  F input.geos
-    replace_colon_sep_val "Calc. strat. aero. OD?"   F input.geos
-    replace_colon_sep_val "Use UCX strat. chem?"     F input.geos
-    replace_colon_sep_val "Active strat. H2O?"       F input.geos
-    replace_colon_sep_val "--> STATE_PSC"        false HEMCO_Config.rc
-    replace_colon_sep_val "--> GMI_PROD_LOSS"    false HEMCO_Config.rc
-    replace_colon_sep_val "--> UCX_PROD_LOSS"     true HEMCO_Config.rc
-    sed_ie "s|'Chem_StatePSC|#'Chem_StatePSC|"      HISTORY.rc
-fi
-
 # Modify input files for nested-grid simulations
 if [[ "x${nested_sim}" == "xT" ]]; then
     replace_colon_sep_val "--> GC_BCs" true HEMCO_Config.rc
     if [[ "x${domain_name}" == "xNA" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
-	replace_colon_sep_val "--> NEI2011_HOURLY"  true  HEMCO_Config.rc
+	replace_colon_sep_val "--> NEI2011_HOURLY"  false  HEMCO_Config.rc
     fi
+    
+    printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
+    printf "\n     by default. To improve run time, you may choose to use cropped"
+    printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"
+    printf "\n     to include the region string (e.g. 'AS', 'EU', 'NA').\n"
 fi
 
 # Modify input files for POPs simulations
@@ -1087,16 +1057,21 @@ if [[ ${met_name} = "MERRA2" ]] || [[ ${met_name} = "GEOSFP" ]]; then
 
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 
-	# For TOMAS simulations, use restarts provided by the TOMAS team
-	# For other fullchem simulations, use restart from latest benchmark
+        # NOTE: We need to read the fullchem and TOMAS restart files from
+	# the v2021-09/ folder.  These contain extra species (e.g HMS),
+	# for chemistry updates that were added in 13.3.0.  This is necessary
+	# to avoid GEOS-Chem Classic simulations from halting if these
+	# species are not found in the restart file (time cycle flag "EFYO").
+	#   -- Bob Yantosca (22 Sep 2021)
+	#
 	# Aerosol-only simulations can use the fullchem restart since all of the
-	#  aerosol species are included
+	# aerosol species are included.
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	    sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-	    sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then

@@ -123,9 +123,6 @@ CONTAINS
     K_MT          = 0.0_dp
     SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
     SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
-    errMsg        = ''
-    thisLoc       = &
-   ' -> at fullchem_SulfurAqChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
@@ -354,19 +351,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,         ONLY : NDSTBIN
     USE ErrCode_Mod
-    USE ERROR_MOD,            ONLY : IS_SAFE_EXP
-    USE Input_Opt_Mod,        ONLY : OptInput
-    USE State_Chm_Mod,        ONLY : ChmState
-    USE State_Diag_Mod,       ONLY : DgnState
-    USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Met_Mod,        ONLY : MetState
-    USE TIME_MOD,             ONLY : GET_TS_CHEM
-#ifdef APM
-    USE APM_DRIV_MOD,         ONLY : PSO4GAS
-    USE APM_DRIV_MOD,         ONLY : XO3
-#endif
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod,       ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -879,122 +870,133 @@ CONTAINS
        NH3 = Spc(id_NH3)*CVFAC
 
        ! Initialize
-       State_Chm%SIZE_RES = .false.
+       State_Chm%SIZE_RES = .FALSE.
 
        ! Fahey and Seinfeld decision algorithm
+       ! NOTE: This is ugly, needs refactoring.  For now, just added 
+       ! whitespace to improve readability (bmy, 01 Oct 2021)
        IF ( H2O20 > SO2_afterss + 1e-9_fp ) THEN
-          State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
-          State_Chm%SIZE_RES = .true.
-       ELSEIF( gno3 > NH3 ) THEN
-          IF ( So2_afterss >= 5.e-9_fp          .and. &
-               H2O20  >= SO20   )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( LWC    >= 0.3e-6_fp         .and. &
-               So2_afterss >= 3.e-9_fp          .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               LWC    >= 0.5e-6_fp         .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( LWC    >= 0.1e-6_fp         .and. &
-               gno3   <= (NH3 + 2.e-9_fp) )      &
-               State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC    >= 0.5e-6_fp ) THEN
-          IF ( H2O20  >= (0.9e+0_fp * So2_afterss) )  &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 5.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC    >= 0.3e-6_fp ) THEN
-          IF ( NH3    >= (gno3 + 5.e-9_fp) .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) )     &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) )     &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 3.e+0_fp          .and. &
-               NH3 <= 10e-9_fp             .and. &
-               So2_afterss <= 5e-9_fp )               &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               NH3    <= 10.e-9_fp         .and. &
-               So2_afterss <= 5.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( So2_afterss >= 1.5e-9_fp         .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 12.e-9_fp         .and. &
-               ALKds  >=10.e+0_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 4.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 5.e-9_fp          .and. &
-               ALKds  >= 6.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 7.e-9_fp          .and. &
-               ALKds   >-8.e+0_fp          .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-       ELSEIF( LWC    >= 0.1e-6_fp ) THEN
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               ALKds  >= 5.e+0_fp   )            &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 5.e-9_fp          .and. &
-               ALKds  >= 10.e+0_fp  )            &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) .and. &
-               So2_afterss <= 7.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 1.e-9_fp          .and. &
-               NH3    >= (gno3 + 2.e-9_fp) .and. &
-               ALKds  >= 2.e+0_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 3.e-9_fp          .and. &
-               NH3    >= (gno3 + 4.e-9_fp) )     &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) .and. &
-               So2_afterss <= 5.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( gno3   <= 7.e-9_fp          .and. &
-               NH3    >= (gno3 + 3.e-9_fp) .and. &
-               ALKds  >= 4.e+0_fp          .and. &
-               So2_afterss <= 9.e-9_fp  )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 3.e+0_fp          .and. &
-               NH3    <= 3.e-9_fp          .and. &
-               So2_afterss <= 4.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 5.e+0_fp          .and. &
-               So2_afterss <= 5.e-9_fp          .and. &
-               NH3    <= 7.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    >= (gno3 + 2.e-9_fp) .and. &
-               So2_afterss <= 5.e-9_fp )              &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    >= (gno3 + 4.e-9_fp) .and. &
-               So2_afterss <= 10.e-9_fp )             &
-               State_Chm%SIZE_RES = .false.
-          IF ( ALKds  >= 2.e+0_fp          .and. &
-               NH3    <= 10.e-9_fp         .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
-          IF ( NH3    <= 1.e-9_fp          .and. &
-               So2_afterss >= 3.e-9_fp          .and. &
-               H2O20  >= So2_afterss )                &
-               State_Chm%SIZE_RES = .false.
+          State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
+          State_Chm%SIZE_RES = .TRUE.
+
+       ELSE IF( gno3 > NH3 ) THEN
+
+          IF ( So2_afterss >= 5.e-9_fp                                 .and. &
+               H2O20       >= SO20              ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( LWC         >= 0.3e-6_fp                                .and. &
+               So2_afterss >= 3.e-9_fp                                 .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               LWC         >= 0.5e-6_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( LWC         >= 0.1e-6_fp                                .and. &
+               gno3        <= (NH3 + 2.e-9_fp)  ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.5e-6_fp ) THEN
+
+          IF ( H2O20       >=                                                &
+               ( 0.9_fp * So2_afterss )         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 5.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.3e-6_fp ) THEN
+
+          IF ( NH3         >= (gno3 + 5.e-9_fp)                        .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 3.e+0_fp                                 .and. &
+               NH3         <= 10e-9_fp                                 .and. &
+               So2_afterss <= 5e-9_fp           ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               NH3         <= 10.e-9_fp                                .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( So2_afterss >= 1.5e-9_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 12.e-9_fp                                .and. &
+               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 4.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 5.e-9_fp                                 .and. &
+               ALKds       >= 6.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 7.e-9_fp                                 .and. &
+               ALKds       > -8.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.1e-6_fp ) THEN
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 5.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 5.e-9_fp                                 .and. &
+               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               So2_afterss <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               ALKds       >= 2.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 3.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 4.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp)                        .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp)                        .and. &
+               ALKds       >= 4.e+0_fp                                 .and. &
+               So2_afterss <= 9.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 3.e+0_fp                                 .and. &
+               NH3         <= 3.e-9_fp                                 .and. &
+               So2_afterss <= 4.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               So2_afterss <= 5.e-9_fp                                 .and. &
+               NH3         <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         >= (gno3 + 4.e-9_fp)                        .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 2.e+0_fp                                 .and. &
+               NH3         <= 10.e-9_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               So2_afterss >= 3.e-9_fp                                 .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
        ELSE
-          State_Chm%SIZE_RES = .true.
+
+          State_Chm%SIZE_RES = .TRUE.
+
        ENDIF
 
        
@@ -1061,40 +1063,6 @@ CONTAINS
 !>>            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
 !>>    ENDIF
 !>>
-!>>    !-----------------------------------------------------------
-!>>    ! Diagnostics for acid uptake on dust aerosol simulations
-!>>    !-----------------------------------------------------------
-!>>    IF ( Input_Opt%LDSTUP ) THEN
-!>>
-!>>       ! Zero
-!>>       PSO4d_tot   = 0.e+0_fp
-!>>       PH2SO4d_tot = 0.e+0_fp
-!>>       PNITd_tot   = 0.e+0_fp
-!>>
-!>>       DO IBIN = 1, NDSTBIN
-!>>          PSO4d_tot   = PSO4d_tot   + PSO4_d(IBIN)
-!>>          PNITd_tot   = PNITd_tot   + PNIT_d(IBIN)
-!>>          PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
-!>>       END DO
-!>>
-!>>       ! P(SO4) from O3 oxidation on dust aerosols [kg S/s]
-!>>       IF ( State_Diag%Archive_ProdSO4fromOxidationOnDust ) THEN
-!>>          State_Diag%ProdSO4fromOxidationOnDust(I,J,L) = &
-!>>               ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
-!>>       ENDIF
-!>>
-!>>       ! P(NIT) from HNO3 uptake on dust [kg N/s]
-!>>       IF ( State_Diag%Archive_ProdNITfromHNO3uptakeOnDust ) THEN
-!>>          State_Diag%ProdNITfromHNO3uptakeOnDust(I,J,L) = &
-!>>               ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
-!>>       ENDIF
-!>>
-!>>       ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/s]
-!>>       IF ( State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
-!>>          State_Diag%ProdSO4fromUptakeOfH2SO4g(I,J,L) = &
-!>>               ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )/DTCHEM
-!>>       ENDIF
-!>>       ENDIF
 
     ! Free pointers
     Spc     => NULL()
@@ -3109,7 +3077,7 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! FF has a range [0,+inf], so cap it at 1e30
     FF = SafeDiv( FC, ( 1.0_fp - FC ), 1e30_fp )
-    FF = MAX( FF, 1e30_fp )
+    FF = MIN( FF, 1.0e30_fp )
 
     ! Avoid div by zero for the TAUC/FF term
     term1 = 0.0_fp
@@ -3226,12 +3194,13 @@ CONTAINS
     ! Ratio of volume inside to outside cloud
     ! ff has a range [0,+inf], so cap it at 1e30
     ff = SafeDiv( fc, (1e0_fp - fc), 1e30_fp )
-    ff = max( ff, 1e30_fp )
+    ff = MIN( ff, 1.0e30_fp )
 
     ! Ratio of mass inside to outside cloud
-    ! xx has range [0,+inf], but ff is capped at 1e30, so this shouldn't overflow
-    xx = ( ff - kk - 1e0_fp ) / 2e0_fp + &
-         sqrt( 1e0_fp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_fp
+    ! xx has range [0,+inf], but ff is capped at 1e30, so shouldn't overflow
+    xx =     ( ff        - kk        - 1.0_fp       ) / 2.0_fp +             &
+         sqrt( 1.0_fp    + ff*ff     + kk*kk                   +             &
+               2.0_fp*ff + 2.0_fp*kk - 2.0_fp*ff*kk ) / 2.0_fp
 
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )

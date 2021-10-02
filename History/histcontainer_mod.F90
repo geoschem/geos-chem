@@ -1137,6 +1137,7 @@ CONTAINS
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%UpdateYmd,          &
                                  Year        = Year,                         &
+                                 Month       = Month,                        &
                                  Increment   = Container%UpdateIvalSec      )
 
     ELSE IF ( Container%UpdateYmd <  001200  .and.                           &
@@ -1251,6 +1252,7 @@ CONTAINS
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%FileCloseYmd,       &
                                  Year        = Year,                         &
+                                 Month       = Month,                        &
                                  Increment   = Container%FileCloseIvalSec   )
 
     ELSE IF ( Container%FileCloseYmd <  001200  .and.                        &
@@ -1364,6 +1366,7 @@ CONTAINS
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%FileWriteYmd,       &
                                  Year        = Year,                         &
+                                 Month       = Month,                        &
                                  Increment   = Container%FileWriteIvalSec   )
 
     ELSE IF ( Container%FileWriteYmd <  001200  .and.                        &
@@ -1513,7 +1516,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AlarmIncrementYears( IntervalYmd, Year, Increment )
+  SUBROUTINE AlarmIncrementYears( IntervalYmd, Year, Month, Increment )
 !
 ! !USES:
 !
@@ -1524,6 +1527,7 @@ CONTAINS
 !
     INTEGER,  INTENT(IN)  :: IntervalYmd  ! Update frequency in YYYYMMDD format
     INTEGER,  INTENT(IN)  :: Year         ! Current year
+    INTEGER,  INTENT(IN)  :: Month        ! Current Month
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1538,13 +1542,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: nYears, T, YYYY
+    ! SAVEd scalars
+    LOGICAL :: FirstLeap
+
+    ! Scalars
+    INTEGER :: nYears, T, M, YYYY
 
     !=======================================================================
     ! AlarmIncrementYears begins here!
     !=======================================================================
 
     ! Initialize
+    FirstLeap = .TRUE.
     Increment = 0.0_fp
     nYears    = IntervalYmd / 10000
 
@@ -1556,9 +1565,32 @@ CONTAINS
 
        ! Compute the increment, accounting for leap years
        IF ( Its_A_LeapYear( YYYY ) ) THEN
-          Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+
+          ! It's the first leap year
+          IF ( FirstLeap ) THEN
+
+             ! If we start after March 1st, the interval is 365 days
+             ! Otherwise, the interval is 366 days.
+             IF ( Month > 2 ) THEN
+                Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
+             ELSE
+                Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+             ENDIF
+
+             ! Reset first leap year flag
+             FirstLeap  = .FALSE.
+
+          ELSE
+
+             ! For each successive leap year, the interval is 366 days.
+             Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+
+          ENDIF
+
        ELSE
+          ! If it's not a leap year, the interval is 365 days.
           Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
+
        ENDIF
 
     ENDDO

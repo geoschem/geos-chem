@@ -162,13 +162,12 @@ MODULE gckpp_Global
   !$OMP THREADPRIVATE( PHOTOL )
 
   TYPE, PUBLIC :: HetState
-     LOGICAL  :: debugBox       ! Are we in a debugging box?
      REAL(dp) :: AVO            ! Avogadro's constant [molec/mol]
+     LOGICAL  :: debugBox       ! Are we in a debugging box?
      LOGICAL  :: natSurface     ! Is there NAT in this box?
      LOGICAL  :: pscBox         ! Are there polar strat clouds?
      LOGICAL  :: stratBox       ! Are we in the stratosphere
      INTEGER  :: NAEROTYPE      ! Number of aerosol types
-     LOGICAL  :: is_UCX         ! Are we using the UCX mechanism?
      REAL(dp) :: aClArea        ! Fine SSA+SNA aerosol area [cm2/cm3]
      REAL(dp) :: aClRadi        ! Fine SSA+SNA aerosol radius [cm]
      REAL(dp) :: aClVol         ! Fine SSA+SNA aerosol volume [cm3/cm3]
@@ -201,6 +200,8 @@ MODULE gckpp_Global
      REAL(dp) :: frac_HSO3_aq   ! HSO3_aq / ( HSO3_aq + SO3_aq )
      REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine sea salt
      REAL(dp) :: frac_SO3_aq    ! SO3_aq  / ( HSO3_aq + SO3_aq )
+     REAL(dp) :: fupdateHOBr    ! Correction factor - HOBr
+     REAL(dp) :: fupdateHOCl    ! Correction factor - HOCl
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2  [1]
      REAL(dp) :: H2O            ! H2O concentration
      REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice

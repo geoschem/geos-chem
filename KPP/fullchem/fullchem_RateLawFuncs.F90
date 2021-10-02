@@ -215,6 +215,31 @@ CONTAINS
     k  = a1 * EXP( e1 / TEMP ) *  K1
   END FUNCTION GC_EPO_a
 
+  FUNCTION GC_PAN_abab( a0, b0, a1, b1, cf ) RESULT( k )
+    ! Used to compute the rate for these reactions:
+    !    MACR1OO + NO2 = MPAN
+    !    MACRNO2 + NO2 = MPAN + NO2
+    !
+    ! For these reactions, these Arrhenius law terms evaluate to 1:
+    !    EXP(b0/T)
+    !    EXP(b1/T)
+    ! because b0 = b1 = 0.  Therefore we can skip computing these
+    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+    !
+    ! Sept 27 2012: Added GC_PAN_abab per Kelvin Bates' requirements
+    !               for aromatic chem.
+    REAL(dp), INTENT(IN) :: a0, b0, a1, b1, cf
+    REAL(dp)             :: k0, k1, kr, nc, f,  k
+    !
+    k0 = a0 * EXP( b0 / TEMP )
+    k1 = a1 * EXP( b1 / TEMP )
+    k0 = k0 * NUMDEN
+    kr = k0 / k1
+    nc = 0.75_dp - 1.27_dp * ( LOG10( cf ) )
+    f  = 10.0_dp**( LOG10( cf ) / ( 1.0_dp + ( LOG10( kr ) / nc )**2 ) )
+    k  = k0 * k1 * f / ( k0 + k1 )
+  END FUNCTION GC_PAN_abab
+
   FUNCTION GC_PAN_acac( a0, c0, a1, c1, cf ) RESULT( k )
     ! Used to compute the rate for these reactions:
     !    MACR1OO + NO2 = MPAN
@@ -809,129 +834,6 @@ CONTAINS
     fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
     k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_abcabc
-
-!------------------------------------------------------------------------------
-! Revert to storing these reaction rates in K_MT(1:6)
-! -- Bob Yantosca (08 Sep 2021)
-!  !#########################################################################
-!  !#####          RATE-LAW FUNCTIONS FOR SEASALT REACTIONS             #####
-!  !#####   Some common functions are defined in rateLawUtilFuncs.F90   #####
-!  !#########################################################################
-!
-!  FUNCTION AqRate_SALAAL_SO2_O3( H ) RESULT( k )
-!    !
-!    ! Computes the rate constant [1/s] for the equation
-!    ! SO2  + SALAAL + O3  = SO4 - SALAAL
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    k = 0.0_dp
-!    !
-!    ! NOTE: We need to use the concentration of SALAAL prior to its
-!    ! conversion to equivalents.  This is in H%SALAAL_save.
-!    IF ( H%SALAAL_save > 0.1_dp ) THEN
-!       k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.11_dp, SR_MW(ind_SO2) )
-!       !
-!       ! Assume SO2 is limiting, so recompute reaction rate accordingly
-!       k = kIIR1Ltd( C(ind_SO2), C(ind_O3), k ) / H%SALAAL_save
-!    ENDIF
-!  END FUNCTION AqRate_SALAAL_SO2_O3
-!
-!  FUNCTION AqRate_SALAAL_HCl( H ) RESULT( k )
-!    !
-!    ! Computes the rate constant [1/s] for the equation
-!    ! HCl  + SALAAL = SALACL
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    ! Compute uptake rate of HCL + SALAAL
-!    k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.074_dp, SR_MW(ind_HCl) )
-!    !
-!    ! Assume HCl is limiting, so recompute reaction rate accordingly
-!    ! NOTE: We need to use the concentration of SALAAL prior to its
-!    ! continue conversion to equivalents.  This is in H%SALAAL_save.
-!    IF ( H%SALAAL_save > 0.1_dp ) THEN
-!       k = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k )
-!    ENDIF
-!  END FUNCTION AqRate_SALAAL_HCl
-!
-!  FUNCTION AqRate_SALAAL_HNO3( H ) RESULT( k )
-!    !
-!    ! Computes the rate constant [1/s] for the equation
-!    ! HNO3 + SALAAL = NIT
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    ! Uptake of HNO3 + SALAAL
-!    k = Ars_L1K( H%wetArea(SSA), H%xRadi(SSA), 0.5_dp, SR_MW(ind_HNO3) )
-!    !
-!    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
-!    ! NOTE: We need to use the concentration of SALAAL prior to its
-!    ! conversion to equivalents.  This is in H%SALAAL_save.
-!    IF ( H%SALAAL_save > 0.1_dp ) THEN
-!       k = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k)
-!    ENDIF
-!  END FUNCTION AqRate_SALAAL_HNO3
-!
-!  FUNCTION AqRate_SALCAL_SO2_O3( H ) RESULT( k )
-!    !
-!    ! Computes the rate constant [1/s] for the equation
-!    ! SO2  + SALCAL + O3  = SO4 - SALCAL
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    k = 0.0_dp
-!    !
-!    ! NOTE: We need to use the concentration of SALCAL prior to its
-!    ! conversion to equivalents.  This is in H%SALCAL_save.
-!    IF ( H%SALCAL_save > 0.1_dp ) THEN
-!       k = Ars_L1K( H%wetArea(SSC), H%xRadi(SSC), 0.11_dp, SR_MW(ind_SO2) )
-!       !
-!       ! Assume SO2 is limiting, so recompute reaction rate accordingly
-!       k = kIIR1Ltd( C(ind_SO2), C(ind_O3), k ) / H%SALCAL_save
-!    ENDIF
-!  END FUNCTION AqRate_SALCAL_SO2_O3
-!
-!  FUNCTION AqRate_SALCAL_HCl( H ) RESULT( k )
-!    !
-!    ! Computes the rate constant [1/s] for the equation
-!    ! HCl + SALCAL = SALCCL
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    ! Compute uptake rate of HCL + SALACL
-!    k = Ars_L1K( H%wetArea(SSC), H%xRadi(SSC), 0.074_dp, SR_MW(ind_HCl) )
-!    !
-!    ! Assume HCl is limiting, so recompute reaction rate accordingly
-!    ! NOTE: We need to use the concentration of SALCAL prior to its
-!    ! conversion to equivalents.  This is in H%SALCAL_save.
-!    IF ( H%SALCAL_save > 0.1_dp ) THEN
-!       k = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k )
-!    ENDIF
-!  END FUNCTION AqRate_SALCAL_HCl
-!
-!  FUNCTION AqRate_SALCAL_HNO3( H ) RESULT( k )
-!    !
-!    ! Computes the rate constant [1/s] for the equation
-!    ! HNO3 + SALAAL = NITs
-!    !
-!    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
-!    REAL(dp)                   :: k              ! rxn rate [1/s]
-!    !
-!    ! Compute uptake of HNO3 on SALCAL
-!    k = Ars_L1K( H%wetArea(SSC), H%xRadi(SSC), 0.5_dp, SR_MW(ind_HNO3) )
-!    !
-!    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
-!    IF ( H%SALCAL_save > 0.1_dp ) THEN
-!       k = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k )
-!    ENDIF
-!  END FUNCTION AqRate_SALCAL_HNO3
-!------------------------------------------------------------------------------
 
   !#########################################################################
   !#####        RATE-LAW FUNCTIONS FOR HETEROGENEOUS REACTIONS         #####
@@ -2431,7 +2333,6 @@ CONTAINS
        !
        ! HOCl + HSO3m uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
-
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
@@ -2605,6 +2506,55 @@ CONTAINS
        k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
+
+  FUNCTION IONO2uptkByH2O( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for IONO2 + H2O = HOI + HNO3
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp) :: area, conc, gamma, srMw
+    !
+    k    = 0.0_dp
+    srMw = SR_MW(ind_IONO2)
+    !
+    ! Tropopsheric sulfate (use T-dependent gamma, cf Deiber et al 2004)
+    area  = H%ClearFr * H%xArea(SUL)
+    gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
+    k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
+    !
+    ! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
+    IF ( H%SSA_is_Alk ) THEN
+       area  = H%ClearFr * H%xArea(SSA)
+       gamma = 0.01_dp
+       k = k + Ars_L1K( area, H%xRadi(SSA), gamma, srMw )
+    ENDIF
+    !
+    ! Alkaline coarse sea salt (use gamma from Sherwen et al 2016)
+    IF ( H%SSC_is_Alk ) THEN
+       area  = H%ClearFr * H%xArea(SSC)
+       gamma = 0.01_dp
+       k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )
+    ENDIF
+    !
+    ! Stratospheric liquid aerosol
+    k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
+    !
+    ! Irregular ice cloud
+    area  = H%ClearFr * H%xArea(IIC)
+    gamma = 0.3_dp
+    IF ( H%natSurface ) gamma = 0.001_dp
+    k = k + Ars_L1K( area, H%xRadi(IIC), gamma, srMw )
+    !
+    ! Also account for cloudy grid box
+    ! Use gamma(liquid) = gamma(ice) = 0.01, to make the uptake coefficient
+    ! consistent with hydrolysis in aerosols (T. Sherwen, 28 Sep 2021)
+    k = k + CloudHet( H, srMw, 0.01_dp, 0.01_dp, 1.0_dp, 1.0_dp )
+    !
+    ! Assume IONO2 is limiting, so update the reaction rate accordingly
+    k = kIIR1Ltd( C(ind_IONO2), C(ind_H2O), k )
+  END FUNCTION IONO2uptkByH2O
 
   !=========================================================================
   ! Hetchem rate-law functions for N2O5
@@ -2842,6 +2792,10 @@ CONTAINS
        ! A factor from Bertram and Thornton (2009), s
        ! Their paper suggested an approximated value of A = 3.2D-8
        A = ( ( 4.0_dp * volTotal ) / ( speed * areaTotal ) ) * KH
+
+       ! Cap A at 3.2D-8 to prevent high gamma values when vol/area is high.
+       ! See Github issue: https://github.com/geoschem/geos-chem/issues/907
+       A = MIN( A, 3.2e-8_dp )
 
        ! k2f - reaction rate constant of N2O5 with H2O
        ! From McDuffie (2018): k2f = 2.14D5 * H2O

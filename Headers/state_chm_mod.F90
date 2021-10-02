@@ -270,9 +270,9 @@ MODULE State_Chm_Mod
      ! Switches to enable SO2 cloud chemistry and seasalt chemistry in
      ! sulfate_mod (TRUE) or in the KPP mechanism (FALSE).
      !-----------------------------------------------------------------------
-     LOGICAL                    :: Do_SulfateMod_Cld     = .FALSE.
-     LOGICAL                    :: Do_SulfateMod_SeaSalt = .FALSE.
-     LOGICAL                    :: SIZE_RES ! For HET_DROP_CHEM() - MSL
+     LOGICAL                    :: Do_SulfateMod_Cld
+     LOGICAL                    :: Do_SulfateMod_SeaSalt
+     LOGICAL                    :: SIZE_RES
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -484,6 +484,13 @@ CONTAINS
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
 
+    ! Flags to toggle sulfate-mod computations or KPP computations
+    ! TRUE  = use sulfate_mod
+    ! FALSE = use KPP computations
+    State_Chm%Do_SulfateMod_Cld     = .TRUE.
+    State_Chm%Do_SulfateMod_SeaSalt = .TRUE.
+    State_Chm%Size_Res              = .FALSE.
+
   END SUBROUTINE Zero_State_Chm
 !EOC
 !------------------------------------------------------------------------------
@@ -579,6 +586,16 @@ CONTAINS
     ! State object.  This will avoid undefined pointer errors.
     IF ( nChmState == 1 ) THEN
        SpcDataLocal => NULL()
+    ENDIF
+
+    !========================================================================
+    ! Do sulfur sea-salt and in-cloud chemistry as part of the KPP-generated
+    ! chemical mechanism for all full-chemistry simulations.  For aerosol-
+    ! only simulations, do the sulfur chemistry rxns in sulfate_mod.
+    !========================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       State_Chm%Do_SulfateMod_Seasalt = .FALSE.
+       State_Chm%Do_SulfateMod_Cld     = .FALSE.
     ENDIF
 
     !========================================================================
@@ -1503,60 +1520,54 @@ CONTAINS
           RETURN
        ENDIF
 
-       !========================================================================
-       ! Allocate and initialize fields for FULLCHEM simulations with UCX
-       !========================================================================
-       IF ( Input_Opt%LUCX ) THEN
+       !---------------------------------------------------------------------
+       ! STATE_PSC (polar stratospheric clouds)
+       !---------------------------------------------------------------------
+       chmId = 'StatePSC'
+       CALL Init_and_Register(                                            &
+            Input_Opt  = Input_Opt,                                       &
+            State_Chm  = State_Chm,                                       &
+            State_Grid = State_Grid,                                      &
+            chmId      = chmId,                                           &
+            Ptr2Data   = State_Chm%STATE_PSC,                             &
+            RC         = RC                                              )
 
-          !---------------------------------------------------------------------
-          ! STATE_PSC (polar stratospheric clouds)
-          !---------------------------------------------------------------------
-          chmId = 'StatePSC'
-          CALL Init_and_Register(                                            &
-               Input_Opt  = Input_Opt,                                       &
-               State_Chm  = State_Chm,                                       &
-               State_Grid = State_Grid,                                      &
-               chmId      = chmId,                                           &
-               Ptr2Data   = State_Chm%STATE_PSC,                             &
-               RC         = RC                                              )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! KHETI_SLA
+       !---------------------------------------------------------------------
+       fieldId = (/ 'KhetiSLAN2O5H2O  ', 'KhetiSLAN2O5HCl  ',             &
+                    'KhetiSLAClNO3H2O ', 'KhetiSLAClNO3HCl ',             &
+                    'KhetiSLAClNO3HBr ', 'KhetiSLABrNO3H2O ',             &
+                    'KhetiSLABrNO3HCl ', 'KhetiSLAHOClHCl  ',             &
+                    'KhetiSLAHOClHBr  ', 'KhetiSLAHOBrHCl  ',             &
+                    'KhetiSLAHOBrHBr  ', '                 ',             &
+                    '                 ', '                 '            /)
+
+       ! Allocate and register each field individually
+       nKHLSA = 11
+       DO N = 1, nKHLSA
+          CALL Init_and_Register(                                         &
+               Input_Opt  = Input_Opt,                                    &
+               State_Chm  = State_Chm,                                    &
+               State_Grid = State_Grid,                                   &
+               chmId      = TRIM( fieldId(N) ),                           &
+               Ptr2Data   = State_Chm%KHETI_SLA,                          &
+               nSlots     = nKHLSA,                                       &
+               nCat       = N,                                            &
+               RC         = RC                                           )
 
           IF ( RC /= GC_SUCCESS ) THEN
              errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
-
-          !---------------------------------------------------------------------
-          ! KHETI_SLA
-          !---------------------------------------------------------------------
-          fieldId = (/ 'KhetiSLAN2O5H2O  ', 'KhetiSLAN2O5HCl  ',             &
-                       'KhetiSLAClNO3H2O ', 'KhetiSLAClNO3HCl ',             &
-                       'KhetiSLAClNO3HBr ', 'KhetiSLABrNO3H2O ',             &
-                       'KhetiSLABrNO3HCl ', 'KhetiSLAHOClHCl  ',             &
-                       'KhetiSLAHOClHBr  ', 'KhetiSLAHOBrHCl  ',             &
-                       'KhetiSLAHOBrHBr  ', '                 ',             &
-                       '                 ', '                 '            /)
-
-          ! Allocate and register each field individually
-          nKHLSA = 11
-          DO N = 1, nKHLSA
-             CALL Init_and_Register(                                         &
-                  Input_Opt  = Input_Opt,                                    &
-                  State_Chm  = State_Chm,                                    &
-                  State_Grid = State_Grid,                                   &
-                  chmId      = TRIM( fieldId(N) ),                           &
-                  Ptr2Data   = State_Chm%KHETI_SLA,                          &
-                  nSlots     = nKHLSA,                                       &
-                  nCat       = N,                                            &
-                  RC         = RC                                           )
-
-             IF ( RC /= GC_SUCCESS ) THEN
-                errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-                CALL GC_Error( errMsg, RC, thisLoc )
-                RETURN
-             ENDIF
-          ENDDO
-       ENDIF
+       ENDDO
 
     ENDIF
 
@@ -1854,7 +1865,7 @@ CONTAINS
     !------------------------------------------------------------------
     ! TLSTT (Linoz)
     !------------------------------------------------------------------
-    IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
+    IF ( Input_Opt%LINOZ_NFIELDS > 0 ) THEN
         chmId = 'TLSTT'
         CALL Init_and_Register(                                              &
             Input_Opt  = Input_Opt,                                          &

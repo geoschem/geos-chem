@@ -192,7 +192,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2015'
 	pressure_unit='Pa '
 	pressure_scale='0.01'
-	dust_sf='3.86e-4'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='GEOSFP'
 	met_name_lc="merra2"
@@ -205,7 +204,6 @@ while [ "${valid_met}" -eq 0 ]; do
 	met_cn_year='2011'
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
-	dust_sf='6.42e-5'
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -370,7 +368,12 @@ do
     if [[ ${sim_name} = "fullchem" ]]; then
         start_date="20190701_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+	# NOTE: We must now link restart files from v2021-09, since these will
+	# have extra species such as HMS, C2H2, C2H4, etc. (bmy, 9/23/21)
+        #ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+        ln -s ${restarts}/v2021-09/${src_name} ${rundir}/${target_name}
     elif [[ ${sim_name} = "TransportTracers" ]]; then
         start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
@@ -387,7 +390,7 @@ cd ${rundir}
 sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
 sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
 if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig_adj.sh
+    sed -i -e "s|{SIMULATION}|${sim_name}|"   runConfig_adj.sh
 fi
 sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
 sed -i -e "s|{MET}|${met_name}|"              input.geos
@@ -396,7 +399,6 @@ sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    HEMCO_Config.rc
 sed -i -e "s|{NATIVE_RES}|${met_native}|"     HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"         HEMCO_Config.rc
 sed -i -e "s|{LONRES}|${met_lonres}|"         HEMCO_Config.rc
-sed -i -e "s|{DUST_SF}|${dust_sf}|"           HEMCO_Config.rc
 sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 1st in line
 sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 2nd in line
 sed -i -e "s|{MET_RES}|${met_resolution}|"    ExtData.rc
@@ -427,8 +429,8 @@ fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
 if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE1}|${startdate}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE2}|${enddate}|"   ${rundir}/runConfig_adj.sh
 fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
