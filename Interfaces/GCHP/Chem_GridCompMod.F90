@@ -152,6 +152,7 @@ MODULE Chem_GridCompMod
   INTEGER                          :: ANAO3L2
   INTEGER                          :: ANAO3L3
   INTEGER                          :: ANAO3L4
+  INTEGER                          :: ANAO3ERR
   REAL                             :: ANAO3FR 
   CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3FILE
 #else
@@ -2443,6 +2444,8 @@ CONTAINS
                                      Default = 1.0, __RC__ ) 
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3FILE, Label = "ANAO3TMPL:", &
                                      Default = '/dev/null', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3ERR, Label = "ERROR_MODE:", &
+                                     Default = 1, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "Use_PCHEM_O3:", &
                                      Default = 0, __RC__ )
        LPCHEMO3 = ( I == 1 )
@@ -6557,7 +6560,7 @@ CONTAINS
           ifile = ANAO3FILE
 
           ! testing only
-          IF ( am_I_Root ) WRITE(*,*) 'parsing '//TRIM(ifile)
+          !IF ( am_I_Root ) WRITE(*,*) 'parsing '//TRIM(ifile)
 
           write(syy,'(I4.4)') yy
           CALL ReplaceChar ( ifile, '%y4', syy )
@@ -6571,36 +6574,63 @@ CONTAINS
           CALL ReplaceChar ( ifile, '%n2', sm  )
   
           ! testing only
-          IF ( am_I_Root ) WRITE(*,*) 'parsed file: '//TRIM(ifile)
+          !IF ( am_I_Root ) WRITE(*,*) 'parsed file: '//TRIM(ifile)
 
           ! Check if file exists
           INQUIRE( FILE=ifile, EXIST=HasFile ) 
           IF ( HasFile ) THEN
- 
-             ! Get time stamp on file
-             call GFIO_Open( ifile, 1, fid, STATUS )
-             ASSERT_(STATUS==0)
-             call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
-             ASSERT_(STATUS==0)
-             caLL GFIO_Close( fid, STATUS )
-             ASSERT_(STATUS==0)
-             yy = nymd/10000
-             mm = (nymd-yy*10000) / 100
-             dd = nymd - (10000*yy + mm*100)
-             h  = nhms/10000
-             m  = (nhms- h*10000) / 100
-             s  = nhms - (10000*h  +  m*100)
+             ! Try reading current time stamp on file 
+             s = 0
              call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
-   
-             ! Read file
-             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, __RC__ )
+             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, RC=STATUS )
+             ! Fall back if this didn't work: 
+             IF ( RC /= ESMF_SUCCESS ) THEN
+                ! If error mode is 0 or 1, stop with error
+                IF ( ANAO3ERR <= 1 ) THEN
+                   IF ( am_I_Root ) THEN
+                      WRITE(*,*) 'Error: current time not found in file: ',TRIM(ifile),yy,mm,dd,h,m
+                      WRITE(*,*) 'You can get past this error by disabling ozone nudging or setting the error mode to > 1 in GEOSCHEMchem_GridComp.rc'
+                   ENDIF
+                   ASSERT_(.FALSE.)
+                ! If error mode is larger than 1, just read first variable on file. This can be dangerous! 
+                ELSE
+                   IF ( am_I_Root ) THEN
+                      WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy,mm,dd,h,m
+                   ENDIF
+                   ! Get time stamp on file
+                   call GFIO_Open( ifile, 1, fid, STATUS )
+                   ASSERT_(STATUS==0)
+                   call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
+                   ASSERT_(STATUS==0)
+                   caLL GFIO_Close( fid, STATUS )
+                   ASSERT_(STATUS==0)
+                   yy = nymd/10000
+                   mm = (nymd-yy*10000) / 100
+                   dd = nymd - (10000*yy + mm*100)
+                   h  = nhms/10000
+                   m  = (nhms- h*10000) / 100
+                   s  = nhms - (10000*h  +  m*100)
+                   VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, __RC__ )
+                ENDIF  
+             ENDIF  
+             ! Read variable 
              VarName   =  'O3'
              VarID     =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
              ANAO3     => VarBundle%r3(VarID)%q
              IF ( am_I_Root ) WRITE(*,*) 'Use analysis ozone from '//TRIM(ifile)
           ELSE
-             TimeForAna = .FALSE.
-             IF ( am_I_Root ) WRITE(*,*) 'File not found - skip ozone nudging: '//TRIM(ifile)
+             ! If file not found and error mode is zero, stop with error
+             IF ( ANAO3ERR == 0 ) THEN
+                IF ( am_I_Root ) THEN
+                   WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile)
+                   WRITE(*,*) 'You can get past this error by disabling ozone nudging or setting the error mode to > 0 in GEOSCHEMchem_GridComp.rc'
+                ENDIF
+                ASSERT_(.FALSE.)
+             ! If file not found and error mode is not zero, just skip nudging 
+             ELSE
+                TimeForAna = .FALSE.
+                IF ( am_I_Root ) WRITE(*,*) 'File not found - skip ozone nudging: '//TRIM(ifile)
+             ENDIF   
           ENDIF   
        ENDIF
     ENDIF
