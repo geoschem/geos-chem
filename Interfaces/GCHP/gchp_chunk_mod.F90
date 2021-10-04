@@ -281,7 +281,7 @@ CONTAINS
     ENDIF
 
 
-    if (.not. FD_STEP == -1 .and. input_opt%IS_ADJOINT) THEN
+    if (.not. FD_STEP == -1 .or. input_opt%IS_ADJOINT) THEN
        Input_Opt%FD_STEP = FD_STEP
 
        call ESMF_ConfigGetAttribute(CF, FD_SPEC, &
@@ -638,6 +638,7 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
 #ifdef ADJOINT
+    USE PhysConstants,      ONLY : AIRMW
     USE Diagnostics_Mod,    ONLY :  Set_SpcAdj_Diagnostic
 #endif
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
@@ -1495,16 +1496,6 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling Set_AerMass_Diagnostic')
     ENDIF
 
-    CALL MAPL_TimerOff( STATE, 'GC_DIAGN' )
-    if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Diagnostics done!'
-
-    !=======================================================================
-    ! Convert State_Chm%Species units
-    !=======================================================================
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
-
 #if defined( MODEL_GEOS )
     ! Save specific humidity and dry air mass for total mixing ratio
     ! adjustment in next timestep, if needed (ewl, 11/8/18)
@@ -1531,7 +1522,9 @@ CONTAINS
           ! Find the non-adjoint variable or this
           TRACNAME = ThisSpc%Name
 
-          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(:,:,:,N)
+          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(:,:,:,N) * &
+               ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+
           if (Input_Opt%IS_FD_SPOT_THIS_PET .and. Input_Opt%IFD > 0) THEN
              write(*,*) 'After conversion ',  &
                   State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,N)
@@ -1543,6 +1536,15 @@ CONTAINS
     ENDIF
 #endif
 
+    CALL MAPL_TimerOff( STATE, 'GC_DIAGN' )
+    if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Diagnostics done!'
+
+    !=======================================================================
+    ! Convert State_Chm%Species units
+    !=======================================================================
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             OrigUnit, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
     ! Clean up

@@ -416,7 +416,7 @@ CONTAINS
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+       ErrMsg = 'Incorrect species units in Set_SpcAdj_Diags_VVDry!' // trim( State_Chm%Spc_Units)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -444,7 +444,7 @@ CONTAINS
     IF ( Input_Opt%Is_Adjoint ) THEN
 
        ! Point to mapping obj specific to SpeciesConc diagnostic collection
-       mapData => State_Diag%Map_SpeciesConc
+       mapData => State_Diag%Map_SpeciesAdj
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &

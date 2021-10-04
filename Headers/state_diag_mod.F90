@@ -10279,7 +10279,15 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
+#ifdef ADJOINT
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESADJ' ) THEN
+       IF ( isDesc    ) Desc  = 'Adjoint variable of species'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
 
+#endif
     ELSE IF ( TRIM( Name_AllCaps ) == 'FRACOFTIMEINTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of time spent in the troposphere'
        IF ( isUnits   ) Units = '1'
