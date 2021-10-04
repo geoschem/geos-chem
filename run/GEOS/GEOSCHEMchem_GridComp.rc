@@ -178,6 +178,9 @@ Use_GMI_O3_PL:        0
 # must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
 # If no file is found for a given time step, nudging is skipped. Diagnostics 'GCC_ANA_O3_INC' outputs the ozone increments 
 # added to the GEOS-Chem ozone field.
+# The error mode flag determines what happens if (a) the file is not found or (b) the current time is not found on file. Error
+# mode of 0 exits with an error in all cases, 1 skips nudging (default), and 2 skips nudging if file not found and uses the 
+# first time slice on file if file is found but the current time stamp is not on file. 
 Use_ANA_O3: 0
 ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
 NUDGE_RELATIVE_TO_TROPOPAUSE: 1
@@ -187,6 +190,7 @@ ANAO3L3: 72
 ANAO3L4: 72
 ANAO3FR: 0.2
 Use_PCHEM_O3: 0
+ERROR_MODE: 1
 
 #
 # NOx lightning met inputs
