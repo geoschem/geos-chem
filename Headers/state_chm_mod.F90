@@ -1776,7 +1776,7 @@ CONTAINS
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%DryDepFreq,                                &
+            Ptr2Data   = State_Chm%DryDepFreq,                               &
             nSlots     = State_Chm%nDryDep,                                  &
             RC         = RC                                                 )
 
@@ -1797,7 +1797,7 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          chmId      = chmId,                                                 &
          Ptr2Data   = State_Chm%DryDepVel,                                   &
-         nSlots     = State_Chm%nDryDep ,                                    &
+         nSlots     = State_Chm%nDryDep,                                     &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4834,6 +4834,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    INTEGER                :: modelId
+
     ! Objects
     TYPE(Species), POINTER :: ThisSpc
 
@@ -4855,8 +4858,14 @@ CONTAINS
        ! All other species-bound quantities
        !---------------------------------------------------------------------
 
-       ! Point to the Nth entry in the species database
-       ThisSpc => State_Chm%SpcData(N)%Info
+       ! Get the species index from the diagnostic index
+       ! depending on the value of PerSpc (bmy, 05 Oct 2021)
+       modelId = N
+       IF ( PerSpc == 'DRY' ) modelId = State_Chm%Map_DryDep(N)
+       IF ( PerSpc == 'WET' ) modelId = State_Chm%Map_WetDep(N)
+
+       ! Point to the proper species, by modelId
+       ThisSpc => State_Chm%SpcData(modelId)%Info
 
        ! Append the species name to the diagnostic name with an underscore
        diagName = TRIM( name ) // '_' // TRIM( ThisSpc%Name )
