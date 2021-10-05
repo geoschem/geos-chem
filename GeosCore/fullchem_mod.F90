@@ -2165,29 +2165,23 @@ CONTAINS
 
          ENDIF
 
-         IF ( Input_Opt%LUCX ) THEN
-
-            !---------------------------------------------------------------
-            ! O1D concentration [molec/cm3]
-            !---------------------------------------------------------------
-            IF ( ok_O1D ) THEN
-               IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
-                  State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
-               ENDIF
-
+         !---------------------------------------------------------------
+         ! O1D concentration [molec/cm3]
+         !---------------------------------------------------------------
+         IF ( ok_O1D ) THEN
+            IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
+               State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
             ENDIF
+         ENDIF
 
 
-            !---------------------------------------------------------------
-            ! O3P concentration [molec/cm3]
-            !---------------------------------------------------------------
-            IF ( ok_O3P ) THEN
-               IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
-                  State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
-               ENDIF
-
+         !---------------------------------------------------------------
+         ! O3P concentration [molec/cm3]
+         !---------------------------------------------------------------
+         IF ( ok_O3P ) THEN
+            IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
+               State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
             ENDIF
-
          ENDIF
 
       ENDDO
@@ -2590,29 +2584,6 @@ CONTAINS
     ok_O1D      = ( id_O1D > 0         )
     ok_O3P      = ( id_O3P > 0         )
     ok_OH       = ( id_OH  > 0         )
-
-    ! Throw an error if certain diagnostics for UCX are turned on,
-    ! but the UCX mechanism is not used in this fullchem simulation
-    ! NOTE: Maybe eventually move this error check to state_diag_mod.F90
-    IF ( .not. Input_Opt%LUCX ) THEN
-
-       ! O1D diagnostic is only used w/ UCX
-       IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
-          ErrMsg = 'The "O1DconcAfterChem" diagnostic is turned on ' //      &
-                   'but the UCX mechanism is not being used!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! O3P diagnostic is only used w/ UCX
-       IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
-          ErrMsg = 'The "O3PconcAfterChem" diagnostic is turned on ' //      &
-                   'but the UCX mechanism is not being used!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P = (                                               &
