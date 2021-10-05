@@ -873,7 +873,7 @@ CONTAINS
        State_Chm%SIZE_RES = .FALSE.
 
        ! Fahey and Seinfeld decision algorithm
-       ! NOTE: This is ugly, needs refactoring.  For now, just added 
+       ! NOTE: This is ugly, needs refactoring.  For now, just added
        ! whitespace to improve readability (bmy, 01 Oct 2021)
        IF ( H2O20 > SO2_afterss + 1e-9_fp ) THEN
           State_Chm%SIZE_RES = .FALSE.
@@ -999,7 +999,7 @@ CONTAINS
 
        ENDIF
 
-       
+
        State_Chm%HSO3_AQ(I,J,L) = HSO3aq
        State_Chm%SO3_AQ(I,J,L)  = SO3aq
 
