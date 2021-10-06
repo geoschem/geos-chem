@@ -155,7 +155,8 @@ MODULE TOMAS_MOD
 
   INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
   INTEGER  :: act_nuc = 0 ! in BL
-  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
+  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu 
+                          ! (Yu currently broken, JRP 202101)
   INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari
                           ! nucleation tuned by factor of 1.0D-5
 
@@ -2154,8 +2155,10 @@ CONTAINS
           !enddo
           rhin=dble(RHTOMAS*100.e+0_fp)
           tempin=dble(TEMPTMS)
-          call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
-                      fn, dum1, rnuc, dum2)
+          !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
+          !            fn, dum1, rnuc, dum2)
+          fn=0.
+          rnuc=1E-9
           nflg=.true.
        else
           nflg=.false.
@@ -2957,8 +2960,10 @@ CONTAINS
           rhin=dble(RHTOMAS*100.e+0_fp)
           tempin=dble(TEMPTMS)
 
-          call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
-                      fn, dum1, rnuc, dum2)
+          !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
+          !            fn, dum1, rnuc, dum2)
+          fn=0.
+          rnuc=1E-9
        endif
        if((act_nuc.eq.1).and.(lev.le.7))then
           call bl_nucl(h2so4,fn,rnuc)
@@ -3640,7 +3645,7 @@ CONTAINS
     UNITCHANGE_KGM2 = .FALSE.
     IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
        UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, .FALSE., RC )
     ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial species units: ' // TRIM(State_Chm%Spc_Units)
        LOC = 'Routine AQOXID in tomas_mod.F90'
@@ -3866,7 +3871,7 @@ CONTAINS
     ! Convert State_Chm%Species units back to original units
     ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
     IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
     ENDIF
 
     ! Check that species units are as expected (ewl, 9/29/15)
@@ -6401,7 +6406,7 @@ CONTAINS
     CALL READFRACTION( fname(4), FRACTION2 )
 
     !initialize yu lookup table
-    call READJIMN5D( Input_Opt, RC )  ! yu nucleation inputs
+    !call READJIMN5D( Input_Opt, RC )  ! yu nucleation inputs
 
     ! Find a free file LUN
     LUN = findFreeLUN()

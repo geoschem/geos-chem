@@ -1811,11 +1811,6 @@ CONTAINS
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
 
-    ! HEMCO update
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
-
     implicit none
 !
 ! !INPUT PARAMETERS:

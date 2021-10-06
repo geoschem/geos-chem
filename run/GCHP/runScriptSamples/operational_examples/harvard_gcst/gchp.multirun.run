@@ -1,24 +1,14 @@
 #!/bin/bash
 
-#SBATCH -n 30
-#SBATCH -N 1
-#SBATCH --exclusive
-#SBATCH -t 0-0:30
-#SBATCH -p huce_intel
-#SBATCH --mem=MaxMemPerNode
+#SBATCH -n 96
+#SBATCH -N 2
+#SBATCH -t 0-20:00
+#SBATCH -p huce_cascade
+#SBATCH --mem=180000
 #SBATCH --mail-type=ALL
 #SBATCH -o slurm-%j.out
 #SBATCH -e slurm-%j.err
 
-# Resource request tips: 
-#  (1) Use #SBATCH -n 6 to request 6 cores total across all nodes
-#  (2) Use #SBATCH --exclusive to prevent other users from sharing nodes in use
-#      (ability to use --exclusive may be disabled on some clusters)
-#  (3) Use --mem=50G to request 50 Gigabytes per node, 
-#      or use --mem=MaxMemPerNode to request all memory per node
-#  (4) Performance is enhanced by requesting entire nodes and all memory
-#      even if GCHP is run on fewer cores per node than available.
-#
 # See SLURM documentation for descriptions of all possible settings.
 # Type 'man sbatch' at the command prompt to browse documentation.
 
@@ -50,14 +40,6 @@
 # the top of this script.
 multirunlog="multirun.log"
 
-# Make sure GCHP output restart file does not exist with the original name
-# used by MAPL. Its present will cause GCHP run to fail. The output restart
-# file is renamed after a successful run, but a file with the original name
-# may persist if the previous run was unsuccessful.
-if [[ -e gcchem_internal_checkpoint ]]; then
-    rm gcchem_internal_checkpoint
-fi
-
 # Define function to cancel all jobs. This is done if cap_restart does
 # not exist after a run, or if its date string was not updated
 cancel_all_jobs()
@@ -74,16 +56,12 @@ cancel_all_jobs()
 
 # Source your environment file. This requires first setting the gchp.env
 # symbolic link using script setEnvironment in the run directory. 
-# Be sure gchp.env points to the same file for both compilation and 
-# running. You can copy or adapt sample environment files located in 
-# ./envSamples subdirectory.
+# Be sure gchp.env points to the same file for both compilation and run.
 gchp_env=$(readlink -f gchp.env)
 if [ ! -f ${gchp_env} ] 
 then
    echo "ERROR: gchp.env symbolic link is not set!"
-   echo "Copy or adapt an environment file from the ./envSamples "
-   echo "subdirectory prior to running. Then set the gchp.env "
-   echo "symbolic link to point to it using ./setEnvironment.sh."
+   echo "Set symbolic link to env file using setEnvironment.sh."
    echo "Exiting."
    exit 1
 fi
@@ -102,37 +80,37 @@ fi
 
 source runConfig.sh --silent
 
-# Monthly diagnostic option automatically updates HISTORY.rc freq/duration
-# with number of hours for the month of the run. Includes leap year handling.
-# NOTE: This feature is enabled from runConfig.sh where Monthly_Diag is defined
-if [ ${Monthly_Diag} = "1" ]; then
-   if [ -e cap_restart ]; then    
-      yr_str=${cap_rst:0:4}
-      mo_str=$((10#${cap_rst:4:2}))
-   else
-      yr_str=${Start_Time:0:4}
-      mo_str=$((10#${Start_Time:4:2}))
-   fi
-   feb_hrs=672
-   if [ "$((yr_str%4))" = "0" ]; then
-      if [ ! "$((yr_str%100))" = "0" ] || [ "$((yr_str%400))" = "0" ]; then
-         feb_hrs=696   
-      fi
-      fi
-   dpm=(744 $feb_hrs 744 720 744 720 744 744 720 744 720 744)
-   hrs_str=${dpm[$((mo_str-1))]}
-   sed -i "s|timeAvg_freq\=.*|timeAvg_freq\=\"${hrs_str}0000\"|" ./runConfig.sh
-   sed -i "s|timeAvg_dur\=.*|timeAvg_dur\=\"${hrs_str}0000\"|"   ./runConfig.sh
-   sed -i "s|inst_freq\=.*|inst_freq\=\"${hrs_str}0000\"|"       ./runConfig.sh
-   sed -i "s|inst_dur\=.*|inst_dur\=\"${hrs_str}0000\"|"         ./runConfig.sh
-fi
-
-# Init strat H2O should be enabled only for first run
-if [ -e cap_restart ]; then
-   sed -i "s|Init_strat_H2O\=.*|Init_strat_H2O=F|" ./runConfig.sh
-else
-   sed -i "s|Init_strat_H2O\=.*|Init_strat_H2O=T|" ./runConfig.sh
-fi
+##---------------------------------------------------------------------------
+## Below is commented out code that previously was used to update HISTORY.rc
+## frequency and duration for the case of months for monthly mean diagnostics.
+## It is no longer needed for monthly mean since MAPL History now allows
+## monthly diagnostic configuration for time-averaged collections without
+## setting number of hours in frequency and duration. The code is kept here,
+## however, if needed for instantaneous collection output with frequency of
+## one month, and as an example of how to configure irregular output frequency
+## in general. It could be adapted to output time-averaged weekday and weekend
+## files, for example
+##---------------------------------------------------------------------------
+#if [ -e cap_restart ]; then    
+#   yr_str=${cap_rst:0:4}
+#   mo_str=$((10#${cap_rst:4:2}))
+#else
+#   yr_str=${Start_Time:0:4}
+#   mo_str=$((10#${Start_Time:4:2}))
+#fi
+#feb_hrs=672
+#if [ "$((yr_str%4))" = "0" ]; then
+#   if [ ! "$((yr_str%100))" = "0" ] || [ "$((yr_str%400))" = "0" ]; then
+#      feb_hrs=696   
+#   fi
+#   fi
+#dpm=(744 $feb_hrs 744 720 744 720 744 744 720 744 720 744)
+#hrs_str=${dpm[$((mo_str-1))]}
+#sed -i "s|timeAvg_freq\=.*|timeAvg_freq\=\"${hrs_str}0000\"|" ./runConfig.sh
+#sed -i "s|timeAvg_dur\=.*|timeAvg_dur\=\"${hrs_str}0000\"|"   ./runConfig.sh
+#sed -i "s|inst_freq\=.*|inst_freq\=\"${hrs_str}0000\"|"       ./runConfig.sh
+#sed -i "s|inst_dur\=.*|inst_dur\=\"${hrs_str}0000\"|"         ./runConfig.sh
+##---------------------------------------------------------------------------
 
 echo " "
 echo "Settings from runConfig.sh: "
@@ -148,7 +126,7 @@ if [ -e cap_restart ]; then
    sed -i "s|GCHPchem_INTERNAL_RESTART_FILE\:.*|GCHPchem_INTERNAL_RESTART_FILE\:     +gcchem_internal_checkpoint.restart.${restart_datetime}.nc4|" ./GCHP.rc
 fi
 
-# Only run GCHP if runConfig.sh had no errors
+# Only start run if no error
 if [[ $? == 0 ]]; then
 
    NX=$( grep NX GCHP.rc | awk '{print $2}' )
@@ -169,22 +147,15 @@ if [[ $? == 0 ]]; then
    echo "# of nodes: ${SLURM_NNODES}"
    echo "cores per nodes: ${planeCount}"
    
-   # Echo start date
-   echo '===> Run started at' `date`
-   
-   # Odyssey-specific setting to get around connection issues at high # cores
+   # Cannon-specific setting to get around connection issues at high # cores
    export OMPI_MCL_btl=openib
 
    # Run the simulation
    # SLURM_NTASKS is #SBATCH -n and SLURM_NNODES is #SBATCH -N above
+   echo '===> Run started at' `date`
    time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp
-
-   # Echo end date
    echo '===> Run ended at' `date`
 fi
-
-# Set init strat H2O back to default to avoid issues with later use of rundir
-sed -i "s|Init_strat_H2O\=.*|Init_strat_H2O=T|" ./runConfig.sh
 
 # Check that cap_restart exists. If it does not, cancel all remaining jobs
 if [ -f cap_restart ]; then    
@@ -197,10 +168,7 @@ if [ -f cap_restart ]; then
       echo "Cancelling all jobs." >> ${multirunlog}
       cancel_all_jobs
    else
-      # If all went well, rename the restart (checkpoint) file for clarity
-      # and to enable reuse as a restart file. MAPL cannot read in a file
-      # with the same name as the output checkpoint filename configured in
-      # GCHP.rc.
+      # Rename the restart (checkpoint) file to include datetime
       if [ -f cap_restart ]; then
          restart_datetime=$(echo $(cat cap_restart) | sed 's/ /_/g')
          mv gcchem_internal_checkpoint gcchem_internal_checkpoint.restart.${restart_datetime}.nc4
@@ -213,6 +181,5 @@ else
    cancel_all_jobs
 fi
 
-# Exit normally
 exit 0
 

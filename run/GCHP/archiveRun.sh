@@ -6,8 +6,8 @@
 #
 # Example usage: ./archiveRun.sh c48_1hr_emissionsOff
 #
-# The output data (OutputDir/*.nc4) is moved but everything else is copied, 
-# including log files (*.log, slurm-*), config files (*.rc, input.geos), 
+# All output files are copied, including output data (OutputDir/*.nc4), 
+# log files (*.log, slurm-*), config files (*.rc, input.geos), 
 # run files (*.run, *.env, runConfig.sh), and restarts (only gcchem*). 
 # Files are stored in subdirectories within the archive directory.
 #
@@ -62,7 +62,7 @@ copyfiles () {
    for file in $1; do
       if [ -e $file ]; then
          echo "   -> $2/$file"
-         cp -t $2 $file
+         cp -rt $2 $file
       else
          if [[ $file != "*.multirun.sh" ]]; then
             echo "   Warning: $file not found"
@@ -82,12 +82,7 @@ mkdir -p ${archivedir}/Restarts
 mkdir -p ${archivedir}/Checkpoints
 mkdir -p ${archivedir}/Build
 
-# Move large files rather than copy (except initial restart)
-echo "Moving files and directories..."
-movefiles "BenchmarkResults" ${archivedir}/BenchmarkResults
-movefiles "OutputDir" ${archivedir}/OutputDir FILLER
-
-# Copy everything else
+# Copy files
 echo "Copying files..."
 copyfiles "input.geos"         ${archivedir}/Config
 copyfiles "rundir.version"     ${archivedir}/Config
@@ -101,11 +96,13 @@ copyfiles "slurm-*"            ${archivedir}/Logs
 copyfiles "gcchem_*"           ${archivedir}/Checkpoints
 copyfiles "cap_restart"        ${archivedir}/Checkpoints
 copyfiles "build_info/*"       ${archivedir}/Build
+copyfiles "BenchmarkResults/*" ${archivedir}/BenchmarkResults
+copyfiles "OutputDir/*"        ${archivedir}/OutputDir
 
 # Special handling for copying initial restart (retrieve filename from config)
 x=$(grep "GCHPchem_INTERNAL_RESTART_FILE:" GCHP.rc)
 rst=${x:37}
-copyfiles $rst          ${archivedir}/Restarts
+copyfiles $rst                 ${archivedir}/Restarts
 
 printf "Complete!\n"
 

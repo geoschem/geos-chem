@@ -6,7 +6,7 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{met}_{simulation}.
+# default name gchp_{met}_{sim_name}.
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
@@ -77,7 +77,7 @@ RDI_VARS+="RDI_DATA_ROOT=$GC_DATA_ROOT\n"
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
-
+printf "   3. CO2 w/ CMS-Flux emissions\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -86,6 +86,10 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=fullchem
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=TransportTracers
+    elif [[ ${sim_num} = "3" ]]; then
+	sim_name=CO2
+	sim_name_long=${sim_name}
+	sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -137,9 +141,9 @@ if [[ ${sim_name} = "fullchem" ]]; then
 		fi
 	    done
 	elif [[ ${sim_option} = "4" ]]; then
-	   sim_extra_option="marinePOA"
+	    sim_extra_option="marinePOA"
 	elif [[ ${sim_option} = "5" ]]; then
-	   sim_extra_option="aciduptake"
+	    sim_extra_option="aciduptake"
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
@@ -170,7 +174,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
-   sim_extra_option=none
+    sim_extra_option=none
 fi
 
 RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
@@ -178,11 +182,13 @@ RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
 # Determine settings based on simulation type
 SettingsDir="${gcdir}/run/shared/settings"
 if [[ ${sim_extra_option} = "benchmark" ]]; then
-   RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
+    RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
+elif [[ ${sim_name} == "CO2" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/CO2.txt)\n"
 elif [[ ${sim_name} == "TransportTracers" ]]; then
-   RDI_VARS+="$(cat ${SettingsDir}/TransportTracer.txt)\n"
+    RDI_VARS+="$(cat ${SettingsDir}/TransportTracer.txt)\n"
 else
-   RDI_VARS+="$(cat ${SettingsDir}/fullchem.txt)\n"
+    RDI_VARS+="$(cat ${SettingsDir}/fullchem.txt)\n"
 fi
 
 #-----------------------------------------------------------------
@@ -191,6 +197,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
+
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
     read met_num
@@ -198,11 +205,11 @@ while [ "${valid_met}" -eq 0 ]; do
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
-	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n'
+	RDI_VARS+="RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
-	RDI_VARS+='RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP\n'
+	RDI_VARS+="RDI_MET_DIR='$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -226,8 +233,8 @@ while [ "$valid_path" -eq 0 ]; do
     # Replace ~ with the user's home directory
     # NOTE: This is a safe algorithm.
     if [[ "${rundir_path}" =~ '~' ]]; then
-       rundir_path="${rundir_path/#\~/$HOME}"
-       echo "Expanding to: ${rundir_path}"
+	rundir_path="${rundir_path/#\~/$HOME}"
+	echo "Expanding to: ${rundir_path}"
     fi
 
     # If this is just a new directory within an existing one,
@@ -301,18 +308,30 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
+cp ./logging.yml                      ${rundir}
 cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
+
+# Only copy adjoint for CO2 simulation (for now)
+if [ "${sim_name}" == "CO2" ]; then
+    cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
+fi
+
+cp -r ./utils ${rundir}
 if [[ ${sim_name} = "fullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
 
 # Set permissions
-chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
+chmod 744 ${rundir}/setEnvironment.sh
+
+if [ "${sim_name}" == "CO2" ]; then
+    chmod 744 ${rundir}/runConfig_adj.sh
+fi
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
@@ -347,7 +366,12 @@ do
     if [[ ${sim_name} = "fullchem" ]]; then
         start_date="20190701_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+	# NOTE: We must now link restart files from v2021-09, since these will
+	# have extra species such as HMS, C2H2, C2H4, etc. (bmy, 9/23/21)
+        #ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+        ln -s ${restarts}/v2021-09/${src_name} ${rundir}/${target_name}
     elif [[ ${sim_name} = "TransportTracers" ]]; then
         start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
@@ -363,12 +387,78 @@ RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc
 #--------------------------------------------------------------------
 cd ${rundir}
 
+# Set defaults
+# Simulation-specific settings may be found in run/shared/settings/*.txt
+RDI_VARS+="RDI_TRANSPORT_TS='600'\n"
+RDI_VARS+="RDI_CHEMISTRY_TS='1200'\n"
+
+# Call function to setup configuration files with settings common between
+# GEOS-Chem Classic and GCHP.
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    set_common_settings ${sim_extra_option}
+fi
+
+# Special handling for start/end date based on simulation so that
+# start year/month/day matches default initial restart file.
+if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+    RDI_VARS+="RDI_SIM_START_DATE='20190101'\n"
+    RDI_VARS+="RDI_SIM_END_DATE='20190201'\n"
+elif [[ "x${sim_name}" == "xCO2" ]]; then
+    RDI_VARS+="RDI_SIM_START_DATE='20140901'\n"
+    RDI_VARS+="RDI_SIM_END_DATE='20141001'\n"
+else
+    RDI_VARS+="RDI_SIM_START_DATE='20190701'\n"
+    RDI_VARS+="RDI_SIM_END_DATE='20190801'\n"
+fi
+RDI_VARS+="RDI_SIM_START_TIME='000000'\n"
+RDI_VARS+="RDI_SIM_END_TIME='000000'\n"
+RDI_VARS+="RDI_SIM_DUR_YYYYMMDD='00000100'\n"
+RDI_VARS+="RDI_SIM_DUR_HHmmSS='000000'\n"
+
+# Use monthly diagnostics by default
+RDI_VARS+="RDI_HIST_TIME_AVG_DUR='7440000'\n"
+RDI_VARS+="RDI_HIST_TIME_AVG_FREQ='7440000'\n"
+RDI_VARS+="RDI_HIST_INST_DUR='7440000'\n"
+RDI_VARS+="RDI_HIST_INST_FREQ='7440000'\n"
+RDI_HIST_MONTHLY_DIAG="1"
+
+# Special handling for benchmark simulation
+if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
+    RDI_VARS+="RDI_NUM_CORES='96'\n"
+    RDI_VARS+="RDI_NUM_NODES='2'\n"
+    RDI_VARS+="RDI_CORES_PER_NODE='48'\n"
+    RDI_VARS+="RDI_CS_RES='48'\n"
+elif [ "${sim_type}" == "CO2" ]; then
+    RDI_VARS+="RDI_NUM_CORES='48'\n"
+    RDI_VARS+="RDI_NUM_NODES='2'\n"
+    RDI_VARS+="RDI_CORES_PER_NODE='24'\n"
+    RDI_VARS+="RDI_CS_RES='24'\n"
+else
+    RDI_VARS+="RDI_NUM_CORES='24'\n"
+    RDI_VARS+="RDI_NUM_NODES='1'\n"
+    RDI_VARS+="RDI_CORES_PER_NODE='24'\n"
+    RDI_VARS+="RDI_CS_RES='24'\n"
+fi
+
+#--------------------------------------------------------------------
+# Replace settings in config files with RDI variables
+#--------------------------------------------------------------------
+
 # Save RDI variables to file
 echo -e "$RDI_VARS" > rdi_vars.txt
 sort -o rdi_vars.txt rdi_vars.txt
 
 # Call init_rd.sh
 ${srcrundir}/init_rd.sh rdi_vars.txt
+
+#--------------------------------------------------------------------
+# Print run direcory setup info to screen
+#--------------------------------------------------------------------
+printf "\n  See rdi_vars.txt for run directory settings.\n\n"
+
+printf "\n  -- This run directory has been set up for $RDI_SIM_START - RDI_SIM_END_DATE.\n"
+printf "\n  -- The default frequency and duration of diagnostics is set to monthly.\n"
+printf "\n  -- You may modify these settings in runConfig.sh.\n"
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP.
@@ -420,10 +510,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml input.geos input.nml
-	if [[ ${sim_name} = "fullchem" ]]; then
-            git add *.py
-	fi
+	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
 	git add README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}

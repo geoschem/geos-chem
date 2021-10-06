@@ -1,15 +1,13 @@
 Ext_AllowExtrap: .true.
-DEBUG_LEVEL: 0
 #
 PrimaryExports%%
 #--------|-------|------|------------|---------------|--------|-------|---------------------|
 # Export |       |      |            |___ Refresh ___|____ Factors ___|___ External File ___|
 # Name   | Units | Clim |Conservative| Time Template | Offset | Scale | Variable | Template |
 #--------|-------|------|------------|---------------|--------|-------|----------|----------|
-# 
+#
 # Notes:
 # Units should be in single quotes if they contain whitespace
-# V Loc should be C if the data is vertically centered
 # Climatology should be Y if the file contains monthly climatology; otherwise it should be N
 # Conservative should be Y if units imply mass conservation dependency on regrid method (e.g. value per area)
 # Refresh Time Template should be:
@@ -20,109 +18,128 @@ PrimaryExports%%
 #    5. %y4-%m2-%d2T%h2:00:00, with any tokens replaced by appropriate constant time value, if multiple time
 #       values are in the same file. Note that including an F prefix indicates the data should be treated
 #       as constant until the next refresh time. Omission of the F prefix will time-interpolate between
-#       the values.  
-
+#       the values.
+# Minimize whitespace wherever possible to avoid surpassing the ESMF read buffer character limit,
+# applicable only for uncommented lines.
+#
 ###############################################################################
 ###
 ### Meteorology data
 ###
 ###############################################################################
-
+#
 # --- 2D variables, 1-hr averaged ---
-ALBD     '1'         N Y F0;003000 none none         ALBEDO     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-CLDFRC   '1'         N Y F0;003000 none none         CLDTOT     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-EFLUX    '1'         N Y F0;003000 none none         EFLUX      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-EVAP     '1'         N Y F0;003000 none none         EVAP       ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-FRSEAICE '1'         N Y F0;003000 none none         FRSEAICE   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-FRSNO    '1'         N Y F0;003000 none none         FRSNO      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-GRN      '1'         N Y F0;003000 none none         GRN        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-GWETROOT '1'         N Y F0;003000 none none         GWETROOT   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-GWETTOP  '1'         N Y F0;003000 none none         GWETTOP    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-HFLUX    '1'         N Y F0;003000 none none         HFLUX      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-LAI      '1'         N Y F0;003000 none none         LAI        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-LWI      '1'         N Y F0;003000 none none         LWI        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-RADLWG   '1'         N Y F0;003000 none none         LWGNT      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PARDF    '1'         N Y F0;003000 none none         PARDF      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PARDR    '1'         N Y F0;003000 none none         PARDR      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PBLH     '1'         N Y F0;003000 none none         PBLH       ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PRECANV  '1'         N Y F0;003000 none none         PRECANV    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PRECCON  '1'         N Y F0;003000 none none         PRECCON    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PRECLSC  '1'         N Y F0;003000 none none         PRECLSC    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PRECSNO  '1'         N Y F0;003000 none none         PRECSNO    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-PRECTOT  '1'         N Y F0;003000 none none         PRECTOT    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE00 '1'         N Y F0;003000 none none         SEAICE00   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE10 '1'         N Y F0;003000 none none         SEAICE10   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE20 '1'         N Y F0;003000 none none         SEAICE20   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE30 '1'         N Y F0;003000 none none         SEAICE30   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE40 '1'         N Y F0;003000 none none         SEAICE40   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE50 '1'         N Y F0;003000 none none         SEAICE50   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE60 '1'         N Y F0;003000 none none         SEAICE60   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE70 '1'         N Y F0;003000 none none         SEAICE70   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE80 '1'         N Y F0;003000 none none         SEAICE80   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SEAICE90 '1'         N Y F0;003000 none none         SEAICE90   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SLP      ${RDI_MET_PRES_UNIT} N Y F0;003000 none ${RDI_MET_PRES_SCALE} SLP        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SNODP    '1'         N Y F0;003000 none none         SNODP      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-SNOMAS   '1'         N Y F0;003000 none none         SNOMAS     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-RADSWG   '1'         N Y F0;003000 none none         SWGDN      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-TO3      'dobson'    N Y F0;003000 none none         TO3        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-TROPP    ${RDI_MET_PRES_UNIT} N Y F0;003000 none ${RDI_MET_PRES_SCALE} TROPPT     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-TSKIN    '1'         N Y F0;003000 none none         TS         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-TS       '1'         N Y F0;003000 none none         T2M        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-USTAR    '1'         N Y F0;003000 none none         USTAR      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-U10M     'm s-1'     N Y F0;003000 none none         U10M       ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-V10M     'm s-1'     N Y F0;003000 none none         V10M       ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-Z0       '1'         N Y F0;003000 none none         Z0M        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
-
+ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+EFLUX    1 N Y F0;003000 none none EFLUX    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+EVAP     1 N Y F0;003000 none none EVAP     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+FRSEAICE 1 N Y F0;003000 none none FRSEAICE ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+FRSNO    1 N Y F0;003000 none none FRSNO    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+GRN      1 N Y F0;003000 none none GRN      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+HFLUX    1 N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+LAI      1 N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+LWI      1 N Y F0;003000 none none LWI      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+RADLWG   1 N Y F0;003000 none none LWGNT    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PARDF    1 N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PARDR    1 N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PBLH     1 N Y F0;003000 none none PBLH     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PRECANV  1 N Y F0;003000 none none PRECANV  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PRECCON  1 N Y F0;003000 none none PRECCON  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+QV2M     1 N Y F0;003000 none none QV2M     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE00 1 N Y F0;003000 none none SEAICE00 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE10 1 N Y F0;003000 none none SEAICE10 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE20 1 N Y F0;003000 none none SEAICE20 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE30 1 N Y F0;003000 none none SEAICE30 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE40 1 N Y F0;003000 none none SEAICE40 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE50 1 N Y F0;003000 none none SEAICE50 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE60 1 N Y F0;003000 none none SEAICE60 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE70 1 N Y F0;003000 none none SEAICE70 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE80 1 N Y F0;003000 none none SEAICE80 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SEAICE90 1 N Y F0;003000 none none SEAICE90 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+SLP ${RDI_MET_PRES_UNIT} N Y F0;003000 none ${RDI_MET_PRES_SCALE} SLP ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+SNODP  1 N Y F0;003000 none none SNODP  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+SNOMAS 1 N Y F0;003000 none none SNOMAS ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+RADSWG 1 N Y F0;003000 none none SWGDN  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+TO3 dobson N Y F0;003000 none none TO3 ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+TROPP ${RDI_MET_PRES_UNIT} N Y F0;003000 none ${RDI_MET_PRES_SCALE} TROPPT ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+TSKIN 1 N Y F0;003000 none none TS    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+TS    1 N Y F0;003000 none none T2M   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+USTAR 1 N Y F0;003000 none none USTAR ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+U10M m_s-1 N Y F0;003000 none none U10M ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A1.${RDI_MET_RES}.${RDI_MET_EXT}
+#
 # --- Surface pressure, 3-hr instantaneous ---
-PS1      ${RDI_MET_PRES_UNIT} N Y 0         none ${RDI_MET_PRES_SCALE} PS         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
-PS2      ${RDI_MET_PRES_UNIT} N Y 0;001000  none ${RDI_MET_PRES_SCALE} PS         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
-
+PS1 ${RDI_MET_PRES_UNIT} N Y 0        none ${RDI_MET_PRES_SCALE} PS ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
+PS2 ${RDI_MET_PRES_UNIT} N Y 0;001000 none ${RDI_MET_PRES_SCALE} PS ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
+#
 # --- 3D variables, 3-hr instantaneous ---
-SPHU1    'kg kg-1'   N Y 0         none none         QV         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
-SPHU2    'kg kg-1'   N Y 0;001000  none none         QV         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
-TMPU1    'K'         N Y 0         none none         T          ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
-TMPU2    'K'         N Y 0;001000  none none         T          ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
-
+SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
+SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
+TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.I3.${RDI_MET_RES}.${RDI_MET_EXT}
+#
 # --- 3D variables, 3-hr averaged ---
-QI       '1'         N Y F0;013000 none none         QI         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
-QL       '1'         N Y F0;013000 none none         QL         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
-TAUCLI   '1'         N Y F0;013000 none none         TAUCLI     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
-TAUCLW   '1'         N Y F0;013000 none none         TAUCLW     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
-OPTDEP   '1'         N Y F0;013000 none none         OPTDEPTH   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
-CLDF     '1'         N Y F0;013000 none none         CLOUD      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
-DTRAIN   '1'         N Y F0;013000 none none         DTRAIN     ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
-OMEGA    'Pa s-1'    N Y F0;013000 none none         OMEGA      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
-RH       '-'         N Y F0;013000 none none         RH         ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
-UA;VA    'm s-1'     N Y F0;013000 none none         U;V        ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
-DQRCU    '1'         N Y F0;013000 none none         DQRCU      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
-DQRLSAN  '1'         N Y F0;013000 none none         DQRLSAN    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
-REEVAPCN '1'         N Y F0;013000 none none         REEVAPCN   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
-REEVAPLS '1'         N Y F0;013000 none none         REEVAPLS   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
-CMFMC    '1'         N Y F0;013000 none none         CMFMC      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
-PFICU    '1'         N Y F0;013000 none none         PFICU      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
-PFILSAN  '1'         N Y F0;013000 none none         PFILSAN    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
-PFLCU    '1'         N Y F0;013000 none none         PFLCU      ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
-PFLLSAN  '1'         N Y F0;013000 none none         PFLLSAN    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
-
+QI     1 N Y F0;013000 none none QI       ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
+QL     1 N Y F0;013000 none none QL       ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
+TAUCLI 1 N Y F0;013000 none none TAUCLI   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
+TAUCLW 1 N Y F0;013000 none none TAUCLW   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
+OPTDEP 1 N Y F0;013000 none none OPTDEPTH ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
+CLDF   1 N Y F0;013000 none none CLOUD    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3cld.${RDI_MET_RES}.${RDI_MET_EXT}
+DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3dyn.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
+DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
+REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
+REEVAPLS 1 N Y F0;013000 none none REEVAPLS ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstC.${RDI_MET_RES}.${RDI_MET_EXT}
+CMFMC    1 N Y F0;013000 none none CMFMC    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
+PFICU    1 N Y F0;013000 none none PFICU    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
+PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
+PFLCU    1 N Y F0;013000 none none PFLCU    ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
+PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/${RDI_MET_SOURCE}.%y4%m2%d2.A3mstE.${RDI_MET_RES}.${RDI_MET_EXT}
+#
 # --- Fixed variables, from constants file ---
-FRLAKE   '1'         N Y -         none none         FRLAKE     ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
-FRLAND   '1'         N Y -         none none         FRLAND     ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
-FRLANDIC '1'         N Y -         none none         FRLANDIC   ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
-FROCEAN  '1'         N Y -         none none         FROCEAN    ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
-PHIS     'm2 s-2'    N Y -         none none         PHIS       ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
-
+FRLAKE   1 N Y - none none FRLAKE   ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
+FRLAND   1 N Y - none none FRLAND   ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
+FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
+FROCEAN  1 N Y - none none FROCEAN  ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+PHIS m2_s-2 N Y - none none PHIS ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
+#
+#==============================================================================
 # --- Fields for lightning emissions (Extension 103) ---
-FLASH_DENS '1'       N Y F0;013000 none none         LDENS      ./HcoDir/OFFLINE_LIGHTNING/v2019-01/${RDI_MET_SOURCE}/%y4/FLASH_CTH_${RDI_MET_SOURCE}_${RDI_MET_NATIVE_RES}_%y4_%m2.nc4
-CONV_DEPTH '1'       N Y F0;013000 none none         CTH        ./HcoDir/OFFLINE_LIGHTNING/v2019-01/${RDI_MET_SOURCE}/%y4/FLASH_CTH_${RDI_MET_SOURCE}_${RDI_MET_NATIVE_RES}_%y4_%m2.nc4
-
+# These fields are stored in State_Met, along with the other met fields
+#==============================================================================
+FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RDI_MET_SOURCE}/%y4/FLASH_CTH_${RDI_MET_SOURCE}_${RDI_MET_NATIVE_RES}_%y4_%m2.nc4
+CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RDI_MET_SOURCE}/%y4/FLASH_CTH_${RDI_MET_SOURCE}_${RDI_MET_NATIVE_RES}_%y4_%m2.nc4
+#
 ###############################################################################
 ###
 ### Land data (not handled by HEMCO)
 ###
 ###############################################################################
-
+#
 #==============================================================================
-# Olson land types - conservative frac regridding of OLSON
+# Olson land types
 #==============================================================================
 # Use conservative fraction regridding to extract land type fraction
 OLSON00 1 N F;0  - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
@@ -198,38 +215,25 @@ OLSON69 1 N F;69 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_La
 OLSON70 1 N F;70 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
 OLSON71 1 N F;71 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
 OLSON72 1 N F;72 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
-
-#==============================================================================
-# MODIS Leaf Area Index
 #
-# NOTE: There are two options for offline MODIS LAI: legacy and Yuan et al.
-#       Both may be used in GCHP but legacy should be used when comparing with
-#       GEOS-Chem Classic until it because default. Legacy is default in GCHP.
 #==============================================================================
-
-#---------------------------
-# Option 1: legacy MODIS LAI
-#---------------------------
+# Yuan-processed MODIS Leaf Area Index
+#==============================================================================
+#
 # Use file with land type stored as 3rd dimension to speed up file read
-XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./ChemDir/MODIS_LAI_201707/For_Olson_2001/XLAI_for_GCHP/%y4/Condensed_MODIS_XLAI.025x025.%y4%m2.nc
-
-#---------------------------
-# Option 2: Yuan processed
-#---------------------------
-# Use file with land type stored as 3rd dimension to speed up file read
-#XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
-
+XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XLAI/v2021-06/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+#
 ###############################################################################
 ###
-### HEMCO Base Emissions (Update if HEMCO_Config.rc changes) 
+### HEMCO Base Emissions (Update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # SF6 emissions from EDGAR v4.2
 #==============================================================================
 EDGAR_SF6 1 N Y F%y4-01-01T00:00:00 none none emi_sf6 ./HcoDir/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
-
+#
 #==============================================================================
 # --- EDGAR v4.3 (EDGARv4.3) ---
 # EDGARv4.3 is turned off by default in HEMCO_Config.rc
@@ -244,7 +248,7 @@ EDGAR_CO25d_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGA
 #EDGAR_CO25d_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
 EDGAR_CO25d_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
 EDGAR_CO25d_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
-
+#
 #==============================================================================
 # --- HTAP v2 (HTAP) ---
 # HTAP is off by default in HEMCO_Config.rc
@@ -256,45 +260,42 @@ HTAP_CO25d_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTA
 #HTAP_CO25d_AIR1  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc
 #HTAP_CO25d_AIR2  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc
 #HTAP_CO25d_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc
-
+#
 #==============================================================================
-# --- CEDS (CEDS) ---
+# --- CEDS (CEDSv2) ---
 #==============================================================================
-CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_NRTR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_nrtr  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_ROAD   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_road  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcor  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOC   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOO   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-
+CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#
 ###############################################################################
 ###
 ### HEMCO Non-Emissions Data (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
 TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
-
+#
 ###############################################################################
 ###
 ### HEMCO Scale Factors (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # --- annual scale factors ---
 #==============================================================================
 LIQFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-
+#
 #==============================================================================
 # --- seasonal scale factors ---
 #==============================================================================
@@ -311,18 +312,18 @@ AWB 1 Y Y F2010-%m2-01T00:00:00 none none AWB ./HcoDir/EDGARv43/v2016-11/EDGAR_v
 SOL 1 Y Y F2010-%m2-01T00:00:00 none none SOL ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 SWD 1 Y Y F2010-%m2-01T00:00:00 none none SWD ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
-
+#
 ###############################################################################
 ###
 ### Masks (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # Country/region masks
 #==============================================================================
 OCEAN_MASK   1 N Y - none none FROCEAN    ./MetDir/${RDI_MET_CN_YR}/01/${RDI_MET_SOURCE}.${RDI_MET_CN_YR}0101.CN.${RDI_MET_RES}.${RDI_MET_EXT}
-
+#
 %%
 
 DerivedExports%%

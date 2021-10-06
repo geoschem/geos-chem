@@ -2424,7 +2424,7 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Read anthro, ocean, land emissions of Hg from disk
-       CALL MERCURY_READYR( Input_Opt, RC )
+       CALL MERCURY_READYR( Input_Opt, State_Grid, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2504,7 +2504,7 @@ CONTAINS
                                 State_Grid, State_Met )
     IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
 
-    CALL BIOMASSHG( Input_Opt, EHg0_bb, RC )
+    CALL BIOMASSHG( Input_Opt, State_Grid, EHg0_bb, RC )
     IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
 
     IF ( LnoUSAemis ) THEN
@@ -2761,15 +2761,16 @@ CONTAINS
 
           IF ( LAnthroHgOnly ) THEN
              ! No other emissions
-             EHg0_bb(I,J)      = 0e+0_fp
-             EHg0_oc(I,J,:)    = 0e+0_fp
-             EHg0_snow(I,J,:)  = 0e+0_fp
+             EHg0_bb(I,J)      = 0.0_fp
+             EHg0_oc(I,J,:)    = 0.0_fp
+             EHg0_snow(I,J,:)  = 0.0_fp
+             EHg0_geo(I,J)     = 0.0_fp
              IF ( LGTMM ) THEN
-                EHg0_gtm(I,J) = 0e+0_fp
+                EHg0_gtm(I,J)  = 0.0_fp
              ELSE
-                EHg0_ln(I,J,:) = 0e+0_fp
-                EHg0_vg(I,J)   = 0e+0_fp
-                EHg0_so(I,J)   = 0e+0_fp
+                EHg0_ln(I,J,:) = 0.0_fp
+                EHg0_vg(I,J)   = 0.0_fp
+                EHg0_so(I,J)   = 0.0_fp
              ENDIF
           ENDIF
 
@@ -3985,20 +3986,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MERCURY_READYR( Input_Opt, RC )
+  SUBROUTINE MERCURY_READYR( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HCO_ERROR_MOD
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
-    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn, HCO_GC_GetPtr
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4093,7 +4095,7 @@ CONTAINS
 
        ! Anthropogenic emissions
        DgnName = 'HG0_ANTHRO'
-       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4104,7 +4106,7 @@ CONTAINS
 
        ! Artisanal emissions
        DgnName = 'HG0_ARTISANAL'
-       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4120,7 +4122,7 @@ CONTAINS
 
        ! Anthropogenic emissions
        DgnName = 'HG2_ANTHRO'
-       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4133,7 +4135,7 @@ CONTAINS
 
     ! Natural emissions
     DgnName = 'HG0_NATURAL'
-    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4143,7 +4145,7 @@ CONTAINS
     Ptr2D    => NULL()
 
     ! Soil distribution
-    CALL HCO_GetPtr( HcoState, 'HG0_SOILDIST', Ptr2D, RC )
+    CALL HCO_GC_GetPtr( Input_Opt, State_Grid, 'HG0_SOILDIST', Ptr2D, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Could not get pointer to HEMCO field HG0_SOILDIST!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

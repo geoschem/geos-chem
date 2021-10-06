@@ -51,6 +51,7 @@ MODULE State_Grid_Mod
      INTEGER            :: NY          ! # of grid boxes in Y-direction
      INTEGER            :: NZ          ! # of grid boxes in Z-direction
      LOGICAL            :: HalfPolar   ! Use half-sized polar boxes?
+     LOGICAL            :: Center180   ! Is the Int'l a model midpoint (T) or edge (F)?
      LOGICAL            :: NestedGrid  ! Is it a nested grid sim?
      INTEGER            :: NorthBuffer ! # buffer grid boxes on North edge
      INTEGER            :: SouthBuffer ! # buffer grid boxes on South edge
@@ -72,16 +73,18 @@ MODULE State_Grid_Mod
      INTEGER            :: YMaxOffset  ! Y offset from global grid
 
      ! Arrays
-     REAL(fp),  POINTER :: GlobalXMid(:,:) ! Lon centers on global grid [deg]
-     REAL(fp),  POINTER :: GlobalYMid(:,:) ! Lat centers on global grid [deg]
-     REAL(fp),  POINTER :: XMid      (:,:) ! Lon centers [degrees]
-     REAL(fp),  POINTER :: XEdge     (:,:) ! Lon edges   [degrees]
-     REAL(fp),  POINTER :: YMid      (:,:) ! Lat centers [degrees]
-     REAL(fp),  POINTER :: YEdge     (:,:) ! Lat edges   [degrees]
-     REAL(fp),  POINTER :: YMid_R    (:,:) ! Lat centers [radians]
-     REAL(fp),  POINTER :: YEdge_R   (:,:) ! Lat edges   [radians]
-     REAL(fp),  POINTER :: YSIN      (:,:) ! SIN( lat edges )
-     REAL(fp),  POINTER :: Area_M2   (:,:) ! Grid box area [m2]
+     REAL(fp),  POINTER :: GlobalXMid (:,:) ! Lon centers on global grid [deg]
+     REAL(fp),  POINTER :: GlobalYMid (:,:) ! Lat centers on global grid [deg]
+     REAL(fp),  POINTER :: GlobalXEdge(:,:) ! Lon centers on global grid [deg]
+     REAL(fp),  POINTER :: GlobalYEdge(:,:) ! Lat centers on global grid [deg]
+     REAL(fp),  POINTER :: XMid       (:,:) ! Lon centers [degrees]
+     REAL(fp),  POINTER :: XEdge      (:,:) ! Lon edges   [degrees]
+     REAL(fp),  POINTER :: YMid       (:,:) ! Lat centers [degrees]
+     REAL(fp),  POINTER :: YEdge      (:,:) ! Lat edges   [degrees]
+     REAL(fp),  POINTER :: YMid_R     (:,:) ! Lat centers [radians]
+     REAL(fp),  POINTER :: YEdge_R    (:,:) ! Lat edges   [radians]
+     REAL(fp),  POINTER :: YSIN       (:,:) ! SIN( lat edges )
+     REAL(fp),  POINTER :: Area_M2    (:,:) ! Grid box area [m2]
 
   END TYPE GrdState
 !
@@ -156,6 +159,7 @@ CONTAINS
     State_Grid%NY           = 0
     State_Grid%NZ           = 0
     State_Grid%HalfPolar    = .FALSE.
+    State_Grid%Center180    = .FALSE.
     State_Grid%NestedGrid   = .FALSE.
     State_Grid%NorthBuffer  = 0
     State_Grid%SouthBuffer  = 0
@@ -181,6 +185,8 @@ CONTAINS
     !---------------------------------------------------------------
     State_Grid%GlobalXMid   => NULL()
     State_Grid%GlobalYMid   => NULL()
+    State_Grid%GlobalXEdge  => NULL()
+    State_Grid%GlobalYEdge  => NULL()
     State_Grid%XMid         => NULL()
     State_Grid%XEdge        => NULL()
     State_Grid%YMid         => NULL()
@@ -199,7 +205,7 @@ CONTAINS
 !
 ! !IROUTINE: Allocate_State_Grid
 !
-! !DESCRIPTION: Subroutine ALLOCATE\_STATE\_GRID initializes variables and!
+! !DESCRIPTION: Subroutine ALLOCATE\_STATE\_GRID initializes variables and
 !  allocates module arrays.
 !\\
 !\\
@@ -338,6 +344,20 @@ CONTAINS
        CALL GC_CheckVar( 'State_Grid%GlobalYMid', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Grid%GlobalYMid => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%GlobalXEdge ) ) THEN
+       DEALLOCATE( State_Grid%GlobalXEdge, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%GlobalXEdge', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%GlobalXEdge => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%GlobalYEdge ) ) THEN
+       DEALLOCATE( State_Grid%GlobalYEdge, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%GlobalYEdge', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%GlobalYEdge => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Grid%XMid ) ) THEN

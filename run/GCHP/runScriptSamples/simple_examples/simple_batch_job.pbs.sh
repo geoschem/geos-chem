@@ -16,11 +16,8 @@
 
 # Load modules (so software dependencies are available)
 module purge
-module load comp-intel/2018.3.222
-module load mpi-hpcx/2.4.0
-module load hdf4/4.2.12
-module load hdf5/1.8.18_serial
-module load netcdf/4.4.1.1_serial
+module use /nobackup/lbindle/modulefiles
+module load gchp-env/2021.06-gnu
 
 # Misc. configuration
 module list     # print loaded modules
@@ -38,7 +35,7 @@ ulimit -s unlimited          # stacksize
 cd $PBS_O_WORKDIR
 
 # Simple GCHP launch
-rm -f cap_restart gcchem*           # delete checkpoint/restart spec/data
+rm -f cap_restart                   # delete restart start time file if present
 ./runConfig.sh                      # update configuration files
 mpiexec -n 48 ./gchp > runlog.txt   # launch 48 GCHP processes
 

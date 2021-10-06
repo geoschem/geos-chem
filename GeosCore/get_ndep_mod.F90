@@ -45,10 +45,10 @@ MODULE GET_NDEP_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  REAL(fp), PARAMETER :: CONVHNO3 = 0.222 ! MWN/MWHNO3
-  REAL(fp), PARAMETER :: CONVNH4  = 0.777 ! MWN/MWNH4
-  REAL(fp), PARAMETER :: CONVNH3  = 0.823 ! MWN/MWNH3
-  REAL(fp), PARAMETER :: CONVNIT  = 0.226 ! MWN/MWNIT
+  REAL(fp), PARAMETER :: CONVHNO3 = 0.222_fp ! MWN/MWHNO3
+  REAL(fp), PARAMETER :: CONVNH4  = 0.777_fp ! MWN/MWNH4
+  REAL(fp), PARAMETER :: CONVNH3  = 0.823_fp ! MWN/MWNH3
+  REAL(fp), PARAMETER :: CONVNIT  = 0.226_fp ! MWN/MWNIT
 !
 ! !LOCAL VARAIABLES:
 !
@@ -106,7 +106,9 @@ CONTAINS
          NN == id_HNO3 .OR. NN == id_NH3     .OR. &
          NN == id_NH4  .OR. NN == id_NH4aq   .OR. &
          NN == id_NIT  .OR. NN == id_NITs  ) THEN
+       !$OMP CRITICAL
        State_Chm%DryDepNitrogen(I,J) = State_Chm%DryDepNitrogen(I,J) + TDRYFX
+       !$OMP END CRITICAL
     ENDIF
 
   END SUBROUTINE SOIL_DRYDEP

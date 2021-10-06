@@ -1413,6 +1413,24 @@ CONTAINS
           ENDIF
 
           !=================================================================
+          ! Sanity check for the Restart collection
+          ! Make sure that frequency and duration are the same
+          !=================================================================
+          CName = To_UpperCase( CollectionName(C) )
+          IF ( TRIM( CName ) == 'RESTART' ) THEN
+             IF ( FileWriteYmd /= FileCloseYmd  .and.                        &
+                  FileWriteHms /= FileCloseHms ) THEN
+                WRITE( ErrMsg, 260 )                                         &
+                   'Incompatible Restart collection metadata!           ',   &
+                   'Restart.frequency = ',     FileWriteYmd, FileWriteHms,   &
+                   'but Restart.duration  = ', FileCloseYmd, FileCloseHms
+ 260             FORMAT( a, a, i8.8, 1x, i6.6, 1x, a, i8.8, 1x, i6.6 )
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
+
+          !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
 
@@ -2286,6 +2304,11 @@ CONTAINS
        END SELECT
 
        Collection%OnLevelEdges = Item%OnLevelEdges
+    ENDIF
+
+    ! NB is always two (lon0, lon1) or (lat0, lat1)
+    IF ( Collection%NB == UNDEFINED_INT ) THEN
+       Collection%NB = 2
     ENDIF
 
     !=======================================================================

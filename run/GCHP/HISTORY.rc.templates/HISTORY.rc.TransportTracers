@@ -1,4 +1,4 @@
-EXPID:  OutputDir/GCHP
+EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
 VERSION: 1
@@ -104,11 +104,13 @@ COLLECTIONS: 'Emissions',
 #
 #==============================================================================
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
-  Emissions.template:  '%y4%m2%d2_%h2%n2z.nc4',
-  Emissions.format:    'CFIO',
-  Emissions.frequency: 010000
-  Emissions.duration:  010000
-  Emissions.mode:      'time-averaged'
+  Emissions.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  Emissions.format:         'CFIO',
+  Emissions.timestampStart: .true.
+  Emissions.monthly:         1
+  Emissions.frequency:       010000
+  Emissions.duration:        010000
+  Emissions.mode:            'time-averaged'
   Emissions.fields:    'EmisRn_Soil                 ', 'GCHPchem',
                        'EmisBe7_Cosmic              ', 'GCHPchem',
                        'EmisBe7Strat_Cosmic         ', 'GCHPchem',
@@ -124,11 +126,13 @@ COLLECTIONS: 'Emissions',
 # Budget defined as species kg/s in the column (full, troposphere, or PBL) 
 # due to a single component (e.g. chemistry); default = ozone only; add more 
 # species as needed to the example below (advected only)
-  Budget.template:  '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.format:    'CFIO',
-  Budget.frequency: 010000
-  Budget.duration:  010000
-  Budget.mode:      'time-averaged'
+  Budget.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.format:         'CFIO',
+  Budget.timestampStart: .true.
+  Budget.monthly:        1
+  Budget.frequency:      010000
+  Budget.duration:       010000
+  Budget.mode:           'time-averaged'
   Budget.fields:    'BudgetChemistryFull_Rn222                    ', 'GCHPchem',
                     'BudgetChemistryFull_Pb210                    ', 'GCHPchem',
                     'BudgetChemistryFull_Pb210Strat               ', 'GCHPchem',
@@ -305,11 +309,13 @@ COLLECTIONS: 'Emissions',
                     'BudgetWetDepPBL_Be10Strat                    ', 'GCHPchem',
 ::					     
 #===============================================================================
-  CloudConvFlux.template:  '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.format:    'CFIO',
-  CloudConvFlux.frequency: 010000
-  CloudConvFlux.duration:  010000
-  CloudConvFlux.mode:      'time-averaged'
+  CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.format:         'CFIO',
+  CloudConvFlux.timestampStart: .true.
+  CloudConvFlux.monthly:        1
+  CloudConvFlux.frequency:      010000
+  CloudConvFlux.duration:       010000
+  CloudConvFlux.mode:           'time-averaged'
   CloudConvFlux.fields:    'CloudConvFlux_Rn222                   ', 'GCHPchem',
                            'CloudConvFlux_Pb210                   ', 'GCHPchem',
                            'CloudConvFlux_Pb210Strat              ', 'GCHPchem',
@@ -327,6 +333,8 @@ COLLECTIONS: 'Emissions',
 #==============================================================================
   DryDep.template:         '%y4%m2%d2_%h2%n2z.nc4',
   DryDep.format:           'CFIO',
+  DryDep.timestampStart:   .true.
+  DryDep.monthly:          1
   DryDep.frequency:        010000
   DryDep.duration:         010000
   DryDep.mode:             'time-averaged'
@@ -344,11 +352,13 @@ COLLECTIONS: 'Emissions',
                            'DryDepVel_Be10Strat   ', 'GCHPchem',
 ::
 #==============================================================================
-  LevelEdgeDiags.template:  '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:    'CFIO',
-  LevelEdgeDiags.frequency: 010000
-  LevelEdgeDiags.duration:  010000
-  LevelEdgeDiags.mode:      'time-averaged'
+  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  LevelEdgeDiags.format:         'CFIO',
+  LevelEdgeDiags.timestampStart: .true.
+  LevelEdgeDiags.monthly:        1
+  LevelEdgeDiags.frequency:      010000
+  LevelEdgeDiags.duration:       010000
+  LevelEdgeDiags.mode:           'time-averaged'
   LevelEdgeDiags.fields:    'Met_CMFMC          ', 'GCHPchem',
                             'Met_PEDGE          ', 'GCHPchem',
                             'Met_PEDGEDRY       ', 'GCHPchem',
@@ -358,11 +368,13 @@ COLLECTIONS: 'Emissions',
                             'Met_PFLLSAN        ', 'GCHPchem',
 ::
 #==============================================================================
-  RadioNuclide.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  RadioNuclide.format:      'CFIO',
-  RadioNuclide.frequency:   010000
-  RadioNuclide.duration:    010000
-  RadioNuclide.mode:        'time-averaged'
+  RadioNuclide.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  RadioNuclide.format:         'CFIO',
+  RadioNuclide.timestampStart: .true.
+  RadioNuclide.monthly:         1
+  RadioNuclide.frequency:       010000
+  RadioNuclide.duration:        010000
+  RadioNuclide.mode:            'time-averaged'
   RadioNuclide.fields:      'PbFromRnDecay           ', 'GCHPchem',  
                             'RadDecay_Rn222          ', 'GCHPchem',
                             'RadDecay_Pb210          ', 'GCHPchem',
@@ -373,11 +385,13 @@ COLLECTIONS: 'Emissions',
                             'RadDecay_Be10Strat      ', 'GCHPchem',
 ::
 #==============================================================================
-  SpeciesConc.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.format:       'CFIO',
-  SpeciesConc.frequency:    010000
-  SpeciesConc.duration:     010000
-  SpeciesConc.mode:         'time-averaged'
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.timestampStart: .true.
+  SpeciesConc.monthly:        1
+  SpeciesConc.frequency:      010000
+  SpeciesConc.duration:       010000
+  SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:       'SpeciesConc_Rn222                   ', 'GCHPchem',
                             'SpeciesConc_Pb210                   ', 'GCHPchem',
                             'SpeciesConc_Pb210Strat              ', 'GCHPchem',
@@ -395,6 +409,8 @@ COLLECTIONS: 'Emissions',
 #==============================================================================
   StateMet.template:        '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.format:          'CFIO',
+  StateMet.timestampStart:  .true.
+  StateMet.monthly:         1
   StateMet.frequency:       010000
   StateMet.duration:        010000
   StateMet.mode:            'time-averaged'
@@ -480,11 +496,13 @@ COLLECTIONS: 'Emissions',
                             'Met_Z0             ', 'GCHPchem',
 ::
 #==============================================================================
-  WetLossConv.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.format:       'CFIO',
-  WetLossConv.frequency:    010000
-  WetLossConv.duration:     010000
-  WetLossConv.mode:         'time-averaged'
+  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossConv.format:         'CFIO',
+  WetLossConv.timestampStart: .true.
+  WetLossConv.monthly:        1
+  WetLossConv.frequency:      010000
+  WetLossConv.duration:       010000
+  WetLossConv.mode:           'time-averaged'
   WetLossConv.fields:       'WetLossConv_Pb210           ', 'GCHPchem',
                             'WetLossConv_Pb210Strat      ', 'GCHPchem',
                             'WetLossConv_Be7             ', 'GCHPchem',
@@ -501,6 +519,8 @@ COLLECTIONS: 'Emissions',
 #==============================================================================
   WetLossLS.template:       '%y4%m2%d2_%h2%n2z.nc4',
   WetLossLS.format:         'CFIO',
+  WetLossLS.timestampStart: .true.
+  WetLossLS.monthly:        1
   WetLossLS.frequency:      010000
   WetLossLS.duration:       010000
   WetLossLS.mode:           'time-averaged'

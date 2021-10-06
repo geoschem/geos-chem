@@ -90,7 +90,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : CHECK_VALUE
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_Error_Mod
     USE HCO_State_Mod,      ONLY : Hco_GetHcoId
     USE HCO_State_GC_Mod,   ONLY : HcoState
@@ -285,7 +285,7 @@ CONTAINS
     ENDIF
 
     ! Evaluate global OH from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GLOBAL_OH', GLOBAL_OH,   RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', GLOBAL_OH, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot retrieve data for GLOBAL_OH from HEMCO!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -293,7 +293,7 @@ CONTAINS
     ENDIF
 
     ! Evaluate strat P(CO) from GMI from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GMI_PROD_CO', GMI_PROD_CO, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_PROD_CO', GMI_PROD_CO, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot retrieve data for GMI_PROD_CO from HEMCO!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -301,24 +301,41 @@ CONTAINS
     ENDIF
 
     ! Evaluate strat L(CO) from GMI from HEMCO
-    CALL HCO_EvalFld( HcoState, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot retrieve data for GMI_LOSS_CO from HEMCO!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Evaluate surface CH4 data from HEMCO
-    CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4 from HEMCO!'
+    ! Use the NOAA spatially resolved data where available
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, &
+                         RC, FOUND=FOUND )
+    IF (.NOT. FOUND ) THEN
+       FOUND = .TRUE.
+       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+       ! https://doi.org/10.5194/gmd-10-2057-2017a
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', SFC_CH4, &
+                            RC, FOUND=FOUND )
+    ENDIF
+    IF (.NOT. FOUND ) THEN
+       FOUND = .TRUE.
+       ! Use the CMIP6 data boundary conditions processed for GCAP 2.0
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'SfcVMR_CH4', SFC_CH4, &
+                            RC, FOUND=FOUND )
+    ENDIF
+    IF (.NOT. FOUND ) THEN
+       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
+                'SfcVMR_CH4 from HEMCO! Make sure the data source ' // &
+                'corresponds to your emissions year in HEMCO_Config.rc ' // &
+                '(NOAA GMD for 1978 and later; else CMIP6).'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Evaluate trop P(CO) from CH4 in HEMCO if needed
     IF ( LPCO_CH4 ) THEN
-       CALL HCO_EvalFld( HcoState, 'PCO_CH4', PCO_CH4, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', PCO_CH4, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot retrieve data for PCO_CH4 from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -328,7 +345,7 @@ CONTAINS
 
     ! Evaluate trop P(CO) from NMVOC in HEMCO if needed
     IF ( LPCO_NMVOC ) THEN
-       CALL HCO_EvalFld( HcoState, 'PCO_NMVOC', PCO_NMVOC, RC )
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', PCO_NMVOC, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot retrieve data for PCO_NMVOC from HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

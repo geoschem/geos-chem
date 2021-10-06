@@ -25,9 +25,7 @@ MODULE INPUT_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-#if !defined ( MODEL_CESM )
   PUBLIC  :: Read_Input_File
-#endif
   PUBLIC  :: Do_Error_Checks
   PUBLIC  :: Validate_Directories
 !
@@ -47,7 +45,6 @@ MODULE INPUT_MOD
 
 CONTAINS
 !EOC
-#if !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -150,8 +147,8 @@ CONTAINS
        ! (4) AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
        !      and DEPOSITION menus (in any order) should follow.
        ! (5) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
-       !      PLANEFLIGHT, ND48, ND49, ND50, ND51, and PROD_LOSS
-       !      menus (in any order) should follow next.
+       !      PLANEFLIGHT, ND51, and ND51b menus (in any order)
+       !      should follow next.
        ! (6) The following menus have no other restriction and
        !      can be placed anywhere (but by convention we will
        !      place them after the diagnostic menu): NESTED GRID
@@ -392,7 +389,6 @@ CONTAINS
 
   END SUBROUTINE READ_INPUT_FILE
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -684,10 +680,14 @@ CONTAINS
        Input_Opt%MetField = 'GEOSFP'
     CASE( 'MERRA-2', 'MERRA2' )
        Input_Opt%MetField = 'MERRA2'
+    CASE( 'MODELE2.1' )
+       Input_Opt%MetField = 'MODELE2.1'
+    CASE( 'MODELE2.2' )
+       Input_Opt%MetField = 'MODELE2.2'
     CASE DEFAULT
        ErrMsg = Trim( Input_Opt%MetField) // ' is not a valid '  // &
-                ' met field. Supported met fields are GEOS-FP '   // &
-                ' and MERRA-2. Please check your "input.geos" file.'
+                ' met field. Supported met fields are GEOS-FP, '   // &
+                ' MERRA-2 and ModelE2.1. Please check your "input.geos" file.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     END SELECT
@@ -704,37 +704,33 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL'          .and. &
-         TRIM(Sim) /= 'CH4'              .and. &
-         TRIM(Sim) /= 'CO2'              .and. &
-         TRIM(Sim) /= 'FULLCHEM'         .and. &
-         TRIM(Sim) /= 'HG'               .and. &
-         TRIM(Sim) /= 'POPS'             .and. &
-         TRIM(Sim) /= 'TRANSPORTTRACERS' .and. &
-         TRIM(Sim) /= 'TAGCO'            .and. &
-         TRIM(Sim) /= 'TAGCH4'           .and. &
-         TRIM(Sim) /= 'TAGHG'            .and. &
-         TRIM(Sim) /= 'TAGO3'            ) THEN
-       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      // &
-                ' valid simulation. Supported simulations are:'     // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'           // &
+    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
+         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
+         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
+         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
+         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
+         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
+       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
+                ' valid simulation. Supported simulations are:'           // &
+                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
                 ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
-    Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'              .or. &
-                                     TRIM(Sim) == 'TAGCH4'           )
-    Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              )
-    Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'FULLCHEM'         )
-    Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'               .or. &
-                                     TRIM(Sim) == 'TAGHG'            )
-    Input_Opt%ITS_A_POPS_SIM     = ( TRIM(Sim) == 'POPS'             )
-    Input_Opt%ITS_A_RnPbBe_SIM   = ( TRIM(Sim) == 'TRANSPORTTRACERS' )
-    Input_Opt%ITS_A_TAGO3_SIM    = ( TRIM(Sim) == 'TAGO3'            )
-    Input_Opt%ITS_A_TAGCO_SIM    = ( TRIM(Sim) == 'TAGCO'            )
-    Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOL'          )
+    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
+                                       TRIM(Sim) == 'TAGCH4'                )
+    Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
+    Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
+    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
+                                       TRIM(Sim) == 'TAGHG'                 )
+    Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
+    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
+    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
+    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
+    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
 
     !-----------------------------------------------------------------
     ! Species database file
@@ -997,9 +993,13 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Compute X grid dimension
-    State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / &
-                             State_Grid%DX )
+    ! Center on Int'l Date Line?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Center 180', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) State_Grid%Center180
 
     !-----------------------------------------------------------------
     ! Latitude range
@@ -1038,10 +1038,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! Compute Y grid dimension
-    State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / &
-                             State_Grid%DY ) + 1
 
     ! Use half-sized polar boxes?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Half Polar', RC )
@@ -1109,6 +1105,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Compute grid horizontal dimensions
+    State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / State_Grid%DX )
+    IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid ) THEN
+       State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / State_Grid%DY ) + 1
+    ELSE
+       State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / State_Grid%DY )
+    ENDIF
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -1122,7 +1126,7 @@ CONTAINS
                         TRIM( State_Grid%GridRes )
        WRITE( 6, 110 ) 'Min/max longitude           : ', &
                         State_Grid%XMin, State_Grid%XMax
-       WRITE( 6, 110 ) 'Min/max longitude           : ', &
+       WRITE( 6, 110 ) 'Min/max latitude            : ', &
                         State_Grid%YMin, State_Grid%YMax
        WRITE( 6, 120 ) 'X grid dimension            : ', &
                         State_Grid%NX
@@ -1132,6 +1136,8 @@ CONTAINS
                         State_Grid%NZ
        WRITE( 6, 130 ) 'Use half-sized polar boxes? : ', &
                         State_Grid%HalfPolar
+       WRITE( 6, 130 ) 'Center on Intl Date Line?   : ', &
+                        State_Grid%Center180
        WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', &
                         State_Grid%NestedGrid
        WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ', &
@@ -2205,15 +2211,15 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LCHEM
 
-    ! Turn on stratospheric chemistry?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSCHEM', RC )
+    ! Turn on linearized chemistry above chemistry grid?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LINEAR_CHEM', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LSCHEM
+    READ( SUBSTRS(1:N), * ) Input_Opt%LINEAR_CHEM
 
-    ! Use Linoz for stratospheric ozone? (Otherwise, Synoz is used)
+    ! Use Linoz for ozone above chemistry grid? (Otherwise, Synoz is used)
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LLINOZ', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2224,14 +2230,6 @@ CONTAINS
     ! Use Synoz if Linoz is turned off
     IF ( .not. Input_Opt%LLINOZ ) Input_Opt%LSYNOZ = .TRUE.
 
-    ! Turn on unified strat-trop chemistry?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LUCX', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LUCX
-
     ! Turn on online stratospheric H2O?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LACTIVEH2O', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2239,6 +2237,14 @@ CONTAINS
        RETURN
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LACTIVEH2O
+
+    ! Use static strat H2O boundary condition?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTATICH2OBC', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%LStaticH2OBC
 
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
@@ -2292,21 +2298,14 @@ CONTAINS
 
 #ifndef MODEL_GEOS
     ! Cannot use Synoz with linearized mesospheric chemistry
-    IF ( Input_Opt%LUCX .and. Input_Opt%LSCHEM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LINEAR_CHEM ) THEN
        IF (.not.Input_Opt%LLINOZ) THEN
-          ErrMsg = 'Cannot use Synoz with linearized meso. chem.!'
+          ErrMsg = 'Cannot use Synoz with linearized mesospheric chem.!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 #endif
-
-    ! Cannot have active H2O without stratospheric chemistry
-    IF ( (.not.Input_Opt%LUCX) .and. Input_Opt%LACTIVEH2O ) THEN
-       ErrMsg = 'Cannot have active H2O without full strat chem!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     ! FAST-JX is only used for fullchem and offline aerosol
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or. &
@@ -2357,14 +2356,14 @@ CONTAINS
        WRITE( 6, '(  a)' ) '--------------'
        WRITE( 6, 100     ) 'Turn on chemistry?          : ', &
                             Input_Opt%LCHEM
-       WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', &
-                            Input_Opt%LSCHEM
+       WRITE( 6, 100     ) 'Use linear. mesospheric chem: ', &
+                            Input_Opt%LINEAR_CHEM
        WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', &
                             Input_Opt%LLINOZ
-       WRITE( 6, 100     ) 'Enable UCX?                 : ', &
-                            Input_Opt%LUCX
        WRITE( 6, 100     ) 'Online strat. H2O?          : ', &
                             Input_Opt%LACTIVEH2O
+       WRITE( 6, 100     ) 'Use robust strat H2O BC?    : ', &
+                            Input_Opt%LStaticH2OBC
        WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ', &
                             Input_Opt%USE_ONLINE_O3
        WRITE( 6, 100     ) 'Ozone from met for FAST-JX? : ', &
@@ -3851,6 +3850,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
+	USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3933,7 +3933,26 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+	
+    IF ( N > 85 .AND. Input_Opt%amIRoot) THEN 
+	   WRITE( 6, '(/,a)' ) 'OBSPACK_MENU'
+       WRITE( 6, '(  a)' ) '----------------'
+       WRITE( 6, '(a)') 'WARNING: Too many ObsPack individual output species detected on one line input.'
+       WRITE( 6, '(a)') 'Consider using wildcard SpeciesConc_?ALL? to track all advected species.'  
+       CALL GEOS_CHEM_STOP
+    ENDIF
 
+    ! Test if there is an "?ALL" wildcard present as the FIRST substring
+    ! argument to the ObsPack output Species Line. 
+    IF ( N==1 .AND. INDEX( SUBSTRS(1) , '?ALL' ) >  0)  THEN
+      ! If wildcard for all species is requested then update the 
+      ! list of species to track to be the list of advected species 
+      SUBSTRS= Input_Opt%AdvectSpc_Name
+
+      ! And update the number of species to track with ObsPack as the # of advected species.  
+      N =Input_Opt%N_ADVECT			
+    ENDIF  
+	
     ! Populate the ObsPack species name list
     Input_Opt%ObsPack_nSpc = N
     DO S = 1, Input_Opt%ObsPack_nSpc
@@ -4130,7 +4149,7 @@ CONTAINS
                         TRIM( Input_Opt%ND51_FILE )
        WRITE( 6, 100 ) 'Output as HDF?              : ', &
                         Input_Opt%LND51_HDF
-       WRITE( 6, 120 ) 'ND41 timeseries tracers     : ',  &
+       WRITE( 6, 120 ) 'ND51 timeseries tracers     : ',  &
                         ( Input_Opt%ND51_TRACERS(N), N=1, &
                           Input_Opt%N_ND51 )
        WRITE( 6, 140 ) 'ND51 hour to write to disk  : ', &
@@ -4320,7 +4339,7 @@ CONTAINS
                         TRIM( Input_Opt%ND51b_FILE )
        WRITE( 6, 100 ) 'Output as HDF?               : ', &
                         Input_Opt%LND51b_HDF
-       WRITE( 6, 120 ) 'ND41 timeseries tracers      : ',  &
+       WRITE( 6, 120 ) 'ND51b timeseries tracers      : ',  &
                         ( Input_Opt%ND51b_TRACERS(N), N=1, &
                           Input_Opt%N_ND51b )
        WRITE( 6, 140 ) 'ND51b hour to write to disk  : ', &
@@ -5393,6 +5412,17 @@ CONTAINS
     TS_DYN  = Input_Opt%TS_DYN
     TS_RAD  = Input_Opt%TS_RAD
 
+    ! If we're doing the reverse integration
+    ! multiply all the timesteps by -1 here
+    if (TS_DYN < 0) THEN
+       TS_CHEM = TS_CHEM * -1
+       TS_EMIS = TS_EMIS * -1
+       TS_CONV = TS_CONV * -1
+       TS_DYN  = TS_DYN  * -1
+       TS_RAD  = TS_RAD  * -1
+    endif
+
+
     ! NUNIT is time step in minutes for unit conversion
     TS_UNIT = -1
 
@@ -5720,6 +5750,7 @@ CONTAINS
         MAX( Ind_('SO2' ,'A'), 0 ) + &
         MAX( Ind_('SO4' ,'A'), 0 ) + &
         MAX( Ind_('SO4s','A'), 0 ) + &
+        MAX( Ind_('HMS' ,'A'), 0 ) + &! (jmm, 07/2/18)        
         MAX( Ind_('MSA' ,'A'), 0 ) + &
         MAX( Ind_('NH3' ,'A'), 0 ) + &
         MAX( Ind_('NH4' ,'A'), 0 ) + &
@@ -5945,16 +5976,12 @@ CONTAINS
     !=================================================================
     ! Error check stratospheric H2O
     !=================================================================
-    IF ( Input_Opt%LUCX .and. Input_Opt%LSETH2O ) THEN
-       IF (Ind_('H2O') < 0 ) THEN
-          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-          WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F90: ' &
-               // 'H2O is set but H2O species is undefined.'
-          Input_Opt%LSETH2O = .FALSE.
-          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-       ENDIF
-    ELSE
+    IF ( Input_Opt%LSETH2O .and. Ind_('H2O') < 0 ) THEN
+       WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+       WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F90: ' &
+            // 'H2O is set but H2O species is undefined.'
        Input_Opt%LSETH2O = .FALSE.
+       WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
     ENDIF
 
   END SUBROUTINE DO_ERROR_CHECKS
