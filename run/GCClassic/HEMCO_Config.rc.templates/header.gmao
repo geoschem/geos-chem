@@ -2,4 +2,4 @@
 
 ROOT:                        ${RDI_DATA_ROOT}/HEMCO
 SCENARIO:                    HIST
-METDIR:                      ${RDI_DATA_ROOT}/GEOS_${RDI_GRID_DIR}/${RDI_MET}
+METDIR:                      ${RDI_MET_DIR}

@@ -54,7 +54,7 @@ Warnings:                    1
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
 #------------------------------------------------------------------------------
-1002    GC_POPs                : on    POPG_{POPs_SPC}/POPPOCPO_{POPs_SPC}/POPPBCPO_{POPs_SPC}
+1002    GC_POPs                : on    POPG_${RDI_POP_SPC}/POPPOCPO_${RDI_POP_SPC}/POPPBCPO_${RDI_POP_SPC}
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -80,8 +80,8 @@ Warnings:                    1
 # --- GEOS-Chem POPs emissions (Extension 1002) ---
 #==============================================================================
 (((GC_POPs
-1002 TOT_POP     $ROOT/POPs/v2015-08/{POPs_SPC}_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
-1002 SURF_POP    $ROOT/POPs/v2015-08/{POPs_SPC}_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
+1002 TOT_POP     $ROOT/POPs/v2015-08/${RDI_POP_SPC}_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
+1002 SURF_POP    $ROOT/POPs/v2015-08/${RDI_POP_SPC}_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
 1002 SOIL_CARBON $ROOT/POPs/v2015-08/GTMM_carbon.generic.1x1.nc     SOIL_CARBON    1985/1/1/0         C xy  1       * - 1 1
 {GLOBAL_OC}
 {GLOBAL_BC}

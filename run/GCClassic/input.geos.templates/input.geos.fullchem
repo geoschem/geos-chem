@@ -8,7 +8,7 @@ Met field               : ${RDI_MET}
 Simulation name         : ${RDI_SIM_NAME}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
-Use GC classic timers?  : F
+Use GC classic timers?  : ${RDI_USE_GCCLASSIC_TIMERS}
 ------------------------+------------------------------------------------------
 %%% GRID MENU %%%       :
 Grid resolution         : ${RDI_GRID_RES}
@@ -21,8 +21,8 @@ Nested grid simulation? : ${RDI_GRID_NESTED_SIM}
  Buffer zone (N S E W ) : ${RDI_GRID_BUFFER_ZONE}
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
-Tran/conv timestep [sec]: 600
-Chem/emis timestep [sec]: 1200
+Tran/conv timestep [sec]: ${RDI_TRANSPORT_TS}
+Chem/emis timestep [sec]: ${RDI_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : ACET

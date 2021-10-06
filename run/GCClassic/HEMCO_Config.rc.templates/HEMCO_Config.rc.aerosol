@@ -122,7 +122,7 @@ Warnings:                    1
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS
 105     DustDead               : {ONLINE}   DST1/DST2/DST3/DST4
-    --> Mass tuning factor     :       {DEAD_TF}
+    --> Mass tuning factor     :       ${RDI_DUSTDEAD_TF}
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : {ONLINE}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
