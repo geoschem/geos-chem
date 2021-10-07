@@ -822,10 +822,9 @@ CONTAINS
                         KaqHMS  = KaqHMS,                                    &
                         KaqHMS2 = KaqHMS2                                   )
 
-       ! Compute rxn rate in cloudy part of grid box [1/s]
-       K_CLD(1) = KaqH2O2*FC*CVFAC ! v/v/s --> cm3/mcl/s
-       K_CLD(2) = KaqO3*FC*CVFAC ! v/v/s --> cm3/mcl/s
-       K_CLD(3) = KaqO2*FC ! 1/s
+       K_CLD(1) = KaqH2O2 * FC * CVFAC   ! v/v/s --> cm3/mcl/s
+       K_CLD(2) = KaqO3   * FC * CVFAC   ! v/v/s --> cm3/mcl/s
+       K_CLD(3) = KaqO2   * FC           ! 1/s
        ! vvvvvv Hold off using CloudHet2R until after initial S-chem benchmark
        !        -- MSL
        !K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )

@@ -155,7 +155,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug,   IsLocNoon, Size_Res
+    LOGICAL                :: prtDebug,   IsLocNoon, Size_Res, Failed2x
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
@@ -214,6 +214,7 @@ CONTAINS
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
     Thread    =  1
+    Failed2x  = .FALSE.
 
     ! Set a switch that allows you to toggle off photolysis for testing
     ! (default value : TRUE)
@@ -346,7 +347,7 @@ CONTAINS
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> Aerosol chem", RC )
-       CALL Timer_Start( "=> FlexChem",   RC )
+       CALL Timer_Start( "=> FlexChem",     RC )
     ENDIF
 
     !========================================================================
@@ -558,6 +559,8 @@ CONTAINS
        SR        = 0.0_fp                   ! Enhancement to O2 catalysis rate
        LWC       = 0.0_fp                   ! Liquid water content
        SIZE_RES  = .FALSE.                  ! Size resolved calculation?
+       K_CLD     = 0.0_dp                   ! Sulfur in-cloud rxn het rates
+       K_MT      = 0.0_dp                   ! Sulfur sea salt rxn het rates
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
@@ -587,9 +590,12 @@ CONTAINS
        !=====================================================================
        IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
 
+          ! Start timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> Photolysis rates", RC, &
-                               InLoop=.TRUE., ThreadNum=Thread )
+             CALL Timer_Start( TimerName = "  -> Photolysis rates",          &
+                               InLoop    = .TRUE.,                           &
+                               ThreadNum = Thread,                           &
+                               RC        = RC                               )
           ENDIF
 
           ! Get the fraction of H2SO4 that is available for photolysis
@@ -691,9 +697,12 @@ CONTAINS
              ENDIF
           ENDDO
 
+          ! Stop timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "  -> Photolysis rates", RC, &
-                             InLoop=.TRUE., ThreadNum=Thread )
+             CALL Timer_End( TimerName = "  -> Photolysis rates",            &
+                             InLoop    = .TRUE.,                             &
+                             ThreadNum = Thread,                             &
+                             RC        = RC                                 )
           ENDIF
        ENDIF
 
@@ -723,17 +732,32 @@ CONTAINS
        ENDDO
 
        !=====================================================================
+       ! Start KPP main timer
+       !=====================================================================
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( TimerName = "  -> KPP",                          &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
+       ENDIF
+
+       !=====================================================================
        ! Update reaction rates [1/s] for sulfur chemistry in cloud and on
        ! seasalt.  These will be passed to the KPP chemical solver.
        !
        ! NOTE: This has to be done before Set_Kpp_Gridbox_Values so that
        ! State_Chm%HSO3_aq and State_Chm%SO3_aq will be populated properly!
        !=====================================================================
+
+       ! Start timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread)
+          CALL Timer_Start( TimerName = "     RCONST",                       &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
        ENDIF
 
-       ! Compute reaction rates [1/s]
+       ! Compute sulfur chemistry reaction rates [1/s]
        CALL Set_Sulfur_Chem_Rates( I          = I,                           &
                                    J          = J,                           &
                                    L          = L,                           &
@@ -745,16 +769,24 @@ CONTAINS
                                    SIZE_RES   = SIZE_RES,                    &
                                    RC         = RC                          )
 
+       ! Stop timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_End( TimerName = "     RCONST",                         &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        = RC                                    )
        ENDIF
 
        !=====================================================================
        ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
        !=====================================================================
+
+       ! Start timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "  -> Init KPP", RC,                             &
-                            InLoop=.TRUE.,   ThreadNum=Thread               )
+          CALL Timer_Start( TimerName = "  -> Init KPP",                     &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        =  RC                                 )
        ENDIF
 
        ! Initialize KPP for this grid box
@@ -771,9 +803,12 @@ CONTAINS
                                     State_Met  = State_Met,                  &
                                     RC         = RC                         )
 
+       ! Stop timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End  ( "  -> Init KPP", RC,                             &
-                            InLoop=.TRUE.,   ThreadNum=Thread               )
+          CALL Timer_End( TimerName =  "  -> Init KPP",                      &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        =  RC                                   )
        ENDIF
 
        !=====================================================================
@@ -791,6 +826,14 @@ CONTAINS
        ! (5) Liquid water content is nonzero
        !=====================================================================
        IF ( State_Met%CLDF(I,J,L) > 1.0e-4_fp ) THEN
+
+          ! Start timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( TimerName = "     RCONST",                    &
+                               InLoop    = .TRUE.,                           &
+                               ThreadNum = Thread,                           &
+                               RC        =  RC                              )
+          ENDIF
 
           ! Liquid water content (same formula from the old sulfate_mod.F90)
           LWC = ( State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L)              &
@@ -815,16 +858,21 @@ CONTAINS
              K_CLD(3) = K_CLD(3) + SR
 
           ENDIF
+
+          ! Stop timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( TimerName = "     RCONST",                       &
+                             InLoop    = .TRUE.,                              &
+                             ThreadNum = Thread,                              &
+                             RC        =  RC                                 )
+          ENDIF
        ENDIF
 
        !=====================================================================
        ! Start KPP main timer and prepare arrays
        !=====================================================================
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "  -> KPP", RC, InLoop=.TRUE., ThreadNum=Thread )
-       ENDIF
 
-       ! Zero out dummy species index in KPP after call to SET_HET
+       ! Zero out dummy species index in KPP
        DO F = 1, NFAM
           KppID = PL_Kpp_Id(F)
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
@@ -838,15 +886,24 @@ CONTAINS
        !=====================================================================
        ! Update reaction rates
        !=====================================================================
+
+       ! Start timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread)
+          CALL Timer_Start( TimerName = "     RCONST",                       &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        =  RC                                 )
        ENDIF
 
        ! Update the array of rate constants
        CALL Update_RCONST( )
 
+       ! Stop timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "     RCONST", RC, InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_End( TimerName = "     RCONST",                         &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        =  RC                                   )
        ENDIF
 
        !=====================================================================
@@ -881,18 +938,25 @@ CONTAINS
        !=====================================================================
        ! Integrate the box forwards
        !=====================================================================
+
+       ! Start timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( "     Integrate 1", RC,                          &
-                            InLoop=.TRUE.,      ThreadNum=Thread            )
+          CALL Timer_Start( TimerName = "     Integrate 1",                  &
+                            InLoop    =  .TRUE.,                             &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
        ENDIF
 
        ! Call the KPP integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
+       ! Stop timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "     Integrate 1", RC,                            &
-                          InLoop=.TRUE.,      ThreadNum=Thread              )
+          CALL Timer_End( TimerName = "     Integrate 1",                    &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        = RC                                    )
        ENDIF
 
        ! Print grid box indices to screen if integrate failed
@@ -972,18 +1036,24 @@ CONTAINS
           ! Update rates again
           CALL Update_RCONST( )
 
+          ! Start timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "     Integrate 2", RC,                         &
-                             InLoop=.TRUE.,      ThreadNum=Thread           )
+             CALL Timer_Start( TimerName = "     Integrate 2",               &
+                               InLoop    =  .TRUE.,                          &
+                               ThreadNum = Thread,                           &
+                               RC        = RC                               )
           ENDIF
 
           ! Integrate again
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
 
+          ! Stop timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "     Integrate 2", RC,                         &
-                             InLoop=.TRUE.,      ThreadNum=Thread           )
+             CALL Timer_End( TimerName = "     Integrate 2",                 &
+                             InLoop    =  .TRUE.,                            &
+                             ThreadNum = Thread,                             &
+                             RC        = RC                                 )
           ENDIF
 
           !==================================================================
@@ -1059,7 +1129,20 @@ CONTAINS
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
-              CALL ERROR_STOP( ERRMSG, 'INTEGRATE_KPP' )
+             ! Set a flag to break out of loop gracefully
+             ! NOTE: You can set a GDB breakpoint here to examine the error
+             !$OMP CRITICAL
+             Failed2x = .TRUE.
+             ! Debug output, can uncomment
+             !DO N = 1, NSPEC
+             !   print*, C(N), TRIM(SPC_NAMES(N))
+             !ENDDO
+             !print*, '----'
+             !DO N = 1, NREACT
+             !   print*, RCONST(N), TRIM(ADJUSTL(EQN_NAMES(N)))
+             !ENDDO
+             !$OMP END CRITICAL
+
 #endif
           ENDIF
 
@@ -1105,9 +1188,18 @@ CONTAINS
        ENDDO
 
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "  -> KPP", RC, InLoop=.TRUE., ThreadNum=Thread   )
-          CALL Timer_Start( "  -> Prod/loss diags", RC,                      &
-                            InLoop=.TRUE.,          ThreadNum=Thread        )
+
+          ! Stop main KPP timer
+          CALL Timer_End( TimerName  = "  -> KPP",                           &
+                          InLoop     = .TRUE.,                               &
+                          ThreadNum  = Thread,                               &
+                          RC         = RC                                   )
+
+          ! Start Prod/Loss timer
+          CALL Timer_Start( TimerName = "  -> Prod/loss diags",              &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
        ENDIF
 
 #ifdef BPCH_DIAG
@@ -1132,7 +1224,7 @@ CONTAINS
              ! Hard-coded MW
              H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
                                  State_Met%AIRVOL(I,J,L)  * &
-                                 1e+6_fp / DT
+                                 1.0e+6_fp / DT
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
               write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
@@ -1203,9 +1295,12 @@ CONTAINS
 
        ENDIF
 
+       ! Stop Prod/Loss timer
        IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End  ( "  -> Prod/loss diags", RC, &
-                            InLoop=.TRUE., ThreadNum=Thread )
+          CALL Timer_End( TimerName =  "  -> Prod/loss diags",               &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        = RC                                    )
        ENDIF
 
        !====================================================================
@@ -1216,15 +1311,25 @@ CONTAINS
        ! all OH reactants (ckeller, 9/20/2017)
        !====================================================================
        IF ( State_Diag%Archive_OHreactivity ) THEN
+
+          ! Start timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "  -> OH reactivity diag", RC, &
-                               InLoop=.TRUE., ThreadNum=Thread )
+             CALL Timer_Start( TimerName = "  -> OH reactivity diag",        &
+                               InLoop    = .TRUE.,                           &
+                               ThreadNum = Thread,                           &
+                               RC        = RC                               )
           ENDIF
+
+          ! Archive OH reactivity diagnostic
           CALL Get_OHreactivity ( C, RCONST, OHreact )
           State_Diag%OHreactivity(I,J,L) = OHreact
+
+          ! Stop timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "  -> OH reactivity diag", RC, &
-                             InLoop=.TRUE., ThreadNum=Thread )
+             CALL Timer_End( TimerName = "  -> OH reactivity diag",          &
+                             InLoop    = .TRUE.,                             &
+                             ThreadNum = Thread,                             &
+                             RC        = RC                                 )
           ENDIF
        ENDIF
     ENDDO
@@ -1232,10 +1337,12 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Stop timer
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End( "  -> FlexChem loop", RC )
     ENDIF
 
+    ! Compute sum of in-loop timers
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_Sum_Loop( "  -> Init KPP",            RC )
        CALL Timer_Sum_Loop( "  -> Het chem rates",      RC )
@@ -1246,6 +1353,16 @@ CONTAINS
        CALL Timer_Sum_Loop( "     Integrate 2",         RC )
        CALL Timer_Sum_Loop( "  -> Prod/loss diags",     RC )
        CALL Timer_Sum_Loop( "  -> OH reactivity diag",  RC )
+    ENDIF
+
+    !=======================================================================
+    ! Return gracefully if integration failed 2x anywhere
+    ! (as we cannot break out of a parallel DO loop!)
+    !=======================================================================
+    IF ( Failed2x ) THEN
+       ErrMsg = 'KPP failed to converge after 2 iterations!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     !=======================================================================
@@ -1299,11 +1416,10 @@ CONTAINS
        RETURN
     ENDIF
 
-    !---------------------------------     -----------------------------------
-    ! If using stratospheric chemistry, applying high-altitude
-    ! active nitrogen partitioning and H2SO4 photolysis
-    ! approximations  outside the chemgrid
-    !--------------------------------------------------------------------
+    !=======================================================================
+    ! Apply high-altitude active nitrogen partitioning and H2SO4
+    ! photolysis approximations outside the chemistry grid
+    !=======================================================================
     CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
@@ -1459,6 +1575,11 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    SIZE_RES = .FALSE.
+
     !========================================================================
     ! Do this when KPP is handling aqueous sulfur chemistry
     !
@@ -1530,18 +1651,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HET_DROP_CHEM( I, J, L, SR, Input_Opt, State_Met, State_Chm )
+  SUBROUTINE Het_Drop_Chem( I, J, L, SR, Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
     USE FullChem_RateLawFuncs
     USE gckpp_Global
     USE gckpp_Parameters
+    USE gckpp_Precision
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW, AVO, PI, g0
     USE State_Chm_Mod,      ONLY : ChmState, IND_
     USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE rateLawUtilFuncs,   ONLY : SafeExp
+    USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -1565,31 +1688,38 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL(fp), PARAMETER   :: SS_DEN = 2200.e+0_fp !dry sea-salt density [kg/m3]
+    ! Dry sea-salt density [kg/m3]
+    REAL(dp), PARAMETER   :: SS_DEN        = 2200.0_dp
 
     ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
-    REAL(fp), PARAMETER   :: SIG_S = 1.8e+0_fp
+    REAL(fp), PARAMETER   :: SIG_S         = 1.8e+0_dp
 
     ! geometric dry mean diameters [m] for computing lognormal size distribution
-    REAL(fp), PARAMETER   :: RG_S = 0.4e-6_fp !(Jaegle et a., 2011)
-    REAL(fp), PARAMETER   :: RG_D2 = 1.5e-6_fp!(Ginoux et al., 2001)
-    REAL(fp), PARAMETER   :: RG_D3 = 2.5e-6_fp
-    REAL(fp), PARAMETER   :: RG_D4 = 4.e-6_fp
+    REAL(dp), PARAMETER   :: RG_S          = 0.4e-6_dp !(Jaegle et a., 2011)
+    REAL(dp), PARAMETER   :: RG_D2         = 1.5e-6_dp !(Ginoux et al., 2001)
+    REAL(dp), PARAMETER   :: RG_D3         = 2.5e-6_dp
+    REAL(dp), PARAMETER   :: RG_D4         = 4.e-6_dp
+
+    ! To prevent multiple divisions
+    REAL(dp), PARAMETER   :: THREE_FOURTHS = 3.0_dp / 4.0_dp
+    REAL(dp), PARAMETER   :: NINE_HALVES   = 9.0_dp / 2.0_dp
+
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)              :: alpha_NH3, alpha_SO2, alpha_H2O2
-    REAL(fp)              :: alpha_HNO3, alpha_B, alpha_CN
-    REAL(fp)              :: alpha_W, alpha_SO4, sum_gas, H
-    REAL(fp)              :: NDss, NDd2, NDd3, NDd4, CN, DEN, REFF, W
-    REAL(fp)              :: DTCHEM, APV, DSVI
-    REAL(fp)              :: B, NH3, SO2, H2O2, HNO3, SO4
-    REAL(fp)              :: CNss, CNd2, CNd3, CNd4
-    REAL(fp)              :: MW_SO4, MW_SALC
+    REAL(dp)              :: alpha_NH3, alpha_SO2, alpha_H2O2
+    REAL(dp)              :: alpha_HNO3, alpha_B, alpha_CN
+    REAL(dp)              :: alpha_W, alpha_SO4, sum_gas, H
+    REAL(dp)              :: NDss, NDd2, NDd3, NDd4, CN, DEN, REFF, W
+    REAL(dp)              :: DTCHEM, APV, DSVI
+    REAL(dp)              :: B, NH3, SO2, H2O2, HNO3, SO4
+    REAL(dp)              :: CNss, CNd2, CNd3, CNd4
+    REAL(dp)              :: MW_SO4, MW_SALC
 
-    REAL(fp)               :: CVF, R1, R2, XX, FC, LST, CVF_FC
-    REAL(fp)               :: XX1, XX2, XX3, XX4, XX5
-    REAL(fp)               :: SSCvv, aSO4, GNH3, SO2_sr, H2O20, GNO3
+    REAL(dp)              :: CVF, R1, R2, XX, FC, LST, CVF_FC
+    REAL(dp)              :: XX1, XX2, XX3, XX4, XX5
+    REAL(dp)              :: SSCvv, aSO4, GNH3, SO2_sr, H2O20, GNO3
+    REAL(dp)              :: Arg
 
     ! Pointers
     REAL(fp), POINTER     :: AD(:,:,:)
@@ -1613,8 +1743,11 @@ CONTAINS
 
     ! Convert mcl/cm3 back to v/v
     CVF    =  1.0e3_fp * AIRMW / ( AIRDEN(I,J,L) * AVO )
-    FC     =  State_Met%CLDF(I,J,L)
     DTCHEM =  GET_TS_CHEM()
+
+    ! FC is guaranteed to be > 1e-4, because HET_DROP_CHEM
+    ! is not called otherwise (bmy, 07 Oct 2021)
+    FC     =  State_Met%CLDF(I,J,L)
 
     !! <<>> SET THE INPUT UNITS! EITHER CONVERT IN THE ROUTINE OR
     !! <<>> CONVERT BEFOREHAND. BUT EVERYTHING IS CURRENTLY mcl/cm3
@@ -1625,34 +1758,70 @@ CONTAINS
     ! computed with KPP-based variables. HET_DROP_CHEM()
     ! could use some attention to make is consistent with
     ! KPP.
+    !
+    ! NOTE: Use function SafeExp, which will prevent the exponential from
+    ! blowing up.  Also if the entire expression will evaluate to zero
+    ! (i.e. if K_CLD is zero), then skip the exponential, as this is
+    ! more computationally efficient. (bmy, 07 Oct 2021)
+
+    ! SO2 + H2O2
     R1  = C(ind_SO2)  * CVF
     R2  = C(ind_H2O2) * CVF
-    XX  = EXP( ( R1 - R2 ) * ( K_CLD(1) / CVF / FC ) * DTCHEM )
-    XX1 = ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 )
+    XX  = 0.0_dp
+    Arg = R1 - R2
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx1: big/small arg! ', arg
+    IF ( K_CLD(1) > 0 ) THEN
+       XX = SafeExp( Arg, 0.0_dp ) * ( ( K_CLD(1) / CVF / FC ) * DTCHEM )
+    ENDIF
+    XX1 = ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 )
 
+    ! SO2 + O3
     R2  = C(ind_O3) * CVF
-    XX  = EXP( ( R1 - R2 ) * ( K_CLD(2) / CVF / FC ) * DTCHEM)
-    XX2 = ( R1 * R2 ) *( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 )
+    XX  = 0.0_dp
+    Arg = R1 - R2
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx2: big/small arg! ', arg
+    IF ( K_CLD(2) > 0.0_dp ) THEN
+       XX = SafeExp( Arg, 0.0_dp ) * ( ( K_CLD(2) / CVF / FC ) * DTCHEM )
+    ENDIF
+    XX2 = ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 )
 
-    XX  = EXP( ( -K_CLD(3) / FC ) * DTCHEM )
-    XX3 = R1 * ( 1.0_fp -XX )
+    ! XX3 rate
+    ARG = -K_CLD(3) / FC
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx3: big/small arg! ', arg
+    XX  = SafeExp( Arg, 0.0_dp ) * DTCHEM
+    XX3 = R1 * ( 1.0_dp - XX )
 
+    ! HSO3m + HOCl and SO3mm + HOCl
     R1  = C(ind_HSO3m) * CVF
     R2  = C(ind_HOCl)  * CVF
-    XX  = EXP( R1 - R2 ) * ( HOClUptkByHSO3m(State_Het) / CVF * DTCHEM )
-    XX4 = ( R1 *R2 )  * ( XX - 1.0_fp ) / ( ( R1 * XX )  - R2 )
-    R1  = C(ind_SO3mm) * CVF
-    XX  = EXP( R1 - R2 ) * ( HOClUptkBySO3mm(State_Het) / CVF * DTCHEM )
-    XX4 = XX4+ ( ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 ) )
+    Arg = R1 - R2
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx41: big/small arg! ', arg
+    XX  = SafeExp( Arg, 0.0_dp ) * ( HOClUptkByHSO3m(State_Het) / CVF * DTCHEM )
+    XX4 = ( R1 * R2 )  * ( XX - 1.0_dp ) / ( ( R1 * XX )  - R2 )
 
+    ! SO3mm + HOCl (add to HSO3m + HOCl rate)
+    R1  = C(ind_SO3mm) * CVF
+    Arg = R1 - R2
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx42: big/small arg! ', arg
+    XX  = SafeExp( Arg, 0.0_dp ) * ( HOClUptkBySO3mm(State_Het) / CVF * DTCHEM )
+    XX4 = XX4 + ( ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 ) )
+
+    ! HSO3m + HOBr
     R1  = C(ind_HSO3m) * CVF
     R2  = C(ind_HOBr)  * CVF
-    XX  = EXP( R1 - R2 ) * ( HOBrUptkByHSO3m(State_Het) / CVF * DTCHEM )
+    Arg = R1 - R2
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx51: big/small arg! ', arg
+    XX  = SafeExp( Arg, 0.0_dp ) * ( HOBrUptkByHSO3m(State_Het) / CVF * DTCHEM )
     XX5 = ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 )
-    R1  = C(ind_SO3mm) * CVF
-    XX  = EXP( R1 - R2 ) * ( HOBrUptkBySO3mm(State_Het) / CVF * DTCHEM )
-    XX5 = XX5 + ( (R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 ) )
 
+    ! SO3mm + HOBr (add to HSO3m + HOBr rate)
+    R1  = C(ind_SO3mm) * CVF
+    Arg = R1 - R2
+    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx52: big/small arg! ', arg
+    XX  = SafeExp( Arg, 0.0_dp ) * ( HOBrUptkBySO3mm(State_Het) / CVF * DTCHEM )
+    XX5 = XX5 + ( ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 ) )
+
+    ! Sum of all rates
     LST = XX1 + XX2 + XX3 + XX4 + XX5
 
     !### Debug print
@@ -1661,31 +1830,31 @@ CONTAINS
     !ENDIF
 
     IF ( LST > R1 ) THEN
-       XX1 = R1 *XX1 / LST
-       XX2 = R1 *XX2 / LST
-       XX3 = R1 *XX3 / LST
-       XX4 = R1 *XX4 / LST
-       XX5 = R1 *XX5 / LST
+       XX1 = R1 * XX1 / LST
+       XX2 = R1 * XX2 / LST
+       XX3 = R1 * XX3 / LST
+       XX4 = R1 * XX4 / LST
+       XX5 = R1 * XX5 / LST
        LST = XX1 + XX2 + XX3 + XX4 + XX5
      ENDIF
 
     ! Convert gas phase concentrations from [v/v] to [pptv]
-    NH3  = State_Chm%Species(I,J,L,id_NH3) * CVF * 1.0e+12_fp
-    SO2  = MAX( C(ind_SO2) * CVF - ( LST*FC ), 1.0e-20_fp ) * 1.0e+12_fp
-    H2O2 = C(ind_H2O2)* CVF * 1.0e12_fp
-    HNO3 = C(ind_HNO3)* CVF * 1.0e12_fp
+    NH3  = State_Chm%Species(I,J,L,id_NH3) * CVF * 1.0e+12_dp
+    SO2  = MAX( C(ind_SO2) * CVF - ( LST*FC ), 1.0e-20_dp ) * 1.0e+12_dp
+    H2O2 = C(ind_H2O2)* CVF * 1.0e12_dp
+    HNO3 = C(ind_HNO3)* CVF * 1.0e12_dp
 
     ! Set molecular weight local variables
     MW_SO4  = State_Chm%SpcData(id_SO4)%Info%MW_g
     MW_SALC = State_Chm%SpcData(id_SALC)%Info%MW_g
 
     ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
-    SO4 = ( C(ind_SO4) * CVF * AD(I,J,L) * 1.0e+9_fp ) /                     &
+    SO4 = ( C(ind_SO4) * CVF * AD(I,J,L) * 1.0e+9_dp ) /                     &
           ( ( AIRMW / MW_SO4 ) * AIRVOL(I,J,L) )
 
     ! Convert in cloud sulfate production rate from [v/v/timestep] to
     ! [ug/m3/timestep]
-    B  = ( LST * AD(I,J,L) * 1.0e+9_fp ) /                                   &
+    B  = ( LST * AD(I,J,L) * 1.0e+9_dp ) /                                   &
          ( ( AIRMW / MW_SO4 ) * AIRVOL(I,J,L) )
 
     ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
@@ -1696,56 +1865,57 @@ CONTAINS
 
     ! Now convert from [kg/m3 air] to [#/cm3 air]
     ! Sea-salt
-    NDss = ( ( 3.0_fp / 4.0_fp ) * CNss )                                    &
-         / ( PI * SS_DEN * RG_S**3.0_fp                                      &
-         * EXP( ( 9.0_fp / 2.0_fp ) * (LOG(SIG_S)) ** 2.0_fp ) ) * 1.e-6_fp
+    ARG  = NINE_HALVES * ( LOG( SIG_S ) )**2.0_dp
+    NDss = ( THREE_FOURTHS * CNss                                )           &
+         / ( PI * SS_DEN * RG_S**3.0_fp * SafeExp( Arg, 0.0_dp ) )           &
+         * 1.e-6_dp
 
     ! Total coarse mode number concentration [#/cm3]
     CN = NDss ! sea-salt
 
     ! Determine regression coefficients based on the local SO2 concentration
-    IF ( SO2 <= 200.0e+0_fp ) THEN
-       alpha_B    =  0.5318_fp
-       alpha_NH3  = -1.67e-7_fp
-       alpha_SO2  =  2.59e-6_fp
-       alpha_H2O2 = -1.77e-7_fp
-       alpha_HNO3 = -1.72e-7_fp
-       alpha_W    =  1.22e-6_fp
-       alpha_CN   =  4.58e-6_fp
-       alpha_SO4  = -1.00e-5_fp
-    ELSE IF ( SO2 > 200.0e+0_fp .and. SO2 <= 500.0e+0_fp ) THEN
-       alpha_B    =  0.5591_fp
-       alpha_NH3  =  3.62e-6_fp
-       alpha_SO2  =  1.66e-6_fp
-       alpha_H2O2 =  1.06e-7_fp
-       alpha_HNO3 = -5.45e-7_fp
-       alpha_W    = -5.79e-7_fp
-       alpha_CN   =  1.63e-5_fp
-       alpha_SO4  = -7.40e-6_fp
-    ELSE IF ( SO2 > 500.0e+0_fp .and. SO2 < 1000.0e+0_fp ) THEN
-       alpha_B    =  1.1547_fp
-       alpha_NH3  = -4.28e-8_fp
-       alpha_SO2  = -1.23e-7_fp
-       alpha_H2O2 = -9.05e-7_fp
-       alpha_HNO3 =  1.73e-7_fp
-       alpha_W    =  7.22e-6_fp
-       alpha_CN   =  2.44e-5_fp
-       alpha_SO4  =  3.25e-5_fp
-    ELSE IF ( SO2 >= 1000.0e+0_fp ) THEN
-       alpha_B    =  1.1795_fp
-       alpha_NH3  =  2.57e-7_fp
-       alpha_SO2  = -5.54e-7_fp
-       alpha_H2O2 = -1.08e-6_fp
-       alpha_HNO3 =  1.95e-6_fp
-       alpha_W    =  6.14e-6_fp
-       alpha_CN   =  1.64e-5_fp
-       alpha_SO4  =  2.48e-6_fp
+    IF ( SO2 <= 200.00_fp ) THEN
+       alpha_B    =  0.5318_dp
+       alpha_NH3  = -1.67e-7_dp
+       alpha_SO2  =  2.59e-6_dp
+       alpha_H2O2 = -1.77e-7_dp
+       alpha_HNO3 = -1.72e-7_dp
+       alpha_W    =  1.22e-6_dp
+       alpha_CN   =  4.58e-6_dp
+       alpha_SO4  = -1.00e-5_dp
+    ELSE IF ( SO2 > 200.00_dp .and. SO2 <= 500.0_dp ) THEN
+       alpha_B    =  0.5591_dp
+       alpha_NH3  =  3.62e-6_dp
+       alpha_SO2  =  1.66e-6_dp
+       alpha_H2O2 =  1.06e-7_dp
+       alpha_HNO3 = -5.45e-7_dp
+       alpha_W    = -5.79e-7_dp
+       alpha_CN   =  1.63e-5_dp
+       alpha_SO4  = -7.40e-6_dp
+    ELSE IF ( SO2 > 500.0_dp .and. SO2 < 1000.0_dp ) THEN
+       alpha_B    =  1.1547_dp
+       alpha_NH3  = -4.28e-8_dp
+       alpha_SO2  = -1.23e-7_dp
+       alpha_H2O2 = -9.05e-7_dp
+       alpha_HNO3 =  1.73e-7_dp
+       alpha_W    =  7.22e-6_dp
+       alpha_CN   =  2.44e-5_dp
+       alpha_SO4  =  3.25e-5_dp
+    ELSE IF ( SO2 >= 1000.0_dp ) THEN
+       alpha_B    =  1.1795_dp
+       alpha_NH3  =  2.57e-7_dp
+       alpha_SO2  = -5.54e-7_dp
+       alpha_H2O2 = -1.08e-6_dp
+       alpha_HNO3 =  1.95e-6_dp
+       alpha_W    =  6.14e-6_dp
+       alpha_CN   =  1.64e-5_dp
+       alpha_SO4  =  2.48e-6_dp
     ENDIF
 
     ! Updraft velocity over the oceans [cm/s]
     ! 500 cm/s is too high. Get W from the met field. (qjc, 04/10/16)
     !W = 500e+0_fp
-    W = -OMEGA(I,J,L) / ( AIRDEN(I,J,L) * g0 ) * 100e+0_fp
+    W = -OMEGA(I,J,L) / ( AIRDEN(I,J,L) * g0 ) * 100e+0_dp
 
     ! Compute H (integration time interval * air parcel velocity) [m]
     ! DTCHEM is the chemistry timestep in seconds
@@ -1754,28 +1924,28 @@ CONTAINS
     !APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) )
     !(qjc, 04/10/16)
     APV = SQRT( ( U(I,J,L) * U(I,J,L) ) + ( V(I,J,L) * V(I,J,L) ) +          &
-                 W * W * 1.0e-4_fp )
+                 W * W * 1.0e-4_dp )
 
     H   = DTCHEM * APV          ![m]
 
     sum_gas = ( alpha_NH3  * NH3  ) + ( alpha_SO2  * SO2  ) +                &
               ( alpha_H2O2 * H2O2 ) + ( alpha_HNO3 * HNO3 )
 
-    DSVI = ( alpha_B * B ) + &
-           ( ( (alpha_CN * CN) + (alpha_W * W) + (alpha_SO4 * SO4) +         &
+    DSVI = ( alpha_B * B ) +                                                 &
+           ( ( ( alpha_CN * CN) + ( alpha_W * W ) + ( alpha_SO4 * SO4 ) +    &
                 sum_gas ) * H )
 
     ! Only calculate SR when air parcel rises, in consistence with
     ! Yuen et al. (1996) (qjc, 04/10/16)
-    SR = 0.0_fp
-    IF ( W > 0e+0_fp ) THEN
+    SR = 0.0_dp
+    IF ( W > 0.0_dp ) THEN
 
        ! additional sulfate production that can be attributed to
        ! ozone [ug/m3/timestep]
        SR = DSVI - B
 
        ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-       SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_fp / AIRDEN(I,J,L)
+       SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_dp / AIRDEN(I,J,L)
 
        ! Don't allow SR to be negative
        SR = MAX( SR, 0.e+0_fp )
@@ -1783,7 +1953,7 @@ CONTAINS
        ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
        ! -- SR is dSO4/timestep (v/v) convert
        !    to 1st order rate
-       SR = MIN( SR, SO2/1.0e12_fp ) / ( C(ind_SO2) * CVF * DT )
+       SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
 
     ENDIF
 
