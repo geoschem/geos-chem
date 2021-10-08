@@ -49,8 +49,7 @@ envsubst_list="$(printf '${%s} ' $variables)"
 
 COPY_LIST="""
 input.nml
-logging.yaml
-HISTORY.rc.templates/HISTORY.rc.${RDI_SIM_NAME}
+logging.yml
 HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RDI_SIM_NAME}
 """
 
@@ -60,6 +59,7 @@ ExtData.rc.templates/ExtData.rc.${RDI_SIM_NAME}
 GCHP.rc.template
 input.geos.templates/input.geos.${RDI_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RDI_SIM_NAME}
+HISTORY.rc.templates/HISTORY.rc.${RDI_SIM_NAME}
 CAP.rc.template
 """
 

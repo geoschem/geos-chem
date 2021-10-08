@@ -88,7 +88,7 @@ Duration="${RDI_SIM_DUR_YYYYMMDD} ${RDI_SIM_DUR_HHmmSS}"
 #------------------------------------------------
 #    Initial restart file
 #------------------------------------------------
-INITIAL_RESTART=initial_GEOSChem_rst.c${RDI_CS_RES}_${RDI_SIM_NAME}.nc
+INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_${RDI_SIM_NAME}.nc
 #
 # By default the linked restart files in the run directories will be 
 # used. You can specify a custom initial restart file by overwriting the

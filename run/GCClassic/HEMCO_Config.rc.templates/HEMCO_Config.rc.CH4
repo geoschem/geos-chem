@@ -24,7 +24,13 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
+###############################################################################
 
+ROOT:                        ${RDI_DATA_ROOT}/HEMCO
+METDIR:                      ${RDI_MET_DIR}
+SCENARIO:                    ${RDI_GCAP2_SCENARIO}
+RUNID:                       ${RDI_GCAP2_RUNID}
+GISSRES:                     ${RDI_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -51,7 +57,7 @@ Warnings:                    1
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
+    --> GC_BCs                 :       ${RDI_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> GEPA                   :       true     # 2012
     --> Sheng_Canada           :       false    # 2013

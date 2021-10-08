@@ -228,30 +228,14 @@ RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
 SettingsDir="${gcdir}/run/shared/settings"
 if [[ ${sim_extra_option} = "benchmark" ]]; then
     RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
-elif [[ ${sim_name} = "aerosol" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/aerosol.txt)\n"
-elif [[ ${sim_name} == "CH4" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/CH4.txt)\n"
-elif [[ ${sim_name} == "CO2" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/CO2.txt)\n"
-elif [[ ${sim_name} == "Hg" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/Hg.txt)\n"
+elif [[ ${sim_extra_option} == "TOMAS15" || ${sim_extra_option} == "TOMAS40" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/TOMAS.txt)\n"
 elif [[ ${sim_extra_option} == "BaP" ]]; then
     RDI_VARS+="$(cat ${SettingsDir}/POPs_BaP.txt)\n"
 elif [[ ${sim_extra_option} == "PHE" ]]; then
     RDI_VARS+="$(cat ${SettingsDir}/POPs_PHE.txt)\n"
 elif [[ ${sim_extra_option} == "PYR" ]]; then
     RDI_VARS+="$(cat ${SettingsDir}/POPs_PYR.txt)\n"
-elif [[ ${sim_name} == "tagCO" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/tagCO.txt)\n"
-elif [[ ${sim_name} == "tagCH4" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/tagCH4.txt)\n"
-elif [[ ${sim_name} == "tagO3" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/tagO3.txt)\n"
-elif [[ ${sim_name} == "TransportTracers" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/TransportTracer.txt)\n"
-else
-    RDI_VARS+="$(cat ${SettingsDir}/fullchem.txt)\n"
 fi
 
 #-----------------------------------------------------------------
@@ -269,15 +253,15 @@ while [ "${valid_met}" -eq 0 ]; do
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
-	RDI_VARS+="RDI_MET_DIR='$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2'\n"
+	RDI_VARS+="RDI_MET_DIR='$GC_DATA_ROOT/GEOS_0.5x0.625/MERRA2'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
-	RDI_VARS+="RDI_MET_DIR='$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
+	RDI_VARS+="RDI_MET_DIR='$GC_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
     elif [[ ${met_num} = "3" ]]; then
 	met="ModelE2.1"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/modele2.1.txt)\n"
-	RDI_VARS+="RDI_MET_DIR=$RDI_DATA_ROOT/GCAP2/CMIP6/$SCENARIO/$GISSRES\n"
+	RDI_VARS+="RDI_MET_DIR=$GC_DATA_ROOT/GCAP2/CMIP6/$SCENARIO/$GISSRES\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -363,8 +347,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
     fi
 
 else
-    RDI_VARS+="RDI_GCAP2_SCENARIO=''\n"
-    RDI_VARS+="RDI_GCAP2_RUNID=''\n"
+    RDI_VARS+="RDI_GCAP2_SCENARIO='not_used'\n"
+    RDI_VARS+="RDI_GCAP2_RUNID='not_used'\n"
     RDI_VARS+="RDI_VOLC_YEAR='$YYYY'\n"
     RDI_VARS+="RDI_MET_AVAIL='# 1980-2021'\n"
 fi
@@ -491,36 +475,57 @@ fi
 #-----------------------------------------------------------------
 # Is International Date Line an edge or midpoint?
 #-----------------------------------------------------------------
-RDI_VARS+="RDI_CENTER_LON_180='T'\n" # All GEOS products
+
+# Set default for all GMAO products
+RDI_VARS+="RDI_CENTER_LON_180='T'\n"
+
 if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]] ; then
-    case "$grid_res" in
-	"2x25" ) RDI_VARS+="RDI_CENTER_LON_180='F'\n" ;; # Native GISS fine resolution
-        * ) RDI_VARS+="RDI_CENTER_LON_180='T'\n" ;; # FlexGrid re-gridded resolutions
-    esac
+    if [[ "$grid_res" == "2x25" ]]; then
+	# Native GISS fine resolution
+	RDI_VARS+="RDI_CENTER_LON_180='F'\n"
+    else
+        # FlexGrid re-gridded resolutions
+	RDI_VARS+="RDI_CENTER_LON_180='T'\n"
+    fi
 fi
 
 #-----------------------------------------------------------------
 # Horizontal resolution-dependent settings
 #-----------------------------------------------------------------
 
-# Default DEAD-dust scaling factor for online emissions
+# Set defaults
 RDI_VARS+="RDI_DUSTDEAD_TF='-999.0e0'\n"
+RDI_VARS+="RDI_GISS_RES='not_used'\n"
 
 if [[ ${met} = "ModelE2.1" ]]; then
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
-        case "$grid_res" in
-            "4x5" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.00474046'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-            "2x25" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.00243979'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-            "05x0625" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.00276896'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-            "025x03125" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.00254319'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-  	esac
+        if [[ "$grid_res" ==  "4x5" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00474046'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+        elif [[ "$grid_res" == "2x25" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00243979'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+        elif [[ "$grid_res" == "05x0625" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00276896'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+        elif [[ "$grid_res" == "025x03125" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00254319'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+  	fi
     else
-        case "$grid_res" in
-            "4x5" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.03564873'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-            "2x25" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.01050036'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-            "05x0625" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.01340854'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-            "025x03125" ) RDI_VARS+="RDI_DUSTDEAD_TF='0.01066495'\n"; RDI_VARS+="RDI_GISS_RES='F40'\n"  ;;
-	esac
+        if [[ "$grid_res" ==  "4x5" ]]; then
+            RDI_VARS+="RDI_DUSTDEAD_TF='0.03564873'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+        elif [[ "$grid_res" == "2x25" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.01050036'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+        elif [[ "$grid_res" == "05x0625" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.01340854'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+        elif [[ "$grid_res" == "025x03125" ]]; then
+	    RDI_VARS+="RDI_DUSTDEAD_TF='0.01066495'\n"
+	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	fi
     fi
 else
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
@@ -738,22 +743,7 @@ cd ${rundir}
 RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='F'\n"
 RDI_VARS+="RDI_TRANSPORT_TS='600'\n"
 RDI_VARS+="RDI_CHEMISTRY_TS='1200'\n"
-RDI_VARS+="RDI_USE_BCS='false'\n"
-
-# Specify meteorology
-if [[ ${met} = "ModelE2.1" ]]; then
-    sed_ie "/### BEGIN SECTION SETTINGS/r ${srcrundir}/HEMCO_Config.rc.templates/header.gcap2"                    HEMCO_Config.rc
-    sed_ie "/# --- Meteorology fields for FlexGrid ---/r ${srcrundir}/HEMCO_Config.rc.templates/met_fields.gcap2" HEMCO_Config.rc
-else
-    sed_ie "/### BEGIN SECTION SETTINGS/r ${srcrundir}/HEMCO_Config.rc.templates/header.gmao"                     HEMCO_Config.rc
-    sed_ie "/# --- Meteorology fields for FlexGrid ---/r ${srcrundir}/HEMCO_Config.rc.templates/met_fields.gmao"  HEMCO_Config.rc
-fi
-
-# Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP.
-if [[ "x${sim_name}" == "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
-fi
+RDI_VARS+="RDI_USE_BCs='false'\n"
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
@@ -788,6 +778,13 @@ RDI_VARS+="RDI_HIST_TIME_AVG_FREQ='00000100 000000'\n"
 RDI_VARS+="RDI_HIST_INST_DUR='00000100 000000'\n"
 RDI_VARS+="RDI_HIST_INST_FREQ='00000100 000000'\n"
 
+# Append met field entries for HEMCO_Config.rc to end of RDI_VARS
+if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
+    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_met_fields.txt)\n"
+else
+    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_met_fields.txt)\n"
+fi
+    
 #--------------------------------------------------------------------
 # Replace settings in config files with RDI variables
 #--------------------------------------------------------------------
@@ -825,64 +822,7 @@ fi
 if [[ ${met} = "ModelE2.1" ]]; then
     sed_ie          's|{Br_GC}|* Br_GC          $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_Br         2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie         's|{BrO_GC}|* BrO_GC         $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_BrO        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GLOBAL_ACTA}|* GLOBAL_ACTA    $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_ACTA       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_Cl}|* GLOBAL_Cl      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_Cl         2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{GLOBAL_ClO}|* GLOBAL_ClO     $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_ClO        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{GLOBAL_HCl}|* GLOBAL_HCl     $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_HCl        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie   's|{GLOBAL_HCOOH}|* GLOBAL_HCOOH   $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_HCOOH      2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GLOBAL_HNO3}|* GLOBAL_HNO3    $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_HNO3       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{GLOBAL_HO2}|* GLOBAL_HO2     $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_HO2        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GLOBAL_HOCl}|* GLOBAL_HOCl    $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_HOCl       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{GLOBAL_NIT}|* GLOBAL_NIT     $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_NIT        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_NO}|* GLOBAL_NO      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_NO         2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{GLOBAL_NO2}|* GLOBAL_NO2     $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_NO2        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{GLOBAL_NO3}|* GLOBAL_NO3     $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_NO3        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_O3}|* GLOBAL_O3      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_O3         2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_OH}|* GLOBAL_OH      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_OH         2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie       's|{AERO_SO4}|* AERO_SO4       $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_SO4        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie       's|{AERO_NH4}|* AERO_NH4       $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_NH4        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie       's|{AERO_NIT}|* AERO_NIT       $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_NIT        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_BCPI}|* AERO_BCPI      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_BCPI       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_BCPO}|* AERO_BCPO      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_BCPO       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_OCPI}|* AERO_OCPI      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_OCPI       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_OCPO}|* AERO_OCPO      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_OCPO       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{AERO_DST1}|* AERO_DST1      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.SpeciesConc.2010-2019.$MM.{VERTRES}L.nc4 SpeciesConc_DST1       2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_OA}|* GLOBAL_OA      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.AerosolMass.2010-2019.$MM.{VERTRES}L.nc4 TotalOA                2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie        's|{PCO_CH4}|* PCO_CH4        $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    ProdCOfromCH4          2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{PCO_NMVOC}|* PCO_NMVOC      $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    ProdCOfromNMVOC        2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie          's|{PH2O2}|* PH2O2          $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    Prod_H2O2              2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie        's|{O3_PROD}|* O3_PROD        $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    Prod_Ox                2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie        's|{O3_LOSS}|* O3_LOSS        $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.ProdLoss.2010-2019.$MM.{VERTRES}L.nc4    Loss_Ox                2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie           's|{JBrO}|* JBrO           $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.JValues.2010-2019.$MM.{VERTRES}L.nc4     Jval_BrO               2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie          's|{JH2O2}|* JH2O2          $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.JValues.2010-2019.$MM.{VERTRES}L.nc4     Jval_H2O2              2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie           's|{JNO2}|* JNO2           $ROOT/GCAP2/OFFLINE_FIELDS/13.0.0/GEOSChem.JValues.2010-2019.$MM.{VERTRES}L.nc4     Jval_NO2               2015/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
-    sed_ie       's|{CH4_LOSS}|* CH4_LOSS       $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CH4.geos5.2x25.nc                      loss                   2005/1-12/1/0 C xyz s-1      * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{CO2_COPROD}|* CO2_COPROD     $ROOT/GCAP2/CO2/v2019-02/CHEM/CO2_prod_rates.2x25.{VERTRES}L.nc                     LCO               2004-2009/1-12/1/0 C xyz kgC/m3/s * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{Br_TOMCAT}|* Br_TOMCAT      $ROOT/GCAP2/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.{VERTRES}L.nc4                LBRO2N                 1985/1-12/1/0 C xyz pptv     * - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{BrO_TOMCAT}|* BrO_TOMCAT     $ROOT/GCAP2/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.{VERTRES}L.nc4                LBRO2H                 1985/1-12/1/0 C xyz pptv     * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_OC}|1002 GLOBAL_OC   $ROOT/GCAP2/POPs/v2015-08/OCPO.4x5.{VERTRES}L.nc4                                   OCPO              2005-2009/1-12/1/0 C xyz kg       * - 1 1|' HEMCO_Config.rc
-    sed_ie      's|{GLOBAL_BC}|1002 GLOBAL_BC   $ROOT/GCAP2/POPs/v2015-08/BCPO.4x5.{VERTRES}L.nc4                                   BCPO              2005-2009/1-12/1/0 C xyz kg       * - 1 1|' HEMCO_Config.rc
-    sed_ie  's|{TES_CLIM_CCL4}|* TES_CLIM_CCL4  $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CCl4                   2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
-    sed_ie 's|{TES_CLIM_CFC11}|* TES_CLIM_CFC11 $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CFC11                  2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
-    sed_ie 's|{TES_CLIM_CFC12}|* TES_CLIM_CFC12 $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CFC12                  2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
-    sed_ie 's|{TES_CLIM_CFC22}|* TES_CLIM_CFC22 $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CFC22                  2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
-    sed_ie   's|{TES_CLIM_CH4}|* TES_CLIM_CH4   $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                CH4                    2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
-    sed_ie   's|{TES_CLIM_N2O}|* TES_CLIM_N2O   $ROOT/GCAP2/RRTMG/v2018-11/species_clim_profiles.2x25.{VERTRES}L.nc4                N2O                    2000/1/1/0    C xyz ppbv     * - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GMI_LOSS_CO}|* GMI_LOSS_CO    $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CO.geos5.2x25.nc                       loss                   2005/1-12/1/0 C xyz s-1     CO - 1 1|' HEMCO_Config.rc
-    sed_ie    's|{GMI_PROD_CO}|* GMI_PROD_CO    $ROOT/GCAP2/GMI/v2015-02/{VERTRES}L/gmi.clim.CO.geos5.2x25.nc                       prod                   2005/1-12/1/0 C xyz v/v/s   CO - 1 1|' HEMCO_Config.rc
-    sed_ie     's|{OCEAN_MASK}|1000 OCEAN_MASK  $METDIR/TOPO                                                                        focean                    */1/1/0 C xy 1 1  -180/-90/180/90|' HEMCO_Config.rc
-    sed_ie        's|{Bry_DIR}|GCAP2/Bry/v2015-01/{VERTRES}L|'                                                                                                                                    HEMCO_Config.rc
-    sed_ie        's|{GMI_DIR}|GCAP2/GMI/v2015-02/{VERTRES}L|'                                                                                                                                    HEMCO_Config.rc
-    sed_ie        's|{UCX_DIR}|GCAP2/UCX/v2018-02|'                                                                                                                                               HEMCO_Config.rc
-    sed_ie         "s|{GFEDON}|off|"                                                                                                                                                              HEMCO_Config.rc
-    sed_ie         "s|{ONLINE}|on |"                                                                                                                                                              HEMCO_Config.rc
-    sed_ie       "s|{UCX_LEVS}|${grid_lev}|"                                                                                                                                                      HEMCO_Config.rc
-    sed_ie       "s|{SCENARIO}|${scenario}|"                                                                                                                                                      HEMCO_Config.rc
-    sed_ie          "s|{RUNID}|${runid}|"                                                                                                                                                         HEMCO_Config.rc
-    sed_ie      "s|{VOLC_YEAR}|${volc_year}|g"                                                                                                                                                    HEMCO_Config.rc
-    sed_ie        "s|{DEAD_TF}|${dead_tf}|"                                                                                                                                                       HEMCO_Config.rc
-    sed_ie        "s|{GISSRES}|${giss_res}|g"                                                                                                                                                     HEMCO_Config.rc
-    sed_ie        "s|{VERTRES}|${grid_lev}|g"                                                                                                                                                     HEMCO_Config.rc
+
 else
     sed_ie    's|{GLOBAL_ACTA}|* GLOBAL_ACTA    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_ACTA  2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
     sed_ie          's|{Br_GC}|* Br_GC          $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_Br    2010-2019/1-12/1/0 C xyz 1        * - 1 1|' HEMCO_Config.rc
@@ -1093,6 +1033,12 @@ if [[ "x${sim_extra_option}" == "xaciduptake"        ||
     printf "\n     Check your GEOS-Chem log file for details. As always, it"
     printf "\n     is recommended that you spin up your simulation to ensure"
     printf "\n     proper initial conditions.\n"
+fi
+
+# Call function to setup configuration files with settings common between
+# GEOS-Chem Classic and GCHP.
+if [[ "x${sim_name}" = "xfullchem" ]]; then
+    set_common_settings ${sim_extra_option}
 fi
 
 #--------------------------------------------------------------------

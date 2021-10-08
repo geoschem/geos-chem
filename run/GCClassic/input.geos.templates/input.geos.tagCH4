@@ -11,7 +11,7 @@ Turn on debug printout? : F
 Use GC classic timers?  : ${RDI_USE_GCCLASSIC_TIMERS}
 ------------------------+------------------------------------------------------
 %%% GRID MENU %%%       :
-Grid resolution         : ${RDI_GRID_RES}
+Grid resolution         : ${RDI_GRID_RES_LONG}
 Longitude min/max       : ${RDI_GRID_LON_RANGE}
  Center on 180E/W?      : ${RDI_CENTER_LON_180}
 Latitude  min/max       : ${RDI_GRID_LAT_RANGE}

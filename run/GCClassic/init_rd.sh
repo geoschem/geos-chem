@@ -48,13 +48,13 @@ variables=$(echo $variables | sort | uniq)
 envsubst_list="$(printf '${%s} ' $variables)"
 
 COPY_LIST="""
-HISTORY.rc.templates/HISTORY.rc.${RDI_SIM_NAME}
 HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RDI_SIM_NAME}
 """
 
 SUBST_LIST="""
 input.geos.templates/input.geos.${RDI_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RDI_SIM_NAME}
+HISTORY.rc.templates/HISTORY.rc.${RDI_SIM_NAME}
 """
 
 function filename_with_suffixes_removed() {
@@ -65,9 +65,6 @@ function filename_with_suffixes_removed() {
 for fpath in $COPY_LIST; do
    cp $THIS_SCRIPTS_DIRECTORY/$fpath $(filename_with_suffixes_removed $fpath)
 done
-
-# Copy util directory
-cp -r $THIS_SCRIPTS_DIRECTORY/utils utils
 
 # Make OutputDir
 mkdir -p OutputDir

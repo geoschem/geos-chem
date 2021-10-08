@@ -88,8 +88,6 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
-	sim_name_long=${sim_name}
-	sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -183,12 +181,8 @@ RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
 SettingsDir="${gcdir}/run/shared/settings"
 if [[ ${sim_extra_option} = "benchmark" ]]; then
     RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
-elif [[ ${sim_name} == "CO2" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/CO2.txt)\n"
-elif [[ ${sim_name} == "TransportTracers" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/TransportTracer.txt)\n"
-else
-    RDI_VARS+="$(cat ${SettingsDir}/fullchem.txt)\n"
+elif [[ ${sim_extra_option} == "TOMAS15" || ${sim_extra_option} == "TOMAS40" ]]; then
+    RDI_VARS+="$(cat ${SettingsDir}/TOMAS.txt)\n"
 fi
 
 #-----------------------------------------------------------------
@@ -205,11 +199,11 @@ while [ "${valid_met}" -eq 0 ]; do
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
-	RDI_VARS+="RDI_MET_DIR=$RDI_DATA_ROOT/GEOS_0.5x0.625/MERRA2\n"
+	RDI_VARS+="RDI_MET_DIR='$GC_DATA_ROOT/GEOS_0.5x0.625/MERRA2'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
 	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
-	RDI_VARS+="RDI_MET_DIR='$RDI_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
+	RDI_VARS+="RDI_MET_DIR='$GC_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -318,8 +312,7 @@ if [ "${sim_name}" == "CO2" ]; then
     cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
 fi
 
-cp -r ./utils ${rundir}
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -392,12 +385,6 @@ cd ${rundir}
 RDI_VARS+="RDI_TRANSPORT_TS='600'\n"
 RDI_VARS+="RDI_CHEMISTRY_TS='1200'\n"
 
-# Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP.
-if [[ "x${sim_name}" == "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
-fi
-
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
 if [[ "x${sim_name}" == "xTransportTracers" ]]; then
@@ -420,7 +407,7 @@ RDI_VARS+="RDI_HIST_TIME_AVG_DUR='7440000'\n"
 RDI_VARS+="RDI_HIST_TIME_AVG_FREQ='7440000'\n"
 RDI_VARS+="RDI_HIST_INST_DUR='7440000'\n"
 RDI_VARS+="RDI_HIST_INST_FREQ='7440000'\n"
-RDI_HIST_MONTHLY_DIAG="1"
+RDI_VARS+="RDI_HIST_MONTHLY_DIAG='1'\n"
 
 # Special handling for benchmark simulation
 if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
@@ -428,7 +415,7 @@ if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]];
     RDI_VARS+="RDI_NUM_NODES='2'\n"
     RDI_VARS+="RDI_CORES_PER_NODE='48'\n"
     RDI_VARS+="RDI_CS_RES='48'\n"
-elif [ "${sim_type}" == "CO2" ]; then
+elif [ "${sim_name}" == "CO2" ]; then
     RDI_VARS+="RDI_NUM_CORES='48'\n"
     RDI_VARS+="RDI_NUM_NODES='2'\n"
     RDI_VARS+="RDI_CORES_PER_NODE='24'\n"

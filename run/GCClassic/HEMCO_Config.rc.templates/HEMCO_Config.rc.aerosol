@@ -24,7 +24,13 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
+###############################################################################
 
+ROOT:                        ${RDI_DATA_ROOT}/HEMCO
+METDIR:                      ${RDI_MET_DIR}
+SCENARIO:                    ${RDI_GCAP2_SCENARIO}
+RUNID:                       ${RDI_GCAP2_RUNID}
+GISSRES:                     ${RDI_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
