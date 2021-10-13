@@ -207,7 +207,8 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
-    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+    REAL(dp)               :: Vloc(NVAR), Aout(NREACT), Vdotout(NVAR)
+    REAL(fp)               :: NOxTau,     NOxConc
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData => NULL()
@@ -604,7 +605,8 @@ CONTAINS
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC                   )&
+    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, Vdotout          )&
+    !$OMP PRIVATE( NOxTau,   NOxConc                                        )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -871,12 +873,14 @@ CONTAINS
        ! Archive KPP reaction rates [s-1]
        ! See gckpp_Monitor.F90 for a list of chemical reactions
        !--------------------------------------------------------------------
-       IF ( State_Diag%Archive_RxnRate ) THEN
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
-          DO S = 1, State_Diag%Map_RxnRate%nSlots
-             N = State_Diag%Map_RxnRate%slot2Id(S)
-             State_Diag%RxnRate(I,J,L,S) = Aout(N)
-          ENDDO
+       IF ( State_Diag%Archive_RxnRate ) THEN 
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+          IF ( State_Diag%Archive_RxnRate ) THEN 
+             DO S = 1, State_Diag%Map_RxnRate%nSlots
+                N = State_Diag%Map_RxnRate%slot2Id(S)
+                State_Diag%RxnRate(I,J,L,S) = Aout(N)
+             ENDDO
+          ENDIF
        ENDIF
 
        !=====================================================================
@@ -1144,6 +1148,19 @@ CONTAINS
 
 #endif
 #endif
+
+       !--------------------------------------------------------------------
+       ! Archive NOx lifetime [h]
+       !--------------------------------------------------------------------
+       IF ( State_Diag%Archive_NoxTau ) THEN
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+          NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
+                 + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
+                 + Vdotout(ind_HNO4)
+          NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
+                  + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
+          State_Diag%NOxTau(I,J,L) = ( NOxConc / (-1.0_fp*NOxTau) ) / 3600.0_fp
+       ENDIF
 
        !====================================================================
        ! HISTORY (aka netCDF diagnostics)

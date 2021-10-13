@@ -44,7 +44,7 @@ CONTAINS
 !
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
+SUBROUTINE Fun ( V, F, RCT, Vdot, Aout, Vdotout )
 
 ! V - Concentrations of variable species (local)
   REAL(kind=dp) :: V(NVAR)
@@ -57,6 +57,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
 !### KPP 2.3.0_gc, Bob Yantosca (11 Feb 2021)
 !### Aout - Array for returning KPP reaction rates for diagnostics
   REAL(kind=dp), OPTIONAL :: Aout(NREACT)
+  REAL(kind=dp), OPTIONAL :: Vdotout(NVAR)
 
 ! Computation of equation rates
   A(1) = RCT(1)*V(250)*V(263)
@@ -1412,6 +1413,9 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
                 &*A(216)+0.68*A(217)+0.31*A(221)+0.41*A(222)+0.75*A(229)-A(268)-A(269)-A(270)-A(301)-A(302)-A(303)-A(744)&
                 &+A(747)
       
+!### Use Vdotout to return species rates 
+  IF ( PRESENT( Vdotout ) ) Vdotout = Vdot
+
 END SUBROUTINE Fun
 
 ! End of Fun function

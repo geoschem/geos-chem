@@ -295,6 +295,9 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_Prod
      LOGICAL                     :: Archive_Prod
 
+     REAL(f4),           POINTER :: NOxTau(:,:,:)
+     LOGICAL                     :: Archive_NOxTau
+
      !%%%%% Aerosol characteristics %%%%%
 
      REAL(f4),           POINTER :: AerHygGrowth(:,:,:,:)
@@ -1326,6 +1329,9 @@ CONTAINS
     State_Diag%Prod                                => NULL()
     State_Diag%Map_Prod                            => NULL()
     State_Diag%Archive_Prod                        = .FALSE.
+
+    State_Diag%NOxTau                              => NULL()
+    State_Diag%Archive_NOxTau                      = .FALSE.
 
     !%%%%% Aerosol hygroscopic growth diagnostics %%%%%
 
@@ -4037,6 +4043,27 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! NOx lifetime 
+       !--------------------------------------------------------------------
+       diagID  = 'NOxTau'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%NOxTau,                              &
+            archiveData    = State_Diag%Archive_NOxTau,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
        !--------------------------------------------------------------------
        diagID  = 'Jval'
@@ -4809,7 +4836,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 32
+       DO N = 1, 33
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -4876,6 +4903,8 @@ CONTAINS
                 diagID = 'KppSubsts'
              CASE( 32 )
                 diagID = 'KppSmDecomps'
+             CASE( 33 )
+                diagID = 'NOxTau'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -8989,6 +9018,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'NOxTau',                                      &
+                   Ptr2Data = State_Diag%NOxTau,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'UvFluxDiffuse',                               &
                    Ptr2Data = State_Diag%UvFluxDiffuse,                      &
                    mapData  = State_Diag%Map_UvFluxDiffuse,                  &
@@ -10533,6 +10567,11 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'OHREACTIVITY' ) THEN
        IF ( isDesc    ) Desc  = 'OH reactivity'
        IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'NOXTAU' ) THEN
+       IF ( isDesc    ) Desc  = 'NOx (NO+NO2+NO3+2xN2O5+ClNO2+HNO2+HNO4) lifetime'
+       IF ( isUnits   ) Units = 'h'
        IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
