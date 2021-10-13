@@ -6579,7 +6579,6 @@ CONTAINS
           ! Check if file exists
           INQUIRE( FILE=ifile, EXIST=HasFile ) 
           IF ( HasFile ) THEN
-
              ! Try reading current time stamp on file 
              s = 0
              call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
