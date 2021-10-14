@@ -539,14 +539,14 @@ CONTAINS
     ! If (1) there is cloud, (2) there is SO2 present, (3) T > -15 C, and
     ! (4) liquid water content (LWC) is present (but not small enough to
     ! make divisions blow up), then compute sulfate production in cloud.
-    IF ( ( FC          > 1.0e-4_fp )  .and.                                  &
-         ( SO2_AfterSS > MINDAT    )  .and.                                  &
+    IF ( ( FC          > 1.0e-4_fp  )   .and.                                &
+         ( SO2_AfterSS > MINDAT     )   .and.                                &
 #ifdef LUO_WETDEP
-         ( TK          > 237.0_fp  )  .and.                                  &
+         ( TK          > 237.0_fp   )   .and.                                &
 #else
-         ( TK          > 258.0_fp  )  .and.                                  &
+         ( TK          > 258.0_fp   )  .and.                                 &
 #endif
-         ( LWC         > 0.0_fp    ) ) THEN
+         ( LWC         > 1.0e-20_fp ) ) THEN
 
        !===========================================================
        ! NOTE...Sulfate production from aquatic reactions of SO2

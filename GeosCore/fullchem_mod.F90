@@ -839,11 +839,13 @@ CONTAINS
           LWC = ( State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L)              &
               *   1.0e-3_fp           / State_Met%CLDF(I,J,L)               )
 
+
           ! Eexecute Het_Drop_Chem if criteria are satisfied
+          ! NOTE: skip if LWC is very small, which will blow up equations!
           IF ( ( SIZE_RES                                           )  .and. &
                ( State_Met%IsWater(I,J)                             )  .and. &
                ( TEMP                    > 268.15_fp                )  .and. &
-               ( LWC                     > 0.0_fp                   ) ) THEN
+               ( LWC                     > 1.0e-20_fp               ) ) THEN
 
              CALL Het_Drop_Chem( I         = I,                              &
                                  J         = J,                              &
@@ -1133,16 +1135,19 @@ CONTAINS
              ! NOTE: You can set a GDB breakpoint here to examine the error
              !$OMP CRITICAL
              Failed2x = .TRUE.
-             ! Debug output, can uncomment
-             !DO N = 1, NSPEC
-             !   print*, C(N), TRIM(SPC_NAMES(N))
-             !ENDDO
-             !print*, '----'
-             !DO N = 1, NREACT
-             !   print*, RCONST(N), TRIM(ADJUSTL(EQN_NAMES(N)))
-             !ENDDO
-             !$OMP END CRITICAL
 
+             ! Print debug info upon KPP error
+             PRINT*, '### KPP DEBUG OUTPUT!'
+             PRINT*, '### Species concentrations at problem box ', I, J, L
+             DO N = 1, NSPEC
+                PRINT*, '### ', C(N), TRIM( SPC_NAMES(N) )
+             ENDDO
+             PRINT*, '###'
+             PRINT*, '### Reaction rates at problem box ', I, J, L
+             DO N = 1, NREACT
+                PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
+             ENDDO
+             !$OMP END CRITICAL
 #endif
           ENDIF
 
@@ -1719,7 +1724,7 @@ CONTAINS
     REAL(dp)              :: CVF, R1, R2, XX, FC, LST, CVF_FC
     REAL(dp)              :: XX1, XX2, XX3, XX4, XX5
     REAL(dp)              :: SSCvv, aSO4, GNH3, SO2_sr, H2O20, GNO3
-    REAL(dp)              :: Arg
+    REAL(dp)              :: Arg,  K
 
     ! Pointers
     REAL(fp), POINTER     :: AD(:,:,:)
@@ -1761,65 +1766,87 @@ CONTAINS
     !
     ! NOTE: Use function SafeExp, which will prevent the exponential from
     ! blowing up.  Also if the entire expression will evaluate to zero
-    ! (i.e. if K_CLD is zero), then skip the exponential, as this is
-    ! more computationally efficient. (bmy, 07 Oct 2021)
+    ! then skip the exponential, which is more computationally efficient.
+    !    -- Bob Yantosca, 14 Oct 2021
+    !
 
     ! SO2 + H2O2
     R1  = C(ind_SO2)  * CVF
     R2  = C(ind_H2O2) * CVF
-    XX  = 0.0_dp
-    Arg = R1 - R2
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx1: big/small arg! ', arg
-    IF ( K_CLD(1) > 0 ) THEN
-       XX = SafeExp( Arg, 0.0_dp ) * ( ( K_CLD(1) / CVF / FC ) * DTCHEM )
+    K   = K_CLD(1)    / CVF/ FC
+    Arg = ( R1 - R2 ) * ( K * DTCHEM )
+    IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
+       XX  = EXP( Arg )
+       XX1 = ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 )
+    ELSE
+       XX1 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
-    XX1 = ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 )
 
     ! SO2 + O3
     R2  = C(ind_O3) * CVF
-    XX  = 0.0_dp
-    Arg = R1 - R2
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx2: big/small arg! ', arg
-    IF ( K_CLD(2) > 0.0_dp ) THEN
-       XX = SafeExp( Arg, 0.0_dp ) * ( ( K_CLD(2) / CVF / FC ) * DTCHEM )
+    K   = K_CLD(2)  / CVF / FC
+    Arg = ( R1 - R2 ) * ( K * DTCHEM )
+    IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
+       XX = EXP( Arg )
+       XX2 = ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 )
+    ELSE
+       XX2 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
-    XX2 = ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 )
 
-    ! XX3 rate
-    ARG = -K_CLD(3) / FC
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx3: big/small arg! ', arg
-    XX  = SafeExp( Arg, 0.0_dp ) * DTCHEM
-    XX3 = R1 * ( 1.0_dp - XX )
+    ! Metal catalyzed oxidation of SO2 pathway
+    K   = -K_CLD(3) / FC
+    Arg = K * DTCHEM
+    XX3 = 0.0_dp
+    IF ( IsSafeExp( Arg ) ) THEN
+       XX  = EXP( Arg )
+       XX3 = R1 * ( 1.0_dp - XX )
+    ENDIF
 
     ! HSO3m + HOCl and SO3mm + HOCl
     R1  = C(ind_HSO3m) * CVF
     R2  = C(ind_HOCl)  * CVF
-    Arg = R1 - R2
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx41: big/small arg! ', arg
-    XX  = SafeExp( Arg, 0.0_dp ) * ( HOClUptkByHSO3m(State_Het) / CVF * DTCHEM )
-    XX4 = ( R1 * R2 )  * ( XX - 1.0_dp ) / ( ( R1 * XX )  - R2 )
+    K   = HOClUptkByHSO3m(State_Het) / CVF
+    Arg = ( R1 - R2 ) * ( K * DTCHEM )
+    IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
+       XX  = EXP( Arg )
+       XX4 = ( R1 * R2 )  * ( XX - 1.0_dp ) / ( ( R1 * XX )  - R2 )
+    ELSE
+       XX4 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
+    ENDIF
 
     ! SO3mm + HOCl (add to HSO3m + HOCl rate)
     R1  = C(ind_SO3mm) * CVF
-    Arg = R1 - R2
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx42: big/small arg! ', arg
-    XX  = SafeExp( Arg, 0.0_dp ) * ( HOClUptkBySO3mm(State_Het) / CVF * DTCHEM )
-    XX4 = XX4 + ( ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 ) )
+    K   = HOClUptkBySO3mm(State_Het) / CVF
+    Arg = ( R1 - R2 ) * ( K * DTCHEM )
+    IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
+       XX  = EXP( Arg )
+       XX4 = XX4 + ( ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 ) )
+    ELSE
+       XX4 = XX4 + WhenExpCantBeDone( R1, R2, K, DTCHEM )
+    ENDIF
 
     ! HSO3m + HOBr
     R1  = C(ind_HSO3m) * CVF
     R2  = C(ind_HOBr)  * CVF
-    Arg = R1 - R2
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx51: big/small arg! ', arg
-    XX  = SafeExp( Arg, 0.0_dp ) * ( HOBrUptkByHSO3m(State_Het) / CVF * DTCHEM )
-    XX5 = ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 )
+    K   = HOBrUptkByHSO3m(State_Het) / CVF
+    Arg = ( R1 - R2 ) * ( K * DTCHEM )
+    IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
+       XX  = EXP( Arg )
+       XX5 = ( R1 * R2 ) * ( XX - 1.0_fp ) / ( ( R1 * XX ) - R2 )
+    ELSE
+       XX5 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
+    ENDIF
 
     ! SO3mm + HOBr (add to HSO3m + HOBr rate)
     R1  = C(ind_SO3mm) * CVF
-    Arg = R1 - R2
-    if ( abs(arg) > 700.0_dp ) print*, '@@@ xx52: big/small arg! ', arg
-    XX  = SafeExp( Arg, 0.0_dp ) * ( HOBrUptkBySO3mm(State_Het) / CVF * DTCHEM )
-    XX5 = XX5 + ( ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 ) )
+    K   = HOBrUptkBySO3mm(State_Het) / CVF
+    Arg = ( R1 - R2 ) * ( K * DTCHEM )
+    IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
+       XX  = EXP( Arg )
+       XX5 = XX5 + ( ( R1 * R2 ) * ( XX - 1.0_dp ) / ( ( R1 * XX ) - R2 ) )
+    ELSE
+       XX5 = XX5 + WhenExpCantBeDone( R1, R2, K, DTCHEM )
+    ENDIF
 
     ! Sum of all rates
     LST = XX1 + XX2 + XX3 + XX4 + XX5
@@ -1966,6 +1993,65 @@ CONTAINS
     V      => NULL()
 
   END SUBROUTINE HET_DROP_CHEM
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: WhenExpCantBeDone
+!
+! !DESCRIPTION: Prevents floating point errors if exponential terms in routine
+!  Het_Drop_Chem above can't be done.  In the case of a negative XX, R should be
+!  approximated as R1, instead of R2.  In other words,
+!  R1 * R2 * ( XX - 1.D0 ) / ( ( R1 * XX ) - R2 )
+!  reaches different limits when XX reaches +Inf and -Inf.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION WhenExpCantBeDone( R1, R2, K, DT ) RESULT( R )
+!
+! !USES:
+!
+    USE GcKpp_Precision, ONLY : dp
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: R1   ! 1st term
+    REAL(dp), INTENT(IN) :: R2   ! 2nd term
+    REAL(dp), INTENT(IN) :: K    ! Rate [1/s]
+    REAL(dp), INTENT(IN) :: DT   ! timesetep [s]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: R    ! new rate [1/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    REAL(dp) :: DIFF
+
+    DIFF = R1 - R2
+
+    ! R1 <  R2
+    IF ( DIFF < 0.0_dp ) THEN
+       R = R1
+       RETURN
+    ENDIF
+
+    ! R1 >  R2
+    IF ( DIFF > 0.0_dp ) THEN
+       R = R2
+       RETURN
+    ENDIF
+
+    ! R1 == R2
+    R = R1 - 1.0_dp / ( K * DT + ( 1.0_dp / R1 ) )
+
+  END FUNCTION WhenExpCantBeDone
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

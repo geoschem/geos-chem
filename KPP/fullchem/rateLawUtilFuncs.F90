@@ -362,7 +362,7 @@ CONTAINS
     ! Note EXP( 708 ) = 8.2e+307 and EXP( -708 ) = 3.3e-308, which are
     ! very close to the maximum representable values at double precision.
     safe = ( ABS( x ) < 709.0_dp )
- ENDIF
+  END FUNCTION IsSafeExp
 
   FUNCTION SafeExp( x, alt ) RESULT( y )
     !
