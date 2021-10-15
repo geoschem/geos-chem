@@ -858,7 +858,6 @@ CONTAINS
              ! Add result as an enhancement to O2 metal catalysis rate
              ! as a 1st order reaction
              K_CLD(3) = K_CLD(3) + SR
-
           ENDIF
 
           ! Stop timer
@@ -1136,14 +1135,20 @@ CONTAINS
              !$OMP CRITICAL
              Failed2x = .TRUE.
 
-             ! Print debug info upon KPP error
+             ! Print concentrations at trouble box KPP error
+             PRINT*, REPEAT( '###', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Species concentrations at problem box ', I, J, L
+             PRINT*, REPEAT( '###', 79 )
              DO N = 1, NSPEC
-                PRINT*, '### ', C(N), TRIM( SPC_NAMES(N) )
+                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) )
              ENDDO
-             PRINT*, '###'
+
+             ! Print rate constants at trouble box KPP error
+             PRINT*, REPEAT( '###', 79 )
+             PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Reaction rates at problem box ', I, J, L
+             PRINT*, REPEAT( '###', 79 )
              DO N = 1, NREACT
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
@@ -1965,7 +1970,7 @@ CONTAINS
     ! Only calculate SR when air parcel rises, in consistence with
     ! Yuen et al. (1996) (qjc, 04/10/16)
     SR = 0.0_dp
-    IF ( W > 0.0_dp ) THEN
+    IF ( W > 0.0_dp .and. C(ind_SO2) > 0.0_dp ) THEN
 
        ! additional sulfate production that can be attributed to
        ! ozone [ug/m3/timestep]
@@ -1981,7 +1986,6 @@ CONTAINS
        ! -- SR is dSO4/timestep (v/v) convert
        !    to 1st order rate
        SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
-
     ENDIF
 
     ! Free pointers
