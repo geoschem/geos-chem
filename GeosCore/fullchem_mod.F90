@@ -1141,7 +1141,7 @@ CONTAINS
              PRINT*, '### Species concentrations at problem box ', I, J, L
              PRINT*, REPEAT( '###', 79 )
              DO N = 1, NSPEC
-                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) )
+                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
              ENDDO
 
              ! Print rate constants at trouble box KPP error
