@@ -920,7 +920,7 @@ CONTAINS
           FIX = C(NVAR+1:NSPEC)
           CALL Update_RCONST( )
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "     Integrate 2", RC, InLoop=.TRUE., ThreadNum=Thread )
+             CALL Timer_Start( "     Integrate 2", RC, InLoop=.TRUE., ThreadNum=Thread )
           ENDIF
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
