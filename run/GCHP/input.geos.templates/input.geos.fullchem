@@ -244,21 +244,21 @@ Turn on Transport       : T
 %%% CONVECTION MENU %%% :
 Turn on Cloud Conv?     : T
 Turn on PBL Mixing?     : T
- => Use non-local PBL?  : T
+ => Use non-local PBL?  : ${RDI_USE_NLPBL}
 ------------------------+------------------------------------------------------
 %%% AEROSOL MENU %%%    :
 Online SULFATE AEROSOLS : T
  => Metal cat. SO2 ox.? : T
 Online CARBON  AEROSOLS : T
  => Use Brown Carbon?   : F
-Online COMPLEX SOA      : F
- => Semivolatile POA?   : F
+Online COMPLEX SOA      : ${RDI_COMPLEX_SOA}
+ => Semivolatile POA?   : ${RDI_SVPOA}
 Online DUST    AEROSOLS : T
- => Acidic uptake ?     : F
+ => Acidic uptake ?     : ${RDI_ACID_UPTAKE}
 Online SEASALT AEROSOLS : T
  => SALA radius bin [um]: 0.01 0.5
  => SALC radius bin [um]: 0.5  8.0
- => MARINE ORG AEROSOLS : F
+ => MARINE ORG AEROSOLS : ${RDI_MARINE_POA}
 Settle strat. aerosols  : T
 Online PSC AEROSOLS     : T
 Allow homogeneous NAT?  : F
@@ -290,7 +290,7 @@ Use linear. chem aloft? : T
 Use active strat. H2O?  : T
 Use static H2O BC?      : T
 Overhead O3 for FAST-JX :---
- => Online O3 from model: T
+ => Online O3 from model: ${RDI_USE_ONLINE_O3}
  => O3 from met fields  : T
  => TOMS/SBUV O3        : F
 Gamma HO2               : 0.2
@@ -300,11 +300,11 @@ FAST-JX directory       : ${RDI_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550
-Turn on RRTMG?          : F
-Calculate LW fluxes?    : F
-Calculate SW fluxes?    : F
-Clear-sky flux?         : F
-All-sky flux?           : F
+Turn on RRTMG?          : ${RDI_RRTMG_OPTS}
+Calculate LW fluxes?    : ${RDI_RRTMG_OPTS}
+Calculate SW fluxes?    : ${RDI_RRTMG_OPTS}
+Clear-sky flux?         : ${RDI_RRTMG_OPTS}
+All-sky flux?           : ${RDI_RRTMG_OPTS}
 Radiation Timestep [sec]: 10800
 ------------------------+------------------------------------------------------
 END OF FILE             :

@@ -52,14 +52,13 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     {MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RDI_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
-    --> STATE_PSC              :       false
     --> HEMCO_RESTART          :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
+    --> GC_BCs                 :       ${RDI_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
@@ -156,7 +155,7 @@ Warnings:                    1
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : {GFEDON}    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
+111     GFED                   : {GFEDON}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -168,7 +167,7 @@ Warnings:                    1
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
 #see the note near scale factor 281 for the source of this emis factor
-114     FINN                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC/SOAP
+114     FINN                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC/SOAP
     --> FINN_daily             :       false
     --> Scaling_CO             :       1.0
     --> Scaling_SOAP           :       0.013
@@ -178,7 +177,7 @@ Warnings:                    1
 115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
-    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/{VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/${RDI_VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
     --> Volcano_Climatology    :       $ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -1846,10 +1845,12 @@ Warnings:                    1
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
 
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields for FlexGrid ---
+>>>include ${RDI_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 

@@ -178,11 +178,48 @@ fi
 RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
 
 # Determine settings based on simulation type
-SettingsDir="${gcdir}/run/shared/settings"
-if [[ ${sim_extra_option} = "benchmark" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/benchmark.txt)\n"
-elif [[ ${sim_extra_option} == "TOMAS15" || ${sim_extra_option} == "TOMAS40" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/TOMAS.txt)\n"
+if [[ ${sim_extra_option} == "benchmark"  ]] || \
+   [[ ${sim_extra_option} =~ "complexSOA" ]] || \
+   [[ ${sim_extra_option} == "APM"        ]]; then
+    RDI_VARS+="RDI_COMPLEX_SOA='T'\n"
+    if [[ ${sim_extra_option}="complexSOA_SVPOA" ]]; then
+	RDI_VARS+="RDI_SVPOA='T'\n"
+    else
+	RDI_VARS+="RDI_SVPOA='F'\n"
+    fi
+else
+    RDI_VARS+="RDI_COMPLEX_SOA='F'\n"
+    RDI_VARS+="RDI_SVPOA='F'\n"
+fi
+
+if [[ ${sim_extra_option} == "aciduptake" ]]; then
+    RDI_VARS+="RDI_DUSTALK_EXT='on '\n"
+    RDI_VARS+="RDI_ACID_UPTAKE='T'\n"
+else
+    RDI_VARS+="RDI_DUSTALK_EXT='off'\n"
+    RDI_VARS+="RDI_ACID_UPTAKE='F'\n"
+fi
+
+if [[ ${sim_extra_option} == "marinePOA" ]]; then
+    RDI_VARS+="RDI_MARINE_POA='T'\n"
+else
+    RDI_VARS+="RDI_MARINE_POA='F'\n"
+fi
+
+if [[ ${sim_extra_option} == "RRTMG" ]]; then
+    RDI_VARS+="RDI_RRTMG_OPTS='T'\n"
+    RDI_VARS+="RDI_USE_RRTMG='true '\n"
+else
+    RDI_VARS+="RDI_RRTMG_OPTS='F'\n"
+    RDI_VARS+="RDI_USE_RRTMG='false'\n"
+fi
+
+if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+    RDI_VARS+="RDI_USE_NLPBL='F'\n"
+    RDI_VARS+="RDI_USE_ONLINE_O3='F'\n"
+else
+    RDI_VARS+="RDI_USE_NLPBL='T'\n"
+    RDI_VARS+="RDI_USE_ONLINE_O3='T'\n"
 fi
 
 #-----------------------------------------------------------------
@@ -380,23 +417,20 @@ RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc
 #--------------------------------------------------------------------
 cd ${rundir}
 
-# Set defaults
-# Simulation-specific settings may be found in run/shared/settings/*.txt
-RDI_VARS+="RDI_TRANSPORT_TS='600'\n"
-RDI_VARS+="RDI_CHEMISTRY_TS='1200'\n"
-
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
 if [[ "x${sim_name}" == "xTransportTracers" ]]; then
-    RDI_VARS+="RDI_SIM_START_DATE='20190101'\n"
-    RDI_VARS+="RDI_SIM_END_DATE='20190201'\n"
+    startdate='20190101'
+    enddate='20190201'
 elif [[ "x${sim_name}" == "xCO2" ]]; then
-    RDI_VARS+="RDI_SIM_START_DATE='20140901'\n"
-    RDI_VARS+="RDI_SIM_END_DATE='20141001'\n"
+    startdate='20140901'
+    enddate='20141001'
 else
-    RDI_VARS+="RDI_SIM_START_DATE='20190701'\n"
-    RDI_VARS+="RDI_SIM_END_DATE='20190801'\n"
+    startdata='20190701'
+    enddate='20190801'
 fi
+RDI_VARS+="RDI_SIM_START_DATE=$startdate\n"
+RDI_VARS+="RDI_SIM_END_DATE=$enddate\n"
 RDI_VARS+="RDI_SIM_START_TIME='000000'\n"
 RDI_VARS+="RDI_SIM_END_TIME='000000'\n"
 RDI_VARS+="RDI_SIM_DUR_YYYYMMDD='00000100'\n"
@@ -427,6 +461,50 @@ else
     RDI_VARS+="RDI_CS_RES='24'\n"
 fi
 
+# Turn on GEOS-Chem timers for benchmark simulations
+if [[ "${sim_extra_option}" == "benchmark" ]]; then
+    RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='T'\n"
+else
+    RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='F'\n"
+fi
+
+# Assign appropriate file paths and settings in HEMCO_Config.rc
+if [[ "${sim_extra_option}" == "benchmark" ]]; then
+    RDI_VARS+="RDI_DUSTDEAD_EXT='on '\n"
+    RDI_VARS+="RDI_SEASALT_EXT='on '\n"
+    RDI_VARS+="RDI_SOILNOX_EXT='on '\n"
+    RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
+    RDI_VARS+="RDI_OFFLINE_BIOVOC='false'\n"
+    RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+    RDI_VARS+="RDI_OFFLINE_SOILNOX='false'\n"
+else
+    if [[ "${sim_extra_option}" == "marinePOA" ]]; then
+	RDI_VARS+="RDI_SEASALT_EXT='on '\n"
+	RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+    else
+	RDI_VARS+="RDI_SEASALT_EXT='off'\n"
+	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+	    RDI_VARS+="RDI_TOMAS_SEASALT='on '\n"
+	    RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+	else
+	    RDI_VARS+="RDI_TOMAS_SEASALT='off'\n"
+	    RDI_VARS+="RDI_OFFLINE_SEASALT='true '\n"
+	fi
+    fi
+    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+	RDI_VARS+="RDI_TOMAS_DUSTDEAD='on '\n"
+	RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
+    else
+	RDI_VARS+="RDI_TOMAS_DUSTDEAD='off'\n"
+	RDI_VARS+="RDI_OFFLINE_DUST='true '\n" 
+    fi
+    RDI_VARS+="RDI_DUSTDEAD_EXT='off'\n"
+    RDI_VARS+="RDI_SOILNOX_EXT='off'\n"
+    RDI_VARS+="RDI_OFFLINE_BIOVOC='true '\n"
+    RDI_VARS+="RDI_OFFLINE_SOILNOX='true '\n"
+fi
+RDI_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+
 #--------------------------------------------------------------------
 # Replace settings in config files with RDI variables
 #--------------------------------------------------------------------
@@ -443,12 +521,13 @@ ${srcrundir}/init_rd.sh rdi_vars.txt
 #--------------------------------------------------------------------
 printf "\n  See rdi_vars.txt for run directory settings.\n\n"
 
-printf "\n  -- This run directory has been set up for $RDI_SIM_START - RDI_SIM_END_DATE.\n"
+printf "\n  -- This run directory has been set up for $startdate - $enddate.\n"
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly.\n"
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
 
 # Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP.
+# GEOS-Chem Classic and GCHP. This script mainly now adds species to input.geos
+# and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi

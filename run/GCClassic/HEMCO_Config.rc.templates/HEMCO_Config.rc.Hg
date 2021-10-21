@@ -51,12 +51,12 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     {MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RDI_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
+    --> GC_BCs                 :       ${RDI_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> ZHAOZHANG              :       false    # 2010
     --> CHAKRABORTY            :       false    # 2010
@@ -442,10 +442,12 @@ Warnings:                    1
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
 
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields for FlexGrid ---
+>>>include ${RDI_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -481,17 +483,17 @@ Warnings:                    1
 # --- Oxidant fields ---
 #==============================================================================
 (((OXIDANT_FIELDS
-{GLOBAL_Cl}
-{GLOBAL_ClO}
-{GLOBAL_HNO3}
-{GLOBAL_HO2}
-{GLOBAL_HOCl}
-{GLOBAL_NIT}
-{GLOBAL_NO}
-{GLOBAL_NO2}
-{GLOBAL_O3}
-{GLOBAL_OH}
-{GLOBAL_OA}
+${RDI_GLOBAL_Cl}
+${RDI_GLOBAL_ClO}
+${RDI_GLOBAL_HNO3}
+${RDI_GLOBAL_HO2}
+${RDI_GLOBAL_HOCl}
+${RDI_GLOBAL_NIT}
+${RDI_GLOBAL_NO}
+${RDI_GLOBAL_NO2}
+${RDI_GLOBAL_O3}
+${RDI_GLOBAL_OH}
+${RDI_GLOBAL_OA}
 * GLOBAL_OCEAN $ROOT/MERCURY/v2018-04/ocean_fixed.nc ocean_conc 2007/1-12/1/0 C xyz 1 * - 1 1
 )))OXIDANT_FIELDS
 
@@ -499,37 +501,37 @@ Warnings:                    1
 # --- BrOx fields --
 #==============================================================================
 (((BrOx_GC
-{Br_GC}
-{BrO_GC}
+${RDI_Br_GC}
+${RDI_BrO_GC}
 )))BrOx_GC
 
 (((.not.BrOx_GC
-{Br_TOMCAT}
-{BrO_TOMCAT}
+${RDI_Br_TOMCAT}
+${RDI_BrO_TOMCAT}
 ))).not.BrOx_GC
 
 #==============================================================================
 # --- J-value fields ---
 #==============================================================================
 (((JBrO
-{JBrO}
+${RDI_JBrO}
 )))JBrO
 (((LRED_JNO2
-{JNO2}
+${RDI_JNO2}
 )))LRED_JNO2
 
 #==============================================================================
 # --- Aerosol data for Hg2 partitioning ---
 #==============================================================================
 (((AERO_HG2_PARTITION
-{AERO_SO4}
-{AERO_NH4}
-{AERO_NIT}
-{AERO_BCPI}
-{AERO_BCPO}
-{AERO_OCPI}
-{AERO_OCPO}
-{AERO_DST1}
+${RDI_AERO_SO4}
+${RDI_AERO_NH4}
+${RDI_AERO_NIT}
+${RDI_AERO_BCPI}
+${RDI_AERO_BCPO}
+${RDI_AERO_OCPI}
+${RDI_AERO_OCPO}
+${RDI_AERO_DST1}
 )))AERO_HG2_PARTITION
 
 #==============================================================================

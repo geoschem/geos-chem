@@ -55,6 +55,7 @@ SUBST_LIST="""
 input.geos.templates/input.geos.${RDI_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RDI_SIM_NAME}
 HISTORY.rc.templates/HISTORY.rc.${RDI_SIM_NAME}
+HEMCO_Config.rc.templates/${RDI_MET_FIELD_CONFIG}
 """
 
 function filename_with_suffixes_removed() {

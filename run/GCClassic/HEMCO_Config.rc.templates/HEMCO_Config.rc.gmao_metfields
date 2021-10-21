@@ -1,4 +1,42 @@
-RDI_MET_FIELDS="
+#------------------------------------------------------------------------------
+#                  Harmonized Emissions Component (HEMCO)                     !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Config.rc
+#
+# !DESCRIPTION: Contains configuration information for GMAO meteorology fields
+#  in HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  See The HEMCO User's Guide for file details:
+#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#
+# !REVISION HISTORY:
+#  See https://github.com/geoschem/geos-chem for complete history
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+###############################################################################
+### BEGIN SECTION SETTINGS
+###############################################################################
+
+ROOT:     ${RDI_DATA_ROOT}/HEMCO
+METDIR:   ${RDI_MET_DIR}
+
+### END SECTION SETTINGS ###
+
+###############################################################################
+### BEGIN SECTION BASE EMISSIONS
+###############################################################################
+
+# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
+
 # --- CN fields ---
 * FRLAKE    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAKE   */1/1/0               C xy  1  * -  1 1
 * FRLAND    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAND   */1/1/0               C xy  1  * -  1 1
@@ -99,4 +137,9 @@ RDI_MET_FIELDS="
 (((LightNOx
 * FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_${RDI_MET_NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 * CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_${RDI_MET_NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-)))LightNOx"
+)))LightNOx
+
+### END SECTION BASE EMISSIONS ###
+
+### END OF HEMCO INPUT FILE ###
+#EOC

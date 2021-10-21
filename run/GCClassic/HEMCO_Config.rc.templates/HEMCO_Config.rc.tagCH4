@@ -59,12 +59,12 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true      {MET_AVAIL}
+    --> METEOROLOGY            :       true      ${RDI_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
+    --> GC_BCs                 :       ${RDI_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> GEPA                   :       true     # 2012
     --> CanMex                 :       false    # Can:2013,Mex:2010
@@ -580,10 +580,12 @@ Warnings:                    1
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
 
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields for FlexGrid ---
+>>>include ${RDI_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
