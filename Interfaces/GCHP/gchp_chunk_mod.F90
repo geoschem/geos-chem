@@ -903,8 +903,10 @@ CONTAINS
                                     RC             = RC         )
 
     ! Pass time values obtained from the ESMF environment to HEMCO
+#if !defined( MODEL_GEOS )
     CALL SetHcoTime ( HcoState,   ExtState,   year,    month,   day,   &
                       dayOfYr,    hour,       minute,  second,  DoEmis,  RC )
+#endif
 
     ! Calculate MODIS leaf area indexes needed for dry deposition
     CALL Compute_XLAI( Input_Opt, State_Grid, State_Met, RC )
