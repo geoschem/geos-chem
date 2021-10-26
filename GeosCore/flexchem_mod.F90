@@ -95,7 +95,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
+    USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
     USE DUST_MOD,             ONLY : RDUST_ONLINE
     USE ErrCode_Mod
@@ -349,7 +349,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%LDUST ) THEN
        CALL RDUST_ONLINE( Input_Opt, State_Chm,  State_Diag, &
-                          State_Grid, State_Met, SOILDUST,   WAVELENGTH, RC )
+                          State_Grid, State_Met, WAVELENGTH, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

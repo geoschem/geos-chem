@@ -45,7 +45,6 @@ MODULE AEROSOL_MOD
   ! SO4         : Sulfate aerosol                    [kg/m3]
   ! NH4         : Ammonium aerosol                   [kg/m3]
   ! NIT         : Inorganic nitrate aerosol          [kg/m3]
-  ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
   ! SLA         : Stratospheric liquid aerosol       [kg/m3]
   ! SPA         : Stratospheric particulate aerosol  [kg/m3]
   ! TSOA        : Terpene SOA                        [kg/m3]
@@ -72,7 +71,6 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: NH4(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: NIT(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: FRAC_SNA(:,:,:,:)
-  REAL(fp), ALLOCATABLE, PUBLIC :: SOILDUST(:,:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SLA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SPA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: TSOA(:,:,:)
@@ -247,6 +245,7 @@ CONTAINS
     REAL(fp), POINTER   :: AIRVOL(:,:,:)
     REAL(fp), POINTER   :: PMID(:,:,:)
     REAL(fp), POINTER   :: T(:,:,:)
+    REAL(fp), POINTER   :: SOILDUST(:,:,:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -312,10 +311,11 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    Spc    => State_Chm%Species
-    AIRVOL => State_Met%AIRVOL
-    PMID   => State_Met%PMID
-    T      => State_Met%T
+    Spc      => State_Chm%Species
+    AIRVOL   => State_Met%AIRVOL
+    PMID     => State_Met%PMID
+    T        => State_Met%T
+    SOILDUST => State_Chm%SoilDust
 
     !=================================================================
     ! OM/OC ratio
@@ -1008,8 +1008,11 @@ CONTAINS
     ENDIF
 
     ! Free pointers
-    Spc    => NULL()
-    AIRVOL => NULL()
+    Spc      => NULL()
+    AIRVOL   => NULL()
+    PMID     => NULL()
+    T        => NULL()
+    SOILDUST => NULL()
 
   END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -2413,12 +2416,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     FRAC_SNA = 0.0_fp
 
-    ALLOCATE( SOILDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NDUST ), &
-              STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F90:SOILDUST', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    SOILDUST = 0.0_fp
-
     IF ( Input_Opt%LUCX ) THEN
        ALLOCATE( SLA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
        CALL GC_CheckVar( 'aerosol_mod.F90:SLA', 0, RC )
@@ -2529,7 +2526,6 @@ CONTAINS
     IF ( ALLOCATED( NH4         ) ) DEALLOCATE( NH4         )
     IF ( ALLOCATED( NIT         ) ) DEALLOCATE( NIT         )
     IF ( ALLOCATED( FRAC_SNA    ) ) DEALLOCATE( FRAC_SNA    )
-    IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
     IF ( ALLOCATED( SLA         ) ) DEALLOCATE( SLA         )
     IF ( ALLOCATED( SPA         ) ) DEALLOCATE( SPA         )
     IF ( ALLOCATED( TSOA        ) ) DEALLOCATE( TSOA        )

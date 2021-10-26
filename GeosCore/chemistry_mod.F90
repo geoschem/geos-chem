@@ -64,7 +64,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,     ONLY : RDAER
-    USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
@@ -706,8 +705,8 @@ CONTAINS
              ! Compute dust OD's & surface areas
              WAVELENGTH = 0
              CALL Rdust_Online( Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, SOILDUST,   &
-                                WAVELENGTH, RC )
+                                State_Grid, State_Met, WAVELENGTH, &
+                                RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -952,7 +951,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,    ONLY : RDAER
-    USE AEROSOL_MOD,    ONLY : SOILDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : Debug_Msg
@@ -1069,8 +1067,8 @@ CONTAINS
              !==============================================================
              IF ( LDUST ) THEN
                 CALL RDUST_ONLINE( Input_Opt,  State_Chm, State_Diag, &
-                                   State_Grid, State_Met, SOILDUST,   &
-                                   WAVELENGTH, RC )
+                                   State_Grid, State_Met, WAVELENGTH, &
+                                   RC )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
