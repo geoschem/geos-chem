@@ -238,7 +238,7 @@ if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
     RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
-    if [[ ${sim_extra_option}="complexSOA_SVPOA" ]]; then
+    if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
 	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
@@ -551,6 +551,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00254319'\n"
 	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
   	fi
     else
         if [[ "$grid_res" ==  "4x5" ]]; then
@@ -565,6 +567,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01066495'\n"
 	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
     fi
 else
@@ -572,15 +576,14 @@ else
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 	if [[ "x${met}" == "geosfp" && "x${grid_res}" == "x4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
-	fi
-	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
+	elif [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
-	fi
-	if [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
+	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='7.8533e-4'\n"
-	fi
-	if [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
+	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.7586e-4'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
     else
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
@@ -843,10 +846,13 @@ else
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+	RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
     else
 	if [[ "${sim_extra_option}" == "marinePOA" ]]; then
 	    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
 	    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then

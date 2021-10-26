@@ -182,7 +182,7 @@ if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
     RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
-    if [[ ${sim_extra_option}="complexSOA_SVPOA" ]]; then
+    if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
 	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"

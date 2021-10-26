@@ -28,9 +28,6 @@
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
-SCENARIO:                    ${RUNDIR_GCAP2_SCENARIO}
-RUNID:                       ${RUNDIR_GCAP2_RUNID}
-GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
@@ -338,7 +335,7 @@ Warnings:                    1
 #==============================================================================
 (((CHEMISTRY_INPUT
 (((CO2_COPROD
-{CO2_COPROD}
+${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
 )))CHEMISTRY_INPUT
 

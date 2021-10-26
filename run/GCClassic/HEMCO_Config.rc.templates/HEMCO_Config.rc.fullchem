@@ -29,7 +29,6 @@ ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
 GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
 GCAP2VERTRES:                ${RUNDIR_GCAP2_VERTRES}
-GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics

@@ -13,7 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  This file has been customized for the POPs simulation for {POPs_SPC}.
+#  This file has been customized for the POPs simulation for ${RUNDIR_POP_SPC}.
 #  See The HEMCO User's Guide for file details:
 #    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
 #
@@ -28,9 +28,6 @@
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
-SCENARIO:                    ${RUNDIR_GCAP2_SCENARIO}
-RUNID:                       ${RUNDIR_GCAP2_RUNID}
-GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
@@ -89,8 +86,8 @@ Warnings:                    1
 1002 TOT_POP     $ROOT/POPs/v2015-08/${RUNDIR_POP_SPC}_wildfredist.generic.1x1.nc PG_SRCE__POPG  2004/1/1/0         C xy  kg/m2/s * - 1 1
 1002 SURF_POP    $ROOT/POPs/v2015-08/${RUNDIR_POP_SPC}_soil_conc.geos5.4x5.nc     IJ_AVG_S__POPG 2009/1/1/0         C xy  1       * - 1 1
 1002 SOIL_CARBON $ROOT/POPs/v2015-08/GTMM_carbon.generic.1x1.nc     SOIL_CARBON    1985/1/1/0         C xy  1       * - 1 1
-{GLOBAL_OC}
-{GLOBAL_BC}
+${RUNDIR_GLOBAL_OC}
+${RUNDIR_GLOBAL_BC}
 )))GC_POPs
 
 )))EMISSIONS
@@ -137,8 +134,8 @@ Warnings:                    1
 # --- Oxidant fields --
 #==============================================================================
 (((OXIDANT_FIELDS
-{GLOBAL_O3}
-{GLOBAL_OH}
+${RUNDIR_GLOBAL_O3}
+${RUNDIR_GLOBAL_OH}
 )))OXIDANT_FIELDS
 
 )))CHEMISTRY_INPUT
