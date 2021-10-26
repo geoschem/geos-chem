@@ -26,11 +26,11 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:                        ${RDI_DATA_ROOT}/HEMCO
-METDIR:                      ${RDI_MET_DIR}
-SCENARIO:                    ${RDI_GCAP2_SCENARIO}
-RUNID:                       ${RDI_GCAP2_RUNID}
-GISSRES:                     ${RDI_GISS_RES}
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
+SCENARIO:                    ${RUNDIR_GCAP2_SCENARIO}
+RUNID:                       ${RUNDIR_GCAP2_RUNID}
+GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
@@ -51,7 +51,7 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     ${RDI_MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
@@ -99,7 +99,7 @@ Warnings:                    1
 #==============================================================================
 (((METEOROLOGY
 
->>>include ${RDI_MET_FIELD_CONFIG}
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 

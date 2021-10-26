@@ -23,9 +23,9 @@ cd ${srcrundir}
 # Load file with utility functions to setup configuration files
 . ${gcdir}/run/shared/setupConfigFiles.sh
 
-# Initialize Run Directory Initialization (RDI) variables
-RDI_VARS=""
-RDI_VARS+="RDI_GC_MODE='GCClassic'\n"
+# Initialize run directory variables
+RUNDIR_VARS=""
+RUNDIR_VARS+="RUNDIR_GC_MODE='GCClassic'\n"
 
 # Define separator lines
 thickline="\n===========================================================\n"
@@ -69,7 +69,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     done
 fi
 
-RDI_VARS+="RDI_DATA_ROOT=$GC_DATA_ROOT\n"
+RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -119,7 +119,7 @@ while [ "${valid_sim}" -eq 0 ]; do
     fi
 done
 
-RDI_VARS+="RDI_SIM_NAME=$sim_name\n"
+RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -222,60 +222,60 @@ elif [[ ${sim_name} = "POPs" ]]; then
     done
 fi
 
-RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
+RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
 
 # Determine settings based on simulation type
 SettingsDir="${gcdir}/run/shared/settings"
 if [[ ${sim_extra_option} == "BaP" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/POPs_BaP.txt)\n"
+    RUNDIR_VARS+="$(cat ${SettingsDir}/POPs_BaP.txt)\n"
 elif [[ ${sim_extra_option} == "PHE" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/POPs_PHE.txt)\n"
+    RUNDIR_VARS+="$(cat ${SettingsDir}/POPs_PHE.txt)\n"
 elif [[ ${sim_extra_option} == "PYR" ]]; then
-    RDI_VARS+="$(cat ${SettingsDir}/POPs_PYR.txt)\n"
+    RUNDIR_VARS+="$(cat ${SettingsDir}/POPs_PYR.txt)\n"
 fi
 
 if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
-    RDI_VARS+="RDI_COMPLEX_SOA='T'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
     if [[ ${sim_extra_option}="complexSOA_SVPOA" ]]; then
-	RDI_VARS+="RDI_SVPOA='T'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
     else
-	RDI_VARS+="RDI_SVPOA='F'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
     fi
 else
-    RDI_VARS+="RDI_COMPLEX_SOA='F'\n"
-    RDI_VARS+="RDI_SVPOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
 fi
 
 if [[ ${sim_extra_option} == "aciduptake" ]]; then
-    RDI_VARS+="RDI_DUSTALK_EXT='on '\n"
-    RDI_VARS+="RDI_ACID_UPTAKE='T'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
 else
-    RDI_VARS+="RDI_DUSTALK_EXT='off'\n"
-    RDI_VARS+="RDI_ACID_UPTAKE='F'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
 fi
 
 if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RDI_VARS+="RDI_MARINE_POA='T'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
 else
-    RDI_VARS+="RDI_MARINE_POA='F'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
 fi
 
 if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RDI_VARS+="RDI_RRTMG_OPTS='T'\n"
-    RDI_VARS+="RDI_USE_RRTMG='true '\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
 else
-    RDI_VARS+="RDI_RRTMG_OPTS='F'\n"
-    RDI_VARS+="RDI_USE_RRTMG='false'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
 fi
 
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RDI_VARS+="RDI_USE_NLPBL='F'\n"
-    RDI_VARS+="RDI_USE_ONLINE_O3='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
 else
-    RDI_VARS+="RDI_USE_NLPBL='T'\n"
-    RDI_VARS+="RDI_USE_ONLINE_O3='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
 fi
 
 #-----------------------------------------------------------------
@@ -292,16 +292,16 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
-	RDI_VARS+="RDI_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
-	RDI_VARS+="RDI_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "3" ]]; then
 	met="ModelE2.1"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/modele2.1.txt)\n"
-	RDI_VARS+="RDI_MET_FIELD_CONFIG='HEMCO_Config.rc.gcap2_metfields'\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/modele2.1.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gcap2_metfields'\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -327,45 +327,45 @@ if [[ ${met} = "ModelE2.1" ]]; then
 	if [[ ${scen_num} = "1" ]]; then
 	    scenario="HIST"
             runid="E213f10aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 1851-1860; 2001-2014'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1851-1860; 2001-2014'\n"
 	elif [[ ${scen_num} = "2" ]]; then
 	    scenario="HIST"
             runid="E213f10aF40oQ40nudge"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2001-2014"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014"
 	elif [[ ${scen_num} = "3" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "4" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "5" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "6" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "7" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "8" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "9" ]]; then
 	    scenario="SSP119"
             runid="E213SSP119aF40oQ40"
-	    RDI_VARS+="RDI_MET_AVAIL='# 2040-2049; 2090-2099'\n"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	else
   	    valid_scen=0
 	    printf "Invalid GCAP 2.0 scenario. Try again.\n"
 	fi
-	RDI_VARS+="RDI_GCAP2_SCENARIO='$scenario'\n"
-	RDI_VARS+="RDI_GCAP2_RUNID='$runid'\n"
+	RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='$scenario'\n"
+	RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='$runid'\n"
     done
 
     if [[ "${sim_name}" == "fullchem" ]] || [[ "${sim_name}" == "aerosol" ]]; then
@@ -376,9 +376,9 @@ if [[ ${met} = "ModelE2.1" ]]; then
 	    valid_volc=1
 	    echo $volc_year
 	    if [[ $volc_year -ge 1978 ]] && [[ $volc_year -le 2020 ]]; then
-		RDI_VARS+="RDI_VOLC_YEAR='$volc_year'\n"
+		RUNDIR_VARS+="RUNDIR_VOLC_YEAR='$volc_year'\n"
             elif [[ $volc_year -eq -1 ]]; then
-		RDI_VARS+="RDI_VOLC_YEAR='$YYYY'\n"
+		RUNDIR_VARS+="RUNDIR_VOLC_YEAR='$YYYY'\n"
 	    else
   		valid_volc=0
 		printf "Invalid volcano year. Try again.\n"
@@ -387,10 +387,10 @@ if [[ ${met} = "ModelE2.1" ]]; then
     fi
 
 else
-    RDI_VARS+="RDI_GCAP2_SCENARIO='not_used'\n"
-    RDI_VARS+="RDI_GCAP2_RUNID='not_used'\n"
-    RDI_VARS+="RDI_VOLC_YEAR='\$YYYY'\n"
-    RDI_VARS+="RDI_MET_AVAIL='# 1980-2021'\n"
+    RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_VOLC_YEAR='\$YYYY'\n"
+    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1980-2021'\n"
 fi
 
 #-----------------------------------------------------------------
@@ -418,16 +418,16 @@ while [ "${valid_res}" -eq 0 ]; do
     valid_res=1
     if [[ ${res_num} = "1" ]]; then
 	grid_res='4x5'
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/4x5.txt)\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/4x5.txt)\n"
     elif [[ ${res_num} = "2" ]]; then
 	grid_res='2x25'
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/2x25.txt)\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/2x25.txt)\n"
     elif [[ ${res_num} = "3" ]]; then
 	grid_res='05x0625'
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
     elif [[ ${res_num} = "4" ]]; then
 	grid_res='025x03125'
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
     else
 	valid_res=0
 	printf "Invalid horizontal resolution option. Try again.\n"
@@ -447,40 +447,40 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	read domain_num
 	valid_domain=1
 	if [[ ${domain_num} = "1" ]]; then
-	    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
+	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
 	else
-	    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/nested_grid.txt)\n"
+	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/nested_grid.txt)\n"
 	    if [[ ${domain_num} = "2" ]]; then
-		RDI_VARS+="RDI_GRID_DOMAIN_NAME='AS'\n"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AS'\n"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            RDI_VARS+="RDI_GRID_LON_RANGE=' 60.0 150.0'\n"
-		    RDI_VARS+="RDI_GRID_LAT_RANGE='-11.0  55.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE=' 60.0 150.0'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='-11.0  55.0'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            RDI_VARS+="RDI_GRID_LON_RANGE=' 70.0 140.0'\n"
-		    RDI_VARS+="RDI_GRID_LAT_RANGE=' 15.0  55.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE=' 70.0 140.0'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 15.0  55.0'\n"
 		fi
 	    elif [[ ${domain_num} = "3" ]]; then
-		RDI_VARS+="RDI_GRID_DOMAIN_NAME='EU'\n"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='EU'\n"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            RDI_VARS+="RDI_GRID_LON_RANGE='-30.0 50.0'\n"
-		    RDI_VARS+="RDI_GRID_LAT_RANGE=' 30.0 70.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-30.0 50.0'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 30.0 70.0'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            RDI_VARS+="RDI_GRID_LON_RANGE='-15.0  40.0'\n"
-		    RDI_VARS+="RDI_GRID_LAT_RANGE=' 32.75 61.25'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-15.0  40.0'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 32.75 61.25'\n"
 		fi
 	    elif [[ ${domain_num} = "4" ]]; then
-		RDI_VARS+="RDI_GRID_DOMAIN_NAME='NA'\n"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='NA'\n"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            RDI_VARS+="RDI_GRID_LON_RANGE='-140.0 -40.0'\n"
-		    RDI_VARS+="RDI_GRID_LAT_RANGE='  10.0  70.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-140.0 -40.0'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='  10.0  70.0'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            RDI_VARS+="RDI_GRID_LON_RANGE='-130.0  -60.0'\n"
-		    RDI_VARS+="RDI_GRID_LAT_RANGE='   9.75  60.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-130.0  -60.0'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='   9.75  60.0'\n"
 		fi
 	    elif [[ ${domain_num} = "5" ]]; then
-		RDI_VARS+="RDI_GRID_DOMAIN_NAME='custom'\n"
-	        RDI_VARS+="RDI_GRID_LON_RANGE='MinLon MaxLon'\n"
-	        RDI_VARS+="RDI_GRID_LAT_RANGE='MinLat MaxLat'\n"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='custom'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='MinLon MaxLon'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='MinLat MaxLat'\n"
 	        printf "\n  -- You will need to manually set longitude and latitude"
 		printf "\n     bounds in the Grid Menu of input.geos.\n"
 	    else
@@ -490,29 +490,29 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
         fi
     done
 else
-    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
+    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
     if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
         if [[ "$grid_res" == "4x5" ]]; then
-	    RDI_VARS+="RDI_GRID_HALF_POLAR='T'\n"
+	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='T'\n"
 	else
-	    RDI_VARS+="RDI_GRID_HALF_POLAR='F'\n"
+	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='F'\n"
 	fi
     else
-	RDI_VARS+="RDI_GRID_HALF_POLAR='T'\n"
+	RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='T'\n"
     fi
 fi
 
 # Set timesteps according to grid resolution
 if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
-    RDI_VARS+="RDI_TRANSPORT_TS='300'\n"
-    RDI_VARS+="RDI_CHEMISTRY_TS='600'\n"
+    RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='300'\n"
+    RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='600'\n"
 else
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-	RDI_VARS+="RDI_TRANSPORT_TS='1800'\n"
-	RDI_VARS+="RDI_CHEMISTRY_TS='3600'\n"
+	RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='1800'\n"
+	RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='3600'\n"
     else
-	RDI_VARS+="RDI_TRANSPORT_TS='600'\n"
-	RDI_VARS+="RDI_CHEMISTRY_TS='1200'\n"
+	RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='600'\n"
+	RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='1200'\n"
     fi
 fi
 
@@ -523,14 +523,14 @@ fi
 if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]] ; then
     if [[ "$grid_res" == "2x25" ]]; then
 	# Native GISS fine resolution
-	RDI_VARS+="RDI_CENTER_LON_180='F'\n"
+	RUNDIR_VARS+="RUNDIR_CENTER_LON_180='F'\n"
     else
         # FlexGrid re-gridded resolutions
-	RDI_VARS+="RDI_CENTER_LON_180='T'\n"
+	RUNDIR_VARS+="RUNDIR_CENTER_LON_180='T'\n"
     fi
 else
     # All GMAO products
-    RDI_VARS+="RDI_CENTER_LON_180='T'\n"
+    RUNDIR_VARS+="RUNDIR_CENTER_LON_180='T'\n"
 fi
 
 #----------------------------------------------------------------
@@ -540,50 +540,50 @@ fi
 if [[ ${met} = "ModelE2.1" ]]; then
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00474046'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00243979'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00243979'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00276896'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00276896'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.00254319'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00254319'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
   	fi
     else
         if [[ "$grid_res" ==  "4x5" ]]; then
-            RDI_VARS+="RDI_DUSTDEAD_TF='0.03564873'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+            RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.03564873'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.01050036'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01050036'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.01340854'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01340854'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='0.01066495'\n"
-	    RDI_VARS+="RDI_GISS_RES='F40'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01066495'\n"
+	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	fi
     fi
 else
-    RDI_VARS+="RDI_GISS_RES='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 	if [[ "x${met}" == "geosfp" && "x${grid_res}" == "x4x5" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='8.3286e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
 	fi
 	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='5.0416e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
 	fi
 	if [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='7.8533e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='7.8533e-4'\n"
 	fi
 	if [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
-	    RDI_VARS+="RDI_DUSTDEAD_TF='4.7586e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.7586e-4'\n"
 	fi
     else
-	RDI_VARS+="RDI_DUSTDEAD_TF='-999.0e0'\n"
+	RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
     fi
 fi
 
@@ -601,9 +601,9 @@ if [[ ${met} = "geosfp" ]] || [[ ${met} = "merra2" ]]; then
         read lev_num
         valid_lev=1
         if [[ ${lev_num} = "1" ]]; then
-            RDI_VARS+="RDI_GRID_NLEV='72'\n"
+            RUNDIR_VARS+="RUNDIR_GRID_NLEV='72'\n"
         elif [[ ${lev_num} = "2" ]]; then
-	    RDI_VARS+="RDI_GRID_NLEV='47'\n"
+	    RUNDIR_VARS+="RUNDIR_GRID_NLEV='47'\n"
         else
             valid_lev=0
             printf "Invalid vertical resolution option. Try again.\n"
@@ -618,7 +618,7 @@ if [[ ${met} = "ModelE2.1" ]]; then
         read lev_num
         valid_lev=1
         if [[ ${lev_num} = "1" ]]; then
-            RDI_VARS+="RDI_GRID_NLEV='40'\n"
+            RUNDIR_VARS+="RUNDIR_GRID_NLEV='40'\n"
         else
             valid_lev=0
             printf "Invalid vertical resolution option. Try again.\n"
@@ -634,9 +634,9 @@ if [[ ${met} = "ModelE2.2" ]]; then
         read lev_num
         valid_lev=1
         if [[ ${lev_num} = "1" ]]; then
-            RDI_VARS+="RDI_GRID_NLEV='102'\n"
+            RUNDIR_VARS+="RUNDIR_GRID_NLEV='102'\n"
         elif [[ ${lev_num} = "2" ]]; then
-            RDI_VARS+="RDI_GRID_NLEV='74'\n"
+            RUNDIR_VARS+="RUNDIR_GRID_NLEV='74'\n"
         else
             valid_lev=0
             printf "Invalid vertical resolution option. Try again.\n"
@@ -805,88 +805,88 @@ if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
 	enddate='20900801'
     fi
 fi
-RDI_VARS+="RDI_SIM_START_DATE=$startdate\n"
-RDI_VARS+="RDI_SIM_END_DATE=$enddate\n"
-RDI_VARS+="RDI_SIM_START_TIME='000000'\n"
-RDI_VARS+="RDI_SIM_END_TIME='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_START_DATE=$startdate\n"
+RUNDIR_VARS+="RUNDIR_SIM_END_DATE=$enddate\n"
+RUNDIR_VARS+="RUNDIR_SIM_START_TIME='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_END_TIME='000000'\n"
 
 # Use monthly diagnostics by default
-RDI_VARS+="RDI_HIST_TIME_AVG_DUR='00000100 000000'\n"
-RDI_VARS+="RDI_HIST_TIME_AVG_FREQ='00000100 000000'\n"
-RDI_VARS+="RDI_HIST_INST_DUR='00000100 000000'\n"
-RDI_VARS+="RDI_HIST_INST_FREQ='00000100 000000'\n"
-RDI_VARS+="RDI_HIST_MONTHLY_DIAG='1'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='00000100 000000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='00000100 000000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='00000100 000000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='00000100 000000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Turn on GEOS-Chem timers for benchmark simulations
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
 else
-    RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ ${met} = "ModelE2.1" ]]; then
-    RDI_VARS+="RDI_DUSTDEAD_EXT='on '\n"
-    RDI_VARS+="RDI_SEASALT_EXT='on '\n"
-    RDI_VARS+="RDI_SOILNOX_EXT='on '\n"
-    RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
-    RDI_VARS+="RDI_OFFLINE_BIOVOC='false'\n"
-    RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
-    RDI_VARS+="RDI_OFFLINE_SOILNOX='false'\n"
-    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_hemco.txt)\n"
+    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_hemco.txt)\n"
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
-	RDI_VARS+="RDI_DUSTDEAD_EXT='on '\n"
-	RDI_VARS+="RDI_SEASALT_EXT='on '\n"
-	RDI_VARS+="RDI_SOILNOX_EXT='on '\n"
-	RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
-	RDI_VARS+="RDI_OFFLINE_BIOVOC='false'\n"
-	RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
-	RDI_VARS+="RDI_OFFLINE_SOILNOX='false'\n"
+	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
     else
 	if [[ "${sim_extra_option}" == "marinePOA" ]]; then
-	    RDI_VARS+="RDI_SEASALT_EXT='on '\n"
-	    RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+	    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	else
-	    RDI_VARS+="RDI_SEASALT_EXT='off'\n"
+	    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
 	    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-		RDI_VARS+="RDI_TOMAS_SEASALT='on '\n"
-		RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+		RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
+		RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	    else
-		RDI_VARS+="RDI_TOMAS_SEASALT='off'\n"
-		RDI_VARS+="RDI_OFFLINE_SEASALT='true '\n"
+		RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+		RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	    fi
 	fi
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-	    RDI_VARS+="RDI_TOMAS_DUSTDEAD='on '\n"
-	    RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
+	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
 	else
-	    RDI_VARS+="RDI_TOMAS_DUSTDEAD='off'\n"
-	    RDI_VARS+="RDI_OFFLINE_DUST='true '\n" 
+	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
 	fi
-	RDI_VARS+="RDI_DUSTDEAD_EXT='off'\n"
-	RDI_VARS+="RDI_SOILNOX_EXT='off'\n"
-	RDI_VARS+="RDI_OFFLINE_BIOVOC='true '\n"
-	RDI_VARS+="RDI_OFFLINE_SOILNOX='true '\n"
+	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
     fi
-    RDI_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 fi
 
 #--------------------------------------------------------------------
-# Replace settings in config files with RDI variables
+# Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Save RDI variables to file
-echo -e "$RDI_VARS" > rdi_vars.txt
-sort -o rdi_vars.txt rdi_vars.txt
+# Save RUNDIR variables to file
+echo -e "$RUNDIR_VARS" > rundir_vars.txt
+sort -o rundir_vars.txt rundir_vars.txt
 
 # Call init_rd.sh
-${srcrundir}/init_rd.sh rdi_vars.txt
+${srcrundir}/init_rd.sh rundir_vars.txt
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
-printf "\n  See rdi_vars.txt for run directory settings.\n\n"
+printf "\n  See rundir_vars.txt for run directory settings.\n\n"
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
 printf "\n     You may modify these settings in input.geos.\n"
@@ -977,22 +977,22 @@ elif [[ ${met} = "ModelE2.1" ]]; then
         # For TOMAS simulations, use restarts provided by the TOMAS team
         # For other fullchem simulations, use restart the latest 1-yr benchmark
         if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-    	    sample_rst=${rst_root}/v2020-02/${RDI_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS15.nc4
+    	    sample_rst=${rst_root}/v2020-02/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS15.nc4
         elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-    	    sample_rst=${rst_root}/v2020-02/${RDI_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS40.nc4
+    	    sample_rst=${rst_root}/v2020-02/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS40.nc4
         else
-    	    sample_rst=${rst_root}/GC_13.0.0/${RDI_GRID_NLEV}L/GCAP2.Restart.fullchem.20190701_0000z.nc4
+    	    sample_rst=${rst_root}/GC_13.0.0/${RUNDIR_GRID_NLEV}L/GCAP2.Restart.fullchem.20190701_0000z.nc4
         fi
 
     elif [[ ${sim_name} = "TransportTracers" ]]; then
 
         # For TransportTracers, use restart from latest 1-year benchmark
-        sample_rst=${rst_root}/GC_13.0.0/${RDI_GRID_NLEV}L/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+        sample_rst=${rst_root}/GC_13.0.0/${RUNDIR_GRID_NLEV}L/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
 
     else
 
         # For other specialty simulations, use previously saved restarts
-        sample_rst=${rst_root}/v2018-11/${RDI_GRID_NLEV}L/initial_GCAP2_rst.${grid_res}_${sim_name}.nc4
+        sample_rst=${rst_root}/v2018-11/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.${grid_res}_${sim_name}.nc4
 
     fi
 

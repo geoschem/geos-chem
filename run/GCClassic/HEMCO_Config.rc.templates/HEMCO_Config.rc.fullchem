@@ -25,11 +25,11 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:                        ${RDI_DATA_ROOT}/HEMCO
-METDIR:                      ${RDI_MET_DIR}
-GCAP2SCENARIO:               ${RDI_GCAP2_SCENARIO}
-GCAP2VERTRES:                ${RDI_GCAP2_VERTRES}
-GISSRES:                     ${RDI_GISS_RES}
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
+GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
+GCAP2VERTRES:                ${RUNDIR_GCAP2_VERTRES}
+GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -51,19 +51,19 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     ${RDI_MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
     --> HEMCO_RESTART          :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       ${RDI_USE_BCs}
+    --> GC_BCs                 :       ${RUNDIR_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ------------------------------------
-    --> CEDSv2                 :       ${RDI_USE_CEDS}    # 1750-2019
+    --> CEDSv2                 :       ${RUNDIR_USE_CEDS}    # 1750-2019
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
     --> EDGARv43               :       false    # 1970-2010
@@ -71,16 +71,16 @@ Warnings:                    1
     --> GEIA_NH3               :       true     # 1990
     --> SEABIRD_NH3            :       true     # 1990
     --> POET_EOH               :       false    # 1985
-    --> TZOMPASOSA_C2H6        :       ${RDI_USE_TSC2H6}    # 2010
-    --> XIAO_C3H8              :       ${RDI_USE_XIAOC3H8}    # 1985
+    --> TZOMPASOSA_C2H6        :       ${RUNDIR_USE_TSC2H6}    # 2010
+    --> XIAO_C3H8              :       ${RUNDIR_USE_XIAOC3H8}    # 1985
     --> LIANG_BROMOCARB        :       true     # 2000
     --> ORDONEZ_IODOCARB       :       true     # 2000
-    --> AEIC                   :       ${RDI_USE_AEIC}    # 2005
+    --> AEIC                   :       ${RUNDIR_USE_AEIC}    # 2005
     --> DECAYING_PLANTS        :       true     # 1985
     --> AFCID                  :       true     # 2015
 # ----- SHIP EMISSIONS ----------------------------------------
     --> SHIP                   :       true
-    --> CEDSv2_SHIP            :       ${RDI_USE_CEDS}    # 1750-2017
+    --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
     --> HTAP_SHIP              :       false    # 2008-2010
@@ -94,14 +94,14 @@ Warnings:                    1
     --> RCP_85                 :       false    # 2005-2100
 # ----- CMIP6 ANTHRO EMISSIONS / BOUNDARY CONDITIONS ----------
 #   Set GCAP2SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
-    --> CMIP6_SFC_BC           :       ${RDI_CMIP6_FIELDS}    # 1750-2100
-    --> CMIP6_SFC_LAND_ANTHRO  :       ${RDI_CMIP6_FIELDS}    # 1850-2100
-    --> CMIP6_AIRCRAFT         :       ${RDI_CMIP6_FIELDS}    # 1850-2100
-    --> CMIP6_SHIP             :       ${RDI_CMIP6_FIELDS}    # 1850-2100
+    --> CMIP6_SFC_BC           :       ${RUNDIR_CMIP6_FIELDS}    # 1750-2100
+    --> CMIP6_SFC_LAND_ANTHRO  :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+    --> CMIP6_AIRCRAFT         :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+    --> CMIP6_SHIP             :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS -----------------------------
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
-    --> BB4MIPS                :       ${RDI_CMIP6_FIELDS}    # 1850-2100
+    --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
 # ----- OFFLINE EMISSIONS -------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
@@ -117,22 +117,22 @@ Warnings:                    1
 # update ExtNr and Cat in HEMCO_Diagn.rc to properly save out emissions for
 # any affected species.
 #--------------------------------------------------------------
-    --> OFFLINE_DUST           :       ${RDI_OFFLINE_DUST}    # 1980-2021
-    --> OFFLINE_BIOGENICVOC    :       ${RDI_OFFLINE_BIOVOC}    # 1980-2021
-    --> OFFLINE_SEASALT        :       ${RDI_OFFLINE_SEASALT}    # 1980-2021
-    --> OFFLINE_SOILNOX        :       ${RDI_OFFLINE_SOILNOX}    # 1980-2021
+    --> OFFLINE_DUST           :       ${RUNDIR_OFFLINE_DUST}    # 1980-2021
+    --> OFFLINE_BIOGENICVOC    :       ${RUNDIR_OFFLINE_BIOVOC}    # 1980-2021
+    --> OFFLINE_SEASALT        :       ${RUNDIR_OFFLINE_SEASALT}    # 1980-2021
+    --> OFFLINE_SOILNOX        :       ${RUNDIR_OFFLINE_SOILNOX}    # 1980-2021
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> UVALBEDO               :       true     # 1985
     --> CCM_STRAT_Bry          :       true     # 2007
     --> GMI_OH                 :       true     # 2005
     --> GMI_PROD_LOSS          :       true     # 2005
     --> OMOC_RATIO             :       false    # 2010
-    --> GMD_SFC_CH4            :       ${RDI_USE_GMDCH4}    # 1979-2020
+    --> GMD_SFC_CH4            :       ${RUNDIR_USE_GMDCH4}    # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
-    --> RRTMG                  :       ${RDI_USE_RRTMG}    # 2002
-    --> SfcVMR                 :       ${RDI_USE_SFCVMR}    # 1750-2014
+    --> RRTMG                  :       ${RUNDIR_USE_RRTMG}    # 2002
+    --> SfcVMR                 :       ${RUNDIR_USE_SFCVMR}    # 1750-2014
     --> OCEAN_O3_DRYDEP        :       true     # 1985
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
@@ -142,12 +142,12 @@ Warnings:                    1
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
 103     LightNOx               : on    NO
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
-104     SoilNOx                : ${RDI_SOILNOX_EXT}   NO
+104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : ${RDI_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
-    --> Mass tuning factor     :       ${RDI_DUSTDEAD_TF}
+105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
+    --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : ${RDI_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
+107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
@@ -173,7 +173,7 @@ Warnings:                    1
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : ${RDI_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -192,17 +192,17 @@ Warnings:                    1
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
     --> FINN_subgrid_coag      :       false
-115     DustAlk                : ${RDI_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
+115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
-    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/${RDI_VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/${RUNDIR_VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
     --> Volcano_Climatology    :       $ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
-130     TOMAS_Jeagle           : ${RDI_TOMAS_SEASALT}   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
-131     TOMAS_DustDead         : ${RDI_TOMAS_DUSTDEAD}   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
-    --> Mass tuning factor     :       ${RDI_DUSTDEAD_TF}
+130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
+131     TOMAS_DustDead         : ${RUNDIR_TOMAS_DUSTDEAD}   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
+    --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -2730,10 +2730,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 - 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 - 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 - 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RDI_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 - 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2021/1-12/1-31/* C xy kg/m2/s DST1 - 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2021/1-12/1-31/* C xy kg/m2/s DST2 - 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2021/1-12/1-31/* C xy kg/m2/s DST3 - 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2021/1-12/1-31/* C xy kg/m2/s DST4 - 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -2741,24 +2741,24 @@ Warnings:                    1
 # --- Offline biogenic VOC emissions ---
 #==============================================================================
 (((OFFLINE_BIOGENICVOC
-0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ACET 40  4 2
-0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ALD2 41  4 2
-0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s C2H4 44  4 2
-0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2021/1-12/1-31/* C xy kgC/m2/s EOH  47  4 2
-0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ISOP 61  4 2
+0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ACET 40  4 2
+0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ALD2 41  4 2
+0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s C2H4 44  4 2
+0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2021/1-12/1-31/* C xy kgC/m2/s EOH  47  4 2
+0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s ISOP 61  4 2
 0 BIOGENIC_ISOP_SOAP -                                                                                   -             -                     - -  -        SOAP 610 4 2
 0 BIOGENIC_ISOP_SOAS -                                                                                   -             -                     - -  -        SOAS 610 4 2
-0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s LIMO -   4 2
+0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s LIMO -   4 2
 0 BIOGENIC_LIMO_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
 0 BIOGENIC_LIMO_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPA -   4 2
+0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPA -   4 2
 0 BIOGENIC_MTPA_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
 0 BIOGENIC_MTPA_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPO -   4 2
+0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s MTPO -   4 2
 0 BIOGENIC_MTPO_SOAP -                                                                                   -             -                     - -  -        SOAP 611 4 2
 0 BIOGENIC_MTPO_SOAS -                                                                                   -             -                     - -  -        SOAS 611 4 2
-0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s PRPE 49  4 2
-0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2019-10/${RDI_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s SESQ -   4 2
+0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s PRPE 49  4 2
+0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2021/1-12/1-31/* C xy kgC/m2/s SESQ -   4 2
 0 BIOGENIC_SESQ_SOAP -                                                                                   -             -                     - -  -        SOAP 612 4 2
 0 BIOGENIC_SESQ_SOAS -                                                                                   -             -                     - -  -        SOAS 612 4 2
 )))OFFLINE_BIOGENICVOC
@@ -2768,11 +2768,11 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_SEASALT
 (((.not.SeaSalt
-0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
+0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
 0 SEASALT_SALAAL  -                                                                                     -            -                     - -  -       SALAAL  615 3 2
 0 SEASALT_SALACL  -                                                                                     -            -                     - -  -       SALACL  616 3 2
 0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BrSALA  617 3 2
-0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
+0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
 0 SEASALT_SALCAL  -                                                                                     -            -                     - -  -       SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
 0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BrSALC  617 3 2
@@ -2784,7 +2784,7 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_SOILNOX
 (((.not.SoilNOx
-0 SOILNOX_NO  $ROOT/OFFLINE_SOILNOX/v2019-01/${RDI_MET_NATIVE_RES}/$YYYY/$MM/soilnox_${RDI_MET_LAT_RES}.$YYYY$MM$DD.nc SOIL_NOx 1980-2021/1-12/1-31/* C xy kg/m2/s NO - 3 2
+0 SOILNOX_NO  $ROOT/OFFLINE_SOILNOX/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/soilnox_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SOIL_NOx 1980-2021/1-12/1-31/* C xy kg/m2/s NO - 3 2
 ))).not.SoilNOx
 )))OFFLINE_SOILNOX
 
@@ -3023,7 +3023,7 @@ Warnings:                    1
 #==============================================================================
 (((METEOROLOGY
 
->>>include ${RDI_MET_FIELD_CONFIG}
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -3065,25 +3065,25 @@ Warnings:                    1
 # --- Stratospheric Bry data from the CCM model  ---
 #==============================================================================
 (((CCM_STRAT_Bry
-* GEOSCCM_Br_DAY      $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BR     2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_Br2_DAY     $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrO_DAY     $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRO    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrNO3_DAY   $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HBr_DAY     $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   HBR    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HOBr_DAY    $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_Br_NIGHT    $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BR     2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_Br2_NIGHT   $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrO_NIGHT   $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRO    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrNO3_NIGHT $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HBr_NIGHT   $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc HBR    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HOBr_NIGHT  $ROOT/${RDI_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br_DAY      $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BR     2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br2_DAY     $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrO_DAY     $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRO    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrNO3_DAY   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HBr_DAY     $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   HBR    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HOBr_DAY    $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br_NIGHT    $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BR     2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br2_NIGHT   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrO_NIGHT   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRO    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrNO3_NIGHT $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HBr_NIGHT   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc HBR    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HOBr_NIGHT  $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
 )))CCM_STRAT_Bry
 
 #==============================================================================
 #--- Archived GMI OH concentrations ---
 #==============================================================================
 (((GMI_OH
-* GMI_OH            $ROOT/${RDI_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             species 2005/1-12/1/0 C xyz v/v   *        - 1  1
+* GMI_OH            $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             species 2005/1-12/1/0 C xyz v/v   *        - 1  1
 )))GMI_OH
 
 #==============================================================================
@@ -3092,250 +3092,250 @@ Warnings:                    1
 # Used for linearized mesospheric chemistry
 #==============================================================================
 (((GMI_PROD_LOSS
-* GMI_LOSS_A3O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.A3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   A3O2     - 1  1
-* GMI_PROD_A3O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.A3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s A3O2     - 1  1
-* GMI_LOSS_ACET       $ROOT/${RDI_GMI_DIR}/gmi.clim.ACET.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACET     - 1  1
-* GMI_PROD_ACET       $ROOT/${RDI_GMI_DIR}/gmi.clim.ACET.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACET     - 1  1
-* GMI_LOSS_ACTA       $ROOT/${RDI_GMI_DIR}/gmi.clim.ACTA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACTA     - 1  1
-* GMI_PROD_ACTA       $ROOT/${RDI_GMI_DIR}/gmi.clim.ACTA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACTA     - 1  1
-* GMI_LOSS_ALD2       $ROOT/${RDI_GMI_DIR}/gmi.clim.ALD2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALD2     - 1  1
-* GMI_PROD_ALD2       $ROOT/${RDI_GMI_DIR}/gmi.clim.ALD2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALD2     - 1  1
-* GMI_LOSS_ALK4       $ROOT/${RDI_GMI_DIR}/gmi.clim.ALK4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALK4     - 1  1
-* GMI_PROD_ALK4       $ROOT/${RDI_GMI_DIR}/gmi.clim.ALK4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALK4     - 1  1
-* GMI_LOSS_ATO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.ATO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ATO2     - 1  1
-* GMI_PROD_ATO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.ATO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ATO2     - 1  1
-* GMI_LOSS_B3O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.B3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   B3O2     - 1  1
-* GMI_PROD_B3O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.B3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s B3O2     - 1  1
-#* GMI_LOSS_Br        $ROOT/${RDI_GMI_DIR}/gmi.clim.Br.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Br       - 1  1
-#* GMI_PROD_Br        $ROOT/${RDI_GMI_DIR}/gmi.clim.Br.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Br       - 1  1
-#* GMI_LOSS_BrCl      $ROOT/${RDI_GMI_DIR}/gmi.clim.BrCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   BrCl     - 1  1
-#* GMI_PROD_BrCl      $ROOT/${RDI_GMI_DIR}/gmi.clim.BrCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s BrCl     - 1  1
-#* GMI_LOSS_BrO       $ROOT/${RDI_GMI_DIR}/gmi.clim.BrO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   BrO      - 1  1
-#* GMI_PROD_BrO       $ROOT/${RDI_GMI_DIR}/gmi.clim.BrO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s BrO      - 1  1
-#* GMI_LOSS_BrNO3     $ROOT/${RDI_GMI_DIR}/gmi.clim.BrONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   BrNO3    - 1  1
-#* GMI_PROD_BrNO3     $ROOT/${RDI_GMI_DIR}/gmi.clim.BrONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s BrNO3    - 1  1
-* GMI_LOSS_C2H6       $ROOT/${RDI_GMI_DIR}/gmi.clim.C2H6.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C2H6     - 1  1
-* GMI_PROD_C2H6       $ROOT/${RDI_GMI_DIR}/gmi.clim.C2H6.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C2H6     - 1  1
-* GMI_LOSS_C3H8       $ROOT/${RDI_GMI_DIR}/gmi.clim.C3H8.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C3H8     - 1  1
-* GMI_PROD_C3H8       $ROOT/${RDI_GMI_DIR}/gmi.clim.C3H8.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C3H8     - 1  1
-* GMI_LOSS_CCl4       $ROOT/${RDI_GMI_DIR}/gmi.clim.CCl4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CCl4     - 1  1
-* GMI_PROD_CCl4       $ROOT/${RDI_GMI_DIR}/gmi.clim.CCl4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CCl4     - 1  1
-#* GMI_LOSS_H1202     $ROOT/${RDI_GMI_DIR}/gmi.clim.CF2Br2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   H1202    - 1  1
-#* GMI_PROD_H1202     $ROOT/${RDI_GMI_DIR}/gmi.clim.CF2Br2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s H1202    - 1  1
-* GMI_LOSS_CFC12      $ROOT/${RDI_GMI_DIR}/gmi.clim.CF2Cl2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC12    - 1  1
-* GMI_PROD_CFC12      $ROOT/${RDI_GMI_DIR}/gmi.clim.CF2Cl2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC12    - 1  1
-* GMI_LOSS_H1211      $ROOT/${RDI_GMI_DIR}/gmi.clim.CF2ClBr.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   H1211    - 1  1
-* GMI_PROD_H1211      $ROOT/${RDI_GMI_DIR}/gmi.clim.CF2ClBr.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s H1211    - 1  1
-#* GMI_LOSS_H1311     $ROOT/${RDI_GMI_DIR}/gmi.clim.CF3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H1311    - 1  1
-#* GMI_PROD_H1311     $ROOT/${RDI_GMI_DIR}/gmi.clim.CF3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H1311    - 1  1
-* GMI_LOSS_CFC113     $ROOT/${RDI_GMI_DIR}/gmi.clim.CFC113.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC113   - 1  1
-* GMI_PROD_CFC113     $ROOT/${RDI_GMI_DIR}/gmi.clim.CFC113.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC113   - 1  1
-* GMI_LOSS_CFC114     $ROOT/${RDI_GMI_DIR}/gmi.clim.CFC114.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC114   - 1  1
-* GMI_PROD_CFC114     $ROOT/${RDI_GMI_DIR}/gmi.clim.CFC114.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC114   - 1  1
-* GMI_LOSS_CFC115     $ROOT/${RDI_GMI_DIR}/gmi.clim.CFC115.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC115   - 1  1
-* GMI_PROD_CFC115     $ROOT/${RDI_GMI_DIR}/gmi.clim.CFC115.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC115   - 1  1
-* GMI_LOSS_CFC11      $ROOT/${RDI_GMI_DIR}/gmi.clim.CFCl3.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CFC11    - 1  1
-* GMI_PROD_CFC11      $ROOT/${RDI_GMI_DIR}/gmi.clim.CFCl3.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CFC11    - 1  1
-* GMI_LOSS_CH2O       $ROOT/${RDI_GMI_DIR}/gmi.clim.CH2O.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CH2O     - 1  1
-* GMI_PROD_CH2O       $ROOT/${RDI_GMI_DIR}/gmi.clim.CH2O.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CH2O     - 1  1
-#* GMI_LOSS_CH3Br     $ROOT/${RDI_GMI_DIR}/gmi.clim.CH3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Br    - 1  1
-#* GMI_PROD_CH3Br     $ROOT/${RDI_GMI_DIR}/gmi.clim.CH3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Br    - 1  1
-* GMI_LOSS_CH3CCl3    $ROOT/${RDI_GMI_DIR}/gmi.clim.CH3CCl3.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   CH3CCl3  - 1  1
-* GMI_PROD_CH3CCl3    $ROOT/${RDI_GMI_DIR}/gmi.clim.CH3CCl3.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s CH3CCl3  - 1  1
-* GMI_LOSS_CH3Cl      $ROOT/${RDI_GMI_DIR}/gmi.clim.CH3Cl.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Cl    - 1  1
-* GMI_PROD_CH3Cl      $ROOT/${RDI_GMI_DIR}/gmi.clim.CH3Cl.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Cl    - 1  1
-* GMI_LOSS_CH4        $ROOT/${RDI_GMI_DIR}/gmi.clim.CH4.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   CH4      - 1  1
-* GMI_PROD_CH4        $ROOT/${RDI_GMI_DIR}/gmi.clim.CH4.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s CH4      - 1  1
-* GMI_LOSS_CO         $ROOT/${RDI_GMI_DIR}/gmi.clim.CO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   CO       - 1  1
-* GMI_PROD_CO         $ROOT/${RDI_GMI_DIR}/gmi.clim.CO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s CO       - 1  1
-* GMI_LOSS_Cl         $ROOT/${RDI_GMI_DIR}/gmi.clim.Cl.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Cl       - 1  1
-* GMI_PROD_Cl         $ROOT/${RDI_GMI_DIR}/gmi.clim.Cl.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Cl       - 1  1
-* GMI_LOSS_Cl2        $ROOT/${RDI_GMI_DIR}/gmi.clim.Cl2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   Cl2      - 1  1
-* GMI_PROD_Cl2        $ROOT/${RDI_GMI_DIR}/gmi.clim.Cl2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s Cl2      - 1  1
-* GMI_LOSS_Cl2O2      $ROOT/${RDI_GMI_DIR}/gmi.clim.Cl2O2.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   Cl2O2    - 1  1
-* GMI_PROD_Cl2O2      $ROOT/${RDI_GMI_DIR}/gmi.clim.Cl2O2.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s Cl2O2    - 1  1
-* GMI_LOSS_ClO        $ROOT/${RDI_GMI_DIR}/gmi.clim.ClO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ClO      - 1  1
-* GMI_PROD_ClO        $ROOT/${RDI_GMI_DIR}/gmi.clim.ClO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ClO      - 1  1
-* GMI_LOSS_ClONO2     $ROOT/${RDI_GMI_DIR}/gmi.clim.ClONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   ClONO2   - 1  1
-* GMI_PROD_ClONO2     $ROOT/${RDI_GMI_DIR}/gmi.clim.ClONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s ClONO2   - 1  1
-* GMI_LOSS_EOH        $ROOT/${RDI_GMI_DIR}/gmi.clim.EOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   EOH      - 1  1
-* GMI_PROD_EOH        $ROOT/${RDI_GMI_DIR}/gmi.clim.EOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s EOH      - 1  1
-* GMI_LOSS_ETO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.ETO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ETO2     - 1  1
-* GMI_PROD_ETO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.ETO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ETO2     - 1  1
-* GMI_LOSS_ETP        $ROOT/${RDI_GMI_DIR}/gmi.clim.ETP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ETP      - 1  1
-* GMI_PROD_ETP        $ROOT/${RDI_GMI_DIR}/gmi.clim.ETP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ETP      - 1  1
-* GMI_LOSS_GCO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.GCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GCO3     - 1  1
-* GMI_PROD_GCO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.GCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GCO3     - 1  1
-* GMI_LOSS_GLYC       $ROOT/${RDI_GMI_DIR}/gmi.clim.GLYC.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYC     - 1  1
-* GMI_PROD_GLYC       $ROOT/${RDI_GMI_DIR}/gmi.clim.GLYC.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYC     - 1  1
-* GMI_LOSS_GLYX       $ROOT/${RDI_GMI_DIR}/gmi.clim.GLYX.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYX     - 1  1
-* GMI_PROD_GLYX       $ROOT/${RDI_GMI_DIR}/gmi.clim.GLYX.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYX     - 1  1
-* GMI_LOSS_GP         $ROOT/${RDI_GMI_DIR}/gmi.clim.GP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   GP       - 1  1
-* GMI_PROD_GP         $ROOT/${RDI_GMI_DIR}/gmi.clim.GP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s GP       - 1  1
-* GMI_LOSS_GPAN       $ROOT/${RDI_GMI_DIR}/gmi.clim.GPAN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GPAN     - 1  1
-* GMI_PROD_GPAN       $ROOT/${RDI_GMI_DIR}/gmi.clim.GPAN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GPAN     - 1  1
-* GMI_LOSS_H          $ROOT/${RDI_GMI_DIR}/gmi.clim.H.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   H        - 1  1
-* GMI_PROD_H          $ROOT/${RDI_GMI_DIR}/gmi.clim.H.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s H        - 1  1
-* GMI_LOSS_H2         $ROOT/${RDI_GMI_DIR}/gmi.clim.H2.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   H2       - 1  1
-* GMI_PROD_H2         $ROOT/${RDI_GMI_DIR}/gmi.clim.H2.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s H2       - 1  1
-* GMI_LOSS_H2402      $ROOT/${RDI_GMI_DIR}/gmi.clim.H2402.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H2402    - 1  1
-* GMI_PROD_H2402      $ROOT/${RDI_GMI_DIR}/gmi.clim.H2402.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H2402    - 1  1
-* GMI_LOSS_H2O        $ROOT/${RDI_GMI_DIR}/gmi.clim.H2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   H2O      - 1  1
-* GMI_PROD_H2O        $ROOT/${RDI_GMI_DIR}/gmi.clim.H2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s H2O      - 1  1
-* GMI_LOSS_H2O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.H2O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   H2O2     - 1  1
-* GMI_PROD_H2O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.H2O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s H2O2     - 1  1
-* GMI_LOSS_HAC        $ROOT/${RDI_GMI_DIR}/gmi.clim.HAC.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HAC      - 1  1
-* GMI_PROD_HAC        $ROOT/${RDI_GMI_DIR}/gmi.clim.HAC.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HAC      - 1  1
-#* GMI_LOSS_HBr       $ROOT/${RDI_GMI_DIR}/gmi.clim.HBr.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HBr      - 1  1
-#* GMI_PROD_HBr       $ROOT/${RDI_GMI_DIR}/gmi.clim.HBr.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HBr      - 1  1
-* GMI_LOSS_HCFC141b   $ROOT/${RDI_GMI_DIR}/gmi.clim.HCFC141b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC141b - 1  1
-* GMI_PROD_HCFC141b   $ROOT/${RDI_GMI_DIR}/gmi.clim.HCFC141b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC141b - 1  1
-* GMI_LOSS_HCFC142b   $ROOT/${RDI_GMI_DIR}/gmi.clim.HCFC142b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC142b - 1  1
-* GMI_PROD_HCFC142b   $ROOT/${RDI_GMI_DIR}/gmi.clim.HCFC142b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC142b - 1  1
-* GMI_LOSS_HCFC22     $ROOT/${RDI_GMI_DIR}/gmi.clim.HCFC22.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   HCFC22   - 1  1
-* GMI_PROD_HCFC22     $ROOT/${RDI_GMI_DIR}/gmi.clim.HCFC22.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s HCFC22   - 1  1
-* GMI_LOSS_HCOOH      $ROOT/${RDI_GMI_DIR}/gmi.clim.HCOOH.geos5.2x25.20170108.nc loss    2005/1-12/1/0 C xyz s-1   HCOOH    - 1  1
-* GMI_PROD_HCOOH      $ROOT/${RDI_GMI_DIR}/gmi.clim.HCOOH.geos5.2x25.20170108.nc prod    2005/1-12/1/0 C xyz v/v/s HCOOH    - 1  1
-* GMI_LOSS_HCl        $ROOT/${RDI_GMI_DIR}/gmi.clim.HCl.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HCl      - 1  1
-* GMI_PROD_HCl        $ROOT/${RDI_GMI_DIR}/gmi.clim.HCl.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HCl      - 1  1
-* GMI_LOSS_HNO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.HNO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO2     - 1  1
-* GMI_PROD_HNO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.HNO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO2     - 1  1
-* GMI_LOSS_HNO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.HNO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO3     - 1  1
-* GMI_PROD_HNO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.HNO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO3     - 1  1
-* GMI_LOSS_HNO4       $ROOT/${RDI_GMI_DIR}/gmi.clim.HNO4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO4     - 1  1
-* GMI_PROD_HNO4       $ROOT/${RDI_GMI_DIR}/gmi.clim.HNO4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO4     - 1  1
-* GMI_LOSS_HO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.HO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HO2      - 1  1
-* GMI_PROD_HO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.HO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HO2      - 1  1
-#* GMI_LOSS_HOBr      $ROOT/${RDI_GMI_DIR}/gmi.clim.HOBr.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOBr     - 1  1
-#* GMI_PROD_HOBr      $ROOT/${RDI_GMI_DIR}/gmi.clim.HOBr.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOBr     - 1  1
-* GMI_LOSS_HOCl       $ROOT/${RDI_GMI_DIR}/gmi.clim.HOCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOCl     - 1  1
-* GMI_PROD_HOCl       $ROOT/${RDI_GMI_DIR}/gmi.clim.HOCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOCl     - 1  1
-* GMI_LOSS_IALD       $ROOT/${RDI_GMI_DIR}/gmi.clim.IALD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IALD     - 1  1
-* GMI_PROD_IALD       $ROOT/${RDI_GMI_DIR}/gmi.clim.IALD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IALD     - 1  1
-* GMI_LOSS_IAO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.IAO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IAO2     - 1  1
-* GMI_PROD_IAO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.IAO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IAO2     - 1  1
-* GMI_LOSS_IAP        $ROOT/${RDI_GMI_DIR}/gmi.clim.IAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   IAP      - 1  1
-* GMI_PROD_IAP        $ROOT/${RDI_GMI_DIR}/gmi.clim.IAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s IAP      - 1  1
-* GMI_LOSS_INO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.INO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INO2     - 1  1
-* GMI_PROD_INO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.INO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INO2     - 1  1
-* GMI_LOSS_INPN       $ROOT/${RDI_GMI_DIR}/gmi.clim.INPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INPN     - 1  1
-* GMI_PROD_INPN       $ROOT/${RDI_GMI_DIR}/gmi.clim.INPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INPN     - 1  1
-* GMI_LOSS_ISN1       $ROOT/${RDI_GMI_DIR}/gmi.clim.ISN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISN1     - 1  1
-* GMI_PROD_ISN1       $ROOT/${RDI_GMI_DIR}/gmi.clim.ISN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISN1     - 1  1
-* GMI_LOSS_ISNP       $ROOT/${RDI_GMI_DIR}/gmi.clim.ISNP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISNP     - 1  1
-* GMI_PROD_ISNP       $ROOT/${RDI_GMI_DIR}/gmi.clim.ISNP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISNP     - 1  1
-* GMI_LOSS_ISOP       $ROOT/${RDI_GMI_DIR}/gmi.clim.ISOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISOP     - 1  1
-* GMI_PROD_ISOP       $ROOT/${RDI_GMI_DIR}/gmi.clim.ISOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISOP     - 1  1
-* GMI_LOSS_KO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.KO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   KO2      - 1  1
-* GMI_PROD_KO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.KO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s KO2      - 1  1
-* GMI_LOSS_MACR       $ROOT/${RDI_GMI_DIR}/gmi.clim.MACR.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MACR     - 1  1
-* GMI_PROD_MACR       $ROOT/${RDI_GMI_DIR}/gmi.clim.MACR.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MACR     - 1  1
-* GMI_LOSS_MAN2       $ROOT/${RDI_GMI_DIR}/gmi.clim.MAN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAN2     - 1  1
-* GMI_PROD_MAN2       $ROOT/${RDI_GMI_DIR}/gmi.clim.MAN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAN2     - 1  1
-* GMI_LOSS_MAO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.MAO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAO3     - 1  1
-* GMI_PROD_MAO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.MAO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAO3     - 1  1
-* GMI_LOSS_MAOP       $ROOT/${RDI_GMI_DIR}/gmi.clim.MAOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAOP     - 1  1
-* GMI_PROD_MAOP       $ROOT/${RDI_GMI_DIR}/gmi.clim.MAOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAOP     - 1  1
-* GMI_LOSS_MAP        $ROOT/${RDI_GMI_DIR}/gmi.clim.MAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MAP      - 1  1
-* GMI_PROD_MAP        $ROOT/${RDI_GMI_DIR}/gmi.clim.MAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MAP      - 1  1
-* GMI_LOSS_MCO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.MCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MCO3     - 1  1
-* GMI_PROD_MCO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.MCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MCO3     - 1  1
-* GMI_LOSS_MEK        $ROOT/${RDI_GMI_DIR}/gmi.clim.MEK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MEK      - 1  1
-* GMI_PROD_MEK        $ROOT/${RDI_GMI_DIR}/gmi.clim.MEK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MEK      - 1  1
-* GMI_LOSS_MGLY       $ROOT/${RDI_GMI_DIR}/gmi.clim.MGLY.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MGLY     - 1  1
-* GMI_PROD_MGLY       $ROOT/${RDI_GMI_DIR}/gmi.clim.MGLY.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MGLY     - 1  1
-* GMI_LOSS_MO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.MO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MO2      - 1  1
-* GMI_PROD_MO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.MO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MO2      - 1  1
-* GMI_LOSS_MOH        $ROOT/${RDI_GMI_DIR}/gmi.clim.MOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MOH      - 1  1
-* GMI_PROD_MOH        $ROOT/${RDI_GMI_DIR}/gmi.clim.MOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MOH      - 1  1
-* GMI_LOSS_MP         $ROOT/${RDI_GMI_DIR}/gmi.clim.MP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   MP       - 1  1
-* GMI_PROD_MP         $ROOT/${RDI_GMI_DIR}/gmi.clim.MP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s MP       - 1  1
-* GMI_LOSS_MRO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.MRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MRO2     - 1  1
-* GMI_PROD_MRO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.MRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MRO2     - 1  1
-* GMI_LOSS_MRP        $ROOT/${RDI_GMI_DIR}/gmi.clim.MRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MRP      - 1  1
-* GMI_PROD_MRP        $ROOT/${RDI_GMI_DIR}/gmi.clim.MRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MRP      - 1  1
-* GMI_LOSS_MVK        $ROOT/${RDI_GMI_DIR}/gmi.clim.MVK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MVK      - 1  1
-* GMI_PROD_MVK        $ROOT/${RDI_GMI_DIR}/gmi.clim.MVK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MVK      - 1  1
-* GMI_LOSS_MVN2       $ROOT/${RDI_GMI_DIR}/gmi.clim.MVN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MVN2     - 1  1
-* GMI_PROD_MVN2       $ROOT/${RDI_GMI_DIR}/gmi.clim.MVN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MVN2     - 1  1
-* GMI_LOSS_N          $ROOT/${RDI_GMI_DIR}/gmi.clim.N.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   N        - 1  1
-* GMI_PROD_N          $ROOT/${RDI_GMI_DIR}/gmi.clim.N.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s N        - 1  1
-* GMI_LOSS_N2O        $ROOT/${RDI_GMI_DIR}/gmi.clim.N2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   N2O      - 1  1
-* GMI_PROD_N2O        $ROOT/${RDI_GMI_DIR}/gmi.clim.N2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s N2O      - 1  1
-* GMI_LOSS_N2O5       $ROOT/${RDI_GMI_DIR}/gmi.clim.N2O5.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   N2O5     - 1  1
-* GMI_PROD_N2O5       $ROOT/${RDI_GMI_DIR}/gmi.clim.N2O5.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s N2O5     - 1  1
-* GMI_LOSS_NO         $ROOT/${RDI_GMI_DIR}/gmi.clim.NO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   NO       - 1  1
-* GMI_PROD_NO         $ROOT/${RDI_GMI_DIR}/gmi.clim.NO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s NO       - 1  1
-* GMI_LOSS_NO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.NO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO2      - 1  1
-* GMI_PROD_NO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.NO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO2      - 1  1
-* GMI_LOSS_NO3        $ROOT/${RDI_GMI_DIR}/gmi.clim.NO3.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO3      - 1  1
-* GMI_PROD_NO3        $ROOT/${RDI_GMI_DIR}/gmi.clim.NO3.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO3      - 1  1
-* GMI_LOSS_NOx        $ROOT/${RDI_GMI_DIR}/gmi.clim.NOx.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NOx      - 1  1
-* GMI_PROD_NOx        $ROOT/${RDI_GMI_DIR}/gmi.clim.NOx.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NOx      - 1  1
-* GMI_LOSS_O          $ROOT/${RDI_GMI_DIR}/gmi.clim.O.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   O        - 1  1
-* GMI_PROD_O          $ROOT/${RDI_GMI_DIR}/gmi.clim.O.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s O        - 1  1
-* GMI_LOSS_O1D        $ROOT/${RDI_GMI_DIR}/gmi.clim.O1D.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   O1D      - 1  1
-* GMI_PROD_O1D        $ROOT/${RDI_GMI_DIR}/gmi.clim.O1D.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s O1D      - 1  1
-* GMI_LOSS_O3         $ROOT/${RDI_GMI_DIR}/gmi.clim.O3.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   O3       - 1  1
-* GMI_PROD_O3         $ROOT/${RDI_GMI_DIR}/gmi.clim.O3.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s O3       - 1  1
-* GMI_LOSS_OClO       $ROOT/${RDI_GMI_DIR}/gmi.clim.OClO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   OClO     - 1  1
-* GMI_PROD_OClO       $ROOT/${RDI_GMI_DIR}/gmi.clim.OClO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s OClO     - 1  1
-* GMI_LOSS_OH         $ROOT/${RDI_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   OH       - 1  1
-* GMI_PROD_OH         $ROOT/${RDI_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s OH       - 1  1
-* GMI_LOSS_Ox         $ROOT/${RDI_GMI_DIR}/gmi.clim.Ox.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Ox       - 1  1
-* GMI_PROD_Ox         $ROOT/${RDI_GMI_DIR}/gmi.clim.Ox.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Ox       - 1  1
-* GMI_LOSS_PAN        $ROOT/${RDI_GMI_DIR}/gmi.clim.PAN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PAN      - 1  1
-* GMI_PROD_PAN        $ROOT/${RDI_GMI_DIR}/gmi.clim.PAN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PAN      - 1  1
-* GMI_LOSS_NPMN       $ROOT/${RDI_GMI_DIR}/gmi.clim.NPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   NPMN     - 1  1
-* GMI_PROD_NPMN       $ROOT/${RDI_GMI_DIR}/gmi.clim.NPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s NPMN     - 1  1
-* GMI_LOSS_IPMN       $ROOT/${RDI_GMI_DIR}/gmi.clim.IPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IPMN     - 1  1
-* GMI_PROD_IPMN       $ROOT/${RDI_GMI_DIR}/gmi.clim.IPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IPMN     - 1  1
-* GMI_LOSS_PO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.PO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PO2      - 1  1
-* GMI_PROD_PO2        $ROOT/${RDI_GMI_DIR}/gmi.clim.PO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PO2      - 1  1
-* GMI_LOSS_PP         $ROOT/${RDI_GMI_DIR}/gmi.clim.PP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   PP       - 1  1
-* GMI_PROD_PP         $ROOT/${RDI_GMI_DIR}/gmi.clim.PP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s PP       - 1  1
-* GMI_LOSS_PPN        $ROOT/${RDI_GMI_DIR}/gmi.clim.PPN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PPN      - 1  1
-* GMI_PROD_PPN        $ROOT/${RDI_GMI_DIR}/gmi.clim.PPN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PPN      - 1  1
-* GMI_LOSS_PRN1       $ROOT/${RDI_GMI_DIR}/gmi.clim.PRN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRN1     - 1  1
-* GMI_PROD_PRN1       $ROOT/${RDI_GMI_DIR}/gmi.clim.PRN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRN1     - 1  1
-* GMI_LOSS_PRPE       $ROOT/${RDI_GMI_DIR}/gmi.clim.PRPE.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPE     - 1  1
-* GMI_PROD_PRPE       $ROOT/${RDI_GMI_DIR}/gmi.clim.PRPE.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPE     - 1  1
-* GMI_LOSS_PRPN       $ROOT/${RDI_GMI_DIR}/gmi.clim.PRPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPN     - 1  1
-* GMI_PROD_PRPN       $ROOT/${RDI_GMI_DIR}/gmi.clim.PRPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPN     - 1  1
-* GMI_LOSS_R4N1       $ROOT/${RDI_GMI_DIR}/gmi.clim.R4N1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N1     - 1  1
-* GMI_PROD_R4N1       $ROOT/${RDI_GMI_DIR}/gmi.clim.R4N1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N1     - 1  1
-* GMI_LOSS_R4N2       $ROOT/${RDI_GMI_DIR}/gmi.clim.R4N2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N2     - 1  1
-* GMI_PROD_R4N2       $ROOT/${RDI_GMI_DIR}/gmi.clim.R4N2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N2     - 1  1
-* GMI_LOSS_R4O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.R4O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4O2     - 1  1
-* GMI_PROD_R4O2       $ROOT/${RDI_GMI_DIR}/gmi.clim.R4O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4O2     - 1  1
-* GMI_LOSS_R4P        $ROOT/${RDI_GMI_DIR}/gmi.clim.R4P.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   R4P      - 1  1
-* GMI_PROD_R4P        $ROOT/${RDI_GMI_DIR}/gmi.clim.R4P.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s R4P      - 1  1
-* GMI_LOSS_RA3P       $ROOT/${RDI_GMI_DIR}/gmi.clim.RA3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RA3P     - 1  1
-* GMI_PROD_RA3P       $ROOT/${RDI_GMI_DIR}/gmi.clim.RA3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RA3P     - 1  1
-* GMI_LOSS_RB3P       $ROOT/${RDI_GMI_DIR}/gmi.clim.RB3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RB3P     - 1  1
-* GMI_PROD_RB3P       $ROOT/${RDI_GMI_DIR}/gmi.clim.RB3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RB3P     - 1  1
-* GMI_LOSS_RCHO       $ROOT/${RDI_GMI_DIR}/gmi.clim.RCHO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCHO     - 1  1
-* GMI_PROD_RCHO       $ROOT/${RDI_GMI_DIR}/gmi.clim.RCHO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCHO     - 1  1
-* GMI_LOSS_RCO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.RCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCO3     - 1  1
-* GMI_PROD_RCO3       $ROOT/${RDI_GMI_DIR}/gmi.clim.RCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCO3     - 1  1
-* GMI_LOSS_RCOOH      $ROOT/${RDI_GMI_DIR}/gmi.clim.RCOOH.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   RCOOH    - 1  1
-* GMI_PROD_RCOOH      $ROOT/${RDI_GMI_DIR}/gmi.clim.RCOOH.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s RCOOH    - 1  1
-* GMI_LOSS_RIO1       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIO1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIO1     - 1  1
-* GMI_PROD_RIO1       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIO1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIO1     - 1  1
-* GMI_LOSS_RIPA       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIPA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPA     - 1  1
-* GMI_PROD_RIPA       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIPA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPA     - 1  1
-* GMI_LOSS_RIPB       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIPB.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPB     - 1  1
-* GMI_PROD_RIPB       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIPB.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPB     - 1  1
-* GMI_LOSS_RIPD       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIPD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPD     - 1  1
-* GMI_PROD_RIPD       $ROOT/${RDI_GMI_DIR}/gmi.clim.RIPD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPD     - 1  1
-* GMI_LOSS_ROH        $ROOT/${RDI_GMI_DIR}/gmi.clim.ROH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ROH      - 1  1
-* GMI_PROD_ROH        $ROOT/${RDI_GMI_DIR}/gmi.clim.ROH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ROH      - 1  1
-* GMI_LOSS_RP         $ROOT/${RDI_GMI_DIR}/gmi.clim.RP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   RP       - 1  1
-* GMI_PROD_RP         $ROOT/${RDI_GMI_DIR}/gmi.clim.RP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s RP       - 1  1
-* GMI_LOSS_VRO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.VRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   VRO2     - 1  1
-* GMI_PROD_VRO2       $ROOT/${RDI_GMI_DIR}/gmi.clim.VRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s VRO2     - 1  1
-* GMI_LOSS_VRP        $ROOT/${RDI_GMI_DIR}/gmi.clim.VRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   VRP      - 1  1
-* GMI_PROD_VRP        $ROOT/${RDI_GMI_DIR}/gmi.clim.VRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s VRP      - 1  1
+* GMI_LOSS_A3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.A3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   A3O2     - 1  1
+* GMI_PROD_A3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.A3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s A3O2     - 1  1
+* GMI_LOSS_ACET       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACET.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACET     - 1  1
+* GMI_PROD_ACET       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACET.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACET     - 1  1
+* GMI_LOSS_ACTA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACTA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACTA     - 1  1
+* GMI_PROD_ACTA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACTA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACTA     - 1  1
+* GMI_LOSS_ALD2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALD2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALD2     - 1  1
+* GMI_PROD_ALD2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALD2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALD2     - 1  1
+* GMI_LOSS_ALK4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALK4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALK4     - 1  1
+* GMI_PROD_ALK4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALK4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALK4     - 1  1
+* GMI_LOSS_ATO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ATO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ATO2     - 1  1
+* GMI_PROD_ATO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ATO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ATO2     - 1  1
+* GMI_LOSS_B3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.B3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   B3O2     - 1  1
+* GMI_PROD_B3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.B3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s B3O2     - 1  1
+#* GMI_LOSS_Br        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Br.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Br       - 1  1
+#* GMI_PROD_Br        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Br.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Br       - 1  1
+#* GMI_LOSS_BrCl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   BrCl     - 1  1
+#* GMI_PROD_BrCl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s BrCl     - 1  1
+#* GMI_LOSS_BrO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   BrO      - 1  1
+#* GMI_PROD_BrO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s BrO      - 1  1
+#* GMI_LOSS_BrNO3     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   BrNO3    - 1  1
+#* GMI_PROD_BrNO3     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s BrNO3    - 1  1
+* GMI_LOSS_C2H6       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C2H6.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C2H6     - 1  1
+* GMI_PROD_C2H6       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C2H6.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C2H6     - 1  1
+* GMI_LOSS_C3H8       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C3H8.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C3H8     - 1  1
+* GMI_PROD_C3H8       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C3H8.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C3H8     - 1  1
+* GMI_LOSS_CCl4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CCl4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CCl4     - 1  1
+* GMI_PROD_CCl4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CCl4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CCl4     - 1  1
+#* GMI_LOSS_H1202     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Br2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   H1202    - 1  1
+#* GMI_PROD_H1202     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Br2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s H1202    - 1  1
+* GMI_LOSS_CFC12      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Cl2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC12    - 1  1
+* GMI_PROD_CFC12      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Cl2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC12    - 1  1
+* GMI_LOSS_H1211      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2ClBr.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   H1211    - 1  1
+* GMI_PROD_H1211      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2ClBr.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s H1211    - 1  1
+#* GMI_LOSS_H1311     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H1311    - 1  1
+#* GMI_PROD_H1311     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H1311    - 1  1
+* GMI_LOSS_CFC113     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC113.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC113   - 1  1
+* GMI_PROD_CFC113     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC113.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC113   - 1  1
+* GMI_LOSS_CFC114     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC114.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC114   - 1  1
+* GMI_PROD_CFC114     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC114.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC114   - 1  1
+* GMI_LOSS_CFC115     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC115.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC115   - 1  1
+* GMI_PROD_CFC115     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC115.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC115   - 1  1
+* GMI_LOSS_CFC11      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFCl3.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CFC11    - 1  1
+* GMI_PROD_CFC11      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFCl3.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CFC11    - 1  1
+* GMI_LOSS_CH2O       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH2O.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CH2O     - 1  1
+* GMI_PROD_CH2O       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH2O.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CH2O     - 1  1
+#* GMI_LOSS_CH3Br     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Br    - 1  1
+#* GMI_PROD_CH3Br     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Br    - 1  1
+* GMI_LOSS_CH3CCl3    $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3CCl3.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   CH3CCl3  - 1  1
+* GMI_PROD_CH3CCl3    $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3CCl3.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s CH3CCl3  - 1  1
+* GMI_LOSS_CH3Cl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Cl.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Cl    - 1  1
+* GMI_PROD_CH3Cl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Cl.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Cl    - 1  1
+* GMI_LOSS_CH4        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH4.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   CH4      - 1  1
+* GMI_PROD_CH4        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH4.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s CH4      - 1  1
+* GMI_LOSS_CO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   CO       - 1  1
+* GMI_PROD_CO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s CO       - 1  1
+* GMI_LOSS_Cl         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Cl       - 1  1
+* GMI_PROD_Cl         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Cl       - 1  1
+* GMI_LOSS_Cl2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   Cl2      - 1  1
+* GMI_PROD_Cl2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s Cl2      - 1  1
+* GMI_LOSS_Cl2O2      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2O2.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   Cl2O2    - 1  1
+* GMI_PROD_Cl2O2      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2O2.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s Cl2O2    - 1  1
+* GMI_LOSS_ClO        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ClO      - 1  1
+* GMI_PROD_ClO        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ClO      - 1  1
+* GMI_LOSS_ClONO2     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   ClONO2   - 1  1
+* GMI_PROD_ClONO2     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s ClONO2   - 1  1
+* GMI_LOSS_EOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.EOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   EOH      - 1  1
+* GMI_PROD_EOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.EOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s EOH      - 1  1
+* GMI_LOSS_ETO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ETO2     - 1  1
+* GMI_PROD_ETO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ETO2     - 1  1
+* GMI_LOSS_ETP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ETP      - 1  1
+* GMI_PROD_ETP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ETP      - 1  1
+* GMI_LOSS_GCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GCO3     - 1  1
+* GMI_PROD_GCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GCO3     - 1  1
+* GMI_LOSS_GLYC       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYC.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYC     - 1  1
+* GMI_PROD_GLYC       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYC.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYC     - 1  1
+* GMI_LOSS_GLYX       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYX.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYX     - 1  1
+* GMI_PROD_GLYX       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYX.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYX     - 1  1
+* GMI_LOSS_GP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   GP       - 1  1
+* GMI_PROD_GP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s GP       - 1  1
+* GMI_LOSS_GPAN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GPAN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GPAN     - 1  1
+* GMI_PROD_GPAN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GPAN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GPAN     - 1  1
+* GMI_LOSS_H          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   H        - 1  1
+* GMI_PROD_H          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s H        - 1  1
+* GMI_LOSS_H2         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   H2       - 1  1
+* GMI_PROD_H2         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s H2       - 1  1
+* GMI_LOSS_H2402      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2402.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H2402    - 1  1
+* GMI_PROD_H2402      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2402.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H2402    - 1  1
+* GMI_LOSS_H2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   H2O      - 1  1
+* GMI_PROD_H2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s H2O      - 1  1
+* GMI_LOSS_H2O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   H2O2     - 1  1
+* GMI_PROD_H2O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s H2O2     - 1  1
+* GMI_LOSS_HAC        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HAC.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HAC      - 1  1
+* GMI_PROD_HAC        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HAC.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HAC      - 1  1
+#* GMI_LOSS_HBr       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HBr.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HBr      - 1  1
+#* GMI_PROD_HBr       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HBr.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HBr      - 1  1
+* GMI_LOSS_HCFC141b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC141b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC141b - 1  1
+* GMI_PROD_HCFC141b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC141b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC141b - 1  1
+* GMI_LOSS_HCFC142b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC142b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC142b - 1  1
+* GMI_PROD_HCFC142b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC142b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC142b - 1  1
+* GMI_LOSS_HCFC22     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC22.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   HCFC22   - 1  1
+* GMI_PROD_HCFC22     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC22.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s HCFC22   - 1  1
+* GMI_LOSS_HCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCOOH.geos5.2x25.20170108.nc loss    2005/1-12/1/0 C xyz s-1   HCOOH    - 1  1
+* GMI_PROD_HCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCOOH.geos5.2x25.20170108.nc prod    2005/1-12/1/0 C xyz v/v/s HCOOH    - 1  1
+* GMI_LOSS_HCl        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCl.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HCl      - 1  1
+* GMI_PROD_HCl        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCl.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HCl      - 1  1
+* GMI_LOSS_HNO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO2     - 1  1
+* GMI_PROD_HNO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO2     - 1  1
+* GMI_LOSS_HNO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO3     - 1  1
+* GMI_PROD_HNO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO3     - 1  1
+* GMI_LOSS_HNO4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO4     - 1  1
+* GMI_PROD_HNO4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO4     - 1  1
+* GMI_LOSS_HO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HO2      - 1  1
+* GMI_PROD_HO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HO2      - 1  1
+#* GMI_LOSS_HOBr      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOBr.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOBr     - 1  1
+#* GMI_PROD_HOBr      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOBr.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOBr     - 1  1
+* GMI_LOSS_HOCl       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOCl     - 1  1
+* GMI_PROD_HOCl       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOCl     - 1  1
+* GMI_LOSS_IALD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IALD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IALD     - 1  1
+* GMI_PROD_IALD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IALD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IALD     - 1  1
+* GMI_LOSS_IAO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IAO2     - 1  1
+* GMI_PROD_IAO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IAO2     - 1  1
+* GMI_LOSS_IAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   IAP      - 1  1
+* GMI_PROD_IAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s IAP      - 1  1
+* GMI_LOSS_INO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INO2     - 1  1
+* GMI_PROD_INO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INO2     - 1  1
+* GMI_LOSS_INPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INPN     - 1  1
+* GMI_PROD_INPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INPN     - 1  1
+* GMI_LOSS_ISN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISN1     - 1  1
+* GMI_PROD_ISN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISN1     - 1  1
+* GMI_LOSS_ISNP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISNP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISNP     - 1  1
+* GMI_PROD_ISNP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISNP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISNP     - 1  1
+* GMI_LOSS_ISOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISOP     - 1  1
+* GMI_PROD_ISOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISOP     - 1  1
+* GMI_LOSS_KO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.KO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   KO2      - 1  1
+* GMI_PROD_KO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.KO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s KO2      - 1  1
+* GMI_LOSS_MACR       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MACR.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MACR     - 1  1
+* GMI_PROD_MACR       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MACR.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MACR     - 1  1
+* GMI_LOSS_MAN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAN2     - 1  1
+* GMI_PROD_MAN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAN2     - 1  1
+* GMI_LOSS_MAO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAO3     - 1  1
+* GMI_PROD_MAO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAO3     - 1  1
+* GMI_LOSS_MAOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAOP     - 1  1
+* GMI_PROD_MAOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAOP     - 1  1
+* GMI_LOSS_MAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MAP      - 1  1
+* GMI_PROD_MAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MAP      - 1  1
+* GMI_LOSS_MCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MCO3     - 1  1
+* GMI_PROD_MCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MCO3     - 1  1
+* GMI_LOSS_MEK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MEK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MEK      - 1  1
+* GMI_PROD_MEK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MEK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MEK      - 1  1
+* GMI_LOSS_MGLY       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MGLY.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MGLY     - 1  1
+* GMI_PROD_MGLY       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MGLY.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MGLY     - 1  1
+* GMI_LOSS_MO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MO2      - 1  1
+* GMI_PROD_MO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MO2      - 1  1
+* GMI_LOSS_MOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MOH      - 1  1
+* GMI_PROD_MOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MOH      - 1  1
+* GMI_LOSS_MP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   MP       - 1  1
+* GMI_PROD_MP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s MP       - 1  1
+* GMI_LOSS_MRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MRO2     - 1  1
+* GMI_PROD_MRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MRO2     - 1  1
+* GMI_LOSS_MRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MRP      - 1  1
+* GMI_PROD_MRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MRP      - 1  1
+* GMI_LOSS_MVK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MVK      - 1  1
+* GMI_PROD_MVK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MVK      - 1  1
+* GMI_LOSS_MVN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MVN2     - 1  1
+* GMI_PROD_MVN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MVN2     - 1  1
+* GMI_LOSS_N          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   N        - 1  1
+* GMI_PROD_N          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s N        - 1  1
+* GMI_LOSS_N2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   N2O      - 1  1
+* GMI_PROD_N2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s N2O      - 1  1
+* GMI_LOSS_N2O5       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O5.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   N2O5     - 1  1
+* GMI_PROD_N2O5       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O5.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s N2O5     - 1  1
+* GMI_LOSS_NO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   NO       - 1  1
+* GMI_PROD_NO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s NO       - 1  1
+* GMI_LOSS_NO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO2      - 1  1
+* GMI_PROD_NO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO2      - 1  1
+* GMI_LOSS_NO3        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO3.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO3      - 1  1
+* GMI_PROD_NO3        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO3.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO3      - 1  1
+* GMI_LOSS_NOx        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NOx.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NOx      - 1  1
+* GMI_PROD_NOx        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NOx.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NOx      - 1  1
+* GMI_LOSS_O          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   O        - 1  1
+* GMI_PROD_O          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s O        - 1  1
+* GMI_LOSS_O1D        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O1D.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   O1D      - 1  1
+* GMI_PROD_O1D        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O1D.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s O1D      - 1  1
+* GMI_LOSS_O3         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O3.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   O3       - 1  1
+* GMI_PROD_O3         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O3.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s O3       - 1  1
+* GMI_LOSS_OClO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OClO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   OClO     - 1  1
+* GMI_PROD_OClO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OClO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s OClO     - 1  1
+* GMI_LOSS_OH         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   OH       - 1  1
+* GMI_PROD_OH         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s OH       - 1  1
+* GMI_LOSS_Ox         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Ox.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Ox       - 1  1
+* GMI_PROD_Ox         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Ox.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Ox       - 1  1
+* GMI_LOSS_PAN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PAN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PAN      - 1  1
+* GMI_PROD_PAN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PAN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PAN      - 1  1
+* GMI_LOSS_NPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   NPMN     - 1  1
+* GMI_PROD_NPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s NPMN     - 1  1
+* GMI_LOSS_IPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IPMN     - 1  1
+* GMI_PROD_IPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IPMN     - 1  1
+* GMI_LOSS_PO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PO2      - 1  1
+* GMI_PROD_PO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PO2      - 1  1
+* GMI_LOSS_PP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   PP       - 1  1
+* GMI_PROD_PP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s PP       - 1  1
+* GMI_LOSS_PPN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PPN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PPN      - 1  1
+* GMI_PROD_PPN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PPN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PPN      - 1  1
+* GMI_LOSS_PRN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRN1     - 1  1
+* GMI_PROD_PRN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRN1     - 1  1
+* GMI_LOSS_PRPE       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPE.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPE     - 1  1
+* GMI_PROD_PRPE       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPE.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPE     - 1  1
+* GMI_LOSS_PRPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPN     - 1  1
+* GMI_PROD_PRPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPN     - 1  1
+* GMI_LOSS_R4N1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N1     - 1  1
+* GMI_PROD_R4N1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N1     - 1  1
+* GMI_LOSS_R4N2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N2     - 1  1
+* GMI_PROD_R4N2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N2     - 1  1
+* GMI_LOSS_R4O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4O2     - 1  1
+* GMI_PROD_R4O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4O2     - 1  1
+* GMI_LOSS_R4P        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4P.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   R4P      - 1  1
+* GMI_PROD_R4P        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4P.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s R4P      - 1  1
+* GMI_LOSS_RA3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RA3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RA3P     - 1  1
+* GMI_PROD_RA3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RA3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RA3P     - 1  1
+* GMI_LOSS_RB3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RB3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RB3P     - 1  1
+* GMI_PROD_RB3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RB3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RB3P     - 1  1
+* GMI_LOSS_RCHO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCHO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCHO     - 1  1
+* GMI_PROD_RCHO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCHO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCHO     - 1  1
+* GMI_LOSS_RCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCO3     - 1  1
+* GMI_PROD_RCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCO3     - 1  1
+* GMI_LOSS_RCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCOOH.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   RCOOH    - 1  1
+* GMI_PROD_RCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCOOH.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s RCOOH    - 1  1
+* GMI_LOSS_RIO1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIO1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIO1     - 1  1
+* GMI_PROD_RIO1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIO1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIO1     - 1  1
+* GMI_LOSS_RIPA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPA     - 1  1
+* GMI_PROD_RIPA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPA     - 1  1
+* GMI_LOSS_RIPB       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPB.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPB     - 1  1
+* GMI_PROD_RIPB       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPB.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPB     - 1  1
+* GMI_LOSS_RIPD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPD     - 1  1
+* GMI_PROD_RIPD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPD     - 1  1
+* GMI_LOSS_ROH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ROH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ROH      - 1  1
+* GMI_PROD_ROH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ROH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ROH      - 1  1
+* GMI_LOSS_RP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   RP       - 1  1
+* GMI_PROD_RP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s RP       - 1  1
+* GMI_LOSS_VRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   VRO2     - 1  1
+* GMI_PROD_VRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s VRO2     - 1  1
+* GMI_LOSS_VRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   VRP      - 1  1
+* GMI_PROD_VRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s VRP      - 1  1
 )))GMI_PROD_LOSS
 
 #==============================================================================
@@ -3571,12 +3571,12 @@ Warnings:                    1
 * MODIS_EMISSIVITY_14 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band14  2002/1-12/1-31/0 C xy  1    * - 1 1
 * MODIS_EMISSIVITY_15 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band15  2002/1-12/1-31/0 C xy  1    * - 1 1
 * MODIS_EMISSIVITY_16 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band16  2002/1-12/1-31/0 C xy  1    * - 1 1
-${RDI_TES_CLIM_CCL4}
-${RDI_TES_CLIM_CFC11}
-${RDI_TES_CLIM_CFC12}
-${RDI_TES_CLIM_CFC22}
-${RDI_TES_CLIM_CH4}
-${RDI_TES_CLIM_N2O}
+${RUNDIR_TES_CLIM_CCL4}
+${RUNDIR_TES_CLIM_CFC11}
+${RUNDIR_TES_CLIM_CFC12}
+${RUNDIR_TES_CLIM_CFC22}
+${RUNDIR_TES_CLIM_CH4}
+${RUNDIR_TES_CLIM_N2O}
 )))RRTMG
 
 (((SfcVMR

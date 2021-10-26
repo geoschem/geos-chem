@@ -1,28 +1,28 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : ${RDI_SIM_START_DATE} ${RDI_SIM_START_TIME}
-End   YYYYMMDD, hhmmss  : ${RDI_SIM_END_DATE} ${RDI_SIM_END_TIME}
+Start YYYYMMDD, hhmmss  : ${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}
+End   YYYYMMDD, hhmmss  : ${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}
 Run directory           : ./
-Root data directory     : ${RDI_DATA_ROOT}
-Met field               : ${RDI_MET}
-Simulation name         : ${RDI_SIM_NAME}
+Root data directory     : ${RUNDIR_DATA_ROOT}
+Met field               : ${RUNDIR_MET}
+Simulation name         : ${RUNDIR_SIM_NAME}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
-Use GC classic timers?  : ${RDI_USE_GCCLASSIC_TIMERS}
+Use GC classic timers?  : ${RUNDIR_USE_GCCLASSIC_TIMERS}
 ------------------------+------------------------------------------------------
 %%% GRID MENU %%%       :
-Grid resolution         : ${RDI_GRID_RES_LONG}
-Longitude min/max       : ${RDI_GRID_LON_RANGE}
- Center on 180E/W?      : ${RDI_CENTER_LON_180}
-Latitude  min/max       : ${RDI_GRID_LAT_RANGE}
- Half-sized polar boxes?: ${RDI_GRID_HALF_POLAR}
-Number of levels        : ${RDI_GRID_NLEV}
-Nested grid simulation? : ${RDI_GRID_NESTED_SIM}
- Buffer zone (N S E W ) : ${RDI_GRID_BUFFER_ZONE}
+Grid resolution         : ${RUNDIR_GRID_RES_LONG}
+Longitude min/max       : ${RUNDIR_GRID_LON_RANGE}
+ Center on 180E/W?      : ${RUNDIR_CENTER_LON_180}
+Latitude  min/max       : ${RUNDIR_GRID_LAT_RANGE}
+ Half-sized polar boxes?: ${RUNDIR_GRID_HALF_POLAR}
+Number of levels        : ${RUNDIR_GRID_NLEV}
+Nested grid simulation? : ${RUNDIR_GRID_NESTED_SIM}
+ Buffer zone (N S E W ) : ${RUNDIR_GRID_BUFFER_ZONE}
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
-Tran/conv timestep [sec]: ${RDI_TRANSPORT_TS}
-Chem/emis timestep [sec]: ${RDI_CHEMISTRY_TS}
+Tran/conv timestep [sec]: ${RUNDIR_TRANSPORT_TS}
+Chem/emis timestep [sec]: ${RUNDIR_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : CO
@@ -99,7 +99,7 @@ Overhead O3 for FAST-JX :---
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : ${RDI_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550

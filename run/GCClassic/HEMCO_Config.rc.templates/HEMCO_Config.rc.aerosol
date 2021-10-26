@@ -26,11 +26,11 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:                        ${RDI_DATA_ROOT}/HEMCO
-METDIR:                      ${RDI_MET_DIR}
-SCENARIO:                    ${RDI_GCAP2_SCENARIO}
-RUNID:                       ${RDI_GCAP2_RUNID}
-GISSRES:                     ${RDI_GISS_RES}
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
+SCENARIO:                    ${RUNDIR_GCAP2_SCENARIO}
+RUNID:                       ${RUNDIR_GCAP2_RUNID}
+GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -52,13 +52,13 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     ${RDI_MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
     --> HEMCO_RESTART          :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       ${RDI_USE_BCs}
+    --> GC_BCs                 :       ${RUNDIR_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
@@ -127,7 +127,7 @@ Warnings:                    1
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS
 105     DustDead               : {ONLINE}   DST1/DST2/DST3/DST4
-    --> Mass tuning factor     :       ${RDI_DUSTDEAD_TF}
+    --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : {ONLINE}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
@@ -177,7 +177,7 @@ Warnings:                    1
 115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
-    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/${RDI_VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/${RUNDIR_VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
     --> Volcano_Climatology    :       $ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -1850,7 +1850,7 @@ Warnings:                    1
 #==============================================================================
 (((METEOROLOGY
 
->>>include ${RDI_MET_FIELD_CONFIG}
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 

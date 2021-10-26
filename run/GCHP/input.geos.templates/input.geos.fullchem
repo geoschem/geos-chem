@@ -1,18 +1,18 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : ${RDI_SIM_START_DATE} ${RDI_SIM_START_TIME}
-End   YYYYMMDD, hhmmss  : ${RDI_SIM_END_DATE} ${RDI_SIM_END_TIME}
+Start YYYYMMDD, hhmmss  : ${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}
+End   YYYYMMDD, hhmmss  : ${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}
 Run directory           : ./
-Root data directory     : ${RDI_DATA_ROOT}
-Met field               : ${RDI_MET}
-Simulation name         : ${RDI_SIM_NAME}
+Root data directory     : ${RUNDIR_DATA_ROOT}
+Met field               : ${RUNDIR_MET}
+Simulation name         : ${RUNDIR_SIM_NAME}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
 Use GC classic timers?  : F
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
-Tran/conv timestep [sec]: ${RDI_TRANSPORT_TS}
-Chem/emis timestep [sec]: ${RDI_CHEMISTRY_TS}
+Tran/conv timestep [sec]: ${RUNDIR_TRANSPORT_TS}
+Chem/emis timestep [sec]: ${RUNDIR_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : ACET
@@ -244,21 +244,21 @@ Turn on Transport       : T
 %%% CONVECTION MENU %%% :
 Turn on Cloud Conv?     : T
 Turn on PBL Mixing?     : T
- => Use non-local PBL?  : ${RDI_USE_NLPBL}
+ => Use non-local PBL?  : ${RUNDIR_USE_NLPBL}
 ------------------------+------------------------------------------------------
 %%% AEROSOL MENU %%%    :
 Online SULFATE AEROSOLS : T
  => Metal cat. SO2 ox.? : T
 Online CARBON  AEROSOLS : T
  => Use Brown Carbon?   : F
-Online COMPLEX SOA      : ${RDI_COMPLEX_SOA}
- => Semivolatile POA?   : ${RDI_SVPOA}
+Online COMPLEX SOA      : ${RUNDIR_COMPLEX_SOA}
+ => Semivolatile POA?   : ${RUNDIR_SVPOA}
 Online DUST    AEROSOLS : T
- => Acidic uptake ?     : ${RDI_ACID_UPTAKE}
+ => Acidic uptake ?     : ${RUNDIR_ACID_UPTAKE}
 Online SEASALT AEROSOLS : T
  => SALA radius bin [um]: 0.01 0.5
  => SALC radius bin [um]: 0.5  8.0
- => MARINE ORG AEROSOLS : ${RDI_MARINE_POA}
+ => MARINE ORG AEROSOLS : ${RUNDIR_MARINE_POA}
 Settle strat. aerosols  : T
 Online PSC AEROSOLS     : T
 Allow homogeneous NAT?  : F
@@ -290,21 +290,21 @@ Use linear. chem aloft? : T
 Use active strat. H2O?  : T
 Use static H2O BC?      : T
 Overhead O3 for FAST-JX :---
- => Online O3 from model: ${RDI_USE_ONLINE_O3}
+ => Online O3 from model: ${RUNDIR_USE_ONLINE_O3}
  => O3 from met fields  : T
  => TOMS/SBUV O3        : F
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : ${RDI_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550
-Turn on RRTMG?          : ${RDI_RRTMG_OPTS}
-Calculate LW fluxes?    : ${RDI_RRTMG_OPTS}
-Calculate SW fluxes?    : ${RDI_RRTMG_OPTS}
-Clear-sky flux?         : ${RDI_RRTMG_OPTS}
-All-sky flux?           : ${RDI_RRTMG_OPTS}
+Turn on RRTMG?          : ${RUNDIR_RRTMG_OPTS}
+Calculate LW fluxes?    : ${RUNDIR_RRTMG_OPTS}
+Calculate SW fluxes?    : ${RUNDIR_RRTMG_OPTS}
+Clear-sky flux?         : ${RUNDIR_RRTMG_OPTS}
+All-sky flux?           : ${RUNDIR_RRTMG_OPTS}
 Radiation Timestep [sec]: 10800
 ------------------------+------------------------------------------------------
 END OF FILE             :

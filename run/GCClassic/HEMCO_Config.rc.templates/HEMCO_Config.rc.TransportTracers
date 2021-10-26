@@ -26,11 +26,11 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:                        ${RDI_DATA_ROOT}/HEMCO
-METDIR:                      ${RDI_MET_DIR}
-SCENARIO:                    ${RDI_GCAP2_SCENARIO}
-RUNID:                       ${RDI_GCAP2_RUNID}
-GISSRES:                     ${RDI_GISS_RES}
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
+SCENARIO:                    ${RUNDIR_GCAP2_SCENARIO}
+RUNID:                       ${RUNDIR_GCAP2_RUNID}
+GISSRES:                     ${RUNDIR_GISS_RES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -52,7 +52,7 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     ${RDI_MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- GLOBAL INVENTORIES ------------------------------------
@@ -195,7 +195,7 @@ Warnings:                    1
 #==============================================================================
 (((METEOROLOGY
 
->>>include ${RDI_MET_FIELD_CONFIG}
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -447,7 +447,7 @@ Warnings:                    1
 (((EMISSIONS
 
 (((OCEAN_CH3I
-{OCEAN_MASK}
+${RUNDIR_OCEAN_MASK}
 )))OCEAN_CH3I
 
 )))EMISSIONS

@@ -22,8 +22,8 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:    ${RDI_DATA_ROOT}/HEMCO
-METDIR:  ${RDI_MET_DIR}
+ROOT:    ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:  ${RUNDIR_MET_DIR}
 
 ### END SECTION SETTINGS ###
 

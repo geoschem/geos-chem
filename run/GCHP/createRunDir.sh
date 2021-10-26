@@ -23,9 +23,9 @@ cd ${srcrundir}
 # Load file with utility functions to setup configuration files
 . ${gcdir}/run/shared/setupConfigFiles.sh
 
-# Initialize Run Directory Initialization (RDI) variables
-RDI_VARS=""
-RDI_VARS+="RDI_GC_MODE='GCHP'\n"
+# Initialize run directory variables
+RUNDIR_VARS=""
+RUNDIR_VARS+="RUNDIR_GC_MODE='GCHP'\n"
 
 # Define separator lines
 thickline="\n===========================================================\n"
@@ -69,7 +69,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     done
 fi
 
-RDI_VARS+="RDI_DATA_ROOT=$GC_DATA_ROOT\n"
+RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -94,7 +94,7 @@ while [ "${valid_sim}" -eq 0 ]; do
     fi
 done
 
-RDI_VARS+="RDI_SIM_NAME=$sim_name\n"
+RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -175,51 +175,51 @@ elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
 fi
 
-RDI_VARS+="RDI_SIM_EXTRA_OPTION=$sim_extra_option\n"
+RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
 
 # Determine settings based on simulation type
 if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
-    RDI_VARS+="RDI_COMPLEX_SOA='T'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
     if [[ ${sim_extra_option}="complexSOA_SVPOA" ]]; then
-	RDI_VARS+="RDI_SVPOA='T'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
     else
-	RDI_VARS+="RDI_SVPOA='F'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
     fi
 else
-    RDI_VARS+="RDI_COMPLEX_SOA='F'\n"
-    RDI_VARS+="RDI_SVPOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
 fi
 
 if [[ ${sim_extra_option} == "aciduptake" ]]; then
-    RDI_VARS+="RDI_DUSTALK_EXT='on '\n"
-    RDI_VARS+="RDI_ACID_UPTAKE='T'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
 else
-    RDI_VARS+="RDI_DUSTALK_EXT='off'\n"
-    RDI_VARS+="RDI_ACID_UPTAKE='F'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
 fi
 
 if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RDI_VARS+="RDI_MARINE_POA='T'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
 else
-    RDI_VARS+="RDI_MARINE_POA='F'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
 fi
 
 if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RDI_VARS+="RDI_RRTMG_OPTS='T'\n"
-    RDI_VARS+="RDI_USE_RRTMG='true '\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
 else
-    RDI_VARS+="RDI_RRTMG_OPTS='F'\n"
-    RDI_VARS+="RDI_USE_RRTMG='false'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
 fi
 
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RDI_VARS+="RDI_USE_NLPBL='F'\n"
-    RDI_VARS+="RDI_USE_ONLINE_O3='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
 else
-    RDI_VARS+="RDI_USE_NLPBL='T'\n"
-    RDI_VARS+="RDI_USE_ONLINE_O3='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
 fi
 
 #-----------------------------------------------------------------
@@ -235,12 +235,12 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
-	RDI_VARS+="RDI_MET_DIR='$GC_DATA_ROOT/GEOS_0.5x0.625/MERRA2'\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_DIR='$GC_DATA_ROOT/GEOS_0.5x0.625/MERRA2'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
-	RDI_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
-	RDI_VARS+="RDI_MET_DIR='$GC_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_DIR='$GC_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -409,8 +409,8 @@ do
     fi
 done
 
-# Add RDI_RESTART_FILE to RDI vars
-RDI_VARS+="RDI_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc\n"
+# Add restart file to RUNDIR vars
+RUNDIR_VARS+="RUNDIR_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc\n"
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
@@ -429,97 +429,97 @@ else
     startdata='20190701'
     enddate='20190801'
 fi
-RDI_VARS+="RDI_SIM_START_DATE=$startdate\n"
-RDI_VARS+="RDI_SIM_END_DATE=$enddate\n"
-RDI_VARS+="RDI_SIM_START_TIME='000000'\n"
-RDI_VARS+="RDI_SIM_END_TIME='000000'\n"
-RDI_VARS+="RDI_SIM_DUR_YYYYMMDD='00000100'\n"
-RDI_VARS+="RDI_SIM_DUR_HHmmSS='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_START_DATE=$startdate\n"
+RUNDIR_VARS+="RUNDIR_SIM_END_DATE=$enddate\n"
+RUNDIR_VARS+="RUNDIR_SIM_START_TIME='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_END_TIME='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_DUR_YYYYMMDD='00000100'\n"
+RUNDIR_VARS+="RUNDIR_SIM_DUR_HHmmSS='000000'\n"
 
 # Use monthly diagnostics by default
-RDI_VARS+="RDI_HIST_TIME_AVG_DUR='7440000'\n"
-RDI_VARS+="RDI_HIST_TIME_AVG_FREQ='7440000'\n"
-RDI_VARS+="RDI_HIST_INST_DUR='7440000'\n"
-RDI_VARS+="RDI_HIST_INST_FREQ='7440000'\n"
-RDI_VARS+="RDI_HIST_MONTHLY_DIAG='1'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Special handling for benchmark simulation
 if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
-    RDI_VARS+="RDI_NUM_CORES='96'\n"
-    RDI_VARS+="RDI_NUM_NODES='2'\n"
-    RDI_VARS+="RDI_CORES_PER_NODE='48'\n"
-    RDI_VARS+="RDI_CS_RES='48'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+    RUNDIR_VARS+="RUNDIR_CS_RES='48'\n"
 elif [ "${sim_name}" == "CO2" ]; then
-    RDI_VARS+="RDI_NUM_CORES='48'\n"
-    RDI_VARS+="RDI_NUM_NODES='2'\n"
-    RDI_VARS+="RDI_CORES_PER_NODE='24'\n"
-    RDI_VARS+="RDI_CS_RES='24'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='48'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
+    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
 else
-    RDI_VARS+="RDI_NUM_CORES='24'\n"
-    RDI_VARS+="RDI_NUM_NODES='1'\n"
-    RDI_VARS+="RDI_CORES_PER_NODE='24'\n"
-    RDI_VARS+="RDI_CS_RES='24'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='24'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='1'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
+    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
 fi
 
 # Turn on GEOS-Chem timers for benchmark simulations
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
 else
-    RDI_VARS+="RDI_USE_GCCLASSIC_TIMERS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RDI_VARS+="RDI_DUSTDEAD_EXT='on '\n"
-    RDI_VARS+="RDI_SEASALT_EXT='on '\n"
-    RDI_VARS+="RDI_SOILNOX_EXT='on '\n"
-    RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
-    RDI_VARS+="RDI_OFFLINE_BIOVOC='false'\n"
-    RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
-    RDI_VARS+="RDI_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
 else
     if [[ "${sim_extra_option}" == "marinePOA" ]]; then
-	RDI_VARS+="RDI_SEASALT_EXT='on '\n"
-	RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
     else
-	RDI_VARS+="RDI_SEASALT_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-	    RDI_VARS+="RDI_TOMAS_SEASALT='on '\n"
-	    RDI_VARS+="RDI_OFFLINE_SEASALT='false'\n"
+	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	else
-	    RDI_VARS+="RDI_TOMAS_SEASALT='off'\n"
-	    RDI_VARS+="RDI_OFFLINE_SEASALT='true '\n"
+	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	fi
     fi
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-	RDI_VARS+="RDI_TOMAS_DUSTDEAD='on '\n"
-	RDI_VARS+="RDI_OFFLINE_DUST='false'\n"
+	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
     else
-	RDI_VARS+="RDI_TOMAS_DUSTDEAD='off'\n"
-	RDI_VARS+="RDI_OFFLINE_DUST='true '\n" 
+	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
     fi
-    RDI_VARS+="RDI_DUSTDEAD_EXT='off'\n"
-    RDI_VARS+="RDI_SOILNOX_EXT='off'\n"
-    RDI_VARS+="RDI_OFFLINE_BIOVOC='true '\n"
-    RDI_VARS+="RDI_OFFLINE_SOILNOX='true '\n"
+    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
-RDI_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 
 #--------------------------------------------------------------------
-# Replace settings in config files with RDI variables
+# Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Save RDI variables to file
-echo -e "$RDI_VARS" > rdi_vars.txt
-sort -o rdi_vars.txt rdi_vars.txt
+# Save RUNDIR variables to file
+echo -e "$RUNDIR_VARS" > rundir_vars.txt
+sort -o rundir_vars.txt rundir_vars.txt
 
 # Call init_rd.sh
-${srcrundir}/init_rd.sh rdi_vars.txt
+${srcrundir}/init_rd.sh rundir_vars.txt
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
-printf "\n  See rdi_vars.txt for run directory settings.\n\n"
+printf "\n  See rundir_vars.txt for run directory settings.\n\n"
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate.\n"
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly.\n"
