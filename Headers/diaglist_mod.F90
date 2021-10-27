@@ -222,6 +222,7 @@ CONTAINS
     IsFullChem      = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
+    Name            =  ''
     LastCollName    =  ''
 
     ! Create DiagList object
@@ -270,7 +271,6 @@ CONTAINS
        IF ( INDEX( Line, 'Diag alt above sfc [m]' ) > 0 ) THEN
           CALL StrSplit( Line, ':', SubStrs, N )
           AltAboveSfc = TRIM( ADJUSTL( SubStrs(2) ) ) // 'm'
-          found       = .TRUE.
        ENDIF
 
        ! Update wavelength(s) with string in file
@@ -325,7 +325,12 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
           RETURN
        ENDIF
+
+       ! Skip if there is a commment at the start of the line
        IF ( Line(1:1) == '#' ) CYCLE
+
+       ! Skip the EXPID tag at the top of the file
+       IF ( INDEX( Line, 'EXPID:' ) > 0 ) CYCLE
 
        !====================================================================
        ! Set collection name list (uncommented names only)
@@ -407,6 +412,7 @@ CONTAINS
           InDefSection    = .FALSE.
           InFieldsSection = .FALSE.
           LastCollName    = ''
+          CYCLE
        ENDIF
 
        !--------------------------------------------------------------------
@@ -514,7 +520,6 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
-
        ENDIF
 
        !-----------------------------------------------------------------
@@ -530,7 +535,7 @@ CONTAINS
           IF ( AttName(1:LineInd-1) /= TRIM( LastCollName ) ) THEN
              ErrMsg = 'Attribute "' // TRIM( AttName ) // ' specifies a ' // &
                       'value for collection "'                            // &
-                      TRIM( AttName(1:LineInd-1) )                      // &
+                      TRIM( AttName(1:LineInd-1) )                        // &
                       '", but the expected collection name is "'          // &
                       TRIM( LastCollName ) // '".  This indicates that '  // &
                       'the end-of-collection delimiter (i.e. "::") is '   // &
@@ -599,8 +604,15 @@ CONTAINS
           name = CleanText( SubStrs(1) )
        ENDIF
 
-       ! Skip if diagnostic name is commented out
-       IF ( name(1:1) == '#' ) CYCLE
+       ! Sanity check! Skip to next line if the diagnostic name is
+       ! commented out, missing, or contains an attribute tag.
+       IF ( name(1:1)                   == '#' ) CYCLE
+       IF ( LEN_TRIM( name )            == 0   ) CYCLE
+       IF ( INDEX( name, '.template'  ) >  0   ) CYCLE
+       IF ( INDEX( name, '.frequency' ) >  0   ) CYCLE
+       IF ( INDEX( name, '.duration'  ) >  0   ) CYCLE
+       IF ( INDEX( name, '.format'    ) >  0   ) CYCLE
+       IF ( INDEX( name, '.mode'      ) >  0   ) CYCLE
 
        ! Skip if name is already in diag list
        CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
@@ -654,12 +666,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 #endif
-
           isWildcard = .TRUE.
           CALL StrSplit( name, '?', SubStrs, N )
           wildcard = SubStrs(N-1)
        ENDIF
-
        ! Get tag, if any
        isTagged  = .FALSE.
        tag = ''
@@ -668,13 +678,11 @@ CONTAINS
           IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
              isTagged = .TRUE.
              tag = SubStrs(2)
-          ELSEIF ( TRIM(state) == 'CHEM' &
-                   .AND. N == 3 ) THEN
+          ELSE IF ( TRIM(state) == 'CHEM' .AND. N == 3 ) THEN
              isTagged = .TRUE.
              tag = SubStrs(3)
           ENDIF
        ENDIF
-
        ! Get registryID - start with the full name in HISTORY.rc
        registryID = TRIM(nameAllCaps)
        ! Then strip off the state prefix, if any
@@ -697,6 +705,7 @@ CONTAINS
 
        ! Get metadataID - start with the registry ID
        metadataID = registryID
+
        ! Then strip off the tag suffix, if any
        IF ( isTagged ) THEN
           LineInd = INDEX( TRIM(metadataID), '_' )
