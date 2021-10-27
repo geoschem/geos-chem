@@ -574,7 +574,7 @@ if [[ ${met} = "ModelE2.1" ]]; then
 else
     RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
-	if [[ "x${met}" == "geosfp" && "x${grid_res}" == "x4x5" ]]; then
+	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
 	elif [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
