@@ -87,4 +87,4 @@ done
 rm -f ChemDir HcoDir MetDir
 ln -s ${RUNDIR_DATA_ROOT}/CHEM_INPUTS ChemDir
 ln -s ${RUNDIR_DATA_ROOT}/HEMCO HcoDir
-ln -s $RUNDIR_MET_DIR MetDir
+ln -s ${RUNDIR_MET_DIR_NATIVE} MetDir

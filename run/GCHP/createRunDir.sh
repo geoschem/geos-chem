@@ -16,7 +16,7 @@ srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
 gcdir=$(pwd -P)
-cd ../../
+cd ../../../..
 wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
@@ -236,11 +236,9 @@ while [ "${valid_met}" -eq 0 ]; do
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
-	RUNDIR_VARS+="RUNDIR_MET_DIR='$GC_DATA_ROOT/GEOS_0.5x0.625/MERRA2'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
-	RUNDIR_VARS+="RUNDIR_MET_DIR='$GC_DATA_ROOT/GEOS_0.25x0.3125/GEOS_FP'\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -382,7 +380,7 @@ fi
 
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
-ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
+ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
 #--------------------------------------------------------------------
 # Link to sample restart files
@@ -426,7 +424,7 @@ elif [[ "x${sim_name}" == "xCO2" ]]; then
     startdate='20140901'
     enddate='20141001'
 else
-    startdata='20190701'
+    startdate='20190701'
     enddate='20190801'
 fi
 RUNDIR_VARS+="RUNDIR_SIM_START_DATE=$startdate\n"
