@@ -173,7 +173,7 @@ CONTAINS
     INTEGER,  SAVE         :: CH4_YEAR  = -1
 
 #ifdef MODEL_CLASSIC
-#ifdef OMP
+#ifndef NO_OMP
     INTEGER, EXTERNAL      :: OMP_GET_THREAD_NUM
 #endif
 #endif
