@@ -679,9 +679,10 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
-                                          State_Met%DP_DRY_PREV(I,J,L) / &
-                                          State_Met%DELP_DRY(I,J,L)
+             State_Chm%SpeciesVec(N)%Conc(I,J,L) = &
+                                      State_Chm%SpeciesVec(n)%Conc(I,J,L) * &
+                                      State_Met%DP_DRY_PREV(I,J,L)        / &
+                                      State_Met%DELP_DRY(I,J,L)
           ENDDO
           ENDDO
           ENDDO
@@ -1598,11 +1599,11 @@ CONTAINS
 
        IF ( L == 1 ) THEN
           ! Set the surface to a sink
-          State_Chm%Species(I,J,L,id_CLOCK) = 0.0_fp
+          State_Chm%SpeciesVec(id_CLOCK)%Conc(I,J,L) = 0.0_fp
        ELSE
           ! Otherwise add time step [s]
-          State_Chm%Species(I,J,L,id_CLOCK) = State_Chm%Species(I,J,L,id_CLOCK)&
-                                              + TimeStep
+          State_Chm%SpeciesVec(id_CLOCK)%Conc(I,J,L) = &
+                      State_Chm%SpeciesVec(id_CLOCK)%Conc(I,J,L) + TimeStep
        ENDIF
 
     ENDDO

@@ -405,7 +405,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -451,7 +451,7 @@ CONTAINS
     CHARACTER(LEN=512)         :: ErrMsg
 
     ! Pointers
-    REAL(fp),        POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc),   POINTER   :: Spc(:)
     TYPE(Species),   POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
@@ -469,7 +469,7 @@ CONTAINS
     ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
 
     ! Point to chemical species array [kg/kg dry air]
-    Spc        => State_Chm%Species
+    Spc        => State_Chm%SpeciesVec
 
     ! Number of advected species
     nAdvect     = State_Chm%nAdvect
@@ -539,7 +539,7 @@ CONTAINS
           Flux(:,:) = ( Total_Spc / Total_Area ) * MASK(:,:)
 
           ! Update species concentrations [mol/mol]
-          Spc(:,:,1,N) = Spc(:,:,1,N) + Flux(:,:) * &
+          Spc(N)%Conc(:,:,1) = Spc(N)%Conc(:,:,1) + Flux(:,:) * &
              AVO / ( State_Met%BXHEIGHT(:,:,1) * State_Met%AIRNUMDEN(:,:,1) )
 
        ENDIF ! MMR tracer

@@ -161,6 +161,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE PhysConstants,      ONLY : XNUMOLAIR, AIRMW, AVO
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -206,7 +207,7 @@ CONTAINS
     INTEGER            :: NN
     REAL(fp)           :: dt,    P,       k,   M0,  RC
     REAL(fp)           :: TK,    RDLOSS,  T1L, mOH, BryTmp
-    REAL(fp)           :: BOXVL, SpcConc, Num, Den, M
+    REAL(fp)           :: BOXVL, Num,     Den, M
     REAL(fp)           :: MW_g
     LOGICAL            :: LLINOZ
     LOGICAL            :: LSYNOZ
@@ -223,9 +224,9 @@ CONTAINS
     CHARACTER(LEN=512) :: ErrMsg
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
-    REAL(fp), POINTER  :: AD (:,:,:  )
-    REAL(fp), POINTER  :: T  (:,:,:  )
+    TYPE(SpcConc), POINTER  :: Spc(:)
+    REAL(fp),      POINTER  :: AD (:,:,:)
+    REAL(fp),      POINTER  :: T  (:,:,:)
 
     !=======================================================================
     ! DO_LINEAR_CHEM begins here!
@@ -319,7 +320,7 @@ CONTAINS
        !=======================================================================
 
        ! Initialize pointers
-       Spc         => State_Chm%Species
+       Spc         => State_Chm%SpeciesVec
        AD          => State_Met%AD
        T           => State_Met%T
 
@@ -333,7 +334,7 @@ CONTAINS
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED )                                               &
-       !$OMP PRIVATE( I, J, L, N, NN, k, P, M0, MW_g, SpcConc, Num, Den )
+       !$OMP PRIVATE( I, J, L, N, NN, k, P, M0, MW_g, Num, Den )
        DO J=1,State_Grid%NY
           DO I=1,State_Grid%NX
 
@@ -349,7 +350,6 @@ CONTAINS
                 Mw_g    = 0.0_fp
                 Num     = 0.0_fp
                 P       = 0.0_fp
-                SpcConc = 0.0_fp
 
                 ! Only consider boxes above the chemistry grid
                 IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -414,7 +414,7 @@ CONTAINS
                    !--------------------------------------------------------
 
                    ! Initial mass [kg]
-                   M0 = Spc(I,J,L,NN)
+                   M0 = Spc(NN)%Conc(I,J,L)
 
                    ! No prod or loss at all
                    ! NOTE: Bad form to test for equality on zero!
@@ -423,10 +423,10 @@ CONTAINS
 
                    ! Simple analytic solution to dM/dt = P - kM over [0,t]
                    IF ( k .gt. 0e+0_fp ) then
-                      Spc(I,J,L,NN) = M0 * EXP(-k*dt) + &
+                      Spc(NN)%Conc(I,J,L) = M0 * EXP(-k*dt) + &
                                       (P/k)*(1e+0_fp-EXP(-k*dt))
                    ELSE
-                      Spc(I,J,L,NN) = M0 + P*dt
+                      Spc(NN)%Conc(I,J,L) = M0 + P*dt
                    ENDIF
 
                 ENDDO ! N
@@ -442,7 +442,7 @@ CONTAINS
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
           ! Put ozone in [v/v] for Linoz or Synoz
-          Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * ( AIRMW  &
+          Spc(id_O3)%Conc(:,:,:) = Spc(id_O3)%Conc(:,:,:) * ( AIRMW  &
                              / State_Chm%SpcData(id_O3)%Info%MW_g ) / AD
 
           ! Do Linoz or Synoz
@@ -455,7 +455,7 @@ CONTAINS
           ENDIF
 
           ! Put ozone back to [kg]
-          Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
+          Spc(id_O3)%Conc(:,:,:) = Spc(id_O3)%Conc(:,:,:) * AD / ( AIRMW  &
                              / State_Chm%SpcData(id_O3)%Info%MW_g )
 
        ENDIF
@@ -499,8 +499,8 @@ CONTAINS
                 IF ( id_CH3Br .gt. 0 ) THEN
                    RC = 2.35e-12_fp * EXP ( - 1300.e+0_fp / TK )
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = Spc(I,J,L,id_CH3Br) * RDLOSS
-                   Spc(I,J,L,id_CH3Br) = Spc(I,J,L,id_CH3Br) - T1L
+                   T1L    = Spc(id_CH3Br)%Conc(I,J,L) * RDLOSS
+                   Spc(id_CH3Br)%Conc(I,J,L) = Spc(id_CH3Br)%Conc(I,J,L) - T1L
                 ENDIF
 
                 !============!
@@ -509,8 +509,8 @@ CONTAINS
                 IF ( id_CHBr3 .gt. 0 ) THEN
                    RC = 1.35e-12_fp * EXP ( - 600.e+0_fp / TK )
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = Spc(I,J,L,id_CHBr3) * RDLOSS
-                   Spc(I,J,L,id_CHBr3) = Spc(I,J,L,id_CHBr3) - T1L
+                   T1L    = Spc(id_CHBr3)%Conc(I,J,L) * RDLOSS
+                   Spc(id_CHBr3)%Conc(I,J,L) = Spc(id_CHBr3)%Conc(I,J,L) - T1L
                 ENDIF
 
                 !=============!
@@ -519,8 +519,9 @@ CONTAINS
                 IF ( id_CH2Br2 .gt. 0 ) THEN
                    RC = 2.00e-12_fp * EXP ( -  840.e+0_fp / TK )
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
-                   T1L    = Spc(I,J,L,id_CH2Br2) * RDLOSS
-                   Spc(I,J,L,id_CH2Br2) = Spc(I,J,L,id_CH2Br2) - T1L
+                   T1L    = Spc(id_CH2Br2)%Conc(I,J,L) * RDLOSS
+                   Spc(id_CH2Br2)%Conc(I,J,L) = &
+                                              Spc(id_CH2Br2)%Conc(I,J,L) - T1L
                 ENDIF
 
              ENDDO ! J
@@ -575,7 +576,7 @@ CONTAINS
                 IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
 
                 ! Pass to Spc array
-                Spc(I,J,L, GC_Bry_TrID(NN) ) = BryTmp
+                Spc(GC_Bry_TrID(NN))%Conc(I,J,L) = BryTmp
 
              ENDDO
              ENDDO
@@ -1308,6 +1309,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1358,7 +1360,7 @@ CONTAINS
     REAL(fp)             :: STFLUX(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
-    REAL(fp), POINTER    :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Lower pressure bound for O3 release (unit: mb)
     ! REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp !PHS
@@ -1382,7 +1384,7 @@ CONTAINS
     P70mb = 70e+0_fp
 
     ! Point to chemical species array [v/v dry]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     !=================================================================
     ! Compute the proper release rate of O3 coming down from the
@@ -1520,11 +1522,11 @@ CONTAINS
              ENDIF
 
              ! Store O3 flux in the proper species number
-             Spc(I,J,L,id_O3) = Spc(I,J,L,id_O3) + PO3
+             Spc(id_O3)%Conc(I,J,L) = Spc(id_O3)%Conc(I,J,L) + PO3
 
              ! Store O3 flux for strat O3 species (Tagged O3 only)
              IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-                Spc(I,J,L,id_O3Strat) = Spc(I,J,L,id_O3Strat) + PO3
+                Spc(id_O3Strat)%Conc(I,J,L) = Spc(id_O3Strat)%Conc(I,J,L) + PO3
              ENDIF
 
              ! Archive stratospheric O3 for printout in [Tg/yr]

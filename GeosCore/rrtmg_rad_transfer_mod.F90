@@ -156,6 +156,7 @@ CONTAINS
     USE Input_Opt_Mod,       ONLY : OptInput
     USE PhysConstants,       ONLY : AIRMW, PI, AVO
     USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
+    USE Species_Mod,         ONLY : SpcConc
     USE State_Chm_Mod,       ONLY : ChmState
     USE State_Chm_Mod,       ONLY : Ind_
     USE State_Diag_Mod,      ONLY : DgnState
@@ -484,6 +485,9 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
+    ! Pointers
+    TYPE(SpcConc), POINTER :: Spc(:)
+
     !=================================================================
     ! DO_RRTMG_RAD_TRANSFER begins here!
     !=================================================================
@@ -608,6 +612,9 @@ CONTAINS
 
     ENDIF
 
+    ! Set pointer to species vector containing concentrations
+    Spc => State_Chm%SpeciesVec
+
     !$OMP PARALLEL DO          &
     !$OMP DEFAULT( SHARED )    &
     !$OMP PRIVATE( I, J, IB  ) &
@@ -722,7 +729,7 @@ CONTAINS
        O3_CTM          = 0d0
        LCHEM           = State_Met%ChemGridLev(I,J)
        DO L = 1, LCHEM
-          O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
+          O3_CTM(L)    = State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)
        ENDDO
 
        DO L = 1, State_Grid%NZ
@@ -760,30 +767,30 @@ CONTAINS
              !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 
              IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-                O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
+                O3VMR(I,J,L)  = Spc(id_O3)%Conc(I,J,L) * AIRMW / &
                                 State_Chm%SpcData(id_O3)%Info%MW_g
 
              ENDIF
 
              IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-                CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
+                CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW /&
                                 State_Chm%SpcData(id_CH4)%Info%MW_g
 
              ENDIF
 
-             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
+             N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_N2O)%Info%MW_g
 
-             CFC11VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
+             CFC11VMR(I,J,L) = Spc(id_CFC11)%Conc(I,J,L) * AIRMW/&
                                State_Chm%SpcData(id_CFC11)%Info%MW_g
 
-             CFC12VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
+             CFC12VMR(I,J,L) = Spc(id_CFC12)%Conc(I,J,L) * AIRMW/&
                                State_Chm%SpcData(id_CFC12)%Info%MW_g
 
-             CCL4VMR(I,J,L)  = State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
+             CCL4VMR(I,J,L)  = Spc(id_CCL4)%Conc(I,J,L) * AIRMW /&
                                State_Chm%SpcData(id_CCL4)%Info%MW_g
 
-             CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) * AIRMW / &
+             CFC22VMR(I,J,L) = Spc(id_HCFC22)%Conc(I,J,L) *AIRMW/&
                                State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
           ELSE
@@ -791,25 +798,25 @@ CONTAINS
              ! WE ARE IN THE STRATOSPHERE
              !-----------------------------
 
-             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW / &
+             O3VMR(I,J,L)  = Spc(id_O3)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_O3)%Info%MW_g
 
-             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW / &
+             CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_CH4)%Info%MW_g
 
-             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW / &
+             N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_N2O)%Info%MW_g
 
-             CFC11VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC11) * AIRMW / &
+             CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
                               State_Chm%SpcData(id_CFC11)%Info%MW_g
 
-             CFC12VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC12) * AIRMW / &
+             CFC12VMR(I,J,L) =Spc(I,J,L,id_CFC12) * AIRMW / &
                               State_Chm%SpcData(id_CFC12)%Info%MW_g
 
-             CCL4VMR(I,J,L)  =State_Chm%Species(I,J,L,id_CCL4) * AIRMW / &
+             CCL4VMR(I,J,L)  =Spc(I,J,L,id_CCL4) * AIRMW / &
                               State_Chm%SpcData(id_CCL4)%Info%MW_g
 
-             CFC22VMR(I,J,L) =State_Chm%Species(I,J,L,id_HCFC22) * AIRMW/ &
+             CFC22VMR(I,J,L) =Spc(I,J,L,id_HCFC22) * AIRMW/ &
                               State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
           ENDIF
@@ -1686,6 +1693,9 @@ CONTAINS
        CALL GC_Error('Unit conversion error', RC, 'DO_RRTMG_RAD_TRANSFER')
        RETURN
     ENDIF
+
+    ! Nullify pointers
+    Spc => NULL()
 
   END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 !EOC

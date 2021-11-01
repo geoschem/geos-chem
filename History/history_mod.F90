@@ -2880,7 +2880,7 @@ CONTAINS
        !====================================================================
        IF ( DoClose ) THEN
 
-          ! Save the units of State_Chm%Species in the container,
+          ! Save the units of State_Chm%SpeciesVec(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
           TmpUnits            = Spc_Units

@@ -181,6 +181,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
     USE Input_Opt_Mod,     ONLY : OptInput
+    USE Species_Mod,       ONLY : SpcConc
     USE State_Chm_Mod,     ONLY : ChmState
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
@@ -244,10 +245,10 @@ CONTAINS
     LOGICAL             :: Is_ComplexSOA
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
-    REAL(fp), POINTER   :: AIRVOL(:,:,:)
-    REAL(fp), POINTER   :: PMID(:,:,:)
-    REAL(fp), POINTER   :: T(:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc(:)
+    REAL(fp),      POINTER   :: AIRVOL(:,:,:)
+    REAL(fp),      POINTER   :: PMID(:,:,:)
+    REAL(fp),      POINTER   :: T(:,:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -313,7 +314,7 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    Spc    => State_Chm%Species
+    Spc    => State_Chm%SpeciesVec
     AIRVOL => State_Met%AIRVOL
     PMID   => State_Met%PMID
     T      => State_Met%T
@@ -471,28 +472,28 @@ CONTAINS
              IF ( IS_HMS ) THEN
 
                 !%%%%% Fullchem simulations: add contribution from HMS
-                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
-                                   +   Spc(I,J,L,id_HMS)                     &
-                                   +   Spc(I,J,L,id_NH4)                     &
-                                   +   Spc(I,J,L,id_NIT) )                   &
+                SO4_NH4_NIT(I,J,L) = ( Spc(id_SO4)%Conc(I,J,L)     &
+                                   +   Spc(id_HMS)%Conc(I,J,L)     &
+                                   +   Spc(id_NH4)%Conc(I,J,L)     &
+                                   +   Spc(id_NIT)%Conc(I,J,L) )   &
                                    / AIRVOL(I,J,L)
 
-                HMS(I,J,L) = Spc(I,J,L,id_HMS) / AIRVOL(I,J,L)
+                HMS(I,J,L) = Spc(id_HMS)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ELSE
 
                 !%%%%% Aerosol-only simulations: Skip contribution from HMS
-                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
-                                   +   Spc(I,J,L,id_NH4)                     &
-                                   +   Spc(I,J,L,id_NIT) )                   &
+                SO4_NH4_NIT(I,J,L) = ( Spc(id_SO4)%Conc(I,J,L)   &
+                                   +   Spc(id_NH4)%Conc(I,J,L)   &
+                                   +   Spc(id_NIT)%Conc(I,J,L) ) &
                                    / AIRVOL(I,J,L)
 
                 HMS(I,J,L) = 0.0_fp
              ENDIF
 
-             SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
-             NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
-             NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
+             SO4(I,J,L) = Spc(id_SO4)%Conc(I,J,L) / AIRVOL(I,J,L)
+             NH4(I,J,L) = Spc(id_NH4)%Conc(I,J,L) / AIRVOL(I,J,L)
+             NIT(I,J,L) = Spc(id_NIT)%Conc(I,J,L) / AIRVOL(I,J,L)
              SLA(I,J,L) = 0.0_fp
              SPA(I,J,L) = 0.0_fp
 
@@ -516,20 +517,20 @@ CONTAINS
              ! until later when these may be treated independently
              ! Only use HMS if it is defined (for fullchem sims)
              IF ( IS_HMS ) THEN
-                FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) +                 &
-                                        Spc(I,J,L,id_HMS ) )                 &
-                                  /   AIRVOL(I,J,L)                      )   &
+                FRAC_SNA(I,J,L,1) = ( ( Spc(id_SO4)%Conc(I,J,L) +         &
+                                        Spc(id_HMS)%Conc(I,J,L) )         &
+                                  /   AIRVOL(I,J,L)              )        &
                                   / SO4_NH4_NIT(I,J,L)
              ELSE
-                FRAC_SNA(I,J,L,1) = ( Spc(I,J,L,id_SO4 ) / AIRVOL(I,J,L) )   &
+                FRAC_SNA(I,J,L,1) = ( Spc(id_SO4)%Conc(I,J,L) / AIRVOL(I,J,L) )&
                                     / SO4_NH4_NIT(I,J,L)
              ENDIF
 
 
-             FRAC_SNA(I,J,L,2) = ( Spc(I,J,L,id_NIT) / AIRVOL(I,J,L) )       &
+             FRAC_SNA(I,J,L,2) = ( Spc(id_NIT)%Conc(I,J,L) / AIRVOL(I,J,L) ) &
                                / SO4_NH4_NIT(I,J,L)
 
-             FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4) / AIRVOL(I,J,L) )       &
+             FRAC_SNA(I,J,L,3) = ( Spc(id_NH4)%Conc(I,J,L) / AIRVOL(I,J,L) ) &
                                / SO4_NH4_NIT(I,J,L)
 
           ELSE
@@ -554,23 +555,26 @@ CONTAINS
        IF ( LCARB ) THEN
 
           ! Hydrophilic BC [kg/m3]
-          BCPI(I,J,L) = Spc(I,J,L,id_BCPI) / AIRVOL(I,J,L)
+          BCPI(I,J,L) = Spc(id_BCPI)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Hydrophobic BC [kg/m3]
-          BCPO(I,J,L) = Spc(I,J,L,id_BCPO) / AIRVOL(I,J,L)
+          BCPO(I,J,L) = Spc(id_BCPO)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Hydrophobic OC [kg/m3]
           ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4)
           IF ( IS_POA ) THEN
-             OCPO(I,J,L) = ( Spc(I,J,L,id_POA1) + Spc(I,J,L,id_POA2) ) &
+             OCPO(I,J,L) = ( Spc(id_POA1)%Conc(I,J,L)     &
+                             + Spc(id_POA2)%Conc(I,J,L) ) &
                            * OCFPOA(I,J) / AIRVOL(I,J,L)
           ELSE IF ( IS_OCPO ) THEN
-             OCPO(I,J,L) = Spc(I,J,L,id_OCPO) * OCFOPOA(I,J) / AIRVOL(I,J,L)
+             OCPO(I,J,L) = Spc(id_OCPO)%Conc(I,J,L) &
+                           * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Hydrophilic OC [kg/m3]
           IF ( IS_OCPI ) THEN
-             OCPI(I,J,L) = Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) / AIRVOL(I,J,L)
+             OCPI(I,J,L) = Spc(id_OCPI)%Conc(I,J,L) &
+                           * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Now avoid division by zero (bmy, 4/20/04)
@@ -627,37 +631,37 @@ CONTAINS
              ! Bin #1
              IF ( REFF < 0.2e-6_fp ) THEN
                 SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ! Bin #2
              ELSE IF ( REFF < 0.325e-6_fp ) THEN
                 SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ! Bin #3
              ELSE IF ( REFF < 0.6e-6_fp ) THEN
                 SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ! Bin #4
              ELSE IF ( REFF < 1.15e-6_fp ) THEN
                 SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ! Bin #5
              ELSE IF ( REFF < 2.0e-6_fp ) THEN
                 SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ! Bin #6
              ELSE IF ( REFF < 3.25e-6_fp ) THEN
                 SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ! Bin #7
              ELSE
                 SOILDUST(I,J,L,7) = SOILDUST(I,J,L,7) &
-                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
+                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
 
              ENDIF
           ENDDO
@@ -673,15 +677,19 @@ CONTAINS
           ! Lump 1st dust tracer for het chem
           ! Now use dust size distribution scheme to improve PM2.5
           ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
-          SOILDUST(I,J,L,1) = 0.007e+0_fp  * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,2) = 0.0332e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,3) = 0.2487e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,4) = 0.7111e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,1) = 0.007e+0_fp  * Spc(id_DST1)%Conc(I,J,L) &
+                              / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,2) = 0.0332e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
+                              / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,3) = 0.2487e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
+                              / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,4) = 0.7111e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
+                              / AIRVOL(I,J,L)
 
           ! Other hetchem bins
-          SOILDUST(I,J,L,5) = Spc(I,J,L,id_DST2) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,6) = Spc(I,J,L,id_DST3) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,7) = Spc(I,J,L,id_DST4) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,5) = Spc(id_DST2)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,6) = Spc(id_DST3)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,7) = Spc(id_DST4)%Conc(I,J,L) / AIRVOL(I,J,L)
 
        ENDIF
 
@@ -695,14 +703,14 @@ CONTAINS
        IF ( LSSALT ) THEN
 
           ! Accumulation mode seasalt aerosol [kg/m3]
-          SALA(I,J,L) = Spc(I,J,L,id_SALA) / AIRVOL(I,J,L)
+          SALA(I,J,L) = Spc(id_SALA)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Coarse mode seasalt aerosol [kg/m3]
-          SALC(I,J,L) = Spc(I,J,L,id_SALC) / AIRVOL(I,J,L)
+          SALC(I,J,L) = Spc(id_SALC)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Fine mode Cl-/sulfate interal mixed [kg/m3]
-          ACL(I,J,L) = ( Spc(I,J,L,id_SALACL) + &
-                         Spc(I,J,L,id_SALA)*0.45e0_fp)/AIRVOL(I,J,L)
+          ACL(I,J,L) = ( Spc(id_SALACL)%Conc(I,J,L) + &
+                         Spc(id_SALA)%Conc(I,J,L)*0.45e0_fp)/AIRVOL(I,J,L)
 
           ! Avoid division by zero
           SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
@@ -723,7 +731,7 @@ CONTAINS
        IF ( Is_SimpleSOA ) THEN
 
           ! Simple SOA [kg/m3]
-          SOAS(I,J,L) = Spc(I,J,L,id_SOAS) / AIRVOL(I,J,L)
+          SOAS(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) / AIRVOL(I,J,L)
 
        ENDIF
 
@@ -734,22 +742,27 @@ CONTAINS
 
           ! TSOA (terpene SOA) [kg/m3]
           IF ( IS_TSOA ) THEN
-             TSOA(I,J,L) = ( Spc(I,J,L,id_TSOA1) + Spc(I,J,L,id_TSOA2) + &
-                             Spc(I,J,L,id_TSOA3) + Spc(I,J,L,id_TSOA0) ) &
-                             / AIRVOL(I,J,L)
+             TSOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)    &
+                           + Spc(id_TSOA2)%Conc(I,J,L)    &
+                           + Spc(id_TSOA3)%Conc(I,J,L)    &
+                           + Spc(id_TSOA0)%Conc(I,J,L) )  &
+                           / AIRVOL(I,J,L)
           ENDIF
 
           ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) [kg/m3]
           IF ( IS_ASOA ) THEN
-             ASOA(I,J,L) = ( Spc(I,J,L,id_ASOAN) + Spc(I,J,L,id_ASOA1) + &
-                             Spc(I,J,L,id_ASOA2) + Spc(I,J,L,id_ASOA3) ) &
-                             / AIRVOL(I,J,L)
+             ASOA(I,J,L) = ( Spc(id_ASOAN)%Conc(I,J,L)   &
+                           + Spc(id_ASOA1)%Conc(I,J,L)   &
+                           + Spc(id_ASOA2)%Conc(I,J,L)   &
+                           + Spc(id_ASOA3)%Conc(I,J,L) ) &
+                           / AIRVOL(I,J,L)
           ENDIF
 
           ! OPOA [kg/m3]
           IF ( IS_OPOA ) THEN
-             OPOA(I,J,L) = ( Spc(I,J,L,id_OPOA1) + Spc(I,J,L,id_OPOA2) ) &
-                            * OCFOPOA(I,J) / AIRVOL(I,J,L)
+             OPOA(I,J,L) = ( Spc(id_OPOA1)%Conc(I,J,L)    &
+                           + Spc(id_OPOA2)%Conc(I,J,L) )  &
+                           * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
        ENDIF
 
@@ -759,12 +772,13 @@ CONTAINS
 
        ! Glyoxal
        IF ( id_SOAGX > 0 ) THEN
-          ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
+          ISOAAQ(I,J,L) = Spc(id_SOAGX)%Conc(I,J,L) / AIRVOL(I,J,L)
        ENDIF
 
        ! IEPOX
        IF ( id_SOAIE > 0 ) THEN
-          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
+          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) &
+                          + Spc(id_SOAIE)%Conc(I,J,L) / AIRVOL(I,J,L)
        ENDIF
 
        !-----------------------------------------------------------------------
@@ -775,13 +789,14 @@ CONTAINS
        !! SOA from alkyl nitrates (some contribution
        !! from non-isoprene sources)
        !IF ( id_INDIOL > 0 ) THEN
-       !   ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
+       !   ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(id_INDIOL)%Conc(I,J,L) / AIRVOL(I,J,L)
        !ENDIF
        !-----------------------------------------------------------------------
 
        ! SOA from ISOPOOH oxidation product
        IF ( id_LVOCOA > 0 ) THEN
-          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
+          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) &
+                          + Spc(id_LVOCOA)%Conc(I,J,L) / AIRVOL(I,J,L)
        ENDIF
 
        !-------------------------------------------------------
@@ -809,25 +824,30 @@ CONTAINS
 
        ! Use simple SOA by default over complex SOA in calculations
        IF ( Is_SimpleSOA ) THEN
-          OCPISOA(I,J,L) = ( Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) + &
-                             Spc(I,J,L,id_SOAS) ) / AIRVOL(I,J,L)
+          OCPISOA(I,J,L) = ( Spc(id_OCPI)%Conc(I,J,L) * OCFOPOA(I,J) + &
+                             Spc(id_SOAS)%Conc(I,J,L) ) / AIRVOL(I,J,L)
 
        ELSEIF ( Is_ComplexSOA ) THEN
 
-          OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1) + Spc(I,J,L,id_TSOA2) + &
-                             Spc(I,J,L,id_TSOA3) + Spc(I,J,L,id_TSOA0) + &
-                             Spc(I,J,L,id_ASOAN) + Spc(I,J,L,id_ASOA1) + &
-                             Spc(I,J,L,id_ASOA2) + Spc(I,J,L,id_ASOA3) ) &
+          OCPISOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)   &
+                           + Spc(id_TSOA2)%Conc(I,J,L)   &
+                           + Spc(id_TSOA3)%Conc(I,J,L)   &
+                           + Spc(id_TSOA0)%Conc(I,J,L)   &
+                           + Spc(id_ASOAN)%Conc(I,J,L)   &
+                           + Spc(id_ASOA1)%Conc(I,J,L)   &
+                           + Spc(id_ASOA2)%Conc(I,J,L)   &
+                           + Spc(id_ASOA3)%Conc(I,J,L) ) &
                              / AIRVOL(I,J,L)
 
           IF ( IS_OPOA ) THEN ! hotp 7/28/10
-             OCPISOA(I,J,L) = OCPISOA(I,J,L) + &
-                              ( Spc(I,J,L,id_OPOA1) + Spc(I,J,L,id_OPOA2) ) &
+             OCPISOA(I,J,L) = OCPISOA(I,J,L) +              &
+                              ( Spc(id_OPOA1)%Conc(I,J,L)    &
+                              + Spc(id_OPOA2)%Conc(I,J,L) ) &
                               * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           IF ( IS_OCPI ) THEN  ! hotp 7/28/10
-             OCPISOA(I,J,L) = OCPISOA(I,J,L) + Spc(I,J,L,id_OCPI) &
+             OCPISOA(I,J,L) = OCPISOA(I,J,L) + Spc(id_OCPI)%Conc(I,J,L) &
                               * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
@@ -846,7 +866,7 @@ CONTAINS
        ! SOAGX [kg/m3]
        !===========================================================
        IF ( IS_SOAGX ) THEN
-          SOAGX(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
+          SOAGX(I,J,L) = Spc(id_SOAGX)%Conc(I,J,L) * OCFG / AIRVOL(I,J,L)
        ENDIF
 
        !==============================================================
@@ -2554,7 +2574,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE Species_Mod,    ONLY : Species
+    USE Species_Mod,    ONLY : Species, SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
@@ -2603,7 +2623,7 @@ CONTAINS
 
     ! Pointers
     REAL(fp),      POINTER   :: AirDen(:,:,:  )
-    REAL(fp),      POINTER   :: Spc   (:,:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc   (:      )
     TYPE(Species), POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
@@ -2726,7 +2746,7 @@ CONTAINS
     !=======================================================================
 
     ! Point to fielss of State_Chm and State_Met
-    Spc    => State_Chm%Species
+    Spc    => State_Chm%SpeciesVec
     AirDen => State_Met%AIRDEN
 
     !$OMP PARALLEL DO         &
@@ -2755,7 +2775,7 @@ CONTAINS
        ! AerMassINDIOL [ug/m3]
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassINDIOL ) THEN
-          State_Diag%AerMassINDIOL(I,J,L) = Spc(I,J,L,id_INDIOL) * &
+          State_Diag%AerMassINDIOL(I,J,L) = Spc(id_INDIOL)%Conc(I,J,L) * &
                                             kgm3_to_ugm3 * AirDen(I,J,L)
        ENDIF
 
@@ -2763,7 +2783,7 @@ CONTAINS
        ! AerMassLVOCOA [ug/m3]
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassLVOCOA ) THEN
-          State_Diag%AerMassLVOCOA(I,J,L) = Spc(I,J,L,id_LVOCOA) * &
+          State_Diag%AerMassLVOCOA(I,J,L) = Spc(id_LVOCOA)%Conc(I,J,L) * &
                                             kgm3_to_ugm3 * AirDen(I,J,L)
        ENDIF
 
@@ -2836,7 +2856,7 @@ CONTAINS
        ! AerMassSOAIE [ug/m3]
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassSOAIE ) THEN
-          State_Diag%AerMassSOAIE(I,J,L) = Spc(I,J,L,id_SOAIE) * &
+          State_Diag%AerMassSOAIE(I,J,L) = Spc(id_SOAIE)%Conc(I,J,L) * &
                                            kgm3_to_ugm3 * AirDen(I,J,L)
        ENDIF
 
@@ -2894,10 +2914,10 @@ CONTAINS
 
           IF ( Input_Opt%LSOA ) THEN
              State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L) + &
-                  ( ( Spc(I,J,L,id_SOAIE)  * Fac_SOAIE  ) + &
-                    ( Spc(I,J,L,id_INDIOL) * Fac_INDIOL ) + &
-                    ( Spc(I,J,L,id_SOAGX)  * Fac_SOAGX  ) + &
-                    ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA ) ) &
+                  ( ( Spc(id_SOAIE )%Conc(I,J,L) * Fac_SOAIE  ) + &
+                    ( Spc(id_INDIOL)%Conc(I,J,L) * Fac_INDIOL ) + &
+                    ( Spc(id_SOAGX )%Conc(I,J,L) * Fac_SOAGX  ) + &
+                    ( Spc(id_LVOCOA)%Conc(I,J,L) * Fac_LVOCOA ) ) &
                     * AirDen(I,J,L) * kgm3_to_ugm3
           ENDIF
 

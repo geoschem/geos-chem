@@ -124,8 +124,8 @@ CONTAINS
 !-----------------------------------------------------------------------------
 ! Comment out this code, until we restore these reactions
 ! because KPP will not have SALAAL and SALCAL indices defined (bmy, 9/23/21)
-!    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
-!    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
+!    SALAAL_gt_0_1 = ( State_Chm%SpeciesVec(id_SALAAL)%Conc(I,J,L) > 0.1_dp )
+!    SALCAL_gt_0_1 = ( State_Chm%SpeciesVec(id_SALCAL)%Conc(I,J,L) > 0.1_dp )
 !    errMsg        = ''
 !    thisLoc       = &
 !   ' -> at fullchem_SulfurAqChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
@@ -153,7 +153,7 @@ CONTAINS
 !
 !       ! Assume SO2 is limiting, so recompute rxn rate accordingly
 !       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-!               / State_Chm%Species(I,J,L,id_SALAAL)
+!               / State_Chm%SpeciesVec(id_SALAAL)%Conc(I,J,L)
 !    ENDIF
 !
 !    !------------------------------------------------------------------------
@@ -361,6 +361,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -464,14 +465,14 @@ CONTAINS
     REAL(fp)              :: KaqHCHO, KaqHMS, KaqHMS2, HMSc ! JMM, MSL
 
     ! Pointers
-    REAL(fp), POINTER     :: Spc(:)
-    REAL(fp), POINTER     :: SSAlk(:)
+    TYPE(SpcConc), POINTER :: Spc(:)
+    REAL(fp), POINTER      :: SSAlk(:)
 
-    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
 #ifdef LUO_WETDEP
     ! For Luo et al wetdep scheme
-    LOGICAL               :: Is_QQ3D
+    LOGICAL                :: Is_QQ3D
 #endif
 
     !=================================================================
@@ -485,7 +486,7 @@ CONTAINS
     ThisLoc = ' -> at SET_SO2 (in module GeosCore/sulfate_mod.F90)'
 
     ! Initialize variables
-    Spc                         => State_Chm%Species(I,J,L,:)
+    Spc                         => State_Chm%SpeciesVec
     SSAlk                       => State_Chm%SSAlk(I,J,L,:)
     State_Chm%isCloud(I,J,L)    = 0.0_fp
     State_Chm%pHCloud(I,J,L)    = 0.0_fp
@@ -499,9 +500,9 @@ CONTAINS
     LSTOT                       = 0.0_fp
     RHO                         = State_Met%AIRDEN(I,J,L)
     CVFAC                       = 1.E3_fp * AIRMW / ( RHO * AVO ) !mcl/cm3->v/v
-    SO20                        = Spc(id_SO2)  * CVFAC
-    SO2_AfterSS                 = Spc(id_SO2)  * CVFAC
-    H2O20                       = Spc(id_H2O2) * CVFAC
+    SO20                        = Spc(id_SO2)%Conc(I,J,L) * CVFAC
+    SO2_AfterSS                 = Spc(id_SO2)%Conc(I,J,L) * CVFAC
+    H2O20                       = Spc(id_H2O2)%Conc(I,J,L) * CVFAC
     KaqH2O2                     = 0.0_fp
     KaqO3                       = 0.0_fp
     KaqO3_1                     = 0.0_fp
@@ -638,8 +639,8 @@ CONTAINS
        ! [moles/liter]
        ! Use a cloud scavenging ratio of 0.7
 
-       SO4nss = 1.e+3 * ( Spc(id_SO4) * 0.7e+0_fp + Spc(id_SO4s) )           &
-              / ( LWC * AVO ) ! mcl/cm3 -> mol/L
+       SO4nss = 1.e+3 * ( Spc(id_SO4)%Conc(I,J,L) * 0.7e+0_fp &
+              + Spc(id_SO4s)%Conc(I,J,L) ) / ( LWC * AVO ) ! mcl/cm3 -> mol/L
 
        ! Get HMS cloud concentration and convert from [v/v] to
        ! [moles/liter] (jmm, 06/13/2018)
@@ -647,35 +648,38 @@ CONTAINS
        ! assume nonvolatile like sulfate for realistic cloud pH
        HMSc = 0.0_fp
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          HMSc = Spc(id_HMS) * State_Met%AIRDEN(I,J,L)                       &
+          HMSc = Spc(id_HMS)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L) &
                * 0.7_fp * CVFAC / ( AIRMW * LWC )
        ENDIF
 
        ! Get total ammonia (NH3 + NH4+) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7 for NH4+
-       TNH3 = ( ( Spc(id_NH4) * 0.7e+0_fp ) + Spc(id_NH3) ) * CVFAC
+       TNH3 = ( ( Spc(id_NH4)%Conc(I,J,L) * 0.7e+0_fp ) &
+              + Spc(id_NH3)%Conc(I,J,L) ) * CVFAC
 
        ! Get total chloride (SALACL + HCL) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7
-       CL = ( Spc(id_SALACL) * 0.7e+0_fp ) + Spc(id_SALCCL)
-       CL = ( CL + Spc(id_HCL) ) * CVFAC
+       CL = ( Spc(id_SALACL)%Conc(I,J,L) * 0.7e+0_fp ) &
+            + Spc(id_SALCCL)%Conc(I,J,L)
+       CL = ( CL + Spc(id_HCL)%Conc(I,J,L) ) * CVFAC
 
        ! Get total formic acid concentration [v/v]
        ! jmm (12/3/18)
        ! no cloud scavenging because gases?
-       TFA = Spc(id_HCOOH) * CVFAC
+       TFA = Spc(id_HCOOH)%Conc(I,J,L) * CVFAC
 
        ! Get total acetic acid concentration [v/v]
        ! jmm (12/3/18)
        ! no cloud scavenging b/c gases?
-       TAA = Spc(id_ACTA) * CVFAC
+       TAA = Spc(id_ACTA)%Conc(I,J,L) * CVFAC
 
        ! Get total sea salt NVC concentration expressed as NA+ equivalents
        ! and convert from [MND] to [moles/liter]
        ! NVC is calculated to balance initial Cl- + alkalinity in
        ! seas salt. Note that we should not consider SO4ss here.
        ! Use a cloud scavenging ratio of 0.7 for fine aerosols
-       TNA      = 1.e3_fp*( Spc(id_SALA)*0.7e+0_fp + Spc(id_SALC) ) * &
+       TNA      = 1.e3_fp*( Spc(id_SALA)%Conc(I,J,L)*0.7e+0_fp &
+            + Spc(id_SALC)%Conc(I,J,L) ) * &
             ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) / &
             ( LWC * AVO ) ! mcl/cm3 -> mol/L
 
@@ -695,9 +699,9 @@ CONTAINS
        !
        ! Get dust concentrations [MND -> ng/m3]
 
-       DUST = ( Spc(id_DST1)*0.7_fp + Spc(id_DST2) +       &
-            Spc(id_DST3) + Spc(id_DST4) ) * 1.e+15_fp * &
-            State_Chm%SpcData(id_DST1)%Info%MW_g / AVO
+       DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7_fp + Spc(id_DST2)%Conc(I,J,L) + &
+            Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) )            &
+            * 1.e+15_fp * State_Chm%SpcData(id_DST1)%Info%MW_g / AVO
 
        ! Conversion from dust mass to Ca2+ and Mg2+ mol:
        !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
@@ -707,10 +711,10 @@ CONTAINS
 
        ! Get total nitrate (HNO3 + NIT) concentrations [v/v]
        ! Use a cloud scavenging ratio of 0.7 for NIT
-       TNO3 = ( Spc(id_HNO3) +             &
-              ( Spc(id_NIT)  * 0.7e+0_fp ) + &
-              Spc(id_NITs) ) * CVFAC
-       GNO3 = Spc(id_HNO3)  * CVFAC ! For Fahey & Pandis decision algorithm
+       TNO3 = ( Spc(id_HNO3)%Conc(I,J,L) +             &
+              ( Spc(id_NIT)%Conc(I,J,L)  * 0.7e+0_fp ) + &
+              Spc(id_NITs)%Conc(I,J,L) ) * CVFAC
+       GNO3 = Spc(id_HNO3)%Conc(I,J,L) * CVFAC ! For Fahey & Pandis decision algorithm
 
        ! Calculate cloud pH
        CALL GET_HPLUS( SO4nss, HMSc, TNH3, TNO3,  SO2_AfterSS,   CL, TNA, TDCA, &
@@ -746,11 +750,11 @@ CONTAINS
 
           ! Anthropogenic Fe concentrations [mcl/cm3 -> ng/m3]
           IF ( id_pFe > 0 ) THEN
-                Fe_ant = Spc(id_pFe) * CVFAC * &
+                Fe_ant = Spc(id_pFe)%Conc(I,J,L) * CVFAC * &
                          1.e+12_fp * State_Met%AD(I,J,L) &
                          / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%MW_g ) &
                          / State_Met%AIRVOL(I,J,L)
-!             Fe_ant = Spc(id_pFe) * 1.e+15_fp * &
+!             Fe_ant = Spc(id_pFe)%Conc(I,J,L) * 1.e+15_fp * &
 !                  State_Chm%SpcData(id_DST1)%Info%MW_g / AVO
           ELSE
              Fe_ant = 0e+0_fp
@@ -814,9 +818,9 @@ CONTAINS
                         T       = TK,                                        &
                         P       = PATM,                                      &
                         SO2     = SO2_AfterSS,                               &
-                        H2O2    = Spc(id_H2O2) * CVFAC,                      &
-                        O3      = Spc(id_O3)   * CVFAC,                      &
-                        HCHO    = Spc(id_CH2O) * CVFAC,                      &
+                        H2O2    = Spc(id_H2O2)%Conc(I,J,L) * CVFAC,          &
+                        O3      = Spc(id_O3)%Conc(I,J,L)   * CVFAC,          &
+                        HCHO    = Spc(id_CH2O)%Conc(I,J,L) * CVFAC,          &
                         Hplus   = Hplus,                                     &
                         MnII    = MnII,                                      &
                         FeIII   = FeIII,                                     &
@@ -831,15 +835,19 @@ CONTAINS
                         KaqHMS2 = KaqHMS2                                   )
 
        ! Compute rxn rate in cloudy part of grid box [1/s]
-       K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )
-       K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
+       K_CLD(1) = CloudHet2R( Spc(id_SO2)%Conc(I,J,L), &
+                              Spc(id_H2O2)%Conc(I,J,L), FC, KaqH2O2 * CVFAC )
+       K_CLD(2) = CloudHet2R( Spc(id_SO2)%Conc(I,J,L), &
+                              Spc(id_O3)%Conc(I,J,L), FC, KaqO3   * CVFAC )
        !K_CLD(3) computed below
 
        ! HMS reaction rates (skip if HMS isn't defined)
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+          K_CLD(4) = CloudHet2R( Spc(id_HMS)%Conc(I,J,L), &
+                                 Spc(id_CH2O)%Conc(I,J,L), FC, KaqHCHO*CVFAC )
           K_CLD(5) = CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
-          K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
+          K_CLD(6) = CloudHet2R( Spc(id_HMS)%Conc(I,J,L), &
+                                 Spc(id_OH)%Conc(I,J,L), FC, &
                KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
           ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
        ENDIF
@@ -854,15 +862,16 @@ CONTAINS
        ! For other simulations, Sum up the contributions from
        ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
        ! mcl/cm3 -> ug/m3
-       ALKdst = ( Spc(id_DST1) + Spc(id_DST2) +            &
-            Spc(id_DST3) + Spc(id_DST4) ) * CVFAC *  &
+       ALKdst = ( Spc(id_DST1)%Conc(I,J,L) + Spc(id_DST2)%Conc(I,J,L) +      &
+            Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) ) * CVFAC *  &
             1.e+9_fp * State_Met%AD(I,J,L)                       &
             / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
             / State_Met%AIRVOL(I,J,L)
 #endif
 
        ! mcl/cm3 -> ug/m3
-       ALKss  = ( Spc(id_SALA  ) + Spc(id_SALC) ) * CVFAC * &
+       ALKss  = ( Spc(id_SALA)%Conc(I,J,L) &
+            + Spc(id_SALC)%Conc(I,J,L) ) * CVFAC * &
             1.e+9_fp * State_Met%AD(I,J,L)                       &
             / ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
             / State_Met%AIRVOL(I,J,L)
@@ -870,14 +879,14 @@ CONTAINS
        ALKds = ALKdst + ALKss
 
        ! Get NH3 concentrations (v/v)
-       NH3 = Spc(id_NH3)*CVFAC
+       NH3 = Spc(id_NH3)%Conc(I,J,L)*CVFAC
 
        ! Initialize
        BULK = 0
        SIZE_RES = 0
 
        ! Fahey and Seinfeld decision algorithm
-       IF ( Spc(id_H2O2)*CVFAC > SO2_AfterSS + 1e-9_fp ) THEN
+       IF ( Spc(id_H2O2)%Conc(I,J,L)*CVFAC > SO2_AfterSS + 1e-9_fp ) THEN
           BULK = 1
        ELSEIF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
           SIZE_RES = 1
@@ -1014,10 +1023,10 @@ CONTAINS
           ! HET_DROP_CHEM [v/v]
           ! Note that it is better to use coarse sea salt alkalinity
           ! tracer if it is being transported (bec, 12/23/11)
-          SSCvv  = Spc(id_SALC)*CVFAC
+          SSCvv  = Spc(id_SALC)%Conc(I,J,L)*CVFAC
 
           ! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
-          aSO4  =  Spc(id_SO4)*CVFAC
+          aSO4  =  Spc(id_SO4)%Conc(I,J,L)*CVFAC
 
           ! This is to make sure HET_DROP_CHEM does not compute more
           ! sulfate then there is SO2
@@ -1034,15 +1043,15 @@ CONTAINS
                               SSCvv    = SSCvv,                              &
                               aSO4     = aSO4,                               &
                               GNH3      = NH3,                               &
-                              SO2_sr   = Spc(id_SO2)  * CVFAC,               &
-                              H2O20    = Spc(id_H2O2) * CVFAC,               &
+                              SO2_sr   = Spc(id_SO2)%Conc(I,J,L)  * CVFAC,   &
+                              H2O20    = Spc(id_H2O2)%Conc(I,J,L) * CVFAC,   &
                               GNO3     = GNO3,                               &
                               SR       = SR,                                 &
                               Input_Opt = Input_Opt,                         &
                               State_Met = State_Met,                         &
                               State_Chm = State_Chm                         )
 
-          KaqO2 = KaqO2 + ( SR/(Spc(id_SO2)*CVFAC*DTCHEM) ) !1/s
+          KaqO2 = KaqO2 + ( SR/(Spc(id_SO2)%Conc(I,J,L)*CVFAC*DTCHEM) ) !1/s
 
        ENDIF
 

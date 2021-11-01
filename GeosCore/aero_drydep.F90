@@ -27,6 +27,8 @@
     USE PhysConstants,      ONLY : g0
     USE PhysConstants,      ONLY : AVO
     USE PRECISION_MOD
+!ewlspc
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
@@ -96,10 +98,10 @@
     REAL(fp)           :: X0(IBINS,ICOMP-IDIAG+1    )
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc     (:,:,:,:)
-    REAL(fp), POINTER  :: BXHEIGHT(:,:,:  )
-    REAL(fp), POINTER  :: T       (:,:,:  )
-    REAL(fp), POINTER  :: DepFreq (:,:,:  )                ! IM, JM, nDryDep
+    TYPE(SpcConc), POINTER  :: Spc     (:      )
+    REAL(fp),      POINTER  :: BXHEIGHT(:,:,:  )
+    REAL(fp),      POINTER  :: T       (:,:,:  )
+    REAL(fp),      POINTER  :: DepFreq (:,:,:  )                ! IM, JM, nDryDep
 
     ! SAVEd arrays
     INTEGER,  SAVE     :: DRYD(IBINS)
@@ -132,7 +134,7 @@
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
-    Spc      => State_Chm%Species
+    Spc      => State_Chm%SpeciesVec
     BXHEIGHT => State_Met%BXHEIGHT
     T        => State_Met%T
     DepFreq  => State_Chm%DryDepFreq
@@ -298,7 +300,7 @@
              ! Method is to solve bidiagonal matrix
              ! which is implicit and first order accurate in Z
              DO L = 1, State_Grid%NZ
-                TC0(L) = Spc(I,J,L,ID)
+                TC0(L) = Spc(ID)%Conc(I,J,L)
                 TC(L)  = TC0(L)
              ENDDO
 
@@ -316,7 +318,7 @@
              ENDDO
 
              DO L = 1, State_Grid%NZ
-                Spc(I,J,L,ID) = TC(L)
+                Spc(ID)%Conc(I,J,L) = TC(L)
 
                 ! Debug
                 !IF (i==ix .and. j==jx .and. l==ll ) &
@@ -411,15 +413,15 @@
        DO JC = 1, ICOMP-IDIAG+1
           DO BIN = 1, IBINS
              ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
-             X0(BIN,JC) = Spc(I,J,L,ID)
+             X0(BIN,JC) = Spc(ID)%Conc(I,J,L)
           ENDDO
        ENDDO
        ! Debug
        !IF (i==ii .and. j==jj .and. L==1) &
-       !   print *,'L    Spc(',I,J,'L',bb,')   DIF    ', &
+       !   print *,'L    Spc(',bb,')%Conc(',I,J,'L)   DIF    ', &
        !    'FLUX  AD44'
        !IF (i==ix .and. j==jx .and. L==1) &
-       !   print *,'L    Spc(',I,J,'L',bb,')   DIF    ', &
+       !   print *,'L    Spc(',bb,')%Conc(',I,J,'L)   DIF    ', &
        !    'FLUX  AD44'
        !ENDIF
        ! Dry deposit 1 aerosol component at a time, start looping from
@@ -471,18 +473,18 @@
           ENDIF
           ! Debug
           !if(i==ii .and. j==jj .and. bin==bb .and. JC==1) &
-          !     print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, &
+          !     print *,'>',L, Spc(ID)%Conc(I,J,L), X0(BIN,JC) - X, FLUX, &
           !             AD44(I,J,DRYD(BIN),1)
           !if(i==ii .and. j==jj .and. bin==bb .and. JC==2) &
-          !     print *,'>',L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX, &
+          !     print *,'>',L, Spc(ID)%Conc(I,J,L), X0(BIN,JC) - X, FLUX, &
           !             AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
           !if(i==ix .and. j==jx .and. bin==bb .and. JC==ICOMP) &
-          !     print *, L, Spc(I,J,L,ID), X0(BIN,JC) - X, FLUX,
+          !     print *, L, Spc(ID)%Conc(I,J,L), X0(BIN,JC) - X, FLUX,
           !             AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 #endif
 
           ! Swap X back into Spc array
-          Spc(I,J,L,ID) = X
+          Spc(ID)%Conc(I,J,L) = X
 
        ENDDO
        ENDDO
@@ -492,7 +494,7 @@
        ! mixing_mod.F90 (ckeller, 3/5/15)
        ! ***********************************************************************
        ! Dry deposit H2SO4 gas (win, 5/24/06)
-       Y0 = Spc(I,J,L,id_H2SO4)
+       Y0 = Spc(id_H2SO4)%Conc(I,J,L,)
        RKT = DepFreq(I,J,H2SO4ID) * State_Met%F_UNDER_PBLTOP(I,J,L)
        Y = Y0 * EXP(-RKT)
 
@@ -517,7 +519,7 @@
 #endif
 
        !Swap final H2SO4 back into Spc array
-       Spc(I,J,L,id_H2SO4) = Y
+       Spc(id_H2SO4)%Conc(I,J,L,) = Y
 
     ENDDO
     ENDDO

@@ -186,6 +186,7 @@ CONTAINS
     USE GcKpp_Parameters
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PhysConstants,   ONLY : PI, AIRMW
+    USE Species_Mod,     ONLY : SpcConc
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Met_Mod,   ONLY : MetState
 !
@@ -282,18 +283,18 @@ CONTAINS
     REAL(dp)            :: MW_DST1, MW_DST2, MW_DST3, MW_DST4
 
     ! Pointers
-    REAL(dp), POINTER   :: Spc(:,:,:,:)
-    REAL(dp), POINTER   :: ERADIUS(:,:,:,:)
-    REAL(dp), POINTER   :: TAREA(:,:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc(:)
+    REAL(dp),      POINTER   :: ERADIUS(:,:,:,:)
+    REAL(dp),      POINTER   :: TAREA(:,:,:,:)
 
     !=================================================================
     ! GET_DUST_ALK begins here!
     !=================================================================
 
     ! Initialize pointers
-    Spc       => State_Chm%Species  ! GEOS-Chem species array [v/v dry]
-    ERADIUS   => State_Chm%AeroRadi ! Aerosol Radius [cm]
-    TAREA     => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
+    Spc       => State_Chm%SpeciesVec  ! GEOS-Chem species array [v/v dry]
+    ERADIUS   => State_Chm%AeroRadi    ! Aerosol Radius [cm]
+    TAREA     => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
 
     ! Get MWs from species database
     MW_DST1   = State_Chm%SpcData(id_DST1)%Info%MW_g
@@ -313,17 +314,17 @@ CONTAINS
     AIR_DENS  = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L)
 
     ! Retrieve Dust Alkalinity [v/v dry from Spc array
-    ALK_d(1)  = Spc(I,J,L,id_DSTAL1)
-    ALK_d(2)  = Spc(I,J,L,id_DSTAL2)
-    ALK_d(3)  = Spc(I,J,L,id_DSTAL3)
-    ALK_d(4)  = Spc(I,J,L,id_DSTAL4)
+    ALK_d(1)  = Spc(id_DSTAL1)%Conc(I,J,L)
+    ALK_d(2)  = Spc(id_DSTAL2)%Conc(I,J,L)
+    ALK_d(3)  = Spc(id_DSTAL3)%Conc(I,J,L)
+    ALK_d(4)  = Spc(id_DSTAL4)%Conc(I,J,L)
 
     ! Dust [kg/m3] from Spc, used to compute dust surface area
     ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
-    DST_d(1)  = Spc(I,J,L,id_DST1) * AIR_DENS / ( AIRMW / MW_DST1 )
-    DST_d(2)  = Spc(I,J,L,id_DST2) * AIR_DENS / ( AIRMW / MW_DST2 )
-    DST_d(3)  = Spc(I,J,L,id_DST3) * AIR_DENS / ( AIRMW / MW_DST3 )
-    DST_d(4)  = Spc(I,J,L,id_DST4) * AIR_DENS / ( AIRMW / MW_DST4 )
+    DST_d(1)  = Spc(id_DST1)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST1 )
+    DST_d(2)  = Spc(id_DST2)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST2 )
+    DST_d(3)  = Spc(id_DST3)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST3 )
+    DST_d(4)  = Spc(id_DST4)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST4 )
 
     ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
     SULF_AREA = TAREA(I,J,L,NDUST+1)

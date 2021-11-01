@@ -478,7 +478,6 @@ CONTAINS
     REAL(fp)           :: K_BRY(11), K_CLY(3)
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
     REAL(fp), POINTER  :: T(:,:,:)
 
     ! Strings
@@ -544,7 +543,6 @@ CONTAINS
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
-    Spc      => State_Chm%Species   ! Chemical species array [kg]
     T        => State_Met%T         ! Temperature [K]
     SpcInfo  => NULL()
 
@@ -1068,9 +1066,12 @@ CONTAINS
 
           ! Load initial concentrations into vector, kg
           Xold(:) = 0e+0_fp
-          Xold(1) = MAX( Spc(I,J,L,Hg0_Id_List(N)), SMALLNUM )
-          Xold(2) = MAX( Spc(I,J,L,Hg2_Id_List(N)), SMALLNUM )
-          Xold(3) = MAX( Spc(I,J,L,HgP_Id_List(N)), SMALLNUM )
+          Xold(1) = MAX( State_Chm%SpeciesVec(Hg0_Id_List(N))%Conc(I,J,L), &
+                         SMALLNUM )
+          Xold(2) = MAX( State_Chm%SpeciesVec(Hg2_Id_List(N))%Conc(I,J,L), &
+                         SMALLNUM )
+          Xold(3) = MAX( State_Chm%SpeciesVec(HgP_Id_List(N))%Conc(I,J,L), &
+                         SMALLNUM )
           ! Rows 4-9 accumulate oxidation, reduction, and deposition fluxes
           ! so these start at zero
 
@@ -1112,9 +1113,9 @@ CONTAINS
           !--------------------------------------------------
 
           ! Archive Concentrations, kg/box
-          Spc(I,J,L,Hg0_Id_List(N)) = Xnew(1)
-          Spc(I,J,L,Hg2_Id_List(N)) = Xnew(2)
-          Spc(I,J,L,HgP_Id_List(N)) = Xnew(3)
+          State_Chm%SpeciesVec(Hg0_Id_List(N))%Conc(I,J,L) = Xnew(1)
+          State_Chm%SpeciesVec(Hg2_Id_List(N))%Conc(I,J,L) = Xnew(2)
+          State_Chm%SpeciesVec(HgP_Id_List(N))%Conc(I,J,L) = Xnew(3)
 
           ! Accumulated fluxes, kg/box/timestep [timestep=DTCHEM]
           DEP_HG0  = Xnew(4)
@@ -1459,7 +1460,6 @@ CONTAINS
     CALL PARTITIONHG2( Input_Opt, State_Chm, State_Grid, RC )
 
     ! Free pointer memory
-    Spc     => NULL()
     T       => NULL()
     SpcInfo => NULL()
 
@@ -2610,9 +2610,6 @@ CONTAINS
     ! Scalars
     REAL(fp)          :: AM2, TS
 
-    ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-
     !=================================================================
     ! EMITHG begins here!
     !=================================================================
@@ -2648,14 +2645,9 @@ CONTAINS
        ! so add directly to the State_Chm%Species array
        !--------------------------------------------------------------
 
-       ! Point to the chemical spcies array [kg]
-       Spc             => State_Chm%Species
-
        ! Add emissions
-       Spc(I,J,L,ID)   =  Spc(I,J,L,ID) + MAX( E_HG, 0e+0_fp )
-
-       ! Free pointer
-       Spc             => NULL()
+       State_Chm%SpeciesVec(ID)%Conc(I,J,L) = &
+              State_Chm%SpeciesVec(ID)%Conc(I,J,L) + MAX( E_HG, 0e+0_fp )
 
     ENDIF
 
@@ -5507,18 +5499,12 @@ CONTAINS
     INTEGER           :: I, J, L, N
     REAL(fp)          :: FGas, Hg2TOT
 
-    ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-
     !=================================================================
     ! PARTITIONHG2 begins here!
     !=================================================================
 
     ! Assume success
     RC  =  GC_SUCCESS
-
-    ! Point to the chemical species array [kg]
-    Spc => State_Chm%Species
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -5540,13 +5526,15 @@ CONTAINS
        DO N = 1, N_HG_CATS
 
           ! Total Hg(II) (gas +aerosol)
-          HG2TOT = Spc(I,J,L,Hg2_Id_List(N)) + Spc(I,J,L,HgP_Id_List(N))
+          HG2TOT = State_Chm%SpeciesVec(Hg2_Id_List(N))%Conc(I,J,L) + &
+                   + State_Chm%SpeciesVec(HgP_Id_List(N))%Conc(I,J,L)
 
           ! Gas portion
-          Spc(I,J,L,Hg2_Id_List(N)) = Hg2TOT * Fgas
+          State_Chm%SpeciesVec(Hg2_Id_List(N))%Conc(I,J,L) = Hg2TOT * Fgas
 
           ! Aerosol portion
-          Spc(I,J,L,HgP_Id_List(N)) = Hg2TOT * (1e+0_fp - Fgas)
+          State_Chm%SpeciesVec(HgP_Id_List(N))%Conc(I,J,L) = &
+                                                 Hg2TOT * (1e+0_fp - Fgas)
 
        ENDDO
 
@@ -5554,9 +5542,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE PARTITIONHG2
 !EOC

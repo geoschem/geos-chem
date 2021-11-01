@@ -490,6 +490,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : AIRMW
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -534,16 +535,20 @@ CONTAINS
 
     ! Arrays
     REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
-    REAL(fp)           :: DTC(State_Grid%NX,State_Grid%NY,                   &
-                              State_Grid%NZ,State_Chm%nAdvect)
+!ewl: I am going to try to reduce the size of this local array
+!     It seems like it only needs to be scalar given how it is used
+    !REAL(fp)           :: DTC(State_Grid%NX,State_Grid%NY,                   &
+    !                          State_Grid%NZ,State_Chm%nAdvect)
+    REAL(fp)           :: DTC
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    INTEGER,  POINTER  :: IMIX(:,:    )
-    REAL(fp), POINTER  :: FPBL(:,:    )
-    REAL(fp), POINTER  :: AD  (:,:,:  )
-    REAL(fp), POINTER  :: TC  (:,:,:,:)
+    INTEGER,       POINTER  :: IMIX(:,:    )
+    REAL(fp),      POINTER  :: FPBL(:,:    )
+    REAL(fp),      POINTER  :: AD  (:,:,:  )
+    TYPE(SpcConc), POINTER  :: TC  (:      )
 
     !========================================================================
     ! TURBDAY begins here!
@@ -571,10 +576,10 @@ CONTAINS
     !========================================================================
 
     ! Initalize
-    AD      => State_Met%AD        ! Dry air mass
-    IMIX    => State_Met%IMIX      ! Integer level where PBL top occurs
-    FPBL    => State_Met%FPBL      ! Fractional level above IMIX to PBL top
-    TC      => State_Chm%Species   ! Chemical species [v/v]
+    AD      => State_Met%AD         ! Dry air mass
+    IMIX    => State_Met%IMIX       ! Integer level where PBL top occurs
+    FPBL    => State_Met%FPBL       ! Fractional level above IMIX to PBL top
+    TC      => State_Chm%SpeciesVec ! Chemical species [v/v]
 
     ! Convection timestep [s]
     DTCONV = GET_TS_CONV()
@@ -582,7 +587,7 @@ CONTAINS
     ! Loop over Lat/Long grid boxes (I,J)
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, NA, N, AA, CC, CC_AA )
+    !$OMP PRIVATE( I, J, L, NA, N, AA, CC, CC_AA, DTC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -612,26 +617,26 @@ CONTAINS
           ! Sum mass from (I,J,L) below the PBL top
           CC = 0.e+0_fp
           DO L = 1, IMIX(I,J)-1
-             CC = CC + AD(I,J,L) * TC(I,J,L,N)
+             CC = CC + AD(I,J,L) * TC(N)%Conc(I,J,L)
           ENDDO
 
           ! Then also sum mass from (I,J,L) which straddle the PBL top
           L     = IMIX(I,J)
-          CC    = CC + AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
+          CC    = CC + AD(I,J,L) * TC(N)%Conc(I,J,L) * FPBL(I,J)
 
           ! CC/AA is the mean mixing ratio of tracer at
           ! (I,J) from L=1 to L=LTOP
           CC_AA = CC / AA
 
           !========================================================
-          ! TC(I,J,L,N) new  = TC(I,J,L,N) old +
-          !                    ( DTC(I,J,L,N) / AD(I,J,L) )
+          ! TC(N)%Conc(I,J,L) new  = TC(N)%Conc(I,J,L) old +
+          !                          ( DTC / AD(I,J,L) )
           !
           ! where
           !
-          ! DTC(I,J,L,N) = [ alpha * (mean MR below PBL) *
+          ! DTC = [ alpha * (mean MR below PBL) *
           !                  Airmass at (I,J,L) ] -
-          !                [ alpha * TC(I,J,L,N) old     *
+          !                [ alpha * TC(N)%Conc(I,J,L) old     *
           !                  Airmass at (I,J,L) ]
           !
           ! DTC is thus the change in mass (kg) due to BL mixing,
@@ -640,19 +645,19 @@ CONTAINS
 
           ! For grid boxes (I,J,L) which lie below the PBL top
           DO L = 1, IMIX(I,J)-1
-             DTC(I,J,L,N) = ( A(I,J) * CC_AA       * AD(I,J,L)  - &
-                              A(I,J) * TC(I,J,L,N) * AD(I,J,L) )
+             DTC = ( A(I,J) * CC_AA       * AD(I,J,L)  - &
+                     A(I,J) * TC(N)%Conc(I,J,L) * AD(I,J,L) )
 
-             TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
+             TC(N)%Conc(I,J,L) = TC(N)%Conc(I,J,L) + DTC / AD(I,J,L)
           ENDDO
 
           ! For grid boxes (I,J,L) which straddle the PBL top
           L = IMIX(I,J)
 
-          DTC(I,J,L,N)  = ( A(I,J) * FPBL(I,J)  * CC_AA       * AD(I,J,L) - &
-                            A(I,J) * FPBL(I,J)  * TC(I,J,L,N) * AD(I,J,L) )
+          DTC = ( A(I,J) * FPBL(I,J)  * CC_AA       * AD(I,J,L) - &
+                  A(I,J) * FPBL(I,J)  * TC(N)%Conc(I,J,L) * AD(I,J,L) )
 
-          TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
+          TC(N)%Conc(I,J,L) = TC(N)%Conc(I,J,L) + DTC / AD(I,J,L)
 
        ENDDO
     ENDDO

@@ -366,7 +366,7 @@ CONTAINS
        ! isoprene oxidation counter species
        IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
             TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
-          State_Chm%Species(:,:,:,N) = 0e+0_fp
+          State_Chm%SpeciesVec(N)%Conc(:,:,:) = 0e+0_fp
        ENDIF
 
        ! aromatic oxidation counter species
@@ -374,7 +374,7 @@ CONTAINS
           SELECT CASE ( TRIM( SpcInfo%Name ) )
              CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
                     'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
-                State_Chm%Species(:,:,:,N) = 0e+0_fp
+                State_Chm%SpeciesVec(N)%Conc(:,:,:) = 0e+0_fp
           END SELECT
        ENDIF
 
@@ -382,7 +382,7 @@ CONTAINS
        ! CO2 is a dead species and needs to be set to zero to
        ! match the old SMVGEAR code (mps, 6/14/16)
        IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
-          State_Chm%Species(:,:,:,N) = 0e+0_fp
+          State_Chm%SpeciesVec(N)%Conc(:,:,:) = 0e+0_fp
        ENDIF
 
        ! Free pointer
@@ -721,7 +721,7 @@ CONTAINS
        DO N = 1, NSPEC
           SpcID = State_Chm%Map_KppSpc(N)
           C(N)  = 0.0_dp
-          IF ( SpcId > 0 ) C(N) = State_Chm%Species(I,J,L,SpcID)
+          IF ( SpcId > 0 ) C(N) = State_Chm%SpeciesVec(SpcID)%Conc(I,J,L)
        ENDDO
 
        !=====================================================================
@@ -1038,7 +1038,7 @@ CONTAINS
 
        !====================================================================
        ! Check we have no negative values and copy the concentrations
-       ! calculated from the C array back into State_Chm%Species
+       ! calculated from the C array back into State_Chm%SpeciesVec%Conc
        !====================================================================
 
        ! Loop over KPP species
@@ -1054,7 +1054,7 @@ CONTAINS
           C(N) = MAX( C(N), 0.0E0_dp )
 
           ! Copy concentrations back into State_Chm%Species
-          State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
+          State_Chm%SpeciesVec(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
 
@@ -1209,7 +1209,7 @@ CONTAINS
 
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
-       ! have been archived in State_Chm%Species output.
+       ! have been archived in State_Chm%SpeciesVec%Conc output.
        CALL Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
 
@@ -1605,6 +1605,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -1628,9 +1629,9 @@ CONTAINS
 ! !REMARKS:
 !  This routine replaces both OHSAVE and DIAGOH.  Those routines were needed
 !  for SMVGEAR, when we had separate arrays for the non-advected species.
-!  But now, all species are stored in State_Chm%SPECIES, so the various
+!  But now, all species are stored in State_Chm%SpeciesVec%Conc, so the various
 !  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
-!  just get values directly from State_Chm%SPECIES.
+!  just get values directly from State_Chm%SpeciesVec%Conc.
 !
 !  Also note: for the netCDF diagnostics, we have removed multiplication by
 !  LTOH etc arrays.  These are almost always set between 0 and 24.
@@ -1653,8 +1654,8 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER  :: AirNumDen(:,:,:  )
-    REAL(fp), POINTER  :: Spc      (:,:,:,:)
+    REAL(fp),      POINTER  :: AirNumDen(:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc      (:    )
 
     !=======================================================================
     ! Diag_OH_HO2_O1D_O3P begins here!
@@ -1665,7 +1666,7 @@ CONTAINS
 
     ! Point to the array of species concentrations
     AirNumDen => State_Met%AirNumDen
-    Spc       => State_Chm%Species
+    Spc       => State_Chm%SpeciesVec
 
     ! Zero the netCDF diagnostic arrays (if activated) above the
     ! tropopause or mesopause to avoid having leftover values
@@ -1712,127 +1713,127 @@ CONTAINS
 
             ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-               State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
+               State_Diag%OHconcAfterChem(I,J,L) = Spc(id_OH)%Conc(I,J,L)
             ENDIF
 #ifdef MODEL_GEOS
             IF ( State_Diag%Archive_O3concAfterChem ) THEN
-               State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
+               State_Diag%O3concAfterChem(I,J,L) = Spc(id_O3)%Conc(I,J,L)
             ENDIF
             IF ( Archive_RO2concAfterChem ) THEN
                IF ( id_A3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) +  Spc(I,J,L,id_A3O2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_A3O2)%Conc(I,J,L)
                IF ( id_ATO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ATO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ATO2)%Conc(I,J,L)
                IF ( id_B3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_B3O2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_B3O2)%Conc(I,J,L)
                IF ( id_BRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_BRO2)%Conc(I,J,L)
                IF ( id_ETO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ETO2)%Conc(I,J,L)
                IF ( id_HO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HO2)%Conc(I,J,L)
                IF ( id_LIMO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_LIMO2)%Conc(I,J,L)
                IF ( id_MO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_MO2)%Conc(I,J,L)
                IF ( id_PIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PIO2)%Conc(I,J,L)
                IF ( id_PO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PO2)%Conc(I,J,L)
                IF ( id_PRN1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRN1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PRN1)%Conc(I,J,L)
                IF ( id_R4N1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4N1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_R4N1)%Conc(I,J,L)
                IF ( id_R4O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_R4O2)%Conc(I,J,L)
                IF ( id_TRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_TRO2)%Conc(I,J,L)
                IF ( id_XRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_XRO2)%Conc(I,J,L)
                IF ( id_IHOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHOO1)%Conc(I,J,L)
                IF ( id_IHOO4 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHOO4)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHOO4)%Conc(I,J,L)
                IF ( id_ICHOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ICHOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ICHOO)%Conc(I,J,L)
                IF ( id_IHPOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO1)%Conc(I,J,L)
                IF ( id_IHPOO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO2)%Conc(I,J,L)
                IF ( id_IHPOO3 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO3)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO3)%Conc(I,J,L)
                IF ( id_IEPOXAOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXAOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IEPOXAOO)%Conc(I,J,L)
                IF ( id_IEPOXBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXBOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IEPOXBOO)%Conc(I,J,L)
                IF ( id_C4HVP1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_C4HVP1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_C4HVP1)%Conc(I,J,L)
                IF ( id_C4HVP2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_C4HVP2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_C4HVP2)%Conc(I,J,L)
                IF ( id_HPALD1OO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HPALD1OO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HPALD1OO)%Conc(I,J,L)
                IF ( id_HPALD2OO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HPALD2OO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HPALD2OO)%Conc(I,J,L)
                IF ( id_ISOPNOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISOPNOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ISOPNOO1)%Conc(I,J,L)
                IF ( id_ISOPNOO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISOPNOO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ISOPNOO2)%Conc(I,J,L)
                IF ( id_INO2D > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INO2D)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_INO2D)%Conc(I,J,L)
                IF ( id_INO2B > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INO2B)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_INO2B)%Conc(I,J,L)
                IF ( id_IDHNBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNBOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNBOO)%Conc(I,J,L)
                IF ( id_IDHNDOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNDOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNDOO1)%Conc(I,J,L)
                IF ( id_IDHNDOO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNDOO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNDOO2)%Conc(I,J,L)
                IF ( id_IHPNBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPNBOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPNBOO)%Conc(I,J,L)
                IF ( id_IHPNDOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPNDOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPNDOO)%Conc(I,J,L)
                IF ( id_ICNOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ICNOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ICNOO)%Conc(I,J,L)
                IF ( id_IDNOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDNOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDNOO)%Conc(I,J,L)
             ENDIF
 #endif
 
@@ -1843,7 +1844,7 @@ CONTAINS
          !------------------------------------------------------------------
          IF ( ok_HO2 ) THEN
             IF ( State_Diag%Archive_HO2concAfterChem ) THEN
-               State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
+               State_Diag%HO2concAfterChem(I,J,L) = ( Spc(id_HO2)%Conc(I,J,L) &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
          ENDIF
@@ -1853,7 +1854,7 @@ CONTAINS
          !---------------------------------------------------------------
          IF ( ok_O1D ) THEN
             IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
-               State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
+               State_Diag%O1DconcAfterChem(I,J,L) = Spc(id_O1D)%Conc(I,J,L)
             ENDIF
          ENDIF
 
@@ -1863,7 +1864,7 @@ CONTAINS
          !---------------------------------------------------------------
          IF ( ok_O3P ) THEN
             IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
-               State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
+               State_Diag%O3PconcAfterChem(I,J,L) = Spc(id_O3P)%Conc(I,J,L)
             ENDIF
          ENDIF
 
@@ -2040,7 +2041,7 @@ CONTAINS
           airMass_kg  = airMass_m / XNUMOLAIR
 
           ! OH concentration [molec cm-3]
-          OHconc_mcm3 = State_Chm%Species(I,J,L,id_OH)
+          OHconc_mcm3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L)
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
           OHmassWgt   = airMass_kg * ( OHconc_mcm3  * MCM3toKGM3_OH  )

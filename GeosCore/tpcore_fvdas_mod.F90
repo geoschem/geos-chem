@@ -407,15 +407,16 @@ CONTAINS
   SUBROUTINE Tpcore_FvDas( dt,       ae,       IM,       JM,      KM,       &
                            JFIRST,   JLAST,    ng,       mg,      nq,       &
                            ak,       bk,       u,        v,       ps1,      &
-                           ps2,      ps,       q,        iord,    jord,     &
-                           kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-                           AREA_M2, ND24, ND25, ND26, State_Diag )
+                           ps2,      ps,       iord,     jord,    kord,     &
+                           n_adj,    XMASS,    YMASS,    FILL,    AREA_M2,  &
+                           ND24,     ND25,     ND26,   State_Chm, State_Diag )
 !
 ! !USES:
 !
     ! Include files w/ physical constants and met values
     USE PhysConstants
     USE ErrCode_Mod
+    USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
@@ -490,10 +491,12 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)
 
-    ! Tracer "mixing ratios" [kg tracer/moist air kg]
-    REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
+!ewl
+!    ! Tracer "mixing ratios" [kg tracer/moist air kg]
+!    REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! Diagnostics state object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
 !
 ! !OUTPUT PARAMETERS:
@@ -578,7 +581,7 @@ CONTAINS
     INTEGER            :: js2g0, jn2g0
 
     ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
-    REAL(fp),  POINTER :: ptr_Q(:,:,:)
+    REAL(fp),  POINTER :: q_ptr(:,:,:)
 
     LOGICAL            :: Do_ND24, Do_ND25, Do_ND26
 
@@ -679,10 +682,13 @@ CONTAINS
     if (j1p /= 1+1) then
 
        do iq = 1, nq
+
+       q_ptr => State_Chm%SpeciesVec(iq)%Conc(:,:,km:1:-1)
+
        !  ========================
           call Average_Const_Poles  &
        !  ========================
-               (dap(ik), dbk(ik), area_m2, ps1, q(:,:,ik,iq), &
+               (dap(ik), dbk(ik), area_m2, ps1, q_ptr(:,:,ik), &
                1, jm, im, &
                1, im, 1, jm, 1, im, 1, jm)
 
@@ -786,18 +792,20 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, q_ptr )
     do iq = 1, nq
+
+       q_ptr => State_Chm%SpeciesVec(iq)%Conc(:,:,km:1:-1)
 
        do ik = 1, km
 
        !.sds.. convert to "mass"
-       dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
+       dq1(:,:,ik) = q_ptr(:,:,ik) * delp1(:,:,ik)
 
      ! ===========================
        call Calc_Advec_Cross_Terms  &
      ! ===========================
-            (jn(ik), js(ik), q(:,:,ik,iq), qqu, qqv, &
+            (jn(ik), js(ik), q_ptr(:,:,ik), qqu, qqv, &
             ua(:,:,ik), va(:,:,ik), &
             j1p, j2p, im, 1, jm, 1, im, 1, jm, &
             1, im, 1, jm, CROSS)
@@ -854,7 +862,7 @@ CONTAINS
 
        !... update constituent array qq1 by adding in cross terms
        !           - use in fzppm
-       q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
+       q_ptr(:,:,ik) = q_ptr(:,:,ik) + ady + adx
 
 
      ! ========
@@ -898,21 +906,24 @@ CONTAINS
 
         end do
 
-       qtemp(:,:,:,iq) = q(:,:,:,iq)
+       qtemp(:,:,:,iq) = q_ptr(:,:,:)
 
        ! Set up temporary pointer to Q to avoid array temporary in FZPPM
        ! (bmy, 6/5/13)
-       ptr_Q => q(:,:,:,iq)
+!ewl: I think we can now just pass q_ptr?
+!       ptr_Q => q_ptr(:,:,:)
 
      ! ==========
        call Fzppm  &
      ! ==========
-            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
+!ewl            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
+            (klmt, delp1, wz, dq1, q_ptr, fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)
 
        ! Free pointer memory (bmy, 6/5/13)
-       NULLIFY( ptr_Q )
+!ewl
+!       NULLIFY( ptr_Q )
 
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux
@@ -931,30 +942,33 @@ CONTAINS
                1, im, 1, jm, 1, im, 1, jm, 1, km)
        end if
 
-       q(:,:,:,iq) =  &
+       q_ptr(:,:,:) =  &
             dq1 / delp2
 
 
        if (j1p /= 2) then
 
-          q(:,2,:,iq) = q(:,1,:,iq)
-          q(:,jm-1,:,iq)  = q(:,jm,:,iq)
+          q_ptr(:,2,:) = q_ptr(:,1,:)
+          q_ptr(:,jm-1,:)  = q_ptr(:,jm,:)
 
        end if
 
+! ewl: I moved this to inside the loop since q_ptr is per species
+       !========================================================================
+       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+       !
+       ! Set tracer concentration to a small positive number if concentration
+       ! is negative. Negative concentration may occur at the poles. This
+       ! is an issue that should be looked into in the future. (ewl, 6/30/15)
+       !========================================================================
+       WHERE ( q_ptr < 0.0_fp )
+          q_ptr = 1.0e-26_fp
+       ENDWHERE
+
+       NULLIFY( q_ptr )
+
     ENDDO
 !$OMP END PARALLEL DO
-
-    !=========================================================================
-    ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
-    !
-    ! Set tracer concentration to a small positive number if concentration
-    ! is negative. Negative concentration may occur at the poles. This
-    ! is an issue that should be looked into in the future. (ewl, 6/30/15)
-    !=========================================================================
-    WHERE ( Q < 0.0_fp )
-       Q = 1.0e-26_fp
-    ENDWHERE
        
     !======================================================================
     ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group

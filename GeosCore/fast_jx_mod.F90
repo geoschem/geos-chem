@@ -317,7 +317,7 @@ CONTAINS
        O3_CTM = 0e+0_fp
        LCHEM  = State_Met%ChemGridLev(NLON,NLAT)
        DO L = 1, LCHEM
-          O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
+          O3_CTM(L) = State_Chm%SpeciesVec(id_O3)%Conc(NLON,NLAT,L)
        ENDDO
 
        ! Aerosol OD profile [unitless] at (NLON,NLAT)

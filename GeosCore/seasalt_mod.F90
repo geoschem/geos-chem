@@ -144,6 +144,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -183,11 +184,10 @@ CONTAINS
     LOGICAL           :: prtDebug
 
 #if   defined( APM )
-    REAL(fp)          :: SEASALTS(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                  NSALTBIN)
+    INTEGER           :: Seasalt_ids(NSALTBIN)
 #endif
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CHEMSEASALT begins here!
@@ -195,7 +195,7 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    Spc      => State_Chm%Species
+    Spc      => State_Chm%SpeciesVec
 
     ! Do we have to print debug output?
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -210,7 +210,7 @@ CONTAINS
     !=================================================================
     IF ( id_SALA > 0 ) THEN
        CALL WET_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, Spc(:,:,:,id_SALA), 1,  RC )
+                          State_Met, Spc(id_SALA)%Conc, 1,  RC )
 
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
@@ -224,7 +224,7 @@ CONTAINS
        
        CALL WET_SETTLING( Input_Opt, State_Chm,              &
                           State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALACL), 3, RC )
+                          Spc(id_SALACL)%Conc, 3, RC )
        
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
@@ -237,7 +237,7 @@ CONTAINS
     IF ( id_SALAAL > 0 ) THEN
        CALL WET_SETTLING(   Input_Opt, State_Chm,  &
                           State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALAAL), 5, RC )
+                          Spc(id_SALAAL)%Conc, 5, RC )
        
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
@@ -249,7 +249,7 @@ CONTAINS
     !=================================================================
     IF ( id_SALC > 0 ) THEN
        CALL WET_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, Spc(:,:,:,id_SALC), 2,  RC )
+                          State_Met, Spc(id_SALC)%Conc, 2,  RC )
 
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -262,7 +262,7 @@ CONTAINS
     IF ( id_SALCCL > 0 ) THEN
        CALL WET_SETTLING(   Input_Opt, State_Chm,  &
                           State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALCCL), 4, RC )
+                          Spc(id_SALCCL)%Conc, 4, RC )
        
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
@@ -275,7 +275,7 @@ CONTAINS
     IF ( id_SALCAL > 0 ) THEN
        CALL WET_SETTLING(   Input_Opt, State_Chm,  &
                           State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALCAL), 6, RC )
+                          Spc(id_SALCAL)%Conc, 6, RC )
        
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
@@ -309,10 +309,8 @@ CONTAINS
     !----------------------------------------
     ! Sea salt emissions for extra APM bins
     !----------------------------------------
-    SEASALTS =  Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
-    CALL SRCSALTBIN( SEASALTS, State_Grid, State_Met )
-    Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) = SEASALTS
-
+    Seasalt_Ids = APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)
+    CALL SRCSALTBIN( Seasalt_Ids, State_Chm, State_Grid, State_Met )
     IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
 
     !----------------------------------------
@@ -783,6 +781,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -818,7 +817,7 @@ CONTAINS
     REAL(fp)            :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -837,7 +836,7 @@ CONTAINS
     OCCONV    = 0e+0_fp
 
     ! Set pointer to GEOS-Chem tracer array [kg]
-    Spc      => State_Chm%Species
+    Spc      => State_Chm%SpeciesVec
 
     !=================================================================
     ! For tracers with dry deposition, the loss rate of dry dep is
@@ -859,7 +858,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Initial OC [kg]
-       TC0  = Spc(I,J,L,id_MOPO)
+       TC0  = Spc(id_MOPO)%Conc(I,J,L)
 
        ! Zero drydep freq
        ! ### NOTE: Remove this later, but need to make
@@ -877,7 +876,7 @@ CONTAINS
        OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
 
        ! Store modified OC concentration back in tracer array
-       Spc(I,J,L,id_MOPO) = CNEW
+       Spc(id_MOPO)%Conc(I,J,L) = CNEW
 
     ENDDO
     ENDDO
@@ -909,6 +908,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -944,17 +944,17 @@ CONTAINS
     REAL(fp) :: TC0, CNEW, CCV
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CHEM_MOPI begins here!
     !=================================================================
 
     ! Assume success
-    RC        = GC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Set pointer to GEOS-Chem tracer array [kg]
-    Spc      => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -965,7 +965,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Initial H-philic OC [kg]
-       TC0 = Spc(I,J,L,id_MOPI)
+       TC0 = Spc(id_MOPI)%Conc(I,J,L)
 
        ! H-philic OC that used to be H-phobic OC [kg]
        CCV = OCCONV(I,J,L)
@@ -977,7 +977,7 @@ CONTAINS
        IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
        ! Store modified concentration back in tracer array [kg]
-       Spc(I,J,L,id_MOPI) = CNEW
+       Spc(id_MOPI)%Conc(I,J,L) = CNEW
 
     ENDDO
     ENDDO
@@ -1396,11 +1396,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SRCSALTBIN( TC, State_Grid, State_Met )
+  SUBROUTINE SRCSALTBIN( Spc_IDs, State_Grid, State_Met, State_Chm )
 !
 ! !USES:
 !
     USE ERROR_MOD,       ONLY : DEBUG_MSG, ERROR_STOP
+    USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
     USE TIME_MOD,        ONLY : GET_TS_CHEM
@@ -1409,13 +1410,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    INTEGER,        INTENT(IN)    :: Spc_IDs     ! Seasalt species ids
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL*8,         INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY, &
-                                        State_Grid%NZ,NSALTBIN)
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chm State object
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1425,9 +1426,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: N
     INTEGER                :: I,     J,      L
     INTEGER                :: NTOP
+    INTEGER                :: Spc_ID
     REAL*8                 :: W10M,  DTEMIS
     REAL*8                 :: FEMIS, A_M2, SST, SCALESST
     REAL*8                 :: SALT(State_Grid%NX,State_Grid%NY)
@@ -1446,6 +1447,7 @@ CONTAINS
 
     DO N=1,NSALTBIN
        SALT = 0d0
+       Spc_ID = Spc_IDs(N)
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -1531,7 +1533,8 @@ CONTAINS
              FEMIS = State_Met%F_OF_PBL(I,J,L)
 
              ! Add seasalt emissions into box (I,J,L) [kg]
-             TC(I,J,L,N) = TC(I,J,L,N) + FEMIS * SALT(I,J)
+             State_Chm%SpeciesVec(Spc_ID)%Conc(I,J,L) = &
+                   State_Chm%SpeciesVec(Spc_ID)%Conc(I,J,L) + FEMIS * SALT(I,J)
 
           ENDDO
 
@@ -1563,6 +1566,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -1630,17 +1634,17 @@ CONTAINS
     REAL*8                :: OLD(State_Grid%NZ,NCTSEA)
 
     ! Make a pointer to the tracer array
-    REAL*8, POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! WET_SETTLINGBIN begins here!
     !=================================================================
 
     ! Assume success
-    RC        = GC_SUCCESS
+    RC = GC_SUCCESS
 
     ! Point to Spc
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Aerosol settling timestep [s]
     DT_SETTL = GET_TS_CHEM()
@@ -1657,11 +1661,14 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       MASS = 0.d0
        DO L = 1, State_Grid%NZ
-          MASS(L) = SUM(Spc(I,J,L,IDTEMP1:IDTEMP2))
+          DO N = IDTEMP1, IDTEMP2
+             MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
+          ENDDO
           DO K = 1, NCTSEA
-             OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTSEA+K-1))
-             Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = 0.D0
+             OLD(L,K) = Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L,)
+             Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) = 0.D0
           ENDDO
        ENDDO
 
@@ -1670,7 +1677,7 @@ CONTAINS
 
           DO L = 1, State_Grid%NZ
 
-             TC0(L) = Spc(I,J,L,(APMIDS%id_SEABIN1+N-1))
+             TC0(L) = Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L,)
 
              IF(TC0(L)>1.D-30)THEN
                 ! Initialize
@@ -1704,13 +1711,13 @@ CONTAINS
           L    = State_Grid%NZ
           IF(MASS(L)>1.D-30)THEN
              DELZ = State_Met%BXHEIGHT(I,J,L)
-             Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = &
-             Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) / &
+             Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) = &
+             Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) / &
                 ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
              
              DO K = 1, NCTSEA
-                Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = &
-                Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) + &
+                Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) = &
+                Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) + &
                    OLD(L,K)*TC0(L)/MASS(L) /          &
                    ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
              ENDDO
@@ -1720,14 +1727,14 @@ CONTAINS
              IF((MASS(L)*MASS(L+1))>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-                Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = 1.e+0_fp / &
+                Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                    ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )    &
-                   * (Spc(I,J,L,(APMIDS%id_SEABIN1+N-1))      &
+                   * (Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L)      &
                    + DT_SETTL * VTS(L+1) / DELZ1 * TC0(L+1) )
 
                 DO K = 1, NCTSEA
-                   Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) =  &
-                   Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) + &
+                   Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) =  &
+                   Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) + &
                       1.e+0_fp / ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                       * (OLD(L,K)*TC0(L)/MASS(L) &
                       + DT_SETTL * VTS(L+1) / DELZ1 &
@@ -1736,28 +1743,28 @@ CONTAINS
              ELSE IF(MASS(L)>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-                Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = 1.e+0_fp / &
+                Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                    ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                   * (Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) &
+                   * (Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) &
                    + DT_SETTL * VTS(L+1) / DELZ1 * TC0(L+1) )
 
                 DO K = 1, NCTSEA
-                   Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = &
-                   Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) + &
+                   Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) = &
+                   Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) + &
                        1.e+0_fp / ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                        * OLD(L,K)*TC0(L)/MASS(L)
                 ENDDO
              ELSE IF(MASS(L+1)>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-                Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = 1.e+0_fp / &
+                Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                    ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                   * (Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) &
+                   * (Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L) &
                    + DT_SETTL * VTS(L+1) / DELZ1 * TC0(L+1) )
 
                 DO K = 1, NCTSEA
-                   Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = &
-                   Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) + &
+                   Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) = &
+                   Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) + &
                       1.e+0_fp / ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                       * DT_SETTL * VTS(L+1) / DELZ1 &
                       * OLD(L+1,K)*TC0(L+1)/MASS(L+1)
@@ -1770,8 +1777,8 @@ CONTAINS
 
        DO L = 1, State_Grid%NZ
        DO K = 1, NCTSEA
-          Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = &
-               MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTSEA+K-1)))
+          Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) = &
+               MAX(1.d-30,Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L))
        ENDDO
        ENDDO
 

@@ -400,7 +400,7 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE WETSCAV_MOD,        ONLY : WASHOUT
     USE WETSCAV_MOD,        ONLY : LS_K_RAIN
     USE WETSCAV_MOD,        ONLY : LS_F_PRIME
@@ -495,18 +495,19 @@ CONTAINS
     REAL(fp)               :: PDOWN    (State_Grid%NZ)
 
     ! Pointers
-    REAL(fp),      POINTER :: BXHEIGHT (:        )
-    REAL(fp),      POINTER :: CMFMC    (:        )
-    REAL(fp),      POINTER :: DQRCU    (:        )
-    REAL(fp),      POINTER :: DTRAIN   (:        )
-    REAL(fp),      POINTER :: PFICU    (:        )
-    REAL(fp),      POINTER :: PFLCU    (:        )
-    REAL(fp),      POINTER :: REEVAPCN (:        )
-    REAL(fp),      POINTER :: DELP_DRY (:        )
-    REAL(fp),      POINTER :: T        (:        )
-    REAL(fp),      POINTER :: H2O2s    (:        )
-    REAL(fp),      POINTER :: SO2s     (:        )
-    REAL(fp),      POINTER :: Q        (:,:      )
+    REAL(fp),      POINTER :: BXHEIGHT (:)
+    REAL(fp),      POINTER :: CMFMC    (:)
+    REAL(fp),      POINTER :: DQRCU    (:)
+    REAL(fp),      POINTER :: DTRAIN   (:)
+    REAL(fp),      POINTER :: PFICU    (:)
+    REAL(fp),      POINTER :: PFLCU    (:)
+    REAL(fp),      POINTER :: REEVAPCN (:)
+    REAL(fp),      POINTER :: DELP_DRY (:)
+    REAL(fp),      POINTER :: T        (:)
+    REAL(fp),      POINTER :: H2O2s    (:)
+    REAL(fp),      POINTER :: SO2s     (:)
+    REAL(fp),      POINTER :: Q        (:)
+    TYPE(SpcConc), POINTER :: Spc      (:)
     TYPE(Species), POINTER :: SpcInfo
 
     !========================================================================
@@ -529,8 +530,7 @@ CONTAINS
     T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
     H2O2s    => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
     SO2s     => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
-    Q        => State_Chm%Species (I,J,:,:      ) ! Chemical species
-                                                  ! [mol/mol dry air]
+    Spc      => State_Chm%SpeciesVec              ! Chemical species vector
     SpcInfo  => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges
@@ -625,6 +625,9 @@ CONTAINS
        ! Get the species ID (modelID) from the advected species ID
        IC       =  State_Chm%Map_Advect(NA)
 
+       ! Point to the species concentrations array
+       Q => Spc(IC)%Conc(I,J,:) ! Chemical species [mol/mol dry air]
+
        ! Look up the corresponding entry in the species database
        SpcInfo  => State_Chm%SpcData(IC)%Info
 
@@ -679,7 +682,7 @@ CONTAINS
                 DELP_DRY_NUM = 0e+0_fp
 
                 DO K  = 1, CLDBASE-1
-                   QB_NUM = QB_NUM + Q(K,IC) * DELP_DRY(K)
+                   QB_NUM = QB_NUM + Q(K) * DELP_DRY(K)
                    DELP_DRY_NUM = DELP_DRY_NUM + DELP_DRY(K)
                 ENDDO
 
@@ -695,12 +698,14 @@ CONTAINS
                 ! QC =  --------------------------------------------
                 !            Dry air mass below cloud base
                 !
-                QC = ( MB*QB + CMFMC(CLDBASE-1) * Q(CLDBASE,IC) * SDT  ) / &
+!ewlspc
+                QC = ( MB*QB + CMFMC(CLDBASE-1) * Q(CLDBASE) * SDT  ) / &
                      ( MB    + CMFMC(CLDBASE-1) * SDT  )
 
                 ! Copy QC to all levels of the species array Q
                 ! that are below the cloud base level [kg/kg]
-                Q(1:CLDBASE-1,IC) = QC
+!ewlspc
+                Q(1:CLDBASE-1) = QC
 
              ELSE
 
@@ -710,7 +715,8 @@ CONTAINS
 
                 ! When CMFMC is negligible, then set QC to the species
                 ! concentration at the cloud base level [kg/kg]
-                QC = Q(CLDBASE,IC)
+!ewlspc
+                QC = Q(CLDBASE)
 
              ENDIF
 
@@ -721,7 +727,7 @@ CONTAINS
              ! set QC to the species concentration at the surface
              ! level [kg/kg]
              !-----------------------------------------------------
-             QC = Q(CLDBASE,IC)
+             QC = Q(CLDBASE)
 
           ENDIF
 
@@ -856,7 +862,7 @@ CONTAINS
                 ! Prevent div by zero condition
                 IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN
                    QC   = ( CMFMC_BELOW * QC_PRES   + &
-                          ENTRN       * Q(K,IC) ) / CMOUT
+                          ENTRN       * Q(K) ) / CMOUT
                 ENDIF
 
                 !------------------------------------------------------------
@@ -920,7 +926,7 @@ CONTAINS
                 !
                 !    DELQ = (Term 1) - (Term 2) + (Term 3) - (Term 4)
                 !
-                ! and Q(K,IC) = Q(K,IC) + DELQ.
+                ! and Q(K) = Q(K) + DELQ.
                 !
                 ! The term T0 is the amount of species that is scavenged
                 ! out of the box.
@@ -931,37 +937,37 @@ CONTAINS
                 T0      =  CMFMC_BELOW * QC_SCAV
                 T1      =  CMFMC_BELOW * QC_PRES
                 T2      = -CMFMC(K  )  * QC
-                T3      =  CMFMC(K  )  * Q(K+1,IC)
-                T4      = -CMFMC_BELOW * Q(K,  IC)
+                T3      =  CMFMC(K  )  * Q(K+1)
+                T4      = -CMFMC_BELOW * Q(K)
 
                 TSUM    = T1 + T2 + T3 + T4
 
                 DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [kg/kg]
 
                 ! If DELQ > Q then do not make Q negative!!!
-                IF ( Q(K,IC) + DELQ < 0 ) THEN
-                   DELQ = -Q(K,IC)
+                IF ( Q(K) + DELQ < 0 ) THEN
+                   DELQ = -Q(K)
                 ENDIF
 
                 ! Increment the species array [kg/kg]
-                Q(K,IC) = Q(K,IC) + DELQ
+                Q(K) = Q(K) + DELQ
 
                 ! Return if we encounter NInf
-                IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
+                IF ( .not. IT_IS_FINITE( Q(K) ) ) THEN
                    WRITE( 6, 200 )
 200                FORMAT( 'Infinity in DO_CLOUD_CONVECTION!' )
-                   WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
+                   WRITE( 6, 255 ) K, IC, Q(K), TRIM(SpcInfo%Name)
                    WRITE(*,*) T0,T1,T2,T3,T4,DELQ,SDT,TSUM
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
 
                 ! Return if we encounter NaN
-                IF ( IT_IS_NAN( Q(K,IC) ) ) THEN
+                IF ( IT_IS_NAN( Q(K) ) ) THEN
                    WRITE( 6, 250 )
-                   WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
+                   WRITE( 6, 255 ) K, IC, Q(K), TRIM(SpcInfo%Name)
 250                FORMAT( 'NaN encountered in DO_CLOUD_CONVECTION!' )
-255                FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6, 1x, a10 )
+255                FORMAT( 'K, IC, Q(K): ', 2i4, 1x, es13.6, 1x, a10 )
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
@@ -1014,7 +1020,7 @@ CONTAINS
 
                 ! If there is no cloud mass flux coming from below, set
                 ! QC to the species concentration at this level [kg/kg]
-                QC = Q(K,IC)
+                QC = Q(K)
 
                 ! Bug fix for the cloud base layer, which is not necessarily
                 ! in the boundary layer, and there could be
@@ -1029,18 +1035,18 @@ CONTAINS
 
                    ! Species subsiding from K+1 -> K [kg/m2/s]
                    ! [kg/m2/s * kg species/kg dry air]
-                   T3   =  CMFMC(K) * Q(K+1,IC)
+                   T3   =  CMFMC(K) * Q(K+1)
 
                    ! Change in species concentration [kg/kg]
                    DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
 
                    ! If DELQ > Q then do not make Q negative!!!
-                   IF ( Q(K,IC) + DELQ < 0.0e+0_fp ) THEN
-                      DELQ = -Q(K,IC)
+                   IF ( Q(K) + DELQ < 0.0e+0_fp ) THEN
+                      DELQ = -Q(K)
                    ENDIF
 
                    ! Add change in species to Q array [kg/kg]
-                   Q(K,IC) = Q(K,IC) + DELQ
+                   Q(K) = Q(K) + DELQ
 
                 ENDIF
              ENDIF
@@ -1166,7 +1172,7 @@ CONTAINS
 
                    ! Amount of aerosol lost to washout in grid box [kg/m2]
                    ! (V. Shah, 9/14/15)
-                   WETLOSS = ( Q(K,IC) * BMASS(K) + GAINED ) * &
+                   WETLOSS = ( Q(K) * BMASS(K) + GAINED ) * &
                              WASHFRAC - GAINED
 
                    ! LOST is the rained out aerosol coming down from
@@ -1177,7 +1183,7 @@ CONTAINS
 
                    ! Update species concentration (V. Shah, mps, 5/20/15)
                    ! [kg/kg]
-                   Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K)
+                   Q(K) = Q(K) - WETLOSS / BMASS(K)
 
                    ! Update T0_SUM, the total amount of scavenged
                    ! species that will be passed to the grid box below
@@ -1194,7 +1200,7 @@ CONTAINS
                    ! MASS_NOWASH is the amount of non-aerosol species in
                    ! grid box (I,J,L) that is NOT available for washout.
                    ! Calculate in units of [kg/kg]
-                   MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
+                   MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K)
 
                    ! MASS_WASH is the total amount of non-aerosol species
                    ! that is available for washout in grid box (I,J,L).
@@ -1203,7 +1209,7 @@ CONTAINS
                    ! species coming down from grid box (I,J,L+1).
                    ! (Eq. 15, Jacob et al, 2000)
                    ! Units are [kg species/m2/timestep]
-                   MASS_WASH = ( F_WASHOUT * Q(K,IC) ) * BMASS(K) + T0_SUM
+                   MASS_WASH = ( F_WASHOUT * Q(K) ) * BMASS(K) + T0_SUM
 
                    ! WETLOSS is the amount of species mass in
                    ! grid box (I,J,L) that is lost to washout.
@@ -1215,7 +1221,7 @@ CONTAINS
                    ! originally in the non-precipitating fraction
                    ! of the box, plus MASS_WASH, less WETLOSS.
                    ! [kg/kg]
-                   Q(K,IC) = Q(K,IC) - WETLOSS / BMASS(K)
+                   Q(K) = Q(K) - WETLOSS / BMASS(K)
 
                    ! Update T0_SUM, the total scavenged species
                    ! that will be passed to the grid box below
@@ -1313,7 +1319,8 @@ CONTAINS
           ENDIF
        ENDDO               ! End internal timestep loop
 
-       ! Free pointer
+       ! Free pointers
+       Q       => NULL()
        SpcInfo => NULL()
     ENDDO                  ! End loop over advected species
 
@@ -1333,7 +1340,7 @@ CONTAINS
     NULLIFY( T        )
     NULLIFY( H2O2s    )
     NULLIFY( SO2s     )
-    NULLIFY( Q        )
+    NULLIFY( Spc      )
 
     ! Set error code to success
     RC                      = GC_SUCCESS

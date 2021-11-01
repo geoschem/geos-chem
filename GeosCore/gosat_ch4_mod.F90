@@ -716,7 +716,7 @@ CONTAINS
        GC_CH4_NATIVE(:) = 0.0_fp
 
        ! Get species concentrations [v/v]
-       GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4)
+       GC_CH4_NATIVE(:) = State_Chm%SpeciesVec(id_CH4)%Conc(I,J,:)
 
        ! Interpolate GC CH4 column to GOSAT grid
        ! Use L0 for lowest valid layer for GOSAT (zyz)

@@ -202,7 +202,7 @@ CONTAINS
           ! Eventually compute implied CH4 flux
           IF ( PseudoFlux ) THEN
              ! v/v dry
-             dCH4 = CH4 - State_Chm%Species(I,J,L,id_CH4)
+             dCH4 = CH4 - State_Chm%SpeciesVec(id_CH4)%Conc(I,J,L)
              ! Convert to kg/kg dry
              dCH4 = dCH4 * MWCH4 / AIRMW
 !             ! Convert to kg/m2/s
@@ -215,7 +215,7 @@ CONTAINS
           ENDIF
 #endif
 
-          State_Chm%Species(I,J,L,id_CH4) = CH4
+          State_Chm%SpeciesVec(id_CH4)%Conc(I,J,L) = CH4
        ENDDO
 
     ENDDO

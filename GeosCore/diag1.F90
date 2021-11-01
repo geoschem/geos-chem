@@ -143,7 +143,7 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
               !--------------------------------------------------------
               IF ( id_Hg2 > 0 ) THEN
                  AD03_RGM(I,J,L) = AD03_RGM(I,J,L) &
-                                 + State_Chm%Species(I,J,L,id_Hg2) &
+                                 + State_Chm%SpeciesVec(id_Hg2)%Conc(I,J,L) &
                                  * ( AIRMW / MW_g_Hg2 * 1e+12_fp )
               ENDIF
 
@@ -152,7 +152,7 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
               !--------------------------------------------------------
               IF ( id_HgP > 0 ) THEN
                  AD03_PBM(I,J,L) = AD03_PBM(I,J,L) &
-                                 + State_Chm%Species(I,J,L,id_HgP) &
+                                 + State_Chm%SpeciesVec(id_HgP)%Conc(I,J,L) &
                                  * ( AIRMW / MW_g_HgP * 1e+12_fp )
               ENDIF
            ENDIF

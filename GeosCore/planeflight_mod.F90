@@ -1513,6 +1513,7 @@ CONTAINS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
     USE PhysConstants,      ONLY : AIRMW, AVO, CONSVAP
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -1541,8 +1542,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  When Planeflight is called, the State_Chm%Species array has units of
-!  kg/kg dry.  Species units are stored in State_Chm%Spc_Units.  Therefore,
+!  When Planeflight is called, the State_Chm species concentrations have units
+!  of kg/kg dry.  Species units are stored in State_Chm%Spc_Units.  Therefore,
 !  some of the legacy unit conversions were incorrect but have now been
 !  fixed. -- Bob Yantosca, 30 Jul 2021
 !
@@ -1576,7 +1577,7 @@ CONTAINS
     INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1705,7 +1706,7 @@ CONTAINS
                                   'v/v dry', RC, OrigUnit=OrigUnit )
 
           ! Initialize GEOS-Chem species array
-          Spc => State_Chm%Species
+          Spc => State_Chm%SpeciesVec
 
           ! Loop over all variables to save out
           DO V = 1, NPVAR
@@ -1724,7 +1725,7 @@ CONTAINS
                    ! Species concentration [kg/kg dry] -> [molec/cm3]
                    N       = PVAR(V)
                    MW_kg   = State_Chm%SpcData(N)%Info%MW_g * 1.0e-3_fp
-                   VARI(V) = Spc(I,J,L,N)                                    &
+                   VARI(V) = Spc(N)%Conc(I,J,L)                                    &
                            * State_Met%AIRDEN(I,J,L)                         &
                            * ( AVO / MW_kg )                                 &
                            / 1e+6_fp
@@ -1744,7 +1745,7 @@ CONTAINS
                    DO N = 1, NPNOY
                       MW_g    = State_Chm%SpcData(PNOY(N))%Info%MW_g
                       VARI(V) = VARI(V)                                      &
-                              + ( Spc(I,J,L,PNOY(N)) * ( AIRMW / MW_g ) )
+                              + ( Spc(PNOY(N))%Conc(I,J,L) * ( AIRMW / MW_g ) )
                    ENDDO
                 ENDIF
 
@@ -1762,7 +1763,7 @@ CONTAINS
                    DO N = 1, NPAN
                       MW_g    = State_Chm%SpcData(P_AN(N))%Info%MW_g
                       VARI(V) = VARI(V) +                                    &
-                              + ( Spc(I,J,L,P_AN(N)) * ( AIRMW / MW_g ) )
+                              + ( Spc(P_AN(N))%Conc(I,J,L) * ( AIRMW / MW_g ) )
                    ENDDO
                 ENDIF
 
@@ -1780,7 +1781,7 @@ CONTAINS
                    DO N = 1, NPRO2
                       MW_g    = State_Chm%SpcData(PRO2(N))%Info%MW_g
                       VARI(V) = VARI(V)                                      &
-                              + ( Spc(I,J,L,PRO2(N)) * ( AIRMW / MW_g ) )
+                              + ( Spc(PRO2(N))%Conc(I,J,L) * ( AIRMW / MW_g ) )
                    ENDDO
                 ENDIF
 
@@ -2270,7 +2271,7 @@ CONTAINS
 
                 ! Convert [kg/kg dry] -> [v/v dry]
                 MW_g    = State_Chm%SpcData(N)%Info%MW_g
-                VARI(V) = Spc(I,J,L,N) * ( AIRMW / MW_g )
+                VARI(V) = Spc(N)%Conc(I,J,L) * ( AIRMW / MW_g )
 
                 IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
