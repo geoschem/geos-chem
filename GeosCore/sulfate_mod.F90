@@ -2998,19 +2998,18 @@ CONTAINS
        L8      = 0.e+0_fp !(jmm, 06/26/18)
        L8S     = 0.e+0_fp !(jmm, 06/26/18)
 
-       ! If we are not using KPP to compute reaction rates, then
-       ! compute SO2 cloud chemistry (1) if there is cloud, (2) if there
-       ! is SO2 present, (3) if T > -15 C, and (4) if there is liquid
-       ! water content (prevents div-by-zero).
-       IF ( ( State_Chm%Do_SulfateMod_Cld )   .and.                          &
-            ( FC     > 1.e-4_fp           )   .and.                          &
-            ( SO2_ss > MINDAT             )   .and.                          &
+       ! If (1) there is cloud, (2) there is SO2 present, (3) T > -15 C, and
+       ! (4) liquid water content (LWC) is present (but not small enough to
+       ! make divisions blow up), then compute sulfate production in cloud.
+       IF ( ( State_Chm%Do_SulfateMod_Cld )                            .and. &
+            ( FC     > 1.e-4_fp           )                            .and. &
+            ( SO2_ss > MINDAT             )                            .and. &
 #ifdef LUO_WETDEP
-            ( TK     > 237.0              )   .and.                          &
+            ( TK     > 237.0_fp           )                            .and. &
 #else
-            ( TK     > 258.0              )   .and.                          &
+            ( TK     > 258.0_fp           )                            .and. &
 #endif
-            ( LWC    > 0.e+0_fp           ) ) THEN
+            ( LWC    > 1.0e-20_fp         ) ) THEN
 
           !===========================================================
           ! NOTE...Sulfate production from aquatic reactions of SO2
