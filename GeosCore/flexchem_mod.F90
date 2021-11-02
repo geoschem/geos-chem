@@ -208,7 +208,7 @@ CONTAINS
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT), Vdotout(NVAR)
-    REAL(fp)               :: NOxTau,     NOxConc
+    REAL(f4)               :: NOxTau,     NOxConc
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData => NULL()
@@ -1159,7 +1159,7 @@ CONTAINS
                  + Vdotout(ind_HNO4)
           NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
                   + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
-          State_Diag%NOxTau(I,J,L) = ( NOxConc / (-1.0_fp*NOxTau) ) / 3600.0_fp
+          State_Diag%NOxTau(I,J,L) = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
        ENDIF
 
        !====================================================================
