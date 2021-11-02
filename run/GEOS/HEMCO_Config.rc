@@ -152,6 +152,16 @@ Warnings:                    1
 121     CH4_WETLANDS      : off   CH4
     --> Wetlands          :       true
     --> Rice              :       true
+122     VFEI              : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/HNO2/HCl/ACTA/MGLY/GLYX/EOH/MOH/MTPO/ISOP/BENZ/TOLU/XYLE/SOAP/MACR/MVK/DMS
+    --> VFEI_Table        :       /discover/nobackup/cakelle2/data/VFEI/TXT/v0/Y$YYYY/vfeiv0_V1_$YYYY$MM$DD.txt
+    --> PBL_frac          :       0.65
+    --> MaxHeightM        :       5500.0
+    --> Category          :       1
+    --> Scaling_BCPO      :       0.8
+    --> Scaling_BCPI      :       0.2
+    --> Scaling_OCPO      :       0.5
+    --> Scaling_OCPI      :       0.5
+    --> Scaling_SOAP      :       0.013
 ### END SECTION EXTENSION SWITCHES 
 
 ####################################################################################
