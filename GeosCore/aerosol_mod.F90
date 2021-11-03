@@ -858,8 +858,8 @@ CONTAINS
        ! Include either simple SOA (default) or Complex SOA in
        ! PM2.5 calculation.  In simulations where both Simple SOA and
        ! Complex SOA species are carried (i.e. "benchmark"), then
-       ! only the Simple SOA will be added to PM2.5, in order to avoid
-       ! double-counting. (bmy, 5/11/18)
+       ! only the Simple SOA will be added to PM2.5 and PM10, in order
+       ! to avoid double-counting. (bmy, 03 Nov 2021)
        IF ( Is_SimpleSOA ) THEN
           PM25(I,J,L) = PM25(I,J,L) + ( SOAS(I,J,L) * ORG_GROWTH )
           PM10(I,J,L) = PM10(I,J,L) + ( SOAS(I,J,L) * ORG_GROWTH )
