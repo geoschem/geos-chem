@@ -2395,21 +2395,25 @@ CONTAINS
 
     ! Index array: Hg0 species # <--> Hg0 category #
     ALLOCATE( State_Chm%Hg0_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Hg0_Id_List', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Hg0_Id_List = 0
 
     ! Index array: Hg2 species # <--> Hg0 category #
     ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Hg2_Id_List', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Hg2_Id_List = 0
 
     ! Index array: HgP species # <--> Hg0 category #
     ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%HgP_Id_List', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%HgP_Id_List = 0
 
     ! Hg category names
     ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%Hg_Cat_Name', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Hg_Cat_Name = ''
 
@@ -2438,7 +2442,7 @@ CONTAINS
        ThisSpc => NULL()
     ENDDO
 
-    ! Loop over Hg categories (except the first
+    ! Loop over Hg categories (except the first)
     DO C = 2, State_Chm%N_Hg_CATS
 
        ! Hg0 tracer number corresponding to this category
@@ -4559,7 +4563,7 @@ CONTAINS
     CHARACTER(LEN=255) :: arrayId
 
     !========================================================================
-    ! Init_and_Register_R4_2D begins here!
+    ! Init_and_Register_R8_3D begins here!
     !========================================================================
 
     ! Initialize
@@ -4664,7 +4668,7 @@ CONTAINS
     CHARACTER(LEN=255) :: arrayId
 
     !========================================================================
-    ! Init_and_Register_R4_2D begins here!
+    ! Init_and_Register_R8_4D begins here!
     !========================================================================
 
     ! Initialize
@@ -4846,11 +4850,11 @@ CONTAINS
        ! Hg simulation quantities
        !---------------------------------------------------------------------
 
-       ! Append the species name to the diagnostic name with an underscore
-       diagName = TRIM( name ) // '_' // TRIM( State_Chm%Hg_Cat_Name(N) )
+       ! Append the category name to the diagnostic name
+       diagName = TRIM( name ) // TRIM( State_Chm%Hg_Cat_Name(N) )
 
-       ! Append the species name to the diagnostic description
-       diagDesc = TRIM( desc ) // ' ' // TRIM( State_Chm%Hg_Cat_Name(N) )
+       ! Append the category name to the description
+       diagDesc = TRIM( desc ) // TRIM( State_Chm%Hg_Cat_Name(N) )
 
     ELSE
 
