@@ -423,6 +423,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM25(:,:,:)
      LOGICAL                     :: Archive_PM25
 
+     !zhaisx
+     REAL(f4),           POINTER :: PM10(:,:,:)
+     LOGICAL                     :: Archive_PM10
+
      REAL(f4),           POINTER :: TotalOA(:,:,:)
      LOGICAL                     :: Archive_TotalOA
 
@@ -1440,6 +1444,10 @@ CONTAINS
 
     State_Diag%PM25                                => NULL()
     State_Diag%Archive_PM25                        = .FALSE.
+
+    !zhaisx
+    State_Diag%PM10                                => NULL()
+    State_Diag%Archive_PM10                        = .FALSE.
 
     State_Diag%TotalOA                             => NULL()
     State_Diag%Archive_TotalOA                     = .FALSE.
@@ -6157,6 +6165,29 @@ CONTAINS
           RETURN
        ENDIF
 
+       !zhaisx
+       !-------------------------------------------------------------------
+       ! PM10, aka prticulate matter with (r < 10 um) [ug/m3]
+       !-------------------------------------------------------------------
+       diagID = 'PM10'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM10,                                &
+            archiveData    = State_Diag%Archive_PM10,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! PM25 nitrates
@@ -8557,6 +8588,7 @@ CONTAINS
                                    State_Diag%Archive_AerMassTSOA       .or. &
                                    State_Diag%Archive_BetaNO            .or. &
                                    State_Diag%Archive_PM25              .or. &
+                                   State_Diag%Archive_PM10              .or. &
                                    State_Diag%Archive_TotalOA           .or. &
                                    State_Diag%Archive_TotalOC           .or. &
                                    State_Diag%Archive_TotalBiogenicOA       )
@@ -9409,6 +9441,12 @@ CONTAINS
     CALL Finalize( diagId   = 'PM25',                                        &
                    Ptr2Data = State_Diag%PM25,                               &
                    RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+!zhaisx
+    CALL Finalize( diagId   = 'PM10',                                        &     
+                   Ptr2Data = State_Diag%PM10,                               &     
+                   RC       = RC                                            )     
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'TotalOA',                                     &
@@ -10884,6 +10922,12 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+!zhaisx
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM10' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 10 um'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
