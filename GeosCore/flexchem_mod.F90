@@ -1160,7 +1160,11 @@ CONTAINS
           NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
                   + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
           NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
-          State_Diag%NOxTau(I,J,L) = min(1.0e10,max(1.0e-10,abs(NOxTau)))*(NOxTau/abs(NoxTau)) 
+          IF ( NoxTau > 0.0_f4 ) THEN
+             State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
+          ELSE
+             State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+          ENDIF
        ENDIF
 
        !====================================================================
