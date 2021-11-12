@@ -54,22 +54,23 @@ GRID_LABELS: PE24x144-CF
 # by prefacing lines with @, which will get commented out.
 # (e.g. to get around an "input file too long" error in MAPL)
 #==============================================================================
-COLLECTIONS: #'AerosolMass',
+COLLECTIONS: 'DefaultCollection',
+             #'AerosolMass',
              #'Aerosols',
              @#'Budget',
              @#'CloudConvFlux',
              @#'ConcAboveSfc',
              @#'ConcAfterChem',
              @#'DryDep',
-             'Emissions',
+             #'Emissions',
              #'JValues',
-             'Metrics',
+             #'Metrics',
              @#'KppDiags',
              @#'LevelEdgeDiags',
              @#'ProdLoss',
              @##'RRTMG',
              @##'RxnRates',
-             'SpeciesConc',
+             #'SpeciesConc',
              @#'StateChm',
              #'StateMet',
              @#'StratBM',
@@ -117,6 +118,29 @@ COLLECTIONS: #'AerosolMass',
 #           SpeciesConc.levels: 1 2 3
 #
 #==============================================================================
+  DefaultCollection.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  DefaultCollection.format:         'CFIO',
+  DefaultCollection.frequency:      240000
+  DefaultCollection.duration:       240000
+  DefaultCollection.mode:           'time-averaged'
+  DefaultCollection.fields:         'SpeciesConc_O3       ', 'GCHPchem',
+                                    'SpeciesConc_NO       ', 'GCHPchem',
+                                    'SpeciesConc_NO2      ', 'GCHPchem',
+                                    'SpeciesConc_OH       ', 'GCHPchem',
+                                    'SpeciesConc_CO       ', 'GCHPchem',
+                                    'PM25                 ', 'GCHPchem',
+                                    'Met_T                ', 'GCHPchem',
+                                    'Met_RH               ', 'GCHPchem',
+                                    'Met_PBLH             ', 'GCHPchem',
+                                    'Met_AIRDEN           ', 'GCHPchem',
+                                    'Met_PMID             ', 'GCHPchem',
+                                    'Met_PMIDDRY          ', 'GCHPchem',    
+                                    'Met_TropHt           ', 'GCHPchem',
+                                    'Met_TropP            ', 'GCHPchem',
+                                    'Met_BXHEIGHT         ', 'GCHPchem',
+                                    'Met_PS1DRY           ', 'GCHPchem',
+                                    'Met_PS1WET           ', 'GCHPchem',
+::
 # Emissions (see HEMCO_Diagn.rc for additional config settings)
   Emissions.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:         'CFIO',
