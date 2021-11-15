@@ -976,7 +976,7 @@ if [[ "x${nested_sim}" == "xT" ]]; then
 	replace_colon_sep_val "--> NEI2011_MONMEAN" false HEMCO_Config.rc
 	replace_colon_sep_val "--> NEI2011_HOURLY"  false  HEMCO_Config.rc
     fi
-    
+
     printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
     printf "\n     by default. To improve run time, you may choose to use cropped"
     printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"
@@ -1002,17 +1002,39 @@ if [[ ${sim_name} =~ "POPs" ]]; then
 fi
 
 #--------------------------------------------------------------------
-# Change timesteps for nested-grid simulations
-# Transport should be 300s (5min); chemistry should be 600s (10min)
+# Nested-grid simulation timesteps:
+#
+# 0.25 x 0.3125 : Use reduced transport timestep = 300  s (5  min)
+#                 Use reduced chemistry timestep = 600  s (10 min)
+#
+# 0.5  x 0.625  : Use default transport timestep = 600  s (10 min)
+#                 Use default chemistry timestep = 1200 s (20 min)
+#
+# It has been shown that fullchem nested-grid simulations on 0.5 x
+# 0.625 grids will run more slowly if 300s/600s timesteps are used.
+# To avoid this slowdown, it is OK to use 600s/1200s timesteps.
+#
+# For the 0.25 x 0.3125 grids, it is necessary to use the 300s/600s
+# timesteps in order to avoid violating the Courant limit.
+#
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%% EXCEPTION: 0.5 x 0.625 CH4 simulations will use 300s/600s %%%
+# %%% timesteps in order to avoid violating the Courant limit.  %%%
+# %%% The larger timesteps have proven to be problematic for    %%%
+# %%% CH4 simulations that are used to set up inversions.       %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #--------------------------------------------------------------------
-if [[ "x${domain_name}" == "xAS"     ]] || \
+if [[ "x${met_resolution}" == "x025x03125"                           ]] || \
+   [[ "x${met_resolution}" == "x05x0625" && "x${sim_name}" == "xCH4" ]];  then
+    if [[ "x${domain_name}" == "xAS"     ]] || \
        [[ "x${domain_name}" == "xEU"     ]] || \
        [[ "x${domain_name}" == "xNA"     ]] || \
        [[ "x${domain_name}" == "xcustom" ]]; then
-    cmd='s|\[sec\]: 600|\[sec\]: 300|'
-    sed_ie "$cmd" input.geos
-    cmd='s|\[sec\]: 1200|\[sec\]: 600|'
-    sed_ie "$cmd" input.geos
+	cmd='s|\[sec\]: 600|\[sec\]: 300|'
+	sed_ie "$cmd" input.geos
+	cmd='s|\[sec\]: 1200|\[sec\]: 600|'
+	sed_ie "$cmd" input.geos
+     fi
 fi
 
 # Modify default settings for GCAP simulations

@@ -303,7 +303,7 @@ SUBROUTINE READJIMN5D( Input_Opt, RC )
   RC       = GC_SUCCESS
 
   ! Data directory path in shared disk space where files live
-  DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // 'GEOS_NATIVE/TOMAS_201402/'
+  DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // 'CHEM_INPUTS/TOMAS_201402/'
 
   WRITE(6,*) "Read IMN look-up tables"
 
