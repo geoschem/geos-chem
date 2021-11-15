@@ -102,6 +102,11 @@ MEMORY_DEBUG_LEVEL:   0
 WRITE_RESTART_BY_OSERVER: NO
 
 #
+# %%% Advection settings
+#
+EXCLUDE_ADVECTION_TRACERS: NO
+
+#
 # %%% Adjoint variables
 #
 MODEL_PHASE: FORWARD
