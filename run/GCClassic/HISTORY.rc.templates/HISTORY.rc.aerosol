@@ -133,6 +133,7 @@ COLLECTIONS: 'Restart',
                               'AerMassSAL                   ',
                               'AerMassSO4                   ',
                               'PM25                         ',
+                              'PM10                         ',
                               'TotalOA                      ',
                               'TotalOC                      ',
 ::

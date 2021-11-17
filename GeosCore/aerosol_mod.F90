@@ -82,6 +82,7 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: OPOA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SOAGX(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
+  REAL(fp), ALLOCATABLE, PUBLIC :: PM10(:,:,:)!zhaisx
   REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SOAS(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: OCFPOA(:,:)
@@ -852,34 +853,13 @@ CONTAINS
        !==============================================================
        ! P A R T I C U L A T E   M A T T E R
        !
-       ! Compute PM2.5 concentration [kg/m3]
+       ! See this GEOS-Chem wiki page for the most up-to-date
+       ! definitions of PM2.5 and PM10 used in GEOS-Chem:
        !
-       ! PM25 = 1.33 (NH4 + NIT  + SO4 + HMS) + BCPI + BCPO +
-       !        2.10 (OCPO + 1.16 OCPI) + 1.16 SOA*   +
-       !        DST1 + 0.38 DST2 + 1.86 SALA
-       !
-       !   * If using simple  SOA, SOA = SOAS;
-       !     If using complex SOA, SOA = TSOA + ASOA + ISOAAQ
-       !
-       ! NOTES:
-       ! - We apply growth factors at 35% RH (computed above):
-       !    1.33 for SO4, NIT, and NH4
-       !    1.33 for HMS (jmm, 06/30/18)
-       !    1.16 for OCPI and SOA
-       !    1.86 for SALA
-       ! - Ratio of OM/OC = 2.1 is applied to OCPI and OCPO above
-       ! - Aerosol WG recommends including 38% of DST2 in PM2.5
-       ! - Use either simple SOA or complex SOA in PM2.5 calculation.
-       !   By default simple SOA will be used.
-       !
-       ! %%% IMPORTANT %%%
-       ! Note that if complex SOA is used then PM2.5 includes all
-       ! the SOA formed in both the Marais et al. and Pye et al.
-       ! schemes and may include some double-counting of isoprene SOA.
-       ! (Aerosol WG)
+       ! http://wiki.geos.chem.org/Particulate_Matter_in_GEOS-Chem
        !==============================================================
 
-       ! Units: [kg/m3]
+       ! Particulate matter < 2.5um [kg/m3]
        PM25(I,J,L) = NH4(I,J,L)        * SIA_GROWTH + &
                      NIT(I,J,L)        * SIA_GROWTH + &
                      SO4(I,J,L)        * SIA_GROWTH + &
@@ -889,35 +869,52 @@ CONTAINS
                      OCPO(I,J,L)                    + &
                      OCPI(I,J,L)       * ORG_GROWTH + &
                      SALA(I,J,L)       * SSA_GROWTH + &
-                     SOILDUST(I,J,L,1)              + & ! DST1
-                     SOILDUST(I,J,L,2)              + & ! DST1
-                     SOILDUST(I,J,L,3)              + & ! DST1
-                     SOILDUST(I,J,L,4)              + & ! DST1
-                     SOILDUST(I,J,L,5) * 0.38           ! 38% of DST2
+                     SOILDUST(I,J,L,1)              + &
+                     SOILDUST(I,J,L,2)              + &
+                     SOILDUST(I,J,L,3)              + &
+                     SOILDUST(I,J,L,4)              + &
+                     SOILDUST(I,J,L,5) * 0.3_fp           ! + 30%  of DST2
+
+       ! Particulate matter < 10um [kg/m3]
+       PM10(I,J,L) = PM25(I,J,L) +                    &   ! PM2.5
+                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
+                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
+                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
+                     SALC(I,J,L)       * SSA_GROWTH
 
        ! Include either simple SOA (default) or Complex SOA in
        ! PM2.5 calculation.  In simulations where both Simple SOA and
        ! Complex SOA species are carried (i.e. "benchmark"), then
-       ! only the Simple SOA will be added to PM2.5, in order to avoid
-       ! double-counting. (bmy, 5/11/18)
+       ! only the Simple SOA will be added to PM2.5 and PM10, in order
+       ! to avoid double-counting. (bmy, 03 Nov 2021)
        IF ( Is_SimpleSOA ) THEN
-          PM25(I,J,L) = PM25(I,J,L) + SOAS(I,J,L) * ORG_GROWTH
-       ELSEIF ( Is_ComplexSOA ) THEN
-          PM25(I,J,L) = PM25(I,J,L)                + &
-                        TSOA(I,J,L)   * ORG_GROWTH + &
-                        ASOA(I,J,L)   * ORG_GROWTH + &
-                        ISOAAQ(I,J,L) * ORG_GROWTH    ! Includes SOAGX
+          PM25(I,J,L) = PM25(I,J,L) + ( SOAS(I,J,L) * ORG_GROWTH )
+          PM10(I,J,L) = PM10(I,J,L) + ( SOAS(I,J,L) * ORG_GROWTH )
+
+       ELSE IF ( Is_ComplexSOA ) THEN
+          PM25(I,J,L) = PM25(I,J,L)                 + &
+                        TSOA(I,J,L)   * ORG_GROWTH  + &
+                        ASOA(I,J,L)   * ORG_GROWTH  + &
+                        ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
+
+          PM10(I,J,L) = PM10(I,J,L)                 + &
+                        TSOA(I,J,L)   * ORG_GROWTH  + &
+                        ASOA(I,J,L)   * ORG_GROWTH  + &
+                        ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
 
           ! Need to add OPOA to PM2.5 for complexSOA_SVPOA simulations
           ! -- Maggie Marvin (15 Jul 2020)
           IF ( Is_OPOA ) THEN
-             PM25(I,J,L) = PM25(I,J,L)             + &
-                           OPOA(I,J,L) * ORG_GROWTH
+             PM25(I,J,L) = PM25(I,J,L) + ( OPOA(I,J,L) * ORG_GROWTH )
+             PM10(I,J,L) = PM10(I,J,L) + ( OPOA(I,J,L) * ORG_GROWTH )
           ENDIF
        ENDIF
 
        ! Apply STP correction factor based on ideal gas law
        PM25(I,J,L) = PM25(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
+                     ( T(I,J,L)   / 298.0_fp    )
+
+       PM10(I,J,L) = PM10(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
                      ( T(I,J,L)   / 298.0_fp    )
 
 #ifdef MODEL_GEOS
@@ -2438,6 +2435,12 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     PM25 = 0.0_fp
 
+    !zhaisx
+    ALLOCATE( PM10( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:PM10', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    PM10 = 0.0_fp
+
     ALLOCATE( SOAGX( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F90:SOAGX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2525,6 +2528,7 @@ CONTAINS
     IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
     IF ( ALLOCATED( SOAGX       ) ) DEALLOCATE( SOAGX       )
     IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
+    IF ( ALLOCATED( PM10        ) ) DEALLOCATE( PM10        )!zhaisx
     IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
     IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
     IF ( ALLOCATED( ISOAAQ      ) ) DEALLOCATE( ISOAAQ      )
@@ -2852,6 +2856,13 @@ CONTAINS
        !--------------------------------------
        IF ( State_Diag%Archive_PM25 ) THEN
           State_Diag%PM25(I,J,L) = PM25(I,J,L) * kgm3_to_ugm3
+       ENDIF
+
+       !--------------------------------------
+       ! PM10 [ug/m3]
+       !--------------------------------------
+       IF ( State_Diag%Archive_PM10 ) THEN
+          State_Diag%PM10(I,J,L) = PM10(I,J,L) * kgm3_to_ugm3
        ENDIF
 
        !--------------------------------------
