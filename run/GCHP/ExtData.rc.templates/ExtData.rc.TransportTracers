@@ -258,6 +258,14 @@ CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/C
 #
 ###############################################################################
 ###
+### HEMCO Extensions Data (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+#
+ZHANG_Rn222_EMIS  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none rnemis   ./HcoDir/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+#
+###############################################################################
+###
 ### HEMCO Non-Emissions Data (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################

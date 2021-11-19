@@ -61,6 +61,10 @@ Warnings:                    1
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
 #------------------------------------------------------------------------------
 100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7Strat/Be10/Be10Strat
+# ----- Always Leave Extension 100 turned on.  Furthermore:
+# ----- Turning on  ZHANG_Rn222 will use Zhang et al [2020] Rn222 emissions
+# ----- Turning off ZHANG_Rn222 will use default emissions (Jacob et al [1997])
+101     ZHANG_Rn222            : on    Rn222
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -157,8 +161,6 @@ Warnings:                    1
 0 SRC_2D_COUniform25d 1.5e-7 - - - xy kg/m2/s COUniformEmis25dayTracer - 1 1
 )))UNIFORM_CO
 
-)))EMISSIONS
-
 ###############################################################################
 ### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
 ###
@@ -168,6 +170,16 @@ Warnings:                    1
 ### extensions by field name.  The name given here must match the name used
 ### in the extension's source code.
 ###############################################################################
+
+#==============================================================================
+# --- Zhang et al [2021] Rn222 emissions ---
+# --- cf https://acp.copernicus.org/articles/21/1861/2021/ ---
+#==============================================================================
+(((ZHANG_Rn222
+101 ZHANG_Rn222_EMIS $ROOT/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc rnemis 2001/1-12/1/0 C xy kg/m2/s Rn222 - 1 1
+)))ZHANG_Rn222
+
+)))EMISSIONS
 
 ###############################################################################
 ### NON-EMISSIONS DATA (subsection of BASE EMISSIONS SECTION)
