@@ -4357,6 +4357,9 @@ CONTAINS
     ! INIT_UCX begins here!
     !=================================================================
 
+    ! Exit unless we are doing a full-chemistry simulation
+    IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
+
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
