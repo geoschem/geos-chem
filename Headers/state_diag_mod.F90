@@ -113,6 +113,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SpeciesConc
      LOGICAL                     :: Archive_SpeciesConc
 
+     REAL(f8),           POINTER :: SpeciesConcMND(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesConcMND
+     LOGICAL                     :: Archive_SpeciesConcMND
+
      !%%%%%  ML diagnostics %%%%%
      REAL(f8),           POINTER :: ConcBeforeChem(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_ConcBeforeChem
@@ -1190,9 +1194,15 @@ CONTAINS
     State_Diag%Map_SpeciesBC                       => NULL()
     State_Diag%Archive_SpeciesBC                   = .FALSE.
 
+    ! v/v dry VMR of species array
     State_Diag%SpeciesConc                         => NULL()
     State_Diag%Map_SpeciesConc                     => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
+
+    ! molec/cm3 diagnostic
+    State_Diag%SpeciesConcMND                      => NULL()
+    State_Diag%Map_SpeciesConcMND                  => NULL()
+    State_Diag%Archive_SpeciesConcMND              = .FALSE.
 
     State_Diag%ConcBeforeChem                      => NULL()
     State_Diag%Map_ConcBeforeChem                  => NULL()
@@ -2238,7 +2248,7 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species concentration diagnostic
+    ! Species concentration diagnostic (v/v dry)
     !------------------------------------------------------------------------
     diagId  = 'SpeciesConc'
     CALL Init_and_Register(                                                  &
@@ -2251,6 +2261,30 @@ CONTAINS
          Ptr2Data       = State_Diag%SpeciesConc,                            &
          archiveData    = State_Diag%Archive_SpeciesConc,                    &
          mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Species concentration diagnostic (MND)
+    !------------------------------------------------------------------------
+    diagId  = 'SpeciesConcMND'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesConcMND,                         &
+         archiveData    = State_Diag%Archive_SpeciesConcMND,                 &
+         mapData        = State_Diag%Map_SpeciesConcMND,                     &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -9213,6 +9247,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SpeciesConcMND',                              &
+                   Ptr2Data = State_Diag%SpeciesConcMND,                     &
+                   mapData  = State_Diag%Map_SpeciesConcMND,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
 #ifdef ADJOINT
     CALL Finalize( diagId   = 'SpeciesAdj',                                  &
                    Ptr2Data = State_Diag%SpeciesAdj,                         &
@@ -10680,6 +10720,7 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 
+    ! -- Adjoint only --
 #ifdef ADJOINT
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESADJ' ) THEN
        IF ( isDesc    ) Desc  = 'Adjoint variable of species'
@@ -10687,8 +10728,16 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
-
 #endif
+    ! -- end Adjoint only --
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONCMND' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBEFORECHEM' ) THEN
        IF ( isDesc    ) Desc  = 'Concentration before chemistry of species'
        IF ( isUnits   ) Units = 'molec cm-3'
