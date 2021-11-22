@@ -2697,30 +2697,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    !------------------------------------------------------------------------
-    ! Species concentration diagnostic
-    !------------------------------------------------------------------------
-    diagId  = 'SpeciesConc'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%SpeciesConc,                            &
-         archiveData    = State_Diag%Archive_SpeciesConc,                    &
-         mapData        = State_Diag%Map_SpeciesConc,                        &
-         diagId         = diagId,                                            &
-         diagFlag       = 'S',                                               &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     ! High-level logical for wet deposition budget
     IF ( State_Diag%Archive_BudgetWetDepFull .OR. &
          State_Diag%Archive_BudgetWetDepTrop .OR. &
