@@ -528,16 +528,6 @@ CONTAINS
        VLOCATION          = MAPL_VLocationEdge,    &
                                                       RC=STATUS  )
     _VERIFY(STATUS)
-
-    call MAPL_AddImportSpec(GC, &
-       SHORT_NAME         = 'DryPLE',  &
-       LONG_NAME          = 'dry_pressure_level_edges',  &
-       UNITS              = 'Pa', &
-       PRECISION          = ESMF_KIND_R8, &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationEdge,    &
-                                                      RC=STATUS  )
-    _VERIFY(STATUS)
 #endif
 
     !=======================================================================
