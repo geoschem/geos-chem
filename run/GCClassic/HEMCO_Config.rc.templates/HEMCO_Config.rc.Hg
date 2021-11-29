@@ -24,7 +24,10 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
+###############################################################################
 
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
 Logfile:                     HEMCO.log
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
@@ -45,12 +48,12 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     {MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
+    --> GC_BCs                 :       ${RUNDIR_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> ZHAOZHANG              :       false    # 2010
     --> CHAKRABORTY            :       false    # 2010
@@ -436,10 +439,12 @@ Warnings:                    1
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
 
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields for FlexGrid ---
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -475,17 +480,17 @@ Warnings:                    1
 # --- Oxidant fields ---
 #==============================================================================
 (((OXIDANT_FIELDS
-{GLOBAL_Cl}
-{GLOBAL_ClO}
-{GLOBAL_HNO3}
-{GLOBAL_HO2}
-{GLOBAL_HOCl}
-{GLOBAL_NIT}
-{GLOBAL_NO}
-{GLOBAL_NO2}
-{GLOBAL_O3}
-{GLOBAL_OH}
-{GLOBAL_OA}
+${RUNDIR_GLOBAL_Cl}
+${RUNDIR_GLOBAL_ClO}
+${RUNDIR_GLOBAL_HNO3}
+${RUNDIR_GLOBAL_HO2}
+${RUNDIR_GLOBAL_HOCl}
+${RUNDIR_GLOBAL_NIT}
+${RUNDIR_GLOBAL_NO}
+${RUNDIR_GLOBAL_NO2}
+${RUNDIR_GLOBAL_O3}
+${RUNDIR_GLOBAL_OH}
+${RUNDIR_GLOBAL_OA}
 * GLOBAL_OCEAN $ROOT/MERCURY/v2018-04/ocean_fixed.nc ocean_conc 2007/1-12/1/0 C xyz 1 * - 1 1
 )))OXIDANT_FIELDS
 
@@ -493,37 +498,37 @@ Warnings:                    1
 # --- BrOx fields --
 #==============================================================================
 (((BrOx_GC
-{Br_GC}
-{BrO_GC}
+${RUNDIR_Br_GC}
+${RUNDIR_BrO_GC}
 )))BrOx_GC
 
 (((.not.BrOx_GC
-{Br_TOMCAT}
-{BrO_TOMCAT}
+${RUNDIR_Br_TOMCAT}
+${RUNDIR_BrO_TOMCAT}
 ))).not.BrOx_GC
 
 #==============================================================================
 # --- J-value fields ---
 #==============================================================================
 (((JBrO
-{JBrO}
+${RUNDIR_JBrO}
 )))JBrO
 (((LRED_JNO2
-{JNO2}
+${RUNDIR_JNO2}
 )))LRED_JNO2
 
 #==============================================================================
 # --- Aerosol data for Hg2 partitioning ---
 #==============================================================================
 (((AERO_HG2_PARTITION
-{AERO_SO4}
-{AERO_NH4}
-{AERO_NIT}
-{AERO_BCPI}
-{AERO_BCPO}
-{AERO_OCPI}
-{AERO_OCPO}
-{AERO_DST1}
+${RUNDIR_AERO_SO4}
+${RUNDIR_AERO_NH4}
+${RUNDIR_AERO_NIT}
+${RUNDIR_AERO_BCPI}
+${RUNDIR_AERO_BCPO}
+${RUNDIR_AERO_OCPI}
+${RUNDIR_AERO_OCPO}
+${RUNDIR_AERO_DST1}
 )))AERO_HG2_PARTITION
 
 #==============================================================================

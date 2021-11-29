@@ -184,6 +184,24 @@ function update_config_files() {
     sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
 
     #------------------------------------------------------------------------
+    # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
+    #------------------------------------------------------------------------
+
+    if [[ -f ${root}/${runDir}/HEMCO_Config.rc.gmao_metfields ]]; then
+	# For all nested-grid rundirs, add a NA into the entries for met fields
+	if grep -q "025x03125" <<< "${runDir}"; then
+	    sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	fi
+	if grep -q "05x0625" <<< "${runDir}"; then
+	    sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	fi
+
+	# Other text replacements
+	sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+    fi
+
+    #------------------------------------------------------------------------
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
 

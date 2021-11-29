@@ -24,7 +24,11 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
+###############################################################################
 
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
+GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -46,12 +50,12 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true      {MET_AVAIL}
+    --> METEOROLOGY            :       true      ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
 # ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
+    --> GC_BCs                 :       ${RUNDIR_USE_BCs}
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> GEPA                   :       true     # 2012
     --> Sheng_Canada           :       false    # 2013
@@ -73,7 +77,7 @@ Warnings:                    1
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
 # ----- CMIP6 ANTHRO EMISSIONS --------------------------------
-#   Set SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
+#   Set GCAP2SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
     --> CMIP6_SFC_LAND_ANTHRO  :       false    # 1850-2100
     --> CMIP6_SHIP             :       false    # 1850-2100
     --> BB4MIPS                :       false    # 1850-2100
@@ -293,23 +297,23 @@ Warnings:                    1
 # CEDS (historical) or Shared Socioeconomic Pathways (future)
 #==============================================================================
 (((CMIP6_SFC_LAND_ANTHRO
-0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_agr           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         4 1
-0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_ene           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
-0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_ind           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
-0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_tra           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
-0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_rco           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
-0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_slv           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
-0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_wst           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         5 1
+0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_agr           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         4 1
+0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_ene           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
+0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_ind           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_tra           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_rco           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
+0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_slv           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_wst           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         5 1
 )))CMIP6_SFC_LAND_ANTHRO
 (((CMIP6_SHIP
-0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_shp           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_shp           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
 )))CMIP6_SHIP
 
 #==============================================================================
 # BB4MIPs historical / SSP future biomass burning inventories
 #==============================================================================
 (((BB4MIPS
-0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                   CH4_bbn           1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s    CH4     75        9 1
+0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_bbn           1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s    CH4     75        9 1
 )))BB4MIPS
 
 #==============================================================================
@@ -490,10 +494,12 @@ Warnings:                    1
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
 
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields for FlexGrid ---
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -521,13 +527,13 @@ Warnings:                    1
 #==============================================================================
 (((CHEMISTRY_INPUT
 (((GMI_CH4_LOSS
-{CH4_LOSS}
+${RUNDIR_CH4_LOSS}
 )))GMI_CH4_LOSS
 (((GLOBAL_OH
-{GLOBAL_OH}
+${RUNDIR_GLOBAL_OH}
 )))GLOBAL_OH
 (((GLOBAL_CL
-{GLOBAL_Cl}
+${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL
 )))CHEMISTRY_INPUT
 
