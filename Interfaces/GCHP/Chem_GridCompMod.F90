@@ -395,7 +395,10 @@ CONTAINS
     CHARACTER(LEN=255)            :: MYFRIENDLIES
     CHARACTER(LEN=127)            :: FullName
     INTEGER                       :: DoIt
-    LOGICAL                       :: FriendMoist, SpcInRestart
+    LOGICAL                       :: FriendMoist, SpcInRestart, ReduceSpc
+    CHARACTER(LEN=40)             :: SpcsBlacklist(255)
+    INTEGER                       :: nBlacklist
+    CHARACTER(LEN=ESMF_MAXSTR)    :: Blacklist 
 #endif
 #ifdef ADJOINT
     INTEGER                       :: restartAttrAdjoint
@@ -609,6 +612,22 @@ CONTAINS
        restartAttr  = MAPL_RestartSkip
        SpcInRestart = .FALSE.
     ENDIF
+    ! Check if we want to use a reduced set of species for transport
+    SpcsBlacklist(:) = ''
+    nBlacklist = 0
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Reduce_transport_species:", &
+                                  Default = 0, __RC__ )
+    ReduceSpc = ( DoIt==1 )
+    ! Get list of blacklisted species
+    IF ( ReduceSpc ) THEN
+       CALL ESMF_ConfigGetAttribute( myState%myCF, Blacklist, &
+                                     Label = "Transport_blacklist:", &
+                                     Default = 'CFC11,CFC12', __RC__ )
+       IF ( TRIM(ADJUSTL(Blacklist)) /= '' ) THEN
+          CALL STRSPLIT( Blacklist, ',', SpcsBlacklist, nBlacklist )
+       ENDIF
+    ENDIF
 #endif
 
     ! Open input.geos and read a lines until hit advected species menu
@@ -641,6 +660,15 @@ CONTAINS
              MYFRIENDLIES = TRIM(MYFRIENDLIES)//':MOIST'
           ENDIF
           FullName = TRIM(SUBSTRS(1))
+          ! Check if this species is blacklisted
+          IF ( nBlacklist > 0 ) THEN
+             DO I=1,nBlacklist
+                IF ( TRIM(SpcsBlacklist(I))==TRIM(FullName) ) THEN
+                   MYFRIENDLIES = TRIM(COMP_NAME)
+                   EXIT
+                ENDIF
+             ENDDO
+          ENDIF 
           call MAPL_AddInternalSpec(GC, &
                SHORT_NAME         = TRIM(SPFX)//TRIM(SUBSTRS(1)), &
                LONG_NAME          = TRIM(FullName)//                &

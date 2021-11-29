@@ -136,6 +136,10 @@ Use_ozonopause: -999.0
 #
 Prescribe_strat_H2O: 1
 
+# %%% Settings for excluding species from being transported
+Reduce_transport_species: 0
+Transport_blacklist: CFC115,CFC114,N2O,CFC12,H1301,CFC113,CFC11,CCl4,H2O,H2402,H1211,HCFC142b,HCFC22,HCFC141b,CH3CCl3,CH3Br,CH3Cl,HCFC123
+
 #
 # %%% Include short-lived species in internal restart file?
 #
