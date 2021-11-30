@@ -83,10 +83,10 @@ for fpath in $SUBST_LIST; do
    envsubst "$envsubst_list" < $THIS_SCRIPTS_DIRECTORY/$fpath > $(filename_with_suffixes_removed $fpath)
 done
 
-# Make links
-unlink ChemDir
-unlink HcoDir
-unlink MetDir
+# Make links to directories
+[[ -L ChemDir ]] && unlink ChemDir
+[[ -L HcoDir  ]] && unlink HcoDir
+[[ -L MetDir  ]] && unlink MetDir
 ln -s ${RUNDIR_DATA_ROOT}/CHEM_INPUTS ChemDir
 ln -s ${RUNDIR_DATA_ROOT}/HEMCO HcoDir
 ln -s ${RUNDIR_MET_DIR_NATIVE} MetDir
