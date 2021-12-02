@@ -1611,10 +1611,10 @@ PM25FINE_3 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2
 #==============================================================================
 # --- Offline dust emissions (OFFLINE_DUST)---
 #==============================================================================
-EMIS_DST1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST1 ./HcoDir/OFFLINE_DUST/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-EMIS_DST2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST2 ./HcoDir/OFFLINE_DUST/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-EMIS_DST3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST3 ./HcoDir/OFFLINE_DUST/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./HcoDir/OFFLINE_DUST/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST1 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST2 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST3 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 #==============================================================================
 # --- Offline biogenic VOC emissions (OFFLINE_BIOGENICVOC) ---
