@@ -193,10 +193,12 @@ CONTAINS
     RC = 0
 
     ! Calculate correction term.
-    IF ( thispKa > 0d0 ) THEN
+    ! NOTE: Allow for negative pKa, but skip missing values (-999).
+    ! Also remove the ELSE block for computational efficiency.
+    !  -- Viral Shah & Bob Yantosca, 03 Dec 2020
+    HEFF = KH
+    IF ( thispKa > -100d0 ) THEN
        HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
-    ELSE
-       HEFF = KH
     ENDIF
 
   END SUBROUTINE CALC_HEFF
