@@ -197,8 +197,8 @@ CONTAINS
     ! Also remove the ELSE block for computational efficiency.
     !  -- Viral Shah & Bob Yantosca, 03 Dec 2020
     HEFF = KH
-    IF ( thispKa > -100d0 ) THEN
-       HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
+    IF ( pH > 0.0d0 .and. thispKa > -100d0 ) THEN
+       HEFF = HEFF * ( 1d0 + 10d0**( pH - thispKa ) )
     ENDIF
 
   END SUBROUTINE CALC_HEFF

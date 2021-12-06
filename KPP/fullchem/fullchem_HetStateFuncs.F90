@@ -635,14 +635,16 @@ CONTAINS
     ENDIF
 
     ! Chloride (mol/L)
-    CALL Compute_L2G_Local( 1.0_dp, 9000.0_dp, -6.3_dp,                      &
-                            TEMP,   V_tot,      L2G,    pH                  )
+    CALL Compute_L2G_Local( K0     =  1.0_dp,     CR = 9000.0_dp,            &
+                            pKa    = -6.3_dp,     TK = TEMP,                 &
+                            H2OLIQ =  L2G         pH = H%pHCloud            )
     F_L = L2G / ( 1.0_dp + L2G )
     cl_conc = F_L * HCl / (V_tot * H%AVO * 1.0e-3_dp)
 
     ! Bromide (mol/L)
-    CALL Compute_L2G_Local( 7.5e-1_dp, 10200.0_dp, -9.0_dp,                  &
-                            TEMP,      V_tot,       L2G,   pH               )
+    CALL Compute_L2G_Local( K0     =  7.5e-1_dp,  CR = 10200.0_dp,           &
+                            pKa    = -9.0_dp,     TK = TEMP,                 &
+                            H2OLIQ =  L2G,        pH = H%pHCloud            )
     F_L = L2G / ( 1.0_dp + L2G )
     br_conc = F_L * HBr / ( V_tot * H%AVO * 1.0e-3_dp )
 
