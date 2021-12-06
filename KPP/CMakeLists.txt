@@ -1,3 +1,5 @@
+# KPP/CMakeLists.txt
+
 # Build the fullchem mechanism if configured with -DMECH=fullchem
 # (This is the default option)
 if("${MECH}" STREQUAL fullchem)
@@ -13,5 +15,10 @@ endif()
 # Build the custom mechanism if configured with -DMECH=custom
 if("${MECH}" STREQUAL custom)
   add_subdirectory(custom)
+endif()
+
+# Build the Hg mechanism if configured with -DMECH=Hg
+if("${MECH}" STREQUAL Hg)
+  add_subdirectory(Hg)
 endif()
 

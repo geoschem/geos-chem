@@ -722,7 +722,6 @@ CONTAINS
              ! level [kg/kg]
              !-----------------------------------------------------
              QC = Q(CLDBASE,IC)
-
           ENDIF
 
           !==================================================================
@@ -851,7 +850,6 @@ CONTAINS
 
                 ENDIF
                 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
                 ! Update QC taking entrainment into account [kg/kg]
                 ! Prevent div by zero condition
                 IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN

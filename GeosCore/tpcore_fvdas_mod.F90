@@ -417,6 +417,7 @@ CONTAINS
     USE PhysConstants
     USE ErrCode_Mod
     USE State_Diag_Mod, ONLY : DgnState
+    USE error_mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -786,7 +787,7 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, ptr_Q )
     do iq = 1, nq
 
        do ik = 1, km

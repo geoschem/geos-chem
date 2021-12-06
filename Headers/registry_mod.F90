@@ -404,6 +404,8 @@ CONTAINS
        ErrMsg = 'Could not add ' // TRIM( TmpVariable ) // ' to the registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ELSE
+       write(*,*) 'Added ' // TRIM(TmpVariable) // ' to the ' // TRIM(State) // ' registry. '
     ENDIF
 
   END SUBROUTINE Registry_AddField
