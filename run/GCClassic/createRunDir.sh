@@ -368,7 +368,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
 	RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='$runid'\n"
     done
 
-    if [[ "${sim_name}" == "fullchem" ]] || [[ "${sim_name}" == "aerosol" ]]; then
+    if [[ "x${sim_name}" == "xfullchem" ]] || \
+       [[ "x${sim_name}" == "xaerosol" ]]; then
 	printf "${thinline}Choose a fixed year for volcanic emissions (1978-2020)\n or -1 for year of simulation (assuming year exists):${thinline}"
 	valid_volc=0
 	while [ "${valid_volc}" -eq 0 ]; do
@@ -391,7 +392,21 @@ else
     RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='not_used'\n"
     RUNDIR_VARS+="RUNDIR_VOLC_YEAR='\$YYYY'\n"
     RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1980-2021'\n"
-fi
+    
+    # Define the volcano paths for the HEMCO_Config.rc file
+    # NOTE: Benchmark simulations always use the climatological emissions!
+    if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
+       [[ "x${sim_name}" == "xaerosol"  ]]; then	
+	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+
+	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\${RUNDIR_VOLC_YEAR}/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	fi
+    fi
+
+ fi
 
 #-----------------------------------------------------------------
 # Ask user to select horizontal resolution
@@ -766,7 +781,7 @@ elif [[ ${sim_extra_option} =~ "APM" ]]; then
 fi
 
 # If benchmark simulation, put run script in directory
-if [[ ${sim_extra_option} == "benchmark" ]]; then
+if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
     cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi
@@ -1085,7 +1100,6 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml *.run *.py input.geos getRunInfo
-	git add runScriptSamples/* README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}

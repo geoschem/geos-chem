@@ -194,8 +194,8 @@ Warnings:                    1
 115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
-    --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/${RUNDIR_VOLC_YEAR}/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
-    --> Volcano_Climatology    :       $ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
+    --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}
+    --> Volcano_Climatology    :       ${RUNDIR_VOLC_CLIMATOLOGY}
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
