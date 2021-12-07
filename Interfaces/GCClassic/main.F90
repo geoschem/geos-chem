@@ -699,7 +699,8 @@ PROGRAM GEOS_Chem
 
   ! Initialize the GEOS-Chem history component
   ! (for dry-run, enter routine to print out HISTORY.rc status)
-  CALL History_Init( Input_Opt,  State_Met, State_Chm, State_Diag, RC )
+  CALL History_Init( Input_Opt,  State_Met,  State_Chm,                      &
+                     State_Diag, State_Grid, RC                             )
 
   ! Trap error
   IF ( RC /= GC_SUCCESS ) THEN
