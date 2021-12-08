@@ -390,7 +390,6 @@ if [[ ${met} = "ModelE2.1" ]]; then
 else
     RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='not_used'\n"
     RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='not_used'\n"
-    RUNDIR_VARS+="RUNDIR_VOLC_YEAR='\$YYYY'\n"
     RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1980-2021'\n"
     
     # Define the volcano paths for the HEMCO_Config.rc file
@@ -402,7 +401,7 @@ else
 	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
 	else
-	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\${RUNDIR_VOLC_YEAR}/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
 	fi
     fi
 
