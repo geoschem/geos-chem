@@ -207,8 +207,8 @@ BrSALC     = IGNORE; {Br; Course sea salt bromine}
 BZCO3      = IGNORE; {benzoylperoxy radical}
 BZCO3H     = IGNORE; {perbenzoic acid}
 BZPAN      = IGNORE; {peroxybenzoyl nitrate}
-C2H2 	   = IGNORE; {C2H2; Ethyne}
-C2H4 	   = IGNORE; {Ethylene}
+C2H2     = IGNORE; {C2H2; Ethyne}
+C2H4     = IGNORE; {Ethylene}
 C2H6       = IGNORE; {C2H6; Ethane}
 C3H8       = IGNORE; {C3H8; Propane}
 C4HVP1     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
@@ -245,18 +245,17 @@ CO         = IGNORE; {CO; Carbon monoxide}
 CO2        = IGNORE; {CO2; Carbon dioxide}
 CSL        = IGNORE; {cresols and xylols}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
-// comment out for now
-//DSTAL1	   = IGNORE; {Alkalinity of mineral dust bin 1}
-//DSTAL2 	   = IGNORE; {Alkalinity of mineral dust bin 2}
-//DSTAL3 	   = IGNORE; {Alkalinity of mineral dust bin 3}
-//DSTAL4 	   = IGNORE; {Alkalinity of mineral dust bin 4}
+DSTAL1     = IGNORE; {Alkalinity of mineral dust bin 1}
+DSTAL2     = IGNORE; {Alkalinity of mineral dust bin 2}
+DSTAL3     = IGNORE; {Alkalinity of mineral dust bin 3}
+DSTAL4     = IGNORE; {Alkalinity of mineral dust bin 4}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
-ETHN 	   = IGNORE; {stable hydroxy-nitrooxy-ethane}
-ETHP 	   = IGNORE; {stable hydroxy-hydroperoxy-ethane}
+ETHN       = IGNORE; {stable hydroxy-nitrooxy-ethane}
+ETHP       = IGNORE; {stable hydroxy-hydroperoxy-ethane}
 ETNO3      = IGNORE; {C2H5ONO2; Ethyl nitrate}
-ETO	   = IGNORE; {hydroxy-alkoxy-ethane radical}
-ETOO	   = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
+ETO        = IGNORE; {hydroxy-alkoxy-ethane radical}
+ETOO       = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
 ETP        = IGNORE; {CH3CH2OOH; Ethylhydroperoxide}
 GLYC       = IGNORE; {HOCH2CHO; Glycoaldehyde}
@@ -265,7 +264,7 @@ H          = IGNORE; {H; Atomic hydrogen}
 H1211      = IGNORE; {CBrClF2; H-1211}
 H1301      = IGNORE; {CBrF3; H-1301}
 H2402      = IGNORE; {C2Br2F4; H-2402}
-//H2SO4      = IGNORE; {H2SO4: Sulfuric acid}
+H2SO4      = IGNORE; {H2SO4: Sulfuric acid}
 H2O        = IGNORE; {H2O; Water vapor}
 H2O2       = IGNORE; {H2O2; Hydrogen peroxide}
 HAC        = IGNORE; {HOCH2C(O)CH3; Hydroxyacetone}
@@ -280,7 +279,7 @@ HCOOH      = IGNORE; {HCOOH; Formic acid}
 HI         = IGNORE; {HI; Hydrogen iodide}
 HMHP       = IGNORE; {HOCH2OOH; Hydroxymethyl hydroperoxide}
 HMML       = IGNORE; {C4H6O3; Hydroxymethyl-methyl-a-lactone}
-HMS	   = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
+HMS        = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
@@ -289,7 +288,6 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
-DUMMY	   = IGNORE;
 HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
 HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
 HPALD2     = IGNORE; {HOOCH2C(CH3)=CHCH=O; d-1,4-C5-hydroperoxyaldehyde}
@@ -297,6 +295,7 @@ HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
 HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
 HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
 HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
+HSO3m      = IGNORE; {HSO3- radical}
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -408,12 +407,10 @@ N2O        = IGNORE; {N2O; Nitrous oxide}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
 NAP        = IGNORE; {C10H8; Naphthalene; IVOC surrogate}
 NIT        = IGNORE; {NIT; Fine mode inorganic nitrate}
-//
-// Comment out for now
-//NITD1      = IGNORE; {NIT taken up on DST1}
-//NITD2      = IGNORE; {NIT taken up on DST2}
-//NITD3      = IGNORE; {NIT taken up on DST3}
-//NITD4      = IGNORE; {NIT taken up on DST4}
+NITD1      = IGNORE; {NIT taken up on DST1}
+NITD2      = IGNORE; {NIT taken up on DST2}
+NITD3      = IGNORE; {NIT taken up on DST3}
+NITD4      = IGNORE; {NIT taken up on DST4}
 NITs       = IGNORE; {NITs; Coarse mode inorganic nitrate}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
@@ -459,8 +456,8 @@ RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
 RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
-//SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
-//SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
+SALAAL     = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
+SALCAL     = IGNORE; {Coarse mode seasalt aerosol alkalinity}
 SALACL     = IGNORE; {Cl; Fine chloride}
 SALCCL     = IGNORE; {Cl; Coarse chloride}
 SALASO2    = IGNORE; {SO2; Fine seasalt}
@@ -468,16 +465,13 @@ SALCSO2    = IGNORE; {SO2; Coarse seasalt}
 SALASO3    = IGNORE; {SO3--; Fine seasalt}
 SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
+SO3mm      = IGNORE; {SO3mm; SO3-- radical}
 SO4        = IGNORE; {SO4; Sulfate}
-//SO4D1      = IGNORE; {SO4 taken up on DST1}
-//SO4D2      = IGNORE; {SO4 taken up on DST2}
-//SO4D3      = IGNORE; {SO4 taken up on DST3}
-//SO4D4      = IGNORE; {SO4 taken up on DST4}
+SO4D1      = IGNORE; {SO4 taken up on DST1}
+SO4D2      = IGNORE; {SO4 taken up on DST2}
+SO4D3      = IGNORE; {SO4 taken up on DST3}
+SO4D4      = IGNORE; {SO4 taken up on DST4}
 SO4        = IGNORE; {SO4; Sulfate}
-SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
-SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
-SO4H3      = IGNORE; {SO4; Sulfate produced by HOCl}
-SO4H4      = IGNORE; {SO4; Sulfate produced by HOCl}
 SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
@@ -499,41 +493,43 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 // %%%%% Reactions for acid uptake on dust (MSL, BMY)                    %%%%%
 // %%%%% Activate these later, comment out for now (bmy, 9/22/21)        %%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//SO2   + 2DSTAL1    = SO4D1          : K_DST(1);
-//SO2   + 2DSTAL2    = SO4D2          : K_DST(2);
-//SO2   + 2DSTAL3    = SO4D3          : K_DST(3);
-//SO2   + 2DSTAL4    = SO4D4          : K_DST(4);
-//HNO3  + DSTAL1     = NITD1          : K_DST(5);
-//HNO3  + DSTAL2     = NITD2          : K_DST(6);
-//HNO3  + DSTAL3     = NITD3          : K_DST(7);
-//HNO3  + DSTAL4     = NITD4          : K_DST(8);
-//H2SO4 + 2DSTAL1    = SO4D1          : K_DST(9);
-//H2SO4 + 2DSTAL2    = SO4D2          : K_DST(10);
-//H2SO4 + 2DSTAL3    = SO4D3          : K_DST(11);
-//H2SO4 + 2DSTAL4    = SO4D4          : K_DST(12);
-//SO2   + 2OH        = H2SO4          : K_DST(13);
-//
+SO2   + 2DSTAL1    = SO4D1          : K_DST(1);
+SO2   + 2DSTAL2    = SO4D2          : K_DST(2);
+SO2   + 2DSTAL3    = SO4D3          : K_DST(3);
+SO2   + 2DSTAL4    = SO4D4          : K_DST(4);
+HNO3  + DSTAL1     = NITD1          : K_DST(5);
+HNO3  + DSTAL2     = NITD2          : K_DST(6);
+HNO3  + DSTAL3     = NITD3          : K_DST(7);
+HNO3  + DSTAL4     = NITD4          : K_DST(8);
+H2SO4 + 2DSTAL1    = SO4D1          : K_DST(9);
+H2SO4 + 2DSTAL2    = SO4D2          : K_DST(10);
+H2SO4 + 2DSTAL3    = SO4D3          : K_DST(11);
+H2SO4 + 2DSTAL4    = SO4D4          : K_DST(12);
+SO2   + 2OH        = H2SO4          : K_DST(13);
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Reactions extracted from sulfate_mod.F90 (MSL, BMY)             %%%%%
-// %%%%% Activate these later, comment out for now (bmy, 9/22/21)        %%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
-//// Seasalt
-//SO2  + SALAAL + O3  = SO4 - SALAAL  : K_MT(1);
-//HCl  + SALAAL       = SALACL        : K_MT(2);
-//HNO3 + SALAAL       = NIT           : K_MT(3);
-//SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4);
-//HCl  + SALCAL       = SALCCL        : K_MT(5);
-//HNO3 + SALCAL       = NITs          : K_MT(6);
+// Seasalt
+SO2  + SALAAL + O3  = SO4 - SALAAL  : K_MT(1);
+HCl  + SALAAL       = SALACL        : K_MT(2);
+HNO3 + SALAAL       = NIT           : K_MT(3);
+SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4);
+HCl  + SALCAL       = SALCCL        : K_MT(5);
+HNO3 + SALCAL       = NITs          : K_MT(6);
+
+// Cloud
+// S(IV) --> S(VI)
+SO2 + H2O2        = SO4             : K_CLD(1);
+SO2 + O3          = SO4             : K_CLD(2);
+SO2 {+O2}         = SO4             : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
+//----------------------------------------------------------------------------
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% HMS chemistry reactions                                         %%%%%
+// %%%%% Activate these later, so that they can be tested separately     %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
-//// Cloud
-//// S(IV) --> S(VI)
-//SO2 + H2O2        = SO4             : K_CLD(1);
-//SO2 + O3          = SO4             : K_CLD(2);
-//SO2 {+O2}         = SO4             : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
-//
-//// HMS
 //CH2O + SO2        = HMS             : K_CLD(4);    {Sep 2021; Moch2020; MSL}
 //HMS               = SO2 + CH2O      : K_CLD(5);    {Sep 2021; Moch2020; MSL}
 //HMS + OH          = 2SO4 + CH2O     : K_CLD(6);    {Sep 2021; Moch2020; MSL}
@@ -1565,16 +1561,16 @@ HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                      
 HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
-HOCl = SO4H3 + HCl :           HOClHetSO4H3( State_Het );                                                   {2018/11/08; XW}
-HOCl = SO4H4 + HCl :           HOClHetSO4H4( State_Het );                                                   {2018/11/08; XW}
+HOCl + HSO3m = SO4 + HCl :     HOClUptkByHSO3m( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
+HOCl + SO3mm = SO4 + HCl :     HOClUptkBySO3mm( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr = SO4H1 + HBr :           HOBrHetSO4H1( State_Het );                                                   {2017/11/15; Chen2017; QJC}
-HOBr = SO4H2 + HBr :           HOBrHetSO4H2( State_Het );                                                   {2017/11/15; Chen2017; QJC}
+HOBr + HSO3m = SO4 + HBr :     HOBrUptkByHSO3m( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr + SO3mm = SO4 + HBr :     HOBrUptkBySO3mm( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
 O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}

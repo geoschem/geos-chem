@@ -272,6 +272,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
+     LOGICAL                    :: SIZE_RES
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -488,6 +489,7 @@ CONTAINS
     ! FALSE = use KPP computations
     State_Chm%Do_SulfateMod_Cld     = .TRUE.
     State_Chm%Do_SulfateMod_SeaSalt = .TRUE.
+    State_Chm%Size_Res              = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -587,16 +589,14 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Decide how sulfur sea salt and cloud chemistry will be handled
+    ! Do sulfur sea-salt and in-cloud chemistry as part of the KPP-generated
+    ! chemical mechanism for all full-chemistry simulations.  For aerosol-
+    ! only simulations, do the sulfur chemistry rxns in sulfate_mod.
     !========================================================================
-
-    ! Always compute sulfur sea salt chemistry in sulfate_mod
-    ! NOTE: This will be activated later, after validation
-    State_Chm%Do_SulfateMod_Seasalt = .TRUE.
-
-    ! Always compute sulfur cloud chemistry in sulfate_mod
-    ! NOTE: This will be activated later, after validation
-    State_Chm%Do_SulfateMod_Cld = .TRUE.
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       State_Chm%Do_SulfateMod_Seasalt = .FALSE.
+       State_Chm%Do_SulfateMod_Cld     = .FALSE.
+    ENDIF
 
     !========================================================================
     ! Populate the species database object field
