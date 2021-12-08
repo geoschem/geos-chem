@@ -811,6 +811,13 @@ CONTAINS
                           RC        =  RC                                   )
        ENDIF
 
+       ! Update HSO3- and SO3-- concentrations [molec/cm3]
+       ! -- Moved this here so State_Het%Vliq can be used.
+       ! question: Does this need to, or can it, be embedded within the
+       ! CLDF conditional below?
+       C(ind_HSO3m) = safe_div(State_Chm%HSO3_aq(I,J,L)*1d-3*AVO*State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1d-3,State_Met%CLDF(I,J,L),0.d0)
+       C(ind_SO3mm) = safe_div(State_Chm%SO3_aq(I,J,L) *1d-3*AVO*State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1d-3,State_Met%CLDF(I,J,L),0.d0)
+
        !=====================================================================
        ! Call Het_Drop_Chem (formerly located in sulfate_mod.F90) to
        ! estimate the in-cloud sulfate production rate in heterogeneous
@@ -1633,8 +1640,8 @@ CONTAINS
                                      RC         = RC                        )
 
        ! Update HSO3- and SO3-- concentrations [molec/cm3]
-       C(ind_HSO3m)                 = State_Chm%HSO3_aq(I,J,L)
-       C(ind_SO3mm)                 = State_Chm%SO3_aq(I,J,L)
+       ! MOVED by MSL : C(ind_HSO3m)                 = State_Chm%HSO3_aq(I,J,L)*1d-3*AVO
+       ! MOVED by MSL : C(ind_SO3mm)                 = State_Chm%SO3_aq(I,J,L)
 
        State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
        State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
