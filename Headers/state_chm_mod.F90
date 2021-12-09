@@ -6262,9 +6262,7 @@ CONTAINS
 ! !USES:
 !
     USE GcKpp_Monitor,    ONLY : Fam_Names
-    USE GcHg_Monitor,     ONLY : HgFamNames=>Fam_Names
     USE GcKpp_Parameters, ONLY : nFam
-    USE GcHg_Parameters,  ONLY : Hg_nFam => nFam
     USE Input_Opt_Mod,    ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -6306,7 +6304,7 @@ CONTAINS
     !=======================================================================
     ! Get the number of prod and loss species depending on the simulation
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !------------------------------
        ! Full-chemistry simulations
@@ -6317,19 +6315,6 @@ CONTAINS
        DO N = 1, nFam
           IF ( Fam_Names(N)(1:1) == 'L' ) State_Chm%nLoss = State_Chm%nLoss + 1
           IF ( Fam_Names(N)(1:1) == 'P' ) State_Chm%nProd = State_Chm%nProd + 1
-       ENDDO
-
-    ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-       !------------------------------
-       ! Full-chemistry simulations
-       !------------------------------
-
-       ! Get the # of prod/loss species by querying the first leter of
-       ! the species in the Fam_Names array (in gckpp_Monitor.F90)
-       DO N = 1, Hg_nFam
-          IF ( HgFamNames(N)(1:1) == 'L' ) State_Chm%nLoss = State_Chm%nLoss + 1
-          IF ( HgFamNames(N)(1:1) == 'P' ) State_Chm%nProd = State_Chm%nProd + 1
        ENDDO
 
     ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
@@ -6385,8 +6370,6 @@ CONTAINS
 !
     USE GcKpp_Monitor,    ONLY : Fam_Names
     USE GcKpp_Parameters, ONLY : nFam
-    USE GcHg_Monitor,     ONLY : HgFamNames => Fam_Names
-    USE GcHg_Parameters,  ONLY : Hg_nFam => nFam
     USE Input_Opt_Mod,    ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -6432,7 +6415,7 @@ CONTAINS
     !=======================================================================
     ! Get the number of prod and loss species depending on the simulation
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Full-chemistry simulations
@@ -6475,56 +6458,6 @@ CONTAINS
              ! Invalid species, exit with error!
              ErrMsg = 'Could not locate KPP prod/loss species: ' //          &
                       TRIM( Fam_Names(N) )                       // '!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-
-          ENDIF
-
-       ENDDO
-
-    ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-       !--------------------------------------------------------------------
-       ! Hg simulations, per Viral Shah's code (MSL 7.2.21)
-       !--------------------------------------------------------------------
-
-       ! Loop over the number of prod/loss species
-       DO N = 1, Hg_nFam
-
-          ! Get the KPP prod/loss species from the FAM_NAMES
-          ! array in the gckpp_Parameters.F90 module.
-          ! NOTE: This is the KPP ID number (index of "VAR" array)
-          ! and not the GEOS-Chem "main" species index!!!
-          Id = Ind_( TRIM( HgFamNames(N) ), 'K' )
-
-          ! Add the species
-          IF ( Id > 0 ) THEN
-
-             ! KPP prod/loss species name
-             Name = TRIM( HgFamNames(N) )
-
-             ! Fix the name so that it is of the form Prod_<spcname> or
-             ! Loss_<spcname>.  This will facilitate the new diagnostics.
-             IF ( Name(1:1) == 'L' ) THEN
-                L                      = L + 1
-                State_Chm%Map_Loss(L)  = Id
-                State_Chm%Name_Loss(L) = 'Loss_' // TRIM( Name(2:) )
-             ELSE IF ( Name(1:1) == 'P' ) THEN
-                P                      = P + 1
-                State_Chm%Map_Prod(P)  = Id
-                State_Chm%Name_Prod(P) = 'Prod_' // TRIM( Name(2:) )
-             ELSE
-                ErrMsg = 'Invalid prod/loss species name!' //                &
-                          TRIM( HgFamNames(N) )
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-          ELSE
-
-             ! Invalid species, exit with error!
-             ErrMsg = 'Could not locate KPP prod/loss species: ' //          &
-                      TRIM( HgFamNames(N) )                       // '!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
 

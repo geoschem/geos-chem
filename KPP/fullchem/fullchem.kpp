@@ -17,7 +17,7 @@ LCH4 : CH4;
 PH2O2 : H2O2;
 
 #INLINE F90_RATES
-  ! All rates are included in aerochem_RateLawFuncs.F90, which
+  ! All rates are included in fullchem_RateLawFuncs.F90, which
   ! gets referenced directly from subroutine Update_Rconst.
 #ENDINLINE
 

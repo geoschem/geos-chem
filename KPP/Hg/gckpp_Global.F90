@@ -94,14 +94,53 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
-      REAL(kind=dp) :: H2O, PRESS
 
-!-----------------------------------------------------------------------
-! NOTE: The following variables need to be declared THREADPRIVATE
-! because they get written to within an OpenMP parallel loop
-!-----------------------------------------------------------------------
-!$OMP THREADPRIVATE( HET, PHOTOL, H2O,  PRESS )
+  ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
+  ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
+  REAL(dp), PARAMETER :: CON_R = 0.083144598_dp
+
+  !--------------------------------------------------------------------------
+  ! Additional global variables -- will be added to gckpp_Global.F90
+  !--------------------------------------------------------------------------
+
+  ! H2O concentration
+  REAL(dp) :: H2O
+  !$OMP THREADPRIVATE( H2O )
+
+  REAL(dp) :: HET(NSPEC,2)
+  !$OMP THREADPRIVATE( HET )
+
+  ! Inverse of temperature [1/K]
+  REAL(dp) :: INV_TEMP
+  !$OMP THREADPRIVATE( INV_TEMP )
+
+  REAL(dp) :: PRESS
+  !$OMP THREADPRIVATE( PRESS )
+
+  REAL(dp) :: PHOTOL(27)
+  !$OMP THREADPRIVATE( PHOTOL )
+
+  ! Hetchem State object
+  TYPE, PUBLIC :: HetState
+     REAL(dp) :: AVO            ! Avogadro's constant [molec/mol]
+     LOGICAL  :: debugBox       ! Are we in a debugging box?
+     REAL(dp) :: aIce           ! Ice surface area [cm2/cm3]
+     REAL(dp) :: aLiq           ! Liquid surface area [cm2/cm3]
+     REAL(dp) :: cldFr          ! Cloud fraction
+     REAL(dp) :: clearFr        ! Clear sky fraction
+     REAL(dp) :: H2O            ! H2O concentration
+     REAL(dp) :: PI             ! PI constant
+     REAL(dp) :: pHCloud        ! Cloud PH
+     REAL(dp) :: qIce           ! Ice mixing ratio [kg/kg]
+     REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
+     REAL(dp) :: rIce           ! Ice radius
+     REAL(dp) :: rLiq           ! Liquid radius
+     REAL(dp) :: vAir           ! Volume of air [cm3]
+     REAL(dp) :: vIce           ! Ice volume [cm3]
+     REAL(dp) :: vLiq           ! Liquid volume [cm3]
+  END TYPE HetState
+  TYPE(HetState), TARGET, PUBLIC :: State_Het
+  !$OMP THREADPRIVATE( State_Het )
 
 ! INLINED global variable declarations
 

@@ -1,12 +1,12 @@
 # KPP/Hg/CMakeLists.txt
 
 # Add libKPPFirstPass.a
-add_library(KPPFirstPass STATIC EXCLUDE_FROM_ALL
+add_library(KPP_FirstPass STATIC EXCLUDE_FROM_ALL
   gckpp_Precision.F90
   gckpp_Parameters.F90
   gckpp_Monitor.F90
 )
-target_link_libraries(KPPFirstPass PUBLIC GEOSChemBuildProperties)
+target_link_libraries(KPP_FirstPass PUBLIC GEOSChemBuildProperties)
 
 # Add libKPP.a
 add_library(KPP STATIC EXCLUDE_FROM_ALL
@@ -23,6 +23,9 @@ add_library(KPP STATIC EXCLUDE_FROM_ALL
   gckpp_Precision.F90
   gckpp_Rates.F90
   gckpp_Util.F90
+  Hg_RateLawFuncs.F90
+  Hg_HetStateFuncs.F90
+  rateLawUtilFuncs.F90
 )
 target_link_libraries(KPP
   PUBLIC GeosUtil

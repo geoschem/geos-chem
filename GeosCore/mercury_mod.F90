@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -373,14 +374,14 @@ CONTAINS
 
     USE FAST_JX_MOD,          ONLY : FAST_JX
     USE CMN_FJX_MOD
-    USE GCHG_Monitor,         ONLY : SPC_NAMES, FAM_NAMES
-    USE GCHG_Parameters
-    USE GCHG_Integrator,      ONLY : INTEGRATE, NHnew
-    USE GCHG_Function
-    USE GCHG_Model
-    USE GCHG_Global
-    USE GCHG_Rates,           ONLY : UPDATE_RCONST, RCONST
-    USE GCHG_Initialize,      ONLY : Init_KPP => Initialize
+    USE GcKpp_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
+    USE GcKpp_Parameters
+    USE GcKpp_Integrator,     ONLY : INTEGRATE, NHnew
+    USE GcKpp_Function
+    USE GcKpp_Model
+    USE Gckpp_Global
+    USE GcKpp_Rates,          ONLY : UPDATE_RCONST, RCONST
+    USE GcKpp_Initialize,     ONLY : Init_KPP => Initialize
     USE Timers_Mod
     USE PhysConstants,        ONLY : AVO
     USE State_Chm_Mod,        ONLY : Ind_
@@ -651,14 +652,12 @@ CONTAINS
        IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
     ENDIF
-    IF ( State_Diag%Archive_HgBrAfterChem  ) State_Diag%HgBrAfterChem  = 0.0_f4
-!    IF ( State_Diag%Archive_HgClAfterChem  ) State_Diag%HgClAfterChem  = 0.0_f4
-!    IF ( State_Diag%Archive_HgOHAfterChem  ) State_Diag%HgOHAfterChem  = 0.0_f4
-!    IF ( State_Diag%Archive_HgBrOAfterChem ) State_Diag%HgBrOAfterChem = 0.0_f4
-!    IF ( State_Diag%Archive_HgClOAfterChem ) State_Diag%HgClOAfterChem = 0.0_f4
-!    IF ( State_Diag%Archive_HgOHOAfterChem ) State_Diag%HgOHOAfterChem = 0.0_f4
-
-
+    !IF ( State_Diag%Archive_HgBrAfterChem  ) State_Diag%HgBrAfterChem  = 0.0_f4
+    !IF ( State_Diag%Archive_HgClAfterChem  ) State_Diag%HgClAfterChem  = 0.0_f4
+    !IF ( State_Diag%Archive_HgOHAfterChem  ) State_Diag%HgOHAfterChem  = 0.0_f4
+    !IF ( State_Diag%Archive_HgBrOAfterChem ) State_Diag%HgBrOAfterChem = 0.0_f4
+    !IF ( State_Diag%Archive_HgClOAfterChem ) State_Diag%HgClOAfterChem = 0.0_f4
+    !IF ( State_Diag%Archive_HgOHOAfterChem ) State_Diag%HgOHOAfterChem = 0.0_f4
 
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
@@ -675,7 +674,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !=======================================================================
     IF ( DO_PHOTCHEM ) THEN
-       
+
         !Compute J values
         CALL FAST_JX( 0, Input_Opt,  State_Chm, &
                       State_Diag, State_Grid, State_Met, RC )
@@ -849,7 +848,8 @@ CONTAINS
        !====================================================================
 
        ! If we are not below the stratopause don't do the chemistry!
-       IF ( L > State_Grid%MaxStratLev ) CYCLE
+       !IF ( L > State_Grid%MaxStratLev ) CYCLE
+       IF ( .not. State_Met%InChemGrid( I, J, L ) ) CYCLE
 
        ! Skipping buffer zone (lzh, 08/10/2014)
        IF ( State_Grid%NestedGrid ) THEN
@@ -877,12 +877,22 @@ CONTAINS
        !======================================================================
        ! Set heterogeneous uptake rates (s-1)
        !======================================================================
-       ! Do cloud chemistry only in the troposphere & in liquid/mixed-phase clouds
-       IF ( (State_Met%InTroposphere(I,J,L)) .or. (State_Met%T(I,J,L) .ge. 258e+0_fp)   &
-            .or. ( State_Met%CLDF(I,J,L) .ge. 1e-3_fp ) ) THEN
-          CALL Set_HetRates( I, J, L, Input_Opt, State_Chm, State_Grid, State_Met, RC )
+
+       ! Do cloud chemistry only in the troposphere &
+       ! in liquid/mixed-phase clouds
+       IF ( ( State_Met%InTroposphere(I,J,L)     )   .or.                    &
+            ( State_Met%T(I,J,L)    >= 258.0_fp  )   .or.                    &
+            ( State_Met%CLDF(I,J,L) >= 1.0e-3_fp ) ) THEN
+          CALL Set_HetRates( I          = I,                                 &
+                             J          = J,                                 &
+                             L          = L,                                 &
+                             Input_Opt  = Input_Opt,                         &
+                             State_Chm  = State_Chm,                         &
+                             State_Grid = State_Grid,                        &
+                             State_Met  = State_Met,                         &
+                             RC         = RC                                )
        ENDIF
-       
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Set_HetRates"!'
@@ -893,32 +903,25 @@ CONTAINS
        !====================================================================
        ! Get rates for heterogeneous chemistry
        !====================================================================
-        IF ( DO_HETCHEM ) THEN
-             DO N=1, nHg2gasSpc
+       IF ( DO_HETCHEM ) THEN
+          DO N=1, nHg2gasSpc
 
-                ! Get species id
-                SpcID = Map_Hg2gas(N)
+             ! Get species id
+             SpcID = Map_Hg2gas(N)
 
-                ! Get KPP species id
-                NN   = State_Chm%SpcData(SpcID)%Info%KppSpcId
+             ! Get KPP species id
+             NN   = State_Chm%SpcData(SpcID)%Info%KppSpcId
 
-                ! Set het rates
-                HET(NN,1) = HetRate ( I, J, L, N, 1 )
-                HET(NN,2) = HetRate ( I, J, L, N, 2 )
+             ! Set het rates
+             HET(NN,1) = HetRate ( I, J, L, N, 1 )
+             HET(NN,2) = HetRate ( I, J, L, N, 2 )
+          ENDDO
+       ENDIF
 
-!>>                if (hetrate(I,J,L,N,1) .gt. 0.) then
-!>>                   write(*,*) '<<>> HetRate: ', I,J,L, HetRate(I,J,L,N,1)
-!>>                   read(*,*)
-!>>                endif
-
-           ENDDO
-
-        ENDIF
-        
        ! Zero out dummy species index in KPP
        DO F = 1, NFAM
-         KppID = PL_Kpp_Id(F)
-         IF ( KppID > 0 ) C(KppID) = 0.0_dp
+          KppID = PL_Kpp_Id(F)
+          IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
        !==================================================================
@@ -1172,7 +1175,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-    
+
     ! Added for GTMM (ccc, 11/19/09)
     !USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
 !
@@ -4095,12 +4098,10 @@ END SUBROUTINE SeaSaltUptake
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
-    USE GCKPP_HetRates,     ONLY : Cld_Params
     USE GCKPP_HetRates,     ONLY : ARSL1K
     USE GCKPP_Global,       ONLY : State_Het
     USE CMN_FJX_MOD,        ONLY : ZPJ
     USE ERROR_MOD,          ONLY : SAFE_DIV
-
 
 !
 ! !INPUT PARAMETERS:
@@ -4126,127 +4127,89 @@ END SUBROUTINE SeaSaltUptake
 ! !LOCAL VARIABLES:
 !
 
-      ! Scalars
-      LOGICAL            :: prtDebug
-      CHARACTER(LEN=60)  :: Prefix             ! utility string
-      CHARACTER(LEN=255) :: ThisLoc            ! routine location
-      CHARACTER(LEN=255) :: ErrMsg             ! message
+    ! Scalars
+    LOGICAL            :: prtDebug
+    CHARACTER(LEN=60)  :: Prefix             ! utility string
+    CHARACTER(LEN=255) :: ThisLoc            ! routine location
+    CHARACTER(LEN=255) :: ErrMsg             ! message
 
 
-      INTEGER  :: N, SpcID
+    INTEGER  :: N, SpcID
 
-      ! Cloud parameters
-      Real(fp)         :: rLiq, ALiq, VLiq, CLDFr
-      Real(fp)         :: rIce, AIce, VIce, QICE, QLIQ
+    ! Cloud parameters
+    Real(fp)         :: rLiq, ALiq, VLiq, CLDFr
+    Real(fp)         :: rIce, AIce, VIce, QICE, QLIQ
 
-      ! Parameters for uptake rate calculation
-      Real(fp)         :: TEMPK, XDENA
-      Real(fp)         :: k_het, FracOA, MW
+    ! Parameters for uptake rate calculation
+    Real(fp)         :: TEMPK, XDENA
+    Real(fp)         :: k_het, FracOA, MW
 
-      ! Volume of air (cm3)
-      Real(fp)         :: VAir
+    ! Volume of air (cm3)
+    Real(fp)         :: VAir
 
-      ! Hg2 sticking coefficient
-      Real(fp), Parameter :: ALPHA_Hg2 = 0.1e+0_fp
+    ! Hg2 sticking coefficient
+    Real(fp), Parameter :: ALPHA_Hg2 = 0.1e+0_fp
 
-      ! Pointer to Species array
-      TYPE(Species), POINTER :: SpcInfo
+    !====================================================================
+    ! Set_Hetrates begins here!
+    !====================================================================
 
-      ! Initialize pointers
-      SpcInfo     => NULL()
+    ! Assume success
+    RC        = GC_SUCCESS
+    ErrMsg    = ''
+    ThisLoc   = ' -> at Set_HetRates (in GeosCore/mercury_mod.F90)'
 
-      !====================================================================
-      ! Set_Hetrates begins here!
-      !====================================================================
+    ! Copy values from Input_Opt
+    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-      ! Assume success
-      RC        = GC_SUCCESS
-      ErrMsg    = ''
-      ThisLoc   = ' -> at Set_HetRates (in GeosCore/mercury_mod.F90)'
+    ! Zero array
+    HetRate(I,J,L,:,:)   = 0e+0_fp
 
-      ! Copy values from Input_Opt
-      prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    !--------------------------------------------------------------------
+    ! Get fields from State_Met, State_Chm, and Input_Opt
+    !--------------------------------------------------------------------
 
-      ! Zero array
-      HetRate(I,J,L,:,:)   = 0e+0_fp
+    TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
+    XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
+    VAir   = State_Met%AIRVOL(I,J,L)*1.0e6_fp! Volume of air (cm3)
+    QICE   = State_Met%QI(I,J,L)             ! Ice   mix ratio [kg/kg dry air]
+    QLIQ   = State_Met%QL(I,J,L)             ! Water mix ratio [kg/kg dry air]
 
-      ! Loop over gridcells
-!<<>> MSL: Put this within the I,J,L integration loop inthe main routine
-!<<>>      setting I,J & L as inputs
-!>>!$OMP PARALLEL DO                                             &
-!>>!$OMP DEFAULT( SHARED )                                       &
-!>>!$OMP PRIVATE( I,       J,     L,     N, SpcID, SpcInfo     ) &
-!>>!$OMP PRIVATE( rLiq, ALiq,  VLiq, CLDFr, rIce,  AIce, VIce  ) &
-!>>!$OMP PRIVATE( QICE, QLIQ,  Vair, TEMPK, XDENA              ) &
-!>>!$OMP PRIVATE( MW,   k_het, FracOA                          )
-!
-!      DO L=1, State_Grid%NZ
-!      DO J=1, State_Grid%NY
-!      DO I=1, State_Grid%NX
+    !--------------------------------------------------------------------
+    ! Calculate heterogenous uptake of Hg2 gas in clouds
+    !--------------------------------------------------------------------
+
+    ! Get fraction of OA and make sure it is less than 1
+    FracOA = GLOB_fOA(I,J,L)
+    FracOA = MIN(FracOA, 1e+0_fp)
+
+    ! Loop over Hg2 gas species to calcuate uptake
+    DO N=1, nHg2gasSpc
+
+       ! Get species id
+       SpcID = Map_Hg2gas(N)
+
+       ! Get species molecular wt (acutal mol. wt)
+       MW = State_Chm%SpcData(SpcID)%Info%MW_g
+
+       !--------------------------------------------------------------------
+       ! Calculate uptake rate on clouds
+       !--------------------------------------------------------------------
+
+       ! Get cloud uptake rate [s-1]
+       k_het = CloudHet( alpha_Hg2, MW, &
+            State_Het%CldFr, &
+            State_Het%Aliq,  &
+            State_Het%rLiq, TempK, XDenA )
+
+       ! Save reaction rate to array
+       HetRate ( I,J,L,N,1 ) = k_het * FracOA                ! forming HgIIP(org)
+       HetRate ( I,J,L,N,2 ) = k_het * ( 1e+0_fp - FracOA )  ! forming HgIIP(inorg)
+
+    ENDDO
 
 
-          !--------------------------------------------------------------------
-          ! Get fields from State_Met, State_Chm, and Input_Opt
-          !--------------------------------------------------------------------
-
-          TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
-          XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
-          VAir   = State_Met%AIRVOL(I,J,L)*1.0e6_fp! Volume of air (cm3)
-          QICE   = State_Met%QI(I,J,L)             ! Ice   mix ratio [kg/kg dry air]
-          QLIQ   = State_Met%QL(I,J,L)             ! Water mix ratio [kg/kg dry air]
-
-          !--------------------------------------------------------------------
-          !  Calculate cloud parameters
-          !--------------------------------------------------------------------
-
-          ! Get cloud physical parameters
-          CALL Cld_Params( I, J, L, State_Het, State_Met )
-!          CALL Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, State_Met, &
-!                             rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce, CLDFr )
-
-
-          !--------------------------------------------------------------------
-          ! Calculate heterogenous uptake of Hg2 gas in clouds
-          !--------------------------------------------------------------------
-
-          ! Get fraction of OA and make sure it is less than 1
-          FracOA = GLOB_fOA(I,J,L)
-          FracOA = MIN(FracOA, 1e+0_fp)
-
-          ! Loop over Hg2 gas species to calcuate uptake
-          DO N=1, nHg2gasSpc
-
-            ! Get species id
-            SpcID = Map_Hg2gas(N)
-
-            ! Get species molecular wt (acutal mol. wt)
-            MW = State_Chm%SpcData(SpcID)%Info%MW_g
-
-            !--------------------------------------------------------------------
-            ! Calculate uptake rate on clouds
-            !--------------------------------------------------------------------
-
-            ! Get cloud uptake rate [s-1]
-            k_het = CloudHet( alpha_Hg2, MW, &
-                 State_Het%CldFr, &
-                 State_Het%Aliq,  &
-                 State_Het%rLiq, TempK, XDenA )
-
-            ! Save reaction rate to array
-            HetRate ( I,J,L,N,1 ) = k_het * FracOA                ! forming HgIIP(org)
-            HetRate ( I,J,L,N,2 ) = k_het * ( 1e+0_fp - FracOA )  ! forming HgIIP(inorg)
-
-          ENDDO
-
-!    ENDDO
-!    ENDDO
-!    ENDDO
-!!$OMP END PARALLEL DO
-
-! Free pointer memory
-SpcInfo => NULL()
-
-END SUBROUTINE Set_HetRates
+  END SUBROUTINE Set_HetRates
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6406,13 +6369,14 @@ END SUBROUTINE PARTITIONHG2
     USE ErrCode_Mod
     USE GcHg_Global
     USE GcHg_Parameters
-    USE GCKPP_Global,    ONLY : State_Het, TEMP_GCKPP => TEMP
-    USE Input_Opt_Mod,   ONLY : OptInput
-    USE PhysConstants,   ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
-    USE Pressure_Mod,    ONLY : Get_Pcenter
-    USE State_Chm_Mod,   ONLY : ChmState
-    USE State_Grid_Mod,  ONLY : GrdState
-    USE State_Met_Mod,   ONLY : MetState
+    USE GCKPP_Global,     ONLY : State_Het
+    USE Hg_HetStateFuncs, ONLY : Hg_SetStateHet
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE PhysConstants,    ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
+    USE Pressure_Mod,     ONLY : Get_Pcenter
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -6459,9 +6423,6 @@ END SUBROUTINE PARTITIONHG2
     ! Populate global variables in gckpp_Global.F90
     !========================================================================
 
-    ! Solar quantities
-!    SUNCOS          = State_Met%SUNCOSmid(I,J)
-
     ! Pressure and density quantities
     NUMDEN          = State_Met%AIRNUMDEN(I,J,L)
     H2O             = State_Met%AVGW(I,J,L) * NUMDEN
@@ -6469,7 +6430,7 @@ END SUBROUTINE PARTITIONHG2
 
     ! Temperature quantities
     TEMP            = State_Met%T(I,J,L)
-    TEMP_GCKPP      = TEMP ! Enables using gckpp_HetRates.F90
+    INV_TEMP        = 1.0_dp / TEMP
     TEMP_OVER_K300  = TEMP     / 300.0_dp
     K300_OVER_TEMP  = 300.0_dp / TEMP
     SR_TEMP         = SQRT( TEMP )
@@ -6479,19 +6440,24 @@ END SUBROUTINE PARTITIONHG2
     VPRESH2O        = CONSVAP * EXP( CONSEXP ) / TEMP
 
     !========================================================================
-    ! Populate fields of the HetState object in gckpp_Global
+    ! Populate variables in the HetChem state object
     !========================================================================
+    CALL Hg_SetStateHet(                                                     &
+         I         = I,                                                      &
+         J         = J,                                                      &
+         L         = L,                                                      &
+         Input_Opt = Input_Opt,                                              &
+         State_Chm = State_Chm,                                              &
+         State_Met = State_Met,                                              &
+         H         = State_Het,                                              &
+         RC        = RC                                                     )
 
-    ! Constants (so that we can use these within KPP)
-    State_Het%AVO            = AVO
-    State_Het%PI             = PI
-
-    ! Meteorology-related quantities
-    State_Het%CldFr          = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
-    State_Het%ClearFr        = 1.0_dp - State_Het%CldFr
-    State_Het%QICE           = State_Met%QI(I,J,L)
-    State_Het%QLIQ           = State_Met%QL(I,J,L)
-    State_Het%vAir           = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "fullchem_SetStateHet"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE Set_Kpp_GridBox_Values
 !EOC

@@ -49,7 +49,7 @@ fi
 if [ "x${1}" != "x" ]; then
     mechDir=${1}
     if [ ! -d "$mechDir" ]; then
-        echo "ERROR: Mechanism directory '${mechDir}' does not exist."
+        echo "ERROR: Mechanism directory ${mechDir} does not exist."
         exit 1
     fi
 else
@@ -60,6 +60,10 @@ fi
 #============================================================================
 # Remove prior files that have been built with KPP
 # while leaving those files containing the chemistry mechanism specification
+#
+# NOTE: KPP-generated source code files for GEOS-Chem will have the
+# prefix "gckpp".  This is necessary because a consistent naming scheme
+# needs to used so that modules in GeosCore etc. can find KPP code.
 #============================================================================
 cd ${mechDir}
 
@@ -74,25 +78,22 @@ if [[ "x${mechName}" == "x" ]]; then
     exit 1
 fi
 
-# Prefix for files
-mechPrefix="gckpp"
-
 # Remove these files, which will be will be regnerated by KPP
 filesToRemove=(                     \
-    ${mechPrefix}.map               \
-    ${mechPrefix}_Function.F90      \
-    ${mechPrefix}_Global.F90        \
-    ${mechPrefix}_Initialize.F90    \
-    ${mechPrefix}_Integrator.F90    \
-    ${mechPrefix}_Jacobian.F90      \
-    ${mechPrefix}_JacobianSP.F90    \
-    ${mechPrefix}_LinearAlgebra.F90 \
-    ${mechPrefix}_Model.F90         \
-    ${mechPrefix}_Monitor.F90       \
-    ${mechPrefix}_Parameters.F90    \
-    ${mechPrefix}_Precision.F90     \
-    ${mechPrefix}_Rates.F90         \
-    ${mechPrefix}_Util.F90          \
+    gckpp.map               \
+    gckpp_Function.F90      \
+    gckpp_Global.F90        \
+    gckpp_Initialize.F90    \
+    gckpp_Integrator.F90    \
+    gckpp_Jacobian.F90      \
+    gckpp_JacobianSP.F90    \
+    gckpp_LinearAlgebra.F90 \
+    gckpp_Model.F90         \
+    gckpp_Monitor.F90       \
+    gckpp_Parameters.F90    \
+    gckpp_Precision.F90     \
+    gckpp_Rates.F90         \
+    gckpp_Util.F90          \
 )
 for f in ${filesToRemove[@]}; do 
     rm -f $f
@@ -104,19 +105,19 @@ rm -f *.o *.mod *.a
 #============================================================================
 # Build the mechanism!
 #============================================================================
-if [[ -f ${mechPrefix}.kpp ]]; then
-    kpp ${mechPrefix}.kpp
+if [[ -f gckpp.kpp ]]; then
+    kpp gckpp.kpp
 else
-    echo "Could not find the ${mechPrefix}.kpp file... Aborting!"
+    echo "Could not find the 'gckpp.kpp' file... Aborting!"
     exit 1
 fi
 
 # Remove the GNU Makefile (not needed, since we use CMake)
-[[ -f Makefile_${mechPrefix} ]] && rm -f Makefile_${mechPrefix}
+[[ -f Makefile_gckpp ]] && rm -f Makefile_gckpp
 
 # If the gckpp_Rates.F90 file is not found, there was an error
-if [[ ! -f ${mechPrefix}_Rates.F90 ]]; then
-  echo "KPP failed to build ${mechPrefix}_Rates.F90! Aborting."
+if [[ ! -f gckpp_Rates.F90 ]]; then
+  echo "KPP failed to build 'gckpp_Rates.F90'! Aborting."
   exit 1
 fi
 
@@ -130,7 +131,7 @@ fi
 #============================================================================
 line1="         write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'I2O3"
 line2="         write(6,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'"
-sed -i -e "s|${line1}|${line2}|" ${mechPrefix}_Rates.F90
+sed -i -e "s|${line1}|${line2}|" gckpp_Rates.F90
 
 #============================================================================
 # Run python parser OHreactParser.py. This will create fortran code

@@ -33,306 +33,8 @@ CONTAINS
 ! Begin INLINED Rate Law Functions
 
 
-  REAL(kind=dp) FUNCTION OH_O1D (J, H2O, TEMP, NUMDEN)
-  REAL*8 J, H2O, TEMP, NUMDEN
-  REAL*8 K1, K2, K3
-  REAL*8 N2, O2
-
-  N2=0.79d0
-  O2=0.21d0
-
-  K1=1.63d-10*exp(60d0/TEMP)
-  K2=2.15d-11*exp(110d0/TEMP)
-  K3=3.30d-11*exp(55d0/TEMP)
-
-  OH_O1D=J*K1*H2O/(K1*H2O+K2*N2*NUMDEN+K3*O2*NUMDEN)
-  END FUNCTION OH_O1D
-
-  REAL(kind=dp) FUNCTION HO2_H2O(H2O,TEMP)
-  REAL*8 TEMP, H2O
-  HO2_H2O=1+1.4D-21*H2O*EXP(2200/TEMP)
-  END FUNCTION HO2_H2O
-
-
-  REAL(kind=dp) FUNCTION GCARR( A0,B0,C0 )
-      REAL A0,B0,C0
-      GCARR =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-  END FUNCTION GCARR
-
-  REAL(kind=dp) FUNCTION GCARR2( A0,B0,C0 )
- ! Low-pressure limit rate coefficient for a
- ! three-body reaction
-      REAL A0,B0,C0
-      GCARR2 =  GCARR( A0,B0,C0 )*NUMDEN
-  END FUNCTION GCARR2
-
-
-  REAL(kind=dp) FUNCTION GC_HO2NO3( A0,B0,C0,A1,B1,C1 )
-      REAL A0,B0,C0,A1,B1,C1
-      REAL(kind=dp) :: R0,R1
-      R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-      R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-      GC_HO2NO3 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
-                   EXP(2200.E+0_dp/TEMP))
-  END FUNCTION GC_HO2NO3
-
-  REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
-! Temperature Dependent Branching Ratio
-      REAL A0,B0,C0,A1,B1,C1
-      REAL(kind=dp) :: R0,R1
-      R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-      R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-      GC_TBRANCH = R0/(1.D0+R1)
-
-  END FUNCTION GC_TBRANCH
-
-  REAL(kind=dp) FUNCTION GC_RO2HO2( A0,B0,C0,A1,B1,C1 )
-! Carbon Dependence of RO2+HO2
-      REAL A0,B0,C0,A1,B1,C1
-      REAL(kind=dp) :: R0,R1
-      R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-      R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-      GC_RO2HO2 = R0*(1E0-EXP(-0.245E0*R1))
-
-  END FUNCTION GC_RO2HO2
-
-  REAL(kind=dp) FUNCTION GC_DMSOH( A0,B0,C0,A1,B1,C1 )
-! DMS+OH+O2
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-!    GC_DMSOH = R0/(1e0_dp+R1*0.2095e0_dp)
-    GC_DMSOH = (R0*NUMDEN*0.2095e0_dp)/(1e0_dp+R1*0.2095e0_dp)
-
-  END FUNCTION GC_DMSOH
-
-  REAL(kind=dp) FUNCTION GC_GLYXNO3( A0,B0,C0 )
-! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) --- HO2+2*CO branch of GLYX+OH/NO3
-    REAL A0,B0,C0
-    REAL(kind=dp) R0
-    REAL(kind=dp) O2
-
-    O2 = NUMDEN*0.2095e0_dp
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    GC_GLYXNO3 = R0*(O2+3.5E+18_dp)/(2.E+0_dp*O2+3.5E+18_dp)
-
-  END FUNCTION GC_GLYXNO3
-
-  REAL(kind=dp) FUNCTION GC_OHHNO3( A0,B0,C0,A1,B1,C1,A2,B2,C2 )
-! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
-    REAL A0,B0,C0,A1,B1,C1,A2,B2,C2
-    REAL(kind=dp) R0,R1,R2
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-    R2 =  NUMDEN*(DBLE(A2) * EXP(DBLE(C2)/TEMP) * (300._dp/TEMP)**DBLE(B2))
-    GC_OHHNO3 = R0 + R2/(1.E0_dp + R2/R1)
-
-  END FUNCTION GC_OHHNO3
-
-  REAL(kind=dp) FUNCTION GC_GLYCOHA( A0,B0,C0 )
-!
-    REAL A0,B0,C0,R0,GLYC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
-    IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
-    GC_GLYCOHA=R0*GLYC_FRAC
-
-  END FUNCTION GC_GLYCOHA
-
-  REAL(kind=dp) FUNCTION GC_GLYCOHB( A0,B0,C0 )
-!
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,GLYC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    GLYC_FRAC=1e+0_dp-11.0729e+0_dp*EXP(-(1._dp/73._dp)*TEMP)
-    IF (GLYC_FRAC<0e+0_dp) GLYC_FRAC=0e+0_dp
-    GC_GLYCOHB=R0*(1e0_dp-GLYC_FRAC)
-
-  END FUNCTION GC_GLYCOHB
-
-  REAL(kind=dp) FUNCTION GC_HACOHA( A0,B0,C0 )
-!
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,HAC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
-    IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
-    GC_HACOHA=R0*HAC_FRAC
-
-  END FUNCTION GC_HACOHA
-
-  REAL(kind=dp) FUNCTION GC_HACOHB( A0,B0,C0 )
-!
-    REAL A0,B0,C0
-    REAL(kind=dp) :: R0,HAC_FRAC
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    HAC_FRAC=1e+0_dp-23.7e+0_dp*EXP(-(1._dp/60._dp)*TEMP)
-    IF (HAC_FRAC<0e+0_dp) HAC_FRAC=0e+0_dp
-    GC_HACOHB=R0*(1.E0_dp-HAC_FRAC)
-
-  END FUNCTION GC_HACOHB
-
-  REAL(kind=dp) FUNCTION GC_OHCO( A0,B0,C0 )
-
-    REAL A0,B0,C0,R0
-    REAL KLO1,KLO2,KHI1,KHI2,XYRAT1,XYRAT2,BLOG1,BLOG2,FEXP1,FEXP2
-    REAL KCO1,KCO2,KCO
-
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R0 = R0 * (1.E+0_dp + 0.6e+0_dp*9.871E7_dp*PRESS)
-
-    ! new OH+CO rate from JPL2006.
-    KLO1=5.9E-33_dp*(300._dp/TEMP)**(1.E+0_dp)
-    KHI1=1.1E-12_dp*(300._dp/TEMP)**(-1.3E0_dp)
-    XYRAT1=KLO1*NUMDEN/KHI1
-    BLOG1=LOG10(XYRAT1)
-    FEXP1=1.E+0_dp/(1.E+0_dp+BLOG1*BLOG1)
-    KCO1=KLO1*NUMDEN*0.6**FEXP1/(1.e+0_dp+XYRAT1)
-    KLO2=1.5E-13_dp*(300._dp/TEMP)**(0.E+0_dp)
-    KHI2=2.1e+09_dp *(300._dp/TEMP)**(-6.1E+0_dp)
-    XYRAT2=KLO2*NUMDEN/KHI2
-    BLOG2=LOG10(XYRAT2)
-    FEXP2=1.E+0_dp/(1.E+0_dp+BLOG2*BLOG2)
-    KCO2=KLO2*0.6**FEXP2/(1.e+0_dp+XYRAT2)
-    KCO=KCO1+KCO2
-    GC_OHCO=KCO
-
-  END FUNCTION GC_OHCO
-
-  REAL(kind=dp) FUNCTION GC_RO2NO( B,A0,B0,C0,A1,B1,C1 )
-    ! ---  K = K1*(1-FYRNO3(K2,M,T))  ---  abstraction branch of RO2+NO
-    CHARACTER(*) B !Branch Toggle
-    REAL A0,B0,C0,A1,B1,C1
-    REAL(kind=dp) :: R0,R1
-    REAL(kind=dp) :: YYYN, XXYN,  AAA,  RARB, ZZYN
-    REAL(kind=dp) :: XF, ALPHA, Y300, BETA, XMINF, XM0
-    REAL(kind=dp) :: FYRNO3
-    Y300 = 0.826
-    ALPHA= 1.94e-22
-    BETA = 0.97
-    XM0  = 0.
-    XMINF= 8.1
-    XF   = 0.411
-
-    R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
-    R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
-
-    ! Initialize static variables
-
-    XXYN   = ALPHA*EXP(BETA*R1)*NUMDEN*((300./TEMP)**XM0)
-    YYYN   = Y300*((300./TEMP)**XMINF)
-    AAA    = LOG10(XXYN/YYYN)
-    ZZYN   = 1./(1.+ AAA*AAA )
-    RARB   = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
-    FYRNO3 = RARB/(1. + RARB)
-    IF (trim(B) .eq. 'A') THEN
-       GC_RO2NO     = R0 * FYRNO3
-    ELSEIF (trim(B) .eq. 'B') THEN
-       GC_RO2NO     = R0 * (1.E+0_dp - FYRNO3)
-    ENDIF
-
-  END FUNCTION GC_RO2NO
-
-  REAL(kind=dp) FUNCTION GCJPL3( k0_300, n, ki_300, m)
-!  Functions given in JPL Booklet
-      REAL k0_300, n, ki_300,m
-      REAL k0, ki
-
-      k0=k0_300*((TEMP/300.d0)**(-n))
-      ki=ki_300*((TEMP/300.d0)**(-m))
-
-!      GCJPL3=(k0*NUMDEN)/(1+k0*NUMDEN/ki)*0.6** &
-!	((1+((LOG10(k0*NUMDEN/ki))**2d0)**-1.0d0))
-      GCJPL3=(k0/(1.d0+k0/(ki/NUMDEN)))*0.6** &
-        ((1+((log10(k0/(ki/NUMDEN)))**2d0)**1.0e0))
-      GCJPL3=GCJPL3*NUMDEN
-  END FUNCTION GCJPL3
-
-  REAL(kind=dp) FUNCTION GCJPLEQ( A0,B0,C0,A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2 )
- ! Function calculates the rate constant of the forward reaction
- ! calculates the equilibrium constant
- ! Find the backwards reaction by K=kforward/kbackwards
-       REAL A0,B0,C0,A1,B1,C1
-       REAL(kind=dp) :: R0,R1
-       REAL, OPTIONAL :: A2,B2,C2,FV,FCT1,FCT2 !If a P-dependent rxn
-
-       ! Calculate Backwards reaction
-       R0 = GCARR( A0,B0,C0 )
-
-       ! Calculate forwards reaction
-       IF (present(A2)) THEN ! P-dependent
-          IF (present(B2) .and. present(C2) .and. present(FV) &
-                          .and. present(FCT1) .and. present(FCT2)) THEN
-	     R1 = GCJPLPR( A1,B1,C1,A2,B2,C2,FV,FCT1,FCT2)
-          ELSE ! Missing params!
-	     write(*,'(a)') 'GCJPLEQ: Missing parameters for P-dependent reaction.'
-	     write(*,'(a)') 'GCJPLEQ: Returning zero'
-	     GCJPLEQ = 0.E0
-	     RETURN
-	  ENDIF
-       ELSE
-          R1 = gcarr( A1,B1,C1 ) !Std. Arrhenius eqn.
-       ENDIF
-
-       GCJPLEQ=R1/R0
-  END FUNCTION GCJPLEQ
-
-  REAL(kind=dp) FUNCTION GCJPLPR(A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2)
-! * PRESSURE-DEPENDENT EFFECTS
-! * ADD THE THIRD BODY EFFECT FOR PRESSURE DEPENDENCE OF RATE
-! * COEFFICIENTS.
-! A0 B0, & C0 are the Arrhenius parameters for the lower-limit
-! rate. A1, B1 & C1 are the upper-limit parameters.
-! FV is the falloff curve paramter, (SEE ATKINSON ET. AL (1992)
-! J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6
-!
-       REAL A0,B0,C0,A1,B1,C1,FV,FCT1,FCT2
-       REAL FCT,XYRAT,BLOG,RLOW,RHIGH,FEXP
-
-       RLOW  = GCARR( A0,B0,C0 )*NUMDEN
-       RHIGH = GCARR( A1,B1,C1 )
-
-       IF     (FCT2.NE.0.) THEN
-             FCT            = EXP(-TEMP / FCT1) + EXP(-FCT2 / TEMP)
-             XYRAT          = RLOW/RHIGH
-             BLOG           = LOG10(XYRAT)
-             FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT)
-       ELSEIF (FCT1.NE.0.) THEN
-             FCT            = EXP(-TEMP / FCT1)
-             XYRAT          = RLOW/RHIGH
-             BLOG           = LOG10(XYRAT)
-             FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FCT**FEXP/(1e+0_dp+XYRAT)
-       ELSE
-             XYRAT          = RLOW/RHIGH
-             BLOG           = LOG10(XYRAT)
-             FEXP           = 1.e+0_dp / (1.e+0_dp + BLOG * BLOG)
-             GCJPLPR        = RLOW*FV**FEXP/(1e+0_dp+XYRAT)
-       ENDIF
-
-
-  END FUNCTION GCJPLPR
-
-  REAL(kind=dp) FUNCTION GCIUPAC3(ko_300,n,ki_300,m,Fc)
-! Function calcualtes the rate constant of 3 body reaction using IUPAC
-! methology
-  REAL ko_300,n,ki_300,m,Fc
-  REAL ko, ki, F, NN
-
-  ko=ko_300*((TEMP/300.e0)**n)*NUMDEN
-  ki=ki_300*((TEMP/300.e0)**m)
-
-  NN=0.75-1.27*LOG10(Fc)
-  F=10.0**(LOG10(Fc)/(1.0e0+(LOG10(ko/ki)/NN)**2.0))
-
-  GCIUPAC3=ko/(1+ko/ki)*F
-  END FUNCTION GCIUPAC3
-
+  ! All rates are included in Hg_RateLawFuncs.F90, which
+  ! gets referenced directly from subroutine Update_Rconst.
 
 ! End INLINED Rate Law Functions
 
@@ -351,10 +53,17 @@ SUBROUTINE Update_RCONST ( )
 ! Begin INLINED RCONST
 
 
+  ! Inline an include file containing rate law definitions, which
+  ! will be inserted directly into subroutine Update_Rconst().
+  ! This is necessary as a workaround for KPP not being able to
+  ! include very large files ( > 200000 chars) directly.
+  !  -- Bob Yantosca (09 Dec 2021)
+  USE Hg_RateLawFuncs
+
 ! End INLINED RCONST
 
-  RCONST(1) = (GCARR2(1.46E-32,1.86,0.0))
-  RCONST(2) = (GCARR2(1.6E-9,1.86,-7801.0))
+  RCONST(1) = (GC_ARR2(1.46E-32,1.86,0.0))
+  RCONST(2) = (GC_ARR2(1.6E-9,1.86,-7801.0))
 ! RCONST(3) = constant rate coefficient
 ! RCONST(4) = constant rate coefficient
   RCONST(5) = (GCJPLPR(4.3E-30,5.9,0.0,1.2E-10,1.90,0.0,0.6,0.0,0.0))
@@ -363,10 +72,10 @@ SUBROUTINE Update_RCONST ( )
   RCONST(8) = (GCJPLPR(4.3E-30,5.9,0.0,6.9E-11,2.40,0.0,0.6,0.0,0.0))
   RCONST(9) = (GCJPLPR(4.3E-30,5.9,0.0,6.9E-11,2.40,0.0,0.6,0.0,0.0))
 ! RCONST(10) = constant rate coefficient
-  RCONST(11) = (GCARR(4.1E-12,0.0,-856.0))
-  RCONST(12) = (GCARR(6.0E-11,0.0,-550.0))
+  RCONST(11) = (GC_ARR(4.1E-12,0.0,-856.0))
+  RCONST(12) = (GC_ARR(6.0E-11,0.0,-550.0))
 ! RCONST(13) = constant rate coefficient
-  RCONST(14) = (GCARR2(2.25E-33,0.0,680.0))
+  RCONST(14) = (GC_ARR2(2.25E-33,0.0,680.0))
 ! RCONST(15) = constant rate coefficient
 ! RCONST(16) = constant rate coefficient
   RCONST(17) = (GCJPLPR(4.3E-30,5.9,0.0,1.2E-10,1.90,0.0,0.6,0.0,0.0))
@@ -376,10 +85,10 @@ SUBROUTINE Update_RCONST ( )
 ! RCONST(21) = constant rate coefficient
 ! RCONST(22) = constant rate coefficient
 ! RCONST(23) = constant rate coefficient
-  RCONST(24) = (GCARR(4.1E-12,0.0,-856.0))
-  RCONST(25) = (GCARR(6.0E-11,0.0,-550.0))
-  RCONST(26) = (GCARR2(3.34E-33,0.0,43.0))
-  RCONST(27) = (GCARR2(1.22E-9,0.0,-5720.0))
+  RCONST(24) = (GC_ARR(4.1E-12,0.0,-856.0))
+  RCONST(25) = (GC_ARR(6.0E-11,0.0,-550.0))
+  RCONST(26) = (GC_ARR2(3.34E-33,0.0,43.0))
+  RCONST(27) = (GC_ARR2(1.22E-9,0.0,-5720.0))
   RCONST(28) = (GCJPLPR(4.1E-30,5.9,0.0,1.2E-10,1.90,0.0,0.6,0.0,0.0))
   RCONST(29) = (GCJPLPR(4.1E-30,5.9,0.0,6.9E-11,2.40,0.0,0.6,0.0,0.0))
   RCONST(30) = (GCJPLPR(4.1E-30,5.9,0.0,6.9E-11,2.40,0.0,0.6,0.0,0.0))
@@ -387,8 +96,8 @@ SUBROUTINE Update_RCONST ( )
   RCONST(32) = (GCJPLPR(4.1E-30,5.9,0.0,6.9E-11,2.40,0.0,0.6,0.0,0.0))
   RCONST(33) = (GCJPLPR(4.1E-30,5.9,0.0,6.9E-11,2.40,0.0,0.6,0.0,0.0))
 ! RCONST(34) = constant rate coefficient
-  RCONST(35) = (GCARR(4.1E-12,0.0,-856.0))
-  RCONST(36) = (GCARR(6.0E-11,0.0,-550.0))
+  RCONST(35) = (GC_ARR(4.1E-12,0.0,-856.0))
+  RCONST(36) = (GC_ARR(6.0E-11,0.0,-550.0))
   RCONST(37) = (HET(ind_HGBRNO2,1))
   RCONST(38) = (HET(ind_HGBRHO2,1))
   RCONST(39) = (HET(ind_HGBROH,1))
