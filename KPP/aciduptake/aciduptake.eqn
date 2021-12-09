@@ -521,19 +521,14 @@ HNO3 + SALCAL       = NITs          : K_MT(6);
 
 // Cloud
 // S(IV) --> S(VI)
-SO2 + H2O2        = SO4             : K_CLD(1);
-SO2 + O3          = SO4             : K_CLD(2);
-SO2 {+O2}         = SO4             : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
-//----------------------------------------------------------------------------
-// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-// %%%%% HMS chemistry reactions                                         %%%%%
-// %%%%% Activate these later, so that they can be tested separately     %%%%%
-// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+SO2 + H2O2          = SO4           : K_CLD(1);
+SO2 + O3            = SO4           : K_CLD(2);
+SO2 {+O2}           = SO4           : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
-//CH2O + SO2        = HMS             : K_CLD(4);    {Sep 2021; Moch2020; MSL}
-//HMS               = SO2 + CH2O      : K_CLD(5);    {Sep 2021; Moch2020; MSL}
-//HMS + OH          = 2SO4 + CH2O     : K_CLD(6);    {Sep 2021; Moch2020; MSL}
-//----------------------------------------------------------------------------
+//HMS
+CH2O + SO2          = HMS           : K_CLD(4);    {Sep 2021; Moch2020; MSL}
+HMS                 = SO2 + CH2O    : K_CLD(5);    {Sep 2021; Moch2020; MSL}
+HMS + OH            = 2SO4 + CH2O   : K_CLD(6);    {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Gas-phase chemistry reactions                                   %%%%%
@@ -1446,39 +1441,39 @@ ETHP + OH = ETOO :                           GCARR_abc(1.90d-12, 0.0d+00, 190.0d
 ETHP + OH = OH + GLYC :                      1.38d-11;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
 //
 // --- Aromatic Chemistry (per KHB)
-BENZ + OH = BRO2 + 0.54PHEN + 0.54HO2 + 
- 0.46AROMRO2 + 0.18GLYX + 0.2CO + 
+BENZ + OH = BRO2 + 0.54PHEN + 0.54HO2 +
+ 0.46AROMRO2 + 0.18GLYX + 0.2CO +
  0.56AROMP4 :                                GCARR_abc(2.3d-12, 0.0d0, -193.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
-TOLU + OH = TRO2 + 0.19CSL + 0.19HO2 + 
- 0.81AROMRO2 + 0.06BALD + 0.12GLYX + 
- 0.12MGLY + 0.27CO + 0.04MVK + 0.3AROMP5 + 
+TOLU + OH = TRO2 + 0.19CSL + 0.19HO2 +
+ 0.81AROMRO2 + 0.06BALD + 0.12GLYX +
+ 0.12MGLY + 0.27CO + 0.04MVK + 0.3AROMP5 +
  0.68AROMP4 :                                GCARR_abc(1.8d-12, 0.0d0, 340.0d0);                                               {2021/09/29; Bates2021b; KHB,MSL}
-XYLE + OH = XRO2 + 0.15CSL + 0.15HO2 + 
- 0.85AROMRO2 + 0.06BALD + 0.1GLYX + 
- 0.2MGLY + 0.3CO + 0.04MVK + 0.56AROMP5 + 
+XYLE + OH = XRO2 + 0.15CSL + 0.15HO2 +
+ 0.85AROMRO2 + 0.06BALD + 0.1GLYX +
+ 0.2MGLY + 0.3CO + 0.04MVK + 0.56AROMP5 +
  0.28AROMP4 + 0.45RCOOH :                    1.7d-11 ;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
 AROMRO2 + HO2 = OH + HO2 :                   2.91d-13 * EXP( 1300.0d0 / TEMP ) * 0.82d0;                                       {2021/09/29; Bates2021b; KHB,MSL}
 AROMRO2 + NO = NO2 + HO2 :                   GCARR_abc(2.60d-12, 0.0d+00, 365.0d0);                                            {2021/09/29; Bates2021b; KHB,MSL}
 AROMRO2 + NO3 = NO2 + HO2 :                  2.30d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
 AROMRO2 + MO2 = CH2O + HO2 + HO2 :           GCARR_abc(1.70d-14, 0.0d0, 220.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 AROMRO2 + MCO3 = MO2 + HO2 :                 GCARR_abc(4.20d-14, 0.0d0, 220.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
-PHEN + OH = 0.06BENZO + 0.06GLYX + 
- 0.18AROMP4 + 0.14AROMRO2 + 
+PHEN + OH = 0.06BENZO + 0.06GLYX +
+ 0.18AROMP4 + 0.14AROMRO2 +
  0.8MCT + 0.8HO2 :                           GCARR_abc(4.70d-13, 0.0d0, 1220.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
-PHEN + NO3 = 0.258NPHEN + 0.742HNO3 + 
+PHEN + NO3 = 0.258NPHEN + 0.742HNO3 +
  0.742BENZO :                                3.8d-12;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-CSL + OH = 0.727MCT + 0.727HO2 + 
+CSL + OH = 0.727MCT + 0.727HO2 +
  0.2AROMRO2 + 0.073BENZO + 0.44AROMP5 :      4.7d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-CSL + NO3 = 0.5NPHEN + 0.2AROMRO2 + 
+CSL + NO3 = 0.5NPHEN + 0.2AROMRO2 +
  0.5HNO3 + 0.3BENZO + 0.44AROMP5 :           1.4d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-MCT + OH = 0.3BENZO + 0.7AROMRO2 + 
+MCT + OH = 0.3BENZO + 0.7AROMRO2 +
  1.05AROMP4 :                                2.0d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
 MCT + O3 = GLYC + HO2 + OH + AROMP4 :        9.2d-18;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-MCT + NO3 = 0.5NPHEN + 0.5HNO3 + 
+MCT + NO3 = 0.5NPHEN + 0.5HNO3 +
  0.3BENZO + 0.2AROMRO2 + 0.3AROMP4 :         9.9d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
 BALD + OH = BZCO3 :                          GCARR_abc(5.90d-12, 0.0d0, 225.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 BALD + NO3 = BZCO3 + HNO3 :                  2.4d-15;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-BZCO3 + HO2 = 0.35CO2 + 0.2BENZO2 + 
+BZCO3 + HO2 = 0.35CO2 + 0.2BENZO2 +
  0.15O3 + 0.2OH + 0.15BENZP + 0.65BZCO3H :   GCARR_abc(1.10d-11, 0.0d0, 340.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 BZCO3 + NO = NO2 + CO2 + BENZO2 :            GCARR_abc(7.50d-12, 0.0d0, 290.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 BZCO3 + NO2 = BZPAN :                        GC_PAN_acac(3.28d-28, -6.87d0, 1.125d-11, -1.105d0, 0.3d0);                       {2021/09/29; Bates2021b; KHB,MSL}
@@ -1493,37 +1488,37 @@ BENZP + OH = BENZO2 :                        3.60d-12;                          
 BENZO + O3 = BENZO2 :                        2.86d-13;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
 BENZO + NO2 = NPHEN :                        2.08d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
 NPHEN + OH = 0.5R4N1 + AROMP4 + 0.5NO2 :     3.47d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
-NPHEN + NO3 = 0.5HNO3 + 
+NPHEN + NO3 = 0.5HNO3 +
  NO2 + 0.5R4N1 + AROMP4 :                    2.60D-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
 BENZO2 + MO2 = BENZO + HO2 + CH2O :          GCARR_abc(2.670d-13, 0.0d0, 365.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
 BZCO3 + MO2 = BENZO2 + CO2 + HO2 + CH2O :    GCARR_abc(2.670d-12, 0.0d0, 365.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
-AROMP4 + OH = 0.6GLYX + 0.25CO + 0.25HCOOH + 
+AROMP4 + OH = 0.6GLYX + 0.25CO + 0.25HCOOH +
  0.25OH + 0.33HO2 + 0.33RCO3 + 0.45RCOOH :   5.0d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-AROMP4 + O3 = 0.5HCOOH + 0.5CO + 0.6GLYX + 
+AROMP4 + O3 = 0.5HCOOH + 0.5CO + 0.6GLYX +
  0.9GLYC + 0.1HO2 + 0.1OH :                  8.0d-16;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
 AROMP4 = 0.2HO2 + 0.2GLYX + 1.2RCHO :        1.5d-3;                                                                           {2021/09/29; Bates2021b; KHB,MSL}
-AROMP5 + OH = 0.6MGLY + 0.15ACTA + 
- 0.1HCOOH + 0.25OH + 0.33HO2 + 
+AROMP5 + OH = 0.6MGLY + 0.15ACTA +
+ 0.1HCOOH + 0.25OH + 0.33HO2 +
  0.33RCO3 + 0.25CO + 0.52RCOOH :             5.0d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-AROMP5 + O3 = 0.6MGLY + 0.3ACTA + 0.2HCOOH + 
+AROMP5 + O3 = 0.6MGLY + 0.3ACTA + 0.2HCOOH +
  0.5CO + 0.95GLYC + 0.1HO2 + 0.1OH :         8.0d-16;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
-AROMP5 = 0.2HO2 + 0.2R4O2 + 
- 0.2MGLY + 1.2RCHO :                         1.5d-3;                                                                           {2021/09/29; Bates2021b; KHB,MSL} 
+AROMP5 = 0.2HO2 + 0.2R4O2 +
+ 0.2MGLY + 1.2RCHO :                         1.5d-3;                                                                           {2021/09/29; Bates2021b; KHB,MSL}
 //
-// KHB -- "we still need to include the dummy species for aromatic oxidation 
+// KHB -- "we still need to include the dummy species for aromatic oxidation
 //         to make the complex SOA code work. Hopefully this will be changed
-//         very soon when Jared Brewer updates the aromatic SOA, but I think it's 
+//         very soon when Jared Brewer updates the aromatic SOA, but I think it's
 //         still necessary, in which case, we need to add the following reactions too.
-//         (If I'm wrong, we can delete XRO2, TRO2, BRO2, LXRO2N, LXRO2H, 
-//         LTRO2N, LTRO2H, LBRO2N, and LBRO2H from the species list, delete 
-//         XRO2, TRO2, and BRO2 as products from the BENZ + OH, TOLU + OH, 
+//         (If I'm wrong, we can delete XRO2, TRO2, BRO2, LXRO2N, LXRO2H,
+//         LTRO2N, LTRO2H, LBRO2N, and LBRO2H from the species list, delete
+//         XRO2, TRO2, and BRO2 as products from the BENZ + OH, TOLU + OH,
 //         and XYLE + OH reactions above, and not include the following reactions)"
 //
 BRO2 + HO2 = HO2 + LBRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
-BRO2 + NO  = NO + LBRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL} 
-TRO2 + HO2 = HO2 + LTRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL} 
-TRO2 + NO  = NO + LTRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL} 
-XRO2 + HO2 = HO2 + LXRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL} 
+BRO2 + NO  = NO + LBRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+TRO2 + HO2 = HO2 + LTRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+TRO2 + NO  = NO + LTRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+XRO2 + HO2 = HO2 + LXRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 XRO2 + NO  = NO + LXRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1831,5 +1826,5 @@ ETHP + hv = ETO + OH :                       PHOTOL(162);    {2021/09/22; KHB}
 BALD + hv = BENZO2 + CO + HO2 :              PHOTOL(163);    {2021/09/29; Bates2021b; KHB,MSL}
 BZCO3H + hv = BENZO2 + OH + CO2 :            PHOTOL(164);    {2021/09/29; Bates2021b; KHB,MSL}
 BENZP + hv = BENZO :                         PHOTOL(165);    {2021/09/29; Bates2021b; KHB,MSL}
-NPHEN + hv = HNO2 + CO + 
+NPHEN + hv = HNO2 + CO +
  CO2 + AROMP4 + HO2 :                        PHOTOL(166);    {2021/09/29; Bates2021b; KHB,MSL}

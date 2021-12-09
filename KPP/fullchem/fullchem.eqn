@@ -476,7 +476,6 @@ RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 #EQUATIONS
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Reactions extracted from sulfate_mod.F90 (MSL, BMY)             %%%%%
-// %%%%% Activate these later, comment out for now (bmy, 9/22/21)        %%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 // Seasalt
@@ -489,16 +488,14 @@ HNO3 + SALCAL       = NITs          : K_MT(6);
 //
 // Cloud
 // S(IV) --> S(VI)
-SO2 + H2O2        = SO4             : K_CLD(1);
-SO2 + O3          = SO4             : K_CLD(2);
-SO2 {+O2}         = SO4             : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
-//----------------------------------------------------------------------------
+SO2 + H2O2          = SO4           : K_CLD(1);
+SO2 + O3            = SO4           : K_CLD(2);
+SO2 {+O2}           = SO4           : K_CLD(3);  {Mn & Fe catalysis + HET_DROP_CHEM()}
+//
 // HMS
-// %%%%% Activate these later, so that they can be tested separately %%%%%
-//CH2O + SO2        = HMS             : K_CLD(4);    {Sep 2021; Moch2020; MSL}
-//HMS               = SO2 + CH2O      : K_CLD(5);    {Sep 2021; Moch2020; MSL}
-//HMS + OH          = 2SO4 + CH2O     : K_CLD(6);    {Sep 2021; Moch2020; MSL}
-//----------------------------------------------------------------------------
+CH2O + SO2          = HMS           : K_CLD(4);  {Sep 2021; Moch2020; MSL}
+HMS                 = SO2 + CH2O    : K_CLD(5);  {Sep 2021; Moch2020; MSL}
+HMS + OH            = 2SO4 + CH2O   : K_CLD(6);  {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Gas-phase chemistry reactions                                   %%%%%
