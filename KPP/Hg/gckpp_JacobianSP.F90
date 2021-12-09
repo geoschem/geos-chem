@@ -12,15 +12,15 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_JacobianSP.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_JacobianSP.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_JacobianSP
+MODULE gckpp_JacobianSP
 
   PUBLIC
   SAVE
@@ -68,5 +68,5 @@ MODULE gcHg_JacobianSP
      121,128,136,137 /)
 
 
-END MODULE gcHg_JacobianSP
+END MODULE gckpp_JacobianSP
 

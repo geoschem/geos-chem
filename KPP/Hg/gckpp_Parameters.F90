@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Parameters.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Parameters.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_Parameters
+MODULE gckpp_Parameters
 
-  USE gcHg_Precision
+  USE gckpp_Precision
   PUBLIC
   SAVE
 
@@ -119,5 +119,5 @@ MODULE gcHg_Parameters
   INTEGER, PARAMETER :: indf_CO = 10 
   INTEGER, PARAMETER :: indf_CH4 = 11 
 
-END MODULE gcHg_Parameters
+END MODULE gckpp_Parameters
 

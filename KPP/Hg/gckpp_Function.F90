@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Function.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Function.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_Function
+MODULE gckpp_Function
 
-  USE gcHg_Parameters
+  USE gckpp_Parameters
   IMPLICIT NONE
 
 ! A - Rate for each equation
@@ -198,5 +198,5 @@ END SUBROUTINE Fun
 
 
 
-END MODULE gcHg_Function
+END MODULE gckpp_Function
 

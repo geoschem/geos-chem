@@ -12,9 +12,9 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Integrator.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Integrator.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -47,10 +47,10 @@
 !    This implementation is part of KPP - the Kinetic PreProcessor        !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 
-MODULE gcHg_Integrator
+MODULE gckpp_Integrator
 
-  USE gcHg_Parameters, ONLY: NVAR, NFIX, NSPEC, LU_NONZERO
-  USE gcHg_Global
+  USE gckpp_Parameters, ONLY: NVAR, NFIX, NSPEC, LU_NONZERO
+  USE gckpp_Global
   IMPLICIT NONE
   PUBLIC
   SAVE
@@ -235,8 +235,8 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
 !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gcHg_Parameters
-  USE gcHg_LinearAlgebra
+  USE gckpp_Parameters
+  USE gckpp_LinearAlgebra
   IMPLICIT NONE
 
 !~~~>  Arguments
@@ -1329,12 +1329,12 @@ SUBROUTINE FunTemplate( T, Y,            &
 !  Template for the ODE function call.
 !  Updates the rate coefficients (and possibly the fixed species) at each call
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- USE gcHg_Parameters, ONLY: NVAR, LU_NONZERO
- USE gcHg_Global, ONLY: FIX, RCONST, TIME
- USE gcHg_Function, ONLY: Fun
+ USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
+ USE gckpp_Global, ONLY: FIX, RCONST, TIME
+ USE gckpp_Function, ONLY: Fun
 !============================================================================
 ! KPP 2.3.3_gc, Bob Yantosca (11 Jun 2021)
- USE gcHg_Rates, ONLY : Update_Rconst
+ USE gckpp_Rates, ONLY : Update_Rconst
 !============================================================================
 
 !~~~> Input variables
@@ -1370,10 +1370,10 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 !  Template for the ODE Jacobian call.
 !  Updates the rate coefficients (and possibly the fixed species) at each call
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- USE gcHg_Parameters, ONLY: NVAR, LU_NONZERO
- USE gcHg_Global, ONLY: FIX, RCONST, TIME
- USE gcHg_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
- USE gcHg_LinearAlgebra
+ USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
+ USE gckpp_Global, ONLY: FIX, RCONST, TIME
+ USE gckpp_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
+ USE gckpp_LinearAlgebra
 !~~~> Input variables
     REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1407,7 +1407,7 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 
 END SUBROUTINE JacTemplate
 
-END MODULE gcHg_Integrator
+END MODULE gckpp_Integrator
 
 
 

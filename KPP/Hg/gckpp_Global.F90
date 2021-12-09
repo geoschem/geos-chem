@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Global.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Global.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_Global
+MODULE gckpp_Global
 
-  USE gcHg_Parameters, ONLY: dp, NSPEC, NVAR, NFIX, NREACT
+  USE gckpp_Parameters, ONLY: dp, NSPEC, NVAR, NFIX, NREACT
   PUBLIC
   SAVE
 
@@ -106,5 +106,5 @@ MODULE gcHg_Global
 ! INLINED global variable declarations
 
 
-END MODULE gcHg_Global
+END MODULE gckpp_Global
 

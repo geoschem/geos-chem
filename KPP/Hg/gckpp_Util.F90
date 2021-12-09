@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Util.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Util.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_Util
+MODULE gckpp_Util
 
-  USE gcHg_Parameters
+  USE gckpp_Parameters
   IMPLICIT NONE
 
 CONTAINS
@@ -50,9 +50,9 @@ CONTAINS
 
       SUBROUTINE InitSaveData ()
 
-      USE gcHg_Parameters
+      USE gckpp_Parameters
 
-      open(10, file='gcHg.dat')
+      open(10, file='gckpp.dat')
 
       END SUBROUTINE InitSaveData
 
@@ -68,8 +68,8 @@ CONTAINS
 
       SUBROUTINE SaveData ()
 
-      USE gcHg_Global
-      USE gcHg_Monitor
+      USE gckpp_Global
+      USE gckpp_Monitor
 
       INTEGER i
 
@@ -91,7 +91,7 @@ CONTAINS
 
       SUBROUTINE CloseSaveData ()
 
-      USE gcHg_Parameters
+      USE gckpp_Parameters
 
       CLOSE(10)
 
@@ -111,19 +111,19 @@ CONTAINS
 
       SUBROUTINE GenerateMatlab ( PREFIX )
 
-      USE gcHg_Parameters
-      USE gcHg_Global
-      USE gcHg_Monitor
+      USE gckpp_Parameters
+      USE gckpp_Global
+      USE gckpp_Monitor
 
       
       CHARACTER(LEN=8) PREFIX 
       INTEGER i
 
-      open(20, file='gcHg.m')
-      write(20,*) 'load gcHg.dat;'
+      open(20, file='gckpp.m')
+      write(20,*) 'load gckpp.dat;'
       write(20,990) PREFIX
-990   FORMAT(A1,'c = gcHg;')
-      write(20,*) 'clear gcHg;'
+990   FORMAT(A1,'c = gckpp;')
+      write(20,*) 'clear gckpp;'
       write(20,991) PREFIX, PREFIX
 991   FORMAT(A1,'t=',A1,'c(:,1);')
       write(20,992) PREFIX
@@ -271,5 +271,5 @@ END SUBROUTINE GetMass
 
 
 
-END MODULE gcHg_Util
+END MODULE gckpp_Util
 

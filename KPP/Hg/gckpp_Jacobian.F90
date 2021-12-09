@@ -12,18 +12,18 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Jacobian.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Jacobian.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_Jacobian
+MODULE gckpp_Jacobian
 
-  USE gcHg_Parameters
-  USE gcHg_JacobianSP
+  USE gckpp_Parameters
+  USE gckpp_JacobianSP
 
   IMPLICIT NONE
 
@@ -639,5 +639,5 @@ END SUBROUTINE JacTR_SP_Vec
 
 
 
-END MODULE gcHg_Jacobian
+END MODULE gckpp_Jacobian
 

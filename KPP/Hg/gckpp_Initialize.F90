@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gcHg_Initialize.F90
-! Equation file        : gcHg.kpp
-! Output root filename : gcHg
+! File                 : gckpp_Initialize.F90
+! Equation file        : gckpp.kpp
+! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gcHg_Initialize
+MODULE gckpp_Initialize
 
-  USE gcHg_Parameters, ONLY: dp, NVAR, NFIX
+  USE gckpp_Parameters, ONLY: dp, NVAR, NFIX
   IMPLICIT NONE
 
 CONTAINS
@@ -38,7 +38,7 @@ CONTAINS
 SUBROUTINE Initialize ( )
 
 
-  USE gcHg_Global
+  USE gckpp_Global
 
   INTEGER :: i
   REAL(kind=dp) :: x
@@ -80,5 +80,5 @@ END SUBROUTINE Initialize
 
 
 
-END MODULE gcHg_Initialize
+END MODULE gckpp_Initialize
 

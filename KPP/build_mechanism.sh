@@ -76,7 +76,6 @@ fi
 
 # Prefix for files
 mechPrefix="gckpp"
-[[ "x${mechName}" == "xHg" ]] && mechPrefix="gcHg"
 
 # Remove these files, which will be will be regnerated by KPP
 filesToRemove=(                     \

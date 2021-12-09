@@ -1,5 +1,5 @@
 
-MODULE gcHg_Precision
+MODULE gckpp_Precision
 
 !
 ! Definition of different levels of accuracy
@@ -12,6 +12,6 @@ MODULE gcHg_Precision
 ! KPP QP - Quadruple precision kind
   INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(18,400)
 
-END MODULE gcHg_Precision
+END MODULE gckpp_Precision
 
 
