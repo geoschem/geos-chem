@@ -456,7 +456,7 @@ CONTAINS
     INTEGER            :: Day
 
 
-    REAL(fp)           :: RELHUM                                ! For AOD
+    REAL(fp)           :: REL_HUM                               ! For AOD
     REAL(fp)           :: Start,     Finish,   rtim,      itim  ! For KPP
     REAL(fp)           :: TOUT,      T,         TIN             ! For KPP
 
@@ -597,7 +597,7 @@ CONTAINS
 
 !$OMP PARALLEL DO                                              &
 !$OMP DEFAULT( SHARED )                                        &
-!$OMP PRIVATE( I, J, L, N, RELHUM, IRH  )
+!$OMP PRIVATE( I, J, L, N, REL_HUM, IRH  )
         DO L=1, State_Grid%NZ
         DO J=1, State_Grid%NY
         DO I=1, State_Grid%NX
@@ -613,14 +613,14 @@ CONTAINS
             ENDDO
 
             ! Save IRHARR
-            RELHUM =  GLOB_RH(I,J,L)
-            IF (      RELHUM <= RH(2) ) THEN
+            REL_HUM =  GLOB_RH(I,J,L)
+            IF (      REL_HUM <= RH(2) ) THEN
                 IRHARR(I,J,L) = 1
-            ELSE IF ( RELHUM <= RH(3) ) THEN
+            ELSE IF ( REL_HUM <= RH(3) ) THEN
                 IRHARR(I,J,L) = 2
-            ELSE IF ( RELHUM <= RH(4) ) THEN
+            ELSE IF ( REL_HUM <= RH(4) ) THEN
                 IRHARR(I,J,L) = 3
-            ELSE IF ( RELHUM <= RH(5) ) THEN
+            ELSE IF ( REL_HUM <= RH(5) ) THEN
                 IRHARR(I,J,L) = 4
             ELSE
                 IRHARR(I,J,L) = 5
@@ -1044,7 +1044,7 @@ CONTAINS
        !
        ! NOTE: KppId is the KPP ID # for each of the prod and loss
        ! diagnostic species.  This is the value used to index the
-       ! KPP "VAR" array (in module gchg_Global.F90).
+       ! KPP "VAR" array (in module GcKpp_Global.F90).
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
@@ -4098,7 +4098,6 @@ END SUBROUTINE SeaSaltUptake
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
-    USE GCKPP_HetRates,     ONLY : ARSL1K
     USE GCKPP_Global,       ONLY : State_Het
     USE CMN_FJX_MOD,        ONLY : ZPJ
     USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -4340,9 +4339,8 @@ function CloudHet( alpha, mw, fc, area, rd, T, airNumDen ) &
     result( kHet )
     !
     ! !Uses
-    USE GCKPP_HetRates,     ONLY : ARSL1K
-    USE ERROR_MOD,          ONLY : SAFE_DIV
-
+    USE ERROR_MOD,        ONLY : SAFE_DIV
+    USE rateLawUtilFuncs, ONLY : Ars_L1K
     !
     ! !INPUT PARAMETERS:
     !
@@ -4391,7 +4389,7 @@ function CloudHet( alpha, mw, fc, area, rd, T, airNumDen ) &
 
     ! In-cloud loss frequency, 1/s
     ! Pass radius in cm and mass in g.
-    kic = arsl1k( area, rd, airnumden, alpha, sqrt(T), sqrt(mw) )
+    kic = ars_l1k( area, rd, alpha, sqrt(mw) )
 
     !------------------------------------------------------------------------
     ! Grid-average loss frequency; Add in-cloud and entrainment rates in series
@@ -4439,9 +4437,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE GCKPP_HetRates,     ONLY : ARSL1K
-
-
+    USE rateLawUtilFuncs,   ONLY : Ars_L1K
     !
     ! !INPUT PARAMETERS:
     !
@@ -4631,11 +4627,11 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                     SELECT CASE( NN )
                         CASE( 1 : 4 )
                             ! Uptake rate on fine dust
-                            ADJRATE=ARSL1K(XAREA(NN),XRADI(NN),XDENA,ALPHA_Hg2,XTEMP, &
+                            ADJRATE=ARS_L1K(XAREA(NN),XRADI(NN),ALPHA_Hg2, &
                                     (MW**0.5_FP))
                         CASE( 8 : 11 )
                             ! Uptake rate on fine sulf,BC,OA and seasalt
-                            ADJRATE=ARSL1K(XAREA(NN),XRADI(NN),XDENA,ALPHA_Hg2,XTEMP, &
+                            ADJRATE=ARS_L1K(XAREA(NN),XRADI(NN), XTEMP, &
                                     (MW**0.5_FP))
                         CASE DEFAULT
                             ADJRATE = 0e+0_fp
@@ -4684,11 +4680,11 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                 SELECT CASE( NN )
                     CASE( 1 : 4 )
                         ! Uptake rate on fine dust
-                        ADJRATE=ARSL1K(XAREA(NN),XRADI(NN),XDENA,ALPHA_Hg2,XTEMP, &
+                        ADJRATE=ARS_L1K(XAREA(NN),XRADI(NN), ALPHA_Hg2, &
                                 (MW**0.5_FP))
                     CASE( 8 : 11 )
                         ! Uptake rate on fine sulf,BC,OA and seasalt
-                        ADJRATE=ARSL1K(XAREA(NN),XRADI(NN),XDENA,ALPHA_Hg2,XTEMP, &
+                        ADJRATE=ARS_L1K(XAREA(NN),XRADI(NN), ALPHA_Hg2, &
                                 (MW**0.5_FP))
                     CASE DEFAULT
                         ADJRATE = 0e+0_fp
@@ -4750,7 +4746,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
 
                 ! Mass transfer rate [s-1]
                 ! Stratospheric aerosols are on index 13
-                k_mt  =  ARSL1K(XAREA(13),XRADI(13),XDENA,ALPHA_Hg2,XTEMP, &
+                k_mt  =  ARS_L1K(XAREA(13),XRADI(13), ALPHA_Hg2, &
                                 (MW**0.5_FP))
 
                 ! Initial Hg(II) gas
@@ -5303,13 +5299,13 @@ END SUBROUTINE PARTITIONHG2
 ! !USES:
 !
     USE ErrCode_Mod
+    USE GcKpp_Monitor,      ONLY : Eqn_Names, Fam_Names
+    USE GcKpp_Parameters,   ONLY : nFam, nReact
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
-    USE GcHg_Monitor,       ONLY : Eqn_Names, Fam_Names
-    USE GcHg_Parameters,    ONLY : nFam, nReact
     USE FAST_JX_MOD,        ONLY : INIT_FJX
     USE CMN_SIZE_MOD,       ONLY : NAER, NDUST
 !
@@ -6367,9 +6363,9 @@ END SUBROUTINE PARTITIONHG2
 ! !USES:
 !
     USE ErrCode_Mod
-    USE GcHg_Global
-    USE GcHg_Parameters
-    USE GCKPP_Global,     ONLY : State_Het
+    USE GcKpp_Global
+    USE GcKpp_Parameters
+    USE GcKpp_Global,     ONLY : State_Het
     USE Hg_HetStateFuncs, ONLY : Hg_SetStateHet
     USE Input_Opt_Mod,    ONLY : OptInput
     USE PhysConstants,    ONLY : AVO, CONSVAP, PI, RGASLATM, RSTARG
@@ -6396,16 +6392,21 @@ END SUBROUTINE PARTITIONHG2
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER  :: F,       N,       NA,    KppId,    SpcId
-    REAL(f8) :: CONSEXP, VPRESH2O
+    INTEGER            :: F,       N,       NA,    KppId,    SpcId
+    REAL(f8)           :: CONSEXP, VPRESH2O
+    
+    ! Characters
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !========================================================================
     ! Set_Kpp_GridBox_Values begins here!
     !========================================================================
 
     ! Initialization
-    RC =  GC_SUCCESS
-    NA =  State_Chm%nAeroType
+    RC      =  GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+       ' -> at Set_Kpp_GridBox_Values (in module GeosCore/mercury_mod.F90'
 
     !========================================================================
     ! Copy species concentrations into gckpp_Global variables

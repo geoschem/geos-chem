@@ -159,10 +159,10 @@ CONTAINS
     H%fupdateHOCl  = State_Chm%fupdateHOCl(I,J,L)
 
     ! Cloud fields
-    CALL Cld_Params( AD      = State_Met%AD(I,J,L)                           &
+    CALL Cld_Params( AD      = State_Met%AD(I,J,L),                          &
                      CLDF    = State_Met%CLDF(I,J,L),                        &
-                     FRLAND  = State_Met%FROCEAN(I,J,L),                     &
-                     FROCEAN = State_Met%FROCEAN(I,J,L),                     &
+                     FRLAND  = State_Met%FRLAND(I,J),                        &
+                     FROCEAN = State_Met%FROCEAN(I,J),                       &
                      QI      = State_Met%QI(I,J,L),                          &
                      QL      = State_Met%QL(I,J,L),                          &
                      T       = State_Met%T(I,J,L),                           &

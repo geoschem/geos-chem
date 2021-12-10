@@ -47,16 +47,16 @@ REORDER  - ON
 ### Species -------------------------------------------
 
 Variable species
-  1 = HGCL2 (r)  11 = HGBRNO2 (r) 21 = HGOHHO2 (r)
-  2 = HG2CLP (n) 12 = HGBR2 (r)  22 = HGOHOH (r)
-  3 = HGBRCLO (r) 13 = HGOHNO2 (r) 23 = HG2ORGP (r)
-  4 = HGBRBRO (r) 14 = HGCLO (r)  24 = HGOH (r)  
-  5 = HGCLCLO (r) 15 = HGCLHO2 (r) 25 = Hg0 (r)   
-  6 = HGCLBRO (r) 16 = HGCLOH (r) 26 = HGBROH (r)
-  7 = HGCLBR (r) 17 = HGCL (r)   27 = HGBR (r)  
-  8 = HGOHCLO (r) 18 = HGBRO (r) 
-  9 = HGOHBRO (r) 19 = HGBRHO2 (r)
- 10 = HGCLNO2 (r) 20 = HGOHO (r) 
+  1 = HgCl2 (r)  11 = HgBrNO2 (r) 21 = HgOHHO2 (r)
+  2 = Hg2ClP (n) 12 = HgBr2 (r)  22 = HgOHOH (r)
+  3 = HgBrClO (r) 13 = HgOHNO2 (r) 23 = Hg2ORGP (r)
+  4 = HgBrBrO (r) 14 = HgClO (r)  24 = HgOH (r)  
+  5 = HgClClO (r) 15 = HgClHO2 (r) 25 = Hg0 (r)   
+  6 = HgClBrO (r) 16 = HgClOH (r) 26 = HgBrOH (r)
+  7 = HgClBr (r) 17 = HgCl (r)   27 = HgBr (r)  
+  8 = HgOHClO (r) 18 = HgBrO (r) 
+  9 = HgOHBrO (r) 19 = HgBrHO2 (r)
+ 10 = HgClNO2 (r) 20 = HgOHO (r) 
 
 Fixed species
   1 = Br (r)      5 = NO (n)      9 = ClO (r)   

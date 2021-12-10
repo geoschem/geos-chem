@@ -754,9 +754,20 @@ fi
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
 
-# Copy species database; append APM or TOMAS species if needed
+# Copy species database.  NOTE: For the new Hg simulation via KPP, we need
+# to copy species_database_hg.yml to the rundir and rename it to
+# species_database.yml.  This is because the Hg simulation has several
+# inactive species that are active in the other simulations, and this
+# causes a conflict.  Work out a better solution later.
+#  -- Bob Yantosca, 10 Dec 2021
+if [[ "x${sim_num}" == "x5" ]]; then
+    cp -r ${gcdir}/run/shared/species_database_hg.yml ${rundir}/species_database.yml
+else
+    cp -r ${gcdir}/run/shared/species_database.yml ${rundir}
+fi
+
+# Append APM or TOMAS species to species database
 # Also copy APM input files to the run directory
-cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_extra_option} =~ "APM" ]]; then
@@ -868,7 +879,7 @@ else
 	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
@@ -900,7 +911,7 @@ printf "\n     You may modify these settings in input.geos.\n"
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
-if [[ "x${nested_sim}" == "xT" ]]; then    
+if [[ "x${nested_sim}" == "xT" ]]; then
     printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
     printf "\n     by default. To improve run time, you may choose to use cropped"
     printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"

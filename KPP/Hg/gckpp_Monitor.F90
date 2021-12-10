@@ -24,15 +24,15 @@ MODULE gckpp_Monitor
 
 
   CHARACTER(LEN=15), PARAMETER, DIMENSION(38) :: SPC_NAMES = (/ &
-     'HGCL2          ','HG2CLP         ','HGBRCLO        ', & ! index 1 - 3
-     'HGBRBRO        ','HGCLCLO        ','HGCLBRO        ', & ! index 4 - 6
-     'HGCLBR         ','HGOHCLO        ','HGOHBRO        ', & ! index 7 - 9
-     'HGCLNO2        ','HGBRNO2        ','HGBR2          ', & ! index 10 - 12
-     'HGOHNO2        ','HGCLO          ','HGCLHO2        ', & ! index 13 - 15
-     'HGCLOH         ','HGCL           ','HGBRO          ', & ! index 16 - 18
-     'HGBRHO2        ','HGOHO          ','HGOHHO2        ', & ! index 19 - 21
-     'HGOHOH         ','HG2ORGP        ','HGOH           ', & ! index 22 - 24
-     'Hg0            ','HGBROH         ','HGBR           ', & ! index 25 - 27
+     'HgCl2          ','Hg2ClP         ','HgBrClO        ', & ! index 1 - 3
+     'HgBrBrO        ','HgClClO        ','HgClBrO        ', & ! index 4 - 6
+     'HgClBr         ','HgOHClO        ','HgOHBrO        ', & ! index 7 - 9
+     'HgClNO2        ','HgBrNO2        ','HgBr2          ', & ! index 10 - 12
+     'HgOHNO2        ','HgClO          ','HgClHO2        ', & ! index 13 - 15
+     'HgClOH         ','HgCl           ','HgBrO          ', & ! index 16 - 18
+     'HgBrHO2        ','HgOHO          ','HgOHHO2        ', & ! index 19 - 21
+     'HgOHOH         ','Hg2ORGP        ','HgOH           ', & ! index 22 - 24
+     'Hg0            ','HgBrOH         ','HgBr           ', & ! index 25 - 27
      'Br             ','Cl             ','OH             ', & ! index 28 - 30
      'NO2            ','NO             ','O3             ', & ! index 31 - 33
      'HO2            ','BrO            ','ClO            ', & ! index 34 - 36
@@ -42,103 +42,103 @@ MODULE gckpp_Monitor
   INTEGER, DIMENSION(1) :: MONITOR
   CHARACTER(LEN=15), DIMENSION(1) :: SMASS
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_0 = (/ &
-     '   Hg0 + Br --> HGBR                                                                                ', & ! index 1
-     '       HGBR --> Hg0                                                                                 ', & ! index 2
-     '  HGBR + Br --> Hg0                                                                                 ', & ! index 3
-     ' HGBR + NO2 --> Hg0                                                                                 ', & ! index 4
-     ' HGBR + NO2 --> HGBRNO2                                                                             ', & ! index 5
-     ' HGBR + HO2 --> HGBRHO2                                                                             ', & ! index 6
-     ' HGBR + ClO --> HGBRCLO                                                                             ', & ! index 7
-     ' HGBR + BrO --> HGBRBRO                                                                             ', & ! index 8
-     '  HGBR + OH --> HGBROH                                                                              ', & ! index 9
-     '  HGBR + Br --> HGBR2                                                                               ', & ! index 10
-     'HGBRO + CH4 --> HGBROH                                                                              ', & ! index 11
-     ' HGBRO + CO --> HGBR                                                                                ', & ! index 12
-     '  HGBR + O3 --> HGBRO                                                                               ', & ! index 13
-     '   Hg0 + Cl --> HGCL                                                                                ', & ! index 14
-     '  HGCL + Cl --> Hg0                                                                                 ', & ! index 15
-     ' HGCL + NO2 --> Hg0                                                                                 ', & ! index 16
-     ' HGCL + NO2 --> HGCLNO2                                                                             ', & ! index 17
-     ' HGCL + HO2 --> HGCLHO2                                                                             ', & ! index 18
-     ' HGCL + ClO --> HGCLCLO                                                                             ', & ! index 19
-     ' HGCL + BrO --> HGCLBRO                                                                             ', & ! index 20
-     '  HGCL + Br --> HGCLBR                                                                              ', & ! index 21
-     '  HGCL + OH --> HGCLOH                                                                              ', & ! index 22
-     '  HGCL + O3 --> HGCLO                                                                               ', & ! index 23
-     'HGCLO + CH4 --> HGCLOH                                                                              ', & ! index 24
-     ' HGCLO + CO --> HGCL                                                                                ', & ! index 25
-     '   Hg0 + OH --> HGOH                                                                                ', & ! index 26
-     '       HGOH --> Hg0                                                                                 ', & ! index 27
-     ' HGOH + NO2 --> HGOHNO2                                                                             ', & ! index 28
-     ' HGOH + HO2 --> HGOHHO2                                                                             ', & ! index 29
-     ' HGOH + ClO --> HGOHCLO                                                                             ' /)
+     '   Hg0 + Br --> HgBr                                                                                ', & ! index 1
+     '       HgBr --> Hg0                                                                                 ', & ! index 2
+     '  HgBr + Br --> Hg0                                                                                 ', & ! index 3
+     ' HgBr + NO2 --> Hg0                                                                                 ', & ! index 4
+     ' HgBr + NO2 --> HgBrNO2                                                                             ', & ! index 5
+     ' HgBr + HO2 --> HgBrHO2                                                                             ', & ! index 6
+     ' HgBr + ClO --> HgBrClO                                                                             ', & ! index 7
+     ' HgBr + BrO --> HgBrBrO                                                                             ', & ! index 8
+     '  HgBr + OH --> HgBrOH                                                                              ', & ! index 9
+     '  HgBr + Br --> HgBr2                                                                               ', & ! index 10
+     'HgBrO + CH4 --> HgBrOH                                                                              ', & ! index 11
+     ' HgBrO + CO --> HgBr                                                                                ', & ! index 12
+     '  HgBr + O3 --> HgBrO                                                                               ', & ! index 13
+     '   Hg0 + Cl --> HgCl                                                                                ', & ! index 14
+     '  HgCl + Cl --> Hg0                                                                                 ', & ! index 15
+     ' HgCl + NO2 --> Hg0                                                                                 ', & ! index 16
+     ' HgCl + NO2 --> HgClNO2                                                                             ', & ! index 17
+     ' HgCl + HO2 --> HgClHO2                                                                             ', & ! index 18
+     ' HgCl + ClO --> HgClClO                                                                             ', & ! index 19
+     ' HgCl + BrO --> HgClBrO                                                                             ', & ! index 20
+     '  HgCl + Br --> HgClBr                                                                              ', & ! index 21
+     '  HgCl + OH --> HgClOH                                                                              ', & ! index 22
+     '  HgCl + O3 --> HgClO                                                                               ', & ! index 23
+     'HgClO + CH4 --> HgClOH                                                                              ', & ! index 24
+     ' HgClO + CO --> HgCl                                                                                ', & ! index 25
+     '   Hg0 + OH --> HgOH                                                                                ', & ! index 26
+     '       HgOH --> Hg0                                                                                 ', & ! index 27
+     ' HgOH + NO2 --> HgOHNO2                                                                             ', & ! index 28
+     ' HgOH + HO2 --> HgOHHO2                                                                             ', & ! index 29
+     ' HgOH + ClO --> HgOHClO                                                                             ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_1 = (/ &
-     ' HGOH + BrO --> HGOHBRO                                                                             ', & ! index 31
-     '  HGOH + Br --> HGBROH                                                                              ', & ! index 32
-     '  HGOH + OH --> HGOHOH                                                                              ', & ! index 33
-     '  HGOH + O3 --> HGOHO                                                                               ', & ! index 34
-     'HGOHO + CH4 --> HGOHOH                                                                              ', & ! index 35
-     ' HGOHO + CO --> HGOH                                                                                ', & ! index 36
-     '    HGBRNO2 --> HG2ORGP                                                                             ', & ! index 37
-     '    HGBRHO2 --> HG2ORGP                                                                             ', & ! index 38
-     '     HGBROH --> HG2ORGP                                                                             ', & ! index 39
-     '    HGBRBRO --> HG2ORGP                                                                             ', & ! index 40
-     '    HGBRCLO --> HG2ORGP                                                                             ', & ! index 41
-     '      HGBR2 --> HG2ORGP                                                                             ', & ! index 42
-     '    HGCLNO2 --> HG2ORGP                                                                             ', & ! index 43
-     '    HGCLHO2 --> HG2ORGP                                                                             ', & ! index 44
-     '     HGCLOH --> HG2ORGP                                                                             ', & ! index 45
-     '    HGCLBRO --> HG2ORGP                                                                             ', & ! index 46
-     '    HGCLCLO --> HG2ORGP                                                                             ', & ! index 47
-     '     HGCLBR --> HG2ORGP                                                                             ', & ! index 48
-     '      HGCL2 --> HG2ORGP                                                                             ', & ! index 49
-     '    HGOHNO2 --> HG2ORGP                                                                             ', & ! index 50
-     '    HGOHHO2 --> HG2ORGP                                                                             ', & ! index 51
-     '     HGOHOH --> HG2ORGP                                                                             ', & ! index 52
-     '    HGOHBRO --> HG2ORGP                                                                             ', & ! index 53
-     '    HGOHCLO --> HG2ORGP                                                                             ', & ! index 54
-     '    HGBRNO2 --> HG2CLP                                                                              ', & ! index 55
-     '    HGBRHO2 --> HG2CLP                                                                              ', & ! index 56
-     '     HGBROH --> HG2CLP                                                                              ', & ! index 57
-     '    HGBRBRO --> HG2CLP                                                                              ', & ! index 58
-     '    HGBRCLO --> HG2CLP                                                                              ', & ! index 59
-     '      HGBR2 --> HG2CLP                                                                              ' /)
+     ' HgOH + BrO --> HgOHBrO                                                                             ', & ! index 31
+     '  HgOH + Br --> HgBrOH                                                                              ', & ! index 32
+     '  HgOH + OH --> HgOHOH                                                                              ', & ! index 33
+     '  HgOH + O3 --> HgOHO                                                                               ', & ! index 34
+     'HgOHO + CH4 --> HgOHOH                                                                              ', & ! index 35
+     ' HgOHO + CO --> HgOH                                                                                ', & ! index 36
+     '    HgBrNO2 --> Hg2ORGP                                                                             ', & ! index 37
+     '    HgBrHO2 --> Hg2ORGP                                                                             ', & ! index 38
+     '     HgBrOH --> Hg2ORGP                                                                             ', & ! index 39
+     '    HgBrBrO --> Hg2ORGP                                                                             ', & ! index 40
+     '    HgBrClO --> Hg2ORGP                                                                             ', & ! index 41
+     '      HgBr2 --> Hg2ORGP                                                                             ', & ! index 42
+     '    HgClNO2 --> Hg2ORGP                                                                             ', & ! index 43
+     '    HgClHO2 --> Hg2ORGP                                                                             ', & ! index 44
+     '     HgClOH --> Hg2ORGP                                                                             ', & ! index 45
+     '    HgClBrO --> Hg2ORGP                                                                             ', & ! index 46
+     '    HgClClO --> Hg2ORGP                                                                             ', & ! index 47
+     '     HgClBr --> Hg2ORGP                                                                             ', & ! index 48
+     '      HgCl2 --> Hg2ORGP                                                                             ', & ! index 49
+     '    HgOHNO2 --> Hg2ORGP                                                                             ', & ! index 50
+     '    HgOHHO2 --> Hg2ORGP                                                                             ', & ! index 51
+     '     HgOHOH --> Hg2ORGP                                                                             ', & ! index 52
+     '    HgOHBrO --> Hg2ORGP                                                                             ', & ! index 53
+     '    HgOHClO --> Hg2ORGP                                                                             ', & ! index 54
+     '    HgBrNO2 --> Hg2ClP                                                                              ', & ! index 55
+     '    HgBrHO2 --> Hg2ClP                                                                              ', & ! index 56
+     '     HgBrOH --> Hg2ClP                                                                              ', & ! index 57
+     '    HgBrBrO --> Hg2ClP                                                                              ', & ! index 58
+     '    HgBrClO --> Hg2ClP                                                                              ', & ! index 59
+     '      HgBr2 --> Hg2ClP                                                                              ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_2 = (/ &
-     '    HGCLNO2 --> HG2CLP                                                                              ', & ! index 61
-     '    HGCLHO2 --> HG2CLP                                                                              ', & ! index 62
-     '     HGCLOH --> HG2CLP                                                                              ', & ! index 63
-     '    HGCLBRO --> HG2CLP                                                                              ', & ! index 64
-     '    HGCLCLO --> HG2CLP                                                                              ', & ! index 65
-     '     HGCLBR --> HG2CLP                                                                              ', & ! index 66
-     '    HGOHNO2 --> HG2CLP                                                                              ', & ! index 67
-     '    HGOHHO2 --> HG2CLP                                                                              ', & ! index 68
-     '     HGOHOH --> HG2CLP                                                                              ', & ! index 69
-     '    HGOHBRO --> HG2CLP                                                                              ', & ! index 70
-     '    HGOHCLO --> HG2CLP                                                                              ', & ! index 71
+     '    HgClNO2 --> Hg2ClP                                                                              ', & ! index 61
+     '    HgClHO2 --> Hg2ClP                                                                              ', & ! index 62
+     '     HgClOH --> Hg2ClP                                                                              ', & ! index 63
+     '    HgClBrO --> Hg2ClP                                                                              ', & ! index 64
+     '    HgClClO --> Hg2ClP                                                                              ', & ! index 65
+     '     HgClBr --> Hg2ClP                                                                              ', & ! index 66
+     '    HgOHNO2 --> Hg2ClP                                                                              ', & ! index 67
+     '    HgOHHO2 --> Hg2ClP                                                                              ', & ! index 68
+     '     HgOHOH --> Hg2ClP                                                                              ', & ! index 69
+     '    HgOHBrO --> Hg2ClP                                                                              ', & ! index 70
+     '    HgOHClO --> Hg2ClP                                                                              ', & ! index 71
      '        NO2 --> NO + O3                                                                             ', & ! index 72
      '        BrO --> Br + O3                                                                             ', & ! index 73
      '        ClO --> Cl + O3                                                                             ', & ! index 74
-     '       HGBR --> Hg0 + Br                                                                            ', & ! index 75
-     '    HGBRNO2 --> 0.9 HGBRO + 0.1 HGBR + 0.1 NO2 + 0.9 NO                                             ', & ! index 76
-     '    HGBRHO2 --> 0.25 HGBRO + 0.67 Hg0 + 0.01 HGBROH + 0.07 HGBR + 0.67 Br + 0.26 OH + 0.74 HO2      ', & ! index 77
-     '     HGBROH --> 0.35 HGOH + 0.49 Hg0 + 0.01 HGBROH + 0.15 HGBR + 0.85 Br + 0.65 OH                  ', & ! index 78
-     '      HGBR2 --> 0.4 Hg0 + 0.6 HGBR + 1.4 Br                                                         ', & ! index 79
-     '    HGBRBRO --> Hg0 + BrO                                                                           ', & ! index 80
-     '    HGBRCLO --> Hg0 + Br + Cl                                                                       ', & ! index 81
-     '    HGCLNO2 --> 0.9 HGCLO + 0.1 HGCL + 0.1 NO2 + 0.9 NO                                             ', & ! index 82
-     '    HGCLHO2 --> 0.25 HGCLO + 0.01 HGCLOH + 0.07 HGCL + 0.67 Hg0 + 0.67 Cl + 0.26 OH + 0.74 HO2      ', & ! index 83
-     '     HGCLOH --> 0.01 HGCLOH + 0.15 HGCL + 0.35 HGOH + 0.49 Hg0 + 0.85 Cl + 0.65 OH                  ', & ! index 84
-     '     HGCLBR --> HGCL + Br                                                                           ', & ! index 85
-     '    HGCLBRO --> HGCL + BrO                                                                          ', & ! index 86
-     '    HGCLCLO --> HGCL + ClO                                                                          ', & ! index 87
-     '       HGOH --> Hg0 + OH                                                                            ', & ! index 88
-     '    HGOHNO2 --> 0.9 HGOHO + 0.1 HGOH + 0.1 NO2 + 0.9 NO                                             ', & ! index 89
-     '    HGOHHO2 --> 0.25 HGOHO + 0.01 HGOHOH + 0.07 HGOH + 0.67 Hg0 + 0.67 Cl + 0.26 OH + 0.74 HO2      ' /)
+     '       HgBr --> Hg0 + Br                                                                            ', & ! index 75
+     '    HgBrNO2 --> 0.9 HgBrO + 0.1 HgBr + 0.1 NO2 + 0.9 NO                                             ', & ! index 76
+     '    HgBrHO2 --> 0.25 HgBrO + 0.67 Hg0 + 0.01 HgBrOH + 0.07 HgBr + 0.67 Br + 0.26 OH + 0.74 HO2      ', & ! index 77
+     '     HgBrOH --> 0.35 HgOH + 0.49 Hg0 + 0.01 HgBrOH + 0.15 HgBr + 0.85 Br + 0.65 OH                  ', & ! index 78
+     '      HgBr2 --> 0.4 Hg0 + 0.6 HgBr + 1.4 Br                                                         ', & ! index 79
+     '    HgBrBrO --> Hg0 + BrO                                                                           ', & ! index 80
+     '    HgBrClO --> Hg0 + Br + Cl                                                                       ', & ! index 81
+     '    HgClNO2 --> 0.9 HgClO + 0.1 HgCl + 0.1 NO2 + 0.9 NO                                             ', & ! index 82
+     '    HgClHO2 --> 0.25 HgClO + 0.01 HgClOH + 0.07 HgCl + 0.67 Hg0 + 0.67 Cl + 0.26 OH + 0.74 HO2      ', & ! index 83
+     '     HgClOH --> 0.01 HgClOH + 0.15 HgCl + 0.35 HgOH + 0.49 Hg0 + 0.85 Cl + 0.65 OH                  ', & ! index 84
+     '     HgClBr --> HgCl + Br                                                                           ', & ! index 85
+     '    HgClBrO --> HgCl + BrO                                                                          ', & ! index 86
+     '    HgClClO --> HgCl + ClO                                                                          ', & ! index 87
+     '       HgOH --> Hg0 + OH                                                                            ', & ! index 88
+     '    HgOHNO2 --> 0.9 HgOHO + 0.1 HgOH + 0.1 NO2 + 0.9 NO                                             ', & ! index 89
+     '    HgOHHO2 --> 0.25 HgOHO + 0.01 HgOHOH + 0.07 HgOH + 0.67 Hg0 + 0.67 Cl + 0.26 OH + 0.74 HO2      ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(4) :: EQN_NAMES_3 = (/ &
-     '     HGOHOH --> Hg0 + 2 OH                                                                          ', & ! index 91
-     '    HGOHBRO --> HGOH + BrO                                                                          ', & ! index 92
-     '    HGOHCLO --> HGOH + ClO                                                                          ', & ! index 93
-     '    HG2ORGP --> Hg0                                                                                 ' /)
+     '     HgOHOH --> Hg0 + 2 OH                                                                          ', & ! index 91
+     '    HgOHBrO --> HgOH + BrO                                                                          ', & ! index 92
+     '    HgOHClO --> HgOH + ClO                                                                          ', & ! index 93
+     '    Hg2ORGP --> Hg0                                                                                 ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(94) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3 /)
 

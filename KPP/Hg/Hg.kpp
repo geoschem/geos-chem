@@ -31,20 +31,44 @@
   ! Additional global variables -- will be added to gckpp_Global.F90
   !--------------------------------------------------------------------------
 
-  ! H2O concentration
-  REAL(dp) :: H2O
-  !$OMP THREADPRIVATE( H2O )
-
-  REAL(dp) :: HET(NSPEC,2)
-  !$OMP THREADPRIVATE( HET )
-
   ! Inverse of temperature [1/K]
   REAL(dp) :: INV_TEMP
   !$OMP THREADPRIVATE( INV_TEMP )
 
-  REAL(dp) :: PRESS
-  !$OMP THREADPRIVATE( PRESS )
+  ! 4.0 * CON_R * TEMP
+  REAL(dp) :: FOUR_R_T
+  !$OMP THREADPRIVATE( FOUR_R_T )
 
+  ! 4.0 * RGASLATM * TEMP
+  REAL(dp) :: FOUR_RGASLATM_T
+  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
+
+  ! 8.0 * RSTARG * TEMP
+  REAL(dp) :: EIGHT_RSTARG_T
+  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
+
+  ! H2O concentration
+  REAL(dp) :: H2O
+  !$OMP THREADPRIVATE( H2O )
+
+  ! Pressure and relative humidity
+  REAL(dp) :: PRESS
+  REAL(dp) :: RELHUM
+  !$OMP THREADPRIVATE( PRESS, RELHUM )
+
+  ! Cosine of solar zenith angle
+  REAL(dp) :: SUNCOS
+  !$OMP THREADPRIVATE( SUNCOS )
+
+  ! Henry's law constants (do not need to be THREADPRIVATE)
+  REAL(dp) :: HENRY_K0(NSPEC)
+  REAL(dp) :: HENRY_CR(NSPEC)
+
+  ! For heterogeneous reaction rates
+  REAL(dp) :: HET(NSPEC,2)
+  !$OMP THREADPRIVATE( HET )
+
+  ! Array for photolysis species        
   REAL(dp) :: PHOTOL(27)
   !$OMP THREADPRIVATE( PHOTOL )
 

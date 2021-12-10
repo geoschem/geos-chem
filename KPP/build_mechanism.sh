@@ -138,9 +138,8 @@ sed -i -e "s|${line1}|${line2}|" gckpp_Rates.F90
 # for subroutine Get_OHreactivity and insert it into gckpp_Util.F90
 #
 # TODO: Port this to C and include within KPP
-# Also note: Don't do this for offline mechanisms such as Hg
 #============================================================================
-[[ "x${mechName}" != "xHg" ]] && python ../OHreact_parser.py
+python ../OHreact_parser.py
 
 #============================================================================
 # Change back to the prior directory and exit
