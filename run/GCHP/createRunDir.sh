@@ -222,6 +222,17 @@ else
     RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
 fi
 
+# NOTE: Fullchem benchmarks use the climatological volcano emissions!
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+
+    if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+    else
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc'\n"
+    fi
+fi
+
 #-----------------------------------------------------------------
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
@@ -575,7 +586,6 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
-	git add README .gitignore
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
