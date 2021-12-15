@@ -48,6 +48,7 @@ MODULE Chem_GridCompMod
   USE ESMF                                           ! ESMF library
   USE MAPL_Mod                                       ! MAPL library
   USE MAPL_IOMod
+  use pFlogger, only: logging, Logger
   USE Charpak_Mod                                    ! String functions
   USE DiagList_Mod                                   ! Internal state prefixes
   USE Hco_Types_Mod, ONLY : ConfigObj
@@ -137,6 +138,8 @@ MODULE Chem_GridCompMod
   TYPE(Species),          POINTER  :: ThisSpc => NULL()
   TYPE(HistoryConfigObj), POINTER  :: HistoryConfig
   TYPE(ConfigObj),        POINTER  :: HcoConfig
+  CLASS(Logger),          POINTER  :: lgr => null()
+  LOGICAL                          :: meteorology_vertical_index_is_top_down
 
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX? 
@@ -403,6 +406,9 @@ CONTAINS
 
     __Iam__('SetServices')
 
+
+    lgr => logging%get_logger('GCHPchem')
+
     !=======================================================================
     ! Set services begins here 
     !=======================================================================
@@ -533,6 +539,17 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 #endif
+
+    !=======================================================================
+    ! Get meteorology vertical index orientation
+    !=======================================================================
+    call ESMF_ConfigGetAttribute(myState%myCF,value=meteorology_vertical_index_is_top_down, &
+    label='METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN:', Default=.false., __RC__ )
+    if (meteorology_vertical_index_is_top_down) then
+       call lgr%info('Configured to expect ''top-down'' meteorological data from ''ExtData''')
+    else
+       call lgr%info('Configured to expect ''bottom-up'' meteorological data from ''ExtData''')
+    end if
 
 #if defined( MODEL_GEOS )
     ! Define imports to fill met fields needed for lightning
@@ -2844,6 +2861,7 @@ CONTAINS
     REAL              , POINTER  :: fPtrArray(:,:,:)
     REAL(ESMF_KIND_R8), POINTER  :: fPtrVal, fPtr1D(:)
     INTEGER                      :: IMAXLOC(1)
+    INTEGER                      :: z_lb, z_ub
 
 #endif
 

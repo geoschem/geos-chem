@@ -94,6 +94,15 @@ loggers:
        level: WARNING
        root_level: WARNING
        propagate: false
+
+   GCHPctmEnv:
+       level: WARNING
+       root_level: INFO
+
+   GCHPchem:
+       level: WARNING
+       root_level: INFO
+
        
   # Note: When enabling another logger, make sure
   #       indentation matches that of the above 
