@@ -973,6 +973,11 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	# For TransportTracers, use restart from latest benchmark
 	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
 
+    elif [[ "x${sim_name}" == "xHg" ]]; then
+
+	# For Hg, point to the restert file w/ KPP species (in v2021-12)
+	sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
     elif [[ "x${sim_name}" == "xPOPs" ]]; then
 
 	# For POPs, the extra option is in the restart file name
