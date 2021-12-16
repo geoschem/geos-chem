@@ -2276,6 +2276,10 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
           C                       = ThisSpc%GasSpcId
+          !###
+          !### Uncomment for debug print if Map_GasSpc goes out-of-bounds
+          !### print*, '===> ', ThisSpc%Name, C, ThisSpc%ModelId
+          !###
           State_Chm%Map_GasSpc(C) = ThisSpc%ModelId
        ENDIF
 
