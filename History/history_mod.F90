@@ -104,7 +104,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Init( Input_Opt, State_Met, State_Chm, State_Diag, RC )
+  SUBROUTINE History_Init( Input_Opt,  State_Met,  State_Chm,                &
+                           State_Diag, State_Grid, RC                       )
 !
 ! !USES:
 !
@@ -113,6 +114,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod ,     ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -120,6 +122,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt
     TYPE(ChmState),   INTENT(IN)  :: State_Chm
     TYPE(DgnState),   INTENT(IN)  :: State_Diag
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid
     TYPE(MetState),   INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS:
@@ -170,8 +173,8 @@ CONTAINS
     ! Then determine the fields that will be saved to each collection
     ! NOTE: For dry-run, enter to print out file name & status
     !=======================================================================
-    CALL History_ReadCollectionData( Input_Opt,  State_Chm, &
-                                     State_Diag, State_Met, RC )
+    CALL History_ReadCollectionData( Input_Opt,  State_Chm, State_Diag,      &
+                                     State_Grid, State_Met, RC              )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -196,8 +199,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionNames( Input_Opt, State_Chm,  &
-                                          State_Diag, State_Met, RC )
+  SUBROUTINE History_ReadCollectionNames( Input_Opt,  State_Chm,             &
+                                          State_Diag, State_Met, RC         )
 !
 ! !USES:
 !
@@ -469,8 +472,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionData( Input_Opt, State_Chm,  &
-                                         State_Diag, State_Met, RC )
+  SUBROUTINE History_ReadCollectionData( Input_Opt,  State_Chm, State_Diag,  &
+                                         State_Grid, State_Met, RC          )
 !
 ! !USES:
 !
@@ -488,6 +491,7 @@ CONTAINS
     USE Species_Mod,           ONLY : Species
     USE State_Chm_Mod
     USE State_Diag_Mod
+    USE State_Grid_Mod,        ONLY : GrdState
     USE State_Met_Mod
 !
 ! !INPUT PARAMETERS:
@@ -495,6 +499,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt    ! Input Options object
     TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
     TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnostic State object
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid   ! Grid State Object object
     TYPE(MetState),   INTENT(IN)  :: State_Met    ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1010,8 +1015,8 @@ CONTAINS
 
              ! Error check longitudes
              DO N = 1, 2
-                IF ( CollectionSubsetInd(N,C) < -180.0_f8  .or.              &
-                     CollectionSubsetInd(N,C) >  180.0_f8 ) THEN
+                IF ( CollectionSubsetInd(N,C) < 1               .or.         &
+                     CollectionSubsetInd(N,C) > State_Grid%NX ) THEN
                    ErrMsg = 'Invalid longitude subset values for '   //      &
                             'collection "'// TRIM(CollectionName(C)) // '"!'
                    WRITE( ErrorLine, 250 ) LineNum
@@ -1063,8 +1068,8 @@ CONTAINS
 
              ! Error check latitudes
              DO N = 3, 4
-                IF ( CollectionSubsetInd(N,C) < -90.0_f8  .or.               &
-                     CollectionSubsetInd(N,C) >  90.0_f8 ) THEN
+                IF ( CollectionSubsetInd(N,C) < 1               .or.         &
+                     CollectionSubsetInd(N,C) > State_Grid%NY ) THEN
                    ErrMsg = 'Invalid latitude subset values for '     //     &
                             'collection " '// TRIM(CollectionName(C)) // '"!'
                    WRITE( ErrorLine, 250 ) LineNum

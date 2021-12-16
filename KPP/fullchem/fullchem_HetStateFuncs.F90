@@ -455,7 +455,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp) :: V_tot, dr_ratio, t2l, L2G, F_L, pH
+    REAL(dp) :: V_tot, dr_ratio, t2l, F_L, L2G, pH
 
     !=================================================================
     ! Get_Halide_CldConc begins here!
@@ -481,17 +481,27 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Note from Viral Shah (06 Dec 2021):
+    !   I believe V_tot corresponds to H2OLIQ, which is the cloud liquid
+    !   water content. Whereas L2G is H_eff * H2OLIQ. Note that H_eff is
+    !   dimensionless in this equation, not in the more commonly used units
+    !   of M/atm.
+
     ! Chloride (mol/L)
-    CALL Compute_L2G_Local( 1.0_dp, 9000.0_dp, -6.3_dp,                      &
-                            TEMP,   V_tot,      L2G,    pH                  )
+    CALL Compute_L2G_Local( K0     =  1.0_dp,     CR = 9000.0_dp,            &
+                            pKa    = -6.3_dp,     TK = TEMP,                 &
+                            H2OLIQ =  V_tot,      pH = H%pHCloud,            &
+                            L2G    =  L2G                                   )
     F_L = L2G / ( 1.0_dp + L2G )
-    cl_conc = F_L * HCl / (V_tot * H%AVO * 1.0e-3_dp)
+    Cl_conc = F_L * HCl / (V_tot * H%AVO * 1.0e-3_dp)
 
     ! Bromide (mol/L)
-    CALL Compute_L2G_Local( 7.5e-1_dp, 10200.0_dp, -9.0_dp,                  &
-                            TEMP,      V_tot,       L2G,   pH               )
+    CALL Compute_L2G_Local( K0     =  7.5e-1_dp,  CR = 10200.0_dp,           &
+                            pKa    = -9.0_dp,     TK = TEMP,                 &
+                            H2OLIQ =  V_tot,      pH = H%pHCloud,            &
+                            L2G    =  L2G                                   )
     F_L = L2G / ( 1.0_dp + L2G )
-    br_conc = F_L * HBr / ( V_tot * H%AVO * 1.0e-3_dp )
+    Br_conc = F_L * HBr / ( V_tot * H%AVO * 1.0e-3_dp )
 
   END SUBROUTINE Get_Halide_CldConc
 !EOC
@@ -566,7 +576,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_L2G_Local( K0, CR, pKa, TK, H2OLIQ, L2G, pH )
+  SUBROUTINE Compute_L2G_Local( K0, CR, pKa, TK, H2OLIQ, pH, L2G )
 !
 ! !USES:
 !
