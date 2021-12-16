@@ -4647,7 +4647,6 @@ CONTAINS
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
-    USE Mercury_Mod,          ONLY : HG_Emis
     USE PhysConstants
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
@@ -4832,15 +4831,16 @@ CONTAINS
       ! Check if there is emissions or deposition for this species
       CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
 
-      ! If there is emissions for this species, it must be loaded into memory first.
-      ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
-      ! loop. Failure to load this will result in severe performance issues!! (hplin, 9/27/20)
+      ! If there is emissions for this species, it must be loaded into
+      ! memory first.   This is achieved by attempting to retrieve a
+      ! grid box while NOT in a parallel loop. Failure to load this will
+      ! result in severe performance issues!! (hplin, 9/27/20)
       IF ( EmisSpec ) THEN
-          CALL LoadHcoValEmis ( Input_Opt, State_Grid, NA )
+         CALL LoadHcoValEmis ( Input_Opt, State_Grid, NA )
       ENDIF
 
       IF ( DepSpec ) THEN
-          CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
+         CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
       ENDIF
 
       !$OMP PARALLEL DO                                                        &
@@ -4873,21 +4873,13 @@ CONTAINS
            !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
            eflx(I,J,NA) = CH4_EMIS(I,J,NA)
 
-        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-           ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
-           ! This is a workaround to ensure backwards compatibility.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-           eflx(I,J,NA) = HG_EMIS(I,J,NA)
-
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
            ! Compute emissions for all other simulation
            tmpFlx = 0.0_fp
            DO L = 1, topMix
-              CALL GetHcoValEmis( Input_Opt, State_Grid, NA, I, J, L, found, emis )
+              CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,           &
+                                  J,         L,          found, emis        )
               IF ( .NOT. found ) EXIT
               tmpFlx = tmpFlx + emis
            ENDDO
@@ -5068,12 +5060,12 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
-    ! WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
-    ! DO NA = 1, State_Chm%nAdvect
+    !WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
+    !DO NA = 1, State_Chm%nAdvect
     !   WRITE(6,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
     !   WRITE(6,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
     !   WRITE(6,*) 'sflx TRACER ', NA, ': ', SUM(State_Chm%SurfaceFlux(:,:,NA))
-    ! ENDDO
+    !ENDDO
 
     !=======================================================================
     ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
