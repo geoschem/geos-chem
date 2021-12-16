@@ -1237,157 +1237,157 @@ CONTAINS
     LPREINDHG = Input_Opt%LPREINDHG
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Convert_Spc_Units" #1!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! First-time initialization
-    IF ( FIRST ) THEN
-
-       ! Read anthro, ocean, land emissions of Hg from disk
-       CALL MERCURY_READYR( Input_Opt, State_Grid, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered call to "MERCURY_READYR"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Reset first-time flag
-       FIRST = .FALSE.
-    ENDIF
-
-    !=================================================================
-    ! Call emission routines for Hg(0), Hg(II), and Hg(P)
-    !=================================================================
-
-    ! Ocean flux of Hg(0)
-    IF ( LDYNOCEAN ) THEN
-
-       ! Set to zero to clear emissions from previous time step
-       ! (cdh, 4/30/09)
-       EHg0_oc = 0e+0_fp
-
-       CALL OCEAN_MERCURY_FLUX( Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, EHg0_oc,    RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered call to "OCEAN_MERCURY_FLUX"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
-
-    ELSE
-       EHg0_oc = 0e+0_fp
-       CALL OFFLINEOCEAN_READMO( State_Chm, State_Diag, State_Grid, &
-                                 State_Met, EHg0_oc, RC )
-    ENDIF
-
-    !==========================================================================
-    ! Disable GTMM until it is brought up-to-date (mps, 3/10/19)
-    !IF ( LGTMM ) THEN
-    !   !--------------------------------------------------------------
-    !   ! Here we are using the Global Terrstrial Mercury Model...
-    !   !--------------------------------------------------------------
-    !   IF ( ITS_A_NEW_MONTH() ) THEN
-    !
-    !      ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
-    !      CALL GTMM_DR( Input_Opt, State_Chm, State_Grid, State_Met, &
-    !                    EHg0_gtm,  RC )
-    !
-    !      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
-    !   ENDIF
-    !
-    !ELSE
-    !==========================================================================
-
-    !--------------------------------------------------------------
-    ! Here we are NOT using the Global Terrstrial Mercury Model...
-    !--------------------------------------------------------------
-    CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Grid, State_Met )
-    IF ( prtDebug )  CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
-
-    CALL VEGEMIS( Input_Opt, State_Met, LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
-
-    CALL SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
-
-    !==========================================================================
-    !ENDIF
-    !==========================================================================
-
-    CALL SNOWPACK_MERCURY_FLUX( EHg0_snow,  LHGSNOW,  State_Chm, &
-                                State_Grid, State_Met )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
-
-    CALL BIOMASSHG( Input_Opt, State_Grid, EHg0_bb, RC )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
-
-    IF ( LnoUSAemis ) THEN
-
-       ! No Anthropogenic emissions over USA (cdh, 5/6/2009)
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-          IF ( State_Grid%XMid(I,J) > -140 .AND. &
-               State_Grid%XMid(I,J) < -40  .AND. &
-               State_Grid%YMid(I,J) >  10  .AND. &
-               State_Grid%YMid(I,J) <  70 ) THEN
-
-             EHg0_An(I,J) = 0e+0_fp
-             EHg2_An(I,J) = 0e+0_fp
-             EHgP_An(I,J) = 0e+0_fp
-             EHg0_bb(I,J) = 0e+0_fp
-             EHg0_am(I,J) = 0e+0_fp
-
-          ENDIF
-
-       ENDDO
-       ENDDO
-
-    ENDIF
-
-    CALL RESET_HG_DEP_ARRAYS
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: ' // &
-         'a RESET_HG_DEP_ARRAYS' )
-
-    ! If we are using the non-local PBL mixing,
-    ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
-    ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
-    IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
-
-    ! Add Hg(0) source into State_Chm%Species [kg]
-    CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
-
-    ! Add Hg(II) source into State_Chm%Species [kg]
-    CALL SRCHg2( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
-
-    ! Add HgP source into State_Chm%Species [kg]
-    CALL SRCHgP( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
-
-    ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine EMISSMERCURY in mercury_mod.F90')
-       RETURN
-    ENDIF
+!>>>    ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
+!>>>    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+!>>>                            'kg', RC, OrigUnit=OrigUnit )
+!>>>
+!>>>    ! Trap potential errors
+!>>>    IF ( RC /= GC_SUCCESS ) THEN
+!>>>       ErrMsg = 'Error encountered in "Convert_Spc_Units" #1!'
+!>>>       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!>>>       RETURN
+!>>>    ENDIF
+!>>>
+!>>>    ! First-time initialization
+!>>>    IF ( FIRST ) THEN
+!>>>
+!>>>       ! Read anthro, ocean, land emissions of Hg from disk
+!>>>       CALL MERCURY_READYR( Input_Opt, State_Grid, RC )
+!>>>
+!>>>       ! Trap potential errors
+!>>>       IF ( RC /= GC_SUCCESS ) THEN
+!>>>          ErrMsg = 'Error encountered call to "MERCURY_READYR"!'
+!>>>          CALL GC_Error( ErrMsg, RC, ThisLoc )
+!>>>          RETURN
+!>>>       ENDIF
+!>>>
+!>>>       ! Reset first-time flag
+!>>>       FIRST = .FALSE.
+!>>>    ENDIF
+!>>>
+!>>>    !=================================================================
+!>>>    ! Call emission routines for Hg(0), Hg(II), and Hg(P)
+!>>>    !=================================================================
+!>>>
+!>>>    ! Ocean flux of Hg(0)
+!>>>    IF ( LDYNOCEAN ) THEN
+!>>>
+!>>>       ! Set to zero to clear emissions from previous time step
+!>>>       ! (cdh, 4/30/09)
+!>>>       EHg0_oc = 0e+0_fp
+!>>>
+!>>>       CALL OCEAN_MERCURY_FLUX( Input_Opt,  State_Chm, State_Diag, &
+!>>>                                State_Grid, State_Met, EHg0_oc,    RC )
+!>>>
+!>>>       ! Trap potential errors
+!>>>       IF ( RC /= GC_SUCCESS ) THEN
+!>>>          ErrMsg = 'Error encountered call to "OCEAN_MERCURY_FLUX"!'
+!>>>          CALL GC_Error( ErrMsg, RC, ThisLoc )
+!>>>          RETURN
+!>>>       ENDIF
+!>>>
+!>>>       IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
+!>>>
+!>>>    ELSE
+!>>>       EHg0_oc = 0e+0_fp
+!>>>       CALL OFFLINEOCEAN_READMO( State_Chm, State_Diag, State_Grid, &
+!>>>                                 State_Met, EHg0_oc, RC )
+!>>>    ENDIF
+!>>>
+!>>>    !==========================================================================
+!>>>    ! Disable GTMM until it is brought up-to-date (mps, 3/10/19)
+!>>>    !IF ( LGTMM ) THEN
+!>>>    !   !--------------------------------------------------------------
+!>>>    !   ! Here we are using the Global Terrstrial Mercury Model...
+!>>>    !   !--------------------------------------------------------------
+!>>>    !   IF ( ITS_A_NEW_MONTH() ) THEN
+!>>>    !
+!>>>    !      ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
+!>>>    !      CALL GTMM_DR( Input_Opt, State_Chm, State_Grid, State_Met, &
+!>>>    !                    EHg0_gtm,  RC )
+!>>>    !
+!>>>    !      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
+!>>>    !   ENDIF
+!>>>    !
+!>>>    !ELSE
+!>>>    !==========================================================================
+!>>>
+!>>>    !--------------------------------------------------------------
+!>>>    ! Here we are NOT using the Global Terrstrial Mercury Model...
+!>>>    !--------------------------------------------------------------
+!>>>    CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Grid, State_Met )
+!>>>    IF ( prtDebug )  CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+!>>>
+!>>>    CALL VEGEMIS( Input_Opt, State_Met, LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
+!>>>
+!>>>    CALL SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+!>>>
+!>>>    !==========================================================================
+!>>>    !ENDIF
+!>>>    !==========================================================================
+!>>>
+!>>>    CALL SNOWPACK_MERCURY_FLUX( EHg0_snow,  LHGSNOW,  State_Chm, &
+!>>>                                State_Grid, State_Met )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+!>>>
+!>>>    CALL BIOMASSHG( Input_Opt, State_Grid, EHg0_bb, RC )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
+!>>>
+!>>>    IF ( LnoUSAemis ) THEN
+!>>>
+!>>>       ! No Anthropogenic emissions over USA (cdh, 5/6/2009)
+!>>>       DO J = 1, State_Grid%NY
+!>>>       DO I = 1, State_Grid%NX
+!>>>
+!>>>          IF ( State_Grid%XMid(I,J) > -140 .AND. &
+!>>>               State_Grid%XMid(I,J) < -40  .AND. &
+!>>>               State_Grid%YMid(I,J) >  10  .AND. &
+!>>>               State_Grid%YMid(I,J) <  70 ) THEN
+!>>>
+!>>>             EHg0_An(I,J) = 0e+0_fp
+!>>>             EHg2_An(I,J) = 0e+0_fp
+!>>>             EHgP_An(I,J) = 0e+0_fp
+!>>>             EHg0_bb(I,J) = 0e+0_fp
+!>>>             EHg0_am(I,J) = 0e+0_fp
+!>>>
+!>>>          ENDIF
+!>>>
+!>>>       ENDDO
+!>>>       ENDDO
+!>>>
+!>>>    ENDIF
+!>>>
+!>>>    CALL RESET_HG_DEP_ARRAYS
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: ' // &
+!>>>         'a RESET_HG_DEP_ARRAYS' )
+!>>>
+!>>>    ! If we are using the non-local PBL mixing,
+!>>>    ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
+!>>>    ! EMIS_SAVE is now HG_EMIS (ckeller, 10/21/2014)
+!>>>    IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
+!>>>
+!>>>    ! Add Hg(0) source into State_Chm%Species [kg]
+!>>>    CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+!>>>
+!>>>    ! Add Hg(II) source into State_Chm%Species [kg]
+!>>>    CALL SRCHg2( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
+!>>>
+!>>>    ! Add HgP source into State_Chm%Species [kg]
+!>>>    CALL SRCHgP( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+!>>>    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
+!>>>
+!>>>    ! Convert species units back to original unit
+!>>>    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+!>>>                            OrigUnit,  RC )
+!>>>    IF ( RC /= GC_SUCCESS ) THEN
+!>>>       CALL GC_Error('Unit conversion error', RC, &
+!>>>                     'Routine EMISSMERCURY in mercury_mod.F90')
+!>>>       RETURN
+!>>>    ENDIF
 
   END SUBROUTINE EMISSMERCURY
 !EOC

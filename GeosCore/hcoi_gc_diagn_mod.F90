@@ -151,21 +151,21 @@ CONTAINS
        RETURN
     ENDIF
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%%%  NOTE: Emissions for Hg specialty simulations are passed to   %%%%
-    !%%%%  mercury_mod.F90 via HEMCO diagnostics, and not directly      %%%%
-    !%%%%  from the HEMCO state pointer.  Therefore, we need to make    %%%%
-    !%%%%  sure that routine DIAGN_Hg is outside the BPCH_DIAG #if      %%%%
-    !%%%%  block.  -- Bob Yantosca (25 Jan 2018)                        %%%%
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    CALL Diagn_Hg( Input_Opt, HcoState, ExtState, RC )
-
-    ! Trap potential errors
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Diagn_Hg"'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+!>>>    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!>>>    !%%%%  NOTE: Emissions for Hg specialty simulations are passed to   %%%%
+!>>>    !%%%%  mercury_mod.F90 via HEMCO diagnostics, and not directly      %%%%
+!>>>    !%%%%  from the HEMCO state pointer.  Therefore, we need to make    %%%%
+!>>>    !%%%%  sure that routine DIAGN_Hg is outside the BPCH_DIAG #if      %%%%
+!>>>    !%%%%  block.  -- Bob Yantosca (25 Jan 2018)                        %%%%
+!>>>    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!>>>    CALL Diagn_Hg( Input_Opt, HcoState, ExtState, RC )
+!>>>
+!>>>    ! Trap potential errors
+!>>>    IF ( RC /= HCO_SUCCESS ) THEN
+!>>>       ErrMsg = 'Error encountered in "Diagn_Hg"'
+!>>>       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!>>>       RETURN
+!>>>    ENDIF
 
 #ifdef BPCH_DIAG
     !=======================================================================
