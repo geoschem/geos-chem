@@ -487,8 +487,8 @@ CONTAINS
     ! Flags to toggle sulfate-mod computations or KPP computations
     ! TRUE  = use sulfate_mod
     ! FALSE = use KPP computations
-    State_Chm%Do_SulfateMod_Cld     = .TRUE.
-    State_Chm%Do_SulfateMod_SeaSalt = .TRUE.
+    State_Chm%Do_SulfateMod_Cld     = .FALSE. !.TRUE.
+    State_Chm%Do_SulfateMod_SeaSalt = .FALSE. !.TRUE.
     State_Chm%Size_Res              = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
