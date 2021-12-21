@@ -3454,7 +3454,6 @@ CONTAINS
 #endif
 
     !--------------------------
-    ! ND60: Wetland Fraction
     ! ND60: TOMAS rate
     !--------------------------
     CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND60', RC )

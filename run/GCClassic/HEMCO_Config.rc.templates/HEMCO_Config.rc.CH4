@@ -98,9 +98,6 @@ Warnings:                    1
     --> Scaling_CO             :       1.0
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
-121     CH4_WETLANDS           : off   CH4
-    --> Wetlands               :       false
-    --> Rice                   :       false
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -333,9 +330,6 @@ Warnings:                    1
 
 #==============================================================================
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
-#
-# NOTES:
-# - Use either this inventory or the wetland extension -- not both!
 #==============================================================================
 (((JPL_WETCHARTS
 0 JPLW_CH4  $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
@@ -459,19 +453,6 @@ Warnings:                    1
 114 FINN_DAILY_VEGTYP5 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
 114 FINN_DAILY_VEGTYP9 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
 )))FINN_daily
-
-#==============================================================================
-# --- CH4 wetland and rice emissions (Extension 121)
-#==============================================================================
-(((CH4_WETLANDS
-121 CH4_RICE     $ROOT/CH4/v2014-09/v42_CH4.0.1x0.1.nc               ch4_4C_4D 2004-2008/1/1/0    C xy kg/m2/s  CH4 - 1 1
-121 CH4_GWET_YR  $ROOT/CH4/v2014-09/4x5/GWETTOP.annual.geos5.4x5.nc  GWETTOP   2004-2011/1/1/0    C xy 1        *   - 1 1
-121 CH4_GWET_MT  $ROOT/CH4/v2014-09/4x5/GWETTOP.monthly.geos5.4x5.nc GWETTOP   2004-2011/1-12/1/0 C xy 1        *   - 1 1
-121 CH4_MEAN_T   $ROOT/CH4/v2014-09/4x5/TSKIN.annual.geos5.4x5.nc    TSKIN     2004-2011/1/1/0    C xy 1        *   - 1 1
-121 CH4_WETFRAC  $ROOT/CH4/v2014-09/4x5/Wetfrac.4x5.nc               WETFRAC   2000/1/1/0         C xy 1        *   - 1 1
-121 CH4_LITTER_C $ROOT/CH4/v2014-09/4x5/Carbon_litter.4x5.nc         CARBON    2000/1/1/0         C xy kgC/m2/s *   - 1 1
-121 CH4_SOIL_C   $ROOT/CH4/v2014-09/4x5/Carbon_soil.4x5.nc           CARBON    2000/1/1/0         C xy kgC/m2/s *   - 1 1
-)))CH4_WETLANDS
 
 )))EMISSIONS
 

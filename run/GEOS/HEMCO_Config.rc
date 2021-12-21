@@ -158,9 +158,6 @@ Warnings:                    1
 120     Inorg_Iodine      : on    HOI/I2
     --> Emit HOI          :       true
     --> Emit I2           :       true
-121     CH4_WETLANDS      : off   CH4
-    --> Wetlands          :       true
-    --> Rice              :       true
 ### END SECTION EXTENSION SWITCHES 
 
 ####################################################################################
@@ -1035,17 +1032,6 @@ Warnings:                    1
 108  CLM4_PFT_CROP                ~/data/CLM4_PFT.geos.1x1.nc    PFT_CROP                2000/1/1/0    C xy 1        * - 1 1
 108  MEGAN_ORVC                   ~/data/NVOC.geos.1x1.nc        OCPI                    1990/1-12/1/0 C xy kgC/m2/s * - 1 1
 )))MEGAN
-
-#==============================================================================
-# --- CH4 wetland and rice emissions (Extension 121) 
-#==============================================================================
-121 CH4_RICE     $ROOT/CH4/v2014-09/v42_CH4.0.1x0.1.nc                 ch4_4C_4D 2004-2008/1/1/0    C xy kg/m2/s  *   - 1 1
-121 CH4_GWET_YR  $ROOT/CH4/v2014-09/$RES/GWETTOP.annual.geos5.$RES.nc  GWETTOP   2004-2011/1/1/0    C xy 1        *   - 1 1
-121 CH4_GWET_MT  $ROOT/CH4/v2014-09/$RES/GWETTOP.monthly.geos5.$RES.nc GWETTOP   2004-2011/1-12/1/0 C xy 1        *   - 1 1
-121 CH4_MEAN_T   $ROOT/CH4/v2014-09/$RES/TSKIN.annual.geos5.$RES.nc    TSKIN     2004-2011/1/1/0    C xy 1        *   - 1 1
-121 CH4_WETFRAC  $ROOT/CH4/v2014-09/$RES/Wetfrac.$RES.nc               WETFRAC   2000/1/1/0         C xy 1        *   - 1 1
-121 CH4_LITTER_C $ROOT/CH4/v2014-09/$RES/Carbon_litter.$RES.nc         CARBON    2000/1/1/0         C xy kgC/m2/s *   - 1 1
-121 CH4_SOIL_C   $ROOT/CH4/v2014-09/$RES/Carbon_soil.$RES.nc           CARBON    2000/1/1/0         C xy kgC/m2/s *   - 1 1
 
 #==============================================================================
 # --- GFED biomass burning emissions (Extension 111) 
