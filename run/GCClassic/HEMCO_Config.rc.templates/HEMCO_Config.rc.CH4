@@ -57,7 +57,7 @@ Warnings:                    1
     --> Sheng_Canada           :       false    # 2013
     --> Scarpelli_Mexico       :       true     # 2015
 # ----- GLOBAL INVENTORIES ------------------------------------
-    --> GFEI                   :       true     # 2012
+    --> GFEIv2                 :       true     # 2019
     --> EDGARv432              :       true     # 1970-2012
     --> QFED2                  :       false    # 2009-2015
     --> UPDATED_GFED4          :       true     # 2009-2019
@@ -230,15 +230,15 @@ Warnings:                    1
 )))Sheng_Canada
 
 #==============================================================================
-# --- Global Fuel Exploitation Inventory (Scarpelli et al., 2020) ---
+# --- Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021) ---
 #
 # This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
-(((GFEI
-0 GFEI_CH4_OIL  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Oil_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  1 5
-0 GFEI_CH4_GAS  $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Gas_All.nc  emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  2 5
-0 GFEI_CH4_COAL $ROOT/CH4/v2020-02/GFEI/Global_Fuel_Exploitation_Inventory_Coal.nc     emis_ch4_best 2012/1/1/0 C xy molec/cm2/s CH4 -  3 5
-)))GFEI
+(((GFEIv2
+0 GFEI_CH4_OIL  $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc  emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  1 5
+0 GFEI_CH4_GAS  $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc  emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  2 5
+0 GFEI_CH4_COAL $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc     emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  3 5
+)))GFEIv2
 
 #==============================================================================
 # --- EDGAR v4.3.2 emissions, various sectors ---
