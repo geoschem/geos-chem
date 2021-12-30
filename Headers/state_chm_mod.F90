@@ -487,8 +487,8 @@ CONTAINS
     ! Flags to toggle sulfate-mod computations or KPP computations
     ! TRUE  = use sulfate_mod
     ! FALSE = use KPP computations
-    State_Chm%Do_SulfateMod_Cld     = .FALSE. !.TRUE.
-    State_Chm%Do_SulfateMod_SeaSalt = .FALSE. !.TRUE.
+    State_Chm%Do_SulfateMod_Cld     = .FALSE.
+    State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
     State_Chm%Size_Res              = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
@@ -593,10 +593,10 @@ CONTAINS
     ! chemical mechanism for all full-chemistry simulations.  For aerosol-
     ! only simulations, do the sulfur chemistry rxns in sulfate_mod.
     !========================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       State_Chm%Do_SulfateMod_Seasalt = .FALSE.
-       State_Chm%Do_SulfateMod_Cld     = .FALSE.
-    ENDIF
+!    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!       State_Chm%Do_SulfateMod_Seasalt = .FALSE.
+!       State_Chm%Do_SulfateMod_Cld     = .FALSE.
+!    ENDIF
 
     !========================================================================
     ! Populate the species database object field

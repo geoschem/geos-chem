@@ -107,7 +107,7 @@ CONTAINS
     USE GcKpp_Initialize,   ONLY : Init_KPP => Initialize
     USE GcKpp_Util,         ONLY : Get_OHreactivity
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE PhysConstants,      ONLY : AVO
+    USE PhysConstants,      ONLY : AVO, AIRMW
     USE PRESSURE_MOD
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -200,6 +200,8 @@ CONTAINS
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+
+    REAL(dp) :: cvf
 
     !========================================================================
     ! Do_FullChem begins here!
@@ -929,6 +931,11 @@ CONTAINS
           ENDDO
        ENDIF
 
+       IF (I.eq.62.and.J.eq.32.and.L.eq.26) then
+          write(*,*) 'HMS /cm3 ', State_Chm%Species(62,32,26,ind_('HMS')),State_Chm%Species(62,32,26,ind_('OH'))
+          write(*,*) 'HMS v/v: ', State_Chm%Species(62,32,26,ind_('HMS'))*cvf,State_Chm%Species(62,32,26,ind_('OH'))*cvf
+          write(*,*) 'L8S : ', Aout(12)*DT*(1.E3_fp * AIRMW / ( state_met%AIRDEN(I,J,L) * AVO )), RCONST(12)
+       ENDIF
        !=====================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
        !
@@ -1428,6 +1435,15 @@ CONTAINS
     !=======================================================================
     CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
                             OrigUnit,  RC )
+
+!       IF (I.eq.62.and.J.eq.32.and.L.eq.26) then
+          write(*,*) 'HMS: ', State_Chm%Species(62,32,26,ind_('HMS')),State_Chm%Species(62,32,26,ind_('OH'))
+!          write(*,*) 'L8S : ', Aout(12)*(1.E3_fp * AIRMW / ( state_met%AIRDEN(I,J,L) * AVO )), RCONST(12)
+!          write(*,*) 'KaqHMS2: ', KaqHMS2
+!       ENDIF
+
+
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )
