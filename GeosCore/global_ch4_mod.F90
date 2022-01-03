@@ -186,11 +186,6 @@ CONTAINS
     ! in a multi-species simulation, species 1 (total CH4) is properly
     ! defined.
     !
-    ! NOTE: the ND60 diagnostics (wetland fraction) is currently not
-    ! written. To support this diagnostics, create a manual diagnostics
-    ! in the wetland extension (HEMCO/Extensions/hcox_ch4wetland_mod.F90),
-    ! activate it in hcoi\_gc\_diagn\_mod.F90 and import it here.
-    !
     !                                              (ckeller, 9/12/2013)
     ! =================================================================
     CH4_EMIS(:,:,:) = 0e+0_fp
