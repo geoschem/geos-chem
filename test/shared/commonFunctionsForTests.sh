@@ -262,6 +262,12 @@ function cleanup_files() {
     #========================================================================
     if [[ "x${1}" != "x" ]]; then
 
+	# Exit if directory is already empty
+	if [[ ! $(ls -A ${1}) ]]; then
+	    echo "${1} is empty... nothing to clean up!"
+	    return 0
+	fi
+
 	# Give user a chance to avoid removing files
 	printf "\nRemoving files and directories in ${1}:\n"
 	printf "If this is OK, type 'yes to proceed or 'no' to quit:\n"
@@ -314,7 +320,7 @@ function gcclassic_exe_name() {
     exeFileName="gcclassic"
 
     # Append a suffix to the executable file name for specific directories
-    for suffix in apm bpch luowd rrtmg tomas15 tomas40; do
+    for suffix in apm bpch hg luowd rrtmg tomas15 tomas40; do
 	if [[ ${1} =~ ${suffix} ]]; then
 	    exeFileName+=".${suffix}"
 	    break
@@ -351,6 +357,8 @@ function gcclassic_config_options() {
 	options="${baseOptions} -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "bpch" ]]; then
 	options="${baseOptions} -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "hg" ]]; then
+	options="${baseOptions} -DMECH=Hg -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "luowd" ]]; then
 	options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
@@ -391,6 +399,8 @@ function gcclassic_compiletest_name() {
 	result="GCClassic with BPCH diagnostics"
     elif [[ ${dir} =~ "luowd" ]]; then
 	result="GCClassic with Luo et al wetdep"
+    elif [[ ${dir} =~ "hg" ]]; then
+	result="GCClassic with Hg (as a KPP mechanism)"
     elif [[ ${dir} =~ "rrtmg" ]]; then
 	result="GCClassic with RRTMG"
     elif [[ ${dir} =~ "tomas15" ]]; then

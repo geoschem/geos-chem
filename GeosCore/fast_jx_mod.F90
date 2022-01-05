@@ -78,6 +78,10 @@ MODULE FAST_JX_MOD
   INTEGER, PUBLIC :: RXN_NO3   = -1
   INTEGER, PUBLIC :: RXN_N2O   = -1
 
+  ! For Hg chem
+  INTEGER, PUBLIC :: RXN_BrO   = -1
+  INTEGER, PUBLIC :: RXN_ClO   = -1
+
   ! Species ID flags
   INTEGER :: id_CH2IBr, id_IBr,  id_CH2ICl, id_ICl,   id_I2
   INTEGER :: id_HOI,    id_IO,   id_OIO,    id_INO,   id_IONO
@@ -2967,19 +2971,19 @@ CONTAINS
     ! String arrays
     CHARACTER(LEN=6)   :: JMAP(JVN_)
 
-    !=================================================================
+    !========================================================================
     ! RD_JS_JX begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at Rd_Js_Jx (in module GeosCore/fast_jx_mod.F90)'
 
-    !=================================================================
+    !========================================================================
     ! In dry-run mode, print file path to dryrun log and exit.
     ! Otherwise, print file path to stdout and continue.
-    !=================================================================
+    !========================================================================
 
     ! Test if the file exists
     INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
@@ -3009,13 +3013,13 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !=================================================================
+    !========================================================================
     ! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
     ! The chemistry code title describes fully the reaction (a50)
     ! Blank (unfilled) chemistry J's are unmapped
     ! The number NRATJ is the last JJ readin that is .le. JVN
     ! include fractional quantum yield for the fast-JX J's
-    !=================================================================
+    !========================================================================
 
     JLABEL(:) = '------'
     JMAP(:)   = '------'
@@ -3109,194 +3113,246 @@ CONTAINS
        endif
     enddo
 
-    !=================================================================
+    !========================================================================
     ! Flag special reactions that will be later adjusted by
     ! routine PHOTRATE_ADJ (called from FlexChem)
-    !=================================================================
+    !========================================================================
 
-    ! Loop over all photolysis reactions
-    DO K = 1, NRATJ
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       ! Loop over all photolysis reactions
+       DO K = 1, NRATJ
 
-       ! Strip all blanks from the reactants and products list
-       TEXT = JLABEL(K)
-       CALL CSTRIP( TEXT )
+          ! Strip all blanks from the reactants and products list
+          TEXT = JLABEL(K)
+          CALL CSTRIP( TEXT )
 
-       !IF ( Input_Opt%amIRoot ) THEN
-       !   WRITE(*,*) K, TRIM( TEXT )
-       !ENDIF
+          !IF ( Input_Opt%amIRoot ) THEN
+          !   WRITE(*,*) K, TRIM( TEXT )
+          !ENDIF
 
-       ! Look for certain reactions
-       SELECT CASE( TRIM( TEXT ) )
+          ! Look for certain reactions
+          SELECT CASE( TRIM( TEXT ) )
+             CASE( 'O2PHOTONOO' )
+                RXN_O2 = K                ! O2 + hv -> O + O
+             CASE( 'O3PHOTONO2O' )
+                RXN_O3_1 = K              ! O3 + hv -> O2 + O
+             CASE( 'O3PHOTONO2O(1D)' )
+                RXN_O3_2 = K              ! O3 + hv -> O2 + O(1D)
+             CASE( 'SO4PHOTONSO2OHOH' )
+                RXN_H2SO4 = K             ! SO4 + hv -> SO2 + OH + OH
+             CASE( 'NO2PHOTONNOO' )
+                RXN_NO2 = K               ! NO2 + hv -> NO + O
+             CASE( 'NOPHOTONNO' )
+                RXN_NO = K                ! NO + hv -> N + O
+             CASE( 'NO3PHOTONNO2O' )
+                RXN_NO3 = K               ! NO3 + hv -> NO2 + O
+             CASE( 'N2OPHOTONN2O' )
+                RXN_N2O = K               ! N2O + hv -> N2 + O
+             CASE( 'NITsPHOTONHNO2' )
+                RXN_JNITSa = K            ! NITs + hv -> HNO2
+             CASE( 'NITsPHOTONNO2' )
+                RXN_JNITSb = K            ! NITs + hv -> NO2
+             CASE( 'NITPHOTONHNO2' )
+                RXN_JNITa = K             ! NIT + hv -> HNO2
+             CASE( 'NITPHOTONNO2' )
+                RXN_JNITb = K             ! NIT + hv -> NO2
+             CASE( 'HNO3PHOTONNO2OH' )
+                RXN_JHNO3 = K             ! HNO3 + hv = OH + NO2
+             CASE DEFAULT
+                ! Nothing
+          END SELECT
+       ENDDO
 
-       ! O2 + hv -> O + O
-       CASE( 'O2PHOTONOO' )
-          RXN_O2 = K
+       !---------------------------------------------------------------------
+       ! Error check the various rxn flags
+       !---------------------------------------------------------------------
+       IF ( RXN_O2 < 0 ) THEN
+          ErrMsg = 'Could not find rxn O2 + hv -> O + O'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! O3 + hv -> O2 + O
-       CASE( 'O3PHOTONO2O' )
-          RXN_O3_1 = K
+       IF ( RXN_O3_1 < 0 ) THEN
+          ErrMsg = 'Could not find rxn O3 + hv -> O2 + O'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! O3 + hv -> O2 + O(1D)
-       CASE( 'O3PHOTONO2O(1D)' )
-          RXN_O3_2 = K
+       IF ( RXN_O3_2 < 0 ) THEN
+          ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D)'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ENDIF
 
-       ! SO4 + hv -> SO2 + OH + OH
-       CASE( 'SO4PHOTONSO2OHOH' )
-          RXN_H2SO4 = K
+       IF ( RXN_NO2 < 0 ) THEN
+          ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NO2 + hv -> NO + O
-       CASE( 'NO2PHOTONNOO' )
-          RXN_NO2 = K
+       IF ( RXN_NO2 < 0 ) THEN
+          ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NO + hv -> N + O
-       CASE( 'NOPHOTONNO' )
-          RXN_NO = K
+       IF ( RXN_JNITSa < 0 ) THEN
+          ErrMsg = 'Could not find rxn NITS + hv -> HNO2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NO3 + hv -> NO2 + O
-       CASE( 'NO3PHOTONNO2O' )
-          RXN_NO3 = K
+       IF ( RXN_JNITSb < 0 ) THEN
+          ErrMsg = 'Could not find rxn NITS + hv -> NO2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! N2O + hv -> N2 + O
-       CASE( 'N2OPHOTONN2O' )
-          RXN_N2O = K
+       IF ( RXN_JNITa < 0 ) THEN
+          ErrMsg = 'Could not find rxn NIT + hv -> HNO2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NITs + hv -> HNO2
-       CASE( 'NITsPHOTONHNO2' )
-          RXN_JNITSa = K
+       IF ( RXN_JNITb < 0 ) THEN
+          ErrMsg = 'Could not find rxn NIT + hv -> NO2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NITs + hv -> NO2
-       CASE( 'NITsPHOTONNO2' )
-          RXN_JNITSb = K
+       IF ( RXN_H2SO4  < 0 ) THEN
+          ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NIT + hv -> HNO2
-       CASE( 'NITPHOTONHNO2' )
-          RXN_JNITa = K
+       IF ( RXN_NO3 < 0 ) THEN
+          ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! NIT + hv -> NO2
-       CASE( 'NITPHOTONNO2' )
-          RXN_JNITb = K
+       IF ( RXN_NO < 0 ) THEN
+          ErrMsg = 'Could not find rxn NO + hv -> O + N'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       ! HNO3 + hv = OH + NO2
-       CASE( 'HNO3PHOTONNO2OH' )
-          RXN_JHNO3 = K
+       IF ( RXN_N2O < 0 ) THEN
+          ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       CASE DEFAULT
-          ! Nothing
-       END SELECT
-
-    ENDDO
-
-    !---------------------------------------------------------------------
-    ! Error check the various rxn flags
-    !---------------------------------------------------------------------
-    IF ( RXN_O2 < 0 ) THEN
-       ErrMsg = 'Could not find rxn O2 + hv -> O + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       !---------------------------------------------------------------------
+       ! Print out saved rxn flags for fullchem simulations
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%amIRoot ) THEN
+          WRITE( 6, 100 ) REPEAT( '=', 79 )
+          WRITE( 6, 110 )
+          WRITE( 6, 120 ) RXN_O2
+          WRITE( 6, 130 ) RXN_O3_1
+          WRITE( 6, 140 ) RXN_O3_2
+          WRITE( 6, 180 ) RXN_JNITSa
+          WRITE( 6, 190 ) RXN_JNITSb
+          WRITE( 6, 200 ) RXN_JNITa
+          WRITE( 6, 210 ) RXN_JNITb
+          WRITE( 6, 160 ) RXN_H2SO4
+          WRITE( 6, 170 ) RXN_NO2
+          WRITE( 6, 100 ) REPEAT( '=', 79 )
+       ENDIF
     ENDIF
 
-    IF ( RXN_O3_1 < 0 ) THEN
-       ErrMsg = 'Could not find rxn O3 + hv -> O2 + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+    !========================================================================
+    ! Flag reactions for diagnostics (only in Hg chem)
+    !========================================================================
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+        ! Loop over all photolysis reactions
+        DO K = 1, NRATJ
 
-    IF ( RXN_O3_2 < 0 ) THEN
-       ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D)'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-    ENDIF
+           ! Strip all blanks from the reactants and products list
+           TEXT = JLABEL(K)
+           CALL CSTRIP( TEXT )
 
-    IF ( RXN_NO2 < 0 ) THEN
-       ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+           ! Look for certain reactions
+           SELECT CASE( TRIM( TEXT ) )
+              CASE( 'O3PHOTONO2O' )
+                 RXN_O3_1 = K             ! O3 + hv -> O2 + O
+              CASE( 'O3PHOTONO2O(1D)' )
+                 RXN_O3_2 = K             ! O3 + hv -> O2 + O(1D)
+              CASE( 'NO2PHOTONNOO' )
+                 RXN_NO2 = K              ! NO2 + hv -> NO + O
+              CASE( 'BrOPHOTONBrO' )
+                 RXN_BrO = K              ! BrO + hv -> Br + O
+              CASE( 'ClOPHOTONClO' )
+                 RXN_ClO = K              ! ClO + hv -> Cl + O
+              CASE DEFAULT
+                 ! Nothing
+           END SELECT
+        ENDDO
 
-    IF ( RXN_NO2 < 0 ) THEN
-       ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+        !--------------------------------------------------------------------
+        ! Error check the various rxn flags
+        !--------------------------------------------------------------------
+        IF ( RXN_O3_1 < 0 ) THEN
+           ErrMsg = 'Could not find rxn O3 + hv -> O2 + O'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
 
-    IF ( RXN_JNITSa < 0 ) THEN
-       ErrMsg = 'Could not find rxn NITS + hv -> HNO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+        IF ( RXN_O3_2 < 0 ) THEN
+           ErrMsg = 'Could not find rxn O3 + hv -> O2 + O(1D) #1'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
 
-    IF ( RXN_JNITSb < 0 ) THEN
-       ErrMsg = 'Could not find rxn NITS + hv -> NO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+        IF ( RXN_NO2 < 0 ) THEN
+           ErrMsg = 'Could not find rxn NO2 + hv -> NO + O'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
 
-    IF ( RXN_JNITa < 0 ) THEN
-       ErrMsg = 'Could not find rxn NIT + hv -> HNO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+        IF ( RXN_BrO < 0 ) THEN
+           ErrMsg = 'Could not find rxn BrO + hv -> Br + O'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
 
-    IF ( RXN_JNITb < 0 ) THEN
-       ErrMsg = 'Could not find rxn NIT + hv -> NO2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+        IF ( RXN_ClO < 0 ) THEN
+           ErrMsg = 'Could not find rxn ClO + hv -> Cl + O'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
 
-    IF ( RXN_H2SO4  < 0 ) THEN
-       ErrMsg = 'Could not find rxn SO4 + hv -> SO2 + OH + OH!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    IF ( RXN_NO3 < 0 ) THEN
-       ErrMsg = 'Could not find rxn NO3 + hv -> NO2 + O'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    IF ( RXN_NO < 0 ) THEN
-       ErrMsg = 'Could not find rxn NO + hv -> O + N'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    IF ( RXN_N2O < 0 ) THEN
-       ErrMsg = 'Could not find rxn N2O + hv -> N2 + O(1D)'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------
-    ! Print out saved rxn flags
-    !------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 100 ) REPEAT( '=', 79 )
-       WRITE( 6, 110 )
-       WRITE( 6, 120 ) RXN_O2
-       WRITE( 6, 130 ) RXN_O3_1
-       WRITE( 6, 140 ) RXN_O3_2
-       WRITE( 6, 180 ) RXN_JNITSa
-       WRITE( 6, 190 ) RXN_JNITSb
-       WRITE( 6, 200 ) RXN_JNITa
-       WRITE( 6, 210 ) RXN_JNITb
-       WRITE( 6, 160 ) RXN_H2SO4
-       WRITE( 6, 170 ) RXN_NO2
-       WRITE( 6, 100 ) REPEAT( '=', 79 )
+       !---------------------------------------------------------------------
+       ! Print out saved rxn flags for Hg simulation
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%amIRoot ) THEN
+          WRITE( 6, 100 ) REPEAT( '=', 79 )
+          WRITE( 6, 110 )
+          WRITE( 6, 130 ) RXN_O3_1
+          WRITE( 6, 140 ) RXN_O3_2
+          WRITE( 6, 170 ) RXN_NO2
+          WRITE( 6, 220 ) RXN_BrO
+          WRITE( 6, 230 ) RXN_ClO
+          WRITE( 6, 100 ) REPEAT( '=', 79 )
+       ENDIF
     ENDIF
 
     ! FORMAT statements
 100 FORMAT( a                                                 )
 110 FORMAT( 'Photo rxn flags saved for use in PHOTRATE_ADJ:', / )
-120 FORMAT( 'RXN_O2    [ O2  + hv -> O + O         ]  =  ', i5 )
-130 FORMAT( 'RXN_O3_1  [ O3  + hv -> O2 + O        ]  =  ', i5 )
-140 FORMAT( 'RXN_O3_2a [ O3  + hv -> O2 + O(1D) #1 ]  =  ', i5 )
-150 FORMAT( 'RXN_O3_2b [ O3  + hv -> O2 + O(1D) #2 ]  =  ', i5 )
-160 FORMAT( 'RXN_H2SO4 [ SO4 + hv -> SO2 + OH + OH ]  =  ', i5 )
-170 FORMAT( 'RXN_NO2   [ NO2 + hv -> NO + O        ]  =  ', i5 )
-180 FORMAT( 'RXN_JNITSa [ NITS + hv -> HNO2        ]  =  ', i5 )
-190 FORMAT( 'RXN_JNITSb [ NITS + hv -> NO2         ]  =  ', i5 )
-200 FORMAT( 'RXN_JNITa  [ NIT + hv -> HNO2         ]  =  ', i5 )
-210 FORMAT( 'RXN_JNITb  [ NIT + hv -> NO2          ]  =  ', i5 )
+120 FORMAT( 'RXN_O2     [ O2   + hv -> O + O         ]  =  ', i5 )
+130 FORMAT( 'RXN_O3_1   [ O3   + hv -> O2 + O        ]  =  ', i5 )
+140 FORMAT( 'RXN_O3_2a  [ O3   + hv -> O2 + O(1D) #1 ]  =  ', i5 )
+150 FORMAT( 'RXN_O3_2b  [ O3   + hv -> O2 + O(1D) #2 ]  =  ', i5 )
+160 FORMAT( 'RXN_H2SO4  [ SO4  + hv -> SO2 + OH + OH ]  =  ', i5 )
+170 FORMAT( 'RXN_NO2    [ NO2  + hv -> NO + O        ]  =  ', i5 )
+180 FORMAT( 'RXN_JNITSa [ NITS + hv -> HNO2          ]  =  ', i5 )
+190 FORMAT( 'RXN_JNITSb [ NITS + hv -> NO2           ]  =  ', i5 )
+200 FORMAT( 'RXN_JNITa  [ NIT  + hv -> HNO2          ]  =  ', i5 )
+210 FORMAT( 'RXN_JNITb  [ NIT  + hv -> NO2           ]  =  ', i5 )
+220 FORMAT( 'RXN_BrO    [ BrO  + hv -> Br + O        ]  =  ', i5 )
+230 FORMAT( 'RXN_ClO    [ ClO  + hv -> Cl + O        ]  =  ', i5 )
 
   END SUBROUTINE RD_JS_JX
 !EOC
@@ -3488,10 +3544,10 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! Initialize diagnostics arrays
     IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
-       State_Diag%EXTRALNLEVS(ILON,ILAT) = 0.0 
+       State_Diag%EXTRALNLEVS(ILON,ILAT) = 0.0
     ENDIF
     IF ( State_Diag%Archive_EXTRALNITER ) THEN
-       State_Diag%EXTRALNITER(ILON,ILAT) = 0.0 
+       State_Diag%EXTRALNITER(ILON,ILAT) = 0.0
     ENDIF
 #endif
 

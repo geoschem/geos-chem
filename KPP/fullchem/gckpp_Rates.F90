@@ -33,7 +33,7 @@ CONTAINS
 ! Begin INLINED Rate Law Functions
 
 
-  ! All rates are included in aerochem_RateLawFuncs.F90, which
+  ! All rates are included in fullchem_RateLawFuncs.F90, which
   ! gets referenced directly from subroutine Update_Rconst.
 
 ! End INLINED Rate Law Functions

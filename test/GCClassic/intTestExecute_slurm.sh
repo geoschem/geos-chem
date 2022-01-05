@@ -20,10 +20,6 @@
 #\\
 # !CALLING SEQUENCE:
 #  sbatch intTestExecute_slurm.sh
-#
-# !REVISION HISTORY:
-#  03 Nov 2020 - R. Yantosca - Initial version
-#  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC

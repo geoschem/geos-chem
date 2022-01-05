@@ -839,6 +839,37 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: ReactiveGaseousHg(:,:,:)
      LOGICAL                     :: Archive_ReactiveGaseousHg
 
+     ! From Viral Shah (MSL, 7.1.21)
+     REAL(f4), POINTER :: HgBrAfterChem            (:,:,:)
+     LOGICAL :: Archive_HgBrAfterChem
+
+     REAL(f4), POINTER :: HgClAfterChem            (:,:,:)
+     LOGICAL :: Archive_HgClAfterChem
+
+     REAL(f4), POINTER :: HgOHAfterChem            (:,:,:)
+     LOGICAL :: Archive_HgOHAfterChem
+
+     REAL(f4), POINTER :: HgBrOAfterChem           (:,:,:)
+     LOGICAL :: Archive_HgBrOAfterChem
+
+     REAL(f4), POINTER :: HgClOAfterChem           (:,:,:)
+     LOGICAL :: Archive_HgClOAfterChem
+
+     REAL(f4), POINTER :: HgOHOAfterChem           (:,:,:)
+     LOGICAL :: Archive_HgOHOAfterChem
+
+     REAL(f4), POINTER :: Hg2GToHg2P               (:,:,:)
+     LOGICAL :: Archive_Hg2GToHg2P
+
+     REAL(f4), POINTER :: Hg2PToHg2G               (:,:,:)
+     LOGICAL :: Archive_Hg2PToHg2G
+
+     REAL(f4), POINTER :: Hg2GasToHg2StrP          (:,:,:)
+     LOGICAL :: Archive_Hg2GasToHg2StrP
+
+     REAL(f4), POINTER :: Hg2GasToSSA              (:,:,:)
+     LOGICAL :: Archive_Hg2GasToSSA
+
      !%%%%% Simulation with RRTMG %%%%%
 
      INTEGER                     :: nRadOut
@@ -1889,6 +1920,29 @@ CONTAINS
     State_Diag%Archive_ProdHg2fromO3               = .FALSE.
     State_Diag%Archive_ParticulateBoundHg          = .FALSE.
     State_Diag%Archive_ReactiveGaseousHg           = .FALSE.
+
+    ! From Viral Shah (MSL, 7.1.21)
+    State_Diag%HgBrAfterChem                       => NULL()
+    State_Diag%HgClAfterChem                       => NULL()
+    State_Diag%HgOHAfterChem                       => NULL()
+    State_Diag%HgBrOAfterChem                      => NULL()
+    State_Diag%HgClOAfterChem                      => NULL()
+    State_Diag%HgOHOAfterChem                      => NULL()
+    State_Diag%Hg2GToHg2P                          => NULL()
+    State_Diag%Hg2PToHg2G                          => NULL()
+    State_Diag%Hg2GasToHg2StrP                     => NULL()
+    State_Diag%Hg2GasToSSA                         => NULL()
+
+    State_Diag%Archive_HgBrAfterChem               = .FALSE.
+    State_Diag%Archive_HgClAfterChem               = .FALSE.
+    State_Diag%Archive_HgOHAfterChem               = .FALSE.
+    State_Diag%Archive_HgBrOAfterChem              = .FALSE.
+    State_Diag%Archive_HgClOAfterChem              = .FALSE.
+    State_Diag%Archive_HgOHOAfterChem              = .FALSE.
+    State_Diag%Archive_Hg2GToHg2P                  = .FALSE.
+    State_Diag%Archive_Hg2PToHg2G                  = .FALSE.
+    State_Diag%Archive_Hg2GasToHg2StrP             = .FALSE.
+    State_Diag%Archive_Hg2GasToSSA                 = .FALSE.
 
     ! ObsPack diagnostic quantities
     State_Diag%Do_ObsPack                          = .FALSE.
@@ -3931,7 +3985,7 @@ CONTAINS
     ! ALL FULL-CHEMISTRY SIMULATIONS
     ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
@@ -4757,8 +4811,8 @@ CONTAINS
           SELECT CASE( N )
              CASE( 1  )
                 diagID = 'RxnRate'
-             CASE( 2  )
-                diagID = 'Jval'
+!             CASE( 2  )
+!                diagID = 'Jval'
              CASE( 3  )
                 diagID = 'JNoon'
              CASE( 4  )
@@ -6768,7 +6822,7 @@ CONTAINS
     !
     ! and THE TAGGED O3 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or.                                   &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM .or. &
          Input_Opt%ITS_A_TAGCO_SIM    .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
        !--------------------------------------------------------------------
@@ -8011,6 +8065,227 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%MassHgTotalInOcean,                  &
             archiveData    = State_Diag%Archive_MassHgTotalInOcean,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! From Viral Shah (MSL, 7.1.21)
+       !-------------------------------------------------------------------
+       ! HgBr concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgBrAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgBrAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgBrAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgCl concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgClAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgClAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgClAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgOH concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgOHAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgOHAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgOHAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgBrO concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgBrOAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgBrOAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgBrOAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgClO concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgClOAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgClOAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgClOAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgOHO concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgOHOAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgOHOAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgOHOAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2Gas transferred to Hg2P
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2GToHg2P'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2GToHg2P,                          &
+            archiveData    = State_Diag%Archive_Hg2GToHg2P,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2P transferred to Hg2Gas
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2PToHg2G'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2PToHg2G,                          &
+            archiveData    = State_Diag%Archive_Hg2PToHg2G,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2Gas transferred to Hg2StrP
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2GasToHg2StrP'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2GasToHg2StrP,                     &
+            archiveData    = State_Diag%Archive_Hg2GasToHg2StrP,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2Gas taken up by sea salt aerosols
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2GasToSSA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2GasToSSA,                         &
+            archiveData    = State_Diag%Archive_Hg2GasToSSA,                 &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -11625,6 +11900,59 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Total ocean mass of all mercury'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  2
+
+    ! From Viral Shah (MSL - 7.1.21)
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGBRAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgBr concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGCLAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgCl concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGOHAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgOH concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGBROAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgBrO concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGCLOAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgClO concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGOHOAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgOHO concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2GTOHG2P' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2 gas transferred to Hg2P'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2PTOHG2G' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2P transferred to Hg2 gas'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2GASTOHG2STRP' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2 gas transferred to Hg2StrP'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2GASTOSSA ' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2 gas transferred to SSA'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+! MSL
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBR' ) THEN
        IF ( isDesc    ) Desc  = 'Br concentration'

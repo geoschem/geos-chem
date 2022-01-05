@@ -26,8 +26,30 @@ Chem/emis timestep [sec]: ${RUNDIR_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : Hg0
-Species name            : Hg2
-Species name            : HgP
+Species name            : HgBr
+Species name            : HgBrNO2
+Species name            : HgBrHO2
+Species name            : HgBrBrO
+Species name            : HgBrClO
+Species name            : HgBrOH
+Species name            : HgBr2
+Species name            : HgCl
+Species name            : HgClNO2
+Species name            : HgClHO2
+Species name            : HgClClO
+Species name            : HgClBrO
+Species name            : HgClBr
+Species name            : HgClOH
+Species name            : HgOH
+Species name            : HgOHNO2
+Species name            : HgOHHO2
+Species name            : HgOHClO
+Species name            : HgOHBrO
+Species name            : HgOHOH
+Species name            : HgCl2
+Species name            : Hg2ClP
+Species name            : Hg2ORGP
+Species name            : Hg2STRP
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
 Turn on Transport       : T
@@ -84,7 +106,7 @@ Use active strat. H2O?  : F
 Use static H2O BC?      : F
 Overhead O3 for FAST-JX :---
  => Online O3 from model: F
- => O3 from met fields  : F
+ => O3 from met fields  : T
  => TOMS/SBUV O3        : F
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
