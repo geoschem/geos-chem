@@ -1,25 +1,18 @@
 #!/bin/bash
 
-#SBATCH -c 24
-#SBATCH -N 1
-#SBATCH -t 0-06:00
-#SBATCH -p huce_cascade
-#SBATCH --mem=90000
-#SBATCH --mail-type=END
-
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestExecute_slurm.sh
+# !MODULE: intTestExecute_interactive.sh
 #
 # !DESCRIPTION: Runs execution tests on various GEOS-Chem Classic
-#  run directories (using the SLURM scheduler).
+#  run directories (in an interactive session such as on AWS).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  sbatch intTestExecute_slurm.sh
+#  ./intTestExecute_interactive.sh
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -31,15 +24,14 @@
 # Get the long path of this folder
 root=`pwd -P`
 
-# In SLURM: Load software environment and OpenMP settings
-# Otherwise (e.g. for testing) use a small number of OpenMP threads
-if [[ "x${SLURM_JOBID}" == "x" ]]; then
-    export OMP_NUM_THREADS=6
-else
-    . ~/.bashrc
-    . ${root}/gcclassic_env.sh
-    export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-fi
+# Load computational environment and settings)
+. ~/.bashrc
+. ${root}/gcclassic_env.sh
+export OMP_STACKSIZE=500m
+
+# For AWS, set $OMP_NUM_THREADS to the available cores
+kernel=$(uname -r)
+[[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
 
 # Load common functions for tests
 . ${root}/commonFunctionsForTests.sh
@@ -108,7 +100,7 @@ for runDir in *; do
 
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.
-	    srun -c ${OMP_NUM_THREADS} ./${exeFile} >> ${log} 2>&1
+	    ./${exeFile} >> ${log} 2>&1
 	    if [[ $? -eq 0 ]]; then
 		let passed++
 		if [[ "x${results}" != "x" ]]; then
