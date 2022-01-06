@@ -56,16 +56,6 @@ SUBROUTINE Initialize ( )
   END DO
 
 ! constant rate coefficients
-  RCONST(3) = 3.9e-11
-  RCONST(4) = 3e-12
-  RCONST(10) = 3e-11
-  RCONST(13) = 3e-11
-  RCONST(15) = 3.9e-11
-  RCONST(16) = 3e-12
-  RCONST(21) = 3e-11
-  RCONST(22) = 3e-11
-  RCONST(23) = 3e-11
-  RCONST(34) = 3e-11
 ! END constant rate coefficients
 
 ! INLINED initializations
