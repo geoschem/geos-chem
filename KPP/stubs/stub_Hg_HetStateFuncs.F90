@@ -9,9 +9,9 @@ MODULE Hg_HetStateFuncs
   !
 CONTAINS
   !
-  SUBROUTINE Hg_SetStateHet( I,         J,         L,                        &
-                             Input_Opt, State_Chm, State_Met,                &
-                             H,         RC                                  )
+  SUBROUTINE Hg_SetStateHet( I,          J,          L,                       &
+                             Input_Opt,  State_Chm,  State_Met,               &
+                             fracOrgAer, H,          RC                      )
     !
     ! Stub routine to avoid compilation errors
     !
@@ -28,6 +28,7 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(ChmState), INTENT(IN)    :: State_Chm
     TYPE(MetState), INTENT(IN)    :: State_Met
+    REAL(sp),       INTENT(IN)    :: fracOrgAer
     TYPE(HetState), INTENT(INOUT) :: H
     INTEGER,        INTENT(OUT)   :: RC
     !

@@ -66,87 +66,87 @@ CH4        = IGNORE;
 // Gas-phase reactions
 //
 {OXIDATION BY Br}
-Hg0     + Br     = HgBr :                GCARR_ab(1.46d-32, 1.86d0) * NUMDEN;
-HgBr             = Hg0 :                 GCARR_abc(1.6d-9, 1.86d0, -7801.0d0) * NUMDEN;
-HgBr    + Br     = Hg0 :                 3.9d-11;
-HgBr    + NO2    = Hg0 :                 3.0d-12;
-HgBr    + NO2    = HgBrNO2 :             GCJPLPR_abab(4.3d-30, 5.9d0, 1.2d-10, 1.90d0, 0.6d0);
-HgBr    + HO2    = HgBrHO2 :             GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgBr    + ClO    = HgBrClO :             GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgBr    + BrO    = HgBrBrO :             GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgBr    + OH     = HgBrOH :              GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgBr    + Br     = HgBr2 :               3.0d-11;
-HgBrO   + CH4    = HgBrOH :              GCARR_ac(4.1d-12, -856.0d0);
-HgBrO   + CO     = HgBr :                GCARR_ac(6.0d-11, -550.0d0);
-HgBr    + O3     = HgBrO :               3.0d-11;
+Hg0     + Br     = HgBr :     GCARR_ab(1.46d-32, 1.86d0) * NUMDEN;
+HgBr             = Hg0 :      GCARR_abc(1.6d-9, 1.86d0, -7801.0d0) * NUMDEN;
+HgBr    + Br     = Hg0 :      3.9d-11;
+HgBr    + NO2    = Hg0 :      3.0d-12;
+HgBr    + NO2    = HgBrNO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 1.2d-10, 1.90d0, 0.6d0);
+HgBr    + HO2    = HgBrHO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + ClO    = HgBrClO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + BrO    = HgBrBrO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + OH     = HgBrOH :   GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + Br     = HgBr2 :    3.0d-11;
+HgBrO   + CH4    = HgBrOH :   GCARR_ac(4.1d-12, -856.0d0);
+HgBrO   + CO     = HgBr :     GCARR_ac(6.0d-11, -550.0d0);
+HgBr    + O3     = HgBrO :    3.0d-11;
 
 {OXIDATION BY Cl}
-Hg0     + Cl      = HgCl :               GCARR_ac(2.25d-33, 680.0d0) * NUMDEN;
-HgCl    + Cl      = Hg0 :                3.9d-11;
-HgCl    + NO2     = Hg0 :                3.0d-12;
-HgCl    + NO2     = HgClNO2 :            GCJPLPR_abab(4.3d-30, 5.9d0, 1.2d-10, 1.90d0, 0.6d0);
-HgCl    + HO2     = HgClHO2 :            GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgCl    + ClO     = HgClClO :            GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgCl    + BrO     = HgClBrO :            GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgCl    + Br      = HgClBr :             3.0d-11;
-HgCl    + OH      = HgClOH :             3.0d-11;
-HgCl    + O3      = HgClO  :             3.0d-11;
-HgClO   + CH4     = HgClOH :             GCARR_ac(4.1d-12, -856.0d0);
-HgClO   + CO      = HgCl :               GCARR_ac(6.0d-11, -550.0d0);
+Hg0     + Cl     = HgCl :     GCARR_ac(2.25d-33, 680.0d0) * NUMDEN;
+HgCl    + Cl     = Hg0 :      3.9d-11;
+HgCl    + NO2    = Hg0 :      3.0d-12;
+HgCl    + NO2    = HgClNO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 1.2d-10, 1.90d0, 0.6d0);
+HgCl    + HO2    = HgClHO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgCl    + ClO    = HgClClO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgCl    + BrO    = HgClBrO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgCl    + Br     = HgClBr :   3.0d-11;
+HgCl    + OH     = HgClOH :   3.0d-11;
+HgCl    + O3     = HgClO  :   3.0d-11;
+HgClO   + CH4    = HgClOH :   GCARR_ac(4.1d-12, -856.0d0);
+HgClO   + CO     = HgCl :     GCARR_ac(6.0d-11, -550.0d0);
 
 {OXIDATION BY OH}
-Hg0     + OH      = HgOH :               GCARR_ac(3.34d-33, 43.0d0) * NUMDEN;
-HgOH              = Hg0 :                GCARR_ac(1.22d-9, -5720.0d0) * NUMDEN;
-HgOH    + NO2     = HgOHNO2 :            GCJPLPR_abab(4.1d-30, 5.9d0, 1.2E-10, 1.90d0, 0.6d0);
-HgOH    + HO2     = HgOHHO2 :            GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgOH    + ClO     = HgOHClO :            GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgOH    + BrO     = HgOHBrO :            GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgOH    + Br      = HgBrOH :             GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgOH    + OH      = HgOHOH :             GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
-HgOH    + O3      = HgOHO :              3.0d-11;
-HgOHO   + CH4     = HgOHOH :             GCARR_ac(4.1d-12, -856.0d0);
-HgOHO   + CO      = HgOH :               GCARR_ac(6.0d-11, -550.0d0);
+Hg0     + OH     = HgOH :     GCARR_ac(3.34d-33, 43.0d0) * NUMDEN;
+HgOH             = Hg0 :      GCARR_ac(1.22d-9, -5720.0d0) * NUMDEN;
+HgOH    + NO2    = HgOHNO2 :  GCJPLPR_abab(4.1d-30, 5.9d0, 1.2E-10, 1.90d0, 0.6d0);
+HgOH    + HO2    = HgOHHO2 :  GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + ClO    = HgOHClO :  GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + BrO    = HgOHBrO :  GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + Br     = HgBrOH :   GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + OH     = HgOHOH :   GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + O3     = HgOHO :    3.0d-11;
+HgOHO   + CH4    = HgOHOH :   GCARR_ac(4.1d-12, -856.0d0);
+HgOHO   + CO     = HgOH :     GCARR_ac(6.0d-11, -550.0d0);
 
 //
 // Heterogeneous reactions
 //
 {In liquid clouds}
-HgBrNO2 = Hg2ORGP :                      HET(ind_HgBrNO2,1);
-HgBrHO2 = Hg2ORGP :                      HET(ind_HgBrHO2,1);
-HgBrOH  = Hg2ORGP :                      HET(ind_HgBrOH, 1);
-HgBrBrO = Hg2ORGP :                      HET(ind_HgBrBrO,1);
-HgBrClO = Hg2ORGP :                      HET(ind_HgBrClO,1);
-HgBr2   = Hg2ORGP :                      HET(ind_HgBr2,  1);
-HgClNO2 = Hg2ORGP :                      HET(ind_HgClNO2,1);
-HgClHO2 = Hg2ORGP :                      HET(ind_HgClHO2,1);
-HgClOH  = Hg2ORGP :                      HET(ind_HgClOH, 1);
-HgClBrO = Hg2ORGP :                      HET(ind_HgClBrO,1);
-HgClClO = Hg2ORGP :                      HET(ind_HgClClO,1);
-HgClBr  = Hg2ORGP :                      HET(ind_HgClBr, 1);
-HgCl2   = Hg2ORGP :                      HET(ind_HgCl2 , 1);
-HgOHNO2 = Hg2ORGP :                      HET(ind_HgOHNO2,1);
-HgOHHO2 = Hg2ORGP :                      HET(ind_HgOHHO2,1);
-HgOHOH  = Hg2ORGP :                      HET(ind_HgOHOH, 1);
-HgOHBrO = Hg2ORGP :                      HET(ind_HgOHBrO,1);
-HgOHClO = Hg2ORGP :                      HET(ind_HgOHClO,1);
+HgBrNO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrNO2) );
+HgBrHO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrHO2) );
+HgBrOH  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrOH ) );
+HgBrBrO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrBrO) );
+HgBrClO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrClO) );
+HgBr2   = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBr2  ) );
+HgClNO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClNO2) );
+HgClHO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClHO2) );
+HgClOH  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClOH ) );
+HgClBrO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClBrO) );
+HgClClO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClClO) );
+HgClBr  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClBr ) );
+HgCl2   = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgCl2  ) );
+HgOHNO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHNO2) );
+HgOHHO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHHO2) );
+HgOHOH  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHOH ) );
+HgOHBrO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHBrO) );
+HgOHClO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHClO) );
 
-HgBrNO2 = Hg2ClP :                       HET(ind_HgBrNO2,2);
-HgBrHO2 = Hg2ClP :                       HET(ind_HgBrHO2,2);
-HgBrOH  = Hg2ClP :                       HET(ind_HgBrOH, 2);
-HgBrBrO = Hg2ClP :                       HET(ind_HgBrBrO,2);
-HgBrClO = Hg2ClP :                       HET(ind_HgBrClO,2);
-HgBr2   = Hg2ClP :                       HET(ind_HgBr2,  2);
-HgClNO2 = Hg2ClP :                       HET(ind_HgClNO2,2);
-HgClHO2 = Hg2ClP :                       HET(ind_HgClHO2,2);
-HgClOH  = Hg2ClP :                       HET(ind_HgClOH, 2);
-HgClBrO = Hg2ClP :                       HET(ind_HgClBrO,2);
-HgClClO = Hg2ClP :                       HET(ind_HgClClO,2);
-HgClBr  = Hg2ClP :                       HET(ind_HgClBr, 2);
-HgOHNO2 = Hg2ClP :                       HET(ind_HgOHNO2,2);
-HgOHHO2 = Hg2ClP :                       HET(ind_HgOHHO2,2);
-HgOHOH  = Hg2ClP :                       HET(ind_HgOHOH, 2);
-HgOHBrO = Hg2ClP :                       HET(ind_HgOHBrO,2);
-HgOHClO = Hg2ClP :                       HET(ind_HgOHClO,2);
+HgBrNO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrNO2) );
+HgBrHO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrHO2) );
+HgBrOH  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrOH ) );
+HgBrBrO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrBrO) );
+HgBrClO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrClO) );
+HgBr2   = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBr2  ) );
+HgClNO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClNO2) );
+HgClHO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClHO2) );
+HgClOH  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClOH ) );
+HgClBrO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClBrO) );
+HgClClO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClClO) );
+HgClBr  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClBr ) );
+HgOHNO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHNO2) );
+HgOHHO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHHO2) );
+HgOHOH  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHOH ) );
+HgOHBrO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHBrO) );
+HgOHClO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHClO) );
 
 //
 // Photolysis reactions

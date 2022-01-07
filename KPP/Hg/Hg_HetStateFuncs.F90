@@ -45,16 +45,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Hg_SetStateHet( I,         J,         L, Input_Opt,             &
-                             State_Chm, State_Met, H, RC                    )
+  SUBROUTINE Hg_SetStateHet( I,          J,         L,                       &
+                             Input_Opt,  State_Chm, State_Met,               &
+                             fracOrgAer, H,         RC                      )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE GcKpp_Global
-    USE PhysConstants,    ONLY : AVO, PI
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE rateLawUtilFuncs
+    USE rateLawUtilFuncs, ONLY : Cld_Params
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
 !
@@ -66,6 +66,7 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    REAL(sp),       INTENT(IN)    :: fracOrgAer  ! Frac forming organic HgIIP
 !
 ! INPUT/OUTPUT PARAMETERS:
 !
@@ -79,35 +80,41 @@ CONTAINS
 !BOC
 
     ! Initialization
-    RC  = GC_SUCCESS
+    RC = GC_SUCCESS
 
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
     !========================================================================
 
     ! Identify a box for debug printout within rate-law functions
-    H%debugBox = .FALSE.
+    H%debugBox     = .FALSE.
 
-    ! Constants (so that we can use these within KPP)
-    H%AVO     = AVO
-    H%PI      = PI
+    ! Identify if this grid box is cloudy
+    H%cloudBox     = ( ( State_Met%InTroposphere(I,J,L)              )  .or. &
+                       ( State_Met%T(I,J,L)             >= 258.0_dp  )  .or. &
+                       ( State_Met%CLDF(I,J,L)          >= 1.0e-3_dp )      )
 
     ! Meteorology-related quantities
-    H%CldFr   = MIN(MAX(State_Met%CLDF(I,J,L), 0.0_dp), 1.0_dp)
-    H%ClearFr = 1.0_dp - State_Het%CldFr
-    H%QICE    = State_Met%QI(I,J,L)
-    H%QLIQ    = State_Met%QL(I,J,L)
-    H%vAir    = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
+    H%CldFr        = MIN( MAX( State_Met%CLDF(I,J,L), 0.0_dp ), 1.0_dp )
+    H%ClearFr      = 1.0_dp - State_Het%CldFr
+    H%QICE         = State_Met%QI(I,J,L)
+    H%QLIQ         = State_Met%QL(I,J,L)
+    H%vAir         = State_Met%AIRVOL(I,J,L) * 1.0e6_dp
+
+    ! Fraction of species forming organic or inorganic HgII aerosol
+    H%fracOrgAer   = fracOrgAer
+    H%fracInorgAer = 1.0_dp - fracOrgAer
 
     ! Cloud fields
-    CALL Cld_Params( AD      = State_Met%AD(I,J,L),                          &
-                     CLDF    = State_Met%CLDF(I,J,L),                        &
-                     FRLAND  = State_Met%FRLAND(I,J),                        &
-                     FROCEAN = State_Met%FROCEAN(I,J),                       &
-                     QI      = State_Met%QI(I,J,L),                          &
-                     QL      = State_Met%QL(I,J,L),                          &
-                     T       = State_Met%T(I,J,L),                           &
-                     H       = H                                            )
+    CALL Cld_Params(                                                         &
+         AD        = State_Met%AD(I,J,L),                                    &
+         CLDF      = State_Met%CLDF(I,J,L),                                  &
+         FRLAND    = State_Met%FRLAND(I,J),                                  &
+         FROCEAN   = State_Met%FROCEAN(I,J),                                 &
+         QI        = State_Met%QI(I,J,L),                                    &
+         QL        = State_Met%QL(I,J,L),                                    &
+         T         = State_Met%T(I,J,L),                                     &
+         H         = H                                                      )
 
   END SUBROUTINE Hg_SetStateHet
 !EOC

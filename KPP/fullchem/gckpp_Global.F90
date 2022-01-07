@@ -126,10 +126,6 @@ MODULE gckpp_Global
   REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
 
-  ! Needed for backwards compatibility
-  REAL(dp) :: HET(1,1)
-  !$OMP THREADPRIVATE( HET )
-
   ! Pressure and relative humidity
   REAL(dp) :: PRESS
   REAL(dp) :: RELHUM

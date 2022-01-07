@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -59,19 +58,6 @@ MODULE MERCURY_MOD
   PRIVATE :: CALC_HG2_SEASALT_LOSSRATE
   PRIVATE :: RED_INPLUME_GRID
   PRIVATE :: DO_RED_INPLUME
-  !PRIVATE :: GET_HGBR_RATE
-  !PRIVATE :: GET_O3
-  !PRIVATE :: GET_OH
-  !PRIVATE :: GET_BR
-  !PRIVATE :: GET_JNO2
-  !PRIVATE :: GET_HGCL_RATE
-  !PRIVATE :: GET_HGBRY_RATE
-  !PRIVATE :: GET_HGAQ_RATE
-  !PRIVATE :: GET_NO2
-  !PRIVATE :: GET_HO2
-  !PRIVATE :: GET_Cl
-  !PRIVATE :: GET_ClO
-  !PRIVATE :: GET_HOCl
 !
 ! !REMARKS:
 !  Nomenclature:
@@ -164,7 +150,7 @@ MODULE MERCURY_MOD
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES:
+! !PRIVATE TYPES:E
 !
   ! Parameters
   REAL(fp),  PARAMETER  :: SMALLNUM = 1e-20_fp
@@ -175,82 +161,16 @@ MODULE MERCURY_MOD
   INTEGER,  ALLOCATABLE :: AN_HgP(:,:)    ! Index array for anth HgP regions
   REAL(fp), ALLOCATABLE :: COSZM(:,:)     ! Max daily solar zenith angle
   REAL(fp), ALLOCATABLE :: EHg0_an(:,:)   ! Anth Hg0 emis [kg/s] - Total
-  REAL(fp), ALLOCATABLE :: EHg0_can(:,:)  ! Anth Hg0 emis [kg/s] - Canada
-  REAL(fp), ALLOCATABLE :: EHg0_usa(:,:)  ! Anth Hg0 emis [kg/s] - USA
-  REAL(fp), ALLOCATABLE :: EHg0_cam(:,:)  ! Anth Hg0 emis [kg/s] - C America
-  REAL(fp), ALLOCATABLE :: EHg0_sam(:,:)  ! Anth Hg0 emis [kg/s] - S America
-  REAL(fp), ALLOCATABLE :: EHg0_waf(:,:)  ! Anth Hg0 emis [kg/s] - W Africa
-  REAL(fp), ALLOCATABLE :: EHg0_eaf(:,:)  ! Anth Hg0 emis [kg/s] - E Africa
-  REAL(fp), ALLOCATABLE :: EHg0_saf(:,:)  ! Anth Hg0 emis [kg/s] - S Africa
-  REAL(fp), ALLOCATABLE :: EHg0_naf(:,:)  ! Anth Hg0 emis [kg/s] - N Africa
-  REAL(fp), ALLOCATABLE :: EHg0_eur(:,:)  ! Anth Hg0 emis [kg/s] - Europe
-  REAL(fp), ALLOCATABLE :: EHg0_eeu(:,:)  ! Anth Hg0 emis [kg/s] - E Europe
-  REAL(fp), ALLOCATABLE :: EHg0_mde(:,:)  ! Anth Hg0 emis [kg/s] - Mid. East
-  REAL(fp), ALLOCATABLE :: EHg0_sov(:,:)  ! Anth Hg0 emis [kg/s] - Fmr USSR
-  REAL(fp), ALLOCATABLE :: EHg0_sas(:,:)  ! Anth Hg0 emis [kg/s] - S Asia
-  REAL(fp), ALLOCATABLE :: EHg0_eas(:,:)  ! Anth Hg0 emis [kg/s] - E Asia
-  REAL(fp), ALLOCATABLE :: EHg0_sea(:,:)  ! Anth Hg0 emis [kg/s] - SE Asia
-  REAL(fp), ALLOCATABLE :: EHg0_jpn(:,:)  ! Anth Hg0 emis [kg/s] - Japan
-  REAL(fp), ALLOCATABLE :: EHg0_oce(:,:)  ! Anth Hg0 emis [kg/s] - Oceania
   REAL(fp), ALLOCATABLE :: EHg2_an(:,:)   ! Anth Hg2 emis [kg/s] - Total
-  REAL(fp), ALLOCATABLE :: EHg2_can(:,:)  ! Anth Hg2 emis [kg/s] - Canada
-  REAL(fp), ALLOCATABLE :: EHg2_usa(:,:)  ! Anth Hg2 emis [kg/s] - USA
-  REAL(fp), ALLOCATABLE :: EHg2_cam(:,:)  ! Anth Hg2 emis [kg/s] - C America
-  REAL(fp), ALLOCATABLE :: EHg2_sam(:,:)  ! Anth Hg2 emis [kg/s] - S America
-  REAL(fp), ALLOCATABLE :: EHg2_waf(:,:)  ! Anth Hg2 emis [kg/s] - W Africa
-  REAL(fp), ALLOCATABLE :: EHg2_eaf(:,:)  ! Anth Hg2 emis [kg/s] - E Africa
-  REAL(fp), ALLOCATABLE :: EHg2_saf(:,:)  ! Anth Hg2 emis [kg/s] - S Africa
-  REAL(fp), ALLOCATABLE :: EHg2_naf(:,:)  ! Anth Hg2 emis [kg/s] - N Africa
-  REAL(fp), ALLOCATABLE :: EHg2_eur(:,:)  ! Anth Hg2 emis [kg/s] - Europe
-  REAL(fp), ALLOCATABLE :: EHg2_eeu(:,:)  ! Anth Hg2 emis [kg/s] - E Europe
-  REAL(fp), ALLOCATABLE :: EHg2_mde(:,:)  ! Anth Hg2 emis [kg/s] - Mid. East
-  REAL(fp), ALLOCATABLE :: EHg2_sov(:,:)  ! Anth Hg2 emis [kg/s] - Fmr USSR
-  REAL(fp), ALLOCATABLE :: EHg2_sas(:,:)  ! Anth Hg2 emis [kg/s] - S Asia
-  REAL(fp), ALLOCATABLE :: EHg2_eas(:,:)  ! Anth Hg2 emis [kg/s] - E Asia
-  REAL(fp), ALLOCATABLE :: EHg2_sea(:,:)  ! Anth Hg2 emis [kg/s] - SE Asia
-  REAL(fp), ALLOCATABLE :: EHg2_jpn(:,:)  ! Anth Hg2 emis [kg/s] - Japan
-  REAL(fp), ALLOCATABLE :: EHg2_oce(:,:)  ! Anth Hg2 emis [kg/s] - Oceania
-  REAL(fp), ALLOCATABLE :: EHgP_an(:,:)   ! Anth HgP emis [kg/s] - Total
-  REAL(fp), ALLOCATABLE :: EHgP_can(:,:)  ! Anth HgP emis [kg/s] - Canada
-  REAL(fp), ALLOCATABLE :: EHgP_usa(:,:)  ! Anth HgP emis [kg/s] - USA
-  REAL(fp), ALLOCATABLE :: EHgP_cam(:,:)  ! Anth HgP emis [kg/s] - C America
-  REAL(fp), ALLOCATABLE :: EHgP_sam(:,:)  ! Anth HgP emis [kg/s] - S America
-  REAL(fp), ALLOCATABLE :: EHgP_waf(:,:)  ! Anth HgP emis [kg/s] - W Africa
-  REAL(fp), ALLOCATABLE :: EHgP_eaf(:,:)  ! Anth HgP emis [kg/s] - E Africa
-  REAL(fp), ALLOCATABLE :: EHgP_saf(:,:)  ! Anth HgP emis [kg/s] - S Africa
-  REAL(fp), ALLOCATABLE :: EHgP_naf(:,:)  ! Anth HgP emis [kg/s] - N Africa
-  REAL(fp), ALLOCATABLE :: EHgP_eur(:,:)  ! Anth HgP emis [kg/s] - Europe
-  REAL(fp), ALLOCATABLE :: EHgP_eeu(:,:)  ! Anth HgP emis [kg/s] - E Europe
-  REAL(fp), ALLOCATABLE :: EHgP_mde(:,:)  ! Anth HgP emis [kg/s] - Mid. East
-  REAL(fp), ALLOCATABLE :: EHgP_sov(:,:)  ! Anth HgP emis [kg/s] - Fmr USSR
-  REAL(fp), ALLOCATABLE :: EHgP_sas(:,:)  ! Anth HgP emis [kg/s] - S Asia
-  REAL(fp), ALLOCATABLE :: EHgP_eas(:,:)  ! Anth HgP emis [kg/s] - E Asia
-  REAL(fp), ALLOCATABLE :: EHgP_sea(:,:)  ! Anth HgP emis [kg/s] - SE Asia
-  REAL(fp), ALLOCATABLE :: EHgP_jpn(:,:)  ! Anth HgP emis [kg/s] - Japan
-  REAL(fp), ALLOCATABLE :: EHgP_oce(:,:)  ! Anth HgP emis [kg/s] - Oceania
-  REAL(fp), ALLOCATABLE :: EHg0_am(:,:)   ! Artisinal mining Hg0 emis [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_oc(:,:,:) ! Ocean Hg0 emis [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_ln(:,:,:) ! Hg reemission from land [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_dist(:,:) ! Spatial dist of terrestrial Hg0
-                                          !  sources [unitless]
-  REAL(fp), ALLOCATABLE :: EHg0_geo(:,:)  ! Geogenic Hg0 emis [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_bb(:,:)   ! Biomass burning Hg0 emis [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_vg(:,:)   ! Vegetation Hg0 emis [kg/s
-  REAL(fp), ALLOCATABLE :: EHg0_so(:,:)   ! Soil Hg0 emis [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_gtm(:,:)  ! GTMM Hg0 emis [kg/s]
-  REAL(fp), ALLOCATABLE :: EHg0_snow(:,:,:) !Snow Hg0 emis [kg/s]
   REAL(fp), ALLOCATABLE :: TCOSZ(:,:)     ! Sum of solar zenith angle
   REAL(fp), ALLOCATABLE :: TTDAY(:,:)     ! Total daylight time at I,J [min]
   REAL(fp), ALLOCATABLE :: ZERO_DVEL(:,:) ! Zero drydep velocity [cm/s]
   REAL(fp), ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:)
 
-  ! Arrays for het rates
-  REAL(fp), ALLOCATABLE :: HetRate(:,:,:,:,:)
-
   ! For now, we need an emission array for the HG simulation
   ! that can be passed to vdiff_mod.F90 since Trac_Tend does
   ! not exist anymore (ckeller, 10/21/2014).
-  REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
+  !REAL(fp), ALLOCATABLE, PUBLIC :: HG_EMIS(:,:,:)
 
   ! Pointers to fields in the HEMCO data structure.
   ! These need to be declared REAL(f4), aka REAL*4.
@@ -267,25 +187,15 @@ MODULE MERCURY_MOD
   REAL(f4), POINTER :: CL(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
   REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
-
-  REAL(f4), POINTER :: GLOB_PM25(:,:,:)     => NULL()
-  REAL(f4), POINTER :: GLOB_fOA (:,:,:)     => NULL()
-  REAL(f4), POINTER :: GLOB_RH(:,:,:)       => NULL()
+  REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
+  REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
+  REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
 
   ! Hg species IDs
   INTEGER           :: N_Hg_CATS
-  INTEGER           :: id_Hg0,     id_Hg2,     id_HgP
-  INTEGER           :: ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
-  INTEGER           :: ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
-  INTEGER           :: ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
-  INTEGER           :: ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
-  INTEGER           :: ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
-  INTEGER           :: ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
-  INTEGER           :: ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
-  INTEGER           :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-  INTEGER           :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-  INTEGER           :: ID_Hg_ocn,  ID_Hg_str
-  INTEGER           :: id_phot_NO2, id_phot_BrO, id_phot_ClO, id_phot_Hg2Org
+  INTEGER           :: id_Hg0,     id_Hg2,      id_HgP
+  INTEGER           :: id_phot_NO2,id_phot_BrO, id_phot_ClO
+  INTEGER           :: id_phot_Hg2Org
   !
   INTEGER           :: id_O3,      id_OH,      id_HO2
   INTEGER           :: id_ClO,     id_Cl
@@ -298,20 +208,13 @@ MODULE MERCURY_MOD
   INTEGER           :: id_HGOHNO2, id_HGOHHO2, id_HGOHOH
   INTEGER           :: id_HGOHBRO, id_HGOHCLO
   INTEGER           :: id_HGCL2
-  INTEGER           :: id_HG2CLp, id_HG2ORGp,  id_HG2STRP
+  INTEGER           :: id_HG2CLp,  id_HG2ORGp, id_HG2STRP
   INTEGER           :: id_HGBR,    id_HGCL,    id_HGOH
   INTEGER           :: id_HGBRO,   id_HGCLO,   id_HGOHO
 
   INTEGER           :: nHg2gasSpc
 
   INTEGER           :: Map_Hg2gas(25)
-
-  ! Pointers for Hg indexing
-  ! (NOTE: We can set them to NULL here because
-  ! they are globally SAVEd variables (bmy, 4/29/16)
-  INTEGER, POINTER  :: Hg0_Id_List(:) => NULL()
-  INTEGER, POINTER  :: Hg2_Id_List(:) => NULL()
-  INTEGER, POINTER  :: HgP_Id_List(:) => NULL()
 
   ! Species index of aerosol species read from HEMCO
   INTEGER                        :: N_Aer, N_Dust
@@ -780,7 +683,6 @@ CONTAINS
        ! For safety sake, initialize certain variables for each grid
        ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
-       HET       = 0.0_dp    ! Het chem array
        IERR      = 0         ! Success or failure flag
        ISTATUS   = 0.0_dp    ! Rosenbrock output
        PHOTOL    = 0.0_dp    ! Photolysis array
@@ -872,44 +774,11 @@ CONTAINS
        ! Set heterogeneous uptake rates (s-1)
        !======================================================================
 
-       ! Do cloud chemistry only in the troposphere &
-       ! in liquid/mixed-phase clouds
-       IF ( ( State_Met%InTroposphere(I,J,L)     )   .or.                    &
-            ( State_Met%T(I,J,L)    >= 258.0_fp  )   .or.                    &
-            ( State_Met%CLDF(I,J,L) >= 1.0e-3_fp ) ) THEN
-          CALL Set_HetRates( I          = I,                                 &
-                             J          = J,                                 &
-                             L          = L,                                 &
-                             Input_Opt  = Input_Opt,                         &
-                             State_Chm  = State_Chm,                         &
-                             State_Grid = State_Grid,                        &
-                             State_Met  = State_Met,                         &
-                             RC         = RC                                )
-       ENDIF
-
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Set_HetRates"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           !           RETURN
-       ENDIF
-
-       !====================================================================
-       ! Get rates for heterogeneous chemistry
-       !====================================================================
-       IF ( DO_HETCHEM ) THEN
-          DO N=1, nHg2gasSpc
-
-             ! Get species id
-             SpcID = Map_Hg2gas(N)
-
-             ! Get KPP species id
-             NN   = State_Chm%SpcData(SpcID)%Info%KppSpcId
-
-             ! Set het rates
-             HET(NN,1) = HetRate ( I, J, L, N, 1 )
-             HET(NN,2) = HetRate ( I, J, L, N, 2 )
-          ENDDO
        ENDIF
 
        ! Zero out dummy species index in KPP
@@ -2403,140 +2272,7 @@ CONTAINS
     ! Free pointer memory
     Spc => NULL()
 
-END SUBROUTINE SeaSaltUptake
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-! !IROUTINE: Set_Hetrates
-!
-! !DESCRIPTION: Sets up the heterogeneous chemistry rates for KPP.
-!\\
-!\\
-! !INTERFACE:
-!
-    SUBROUTINE Set_HetRates( I, J, L, Input_Opt, State_Chm, State_Grid, State_Met, RC )
-!
-! !USES:
-!
-
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE Species_Mod,        ONLY : Species
-    USE GCKPP_Global,       ONLY : State_Het
-    USE CMN_FJX_MOD,        ONLY : ZPJ
-    USE ERROR_MOD,          ONLY : SAFE_DIV
-
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)    :: I, J, L
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-
-! !REMARKS:
-!
-! !REVISION HISTORY:
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-    ! Scalars
-    LOGICAL            :: prtDebug
-    CHARACTER(LEN=60)  :: Prefix             ! utility string
-    CHARACTER(LEN=255) :: ThisLoc            ! routine location
-    CHARACTER(LEN=255) :: ErrMsg             ! message
-
-
-    INTEGER  :: N, SpcID
-
-    ! Cloud parameters
-    Real(fp)         :: rLiq, ALiq, VLiq, CLDFr
-    Real(fp)         :: rIce, AIce, VIce, QICE, QLIQ
-
-    ! Parameters for uptake rate calculation
-    Real(fp)         :: TEMPK, XDENA
-    Real(fp)         :: k_het, FracOA, MW
-
-    ! Volume of air (cm3)
-    Real(fp)         :: VAir
-
-    ! Hg2 sticking coefficient
-    Real(fp), Parameter :: ALPHA_Hg2 = 0.1e+0_fp
-
-    !====================================================================
-    ! Set_Hetrates begins here!
-    !====================================================================
-
-    ! Assume success
-    RC        = GC_SUCCESS
-    ErrMsg    = ''
-    ThisLoc   = ' -> at Set_HetRates (in GeosCore/mercury_mod.F90)'
-
-    ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
-    ! Zero array
-    HetRate(I,J,L,:,:)   = 0e+0_fp
-
-    !--------------------------------------------------------------------
-    ! Get fields from State_Met, State_Chm, and Input_Opt
-    !--------------------------------------------------------------------
-
-    TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
-    XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
-    VAir   = State_Met%AIRVOL(I,J,L)*1.0e6_fp! Volume of air (cm3)
-    QICE   = State_Met%QI(I,J,L)             ! Ice   mix ratio [kg/kg dry air]
-    QLIQ   = State_Met%QL(I,J,L)             ! Water mix ratio [kg/kg dry air]
-
-    !--------------------------------------------------------------------
-    ! Calculate heterogenous uptake of Hg2 gas in clouds
-    !--------------------------------------------------------------------
-
-    ! Get fraction of OA and make sure it is less than 1
-    FracOA = GLOB_fOA(I,J,L)
-    FracOA = MIN(FracOA, 1e+0_fp)
-
-    ! Loop over Hg2 gas species to calcuate uptake
-    DO N=1, nHg2gasSpc
-
-       ! Get species id
-       SpcID = Map_Hg2gas(N)
-
-       ! Get species molecular wt (acutal mol. wt)
-       MW = State_Chm%SpcData(SpcID)%Info%MW_g
-
-       !--------------------------------------------------------------------
-       ! Calculate uptake rate on clouds
-       !--------------------------------------------------------------------
-
-       ! Get cloud uptake rate [s-1]
-       k_het = CloudHet( alpha_Hg2, MW, &
-            State_Het%CldFr, &
-            State_Het%Aliq,  &
-            State_Het%rLiq, TempK, XDenA )
-
-       ! Save reaction rate to array
-       HetRate ( I,J,L,N,1 ) = k_het * FracOA                ! forming HgIIP(org)
-       HetRate ( I,J,L,N,2 ) = k_het * ( 1e+0_fp - FracOA )  ! forming HgIIP(inorg)
-
-    ENDDO
-
-
-  END SUBROUTINE Set_HetRates
+  END SUBROUTINE SeaSaltUptake
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2551,8 +2287,7 @@ END SUBROUTINE SeaSaltUptake
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GET_JNO2( I, J, L, State_Grid, State_Met ) &
-       RESULT( JNO2_NOW )
+  FUNCTION GET_JNO2( I, J, L, State_Grid, State_Met ) RESULT( JNO2_NOW )
 !
 ! !USES:
 !
@@ -3695,10 +3430,7 @@ END SUBROUTINE PARTITIONHG2
     ! Location string for error messages
     ErrMsg   = ''
     ThisLoc  = '-> at DEFINE_TAGGED_Hg (in GeosCore/mercury_mod.F90)'
-
-    ! Store the # of tagged Hg categories in a module variable
-    N_Hg_CATS   = State_Chm%N_Hg_CATS
-    ID_Hg_tot   = 1
+    N_Hg_CATS   = 1
 
     WRITE( 6 ,'(a)' ) ' KPP Reaction Reference '
     DO N = 1, NREACT
@@ -3861,334 +3593,10 @@ END SUBROUTINE PARTITIONHG2
     IF ( RC /= GC_SUCCESS ) RETURN
     EHg0_an = 0e+0_fp
 
-    ALLOCATE( EHg0_am( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHg0_am', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHg0_am = 0e+0_fp
-
     ALLOCATE( EHg2_an( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'mercury_mod.F90:EHg2_an', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     EHg2_an = 0e+0_fp
-
-    ALLOCATE( EHgP_an( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHgP_an', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHgP_an = 0e+0_fp
-
-    ALLOCATE( EHg0_oc( State_Grid%NX, State_Grid%NY, N_Hg_CATS ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHg0_oc', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHg0_oc = 0e+0_fp
-
-    ALLOCATE( EHg0_dist( State_Grid%NX, State_Grid%NY), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHg0_dist', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHg0_dist = 0e+0_fp
-
-    ALLOCATE( EHg0_geo( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHg0_Geo', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHg0_geo = 0e+0_fp
-
-    ALLOCATE( EHg0_bb( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHg0_bb', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHg0_bb = 0e+0_fp
-
-    ALLOCATE( EHg0_snow( State_Grid%NX, State_Grid%NY, N_Hg_CATS ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:EHg0_snow', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EHg0_snow = 0e+0_fp
-
-    ! Allocate the following if tagged Hg simulation
-    IF ( LSPLIT ) THEN
-
-       ! Tagged Hg0 arrays (eds 8/31/10)
-       ALLOCATE( EHg0_can( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_can', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_can = 0e+0_fp
-
-       ALLOCATE( EHg0_usa( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_usa', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_usa = 0e+0_fp
-
-       ALLOCATE( EHg0_cam( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_cam', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_cam = 0e+0_fp
-
-       ALLOCATE( EHg0_sam( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_sam', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_sam = 0e+0_fp
-
-       ALLOCATE( EHg0_waf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_waf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_waf = 0e+0_fp
-
-       ALLOCATE( EHg0_eaf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_eaf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_eaf = 0e+0_fp
-
-       ALLOCATE( EHg0_saf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_saf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_saf = 0e+0_fp
-
-       ALLOCATE( EHg0_naf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_naf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_naf = 0e+0_fp
-
-       ALLOCATE( EHg0_eur( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_eur', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_eur = 0e+0_fp
-
-       ALLOCATE( EHg0_eeu( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_eeu', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_eeu = 0e+0_fp
-
-       ALLOCATE( EHg0_mde( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_mde', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_mde = 0e+0_fp
-
-       ALLOCATE( EHg0_sov( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_sov', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_sov = 0e+0_fp
-
-       ALLOCATE( EHg0_sas( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_sas', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_sas = 0e+0_fp
-
-       ALLOCATE( EHg0_eas( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_eas', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_eas = 0e+0_fp
-
-       ALLOCATE( EHg0_sea( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_sea', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_sea = 0e+0_fp
-
-       ALLOCATE( EHg0_jpn( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_jpn', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_jpn = 0e+0_fp
-
-       ALLOCATE( EHg0_oce( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_oce', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_oce = 0e+0_fp
-
-       ! Tagged Hg2 arrays (eds 8/31/10)
-       ALLOCATE( EHg2_can( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_can', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_can = 0e+0_fp
-
-       ALLOCATE( EHg2_usa( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_usa', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_usa = 0e+0_fp
-
-       ALLOCATE( EHg2_cam( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_cam', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_cam = 0e+0_fp
-
-       ALLOCATE( EHg2_sam( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_sam', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_sam = 0e+0_fp
-
-       ALLOCATE( EHg2_waf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_waf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_waf = 0e+0_fp
-
-       ALLOCATE( EHg2_eaf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_eaf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_eaf = 0e+0_fp
-
-       ALLOCATE( EHg2_saf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_saf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_saf = 0e+0_fp
-
-       ALLOCATE( EHg2_naf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_naf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_naf = 0e+0_fp
-
-       ALLOCATE( EHg2_eur( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_eur', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_eur = 0e+0_fp
-
-       ALLOCATE( EHg2_eeu( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_eeu', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_eeu = 0e+0_fp
-
-       ALLOCATE( EHg2_mde( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_mde', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_mde = 0e+0_fp
-
-       ALLOCATE( EHg2_sov( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_sov', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_sov = 0e+0_fp
-
-       ALLOCATE( EHg2_sas( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_sas', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_sas = 0e+0_fp
-
-       ALLOCATE( EHg2_eas( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:Hg2_eas', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_eas = 0e+0_fp
-
-       ALLOCATE( EHg2_sea( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_sea', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_sea = 0e+0_fp
-
-       ALLOCATE( EHg2_jpn( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_jpn', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_jpn = 0e+0_fp
-
-       ALLOCATE( EHg2_oce( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg2_oce', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg2_oce = 0e+0_fp
-
-       ! Tagged HgP arrays (eds 8/31/10)
-       ALLOCATE( EHgP_can( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_can', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_can = 0e+0_fp
-
-       ALLOCATE( EHgP_usa( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_usa', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_usa = 0e+0_fp
-
-       ALLOCATE( EHgP_cam( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_cam', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_cam = 0e+0_fp
-
-       ALLOCATE( EHgP_sam( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_sam', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_sam = 0e+0_fp
-
-       ALLOCATE( EHgP_waf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_waf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_waf = 0e+0_fp
-
-       ALLOCATE( EHgP_eaf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_eaf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_eaf = 0e+0_fp
-
-       ALLOCATE( EHgP_saf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_saf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_saf = 0e+0_fp
-
-       ALLOCATE( EHgP_naf( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_naf', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_naf = 0e+0_fp
-
-       ALLOCATE( EHgP_eur( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_eur', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_eur = 0e+0_fp
-
-       ALLOCATE( EHgP_eeu( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_eeu', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_eeu = 0e+0_fp
-
-       ALLOCATE( EHgP_mde( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_mde', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_mde = 0e+0_fp
-
-       ALLOCATE( EHgP_sov( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_sov', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_sov = 0e+0_fp
-
-       ALLOCATE( EHgP_sas( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_sas', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_sas = 0e+0_fp
-
-       ALLOCATE( EHgP_eas( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_eas', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_eas = 0e+0_fp
-
-       ALLOCATE( EHgP_sea( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_sea', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_sea = 0e+0_fp
-
-       ALLOCATE( EHgP_jpn( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_jpn', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_jpn = 0e+0_fp
-
-       ALLOCATE( EHgP_oce( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHgP_oce', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHgP_oce = 0e+0_fp
-
-    ENDIF
-
-    IF ( LGTMM ) THEN
-
-       ALLOCATE( EHg0_gtm( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_gtm', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_gtm = 0e+0_fp
-
-    ELSE
-
-       ALLOCATE( EHg0_ln( State_Grid%NX, State_Grid%NY, N_Hg_CATS ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_ln', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_ln = 0e+0_fp
-
-       ALLOCATE( EHg0_vg( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_vg', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_vg = 0e+0_fp
-
-       ALLOCATE( EHg0_so( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:EHg0_so', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       EHg0_so = 0e+0_fp
-
-    ENDIF
 
     ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'mercury_mod.F90:TCOSZ', 0, RC )
@@ -4215,36 +3623,6 @@ END SUBROUTINE PARTITIONHG2
     HG2_SEASALT_LOSSRATE = 0e+0_fp
 
     !=================================================================
-    ! Allocate & initialize arrays for tagged species indices
-    !=================================================================
-    IF ( LSPLIT ) THEN
-
-       ! Species indices for tagged anthro regions
-       ALLOCATE( AN_Hg0( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:AN_Hg0', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       AN_Hg0 = 0e+0_fp
-
-       ALLOCATE( AN_Hg2( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:AN_Hg2', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       AN_Hg2 = 0e+0_fp
-
-       ALLOCATE( AN_HgP( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       CALL GC_CheckVar( 'mercury_mod.F90:AN_HgP', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       AN_HgP = 0e+0_fp
-
-    ENDIF
-
-    ! HG_EMIS is needed for non-local PBL mixing
-    ALLOCATE ( HG_EMIS( State_Grid%NX, State_Grid%NY, nAdvect ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:HG_EMIS', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    HG_EMIS = 0e+0_fp
-
-
-    !=================================================================
     ! Allocate and initialize oxidant concentration pointer
     !=================================================================
     ALLOCATE( FixSpcPtr( State_Chm%nKppFix ), STAT=AS )
@@ -4265,11 +3643,6 @@ END SUBROUTINE PARTITIONHG2
     ALLOCATE( AeroPtr( N_Dust + N_Aer ), STAT=AS )
     CALL GC_CheckVar( 'mercury_mod.F90:AeroPtr', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-
-    ALLOCATE( HetRate( State_Grid%NX, State_Grid%NY, State_Grid%NZ, nHg2gasSpc, 2 ), STAT=RC )
-    CALL GC_CheckVar( 'mercury_mod.F90:HetRate', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    HetRate = 0e+0_fp
 
     !=================================================================
     ! Settings
@@ -4580,75 +3953,12 @@ END SUBROUTINE PARTITIONHG2
 !------------------------------------------------------------------------------
 !BOC
 
-    IF ( ALLOCATED( AN_Hg0   ) ) DEALLOCATE( AN_Hg0   )
-    IF ( ALLOCATED( AN_Hg2   ) ) DEALLOCATE( AN_Hg2   )
-    IF ( ALLOCATED( AN_HgP   ) ) DEALLOCATE( AN_HgP   )
     IF ( ALLOCATED( COSZM    ) ) DEALLOCATE( COSZM    )
     IF ( ALLOCATED( EHg0_an  ) ) DEALLOCATE( EHg0_an  )
-    IF ( ALLOCATED( EHg0_can ) ) DEALLOCATE( EHg0_can )
-    IF ( ALLOCATED( EHg0_usa ) ) DEALLOCATE( EHg0_usa )
-    IF ( ALLOCATED( EHg0_sam ) ) DEALLOCATE( EHg0_sam )
-    IF ( ALLOCATED( EHg0_eaf ) ) DEALLOCATE( EHg0_eaf )
-    IF ( ALLOCATED( EHg0_waf ) ) DEALLOCATE( EHg0_waf )
-    IF ( ALLOCATED( EHg0_saf ) ) DEALLOCATE( EHg0_saf )
-    IF ( ALLOCATED( EHg0_naf ) ) DEALLOCATE( EHg0_naf )
-    IF ( ALLOCATED( EHg0_eur ) ) DEALLOCATE( EHg0_eur )
-    IF ( ALLOCATED( EHg0_eeu ) ) DEALLOCATE( EHg0_eeu )
-    IF ( ALLOCATED( EHg0_sov ) ) DEALLOCATE( EHg0_sov )
-    IF ( ALLOCATED( EHg0_mde ) ) DEALLOCATE( EHg0_mde )
-    IF ( ALLOCATED( EHg0_sas ) ) DEALLOCATE( EHg0_sas )
-    IF ( ALLOCATED( EHg0_eas ) ) DEALLOCATE( EHg0_eas )
-    IF ( ALLOCATED( EHg0_sea ) ) DEALLOCATE( EHg0_sea )
-    IF ( ALLOCATED( EHg0_jpn ) ) DEALLOCATE( EHg0_jpn )
-    IF ( ALLOCATED( EHg0_oce ) ) DEALLOCATE( EHg0_oce )
-    IF ( ALLOCATED( EHg0_am  ) ) DEALLOCATE( EHg0_am  )
     IF ( ALLOCATED( EHg2_an  ) ) DEALLOCATE( EHg2_an  )
-    IF ( ALLOCATED( EHg2_can ) ) DEALLOCATE( EHg2_can )
-    IF ( ALLOCATED( EHg2_usa ) ) DEALLOCATE( EHg2_usa )
-    IF ( ALLOCATED( EHg2_sam ) ) DEALLOCATE( EHg2_sam )
-    IF ( ALLOCATED( EHg2_eaf ) ) DEALLOCATE( EHg2_eaf )
-    IF ( ALLOCATED( EHg2_waf ) ) DEALLOCATE( EHg2_waf )
-    IF ( ALLOCATED( EHg2_saf ) ) DEALLOCATE( EHg2_saf )
-    IF ( ALLOCATED( EHg2_naf ) ) DEALLOCATE( EHg2_naf )
-    IF ( ALLOCATED( EHg2_eur ) ) DEALLOCATE( EHg2_eur )
-    IF ( ALLOCATED( EHg2_eeu ) ) DEALLOCATE( EHg2_eeu )
-    IF ( ALLOCATED( EHg2_sov ) ) DEALLOCATE( EHg2_sov )
-    IF ( ALLOCATED( EHg2_mde ) ) DEALLOCATE( EHg2_mde )
-    IF ( ALLOCATED( EHg2_sas ) ) DEALLOCATE( EHg2_sas )
-    IF ( ALLOCATED( EHg2_eas ) ) DEALLOCATE( EHg2_eas )
-    IF ( ALLOCATED( EHg2_sea ) ) DEALLOCATE( EHg2_sea )
-    IF ( ALLOCATED( EHg2_jpn ) ) DEALLOCATE( EHg2_jpn )
-    IF ( ALLOCATED( EHg2_oce ) ) DEALLOCATE( EHg2_oce )
-    IF ( ALLOCATED( EHgP_an  ) ) DEALLOCATE( EHgP_an  )
-    IF ( ALLOCATED( EHgP_can ) ) DEALLOCATE( EHgP_can )
-    IF ( ALLOCATED( EHgP_usa ) ) DEALLOCATE( EHgP_usa )
-    IF ( ALLOCATED( EHgP_sam ) ) DEALLOCATE( EHgP_sam )
-    IF ( ALLOCATED( EHgP_eaf ) ) DEALLOCATE( EHgP_eaf )
-    IF ( ALLOCATED( EHgP_waf ) ) DEALLOCATE( EHgP_waf )
-    IF ( ALLOCATED( EHgP_saf ) ) DEALLOCATE( EHgP_saf )
-    IF ( ALLOCATED( EHgP_naf ) ) DEALLOCATE( EHgP_naf )
-    IF ( ALLOCATED( EHgP_eur ) ) DEALLOCATE( EHgP_eur )
-    IF ( ALLOCATED( EHgP_eeu ) ) DEALLOCATE( EHgP_eeu )
-    IF ( ALLOCATED( EHgP_sov ) ) DEALLOCATE( EHgP_sov )
-    IF ( ALLOCATED( EHgP_mde ) ) DEALLOCATE( EHgP_mde )
-    IF ( ALLOCATED( EHgP_sas ) ) DEALLOCATE( EHgP_sas )
-    IF ( ALLOCATED( EHgP_eas ) ) DEALLOCATE( EHgP_eas )
-    IF ( ALLOCATED( EHgP_sea ) ) DEALLOCATE( EHgP_sea )
-    IF ( ALLOCATED( EHgP_jpn ) ) DEALLOCATE( EHgP_jpn )
-    IF ( ALLOCATED( EHgP_oce ) ) DEALLOCATE( EHgP_oce )
-    IF ( ALLOCATED( EHg0_oc  ) ) DEALLOCATE( EHg0_oc  )
-    IF ( ALLOCATED( EHg0_ln  ) ) DEALLOCATE( EHg0_ln  )
-    IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow)
-    IF ( ALLOCATED( EHg0_geo ) ) DEALLOCATE( EHg0_geo )
-    IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb  )
-    IF ( ALLOCATED( EHg0_gtm ) ) DEALLOCATE( EHg0_gtm )
-    IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg  )
-    IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so  )
-    IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist)
     IF ( ALLOCATED( TCOSZ    ) ) DEALLOCATE( TCOSZ    )
     IF ( ALLOCATED( TTDAY    ) ) DEALLOCATE( TTDAY    )
     IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL)
-    IF ( ALLOCATED( HG_EMIS  ) ) DEALLOCATE( HG_EMIS  )
     IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) DEALLOCATE( HG2_SEASALT_LOSSRATE )
 
     ! Free pointers to HEMCO fields
@@ -4663,11 +3973,6 @@ END SUBROUTINE PARTITIONHG2
     HOCl        => NULL()
     HO2         => NULL()
     OCEAN_CONC  => NULL()
-
-    ! Free Hg indexing pointers
-    Hg0_Id_List => NULL()
-    Hg2_Id_List => NULL()
-    HgP_Id_List => NULL()
 
   END SUBROUTINE CLEANUP_MERCURY
 !EOC
@@ -4722,7 +4027,7 @@ END SUBROUTINE PARTITIONHG2
     ! Scalars
     INTEGER            :: F,       N,       NA,    KppId,    SpcId
     REAL(f8)           :: CONSEXP, VPRESH2O
-    
+
     ! Characters
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -4772,14 +4077,15 @@ END SUBROUTINE PARTITIONHG2
     ! Populate variables in the HetChem state object
     !========================================================================
     CALL Hg_SetStateHet(                                                     &
-         I         = I,                                                      &
-         J         = J,                                                      &
-         L         = L,                                                      &
-         Input_Opt = Input_Opt,                                              &
-         State_Chm = State_Chm,                                              &
-         State_Met = State_Met,                                              &
-         H         = State_Het,                                              &
-         RC        = RC                                                     )
+         I          = I,                                                     &
+         J          = J,                                                     &
+         L          = L,                                                     &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Met  = State_Met,                                             &
+         H          = State_Het,                                             &
+         fracOrgAer = GLOB_FOA(I,J,L),                                       &
+         RC         = RC                                                     )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
