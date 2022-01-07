@@ -256,13 +256,6 @@ CONTAINS
           CYCLE
        ENDIF
 
-#ifdef MODEL_GEOS
-       IF ( INDEX( current%name,  'GCC_' ) == 1 ) THEN
-          current => current%next
-          CYCLE
-       ENDIF
-#endif
-
        ! Check history exports list to see if already added (unless wildcard)
        IF ( .NOT. current%isWildcard ) THEN
           CALL Check_HistoryExportsList( am_I_Root, current%name,           &
