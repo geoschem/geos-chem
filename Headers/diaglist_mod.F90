@@ -113,9 +113,8 @@ MODULE DiagList_Mod
   CHARACTER(LEN=4), PUBLIC, PARAMETER  :: SPFX = 'SPC_'
 
 #if defined( MODEL_GEOS )
-  ! Internal state or non-standard diagnostics in GEOS may use TRC_ or GCD_.
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: TPFX = 'TRC_'
-  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: GPFX = 'GCD_'
+  ! Non-standard diagnostics in GEOS may use GCC_.
+  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: GPFX = 'GCC_'
 #endif
 #endif
 !
@@ -183,20 +182,22 @@ CONTAINS
     LOGICAL                  :: InDefSection, InFieldsSection
     INTEGER                  :: QMatch, CMatch
     INTEGER                  :: LineNum, LineLen, LineInd, LineInd2
-    INTEGER                  :: fId, IOS, N, N1, N2, N3, I
+    INTEGER                  :: fId, IOS, N, N1, N2, N3, I, J
     INTEGER                  :: WLIndMax, WLIndMaxLoc(1), WLInd(3)
     INTEGER                  :: strIndMax, strInd(5)
     INTEGER                  :: numSpcWords, numIDWords
+    INTEGER                  :: NFIELDS
 
     ! Strings
     CHARACTER(LEN=80 )       :: ErrorLine
     CHARACTER(LEN=255)       :: errMsg, thisLoc, nameAllCaps
     CHARACTER(LEN=255)       :: line, SubStrs(500), SubStr
-    CHARACTER(LEN=255)       :: wildcard, tag, name, state
+    CHARACTER(LEN=255)       :: wildcard, tag, fullname, name, state
     CHARACTER(LEN=255)       :: metadataID, registryID, registryIDprefix
     CHARACTER(LEN=255)       :: collname, AttName, AttValue
     CHARACTER(LEN=255)       :: AttComp,  FieldName
     CHARACTER(LEN=2)         :: rrtmgOutputs(10)
+    CHARACTER(LEN=255)       :: names(100)
 
     ! SAVEd variables
     CHARACTER(LEN=255), SAVE :: LastCollName
@@ -598,13 +599,24 @@ CONTAINS
        CALL CStrip( Line, KeepSpaces=.TRUE. )
        CALL StrSplit( Line, " ", SubStrs, N )
        IF ( INDEX(Line, '.fields') > 0 .AND. N > 1 ) THEN
-          name = CleanText( SubStrs(2) )
+          fullname = CleanText( SubStrs(2) )
        ELSE
-          name = CleanText( SubStrs(1) )
+          fullname = CleanText( SubStrs(1) )
        ENDIF
 
        ! Skip if diagnostic name is commented out
-       IF ( name(1:1) == '#' ) CYCLE
+       IF ( fullname(1:1) == '#' ) CYCLE
+
+       ! Parse full diagnostics name. ESMF/MAPL supports the combination of 
+       ! multiple fields (e.g., 'Field1+Field2') as well as math operations 
+       ! (e.g.,2*Field1). To preserve this functionality, we need to register
+       ! each requested field individually. 
+       CALL Parse_FullName( am_I_Root, fullname, names, NFIELDS, RC )
+       IF ( NFIELDS == 0 ) CYCLE
+
+       ! Register all fields - as identified by Parse_FullName - individually
+       DO J=1,NFIELDS 
+       name = TRIM(names(J))
 
        ! Skip if name is already in diag list
        CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
@@ -634,7 +646,7 @@ CONTAINS
        ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
           state = 'GEOS'
        ! GEOS might have internal state variables that start with other prefix
-       ELSEIF ( nameAllCaps(1:4) == TPFX .OR. nameAllCaps(1:4) == GPFX ) THEN
+       ELSEIF ( nameAllCaps(1:4) == GPFX ) THEN
           state = 'INTERNAL'
 #endif
        ELSEIF ( nameAllCaps(1:4) == SPFX ) THEN
@@ -818,6 +830,8 @@ CONTAINS
        CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
+       ENDDO !J loop (NFIELDS)
+
     ENDDO
 
     !====================================================================
@@ -826,6 +840,103 @@ CONTAINS
     CLOSE( fId )
 
   END SUBROUTINE Init_DiagList
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Parse_FullName 
+!
+! !DESCRIPTION: Parses the full field name as set in HISTORY.rc and checks
+!  for math expressions / field combinations, as possible in MAPL. Returns all 
+!  individual field names as separate strings, along with the number of 
+!  identified fields. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Parse_FullName ( am_I_Root, fullname, names, NFIELDS, RC ) 
+!
+! !USES:
+!
+    USE Charpak_Mod,        ONLY : CleanText, StrSplit
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN) :: am_I_Root        ! Root CPU?
+    CHARACTER(LEN=*),    INTENT(IN) :: fullname         ! original field name, all upper-case 
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(OUT)   :: names(100)       ! individual names (all upper-case)
+    INTEGER,          INTENT(OUT)   :: NFIELDS          ! number of individual fields
+    INTEGER,          OPTIONAL      :: RC               ! return code
+!
+! !REVISION HISTORY:
+!  05 Jan 2021 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: thisLoc, workstring, istr, SubStrs(500)
+    CHARACTER(LEN=1)   :: thischar
+    INTEGER            :: I, J, N, ilen, iasc
+    LOGICAL            :: hasChar
+
+    ! ================================================================
+    ! Parse_FullName begins here
+    ! ================================================================
+    thisLoc = 'Parse_FullName (diaglist_mod.F90)'
+
+    ! Init
+    names(:) = ""
+
+    ! Replace all supported math symbols (+,-,*,/) with hash symbol
+    workstring = CleanText(fullname)
+    ilen = LEN_TRIM(workstring)
+    DO I = 1,ilen
+       thischar = workstring(I:I)
+       IF ( thischar == "+" .OR. &
+            thischar == "-" .OR. &
+            thischar == "*" .OR. &
+            thischar == "/"       ) THEN
+          workstring(I:I) = "#"
+       ENDIF
+    ENDDO
+
+    ! Split for hashsymbol, then place each (valid) substring into 
+    ! separate slot and count them. Some entries may be invalid. I.e., if one
+    ! uses something like '2*FieldX', the numeric entry needs to be removed.
+    ! All fields with at least one upper-case alphanumeric character (i.e.,
+    ! ascii characters 65-90), are assumed to be valid fields.
+    NFIELDS = 0 
+    CALL StrSplit( workstring, "#", SubStrs, N )
+    DO I = 1, N       
+       istr = CleanText( SubStrs(I) )
+       ! Check if clean name contains at least one upper-case alphanumeric character
+       hasChar = .FALSE.      
+       ilen = LEN_TRIM(istr)
+       DO J = 1, ilen
+          iasc = ICHAR(istr(J:J))
+          IF ((iasc.GT.64).AND.(iasc.LT.91)) THEN
+             hasChar = .TRUE.
+             EXIT
+          ENDIF
+       ENDDO
+       IF ( hasChar ) THEN 
+          NFIELDS = NFIELDS + 1
+          names(NFIELDS) = istr 
+       ENDIF 
+    ENDDO
+
+    ! Return
+    RC = GC_SUCCESS
+
+  END SUBROUTINE Parse_FullName 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
