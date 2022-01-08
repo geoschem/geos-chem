@@ -1487,6 +1487,31 @@ CONTAINS
        ENDIF
 
        CALL MAPL_TimerOff( STATE, 'GC_RAD' )
+    ELSE
+       ! Set diagnostics to be undefined
+       !If (State_Diag%Archive_DTRad            ) State_Diag%DTRad(:,:,:)           = MAPL_UNDEF 
+       !If (State_Diag%Archive_DynHeating       ) State_Diag%DynHeating(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkySWTOA   ) State_Diag%RadAllSkySWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkySWSurf  ) State_Diag%RadAllSkySWSurf(:,:,:) = MAPL_UNDEF 
+       !If (State_Diag%Archive_RadAllSkySWTrop  ) State_Diag%RadAllSkySWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkyLWTOA   ) State_Diag%RadAllSkyLWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkyLWSurf  ) State_Diag%RadAllSkyLWSurf(:,:,:) = MAPL_UNDEF 
+       !If (State_Diag%Archive_RadAllSkyLWTrop  ) State_Diag%RadAllSkyLWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkySWTOA   ) State_Diag%RadClrSkySWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkySWSurf  ) State_Diag%RadClrSkySWSurf(:,:,:) = MAPL_UNDEF 
+       !If (State_Diag%Archive_RadClrSkySWTrop  ) State_Diag%RadClrSkySWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkyLWTOA   ) State_Diag%RadClrSkyLWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkyLWSurf  ) State_Diag%RadClrSkyLWSurf(:,:,:) = MAPL_UNDEF 
+       !If (State_Diag%Archive_RadClrSkyLWTrop  ) State_Diag%RadClrSkyLWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAODWL1        ) State_Diag%RadAODWL1(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadSSAWL1        ) State_Diag%RadSSAWL1(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAsymWL1       ) State_Diag%RadAsymWL1(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAODWL2        ) State_Diag%RadAODWL2(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadSSAWL2        ) State_Diag%RadSSAWL2(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAsymWL2       ) State_Diag%RadAsymWL2(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAODWL3        ) State_Diag%RadAODWL3(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadSSAWL3        ) State_Diag%RadSSAWL3(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAsymWL3       ) State_Diag%RadAsymWL3(:,:,:)      = MAPL_UNDEF 
     ENDIF
 #endif
 
