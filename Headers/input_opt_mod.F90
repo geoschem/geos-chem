@@ -217,6 +217,8 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=5),   POINTER :: STRWVSELECT(:)
      INTEGER                     :: NSPECRADMENU
      INTEGER,            POINTER :: LSPECRADMENU(:)
+     LOGICAL                     :: RRTMG_FDH
+     LOGICAL                     :: Read_Dyn_Heating
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -752,6 +754,8 @@ CONTAINS
     Input_Opt%NWVSELECT              = 0
     Input_Opt%WVSELECT               = 0.0_fp
     Input_Opt%STRWVSELECT            = ''
+    Input_Opt%RRTMG_FDH              = .FALSE.
+    Input_Opt%Read_Dyn_Heating       = .FALSE.
 
     !----------------------------------------
     ! TRANSPORT MENU fields

@@ -2779,6 +2779,32 @@ CONTAINS
     ENDIF
     Input_Opt%LSKYRAD(2) = v_bool
 
+    !------------------------------------------------------------------------
+    ! Use the fixed dynamical heating assumption?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%fixed_dyn_heating"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_FDH = v_bool
+
+    !------------------------------------------------------------------------
+    ! Read in dynamical heating data?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%read_dyn_heating"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Read_Dyn_Heating = v_bool
+
     !========================================================================
     ! Error check settings
     !========================================================================
@@ -2833,6 +2859,8 @@ CONTAINS
        WRITE( 6, 100 ) 'Consider shortwave?         : ', Input_Opt%LSWRAD
        WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
        WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
+       WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
+       WRITE( 6, 100 ) ' --> Read in dyn. heating?  : ', Input_Opt%Read_Dyn_Heating
     ENDIF
 
     ! FORMAT statements
