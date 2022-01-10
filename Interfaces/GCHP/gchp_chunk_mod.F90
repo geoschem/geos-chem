@@ -765,6 +765,13 @@ CONTAINS
     TYPE(Species),       POINTER   :: ThisSpc
 #endif
 
+    ! For stratospheric adjustment
+    REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
+    REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
+
+    ! For logging
+    CHARACTER(len=ESMF_MAXSTR)     :: MSG
+
     !=======================================================================
     ! GCHP_CHUNK_RUN begins here
     !=======================================================================
@@ -1398,12 +1405,33 @@ CONTAINS
 
        CALL MAPL_TimerOn( STATE, 'GC_RAD' )
 
-       IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
-             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-             WRITE( 6, 500 ) 'R R T M G : Radiative Transfer Model (by AER)'
-500          FORMAT( '#####', 12x, a, 12x, '#####' )
-             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-       ENDIF
+       If (First_RT) Call Log_Msg('First RRTMG run starting','Info','GCHP_Chunk')
+!       IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
+!             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+!             WRITE( 6, 500 ) 'R R T M G : Radiative Transfer Model (by AER)'
+!500          FORMAT( '#####', 12x, a, 12x, '#####' )
+!             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+!       ENDIF
+
+       ! Allocate temperature difference arrays
+       If ( Input_Opt%RRTMG_FDH ) Then
+          Allocate(DT_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+          _ASSERT(RC==0, 'Error deallocating DT_3D')
+          DT_3D(:,:,:) = 0.0e+0_fp
+          Allocate(HR_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+          _ASSERT(RC==0, 'Error deallocating HR_3D')
+          HR_3D(:,:,:) = 0.0e+0_fp
+          ! Read in dynamical heating rates if necessary
+          If (Input_Opt%Read_Dyn_Heating) Then
+             HR_3D(:,:,:) = State_Met%DynHeating(:,:,:)
+          End If
+       Else
+          ! Safer
+          Allocate(DT_3D(0,0,0),Stat=RC)
+          _ASSERT(RC==0, 'Error deallocating DT_3D')
+          Allocate(HR_3D(0,0,0),Stat=RC)
+          _ASSERT(RC==0, 'Error deallocating HR_3D')
+       End If
 
        State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
 
@@ -1437,17 +1465,23 @@ CONTAINS
        N = 1
 
        ! Echo info
-       IF ( Input_Opt%amIRoot ) THEN
-          PRINT *, 'Calling RRTMG to compute fluxes and optics'
-          IF ( FIRST_RT ) THEN
-             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-          ENDIF
-       ENDIF
+       !IF ( Input_Opt%amIRoot ) THEN
+       !   PRINT *, 'Calling RRTMG to compute fluxes and optics'
+       !   IF ( FIRST_RT ) THEN
+       !      WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+       !   ENDIF
+       !ENDIF
+       If (First_RT) Then
+          Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+          Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
+       End If
 
        ! Generate mask for species in RT
        CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
 
        ! Compute radiative fluxes for the given output
+       ! If FDH is used, this step will be used to calculate DT and
+       ! fill out DT_3D. The same will be true for HR_3D
        CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                     &
                                    ThisMonth  = Month,                   &
                                    iCld       = State_Chm%RRTMG_iCld,    &
@@ -1459,6 +1493,8 @@ CONTAINS
                                    State_Diag = State_Diag,              &
                                    State_Grid = State_Grid,              &
                                    State_Met  = State_Met,               &
+                                   DT_3D      = DT_3D,                   &
+                                   HR_3D      = HR_3D,                   &
                                    RC         = RC                     )
 
        ! Trap potential errors
@@ -1466,10 +1502,16 @@ CONTAINS
 
        ! Calculate for rest of outputs, if any
        DO N = 2, State_Diag%nRadOut
-          IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
-             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-          ENDIF
-          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
+          ! This time around, DT_3D and HR_3D are read in only but not
+          ! overwritten
+          !IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
+          !   WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+          !ENDIF
+          If (First_RT) Then
+             Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+             Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
+          End If
+          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
                                       iCld       = State_Chm%RRTMG_iCld,   &
@@ -1481,12 +1523,25 @@ CONTAINS
                                       State_Diag = State_Diag,             &
                                       State_Grid = State_Grid,             &
                                       State_Met  = State_Met,              &
+                                      DT_3D      = DT_3D,                  &
+                                      HR_3D      = HR_3D,                  &
                                       RC         = RC          )
           _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer')
        ENDDO
 
 520    FORMAT( 5x, '- ', &
                   a4, ' (Index = ', i2.2, ')' )
+
+       ! Store temperature change and heating rate from RRTMG in diagnostics
+       If (Input_Opt%RRTMG_FDH) Then
+           State_Diag%DTRad(:,:,:)      = DT_3D
+           State_Diag%DynHeating(:,:,:) = HR_3D
+           RC = 0
+           If (Allocated(DT_3D)) Deallocate(DT_3D, STAT=RC)
+           _ASSERT(RC==0, 'Error deallocating DT_3D')
+           If (Allocated(HR_3D)) Deallocate(HR_3D, STAT=RC)
+           _ASSERT(RC==0, 'Error deallocating DT_3D')
+       End If
 
        IF ( FIRST_RT ) THEN
           FIRST_RT = .FALSE.
@@ -1495,20 +1550,20 @@ CONTAINS
        CALL MAPL_TimerOff( STATE, 'GC_RAD' )
     ELSE
        ! Set diagnostics to be undefined
-       !If (State_Diag%Archive_DTRad            ) State_Diag%DTRad(:,:,:)           = MAPL_UNDEF 
-       !If (State_Diag%Archive_DynHeating       ) State_Diag%DynHeating(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_DTRad            ) State_Diag%DTRad(:,:,:)           = MAPL_UNDEF 
+       If (State_Diag%Archive_DynHeating       ) State_Diag%DynHeating(:,:,:)      = MAPL_UNDEF 
        If (State_Diag%Archive_RadAllSkySWTOA   ) State_Diag%RadAllSkySWTOA(:,:,:)  = MAPL_UNDEF 
        If (State_Diag%Archive_RadAllSkySWSurf  ) State_Diag%RadAllSkySWSurf(:,:,:) = MAPL_UNDEF 
-       !If (State_Diag%Archive_RadAllSkySWTrop  ) State_Diag%RadAllSkySWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkySWTrop  ) State_Diag%RadAllSkySWTrop(:,:,:) = MAPL_UNDEF 
        If (State_Diag%Archive_RadAllSkyLWTOA   ) State_Diag%RadAllSkyLWTOA(:,:,:)  = MAPL_UNDEF 
        If (State_Diag%Archive_RadAllSkyLWSurf  ) State_Diag%RadAllSkyLWSurf(:,:,:) = MAPL_UNDEF 
-       !If (State_Diag%Archive_RadAllSkyLWTrop  ) State_Diag%RadAllSkyLWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkyLWTrop  ) State_Diag%RadAllSkyLWTrop(:,:,:) = MAPL_UNDEF 
        If (State_Diag%Archive_RadClrSkySWTOA   ) State_Diag%RadClrSkySWTOA(:,:,:)  = MAPL_UNDEF 
        If (State_Diag%Archive_RadClrSkySWSurf  ) State_Diag%RadClrSkySWSurf(:,:,:) = MAPL_UNDEF 
-       !If (State_Diag%Archive_RadClrSkySWTrop  ) State_Diag%RadClrSkySWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkySWTrop  ) State_Diag%RadClrSkySWTrop(:,:,:) = MAPL_UNDEF 
        If (State_Diag%Archive_RadClrSkyLWTOA   ) State_Diag%RadClrSkyLWTOA(:,:,:)  = MAPL_UNDEF 
        If (State_Diag%Archive_RadClrSkyLWSurf  ) State_Diag%RadClrSkyLWSurf(:,:,:) = MAPL_UNDEF 
-       !If (State_Diag%Archive_RadClrSkyLWTrop  ) State_Diag%RadClrSkyLWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkyLWTrop  ) State_Diag%RadClrSkyLWTrop(:,:,:) = MAPL_UNDEF 
        If (State_Diag%Archive_RadAODWL1        ) State_Diag%RadAODWL1(:,:,:)       = MAPL_UNDEF 
        If (State_Diag%Archive_RadSSAWL1        ) State_Diag%RadSSAWL1(:,:,:)       = MAPL_UNDEF 
        If (State_Diag%Archive_RadAsymWL1       ) State_Diag%RadAsymWL1(:,:,:)      = MAPL_UNDEF 
