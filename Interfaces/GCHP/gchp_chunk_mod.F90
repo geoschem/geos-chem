@@ -91,6 +91,7 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
+    Use Error_Mod,               ONLY : Init_Error
 #ifdef ADJOINT
     USE Charpak_Mod,             ONLY : To_UpperCase
 #endif
@@ -549,6 +550,10 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_LINEAR_CHEM')
     ENDIF
 
+    ! Error handling and logging
+    CALL Init_Error(Input_Opt, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_ERROR')
+
     !-------------------------------------------------------------------------
     ! Diagnostics and tendencies
     !-------------------------------------------------------------------------
@@ -632,6 +637,7 @@ CONTAINS
 
     ! Utilities
     USE ErrCode_Mod
+    USE Error_Mod
     USE HCO_Error_Mod
     USE MAPL_MemUtilsMod
     USE Pressure_Mod,       ONLY : Accept_External_Pedge
@@ -863,16 +869,16 @@ CONTAINS
     DoTend = ( DoEmis .OR. DoDryDep ) .AND. .NOT. Input_Opt%LTURB
 
     ! testing only
-    IF ( Input_Opt%AmIRoot .and. NCALLS < 10 ) THEN
-       write(*,*) 'GEOS-Chem phase ', Phase, ':'
-       write(*,*) 'DoConv   : ', DoConv
-       write(*,*) 'DoDryDep : ', DoDryDep
-       write(*,*) 'DoEmis   : ', DoEmis
-       write(*,*) 'DoTend   : ', DoTend
-       write(*,*) 'DoTurb   : ', DoTurb
-       write(*,*) 'DoChem   : ', DoChem
-       write(*,*) 'DoWetDep : ', DoWetDep
-       write(*,*) ' '
+    IF ( NCALLS < 10 ) THEN
+       ! Use pfLogger
+       Call Input_Opt%lgr%info('GEOS-Chem phase %i2~:', Phase)
+       Call Input_Opt%lgr%info('DoConv   : %l1', DoConv)
+       Call Input_Opt%lgr%info('DoDryDep : %l1', DoDryDep)
+       Call Input_Opt%lgr%info('DoEmis   : %l1', DoEmis)
+       Call Input_Opt%lgr%info('DoTend   : %l1', DoTend)
+       Call Input_Opt%lgr%info('DoTurb   : %l1', DoTurb)
+       Call Input_Opt%lgr%info('DoChem   : %l1', DoChem)
+       Call Input_Opt%lgr%info('DoWetDep : %l1', DoWetDep)
     ENDIF
 
     !-------------------------------------------------------------------------

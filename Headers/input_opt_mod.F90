@@ -16,6 +16,9 @@ MODULE Input_Opt_Mod
 ! !USES:
 !
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+#if defined( ESMF_ )
+    USE pFlogger
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -450,6 +453,12 @@ MODULE Input_Opt_Mod
      INTEGER                     :: LINOZ_NMONTHS
      INTEGER                     :: LINOZ_NFIELDS
      REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
+
+#if defined( ESMF_ )
+     ! ESMF logger
+     class(Logger), pointer      :: lgr
+     Character(Len=255)          :: compname
+#endif
 
   END TYPE OptInput
 !
@@ -984,6 +993,13 @@ CONTAINS
 
     Input_Opt%LINOZ_TPARM            = 0.0_fp
 
+#if defined( ESMF_ )
+    ! Logger handle is set up by Chem_GridCompMod
+    Input_Opt%lgr => NULL()
+    ! Component name is acquired externally - this is a placeholder
+    Input_Opt%compname = 'GC'
+#endif
+
   END SUBROUTINE Set_Input_Opt
 !EOC
 !------------------------------------------------------------------------------
@@ -1238,6 +1254,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%Jval_Ids => NULL()
     ENDIF
+#endif
+
+#if defined( ESMF_ )
+    If (Associated(Input_Opt%lgr)) Input_Opt%lgr => NULL()
 #endif
 
   END SUBROUTINE Cleanup_Input_Opt

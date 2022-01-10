@@ -17,6 +17,9 @@ MODULE ERROR_MOD
   USE ErrCode_Mod
   USE Input_Opt_Mod,      ONLY : OptInput
   USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+#if defined( ESMF_ )
+    USE pFlogger
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -26,6 +29,7 @@ MODULE ERROR_MOD
   PUBLIC  :: ALLOC_ERR
   PUBLIC  :: CHECK_VALUE
   PUBLIC  :: DEBUG_MSG
+  PUBLIC  :: LOG_MSG
   PUBLIC  :: ERROR_STOP
   PUBLIC  :: GEOS_CHEM_STOP
   PUBLIC  :: IS_SAFE_DIV
@@ -71,6 +75,7 @@ MODULE ERROR_MOD
   PRIVATE :: NAN_FLOAT
   PRIVATE :: IS_SAFE_DIV_R4
   PRIVATE :: IS_SAFE_DIV_R8
+
 !
 ! !REVISION HISTORY:
 !  08 Mar 2001 - R. Yantosca - Initial version
@@ -83,6 +88,10 @@ MODULE ERROR_MOD
 
   LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
   TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
+#if defined( ESMF_ )
+  class(Logger), pointer :: lgr
+  Character(Len=255) :: compname
+#endif
 
 CONTAINS
 !EOC
@@ -499,6 +508,9 @@ CONTAINS
        CALL Timer_PrintAll( SHADOW_Input_Opt, RC )
     ENDIF
 
+    ! Use MAPL macro
+    _FAIL('Failure in GEOS-Chem!')
+
 #elif defined( MODEL_CESM )
       CALL ENDRUN('GEOS-Chem failure!')
 
@@ -639,6 +651,73 @@ CONTAINS
     CALL FLUSH( 6 )
 
   END SUBROUTINE DEBUG_MSG
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Log_Msg
+!
+! !DESCRIPTION: Subroutine LOG\_MSG prints a message to whatever logging 
+!  mechanism is used by the various host models. This is the safest way
+!  to ensure that a message is passed to the user.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE LOG_MSG( MESSAGE, LEVEL, SRC )
+!
+! !USES:
+!
+    USE CharPak_Mod, ONLY : To_Uppercase
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)           :: MESSAGE   ! Message to print
+    CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: LEVEL     ! Level (warning, debug, or info)
+    CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: SRC       ! Calling location
+!
+! !REVISION HISTORY:
+!  07 Jan 2002 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=10)     :: LEVEL_SAFE
+#if defined( ESMF_ )
+    CHARACTER(LEN=255)   :: Iam
+#endif
+
+    If (PRESENT(LEVEL)) Then
+        LEVEL_SAFE = To_Uppercase(LEVEL)
+    Else
+        LEVEL_SAFE = 'DEBUG'
+    End If
+    If (PRESENT(SRC)) Then
+        Iam = Trim(src)
+    Else
+        Iam = 'unknown'
+    End If
+
+#if defined( ESMF_ )
+    ! Preceded by the component name already
+    If (Level_Safe == 'INFO') Then
+        call lgr%info(   '%a~: %a', Trim(Iam), Trim(Message))
+    Else if (Level_Safe == 'DEBUG') Then
+        call lgr%debug(  '%a~: %a', Trim(Iam), Trim(Message))
+    Else
+        call lgr%warning('%a~: %a', Trim(Iam), Trim(Message))
+    End If
+#else
+    ! Print message
+    WRITE( 6, '(a15,x,a5,2a)' ) Trim(Iam), Trim(LEVEL_SAFE), ': ',Trim(MESSAGE)
+#endif
+
+  END SUBROUTINE LOG_MSG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1076,6 +1155,11 @@ CONTAINS
     ! Store a shadow copy of Input_Opt (point to it instead of copying)
     SHADOW_Input_Opt => Input_Opt
 
+#if defined( ESMF_ )
+    lgr => Input_Opt%lgr
+    compname = Input_Opt%CompName
+#endif
+
   END SUBROUTINE INIT_ERROR
 !EOC
 !------------------------------------------------------------------------------
@@ -1100,6 +1184,9 @@ CONTAINS
 !BOC
     ! Free the pointer to Input_Opt
     NULLIFY( SHADOW_Input_Opt )
+#if defined( ESMF_ )
+    NULLIFY( lgr )
+#endif
 
   END SUBROUTINE CLEANUP_ERROR
 !EOC
