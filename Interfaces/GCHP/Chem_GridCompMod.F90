@@ -153,6 +153,9 @@ MODULE Chem_GridCompMod
   ! Is this being run as a CTM?
   INTEGER                          :: IsCTM
 
+  ! Are we reading in dynamical heating?
+  LOGICAL                          :: Read_Dyn_Heating
+
   ! Memory debug level
   INTEGER                          :: MemDebugLevel
 
@@ -305,6 +308,9 @@ CONTAINS
 #ifdef ADJOINT
     LOGICAL                       :: useCFMaskFile
 #endif
+#ifdef RRTMG
+    INTEGER                          :: Read_Dyn_Heating_Int
+#endif
 
     ! Manual internal state entries
     LOGICAL                       :: am_I_Root
@@ -359,6 +365,14 @@ CONTAINS
     call MAPL_GetResource( STATE, IsCTM, label='GEOSChem_CTM:', &
                            default=1, rc=status )
     _VERIFY(STATUS)
+#ifdef RRTMG
+    call MAPL_GetResource( STATE, Read_Dyn_Heating_Int, label='IMPORT_DYN_HEATING:', & 
+                           default=0, rc=status )
+    _VERIFY(STATUS)
+    Read_Dyn_Heating = (Read_Dyn_Heating_Int .gt. 0)
+#else
+    Read_Dyn_Heating = .False.
+#endif
 #endif
 
     !=======================================================================
@@ -418,6 +432,19 @@ CONTAINS
        VLOCATION          = MAPL_VLocationEdge,    &
                                                       RC=STATUS  )
     _VERIFY(STATUS)
+
+#ifdef RRTMG
+    If (Read_Dyn_Heating) Then
+       call MAPL_AddImportSpec(GC, &
+          SHORT_NAME         = 'DynHeating', &
+          LONG_NAME          = 'dynamical_heating',  &
+          UNITS              = 'K_day-1', &
+          DIMS               = MAPL_DimsHorzVert,    &
+          VLOCATION          = MAPL_VLocationCenter,  &
+                                                         RC=STATUS  )
+       _VERIFY(STATUS)
+    End If
+#endif
 #endif
 
     !=======================================================================
@@ -1200,8 +1227,6 @@ CONTAINS
     INTEGER                     :: IL_WORLD, JL_WORLD    ! # lower indices in global grid
     INTEGER                     :: IU_WORLD, JU_WORLD    ! # upper indices in global grid
 
-    !Class(Logger), pointer      :: lgr
-
     __Iam__('Initialize_')
 
     !=======================================================================
@@ -1711,6 +1736,11 @@ CONTAINS
        _VERIFY(STATUS)
     end if
 
+#ifdef RRTMG
+    ! Verify that the GCHP.rc and input.geos settings match
+    _ASSERT(Read_Dyn_Heating.eqv.Input_Opt%Read_Dyn_Heating,'Mismatch between input.geos and GCHP.rc options for RRTMG dynamical heating')
+#endif
+
 #if defined( MODEL_GEOS )
     !=======================================================================
     ! Read GEOSCHEMchem settings
@@ -2107,6 +2137,11 @@ CONTAINS
     REAL(ESMF_KIND_R8),  POINTER :: PLE(:,:,:)     => NULL() ! INTERNAL: PEDGE
 #endif
 
+    ! RRTMG FDH needs to be able to read in dynamical heating
+#ifdef RRTMG
+    REAL,                POINTER :: DynHeating(:,:,:) => NULL()
+#endif
+
     ! Initialize variables used for reading Olson and MODIS LAI imports
     INTEGER            :: TT, VV, landTypeInt
     CHARACTER(len=64)  :: landTypeStr, varName, importName
@@ -2292,6 +2327,12 @@ CONTAINS
 
        !IF ( IsCTM ) THEN
        call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
+#ifdef RRTMG
+       ! Read in dynamical heating rates
+       If ( Read_Dyn_Heating ) Then
+          call MAPL_GetPointer ( IMPORT, DynHeating, 'DynHeating',     __RC__ )
+       End If
+#endif
        !ENDIF
 
        ! Pass IMPORT/EXPORT object to HEMCO state object

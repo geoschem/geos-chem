@@ -185,6 +185,13 @@
   State_Met%FLASH_DENS         = FLASH_DENS                  ! #/km2/s
   State_Met%CONV_DEPTH         = CONV_DEPTH                  ! m
 
+#ifdef RRTMG
+  If (Input_Opt%Read_Dyn_Heating.and.Associated(DynHeating)) Then
+     ! Need to flip the data
+     State_Met%DynHeating(:,:,1:State_Grid%NZ) = DynHeating(:,:,State_Grid%NZ:1:-1) ! K/day
+  End If
+#endif
+
 #ifdef ADJOINT
   IF (ASSOCIATED(CostFuncMask)) THEN
       if (MAPL_Am_I_Root()) &

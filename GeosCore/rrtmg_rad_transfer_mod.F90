@@ -491,13 +491,13 @@ CONTAINS
     LOGICAL                    :: Calc_DeltaT           ! Are we calculating the T difference?
     LOGICAL                    :: Store_DHR             ! Are we estimating the dynamical heating rate?
     REAL(KIND=RB), PARAMETER   :: HRMax        = 1.0d-3 ! Maximum residual heating rate (K/day)
-    REAL(KIND=RB), PARAMETER   :: TSadj_max    = 0.5d0  ! 
+    REAL(KIND=RB), PARAMETER   :: TSadj_max    = 0.5d0  ! Outer time step used in strat adjustment (days)
     REAL(KIND=RB)              :: TSadj                 ! 
     REAL(KIND=RB), PARAMETER   :: dtadj_max    = 150d0  ! Time allowable to reach equilbrium (days)
     REAL(KIND=RB)              :: dtadj                 ! Total time to reach equilibrium (days)
     Integer                    :: i_iter                ! Iteration number
     Integer                    :: N_Failed              ! Number of columns failing to converge
-    Integer                    :: N_Column
+    Integer                    :: N_Column              ! Total number of columns (NX * NY)
 
     ! For RK4 integrations
     INTEGER, PARAMETER         :: N_PC = 4

@@ -1416,10 +1416,10 @@ CONTAINS
        ! Allocate temperature difference arrays
        If ( Input_Opt%RRTMG_FDH ) Then
           Allocate(DT_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
-          _ASSERT(RC==0, 'Error deallocating DT_3D')
+          _ASSERT(RC==0, 'Error allocating DT_3D')
           DT_3D(:,:,:) = 0.0e+0_fp
           Allocate(HR_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
-          _ASSERT(RC==0, 'Error deallocating HR_3D')
+          _ASSERT(RC==0, 'Error allocating HR_3D')
           HR_3D(:,:,:) = 0.0e+0_fp
           ! Read in dynamical heating rates if necessary
           If (Input_Opt%Read_Dyn_Heating) Then
@@ -1465,12 +1465,6 @@ CONTAINS
        N = 1
 
        ! Echo info
-       !IF ( Input_Opt%amIRoot ) THEN
-       !   PRINT *, 'Calling RRTMG to compute fluxes and optics'
-       !   IF ( FIRST_RT ) THEN
-       !      WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-       !   ENDIF
-       !ENDIF
        If (First_RT) Then
           Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
           Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
@@ -1534,8 +1528,8 @@ CONTAINS
 
        ! Store temperature change and heating rate from RRTMG in diagnostics
        If (Input_Opt%RRTMG_FDH) Then
-           State_Diag%DTRad(:,:,:)      = DT_3D
-           State_Diag%DynHeating(:,:,:) = HR_3D
+           If (State_Diag%Archive_DTRad     ) State_Diag%DTRad(:,:,:)      = DT_3D(:,:,:)
+           If (State_Diag%Archive_DynHeating) State_Diag%DynHeating(:,:,:) = HR_3D(:,:,:)
            RC = 0
            If (Allocated(DT_3D)) Deallocate(DT_3D, STAT=RC)
            _ASSERT(RC==0, 'Error deallocating DT_3D')
