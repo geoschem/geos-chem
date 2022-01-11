@@ -214,7 +214,7 @@ CONTAINS
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST    = .TRUE.
     INTEGER, SAVE      :: id_O3,    id_CH4,  id_N2O, id_CFC11
-    INTEGER, SAVE      :: id_CFC12, id_CCL4, id_HCFC22
+    INTEGER, SAVE      :: id_CFC12, id_CCL4, id_HCFC22, id_H2O
 
     !-----------------------------------------------------------------
     ! TEMPORARY AEROSOL VARIABLES
@@ -646,6 +646,7 @@ CONTAINS
     SWHRC(:,:)          = 0.0
     O3VMR(:,:,:)        = 0.0
     CH4VMR(:,:,:)       = 0.0
+    H2OVMR(:,:,:)       = 0.0
     NBNDS               = NBNDLW+NBNDSW
 
     !=================================================================
@@ -656,6 +657,7 @@ CONTAINS
        ! Define species ID flags
        id_O3     = Ind_('O3')
        id_CH4    = Ind_('CH4')
+       id_H2O    = Ind_('H2O')
        id_N2O    = Ind_('N2O')
        id_CFC11  = Ind_('CFC11')
        id_CFC12  = Ind_('CFC12')
@@ -739,7 +741,6 @@ CONTAINS
        DO L = 1, State_Grid%NZ
           PCENTER(I,J,L) = GET_PCENTER( I, J, L )
           PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
-          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
           TLAY   (I,J,L) = State_Met%T(I,J,L)
           SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
        ENDDO
@@ -844,6 +845,12 @@ CONTAINS
           IF (SPECMASK(State_Chm%Phot%NASPECRAD+2).EQ.1) THEN
              CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW /&
                              State_Chm%SpcData(id_CH4)%Info%MW_g
+
+          ENDIF
+
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+3).EQ.1) THEN
+             H2OVMR(I,J,L) = Spc(id_H2O)%Conc(I,J,L) * AIRMW / &
+                             State_Chm%SpcData(id_H2O)%Info%MW_g
 
           ENDIF
 
@@ -1920,15 +1927,16 @@ CONTAINS
 
        !-------------------------------------------------------
        ! Optics diagnostics (AOD, single scattering albedo, asymmetry param)
-       ! There is one diagnostic per RRTMG output, excluding BASE, ozone, and
-       ! methane (hence OUTIDX > 4)T=, and there is one diagnostic per
+       ! There is one diagnostic per RRTMG output, excluding BASE, ozone, CH4,
+       ! and H2O (hence OUTIDX > 5)T=, and there is one diagnostic per
        ! RRTMG wavelength (up to Input_Opt%NWVSELECT).
+       ! 2022-01-10: Added water vapor (SDE)
        !-------------------------------------------------------
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT
-       !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
-       IF ((OUTIDX.GE.4).AND.(LOUTPUTAERO)) THEN
+       !SKIP OUTIDX=1,2,3,4 (BASELINE, OZONE, CH4, H2O)
+       IF ((OUTIDX.GE.5).AND.(LOUTPUTAERO)) THEN
           !INTERPOLATE TO THE REQUESTED WAVELENGTH
           DO W=1,Input_Opt%NWVSELECT
              AODTMP  = 0.0D0
@@ -2118,56 +2126,60 @@ CONTAINS
        CASE( 2 )
           SPECMASK(16+NXTRA)=0
 
-       ! SU = Sulfate
+       ! H2O = Water vapor
        CASE( 3 )
-          SPECMASK(1)=3
+          SPECMASK(17+NXTRA)=0
+
+       ! SU = Sulfate
+       CASE( 4 )
+          SPECMASK(1)=4
 
        ! NI = Nitrate
-       CASE( 4 )
-          SPECMASK(2)=4
+       CASE( 5 )
+          SPECMASK(2)=5
 
        ! AM = Ammonium
-       CASE( 5 )
-          SPECMASK(3)=5
+       CASE( 6 )
+          SPECMASK(3)=6
 
        ! BC = Black carbon (Hydrophilic+phobic)
-       CASE( 6 )
-          SPECMASK(4)=6
+       CASE( 7 )
+          SPECMASK(4)=7
 
        ! OA = Organic aerosol (!Hydrophilic+phobic)
-       CASE( 7 )
-          SPECMASK(5)=7
+       CASE( 8 )
+          SPECMASK(5)=8
 
        ! SS = Sea salt
-       CASE( 8 )
-          SPECMASK(6)=8
-          SPECMASK(7)=8
+       CASE( 9 )
+          SPECMASK(6)=9
+          SPECMASK(7)=9
 
        ! DU = Mineral dust
-       CASE( 9 )
-          SPECMASK(8+NXTRA)=9
-          SPECMASK(9+NXTRA)=9
-          SPECMASK(10+NXTRA)=9
-          SPECMASK(11+NXTRA)=9
-          SPECMASK(12+NXTRA)=9
-          SPECMASK(13+NXTRA)=9
-          SPECMASK(14+NXTRA)=9
+       CASE( 10 )
+          SPECMASK(8+NXTRA)=10
+          SPECMASK(9+NXTRA)=10
+          SPECMASK(10+NXTRA)=10
+          SPECMASK(11+NXTRA)=10
+          SPECMASK(12+NXTRA)=10
+          SPECMASK(13+NXTRA)=10
+          SPECMASK(14+NXTRA)=10
 
        ! PM = All particulate matter
        ! add all aerosols but not gases here
-       CASE( 10 )
+       CASE( 11 )
           DO II = 1, State_Chm%Phot%NASPECRAD
-             SPECMASK(II)=10
+             SPECMASK(II)=11
           ENDDO
 
        ! ST = STRAT AEROSOL
-       CASE( 11 )
+       CASE( 12 )
 
           !LSA
-          SPECMASK(8) = 11
+          SPECMASK(8) = 12
 
           !NAT
-          SPECMASK(9) = 11
+          SPECMASK(9) = 12
 
        END SELECT
     ENDIF
@@ -2250,8 +2262,8 @@ CONTAINS
     ! which is type 0).
     !
     ! Optional outputs (requested via HISTORY.rc)
-    !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
-    !   7=OA  8=SS  9=DU  10=PM  11=ST
+    !   1=O3  2=ME  3=H2O  4=SU  5=NI  6=AM
+    !   7=BC  8=OA  9=SS  10=DU  11=PM 12=ST
     !
     ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
     ! the bpch code is removed from GEOS-Chem.  This array is still
@@ -2267,24 +2279,26 @@ CONTAINS
           Input_Opt%LSpecRadMenu(1)  = 1
        CASE( 'ME' )
           Input_Opt%LSpecRadMenu(2)  = 1
+       CASE( 'H2O' )
+          Input_Opt%LSpecRadMenu(3) = 1
        CASE( 'SU' )
-          Input_Opt%LSpecRadMenu(3)  = 1
-       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(4)  = 1
-       CASE( 'AM' )
+       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(5)  = 1
-       CASE( 'BC' )
+       CASE( 'AM' )
           Input_Opt%LSpecRadMenu(6)  = 1
-       CASE( 'OA' )
+       CASE( 'BC' )
           Input_Opt%LSpecRadMenu(7)  = 1
-       CASE( 'SS' )
+       CASE( 'OA' )
           Input_Opt%LSpecRadMenu(8)  = 1
-       CASE( 'DU' )
+       CASE( 'SS' )
           Input_Opt%LSpecRadMenu(9)  = 1
+       CASE( 'DU' )
+          Input_Opt%LSpecRadMenu(10)  = 1
        CASE( 'PM' )
-          Input_Opt%LSpecRadMenu(10) = 1
-       CASE( 'ST' )
           Input_Opt%LSpecRadMenu(11) = 1
+       CASE( 'ST' )
+          Input_Opt%LSpecRadMenu(12) = 1
        CASE DEFAULT
           ! Nothing
        END SELECT

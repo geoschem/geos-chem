@@ -1454,6 +1454,7 @@ CONTAINS
        ! RRTMG outputs (scheduled in HISTORY.rc):
        !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
        !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST
+       ! 12=H2O
        !
        ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
        ! to how it is populated from HISTORY.rc diaglist_mod.F90.
