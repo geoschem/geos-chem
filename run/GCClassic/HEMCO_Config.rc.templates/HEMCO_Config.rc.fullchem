@@ -2462,22 +2462,32 @@ Warnings:                    1
 # ==> Now emit aircraft BC and OC into hydrophilic tracers BCPI and OCPI.
 #==============================================================================
 (((AEIC
-0 AEIC_NO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  NO2      2005/1-12/1/0 C xyz kg/m2/s NO   110/115    20 1
-0 AEIC_CO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110        20 1
-0 AEIC_SOAP -                                        -        -             - -   -       SOAP 110/280    20 1
-0 AEIC_SO2  $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111        20 1
-0 AEIC_SO4  -                                        -        -             - -   -       SO4  112        20 1
-0 AEIC_BCPI -                                        -        -             - -   -       BCPI 113        20 1
-0 AEIC_OCPI -                                        -        -             - -   -       OCPI 113        20 1
-0 AEIC_ACET $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  HC       2005/1-12/1/0 C xyz kg/m2/s ACET 114/101/40 20 1
-0 AEIC_ALD2 -                                        -        -             - -   -       ALD2 114/102/41 20 1
-0 AEIC_ALK4 -                                        -        -             - -   -       ALK4 114/103/42 20 1
-0 AEIC_C2H6 -                                        -        -             - -   -       C2H6 114/104/45 20 1
-0 AEIC_C3H8 -                                        -        -             - -   -       C3H8 114/105/46 20 1
-0 AEIC_CH2O -                                        -        -             - -   -       CH2O 114/106    20 1
-0 AEIC_PRPE -                                        -        -             - -   -       PRPE 114/107/49 20 1
-0 AEIC_MACR -                                        -        -             - -   -       MACR 114/108/83 20 1
-0 AEIC_RCHO -                                        -        -             - -   -       RCHO 114/109/84 20 1
+0 AEIC_NO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  NO2      2005/1-12/1/0 C xyz kg/m2/s NO   110/115 20 1
+0 AEIC_CO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110     20 1
+0 AEIC_SOAP -                                        -        -             - -   -       SOAP 110/280 20 1
+0 AEIC_SO2  $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111     20 1
+0 AEIC_SO4  -                                        -        -             - -   -       SO4  112     20 1
+0 AEIC_BCPI -                                        -        -             - -   -       BCPI 113     20 1
+0 AEIC_OCPI -                                        -        -             - -   -       OCPI 113     20 1
+0 AEIC_ACET $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  HC       2005/1-12/1/0 C xyz kg/m2/s ACET 114/101 20 1
+0 AEIC_ALD2 -                                        -        -             - -   -       ALD2 114/102 20 1
+0 AEIC_ALK4 -                                        -        -             - -   -       ALK4 114/103 20 1
+0 AEIC_BENZ -                                        -        -             - -   -       BENZ 114/116 20 1
+0 AEIC_C2H2 -                                        -        -             - -   -       C2H2 114/117 20 1
+0 AEIC_C2H4 -                                        -        -             - -   -       C2H4 114/118 20 1
+0 AEIC_C2H6 -                                        -        -             - -   -       C2H6 114/104 20 1
+0 AEIC_C3H8 -                                        -        -             - -   -       C3H8 114/105 20 1
+0 AEIC_CH2O -                                        -        -             - -   -       CH2O 114/106 20 1
+0 AEIC_GLYX -                                        -        -             - -   -       GLYX 114/119 20 1
+0 AEIC_MGLY -                                        -        -             - -   -       MGLY 114/120 20 1
+0 AEIC_MOH  -                                        -        -             - -   -       MOH  114/121 20 1
+0 AEIC_NAP  -                                        -        -             - -   -       NAP  114/122 20 1
+0 AEIC_PHEN -                                        -        -             - -   -       PHEN 114/123 20 1
+0 AEIC_PRPE -                                        -        -             - -   -       PRPE 114/107 20 1
+0 AEIC_MACR -                                        -        -             - -   -       MACR 114/108 20 1
+0 AEIC_RCHO -                                        -        -             - -   -       RCHO 114/109 20 1
+0 AEIC_TOLU -                                        -        -             - -   -       TOLU 114/124 20 1
+0 AEIC_XYLE -                                        -        -             - -   -       XYLE 114/125 20 1
 )))AEIC
 
 #==============================================================================
@@ -3921,18 +3931,28 @@ ${RUNDIR_TES_CLIM_N2O}
 (((AEIC
 101 AEICACET 3.693477e-3 - -  - xy unitless 1
 102 AEICALD2 4.271822e-2 - -  - xy unitless 1
-103 AEICALK4 2.137911e-1 - -  - xy unitless 1
+103 AEICALK4 1.832228e-1 - -  - xy unitless 1
 104 AEICC2H6 5.214505e-3 - -  - xy unitless 1
 105 AEICC3H8 7.808710e-4 - -  - xy unitless 1
 106 AEICCH2O 1.230811e-1 - -  - xy unitless 1
-107 AEICPRPE 1.780418e-1 - -  - xy unitless 1
-108 AEICMACR 5.362609e-2 - -  - xy unitless 1
-109 AEICRCHO 3.676944e-2 - -  - xy unitless 1
+107 AEICPRPE 1.620150e-1 - -  - xy unitless 1
+108 AEICMACR 4.290087e-3 - -  - xy unitless 1
+109 AEICRCHO 1.439509e-1 - -  - xy unitless 1
 110 AEICNOCO 1.000000e-3 - -  - xy unitless 1
 111 AEICSO2  1.176000e-3 - -  - xy unitless 1
 112 AEICSO4  3.600000e-5 - -  - xy unitless 1
 113 AEICBC   3.000000e-5 - -  - xy unitless 1
 114 AEICHC   1.160000e-3 - -  - xy unitless 1
+116 AEICBENZ 1.681482e-2 - -  - xy unitless 1
+117 AEICC2H2 3.938595e-2 - -  - xy unitless 1
+118 AEICC2H4 1.545899e-1 - -  - xy unitless 1
+119 AEICGLYX 1.816464e-2 - -  - xy unitless 1
+120 AEICMGLY 1.503281e-2 - -  - xy unitless 1
+121 AEICMOH  1.805189e-2 - -  - xy unitless 1
+122 AEICNAP  5.411810e-3 - -  - xy unitless 1
+123 AEICPHEN 7.261785e-3 - -  - xy unitless 1
+124 AEICTOLU 6.421156e-3 - -  - xy unitless 1
+125 AEICXYLE 6.224521e-3 - -  - xy unitless 1
 )))AEIC
 
 (((CMIP6_AIRCRAFT
