@@ -379,7 +379,8 @@ CONTAINS
     INTEGER                       :: Nadv, landTypeInt
     LOGICAL                       :: FOUND 
     LOGICAL                       :: EOF
-    CHARACTER(LEN=60)             :: rstFile, landTypeStr, importName, simType
+    CHARACTER(LEN=60)             :: landTypeStr, importName, simType
+    CHARACTER(LEN=ESMF_MAXPATHLEN):: rstFile
     INTEGER                       :: restartAttr
     CHARACTER(LEN=ESMF_MAXSTR)    :: HistoryConfigFile ! HISTORY config file
     INTEGER                       :: T
@@ -398,7 +399,7 @@ CONTAINS
     LOGICAL                       :: FriendMoist, SpcInRestart, ReduceSpc
     CHARACTER(LEN=40)             :: SpcsBlacklist(255)
     INTEGER                       :: nBlacklist
-    CHARACTER(LEN=ESMF_MAXSTR)    :: Blacklist 
+    CHARACTER(LEN=ESMF_MAXSTR)    :: Blacklist
 #endif
 #ifdef ADJOINT
     INTEGER                       :: restartAttrAdjoint
@@ -6136,6 +6137,13 @@ CONTAINS
        WRITE(*,*) 'External data is on GEOS levels: ',OnGeosLev
        WRITE(*,*) 'Only overwrite above tropopause: ',AboveTroppOnly
        WRITE(*,*) 'Maximum valid level (will be used above that level): ',TopLev
+       WRITE(*,*) 'Maximum valid level (will be used above that level): ',TopLev
+    ENDIF
+
+    ! Initialize array to missing values 
+    IF ( UniformIfMissing >= 0.0 ) THEN
+        State_Chm%Species(:,:,:,:) = UniformIfMissing 
+        IF ( am_I_Root ) WRITE(*,*) 'All species initialized to ',UniformIfMissing
     ENDIF
 
     ! Initialize array to missing values 

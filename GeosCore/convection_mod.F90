@@ -464,6 +464,9 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
+#ifdef LUO_WETDEP
+    REAL(fp), PARAMETER    :: pHRain = 5.6_fp
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -950,7 +953,7 @@ CONTAINS
                    WRITE( 6, 200 )
 200                FORMAT( 'Infinity in DO_CLOUD_CONVECTION!' )
                    WRITE( 6, 255 ) K, IC, Q(K,IC), TRIM(SpcInfo%Name)
-                   write(*,*) T0,T1,T2,T3,T4,DELQ,SDT,TSUM
+                   WRITE(*,*) T0,T1,T2,T3,T4,DELQ,SDT,TSUM
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
@@ -1097,6 +1100,9 @@ CONTAINS
                               K,         IC,         BXHEIGHT(K),   &
                               T(K),      QDOWN,      SDT,           &
                               F_WASHOUT, H2O2s(K),   SO2s(K),       &
+#ifdef LUO_WETDEP
+                              pHRain,                               &
+#endif
                               WASHFRAC,  AER,        Input_Opt,     &
                               State_Chm, State_Grid, State_Met,  RC )
 

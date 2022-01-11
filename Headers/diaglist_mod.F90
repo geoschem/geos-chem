@@ -223,6 +223,7 @@ CONTAINS
     IsFullChem      = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
+    Name            =  ''
     LastCollName    =  ''
 
     ! Create DiagList object
@@ -260,11 +261,7 @@ CONTAINS
        IF ( INDEX( Line, 'Simulation name' ) > 0 ) THEN
           CALL StrSplit( Line, ':', SubStrs, N )
           SELECT CASE( To_UpperCase( ADJUSTL( SubStrs(2) ) ) )
-             CASE( 'ACIDUPTAKE', 'APM',              'BENCHMARK',            &
-                   'COMPLEXSOA', 'COMPLEXSOA_SVPOA', 'HEMCO',                &
-                   'MARINEPOA',  'RRTMG',            'STANDARD',             &
-                   'TROPCHEM',   'TOMAS12',          'TOMAS15',              &
-                   'TOMAS30',    'TOMAS40'                                  )
+             CASE( 'FULLCHEM' )
                 IsFullChem = .TRUE.
              CASE DEFAULT
                 IsFullChem = .FALSE.
@@ -275,7 +272,6 @@ CONTAINS
        IF ( INDEX( Line, 'Diag alt above sfc [m]' ) > 0 ) THEN
           CALL StrSplit( Line, ':', SubStrs, N )
           AltAboveSfc = TRIM( ADJUSTL( SubStrs(2) ) ) // 'm'
-          found       = .TRUE.
        ENDIF
 
        ! Update wavelength(s) with string in file
@@ -330,7 +326,12 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
           RETURN
        ENDIF
+
+       ! Skip if there is a commment at the start of the line
        IF ( Line(1:1) == '#' ) CYCLE
+
+       ! Skip the EXPID tag at the top of the file
+       IF ( INDEX( Line, 'EXPID:' ) > 0 ) CYCLE
 
        !====================================================================
        ! Set collection name list (uncommented names only)
@@ -412,6 +413,7 @@ CONTAINS
           InDefSection    = .FALSE.
           InFieldsSection = .FALSE.
           LastCollName    = ''
+          CYCLE
        ENDIF
 
        !--------------------------------------------------------------------
@@ -519,7 +521,6 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
-
        ENDIF
 
        !-----------------------------------------------------------------
@@ -535,7 +536,7 @@ CONTAINS
           IF ( AttName(1:LineInd-1) /= TRIM( LastCollName ) ) THEN
              ErrMsg = 'Attribute "' // TRIM( AttName ) // ' specifies a ' // &
                       'value for collection "'                            // &
-                      TRIM( AttName(1:LineInd-1) )                      // &
+                      TRIM( AttName(1:LineInd-1) )                        // &
                       '", but the expected collection name is "'          // &
                       TRIM( LastCollName ) // '".  This indicates that '  // &
                       'the end-of-collection delimiter (i.e. "::") is '   // &
@@ -604,8 +605,15 @@ CONTAINS
           fullname = CleanText( SubStrs(1) )
        ENDIF
 
-       ! Skip if diagnostic name is commented out
+       ! Skip to next line if the diagnostic name is commented out,
+       ! missing, or contains an attribute tag.
        IF ( fullname(1:1) == '#' ) CYCLE
+       IF ( LEN_TRIM( fullname ) == 0   ) CYCLE
+       IF ( INDEX( fullname, '.template'  ) >  0   ) CYCLE
+       IF ( INDEX( fullname, '.frequency' ) >  0   ) CYCLE
+       IF ( INDEX( fullname, '.duration'  ) >  0   ) CYCLE
+       IF ( INDEX( fullname, '.format'    ) >  0   ) CYCLE
+       IF ( INDEX( fullname, '.mode'      ) >  0   ) CYCLE
 
        ! Parse full diagnostics name. ESMF/MAPL supports the combination of 
        ! multiple fields (e.g., 'Field1+Field2') as well as math operations 
@@ -616,219 +624,217 @@ CONTAINS
 
        ! Register all fields - as identified by Parse_FullName - individually
        DO J=1,NFIELDS 
-       name = TRIM(names(J))
-
-       ! Skip if name is already in diag list
-       CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
-       IF ( Found ) CYCLE
-
-       ! Set GC state
-       nameAllCaps = To_Uppercase( TRIM(name) )
-       IF ( nameAllCaps(1:4) == 'MET_' ) THEN
-          state = 'MET'
-       ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
-          state = 'CHEM'
+          name = TRIM(names(J))
+          
+          ! Skip if name is already in diag list
+          CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
+          IF ( Found ) CYCLE
+          
+          ! Set GC state
+          nameAllCaps = To_Uppercase( TRIM(name) )
+          IF ( nameAllCaps(1:4) == 'MET_' ) THEN
+             state = 'MET'
+          ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
+             state = 'CHEM'
 #ifdef ESMF_
-       ! HEMCO diagnostics are included in HISTORY.rc in GCHP/GEOS only.
-       ! Prefix for HEMCO diagnostics in HEMCO_Diagn.rc must be one of the
-       ! following (case-insensitve).
-       ELSEIF ( nameAllCaps(1:4) == 'EMIS' .OR. &
-                nameAllCaps(1:3) == 'INV'  .OR. &
-                nameAllCaps(1:3) == 'HCO') THEN
-          state = 'HEMCO'
+          ! HEMCO diagnostics are included in HISTORY.rc in GCHP/GEOS only.
+          ! Prefix for HEMCO diagnostics in HEMCO_Diagn.rc must be one of the
+          ! following (case-insensitve).
+          ELSEIF ( nameAllCaps(1:4) == 'EMIS' .OR. &
+                   nameAllCaps(1:3) == 'INV'  .OR. &
+                   nameAllCaps(1:3) == 'HCO') THEN
+             state = 'HEMCO'
 #ifdef ADJOINT
-       ! Emissions scaling factor sensitivites are included in HISTORY.rc in GCHP only
-       ELSEIF ( nameAllCaps(1:6) == 'SFEMIS' ) THEN
-          state = 'HEMCO'
+          ! Emissions scaling factor sensitivites are included in HISTORY.rc in GCHP only
+          ELSEIF ( nameAllCaps(1:6) == 'SFEMIS' ) THEN
+             state = 'HEMCO'
 #endif
 #ifdef MODEL_GEOS
-       ! GEOS might have custom diagnostics outside of the standard states
-       ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
-          state = 'GEOS'
-       ! GEOS might have internal state variables that start with other prefix
-       ELSEIF ( nameAllCaps(1:4) == GPFX ) THEN
-          state = 'INTERNAL'
+          ! GEOS might have custom diagnostics outside of the standard states
+          ELSEIF ( nameAllCaps(1:5) == 'GEOS_' .OR. &
+                   nameAllCaps(1:4) == 'GCC_' ) THEN
+             state = 'GEOS'
+          ! GEOS might have internal state variables that start with other prefix
+          ELSEIF ( nameAllCaps(1:4) == GPFX ) THEN
+             state = 'INTERNAL'
 #endif
-       ELSEIF ( nameAllCaps(1:4) == SPFX ) THEN
-          state = 'INTERNAL'
+          ELSEIF ( nameAllCaps(1:4) == SPFX ) THEN
+             state = 'INTERNAL'
 #endif
-       ELSE
-          state = 'DIAG'
-       ENDIF
-
-       ! Get wildcard, if any
-       ! NOTE: Must be prefaced with single underscore in HISTORY.rc!
-       isWildcard = .FALSE.
-       wildcard   = ''
-       IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
-          ! Exit with an error if using GCHP and wildcard is present
-          ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
-                   'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
-                   'wildcard with a specific tag.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-#endif
-
-          isWildcard = .TRUE.
-          CALL StrSplit( name, '?', SubStrs, N )
-          wildcard = SubStrs(N-1)
-       ENDIF
-
-       ! Get tag, if any
-       isTagged  = .FALSE.
-       tag = ''
-       IF ( .NOT. isWildcard ) THEN
-          CALL StrSplit( name, '_', SubStrs, N )
-          IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
-             isTagged = .TRUE.
-             tag = SubStrs(2)
-          ELSEIF ( TRIM(state) == 'CHEM' &
-                   .AND. N == 3 ) THEN
-             isTagged = .TRUE.
-             tag = SubStrs(3)
+          ELSE
+             state = 'DIAG'
           ENDIF
-       ENDIF
-
-       ! Get registryID - start with the full name in HISTORY.rc
-       registryID = TRIM(nameAllCaps)
-       ! Then strip off the state prefix, if any
-       IF ( TRIM(state) == 'MET' ) THEN
-          registryID = registryID(5:)
-       ELSE IF ( TRIM(state) == 'CHEM' ) THEN
-          registryID = registryID(6:)
-       ENDIF
-       ! Then strip off the wildcard, if any
-       IF ( isWildcard ) THEN
-          LineInd = INDEX( TRIM(registryID), '_' )
-          IF ( LineInd .le. 0 ) THEN
-             ErrMsg = 'Error setting registryID. Single underscore must' &
-                      // ' precede wildcard in HISTORY.rc!'
-             CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+          
+          ! Get wildcard, if any
+          ! NOTE: Must be prefaced with single underscore in HISTORY.rc!
+          isWildcard = .FALSE.
+          wildcard   = ''
+          IF ( INDEX( name, '?' ) > 0 ) THEN
+#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
+             ! Exit with an error if using GCHP and wildcard is present
+             ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
+                      'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
+                      'wildcard with a specific tag.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+#endif
+             isWildcard = .TRUE.
+             CALL StrSplit( name, '?', SubStrs, N )
+             wildcard = SubStrs(N-1)
+          ENDIF
+          ! Get tag, if any
+          isTagged  = .FALSE.
+          tag = ''
+          IF ( .NOT. isWildcard ) THEN
+             CALL StrSplit( name, '_', SubStrs, N )
+             IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
+                isTagged = .TRUE.
+                tag = SubStrs(2)
+             ELSE IF ( TRIM(state) == 'CHEM' .AND. N == 3 ) THEN
+                isTagged = .TRUE.
+                tag = SubStrs(3)
+             ENDIF
+          ENDIF
+          ! Get registryID - start with the full name in HISTORY.rc
+          registryID = TRIM(nameAllCaps)
+          ! Then strip off the state prefix, if any
+          IF ( TRIM(state) == 'MET' ) THEN
+             registryID = registryID(5:)
+          ELSE IF ( TRIM(state) == 'CHEM' ) THEN
+             registryID = registryID(6:)
+          ENDIF
+          ! Then strip off the wildcard, if any
+          IF ( isWildcard ) THEN
+             LineInd = INDEX( TRIM(registryID), '_' )
+             IF ( LineInd .le. 0 ) THEN
+                ErrMsg = 'Error setting registryID. Single underscore must' &
+                         // ' precede wildcard in HISTORY.rc!'
+                CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+             registryID = registryID(1:LineInd-1)
+          ENDIF
+          
+          ! Get metadataID - start with the registry ID
+          metadataID = registryID
+          
+          ! Then strip off the tag suffix, if any
+          IF ( isTagged ) THEN
+             LineInd = INDEX( TRIM(metadataID), '_' )
+             metadataID = metadataID(1:LineInd-1)
+          ENDIF
+          
+          ! For registryID and metdataID, handle special case of AOD wavelength
+          ! Update registryID
+          WLInd(1) = INDEX( TRIM(registryID), 'WL1' )
+          WLInd(2) = INDEX( TRIM(registryID), 'WL2' )
+          WLInd(3) = INDEX( TRIM(registryID), 'WL3' )
+          WLIndMax = Max(WLInd(1),WLInd(2),WLInd(3))
+          IF ( WLIndMax > 0 ) THEN
+             WLIndMaxLoc = MAXLOC(WLInd)
+             registryIDprefix = registryID(1:WLInd(WLIndMaxLoc(1))-1) // &
+                                TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
+             LineInd = INDEX( TRIM(registryID), '_' )
+             IF ( LineInd > 0 ) THEN
+                registryID = TRIM(registryIDprefix) // registryID(LineInd:)
+             ELSE
+                registryID = registryIDprefix
+             ENDIF
+          ENDIF
+          
+          ! Update metadataID with wavelength
+          WLInd(1) = INDEX( TRIM(metadataID), 'WL1' )
+          WLInd(2) = INDEX( TRIM(metadataID), 'WL2' )
+          WLInd(3) = INDEX( TRIM(metadataID), 'WL3' )
+          WLIndMax = Max(WLInd(1),WLInd(2),WLInd(3))
+          IF ( WLIndMax > 0 ) THEN
+             WLIndMaxLoc = MaxLOC(WLInd(:))
+             metadataID = metadataID(1:WLInd(WLIndMaxLoc(1))-1) //  &
+                          TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
+          ENDIF
+          
+          ! Special handling for the RRTMG diagnostic outputs
+          ! Store the list of the requested outputs (tags) in RadOut.
+          strInd(1) = INDEX( TRIM(metadataID), 'RADCLR' )
+          strInd(2) = INDEX( TRIM(metadataID), 'RADALL' )
+          strInd(3) = INDEX( TRIM(metadataID), 'RADAOD' )
+          strInd(4) = INDEX( TRIM(metadataID), 'RADSSA' )
+          strInd(5) = INDEX( TRIM(metadataID), 'RADASYM' )
+          strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
+          IF ( strIndMax == 1 .AND. nRadOut < 12 ) THEN
+          
+             ! If RRTMG diagnostics present, always calculate BASE, and store
+             ! first, since used to calculate other outputs.
+             IF ( nRadOut == 0 ) THEN
+                nRadOut = nRadOut + 1
+                RadOut(nRadOut) = 'BASE'
+             ENDIF
+          
+             ! Set the rest of the array to the contents of HISTORY.rc, or to
+             ! include all except stratosphere if wildcard found.
+             IF ( .NOT. isWildcard ) THEN
+                ! If a tag is specified explicitly, then add to the RadOut array
+                IF ( .not. ANY( RadOut == TRIM(Tag) ) ) THEN
+                   nRadOut          = nRadOut + 1
+                   RadOut(nRadOut) = TRIM( Tag )
+                ENDIF
+             ELSE
+                ! If the RRTMG wildcard is used then add all remaining possible
+                ! outputs, except the stratosphere (ST) and BASE (already added).
+                ! ST must be explicit in HISTORY.rc and is not included in the
+                ! RRTMG wildcard since it may not be relevant to the simulation.
+                RRTMGOutputs = (/'O3','ME','SU','NI','AM','BC','OA','SS','DU','PM'/)
+                DO N = 1, SIZE(rrtmgOutputs,1)
+                   IF ( .not. ANY( RadOut == TRIM(rrtmgOutputs(N)) ) ) THEN
+                      nRadOut          = nRadOut + 1
+                      RadOut(nRadOut) = TRIM( rrtmgOutputs(N) )
+                   ENDIF
+                ENDDO
+             ENDIF
+          ENDIF
+          
+          ! Special handling for diagnostics at a specific height
+          ! (e.g. rename O3CONCATALT --> O3CONCAT10M)
+          strInd(1) = INDEX( TRIM(registryID), 'ALT1' )
+          IF ( strInd(1) > 0 ) THEN
+             registryIDprefix = registryID(1:strInd(1)-1) // TRIM( AltAboveSfc )
+             LineInd = INDEX( TRIM(registryID), '_' )
+             IF ( LineInd > 0 ) THEN
+                registryID = TRIM(registryIDprefix) // registryID(LineInd:)
+             ELSE
+                registryID = registryIDprefix
+             ENDIF
+          ENDIF
+          strInd(2) = INDEX( TRIM(metadataID), 'ALT1' )
+          IF ( strInd(2) > 0 ) THEN
+             metadataID = metadataID(1:strInd(2)-1) // TRIM( AltAboveSfc )
+          ENDIF
+          
+          !====================================================================
+          ! Create a new DiagItem object
+          !====================================================================
+          CALL Init_DiagItem( am_I_Root,              &
+                              NewDiagItem,            &
+                              name=name,              &
+                              state=state,            &
+                              metadataID=metadataID,  &
+                              registryID=registryID,  &
+                              isWildcard=isWildcard,  &
+                              wildcard=wildcard,      &
+                              isTagged=isTagged,      &
+                              tag=tag,                &
+                              RC=RC  )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error initializing DiagItem ' // TRIM(name)
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
-          registryID = registryID(1:LineInd-1)
-       ENDIF
-
-       ! Get metadataID - start with the registry ID
-       metadataID = registryID
-       ! Then strip off the tag suffix, if any
-       IF ( isTagged ) THEN
-          LineInd = INDEX( TRIM(metadataID), '_' )
-          metadataID = metadataID(1:LineInd-1)
-       ENDIF
-
-       ! For registryID and metdataID, handle special case of AOD wavelength
-       ! Update registryID
-       WLInd(1) = INDEX( TRIM(registryID), 'WL1' )
-       WLInd(2) = INDEX( TRIM(registryID), 'WL2' )
-       WLInd(3) = INDEX( TRIM(registryID), 'WL3' )
-       WLIndMax = Max(WLInd(1),WLInd(2),WLInd(3))
-       IF ( WLIndMax > 0 ) THEN
-          WLIndMaxLoc = MAXLOC(WLInd)
-          registryIDprefix = registryID(1:WLInd(WLIndMaxLoc(1))-1) // &
-                             TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
-          LineInd = INDEX( TRIM(registryID), '_' )
-          IF ( LineInd > 0 ) THEN
-             registryID = TRIM(registryIDprefix) // registryID(LineInd:)
-          ELSE
-             registryID = registryIDprefix
-          ENDIF
-       ENDIF
-
-       ! Update metadataID with wavelength
-       WLInd(1) = INDEX( TRIM(metadataID), 'WL1' )
-       WLInd(2) = INDEX( TRIM(metadataID), 'WL2' )
-       WLInd(3) = INDEX( TRIM(metadataID), 'WL3' )
-       WLIndMax = Max(WLInd(1),WLInd(2),WLInd(3))
-       IF ( WLIndMax > 0 ) THEN
-          WLIndMaxLoc = MaxLOC(WLInd(:))
-          metadataID = metadataID(1:WLInd(WLIndMaxLoc(1))-1) //  &
-                       TRIM(RadWL(WLIndMaxLoc(1))) // 'NM'
-       ENDIF
-
-       ! Special handling for the RRTMG diagnostic outputs
-       ! Store the list of the requested outputs (tags) in RadOut.
-       strInd(1) = INDEX( TRIM(metadataID), 'RADCLR' )
-       strInd(2) = INDEX( TRIM(metadataID), 'RADALL' )
-       strInd(3) = INDEX( TRIM(metadataID), 'RADAOD' )
-       strInd(4) = INDEX( TRIM(metadataID), 'RADSSA' )
-       strInd(5) = INDEX( TRIM(metadataID), 'RADASYM' )
-       strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
-       IF ( strIndMax == 1 .AND. nRadOut < 12 ) THEN
-
-          ! If RRTMG diagnostics present, always calculate BASE, and store
-          ! first, since used to calculate other outputs.
-          IF ( nRadOut == 0 ) THEN
-             nRadOut = nRadOut + 1
-             RadOut(nRadOut) = 'BASE'
-          ENDIF
-
-          ! Set the rest of the array to the contents of HISTORY.rc, or to
-          ! include all except stratosphere if wildcard found.
-          IF ( .NOT. isWildcard ) THEN
-             ! If a tag is specified explicitly, then add to the RadOut array
-             IF ( .not. ANY( RadOut == TRIM(Tag) ) ) THEN
-                nRadOut          = nRadOut + 1
-                RadOut(nRadOut) = TRIM( Tag )
-             ENDIF
-          ELSE
-             ! If the RRTMG wildcard is used then add all remaining possible
-             ! outputs, except the stratosphere (ST) and BASE (already added).
-             ! ST must be explicit in HISTORY.rc and is not included in the
-             ! RRTMG wildcard since it may not be relevant to the simulation.
-             RRTMGOutputs = (/'O3','ME','SU','NI','AM','BC','OA','SS','DU','PM'/)
-             DO N = 1, SIZE(rrtmgOutputs,1)
-                IF ( .not. ANY( RadOut == TRIM(rrtmgOutputs(N)) ) ) THEN
-                   nRadOut          = nRadOut + 1
-                   RadOut(nRadOut) = TRIM( rrtmgOutputs(N) )
-                ENDIF
-             ENDDO
-          ENDIF
-       ENDIF
-
-       ! Special handling for diagnostics at a specific height
-       ! (e.g. rename O3CONCATALT --> O3CONCAT10M)
-       strInd(1) = INDEX( TRIM(registryID), 'ALT1' )
-       IF ( strInd(1) > 0 ) THEN
-          registryIDprefix = registryID(1:strInd(1)-1) // TRIM( AltAboveSfc )
-          LineInd = INDEX( TRIM(registryID), '_' )
-          IF ( LineInd > 0 ) THEN
-             registryID = TRIM(registryIDprefix) // registryID(LineInd:)
-          ELSE
-             registryID = registryIDprefix
-          ENDIF
-       ENDIF
-       strInd(2) = INDEX( TRIM(metadataID), 'ALT1' )
-       IF ( strInd(2) > 0 ) THEN
-          metadataID = metadataID(1:strInd(2)-1) // TRIM( AltAboveSfc )
-       ENDIF
-
-       !====================================================================
-       ! Create a new DiagItem object
-       !====================================================================
-       CALL Init_DiagItem( am_I_Root,              &
-                           NewDiagItem,            &
-                           name=name,              &
-                           state=state,            &
-                           metadataID=metadataID,  &
-                           registryID=registryID,  &
-                           isWildcard=isWildcard,  &
-                           wildcard=wildcard,      &
-                           isTagged=isTagged,      &
-                           tag=tag,                &
-                           RC=RC  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error initializing DiagItem ' // TRIM(name)
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       !====================================================================
-       ! Add new DiagItem to linked list
-       !====================================================================
-       CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+          
+          !====================================================================
+          ! Add new DiagItem to linked list
+          !====================================================================
+          CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
 
        ENDDO !J loop (NFIELDS)
 

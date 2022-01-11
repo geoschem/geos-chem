@@ -143,7 +143,7 @@ for clim_dataset in $clim_data; do
    # Skip clim_dataset if there aren't any matching files in ExtData.rc
    echo "$EXTDATA" | grep -- $clim_dataset > /dev/null || continue
 
-   echo "HEMCO/$clim_dataset is a climatology (see: http://geoschemdata.computecanada.ca/ExtData/HEMCO/$clim_dataset)" >&2
+   echo "HEMCO/$clim_dataset is a climatology (see: http://geoschemdata.wustl.edu/ExtData/HEMCO/$clim_dataset)" >&2
    read -p "-> Select climatology year (leave blank to use simulation period): " CLIM_YEAR
    CLIM_YEAR=${CLIM_YEAR:-%y4}
    clim_dataset_regexpr=$(echo "$clim_dataset" | sed "s#/#\\\\/#g")
@@ -166,10 +166,10 @@ function abspath_to_url() {
    HEMCO_PATH="HEMCO"
    CHEMINPUTS_PATH="CHEM_INPUTS"
 
-   sed -e "s#.*\($GEOSFP_PATH\)#http://geoschemdata.computecanada.ca/ExtData/\1#g" \
-       -e "s#.*\($MERRA2_PATH\)#http://geoschemdata.computecanada.ca/ExtData/\1#g" \
-       -e "s#.*\($HEMCO_PATH\)#http://geoschemdata.computecanada.ca/ExtData/\1#g"  \
-       -e "s#.*\($CHEMINPUTS_PATH\)#http://geoschemdata.computecanada.ca/ExtData/\1#g" 
+   sed -e "s#.*\($GEOSFP_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g" \
+       -e "s#.*\($MERRA2_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g" \
+       -e "s#.*\($HEMCO_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g"  \
+       -e "s#.*\($CHEMINPUTS_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g" 
 }
 
 function extra_static_files() {

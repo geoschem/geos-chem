@@ -86,6 +86,8 @@ movefiles "OutputDir" ${archivedir}/OutputDir FILLER
 
 # Copy everything else
 echo "Copying files..."
+copyfiles "tracerinfo.dat"     ${archivedir}/OutputDir
+copyfiles "diaginfo.dat"       ${archivedir}/OutputDir
 copyfiles "input.geos"         ${archivedir}/Config
 copyfiles "rundir.version"     ${archivedir}/Config
 copyfiles "*.rc"               ${archivedir}/Config

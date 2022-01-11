@@ -2058,7 +2058,7 @@ CONTAINS
    !=================================================================
    ! Read variables for UCX
    !=================================================================
-   IF ( Input_Opt%LUCX ) THEN
+   IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
       ! Define variable name
       v_name = 'STATE_PSC'
