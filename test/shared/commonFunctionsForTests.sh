@@ -343,12 +343,12 @@ function gcclassic_config_options() {
     #========================================================================
 
     # Arguments
-    dir=${1}
+    dir=$(basename ${1})  # Only take last part of path
     baseOptions=${2}
 
     # Local variables
     exeFileName=$(gcclassic_exe_name ${dir})
-
+    
     # Turn on case-insensitivity
     shopt -s nocasematch
 
@@ -387,7 +387,7 @@ function gcclassic_compiletest_name() {
     #========================================================================
 
     # Arguments
-    dir=${1}
+    dir=$(basename ${1})   # Only take last part of path
 
     # Turn on case-insensitivity
     shopt -s nocasematch
