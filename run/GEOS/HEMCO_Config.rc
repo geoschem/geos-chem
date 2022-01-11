@@ -144,16 +144,14 @@ Warnings:                    1
     --> hydrophilic OC    :       0.5
     --> fraction POG1     :       0.49
     --> CO to SOAP        :       0.013
-117     Volcano           : on    SO2/SO4
+    --> GFED_subgrid_coag :       false
+117     Volcano           : on    SO2
     --> Volcano_Source    :       AeroCom
 # use flat degassing file for ops:
 #    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 # use degassing and eruptive for reanalysis:
     --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
-    --> Scaling_SO2       :       0.95
-    --> Scaling_SO4       :       0.05
-    --> Cat_Eruptive      :       61
-    --> Cat_Degassing     :       62
+    --> Volcano_Climatology :     /discover/nobackup/ewlundgr/data/ExtData/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 120     Inorg_Iodine      : on    HOI/I2
     --> Emit HOI          :       true
     --> Emit I2           :       true

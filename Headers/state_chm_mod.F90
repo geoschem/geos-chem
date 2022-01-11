@@ -3064,12 +3064,14 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+#if !defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Chm%DryDepVel ) ) THEN
        DEALLOCATE( State_Chm%DryDepVel, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%DryDepVel', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepVel => NULL()
     ENDIF
+#endif
 
     IF ( ASSOCIATED( State_Chm%DryDepFreq ) ) THEN
        DEALLOCATE( State_Chm%DryDepFreq, STAT=RC )

@@ -585,7 +585,7 @@ CONTAINS
           ! Dry deposition frequency [1/s]
           State_Chm%DryDepFreq(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
 
-#if !defined( MODEL_CESM )
+#if !defined( MODEL_CESM ) && !defined( MODEL_GEOS )
           ! Archive dry dep velocity for diagnostics in [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
