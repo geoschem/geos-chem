@@ -1497,11 +1497,7 @@ CONTAINS
 
        ! Calculate for rest of outputs, if any
        DO N = 2, State_Diag%nRadOut
-          ! This time around, DT_3D and HR_3D are read in only but not
-          ! overwritten
-          !IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
-          !   WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-          !ENDIF
+          ! This time around, DT_3D is read in but not overwritten
           If (First_RT) Then
              Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
              Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
