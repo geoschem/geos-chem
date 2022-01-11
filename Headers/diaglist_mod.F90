@@ -200,7 +200,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: metadataID, registryID, registryIDprefix
     CHARACTER(LEN=255)           :: collname, AttName, AttValue
     CHARACTER(LEN=255)           :: AttComp,  FieldName
-    CHARACTER(LEN=2)             :: rrtmgOutputs(10)
+    CHARACTER(LEN=2)             :: rrtmgOutputs(11)
     CHARACTER(LEN=255)           :: names(100)
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str, a_str(3)
@@ -805,7 +805,7 @@ CONTAINS
                 ! outputs, except the stratosphere (ST) and BASE (already added).
                 ! ST must be explicit in HISTORY.rc and is not included in the
                 ! RRTMG wildcard since it may not be relevant to the simulation.
-                RRTMGOutputs = (/'O3','ME','SU','NI','AM','BC','OA','SS','DU','PM'/)
+                RRTMGOutputs = (/'O3','ME','WV','SU','NI','AM','BC','OA','SS','DU','PM'/)
                 DO N = 1, SIZE(rrtmgOutputs,1)
                    IF ( .not. ANY( RadOut == TRIM(rrtmgOutputs(N)) ) ) THEN
                       nRadOut          = nRadOut + 1
