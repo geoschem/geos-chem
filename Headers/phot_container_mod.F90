@@ -209,7 +209,7 @@ CONTAINS
     Phot%NALBD  = 2     ! ??                     
     Phot%NEMISS = 16    ! ??                     
     Phot%NASPECRAD = 16 ! # RRTMG aerosol species
-    Phot%NSPECRAD  = 19 ! # RRTMG aerosol+gas species
+    Phot%NSPECRAD  = 22 ! # RRTMG aerosol+gas species
 
     ! Store certain values from Fast-JX with more intuitive name
     Phot%nWLbins      = W_

@@ -1452,9 +1452,10 @@ CONTAINS
        ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
        !
        ! RRTMG outputs (scheduled in HISTORY.rc):
-       !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
-       !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST
-       ! 12=H2O
+       !   0=BASE and then...
+       !   1=O3  2=ME  3=H2O  4=CO2  5=CFC  6=N2O
+       !   7=SU  8=NI  9=AM  10=BC  11=OA  12=SS
+       !  13=DU  14=PM  15=ST
        !
        ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
        ! to how it is populated from HISTORY.rc diaglist_mod.F90.

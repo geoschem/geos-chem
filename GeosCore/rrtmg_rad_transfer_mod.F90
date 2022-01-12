@@ -647,6 +647,12 @@ CONTAINS
     O3VMR(:,:,:)        = 0.0
     CH4VMR(:,:,:)       = 0.0
     H2OVMR(:,:,:)       = 0.0
+    CO2VMR(:,:,:)       = 0.0
+    N2OVMR(:,:,:)       = 0.0
+    CFC11VMR(:,:,:)     = 0.0
+    CFC12VMR(:,:,:)     = 0.0
+    CCL4VMR(:,:,:)      = 0.0
+    CFC22VMR(:,:,:)     = 0.0
     NBNDS               = NBNDLW+NBNDSW
 
     !=================================================================
@@ -854,21 +860,24 @@ CONTAINS
 
           ENDIF
 
-          N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
-                          State_Chm%SpcData(id_N2O)%Info%MW_g
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+6).EQ.1) THEN
+              N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
+                              State_Chm%SpcData(id_N2O)%Info%MW_g
+          ENDIF
 
-          CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
-                           State_Chm%SpcData(id_CFC11)%Info%MW_g
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+5).EQ.1) THEN
+              CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
+                               State_Chm%SpcData(id_CFC11)%Info%MW_g
 
-          CFC12VMR(I,J,L) =Spc(id_CFC12)%Conc(I,J,L) * AIRMW / &
-                           State_Chm%SpcData(id_CFC12)%Info%MW_g
+              CFC12VMR(I,J,L) =Spc(id_CFC12)%Conc(I,J,L) * AIRMW / &
+                               State_Chm%SpcData(id_CFC12)%Info%MW_g
 
-          CCL4VMR(I,J,L)  =Spc(id_CCL4)%Conc(I,J,L) * AIRMW / &
-                           State_Chm%SpcData(id_CCL4)%Info%MW_g
+              CCL4VMR(I,J,L)  =Spc(id_CCL4)%Conc(I,J,L) * AIRMW / &
+                               State_Chm%SpcData(id_CCL4)%Info%MW_g
 
-          CFC22VMR(I,J,L) =Spc(id_HCFC22)%Conc(I,J,L) * AIRMW/ &
-                           State_Chm%SpcData(id_HCFC22)%Info%MW_g
-
+              CFC22VMR(I,J,L) =Spc(id_HCFC22)%Conc(I,J,L) * AIRMW/ &
+                               State_Chm%SpcData(id_HCFC22)%Info%MW_g
+          ENDIF
        ENDDO
     ENDDO
     ENDDO
@@ -1089,7 +1098,9 @@ CONTAINS
     END DO
 
     ! FILL CO2, N2O AND O2 ARRAYS WITH REASONABLE ATMOSPHERIC VALUES
-    CO2VMR(:,:,:) = 3.90E-4
+    IF (SPECMASK(State_Chm%Phot%NASPECRAD+4).EQ.1) THEN
+       CO2VMR(:,:,:) = 3.90E-4
+    END IF
     O2VMR(:,:,:)  = 0.209
 
     SELECT CASE (ICLD)
@@ -1928,15 +1939,16 @@ CONTAINS
        !-------------------------------------------------------
        ! Optics diagnostics (AOD, single scattering albedo, asymmetry param)
        ! There is one diagnostic per RRTMG output, excluding BASE, ozone, CH4,
-       ! and H2O (hence OUTIDX > 5)T=, and there is one diagnostic per
-       ! RRTMG wavelength (up to Input_Opt%NWVSELECT).
-       ! 2022-01-10: Added water vapor (SDE)
+       ! H2O, CO2, CFC, and N2O (hence OUTIDX > 7), and there is one
+       ! diagnostic per RRTMG wavelength (up to Input_Opt%NWVSELECT).
+       ! 2022-01-10: Added water vapor, CO2, CFC, and N2O (SDE)
        !-------------------------------------------------------
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT
-       !SKIP OUTIDX=1,2,3,4 (BASELINE, OZONE, CH4, H2O)
-       IF ((OUTIDX.GE.5).AND.(LOUTPUTAERO)) THEN
+       !SKIP OUTIDX=1,2,3,4,5,6,7
+       !(BASELINE, OZONE, CH4, H2O,CO2,CFC,N2O)
+       IF ((OUTIDX.GE.8).AND.(LOUTPUTAERO)) THEN
           !INTERPOLATE TO THE REQUESTED WAVELENGTH
           DO W=1,Input_Opt%NWVSELECT
              AODTMP  = 0.0D0
@@ -2130,56 +2142,68 @@ CONTAINS
        CASE( 3 )
           SPECMASK(17+NXTRA)=0
 
-       ! SU = Sulfate
+       ! CO2 = Carbon dioxide
        CASE( 4 )
-          SPECMASK(1)=4
+          SPECMASK(18+NXTRA)=0
+
+       ! CFC = Chlorofluorocarbons
+       CASE( 5 )
+          SPECMASK(19+NXTRA)=0
+
+       ! N2O = Nitrous oxide
+       CASE( 6 )
+          SPECMASK(20+NXTRA)=0
+
+       ! SU = Sulfate
+       CASE( 7 )
+          SPECMASK(1)=7
 
        ! NI = Nitrate
-       CASE( 5 )
-          SPECMASK(2)=5
+       CASE( 8 )
+          SPECMASK(2)=8
 
        ! AM = Ammonium
-       CASE( 6 )
-          SPECMASK(3)=6
+       CASE( 9 )
+          SPECMASK(3)=9
 
        ! BC = Black carbon (Hydrophilic+phobic)
-       CASE( 7 )
-          SPECMASK(4)=7
+       CASE( 10 )
+          SPECMASK(4)=10
 
        ! OA = Organic aerosol (!Hydrophilic+phobic)
-       CASE( 8 )
-          SPECMASK(5)=8
+       CASE( 11 )
+          SPECMASK(5)=11
 
        ! SS = Sea salt
-       CASE( 9 )
-          SPECMASK(6)=9
-          SPECMASK(7)=9
+       CASE( 12 )
+          SPECMASK(6)=12
+          SPECMASK(7)=12
 
        ! DU = Mineral dust
-       CASE( 10 )
-          SPECMASK(8+NXTRA)=10
-          SPECMASK(9+NXTRA)=10
-          SPECMASK(10+NXTRA)=10
-          SPECMASK(11+NXTRA)=10
-          SPECMASK(12+NXTRA)=10
-          SPECMASK(13+NXTRA)=10
-          SPECMASK(14+NXTRA)=10
+       CASE( 13 )
+          SPECMASK(8+NXTRA)=13
+          SPECMASK(9+NXTRA)=13
+          SPECMASK(10+NXTRA)=13
+          SPECMASK(11+NXTRA)=13
+          SPECMASK(12+NXTRA)=13
+          SPECMASK(13+NXTRA)=13
+          SPECMASK(14+NXTRA)=13
 
        ! PM = All particulate matter
        ! add all aerosols but not gases here
-       CASE( 11 )
+       CASE( 14 )
           DO II = 1, State_Chm%Phot%NASPECRAD
-             SPECMASK(II)=11
+             SPECMASK(II)=14
           ENDDO
 
        ! ST = STRAT AEROSOL
-       CASE( 12 )
+       CASE( 15 )
 
           !LSA
-          SPECMASK(8) = 12
+          SPECMASK(8) = 15
 
           !NAT
-          SPECMASK(9) = 12
+          SPECMASK(9) = 15
 
        END SELECT
     ENDIF
@@ -2262,8 +2286,9 @@ CONTAINS
     ! which is type 0).
     !
     ! Optional outputs (requested via HISTORY.rc)
-    !   1=O3  2=ME  3=H2O  4=SU  5=NI  6=AM
-    !   7=BC  8=OA  9=SS  10=DU  11=PM 12=ST
+    !   1=O3  2=ME  3=H2O  4=CO2  5=CFC  6=N2O
+    !   7=SU  8=NI  9=AM  10=BC  11=OA  12=SS
+    !  13=DU  14=PM  15=ST
     !
     ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
     ! the bpch code is removed from GEOS-Chem.  This array is still
@@ -2281,24 +2306,30 @@ CONTAINS
           Input_Opt%LSpecRadMenu(2)  = 1
        CASE( 'H2O' )
           Input_Opt%LSpecRadMenu(3) = 1
+       CASE( 'CO2' )
+          Input_Opt%LSpecRadMenu(4) = 1
+       CASE( 'CFC' )
+          Input_Opt%LSpecRadMenu(5) = 1
+       CASE( 'N2O' )
+          Input_Opt%LSpecRadMenu(6) = 1
        CASE( 'SU' )
-          Input_Opt%LSpecRadMenu(4)  = 1
-       CASE( 'NI' )
-          Input_Opt%LSpecRadMenu(5)  = 1
-       CASE( 'AM' )
-          Input_Opt%LSpecRadMenu(6)  = 1
-       CASE( 'BC' )
           Input_Opt%LSpecRadMenu(7)  = 1
-       CASE( 'OA' )
+       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(8)  = 1
-       CASE( 'SS' )
+       CASE( 'AM' )
           Input_Opt%LSpecRadMenu(9)  = 1
-       CASE( 'DU' )
+       CASE( 'BC' )
           Input_Opt%LSpecRadMenu(10)  = 1
+       CASE( 'OA' )
+          Input_Opt%LSpecRadMenu(11)  = 1
+       CASE( 'SS' )
+          Input_Opt%LSpecRadMenu(12)  = 1
+       CASE( 'DU' )
+          Input_Opt%LSpecRadMenu(13)  = 1
        CASE( 'PM' )
-          Input_Opt%LSpecRadMenu(11) = 1
+          Input_Opt%LSpecRadMenu(14) = 1
        CASE( 'ST' )
-          Input_Opt%LSpecRadMenu(12) = 1
+          Input_Opt%LSpecRadMenu(15) = 1
        CASE DEFAULT
           ! Nothing
        END SELECT
