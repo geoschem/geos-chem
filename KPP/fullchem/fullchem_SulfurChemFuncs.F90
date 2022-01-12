@@ -836,17 +836,10 @@ CONTAINS
           K_CLD(4) = KaqHCHO*FC*CVFAC
           K_CLD(5) = KaqHMS*FC 
           K_CLD(6) = KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC*FC
-!          K_CLD(6) = KaqHMS2*1.d6*64.66*17.*FC/(AVO*AVO)
           !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
           !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
           !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
           ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
-          IF (I.eq.62.and.J.eq.32.and.L.eq.26) then
-             write(*,*) 'KaqHCHO: ', KaqHCHO, K_CLD(4)
-             write(*,*) 'KaqHMS : ', KaqHMS, K_CLD(5)
-             write(*,*) 'KaqHMS2: ', KaqHMS2, K_CLD(6)
-          ENDIF
-
        ENDIF
 
 #ifdef TOMAS

@@ -201,8 +201,6 @@ CONTAINS
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
 
-    REAL(dp) :: cvf
-
     !========================================================================
     ! Do_FullChem begins here!
     !========================================================================
@@ -931,11 +929,6 @@ CONTAINS
           ENDDO
        ENDIF
 
-       IF (I.eq.62.and.J.eq.32.and.L.eq.26) then
-          write(*,*) 'HMS /cm3 ', State_Chm%Species(62,32,26,ind_('HMS')),State_Chm%Species(62,32,26,ind_('OH'))
-          write(*,*) 'HMS v/v: ', State_Chm%Species(62,32,26,ind_('HMS'))*cvf,State_Chm%Species(62,32,26,ind_('OH'))*cvf
-          write(*,*) 'L8S : ', Aout(12)*DT*(1.E3_fp * AIRMW / ( state_met%AIRDEN(I,J,L) * AVO )), RCONST(12)
-       ENDIF
        !=====================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
        !
@@ -1172,6 +1165,7 @@ CONTAINS
           ENDIF
 
        ENDIF
+
 
        !=====================================================================
        ! Continue upon successful return...

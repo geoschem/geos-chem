@@ -143,7 +143,7 @@ MODULE gckpp_Monitor
      '              SO2 --> PSO4 + SO4                                                                    ', & ! index 9
      '       CH2O + SO2 --> HMS                                                                           ', & ! index 10
      '              HMS --> CH2O + SO2                                                                    ', & ! index 11
-     '         HMS + OH --> 2 PSO4 + 2 SO4 + CH2O                                                         ', & ! index 12
+     '         HMS + OH --> 2 PSO4 + 2 SO4 + CH2O - SO2                                                   ', & ! index 12
      '          O3 + NO --> NO2 + O2                                                                      ', & ! index 13
      '          O3 + OH --> LOx + HO2 + O2                                                                ', & ! index 14
      '         HO2 + O3 --> LOx + OH + 2 O2                                                               ', & ! index 15
