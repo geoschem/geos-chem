@@ -915,6 +915,18 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    ! Stratospheric temperature adjustment accumulated when using RRTMG
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'TSTRAT_ADJ',&
+       LONG_NAME          = 'Stratospheric T adjustment',  &
+       UNITS              = 'K', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
     ! Additional outputs useful for unit conversions and post-processing analysis
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AREA',  &
@@ -2678,6 +2690,13 @@ CONTAINS
           ENDIF
           Ptr3d_R8 => NULL()
 
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'TSTRAT_ADJ', notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%TStrat_Adj) ) THEN
+             State_Chm%TStrat_Adj(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+
+          Ptr3d_R8 => NULL()
           CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%TropLev) ) THEN
              State_Met%TropLev = Ptr2d_R8
@@ -3067,6 +3086,14 @@ CONTAINS
        IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY)) THEN
           Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
                     State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'TSTRAT_ADJ', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Met%TStrat_Adj(:,:,1:State_Grid%NZ)
        ENDIF
        Ptr3d_R8 => NULL()
 

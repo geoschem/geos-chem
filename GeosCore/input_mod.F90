@@ -2793,6 +2793,19 @@ CONTAINS
     Input_Opt%RRTMG_FDH = v_bool
 
     !------------------------------------------------------------------------
+    ! Allow seasonal adjustment?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%seasonal_fdh"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_SEFDH = v_bool
+
+    !------------------------------------------------------------------------
     ! Read in dynamical heating data?
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%read_dyn_heating"
@@ -2844,6 +2857,11 @@ CONTAINS
        ENDIF
     ENDIF
 
+    If (Input_Opt%RRTMG_SEFDH.and.(.not.Input_Opt%RRTMG_FDH)) Then
+       errMsg = 'Cannot have seasonally evolving FDH without enabling FDH!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+    End If
+
     !========================================================================
     ! Print to screen
     !========================================================================
@@ -2860,6 +2878,7 @@ CONTAINS
        WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
        WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
        WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
+       WRITE( 6, 100 ) ' --> Seasonal evolution?    : ', Input_Opt%RRTMG_SEFDH
        WRITE( 6, 100 ) ' --> Read in dyn. heating?  : ', Input_Opt%Read_Dyn_Heating
     ENDIF
 

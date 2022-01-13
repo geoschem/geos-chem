@@ -218,6 +218,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: NSPECRADMENU
      INTEGER,            POINTER :: LSPECRADMENU(:)
      LOGICAL                     :: RRTMG_FDH
+     LOGICAL                     :: RRTMG_SEFDH
      LOGICAL                     :: Read_Dyn_Heating
 
      !----------------------------------------
@@ -755,6 +756,7 @@ CONTAINS
     Input_Opt%WVSELECT               = 0.0_fp
     Input_Opt%STRWVSELECT            = ''
     Input_Opt%RRTMG_FDH              = .FALSE.
+    Input_Opt%RRTMG_SEFDH            = .FALSE.
     Input_Opt%Read_Dyn_Heating       = .FALSE.
 
     !----------------------------------------

@@ -499,6 +499,11 @@ CONTAINS
     Integer                    :: N_Failed              ! Number of columns failing to converge
     Integer                    :: N_Column              ! Total number of columns (NX * NY)
 
+    ! For SEFDH calculations
+    Real(kind=RB)              :: Relax_Factor
+    Real(kind=RB)              :: DT_Days
+    Real(kind=RB), Parameter   :: Relax_Time = 1.0d0 ! E-folding time in days
+
     ! For RK4 integrations
     INTEGER, PARAMETER         :: N_PC = 4
     INTEGER                    :: I_PC
@@ -590,12 +595,14 @@ CONTAINS
     ! Are we storing the dynamical heating rate?
     Store_DHR   = ((.not. Input_Opt%Read_Dyn_Heating) .and. (ISPECMENU.eq.0) .and. Input_Opt%RRTMG_FDH)
 
-    ! Zero out arrays if (and ONLY if!) they are going to be written to
-    If (Calc_DeltaT) Then
-        DT_3D(:,:,:) = 0.0e+0_RB
-    End If
-    If (Store_DHR) Then
-        HR_3D(:,:,:) = 0.0e+0_RB
+    ! Factor to relax non-stratospheric temperatures by
+    If (Input_Opt%RRTMG_SEFDH) Then
+        ! Time step length in days
+        DT_Days = (Input_Opt%ts_rad * 1.0e+0_RB) / (3600.0e+0_RB * 24.0e+0_RB)
+        ! One day e-folding time
+        Relax_Factor = exp(-1.0 * DT_Days / relax_time)
+    Else
+        Relax_Factor = 0.0
     End If
 
     !DETERMINE IF WE ARE RUNNING WITH AEROSOL
@@ -757,15 +764,22 @@ CONTAINS
     ! Incorporate temperature adjustment if not the baseline
     ! call and we are using fixed dynamical heating
     ! In either case, shortwave calculation is unaffected
-    TLAY_SW(:,:,:) = TLAY(:,:,:)
+    If (.not. Input_Opt%RRTMG_SEFDH) Then
+       TLAY_SW(:,:,:) = TLAY(:,:,:)
+    End If
+    ! If pure FDH, DT_3D will be zero on the baseline call
+    ! and non-zero for the single-species calls. If this is
+    ! SEFDH, DT_3D will evolve consistently and be either
+    ! modified by this routine (baseline call) or unchanged
+    ! (single-species call); however, for single-species
+    ! calls, the DT_3D will match that which was PROVIDED to
+    ! the baseline call.
     If (Input_Opt%RRTMG_FDH) Then
-       If (ISPECMENU.eq.0) Then
-          ! Set temperature adjustment to zero (it will be
-          ! calculated in this routine)
-          DT_3D(:,:,:) = 0.0e+0_RB
-       Else
-          TLAY(:,:,:) = TLAY(:,:,:) + DT_3D(:,:,:)
-       End If
+       TLAY(:,:,:) = TLAY(:,:,:) + DT_3D(:,:,:)
+    End If
+    ! If using SEFDH, adjust temperatures for all (why not)
+    If (Input_Opt%RRTMG_SEFDH) Then
+       TLAY_SW(:,:,:) = TLAY(:,:,:)
     End If
 
     !$OMP PARALLEL DO       &
@@ -1488,7 +1502,22 @@ CONTAINS
              End Do
              ! Store in the output array
              HR_3D(I,J,:) = HRdyn(:)
-          Else If (Calc_DeltaT) Then
+          Else If (Calc_DeltaT.and.Input_Opt%RRTMG_SEFDH) Then
+             ! Only performed on the baseline call
+             ! Read the heating rate from the archived data
+             HRdyn(:) = HR_3D(I,J,:)
+             ! Update delta-T using simple forward Euler
+             Do L=1,State_Grid%NZ
+                If (State_Met%InStratosphere(I,J,L)) Then
+                   ! March forward to end of the coming time step
+                   DT_3D(I,J,L) = DT_3D(I,J,L) + (DT_days * (HR(1,L) + SWHR(1,L) + HRdyn(L)))
+                Else
+                   ! Relax temperature adjustment to zero
+                   ! outside the stratosphere
+                   DT_3D(I,J,L) = DT_3D(I,J,L) * Relax_Factor
+                End If
+             End Do
+          Else If (Calc_DeltaT.and.Input_Opt%RRTMG_FDH) Then
              ! Read the heating rate from the archived data
              HRdyn(:) = HR_3D(I,J,:)
              ! Assume we start in an imbalanced state
