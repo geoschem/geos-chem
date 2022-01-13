@@ -121,128 +121,120 @@ CONTAINS
     ! Initialize
     RC            = GC_SUCCESS
     K_MT          = 0.0_dp
-!-----------------------------------------------------------------------------
-! Comment out this code, until we restore these reactions
-! because KPP will not have SALAAL and SALCAL indices defined (bmy, 9/23/21)
-!    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
-!    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
-!    errMsg        = ''
-!    thisLoc       = &
-!   ' -> at fullchem_SulfurAqChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
-!
-!    !======================================================================
-!    ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
-!    !
-!    ! K_MT(1) : SALAAL + SO2 + O3 = SO4 - SALAAL
-!    ! K_MT(2) : SALAAL + HCl      = SALACL
-!    ! K_MT(3) : SALAAL + HNO3     = NIT
-!    !
-!    ! NOTE: SALAAL_gt_0_1 prevents div-by-zero errors
-!    !======================================================================
-!
-!    !------------------------------------------------------------------------
-!    ! SALAAL + SO2 + O3 = SO4 - SALAAL
-!    !------------------------------------------------------------------------
-!    IF ( SALAAL_gt_0_1 ) THEN
-!
-!       ! 1st order uptake
-!       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
-!                       radius = State_Het%xRadi(11),                         &
-!                       gamma  = 0.11_dp,                                     &
-!                       srMw   = SR_MW(ind_SO2)                              )
-!
-!       ! Assume SO2 is limiting, so recompute rxn rate accordingly
-!       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-!               / State_Chm%Species(I,J,L,id_SALAAL)
-!    ENDIF
-!
-!    !------------------------------------------------------------------------
-!    ! SALAAL + HCL = SALACL
-!    !------------------------------------------------------------------------
-!
-!    ! 1st order uptake
-!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
-!                    radius = State_Het%xRadi(11),                            &
-!                    gamma  = 0.074_dp,                                       &
-!                    srMw   = SR_MW(ind_HCl)                                 )
-!
-!    ! Assume HCl is limiting, so recompute reaction rate accordingly
-!    IF ( SALAAL_gt_0_1 ) THEN
-!       K_MT(2) = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k_ex )
-!    ENDIF
-!
-!    !------------------------------------------------------------------------
-!    ! SALAAL + HNO3 = NIT
-!    !------------------------------------------------------------------------
-!
-!    ! 1st order uptake
-!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
-!                    radius = State_Het%xRadi(11),                            &
-!                    gamma  = 0.5_dp,                                         &
-!                    srMw   = SR_MW(ind_HNO3)                                )
-!
-!    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
-!    IF ( SALAAL_gt_0_1 ) THEN
-!       K_MT(3) = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k_ex )
-!    ENDIF
-!
-!    !========================================================================
-!    ! Reaction rates [1/s] for coarse sea salt alkalinity (aka SALAAL)
-!    !
-!    ! K_MT(4) : SALCAL + SO2 + O3 = SO4s - SALCAL
-!    ! K_MT(5) : SALCAL + HCl      = SALCCL
-!    ! K_MT(6) : SALCAL + HNO3     = NITs
-!    !
-!    ! NOTE: SALCAL_gt_0_1 prevents div-by-zero errors
-!    !========================================================================
-!
-!    !------------------------------------------------------------------------
-!    ! SALCAL + SO2 + O3 = SO4s - SALCAL
-!    !------------------------------------------------------------------------
-!    IF ( SALCAL_gt_0_1 ) THEN
-!
-!       ! 1st order uptake
-!       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
-!                       radius = State_Het%xRadi(12),                         &
-!                       gamma  = 0.11_dp,                                     &
-!                       srMw   = SR_MW(ind_SO2)                              )
-!
-!       ! Assume SO2 is limiting, so recompute rxn rate accordingly
-!       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-!               / State_Chm%Species(I,J,L,id_SALCAL)
-!    ENDIF
-!
-!    !------------------------------------------------------------------------
-!    ! SALCAL + HCl = SALCCL
-!    !------------------------------------------------------------------------
-!
-!    ! 1st order uptake
-!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
-!                    radius = State_Het%xRadi(12),                            &
-!                    gamma  = 0.074_dp,                                       &
-!                    srMw   = SR_MW(ind_HCl)                                 )
-!
-!    ! Assume HCl is limiting, so recompute rxn rate accordingly
-!    IF ( SALCAL_gt_0_1 ) THEN
-!       K_MT(5) = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k_ex )
-!    ENDIF
-!
-!    !------------------------------------------------------------------------
-!    ! SALCAL + HNO3 = NITs
-!    !------------------------------------------------------------------------
-!
-!    ! 1st order uptake
-!    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
-!                    radius = State_Het%xRadi(12),                            &
-!                    gamma  = 0.5_dp,                                         &
-!                    srMw   = SR_MW(ind_HNO3)                                )
-!
-!    ! Assume HNO3 is limiting, so recompute rxn rate accordingly
-!    IF ( SALCAL_gt_0_1 ) THEN
-!       K_MT(6) = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k_ex )
-!    ENDIF
-!-----------------------------------------------------------------------------
+    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
+    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
 
+    !======================================================================
+    ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
+    !
+    ! K_MT(1) : SALAAL + SO2 + O3 = SO4 - SALAAL
+    ! K_MT(2) : SALAAL + HCl      = SALACL
+    ! K_MT(3) : SALAAL + HNO3     = NIT
+    !
+    ! NOTE: SALAAL_gt_0_1 prevents div-by-zero errors
+    !======================================================================
+
+    !------------------------------------------------------------------------
+    ! SALAAL + SO2 + O3 = SO4 - SALAAL
+    !------------------------------------------------------------------------
+    IF ( SALAAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
+                       radius = State_Het%xRadi(11),                         &
+                       gamma  = 0.11_dp,                                     &
+                       srMw   = SR_MW(ind_SO2)                              )
+
+       ! Assume SO2 is limiting, so recompute rxn rate accordingly
+       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
+               / State_Chm%Species(I,J,L,id_SALAAL)
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALAAL + HCL = SALACL
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
+                    radius = State_Het%xRadi(11),                            &
+                    gamma  = 0.07_dp,                                        &
+                    srMw   = SR_MW(ind_HCl)                                 )
+
+    ! Assume HCl is limiting, so recompute reaction rate accordingly
+    IF ( SALAAL_gt_0_1 ) THEN
+       K_MT(2) = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k_ex )
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALAAL + HNO3 = NIT
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
+                    radius = State_Het%xRadi(11),                            &
+                    gamma  = 0.5_dp,                                         &
+                    srMw   = SR_MW(ind_HNO3)                                )
+
+    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
+    IF ( SALAAL_gt_0_1 ) THEN
+       K_MT(3) = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k_ex )
+    ENDIF
+
+    !========================================================================
+    ! Reaction rates [1/s] for coarse sea salt alkalinity (aka SALAAL)
+    !
+    ! K_MT(4) : SALCAL + SO2 + O3 = SO4s - SALCAL
+    ! K_MT(5) : SALCAL + HCl      = SALCCL
+    ! K_MT(6) : SALCAL + HNO3     = NITs
+    !
+    ! NOTE: SALCAL_gt_0_1 prevents div-by-zero errors
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! SALCAL + SO2 + O3 = SO4s - SALCAL
+    !------------------------------------------------------------------------
+    IF ( SALCAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
+                       radius = State_Het%xRadi(12),                         &
+                       gamma  = 0.11_dp,                                     &
+                       srMw   = SR_MW(ind_SO2)                              )
+
+       ! Assume SO2 is limiting, so recompute rxn rate accordingly
+       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
+               / State_Chm%Species(I,J,L,id_SALCAL)
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALCAL + HCl = SALCCL
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
+                    radius = State_Het%xRadi(12),                            &
+                    gamma  = 0.07_dp,                                        &
+                    srMw   = SR_MW(ind_HCl)                                 )
+
+    ! Assume HCl is limiting, so recompute rxn rate accordingly
+    IF ( SALCAL_gt_0_1 ) THEN
+       K_MT(5) = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k_ex )
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SALCAL + HNO3 = NITs
+    !------------------------------------------------------------------------
+
+    ! 1st order uptake
+    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
+                    radius = State_Het%xRadi(12),                            &
+                    gamma  = 0.5_dp,                                         &
+                    srMw   = SR_MW(ind_HNO3)                                )
+
+    ! Assume HNO3 is limiting, so recompute rxn rate accordingly
+    IF ( SALCAL_gt_0_1 ) THEN
+       K_MT(6) = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k_ex )
+    ENDIF
 
   END SUBROUTINE fullchem_SulfurAqChem
 !EOC
@@ -547,14 +539,14 @@ CONTAINS
     ! If (1) there is cloud, (2) there is SO2 present, (3) T > -15 C, and
     ! (4) liquid water content (LWC) is present (but not small enough to
     ! make divisions blow up), then compute sulfate production in cloud.
-    IF ( ( FC          > 1.0e-4_fp )  .and.                                  &
-         ( SO2_AfterSS > MINDAT    )  .and.                                  &
+    IF ( ( FC          > 1.0e-4_fp  )   .and.                                &
+         ( SO2_AfterSS > MINDAT     )   .and.                                &
 #ifdef LUO_WETDEP
-         ( TK          > 237.0_fp  )  .and.                                  &
+         ( TK          > 237.0_fp   )   .and.                                &
 #else
-         ( TK          > 258.0_fp  )  .and.                                  &
+         ( TK          > 258.0_fp   )  .and.                                 &
 #endif
-         ( LWC         > 0.0_fp    ) ) THEN
+         ( LWC         > 1.0e-20_fp ) ) THEN
 
        !===========================================================
        ! NOTE...Sulfate production from aquatic reactions of SO2
@@ -830,17 +822,23 @@ CONTAINS
                         KaqHMS  = KaqHMS,                                    &
                         KaqHMS2 = KaqHMS2                                   )
 
-       ! Compute rxn rate in cloudy part of grid box [1/s]
-       K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )
-       K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
+       K_CLD(1) = KaqH2O2 * FC * CVFAC   ! v/v/s --> cm3/mcl/s
+       K_CLD(2) = KaqO3   * FC * CVFAC   ! v/v/s --> cm3/mcl/s
+       K_CLD(3) = KaqO2   * FC           ! 1/s
+       ! vvvvvv Hold off using CloudHet2R until after initial S-chem benchmark
+       !        -- MSL
+       !K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )
+       !K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
        !K_CLD(3) computed below
 
        ! HMS reaction rates (skip if HMS isn't defined)
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
-          K_CLD(5) = CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
-          K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
-               KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
+          K_CLD(4) = KaqHCHO*FC*CVFAC
+          K_CLD(5) = KaqHMS*FC 
+          K_CLD(6) = KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC*FC
+          !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+          !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
+          !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
           ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
        ENDIF
 
@@ -873,187 +871,140 @@ CONTAINS
        NH3 = Spc(id_NH3)*CVFAC
 
        ! Initialize
-       BULK = 0
-       SIZE_RES = 0
+       State_Chm%SIZE_RES = .FALSE.
 
        ! Fahey and Seinfeld decision algorithm
-       IF ( Spc(id_H2O2)*CVFAC > SO2_AfterSS + 1e-9_fp ) THEN
-          BULK = 1
-       ELSEIF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
-          SIZE_RES = 1
-       ELSEIF( gno3 > NH3 ) THEN
-          IF ( SO2_AfterSS >= 5.e-9_fp     .and.                             &
-               H2O20  >= SO20   )                                            &
-               BULK    = 1
-          IF ( LWC    >= 0.3e-6_fp         .and.                             &
-               SO2_AfterSS >= 3.e-9_fp     .and.                             &
-               H2O20  >= SO2_AfterSS )                                       &
-               BULK    = 1
-          IF ( ALKds  >= 5.e+0_fp          .and.                             &
-               LWC    >= 0.5e-6_fp         .and.                             &
-               H2O20  >= SO2_AfterSS )                                       &
-               BULK    = 1
-          IF ( LWC    >= 0.1e-6_fp         .and.                             &
-               gno3   <= (NH3 + 2.e-9_fp) )                                  &
-               BULK    = 1
-       ELSEIF( LWC    >= 0.5e-6_fp ) THEN
-          IF ( H2O20  >= (0.9e+0_fp * SO2_AfterSS) )                         &
-               BULK    = 1
-          IF ( NH3    <= 1.e-9_fp          .and.                             &
-               ALKds  >= 5.e+0_fp          .and.                             &
-               SO2_AfterSS <= 10.e-9_fp )                                    &
-               BULK    = 1
-       ELSEIF( LWC    >= 0.3e-6_fp ) THEN
-          IF ( NH3    >= (gno3 + 5.e-9_fp) .and.                             &
-               SO2_AfterSS <= 10.e-9_fp )                                    &
-               BULK    = 1
-          IF ( gno3   <= 1.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 2.e-9_fp) )                                 &
-               BULK    = 1
-          IF ( gno3   <= 7.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 3.e-9_fp) )                                 &
-               BULK    = 1
-          IF ( ALKds  >= 3.e+0_fp          .and.                             &
-               NH3 <= 10e-9_fp             .and.                             &
-               SO2_AfterSS <= 5e-9_fp )                                      &
-               BULK    = 1
-          IF ( ALKds  >= 5.e+0_fp          .and.                             &
-               NH3    <= 10.e-9_fp         .and.                             &
-               SO2_AfterSS <= 5.e-9_fp )                                     &
-               BULK    = 1
-          IF ( SO2_AfterSS >= 1.5e-9_fp    .and.                             &
-               H2O20  >= SO2_AfterSS )                                       &
-               BULK    = 1
-          IF ( NH3    <= 12.e-9_fp         .and.                             &
-               ALKds  >=10.e+0_fp )                                          &
-               BULK    = 1
-          IF ( NH3    <= 1.e-9_fp          .and.                             &
-               ALKds  >= 4.e+0_fp          .and.                             &
-               SO2_AfterSS <= 10.e-9_fp )                                    &
-               BULK    = 1
-          IF ( NH3    <= 5.e-9_fp          .and.                             &
-               ALKds  >= 6.e+0_fp          .and.                             &
-               SO2_AfterSS <= 10.e-9_fp )                                    &
-               BULK    = 1
-          IF ( NH3    <= 7.e-9_fp          .and.                             &
-               ALKds   >-8.e+0_fp          .and.                             &
-               SO2_AfterSS <= 10.e-9_fp )                                    &
-               BULK    = 1
-       ELSEIF( LWC    >= 0.1e-6_fp ) THEN
-          IF ( NH3    <= 1.e-9_fp          .and.                             &
-               ALKds  >= 5.e+0_fp   )                                        &
-               BULK    = 1
-          IF ( NH3    <= 5.e-9_fp          .and.                             &
-               ALKds  >= 10.e+0_fp  )                                        &
-               BULK    = 1
-          IF ( gno3   <= 1.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 2.e-9_fp) .and.                             &
-               SO2_AfterSS <= 7.e-9_fp )                                     &
-               BULK    = 1
-          IF ( gno3   <= 1.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 2.e-9_fp) .and.                             &
-               ALKds  >= 2.e+0_fp )                                          &
-               BULK = 1
-          IF ( gno3   <= 3.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 4.e-9_fp) )                                 &
-               BULK    = 1
-          IF ( gno3   <= 7.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 3.e-9_fp) .and.                             &
-               SO2_AfterSS <= 5.e-9_fp )                                     &
-               BULK    = 1
-          IF ( gno3   <= 7.e-9_fp          .and.                             &
-               NH3    >= (gno3 + 3.e-9_fp) .and.                             &
-               ALKds  >= 4.e+0_fp          .and.                             &
-               SO2_AfterSS <= 9.e-9_fp  )                                    &
-               BULK    = 1
-          IF ( ALKds  >= 3.e+0_fp          .and.                             &
-               NH3    <= 3.e-9_fp          .and.                             &
-               SO2_AfterSS <= 4.e-9_fp )                                     &
-               BULK    = 1
-          IF ( ALKds  >= 5.e+0_fp          .and.                             &
-               SO2_AfterSS <= 5.e-9_fp     .and.                             &
-               NH3    <= 7.e-9_fp )                                          &
-               BULK    = 1
-          IF ( NH3    >= (gno3 + 2.e-9_fp) .and.                             &
-               SO2_AfterSS <= 5.e-9_fp )                                     &
-               BULK    = 1
-          IF ( NH3    >= (gno3 + 4.e-9_fp) .and.                             &
-               SO2_AfterSS <= 10.e-9_fp )                                    &
-               BULK    = 1
-          IF ( ALKds  >= 2.e+0_fp          .and.                             &
-               NH3    <= 10.e-9_fp         .and.                             &
-               H2O20  >= SO2_AfterSS )                                       &
-               BULK    = 1
-          IF ( NH3    <= 1.e-9_fp          .and.                             &
-               SO2_AfterSS >= 3.e-9_fp     .and.                             &
-               H2O20  >= SO2_AfterSS )                                       &
-               BULK    = 1
+       ! NOTE: This is ugly, needs refactoring.  For now, just added
+       ! whitespace to improve readability (bmy, 01 Oct 2021)
+       IF ( H2O20 > SO2_afterss + 1e-9_fp ) THEN
+          State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
+          State_Chm%SIZE_RES = .TRUE.
+
+       ELSE IF( gno3 > NH3 ) THEN
+
+          IF ( So2_afterss >= 5.e-9_fp                                 .and. &
+               H2O20       >= SO20              ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( LWC         >= 0.3e-6_fp                                .and. &
+               So2_afterss >= 3.e-9_fp                                 .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               LWC         >= 0.5e-6_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( LWC         >= 0.1e-6_fp                                .and. &
+               gno3        <= (NH3 + 2.e-9_fp)  ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.5e-6_fp ) THEN
+
+          IF ( H2O20       >=                                                &
+               ( 0.9_fp * So2_afterss )         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 5.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.3e-6_fp ) THEN
+
+          IF ( NH3         >= (gno3 + 5.e-9_fp)                        .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 3.e+0_fp                                 .and. &
+               NH3         <= 10e-9_fp                                 .and. &
+               So2_afterss <= 5e-9_fp           ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               NH3         <= 10.e-9_fp                                .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( So2_afterss >= 1.5e-9_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 12.e-9_fp                                .and. &
+               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 4.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 5.e-9_fp                                 .and. &
+               ALKds       >= 6.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 7.e-9_fp                                 .and. &
+               ALKds       > -8.e+0_fp                                 .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+       ELSE IF( LWC >= 0.1e-6_fp ) THEN
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               ALKds       >= 5.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 5.e-9_fp                                 .and. &
+               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               So2_afterss <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 1.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               ALKds       >= 2.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 3.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 4.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp)                        .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( gno3        <= 7.e-9_fp                                 .and. &
+               NH3         >= (gno3 + 3.e-9_fp)                        .and. &
+               ALKds       >= 4.e+0_fp                                 .and. &
+               So2_afterss <= 9.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 3.e+0_fp                                 .and. &
+               NH3         <= 3.e-9_fp                                 .and. &
+               So2_afterss <= 4.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 5.e+0_fp                                 .and. &
+               So2_afterss <= 5.e-9_fp                                 .and. &
+               NH3         <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         >= (gno3 + 2.e-9_fp)                        .and. &
+               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         >= (gno3 + 4.e-9_fp)                        .and. &
+               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( ALKds       >= 2.e+0_fp                                 .and. &
+               NH3         <= 10.e-9_fp                                .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
+          IF ( NH3         <= 1.e-9_fp                                 .and. &
+               So2_afterss >= 3.e-9_fp                                 .and. &
+               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+
        ELSE
-          SIZE_RES = 1
-       ENDIF
 
-       !### BMY NOTE: L2S, L3S, L4S, L5S, L6S are undefined
-       !### so set them to zero for now.  MSL can fix (bmy, 6/4/21)
-       L2S = 0.0_fp
-       L3S = 0.0_fp
-       L4S = 0.0_fp
-       L5S = 0.0_fp
-       L6S = 0.0_fp
-
-       ! Decide whether or not to perform sulfate production rate
-       ! enhancement due to cloud drop heterogenity in pH over the oceans
-       ! (bec, 12/23/11)
-       IF ( SIZE_RES == 1  .AND. State_Met%IsWater(I,J)   .AND.  &
-            TK > 268.15_fp .and. FC > 0.0_fp             ) THEN
-
-          ! Get total in-cloud sulfate production based on bulk cloud pH
-          ! calculations for use in HET_DROP_CHEM
-          LSTOT = (L2S + L3S + L4S + L5S + L6S) / FC !(qjc, 06/20/16)
-
-          ! Get coarse-mode sea-salt concentration for use in
-          ! HET_DROP_CHEM [v/v]
-          ! Note that it is better to use coarse sea salt alkalinity
-          ! tracer if it is being transported (bec, 12/23/11)
-          SSCvv  = Spc(id_SALC)*CVFAC
-
-          ! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
-          aSO4  =  Spc(id_SO4)*CVFAC
-
-          ! This is to make sure HET_DROP_CHEM does not compute more
-          ! sulfate then there is SO2
-          ! Add L5S (qjc, 11/04/16)
-          SO2_sr = MAX( SO2_AfterSS - ( L2S + L3S + L4S + L5S + L6S ), MINDAT)
-
-          !! <<>> SET THE INPUT UNITS! EITHER CONVERT IN THE ROUTINE OR
-          !! <<>> CONVERT BEFOREHAND. BUT EVERYTHING IS CURRENTLY mcl/cm3
-          !! <<>> AND HET_DROP_CHEM EXPECTS V/V
-          CALL HET_DROP_CHEM( I        = I,                                  &
-                              J        = J,                                  &
-                              L        = L,                                  &
-                              LSTOT    = LSTOT,                              &
-                              SSCvv    = SSCvv,                              &
-                              aSO4     = aSO4,                               &
-                              GNH3      = NH3,                               &
-                              SO2_sr   = Spc(id_SO2)  * CVFAC,               &
-                              H2O20    = Spc(id_H2O2) * CVFAC,               &
-                              GNO3     = GNO3,                               &
-                              SR       = SR,                                 &
-                              Input_Opt = Input_Opt,                         &
-                              State_Met = State_Met,                         &
-                              State_Chm = State_Chm                         )
-
-          KaqO2 = KaqO2 + ( SR/(Spc(id_SO2)*CVFAC*DTCHEM) ) !1/s
+          State_Chm%SIZE_RES = .TRUE.
 
        ENDIF
 
-       ! Store HSO3aq, SO3aq [M] for use in gckpp_HetRates.F90
+
        State_Chm%HSO3_AQ(I,J,L) = HSO3aq
        State_Chm%SO3_AQ(I,J,L)  = SO3aq
 
-       K_CLD(3) = CloudHet1R( FC, KaqO2 )
     ENDIF
-
-
 !>>    !=================================================================
 !>>    ! HISTORY (aka netCDF diagnostics)
 !>>    !=================================================================
@@ -3049,228 +3000,6 @@ CONTAINS
          * T * R / P                           ! [m^6 kg^-2 s^-1]
 
   END SUBROUTINE AQCHEM_SO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: het_drop_chem
-!
-! !DESCRIPTION: Subroutine HET\_DROP\_CHEM estimates the in-cloud sulfate
-!  production rate in heterogeneous cloud droplets based on the Yuen et al.,
-!  1996 parameterization. (bec, 6/16/11)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE HET_DROP_CHEM( I,    J,    L,      LSTOT, SSCvv, &
-                            aSO4, GNH3, SO2_sr, H2O20, GNO3,  &
-                            SR,   Input_Opt,    State_Met, State_Chm )
-!
-! !USES:
-!
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)  :: I, J, L
-    REAL(fp),       INTENT(IN)  :: LSTOT
-    REAL(fp),       INTENT(IN)  :: SSCvv
-    REAL(fp),       INTENT(IN)  :: aSO4
-    REAL(fp),       INTENT(IN)  :: GNH3
-    REAL(fp),       INTENT(IN)  :: SO2_sr
-    REAL(fp),       INTENT(IN)  :: H2O20
-    REAL(fp),       INTENT(IN)  :: GNO3
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-    REAL(fp),       INTENT(OUT) :: SR          ! Sulfate production rate
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    REAL(fp), PARAMETER   :: SS_DEN = 2200.e+0_fp !dry sea-salt density [kg/m3]
-
-    ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
-    REAL(fp), PARAMETER   :: SIG_S = 1.8e+0_fp
-
-    ! geometric dry mean diameters [m] for computing lognormal size distribution
-    REAL(fp), PARAMETER   :: RG_S = 0.4e-6_fp !(Jaegle et a., 2011)
-    REAL(fp), PARAMETER   :: RG_D2 = 1.5e-6_fp!(Ginoux et al., 2001)
-    REAL(fp), PARAMETER   :: RG_D3 = 2.5e-6_fp
-    REAL(fp), PARAMETER   :: RG_D4 = 4.e-6_fp
-!
-! !LOCAL VARIABLES:
-!
-    REAL(fp)              :: alpha_NH3, alpha_SO2, alpha_H2O2
-    REAL(fp)              :: alpha_HNO3, alpha_B, alpha_CN
-    REAL(fp)              :: alpha_W, alpha_SO4, sum_gas, H
-    REAL(fp)              :: NDss, NDd2, NDd3, NDd4, CN, DEN, REFF, W
-    REAL(fp)              :: DTCHEM, APV, DSVI
-    REAL(fp)              :: B, NH3, SO2, H2O2, HNO3, SO4
-    REAL(fp)              :: CNss, CNd2, CNd3, CNd4
-    REAL(fp)              :: MW_SO4, MW_SALC
-
-    ! Pointers
-    REAL(fp), POINTER     :: AD(:,:,:)
-    REAL(fp), POINTER     :: AIRDEN(:,:,:)
-    REAL(fp), POINTER     :: AIRVOL(:,:,:)
-    REAL(fp), POINTER     :: OMEGA(:,:,:)
-    REAL(fp), POINTER     :: U(:,:,:)
-    REAL(fp), POINTER     :: V(:,:,:)
-
-    !=================================================================
-    ! HET_DROP_CHEM begins here!
-    !=================================================================
-
-    ! Initialize pointers
-    AD     => State_Met%AD
-    AIRDEN => State_Met%AIRDEN
-    AIRVOL => State_Met%AIRVOL
-    OMEGA  => State_Met%OMEGA
-    U      => State_Met%U
-    V      => State_Met%V
-
-    ! Convert gas phase concentrations from [v/v] to [pptv]
-    NH3  = GNH3  * 1.0e+12_fp
-    SO2  = SO2_sr  * 1.0e+12_fp
-    H2O2 = H2O20 * 1.0e12_fp
-    HNO3 = GNO3 * 1.0e12_fp
-
-    ! Set molecular weight local variables
-    MW_SO4 = State_Chm%SpcData(id_SO4)%Info%MW_g
-    MW_SALC = State_Chm%SpcData(id_SALC)%Info%MW_g
-
-    ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
-    SO4 = ( aSO4 * AD(I,J,L) * 1.0e+9_fp ) / &
-          ( ( AIRMW / MW_SO4 ) * AIRVOL(I,J,L) )
-
-    ! Convert in cloud sulfate production rate from [v/v/timestep] to
-    ! [ug/m3/timestep]
-    B  = ( LSTOT * AD(I,J,L) * 1.0e+9_fp ) / &
-         ( ( AIRMW / MW_SO4 ) * AIRVOL(I,J,L) )
-
-    ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
-    ! based on equation in Hofmann, Science, 1990.
-    ! First convert from [v/v] to [kg/m3 air]
-    CNss = SSCvv * AD(I,J,L) / ( ( AIRMW / MW_SALC ) * AIRVOL(I,J,L) )
-
-    ! Now convert from [kg/m3 air] to [#/cm3 air]
-    ! Sea-salt
-    NDss = ( (3.e+0_fp/4.e+0_fp) * CNss ) / (PI * SS_DEN * RG_S**3.e+0_fp * &
-           exp( (9.e+0_fp/2.e+0_fp) * (LOG(SIG_S)) ** 2.e+0_fp ) ) * 1.e-6_fp
-
-    ! Total coarse mode number concentration [#/cm3]
-    CN = NDss ! sea-salt
-
-    ! Determine regression coefficients based on the local SO2 concentration
-    IF ( SO2 <= 200.0e+0_fp ) THEN
-       alpha_B    = 0.5318e+0_fp
-       alpha_NH3  = -1.67e-7_fp
-       alpha_SO2  = 2.59e-6_fp
-       alpha_H2O2 = -1.77e-7_fp
-       alpha_HNO3 = -1.72e-7_fp
-       alpha_W    = 1.22e-6_fp
-       alpha_CN   = 4.58e-6_fp
-       alpha_SO4  = -1.00e-5_fp
-    ELSE IF ( SO2 > 200.0e+0_fp .AND. SO2 <= 500.0e+0_fp ) THEN
-       alpha_B    = 0.5591e+0_fp
-       alpha_NH3  = 3.62e-6_fp
-       alpha_SO2  = 1.66e-6_fp
-       alpha_H2O2 = 1.06e-7_fp
-       alpha_HNO3 = -5.45e-7_fp
-       alpha_W    = -5.79e-7_fp
-       alpha_CN   = 1.63e-5_fp
-       alpha_SO4  = -7.40e-6_fp
-    ELSE IF ( SO2 > 500.0e+0_fp .AND. SO2 < 1000.0e+0_fp ) THEN
-       alpha_B    = 1.1547e+0_fp
-       alpha_NH3  = -4.28e-8_fp
-       alpha_SO2  = -1.23e-7_fp
-       alpha_H2O2 = -9.05e-7_fp
-       alpha_HNO3 = 1.73e-7_fp
-       alpha_W    = 7.22e-6_fp
-       alpha_CN   = 2.44e-5_fp
-       alpha_SO4  = 3.25e-5_fp
-    ELSE IF ( SO2 >= 1000.0e+0_fp ) THEN
-       alpha_B    = 1.1795e+0_fp
-       alpha_NH3  = 2.57e-7_fp
-       alpha_SO2  = -5.54e-7_fp
-       alpha_H2O2 = -1.08e-6_fp
-       alpha_HNO3 = 1.95e-6_fp
-       alpha_W    = 6.14e-6_fp
-       alpha_CN   = 1.64e-5_fp
-       alpha_SO4  = 2.48e-6_fp
-    ENDIF
-
-    ! Updraft velocity over the oceans [cm/s]
-    ! 500 cm/s is too high. Get W from the met field. (qjc, 04/10/16)
-    !W = 500e+0_fp
-    W = -OMEGA(I,J,L) / ( AIRDEN(I,J,L) * g0 ) * 100e+0_fp
-
-    ! Compute H (integration time interval * air parcel velocity) [m]
-    ! DTCHEM is the chemistry timestep in seconds
-    DTCHEM = GET_TS_CHEM()
-
-    ! Compute air parcel velocity [m/s]
-    !APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) )
-    !(qjc, 04/10/16)
-    APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) + &
-                 W * W *1.e-4_fp )
-
-    H   = DTCHEM * APV          ![m]
-
-    sum_gas = (alpha_NH3 * NH3)   + (alpha_SO2 * SO2) + &
-              (alpha_H2O2 * H2O2) + (alpha_HNO3 * HNO3)
-
-    DSVI = ( alpha_B * B ) + &
-           ( ( (alpha_CN * CN) + (alpha_W * W) + (alpha_SO4 * SO4) + &
-                sum_gas ) * H )
-
-    ! Only calculate SR when air parcel rises, in consistence with
-    ! Yuen et al. (1996) (qjc, 04/10/16)
-    IF ( W > 0e+0_fp ) THEN
-
-       ! additional sulfate production that can be attributed to
-       ! ozone [ug/m3/timestep]
-       SR = DSVI - B
-
-       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-       SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_fp / AIRDEN(I,J,L)
-
-       ! Don't allow SR to be negative
-       SR = MAX( SR, 0.e+0_fp )
-
-       ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
-!       SR = MIN( SR, SO2_sr )
-
-    ELSE
-       SR = 0.e+0_fp
-    ENDIF
-
-    ! Free pointers
-    AD     => NULL()
-    AIRDEN => NULL()
-    AIRVOL => NULL()
-    OMEGA  => NULL()
-    U      => NULL()
-    V      => NULL()
-
-  END SUBROUTINE HET_DROP_CHEM
 !EOC
 
   SUBROUTINE SET_2R_CLD( T, LWC, FC, HPLUS, CVFAC, P, SO2, H2O2, KaqH2O2 )

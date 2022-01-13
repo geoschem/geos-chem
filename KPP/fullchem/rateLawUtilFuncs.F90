@@ -27,8 +27,8 @@ MODULE rateLawUtilFuncs
 ! !DEFINED PARAMETERS:
 !
   ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_LIFE   = 1.e-3_dp
-  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_RATE   = 1.0_dp / HET_MIN_LIFE
+  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_LIFE = 1.e-3_dp
+  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_RATE = 1.0_dp / HET_MIN_LIFE
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -449,7 +449,7 @@ CONTAINS
   END FUNCTION ReactoDiff_Corr
 
   !#########################################################################
-  !#####         COMMON FUNCTIONS FOR ENFORCING SAFE DIVISION          #####
+  !#####   COMMON FUNCTIONS FOR ENFORCING SAFE NUMERICAL OPERATIONS    #####
   !#########################################################################
 
   FUNCTION SafeDiv( num, denom, alt ) RESULT( quot )
@@ -489,6 +489,31 @@ CONTAINS
        safe = .FALSE.
     ENDIF
   END FUNCTION Is_SafeDiv
+
+  FUNCTION IsSafeExp( x ) RESULT( safe )
+    !
+    ! Returns TRUE if an exponential can be performed safely
+    !
+    REAL(dp), INTENT(IN) :: x
+    LOGICAL              :: safe
+    !
+    ! Note EXP( 708 ) = 8.2e+307 and EXP( -708 ) = 3.3e-308, which are
+    ! very close to the maximum representable values at double precision.
+    safe = ( ABS( x ) < 709.0_dp )
+  END FUNCTION IsSafeExp
+
+  FUNCTION SafeExp( x, alt ) RESULT( y )
+    !
+    ! Performs a "safe exponential", that is to prevent overflow, underflow,
+    ! underlow, NaN, or infinity errors when taking the value EXP( x ).  An
+    ! alternate value is returned if the exponential cannot be performed.
+    !
+    REAL(dp), INTENT(IN) :: x, alt
+    REAL(dp)             :: y
+    !
+    y = alt
+    IF ( ABS( X ) < 709.0_dp ) y = EXP( x )
+  END FUNCTION SafeExp
 
 END MODULE rateLawUtilFuncs
 !EOC
