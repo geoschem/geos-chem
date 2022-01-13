@@ -833,10 +833,12 @@ CONTAINS
 
        ! HMS reaction rates (skip if HMS isn't defined)
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          K_CLD(4) = CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
-          K_CLD(5) = CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
-          K_CLD(6) = CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
-               KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC )
+          K_CLD(4) = KaqHCHO*FC*CVFAC
+          K_CLD(5) = KaqHMS*FC 
+          K_CLD(6) = KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC*FC
+          !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+          !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
+          !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
           ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
        ENDIF
 
