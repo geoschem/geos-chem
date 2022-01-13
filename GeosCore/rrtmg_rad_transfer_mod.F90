@@ -2132,27 +2132,27 @@ CONTAINS
 
        ! O3 = Ozone
        CASE( 1 )
-          SPECMASK(15+NXTRA)=0
+          SPECMASK(NASPECRAD+1)=0
 
        ! ME = Methane
        CASE( 2 )
-          SPECMASK(16+NXTRA)=0
+          SPECMASK(NASPECRAD+2)=0
 
        ! H2O = Water vapor
        CASE( 3 )
-          SPECMASK(17+NXTRA)=0
+          SPECMASK(NASPECRAD+3)=0
 
        ! CO2 = Carbon dioxide
        CASE( 4 )
-          SPECMASK(18+NXTRA)=0
+          SPECMASK(NASPECRAD+4)=0
 
        ! CFC = Chlorofluorocarbons
        CASE( 5 )
-          SPECMASK(19+NXTRA)=0
+          SPECMASK(NASPECRAD+5)=0
 
        ! N2O = Nitrous oxide
        CASE( 6 )
-          SPECMASK(20+NXTRA)=0
+          SPECMASK(NASPECRAD+6)=0
 
        ! SU = Sulfate
        CASE( 7 )
@@ -2181,13 +2181,10 @@ CONTAINS
 
        ! DU = Mineral dust
        CASE( 13 )
-          SPECMASK(8+NXTRA)=13
-          SPECMASK(9+NXTRA)=13
-          SPECMASK(10+NXTRA)=13
-          SPECMASK(11+NXTRA)=13
-          SPECMASK(12+NXTRA)=13
-          SPECMASK(13+NXTRA)=13
-          SPECMASK(14+NXTRA)=13
+          ! 7 dust bins for RT
+          Do II=10,16
+             SPECMASK(II)=13
+          End Do
 
        ! PM = All particulate matter
        ! add all aerosols but not gases here
