@@ -831,16 +831,27 @@ CONTAINS
        !K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
        !K_CLD(3) computed below
 
-       ! HMS reaction rates (skip if HMS isn't defined)
-       IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          K_CLD(4) = KaqHCHO*FC*CVFAC
-          K_CLD(5) = KaqHMS*FC 
-          K_CLD(6) = KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC*FC
-          !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
-          !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
-          !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
-          ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
-       ENDIF
+!-----------------------------------------------------------------------------
+! Temporary modification: Set HMS rxn rates to zero, while we try to
+! further vet the HMS reactions in both sulfate_mod and via KPP.
+! Leave this code commented out until further notice.
+!   -- Mike Long, Bob Yantosca (13 Jan 2021)
+!
+!       ! HMS reaction rates (skip if HMS isn't defined)
+!       IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
+!          K_CLD(4) = KaqHCHO*FC*CVFAC
+!          K_CLD(5) = KaqHMS*FC
+!          K_CLD(6) = KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC*FC
+!          !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+!          !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
+!          !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
+!          ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
+!       ENDIF
+!
+       K_CLD(4) = 0.0_dp
+       K_CLD(5) = 0.0_dp
+       K_CLD(6) = 0.0_dp
+!----------------------------------------------------------------------
 
 #ifdef TOMAS
        !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
