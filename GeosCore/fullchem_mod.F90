@@ -1431,14 +1431,6 @@ CONTAINS
     CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
                             OrigUnit,  RC )
 
-!       IF (I.eq.62.and.J.eq.32.and.L.eq.26) then
-          write(*,*) 'HMS: ', State_Chm%Species(62,32,26,ind_('HMS')),State_Chm%Species(62,32,26,ind_('OH'))
-!          write(*,*) 'L8S : ', Aout(12)*(1.E3_fp * AIRMW / ( state_met%AIRDEN(I,J,L) * AVO )), RCONST(12)
-!          write(*,*) 'KaqHMS2: ', KaqHMS2
-!       ENDIF
-
-
-
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )
