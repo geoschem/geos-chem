@@ -107,35 +107,6 @@ MODULE gckpp_Global
   REAL(dp) :: INV_TEMP
   !$OMP THREADPRIVATE( INV_TEMP )
 
-  ! 4.0 * CON_R * TEMP
-  REAL(dp) :: FOUR_R_T
-  !$OMP THREADPRIVATE( FOUR_R_T )
-
-  ! 4.0 * RGASLATM * TEMP
-  REAL(dp) :: FOUR_RGASLATM_T
-  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
-
-  ! 8.0 * RSTARG * TEMP
-  REAL(dp) :: EIGHT_RSTARG_T
-  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
-
-  ! H2O concentration
-  REAL(dp) :: H2O
-  !$OMP THREADPRIVATE( H2O )
-
-  ! Henry's law constants (do not need to be THREADPRIVATE)
-  REAL(dp) :: HENRY_K0(NSPEC)
-  REAL(dp) :: HENRY_CR(NSPEC)
-
-  ! Pressure and relative humidity
-  REAL(dp) :: PRESS
-  REAL(dp) :: RELHUM
-  !$OMP THREADPRIVATE( PRESS, RELHUM )
-
-  ! Cosine of solar zenith angle
-  REAL(dp) :: SUNCOS
-  !$OMP THREADPRIVATE( SUNCOS )
-
   ! Array for photolysis species
   REAL(dp) :: PHOTOL(27)
   !$OMP THREADPRIVATE( PHOTOL )
@@ -160,6 +131,50 @@ MODULE gckpp_Global
   END TYPE HetState
   TYPE(HetState), TARGET, PUBLIC :: State_Het
   !$OMP THREADPRIVATE( State_Het )
+
+  !--------------------------------------------------------------------------
+  ! NOTE: These global variables are required in order to compile the
+  ! various fullchem mechanism interface files (such as fullchem_mod.F90),
+  ! but otherwise are not used by the Hg chemistry mechanism.
+  !   -- Bob Yantosca (13 Jan 2022)
+  !--------------------------------------------------------------------------
+
+  ! 8.0 * RSTARG * TEMP
+  REAL(dp) :: EIGHT_RSTARG_T
+  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
+
+  ! 4.0 * CON_R * TEMP
+  REAL(dp) :: FOUR_R_T
+  !$OMP THREADPRIVATE( FOUR_R_T )
+
+  ! 4.0 * RGASLATM * TEMP
+  REAL(dp) :: FOUR_RGASLATM_T
+  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
+
+  ! H2O concentration
+  REAL(dp) :: H2O
+  !$OMP THREADPRIVATE( H2O )
+
+  ! Henry's law constants (do not need to be THREADPRIVATE)
+  REAL(dp) :: HENRY_K0(NSPEC)
+  REAL(dp) :: HENRY_CR(NSPEC)
+
+  ! Array for aqueous sulfur chemistry rates (1/s)
+  REAL(dp) :: K_MT(6)
+  !$OMP THREADPRIVATE( K_MT )
+
+  ! Array for sulfur chemistry rates in cloud (1/s)
+  REAL(dp) :: K_CLD(6)
+  !$OMP THREADPRIVATE( K_CLD )
+
+  ! Pressure and relative humidity
+  REAL(dp) :: PRESS
+  REAL(dp) :: RELHUM
+  !$OMP THREADPRIVATE( PRESS, RELHUM )
+
+  ! Cosine of solar zenith angle
+  REAL(dp) :: SUNCOS
+  !$OMP THREADPRIVATE( SUNCOS )
 
 ! INLINED global variable declarations
 

@@ -282,12 +282,12 @@ CONTAINS
     ! References:
     !  Heymsfield, A. J., Winker, D., Avery, M., et al. (2014). Relationships
     !   between ice water content and volume extinction coefficient from in
-    !   situ observations for temperatures from 0° to –86°C: implications 
+    !   situ observations for temperatures from 0° to –86°C: implications
     !   for spaceborne lidar retrievals. Journal of Applied Meteorology and
     !   Climatology, 53(2), 479–505. https://doi.org/10.1175/JAMC-D-13-087.1
     !
     !  Schmitt, C. G., & Heymsfield, A. J. (2005). Total Surface Area Estimates
-    !   for Individual Ice Particles and Particle Populations. Journal of 
+    !   for Individual Ice Particles and Particle Populations. Journal of
     !   Applied Meteorology, 44(4), 467–474. https://doi.org/10.1175/JAM2209.1
     !
     REAL(dp),       INTENT(IN)    :: AD          ! Air mass [kg]
@@ -514,6 +514,5 @@ CONTAINS
     y = alt
     IF ( ABS( X ) < 709.0_dp ) y = EXP( x )
   END FUNCTION SafeExp
-
-END MODULE rateLawUtilFuncs
 !EOC
+END MODULE rateLawUtilFuncs
