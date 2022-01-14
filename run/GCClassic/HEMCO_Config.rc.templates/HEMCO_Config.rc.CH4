@@ -54,7 +54,7 @@ Warnings:                    1
     --> GC_BCs                 :       false    # 1980-2021
 # ----- REGIONAL INVENTORIES ----------------------------------
     --> GEPA                   :       true     # 2012
-    --> Sheng_Canada           :       false    # 2013
+    --> Scarpelli_Canada       :       true     # 2018
     --> Scarpelli_Mexico       :       true     # 2015
 # ----- GLOBAL INVENTORIES ------------------------------------
     --> GFEIv2                 :       true     # 2019
@@ -181,9 +181,7 @@ Warnings:                    1
 )))GEPA
 
 #==============================================================================
-# --- Mexico anthropogenic emissions ---
-#
-# (Scarpelli et. al, Environ. Res. Lett., 2020) ---
+# --- Mexico emissions (Scarpelli et. al, Environ. Res. Lett., 2020) ---
 #==============================================================================
 (((Scarpelli_Mexico
 0 MEX_OIL               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 30
@@ -209,25 +207,28 @@ Warnings:                    1
 )))Scarpelli_Mexico
 
 #==============================================================================
-# --- Canada oil and gas (Sheng et al., Atmos. Environ., 2017) ---
+# --- Canada emissions (Scarpelli et al., Environ. Res. Lett., 2022) ---
 #==============================================================================
-(((Sheng_Canada
-### Oil ###
-0 CAN_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Oil          2013/1/1/0 C xy molec/cm2/s CH4 1002 1 60
-
-### Gas ###
-0 CAN_GAS_PRODUCTION   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Production   2013/1/1/0 C xy molec/cm2/s CH4 1002 2 60
-0 CAN_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Processing   2013/1/1/0 C xy molec/cm2/s CH4 1002 2 60
-0 CAN_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Transmission 2013/1/1/0 C xy molec/cm2/s CH4 1002 2 60
-0 CAN_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Distribution 2013/1/1/0 C xy molec/cm2/s CH4 1002 2 60
+(((Scarpelli_Canada
+0 CAN_OIL_GAS_COMBUSTION  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_LEAKAGE     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_VENT_FLARE  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_COAL                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1002 3   100
+0 CAN_LIVESTOCK           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1002 4   100
+0 CAN_SOLID_WASTE         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1002 5   100
+0 CAN_WASTEWATER          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1002 6   100
+0 CAN_OTHER               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1002 8   100
 
 ### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR) ###
-0 CAN_COAST_OIL              $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Oil          2013/1/1/0 C xy molec/cm2/s CH4 1011 1 1
-0 CAN_COAST_GAS_PRODUCTION   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Production   2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
-0 CAN_COAST_GAS_PROCESSING   $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Processing   2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
-0 CAN_COAST_GAS_TRANSMISSION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Transmission 2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
-0 CAN_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2017-10/CMS/CMS_CH4_FLX_CA_2013.nc CH4_FLX_CA_Gas_Distribution 2013/1/1/0 C xy molec/cm2/s CH4 1011 2 1
-)))Sheng_Canada
+0 CAN_OIL_GAS_COMBUSTION_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 100
+0 CAN_OIL_GAS_LEAKAGE_COAST     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 100
+0 CAN_OIL_GAS_VENT_FLARE_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 100
+0 CAN_COAL_COAST                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1011 3   100
+0 CAN_LIVESTOCK_COAST           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1011 4   1
+0 CAN_SOLID_WASTE_COAST         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1011 5   1
+0 CAN_WASTEWATER_COAST          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1011 6   1
+0 CAN_OTHER_COAST               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1011 8   1
+)))Scarpelli_Canada
 
 #==============================================================================
 # --- Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021) ---
@@ -735,10 +736,10 @@ Warnings:                    1
 1010 MEX_MASK_MIRROR $ROOT/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
 )))Scarpelli_Mexico
 
-(((Sheng_Canada
+(((Scarpelli_Canada
 1002 CANADA_MASK     $ROOT/MASKS/v2018-09/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 1011 CAN_MASK_MIRROR $ROOT/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-)))Sheng_Canada
+)))Scarpelli_Canada
 
 (((GEPA
 1008 CONUS_MASK      $ROOT/MASKS/v2018-09/CONUS_Mask.001x001.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
