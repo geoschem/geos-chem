@@ -253,6 +253,12 @@ PROGRAM GEOS_Chem
   ! (mlong, bmy, 7/30/12)
   LOGICAL, PARAMETER       :: am_I_Root = .TRUE.
 
+#ifdef RRTMG
+  ! For stratospheric adjustment
+  REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
+  REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
+#endif
+
   !==========================================================================
   ! GEOS-CHEM starts here!
   !==========================================================================
@@ -1735,6 +1741,12 @@ PROGRAM GEOS_Chem
           ! Generate mask for species in RT
           CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
 
+          ! Dummy values (FDH not available in GC-Classic)
+          Allocate(DT_3D(0,0,0),Stat=RC)
+          IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D', ThisLoc )
+          Allocate(HR_3D(0,0,0),Stat=RC)
+          IF ( RC /= 0 ) Call Error_Stop( 'Error allocating HR_3D', ThisLoc )
+
           ! Compute radiative transfer for the given output
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
@@ -1747,6 +1759,8 @@ PROGRAM GEOS_Chem
                                       State_Diag = State_Diag,             &
                                       State_Grid = State_Grid,             &
                                       State_Met  = State_Met,              &
+                                      DT_3D      = DT_3D,                  &
+                                      HR_3D      = HR_3D,                  &
                                       RC         = RC                     )
 
           ! Trap potential errors
@@ -1772,6 +1786,8 @@ PROGRAM GEOS_Chem
                                          State_Diag = State_Diag,             &
                                          State_Grid = State_Grid,             &
                                          State_Met  = State_Met,              &
+                                         DT_3D      = DT_3D,                  &
+                                         HR_3D      = HR_3D,                  &
                                          RC         = RC          )
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
@@ -1792,6 +1808,9 @@ PROGRAM GEOS_Chem
           IF ( VerboseAndRoot ) THEN
              CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
           ENDIF
+
+          If (Allocated(DT_3D)) Deallocate(DT_3D)
+          If (Allocated(HR_3D)) Deallocate(HR_3D)
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "RRTMG", RC )
