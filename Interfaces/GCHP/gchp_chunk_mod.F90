@@ -767,7 +767,7 @@ CONTAINS
 
     ! For stratospheric adjustment
     REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
-    REAL(f8), ALLOCATABLE          :: DT_3D_LAST(:,:,:)
+    REAL(f8), ALLOCATABLE          :: DT_3D_UPDATE(:,:,:)
     REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
 
     ! For logging
@@ -1424,11 +1424,12 @@ CONTAINS
           If (Input_Opt%RRTMG_SEFDH) Then
              ! DT_3D will be updated by the first call to RRTMG; also need to
              ! store the "current" value
-             Allocate(DT_3D_LAST(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
-             _ASSERT(RC==0, 'Error allocating DT_3D_LAST')
+             Allocate(DT_3D_UPDATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+             _ASSERT(RC==0, 'Error allocating DT_3D_UPDATE')
              ! Store the adjustment as previously projected to this time point
              DT_3D(:,:,:) = State_Chm%TStrat_Adj(:,:,:)
-             DT_3D_LAST(:,:,:) = State_Chm%TStrat_Adj(:,:,:)
+             ! This will just hold the end-of-step value
+             DT_3D_UPDATE(:,:,:) = 0.0e+0_fp
           Else
              DT_3D(:,:,:) = 0.0e+0_fp
           End If
@@ -1510,6 +1511,13 @@ CONTAINS
        ! Trap potential errors
        _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer' )
 
+       If (Input_Opt%RRTMG_SEFDH) Then
+          ! Store the calculated update to DT
+          DT_3D_UPDATE(:,:,:) = DT_3D(:,:,:)
+          ! Reset the adjustment to the start of the time step
+          DT_3D(:,:,:) = State_Chm%TStrat_Adj(:,:,:)
+       End If
+
        ! Calculate for rest of outputs, if any
        DO N = 2, State_Diag%nRadOut
           ! This time around, DT_3D is read in but not overwritten
@@ -1530,7 +1538,7 @@ CONTAINS
                                       State_Diag = State_Diag,             &
                                       State_Grid = State_Grid,             &
                                       State_Met  = State_Met,              &
-                                      DT_3D      = DT_3D_LAST,             &
+                                      DT_3D      = DT_3D,                  &
                                       HR_3D      = HR_3D,                  &
                                       RC         = RC          )
           _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer')
@@ -1539,12 +1547,17 @@ CONTAINS
 520    FORMAT( 5x, '- ', &
                   a4, ' (Index = ', i2.2, ')' )
 
+       ! Copy the adjustment back to DT_3D as calculated in the baseline calculation
+       If (Input_Opt%RRTMG_SEFDH) Then
+           DT_3D(:,:,:) = DT_3D_UPDATE(:,:,:)
+       End If
+
        ! Store temperature change and heating rate from RRTMG in diagnostics
        If (Input_Opt%RRTMG_FDH) Then
+           If (State_Diag%Archive_DynHeating) State_Diag%DynHeating(:,:,:) = HR_3D(:,:,:)
            ! NB: DT_3D is the temperature adjustment either after equilibration (pure FDH)
            ! or at the start of the NEXT radiation time step (SEFDH)
            If (State_Diag%Archive_DTRad     ) State_Diag%DTRad(:,:,:)      = DT_3D(:,:,:)
-           If (State_Diag%Archive_DynHeating) State_Diag%DynHeating(:,:,:) = HR_3D(:,:,:)
            If (Input_Opt%RRTMG_SEFDH) Then
               State_Chm%TStrat_Adj(:,:,:) = DT_3D(:,:,:)
            End If
@@ -1552,9 +1565,9 @@ CONTAINS
            If (Allocated(DT_3D)) Deallocate(DT_3D, STAT=RC)
            _ASSERT(RC==0, 'Error deallocating DT_3D')
            If (Allocated(HR_3D)) Deallocate(HR_3D, STAT=RC)
-           _ASSERT(RC==0, 'Error deallocating DT_3D')
-           If (Allocated(DT_3D_LAST)) Deallocate(DT_3D_LAST, STAT=RC)
-           _ASSERT(RC==0, 'Error deallocating DT_3D_LAST')
+           _ASSERT(RC==0, 'Error deallocating HR_3D')
+           If (Allocated(DT_3D_UPDATE)) Deallocate(DT_3D_UPDATE, STAT=RC)
+           _ASSERT(RC==0, 'Error deallocating DT_3D_UPDATE')
        End If
 
        IF ( FIRST_RT ) THEN
