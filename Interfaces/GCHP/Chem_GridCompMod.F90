@@ -528,16 +528,6 @@ CONTAINS
        VLOCATION          = MAPL_VLocationEdge,    &
                                                       RC=STATUS  )
     _VERIFY(STATUS)
-
-    call MAPL_AddImportSpec(GC, &
-       SHORT_NAME         = 'DryPLE',  &
-       LONG_NAME          = 'dry_pressure_level_edges',  &
-       UNITS              = 'Pa', &
-       PRECISION          = ESMF_KIND_R8, &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationEdge,    &
-                                                      RC=STATUS  )
-    _VERIFY(STATUS)
 #endif
 
     !=======================================================================
@@ -2822,7 +2812,6 @@ CONTAINS
     ! ckeller, 8/22/19: In GEOS, PLE and AIRDENS are from the IMPORT state
 #if !defined( MODEL_GEOS )
     REAL(ESMF_KIND_R8),  POINTER :: PLE(:,:,:)     => NULL() ! INTERNAL: PEDGE
-    REAL,                POINTER :: AIRDENS(:,:,:) => NULL() ! INTERNAL: PEDGE
 #endif
 
     ! Initialize variables used for reading Olson and MODIS LAI imports
@@ -3005,7 +2994,6 @@ CONTAINS
 
        !IF ( IsCTM ) THEN
        call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
-       call MAPL_GetPointer ( IMPORT, AIRDENS,  'AIRDENS', __RC__ )
        !ENDIF
 
        ! Set up pointers if GEOS-Chem is a provider
@@ -5292,9 +5280,6 @@ CONTAINS
  
     ! Calculate total ozone
     DO L = 1,LM
-
-!       DUsLayerL(:,:) = AIRDENS(:,:,L) / (MAPL_AIRMW/1000.0) * MAPL_AVOGAD &
-!                        * O3(:,:,L) / 2.69e20
 
        DUsLayerL(:,:) = O3(:,:,L) * ((PLE(:,:,L+LB)-PLE(:,:,L+LB-1))/100.0) &
                         * const / 2.69e16 / 1000.0

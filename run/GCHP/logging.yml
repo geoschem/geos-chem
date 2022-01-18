@@ -94,12 +94,14 @@ loggers:
        level: WARNING
        root_level: WARNING
        propagate: false
-
+   
    GCHPctmEnv:
+       handlers: [mpi_shared]
        level: WARNING
        root_level: INFO
 
-   GCHPchem:
+   GCHP:
+       handlers: [mpi_shared]
        level: WARNING
        root_level: INFO
 
