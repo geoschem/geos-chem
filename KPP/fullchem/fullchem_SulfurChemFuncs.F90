@@ -639,8 +639,7 @@ CONTAINS
        ! assume nonvolatile like sulfate for realistic cloud pH
        HMSc = 0.0_fp
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          HMSc = Spc(id_HMS) * State_Met%AIRDEN(I,J,L)                       &
-               * 0.7_fp * CVFAC / ( AIRMW * LWC )
+          HMSc = 1.e+3 * Spc(id_HMS) * 0.7_fp / ( LWC * AVO ) ! mcl/cm3 -> mol/L
        ENDIF
 
        ! Get total ammonia (NH3 + NH4+) concentration [v/v]
@@ -830,16 +829,14 @@ CONTAINS
        !K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )
        !K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
        !K_CLD(3) computed below
-
        ! HMS reaction rates (skip if HMS isn't defined)
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
           K_CLD(4) = KaqHCHO*FC*CVFAC
-          K_CLD(5) = KaqHMS*FC 
-          K_CLD(6) = KaqHMS2*State_Met%AIRDEN(I,J,L)*State_Met%AIRDEN(I,J,L)*CVFAC*FC
+          K_CLD(5) = KaqHMS *FC 
+          K_CLD(6) = KaqHMS2*FC
           !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
           !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
-          !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, &
-          ! In the above, KaqHMS2 is converted from [m^6 kg^-2 s^-1] to [v/v/s]
+          !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, & ...)
        ENDIF
 
 #ifdef TOMAS
@@ -2933,13 +2930,13 @@ CONTAINS
     !
     ! (jmm, 06/28/18)
     !=================================================================
-    KHCHO1 = 7.9e+2_fp * EXP( -16.44e+0_fp &
+    KHCHO1 = 7.9e+2_fp * EXP( -16.44e+0_fp & ! L/mol/s
          * ( 298.15e+0_fp / T - 1.e+0_fp ) )
-    KHCHO2 = 2.5e+7_fp * EXP( -6.04e+0_fp &
+    KHCHO2 = 2.5e+7_fp * EXP( -6.04e+0_fp  & ! L/mol/s
          * ( 298.15e+0_fp / T - 1.e+0_fp ) )
-    KHMS = 3.6e+3_fp * EXP( -15.09e+0_fp &
+    KHMS   = 3.6e+3_fp * EXP( -15.09e+0_fp & ! L/mol/s
          * ( 298.15e+0_fp / T - 1.e+0_fp ) )
-    KHMS2 = 6.2e+8_fp * EXP( -5.03e+0_fp &
+    KHMS2  = 2.65e+8_fp * EXP( -5.03e+0_fp & ! L/mol/s
          * ( 298.15e+0_fp / T - 1.e+0_fp ) )
 
     !=================================================================
@@ -2991,13 +2988,12 @@ CONTAINS
          * P * HCHCHO * XHCHOg * LWC * R * T    ! [v/v/s]
 
     ! Conversion rate from HMS to SO2 via reaction with OH-
-    ! (jmm, 06/15/18)
-    KaqHMS = KHMS * ( Kw1 / Hplus )            ! [mol/L/s]
+    ! (jmm, 06/15/18; MSL 1/18/22)
+    KaqHMS = KHMS * ( Kw1 / Hplus ) * 0.7e0_fp  ! 70% scavenged by clouds; units [1/s]
 
     ! Conversion rate from HMS to SO42- & HCHO via reaction with OH(aq)
-    ! (jmm, 06/28/18)
-    KaqHMS2 = KHMS2 * dOH / AIRMW / AIRMW * 7.e-4_fp * AVO &
-         * T * R / P                           ! [m^6 kg^-2 s^-1]
+    ! (jmm, 06/28/18; MSL, 01/14/22)
+    KaqHMS2 = KHMS2 * dOH * 0.7e0_fp ! 70% scavenged by clouds; units [cm3/mcl/s]
 
   END SUBROUTINE AQCHEM_SO2
 !EOC
