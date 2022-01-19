@@ -304,9 +304,11 @@ CONTAINS
           DO S = 1, State_Diag%Map_WetLossConv%nSlots
              NW = State_Diag%Map_WetLossConv%slot2id(S)
              DO L = 1, State_Grid%NZ
-!                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
-                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW) &
-                                                / AREA_M2
+#ifdef MODEL_GEOS
+                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW) / AREA_M2
+#else
+                State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
+#endif
              ENDDO
           ENDDO
        ENDIF

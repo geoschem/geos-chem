@@ -197,7 +197,9 @@ CONTAINS
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT), Vdotout(NVAR)
+#ifdef MODEL_GEOS
     REAL(f4)               :: NOxTau,     NOxConc
+#endif
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData => NULL()
@@ -559,7 +561,9 @@ CONTAINS
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, Vdotout          )&
+#ifdef MODEL_GEOS
     !$OMP PRIVATE( NOxTau,   NOxConc                                        )&
+#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -1225,6 +1229,7 @@ CONTAINS
 #endif
 #endif
 
+#ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
@@ -1242,6 +1247,7 @@ CONTAINS
              State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
           ENDIF
        ENDIF
+#endif
 
        !====================================================================
        ! HISTORY (aka netCDF diagnostics)

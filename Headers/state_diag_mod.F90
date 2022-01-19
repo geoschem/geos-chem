@@ -295,8 +295,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_Prod
      LOGICAL                     :: Archive_Prod
 
+#ifdef MODEL_GEOS
      REAL(f4),           POINTER :: NOxTau(:,:,:)
      LOGICAL                     :: Archive_NOxTau
+#endif
 
      !%%%%% Aerosol characteristics %%%%%
 
@@ -1337,8 +1339,10 @@ CONTAINS
     State_Diag%Map_Prod                            => NULL()
     State_Diag%Archive_Prod                        = .FALSE.
 
+#ifdef MODEL_GEOS
     State_Diag%NOxTau                              => NULL()
     State_Diag%Archive_NOxTau                      = .FALSE.
+#endif
 
     !%%%%% Aerosol hygroscopic growth diagnostics %%%%%
 
@@ -4060,6 +4064,7 @@ CONTAINS
           RETURN
        ENDIF
 
+#ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! NOx lifetime 
        !--------------------------------------------------------------------
@@ -4080,6 +4085,7 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+#endif
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
@@ -9120,10 +9126,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+#ifdef MODEL_GEOS
     CALL Finalize( diagId   = 'NOxTau',                                      &
                    Ptr2Data = State_Diag%NOxTau,                             &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     CALL Finalize( diagId   = 'UvFluxDiffuse',                               &
                    Ptr2Data = State_Diag%UvFluxDiffuse,                      &
@@ -10413,154 +10421,104 @@ CONTAINS
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for emissions and dry deposition'
+    ELSE IF ( INDEX( Name_AllCaps, 'BUDGET' ) == 1 ) THEN
+
+       ! All budget diagnostics have common units, rank, and tag
+#ifdef MODEL_GEOS
        IF ( isUnits   ) Units = 'kg m-2 s-1'
+#else
+       IF ( isUnits   ) Units = 'kg s-1'
+#endif
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for emissions and '  // &
-                                'dry deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                'in column for emissions and dry '    // &
-                                'deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for transport'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for transport'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for transport'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for dry deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for dry deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for dry deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for mixing'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for mixing'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for mixing'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for convection'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for convection'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for convection'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                ' for chemistry'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for chemistry'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for chemistry'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for wet deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'WET'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for wet deposition'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'WET'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for wet deposition '
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'WET'
+ 
+       ! Set description based on diagnostic name
+       IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for emissions and dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for emissions and '  // &
+                                   'dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   'in column for emissions and dry '    // &
+                                   'deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for convection'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for convection'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for convection'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   ' for chemistry'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for chemistry'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for chemistry'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for wet deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for wet deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for wet deposition '
+       ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
@@ -10701,10 +10659,12 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
 
+#ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'NOXTAU' ) THEN
        IF ( isDesc    ) Desc  = 'NOx (NO+NO2+NO3+2xN2O5+ClNO2+HNO2+HNO4) lifetime'
        IF ( isUnits   ) Units = 'h'
        IF ( isRank    ) Rank  = 3
+#endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
        IF ( isDesc    ) Desc  = 'Diffuse UV flux in bin'
@@ -10771,8 +10731,11 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONV' ) THEN
        IF ( isDesc    ) Desc  = &
             'Loss of soluble species in convective updrafts'
-       !IF ( isUnits   ) Units = 'kg s-1'
+#ifdef MODEL_GEOS
        IF ( isUnits   ) Units = 'kg m-2 s-1'
+#else
+       IF ( isUnits   ) Units = 'kg s-1'
+#endif
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
