@@ -1344,6 +1344,10 @@
       ENDIF
 
       DTNGC = DT
+
+      ! Initialize YJ to avoid div-by-zero errors (bmy, 19 Jan 2022)
+      YJ = 0d0
+
 !      IF(CACID.GT.5.d5)THEN
       IF(CACID.GT.5.d5.or.(IFNUCL.GE.13.and.CHOM.GT.5.d5))THEN
  80      CONTINUE
@@ -1372,11 +1376,22 @@
             stop
          ENDIF
 
-         IF(DT.GT.(DNMAX/YJ)) THEN
-            DTNGC = DNMAX/YJ    ! small timestep for large J
-            DTNGC = MAX(DTNGC,1.8d2)  !set minimum DTNGC
-         ELSE
-            DTNGC = DT
+         !--------------------------------------------------------
+         ! NOTE: Rewrite code to avoid div-by-zero if YJ=0
+         !  -- Bob Yantosca (19 Jan 2022)
+         !IF(DT.GT.(DNMAX/YJ)) THEN
+         !   DTNGC = DNMAX/YJ    ! small timestep for large J
+         !   DTNGC = MAX(DTNGC,1.8d2)  !set minimum DTNGC
+         !ELSE
+         !   DTNGC = DT
+         !ENDIF
+         !--------------------------------------------------------
+         DTNGC = DT
+         IF ( ABS(YJ) > 1.0d-30 ) THEN
+            IF(DT.GT.(DNMAX/YJ)) THEN
+               DTNGC = DNMAX/YJ ! small timestep for large J
+               DTNGC = MAX(DTNGC,1.8d2) !set minimum DTNGC
+            ENDIF
          ENDIF
 
          IF(DTLEFT.GT.(1.5*DTNGC)) THEN
