@@ -113,6 +113,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Diag_Mod,     ONLY : DgnMap
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -195,7 +196,13 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
-    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+    REAL(dp)               :: Vloc(NVAR), Aout(NREACT), Vdotout(NVAR)
+#ifdef MODEL_GEOS
+    REAL(f4)               :: NOxTau,     NOxConc
+#endif
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapData => NULL()
 
     !=======================================================================
     ! Do_FullChem begins here!
@@ -439,6 +446,26 @@ CONTAINS
 #endif
 
     !=======================================================================
+    ! Archive concentrations before chemistry 
+    !=======================================================================
+    IF ( State_Diag%Archive_ConcBeforeChem ) THEN
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       mapData => State_Diag%Map_ConcBeforeChem
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+    ENDIF
+
+    !=======================================================================
     ! Set up integration convergence conditions and timesteps
     ! (cf. M. J. Evans)
     !
@@ -533,7 +560,10 @@ CONTAINS
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC                   )&
+    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, Vdotout          )&
+#ifdef MODEL_GEOS
+    !$OMP PRIVATE( NOxTau,   NOxConc                                        )&
+#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -862,7 +892,7 @@ CONTAINS
        ! See gckpp_Monitor.F90 for a list of chemical reactions
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate ) THEN
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
@@ -1199,6 +1229,26 @@ CONTAINS
 #endif
 #endif
 
+#ifdef MODEL_GEOS
+       !--------------------------------------------------------------------
+       ! Archive NOx lifetime [h]
+       !--------------------------------------------------------------------
+       IF ( State_Diag%Archive_NoxTau ) THEN
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+          NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
+                 + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
+                 + Vdotout(ind_HNO4)
+          NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
+                  + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
+          NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
+          IF ( NoxTau > 0.0_f4 ) THEN
+             State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
+          ELSE
+             State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+          ENDIF
+       ENDIF
+#endif
+
        !====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
@@ -1365,6 +1415,26 @@ CONTAINS
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after Diag_Metrics' )
+    ENDIF
+
+    !=======================================================================
+    ! Archive concentrations after chemistry 
+    !=======================================================================
+    IF ( State_Diag%Archive_ConcAfterChem ) THEN
+       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       mapData => State_Diag%Map_ConcAfterChem
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N, S   )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
     ENDIF
 
     !=======================================================================

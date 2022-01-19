@@ -448,10 +448,6 @@ CONTAINS
           ! Get info about this species from the database
           SpcInfo => State_Chm%SpcData(N)%Info
 
-          ! Get the "DryAltID" index, that is used to archive species
-          ! concentrations at a user-defined altitude above the surface
-          A = SpcInfo%DryAltID
-
           ! Index of drydep species in the State_Chm%DryDepVel array
           ! as passed back from subroutine DEPVEL
           NDVZ = NDVZIND(D)
@@ -576,7 +572,7 @@ CONTAINS
           ENDIF
 
           !-----------------------------------------------------------
-          ! Compute drydep frequency and update diagnostics
+          ! Compute drydep velocity and frequency
           !-----------------------------------------------------------
 
           ! Dry deposition velocities [m/s]
@@ -585,30 +581,51 @@ CONTAINS
           ! Dry deposition frequency [1/s]
           State_Chm%DryDepFreq(I,J,D) = State_Chm%DryDepVel(I,J,NDVZ) / THIK
 
-#if !defined( MODEL_CESM )
-          ! Archive dry dep velocity for diagnostics in [cm/s]
-          IF ( State_Diag%Archive_DryDepVel ) THEN
-             S = State_Diag%Map_DryDepVel%id2slot(D)
-             IF ( S > 0 ) THEN
-                State_Diag%DryDepVel(I,J,S) = DVZ
-             ENDIF
-          ENDIF
-#endif
-
-          ! Archive dry dep velocity [cm/s] only for those species
-          ! that are requested at a given altitude (e.g. 10m)
-          IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
-             IF ( A > 0 ) THEN
-                State_Diag%DryDepVelForALT1(I,J,A) = DVZ
-             ENDIF
-          ENDIF
-
           ! Free pointer
           SpcInfo => NULL()
        ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Set diagnostics - cnsider moving?
+    IF ( State_Diag%Archive_DryDepVel .OR. &
+         State_Diag%Archive_DryDepVelForALT1 ) THEN
+
+       !$OMP PARALLEL DO                                           &
+       !$OMP DEFAULT( SHARED                                     ) &
+       !$OMP PRIVATE( N, D, S, NDVZ )
+       DO D = 1, State_Chm%nDryDep
+
+          ! Point to State_Chm%DryDepVel [m/s]
+          NDVZ = NDVZIND(D)
+
+          ! Dry dep velocity [cm/s]
+          IF ( State_Diag%Archive_DryDepVel ) THEN
+             S = State_Diag%Map_DryDepVel%id2slot(D)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepVel(:,:,S) = &
+                           State_Chm%DryDepVel(:,:,NDVZ) * 100._f4
+             ENDIF
+          ENDIF
+
+          ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
+          IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+             ! Get the "DryAltID" index, that is used to archive species
+             ! concentrations at a user-defined altitude above the surface
+             ! GEOS-CHEM species number
+             N = State_Chm%Map_DryDep(D)
+             A = State_Chm%SpcData(N)%Info%DryAltID
+             IF ( A > 0 ) THEN
+                State_Diag%DryDepVelForALT1(:,:,A) = &
+                           State_Chm%DryDepVel(:,:,NDVZ) * 100._f4
+             ENDIF
+          ENDIF
+
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    ENDIF
 
   END SUBROUTINE UPDATE_DRYDEPFREQ
 !EOC
