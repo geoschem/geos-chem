@@ -43,9 +43,9 @@
 #------------------------------------------------
 #   Compute resources
 #------------------------------------------------
-TOTAL_CORES={TotalCores}
-NUM_NODES={NumNodes}
-NUM_CORES_PER_NODE={NumCoresPerNode}
+TOTAL_CORES=${RUNDIR_NUM_CORES}
+NUM_NODES=${RUNDIR_NUM_NODES}
+NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 # Set number of cores, number of nodes, and number of cores per node.
 # Total cores must be divisible by 6. Cores per node must equal number
 # of cores divided by number of nodes. Make sure you have these
@@ -54,7 +54,7 @@ NUM_CORES_PER_NODE={NumCoresPerNode}
 #------------------------------------------------
 #   Run grid resolution
 #------------------------------------------------
-CS_RES={GridRes}
+CS_RES=${RUNDIR_CS_RES}
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
@@ -69,9 +69,9 @@ TARGET_LON=170.0
 #------------------------------------------------
 #    Simulation start, end, duration
 #------------------------------------------------
-Start_Time="{DATE1} {TIME1}"
-End_Time="{DATE2} {TIME2}"
-Duration="{dYYYYMMDD} {dHHmmss}"
+Start_Time="${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}"
+End_Time="${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}"
+Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 #
 # Duration should be less than or equal to the difference between start
 # and end time. If end time is past start time plus duration, the simulation
@@ -88,7 +88,7 @@ Duration="{dYYYYMMDD} {dHHmmss}"
 #------------------------------------------------
 #    Initial restart file
 #------------------------------------------------
-INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_{SIMULATION}.nc
+INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_${RUNDIR_SIM_NAME}.nc
 #
 # By default the linked restart files in the run directories will be 
 # used. You can specify a custom initial restart file by overwriting the
@@ -153,11 +153,11 @@ Turn_on_Base_Emissions=true
 AutoUpdate_Diagnostics=ON
 
 # Monthly diagnostics: '0' for off; '1' for on
-timeAvg_monthly="{AvgMonthly}"
+timeAvg_monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
 
 # Frequency and duration (ignored if monthly diagnostics on)
-timeAvg_freq="{AvgFreq}"
-timeAvg_dur="{AvgDur}"
+timeAvg_freq="${RUNDIR_HIST_TIME_AVG_FREQ}"
+timeAvg_dur="${RUNDIR_HIST_TIME_AVG_DUR}"
 
 # Time-averaged HISTORY.rc collections to auto-update
 timeAvg_collections=(SpeciesConc    \
@@ -183,8 +183,8 @@ timeAvg_collections=(SpeciesConc    \
 )
 
 # Instantaneous collection settings to auto-update (monthly diag does not apply)
-inst_freq="{InstFreq}"
-inst_dur="{InstDur}"
+inst_freq="${RUNDIR_HIST_INST_FREQ}"
+inst_dur="${RUNDIR_HIST_INST_DUR}"
 inst_collections=(ConcAboveSfc      \
 )
 # Set frequency and duration for time-averaged and instantaneous collections.

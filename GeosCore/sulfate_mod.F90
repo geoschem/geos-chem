@@ -4705,7 +4705,7 @@ CONTAINS
     ENDIF
 
     ! HCl lost [eq/timestep] converted back to [v/v/timestep]
-    IF ( id_HCl > 0 ) THEN
+    IF ( FullRun .and. id_HCl > 0 ) THEN
        HCl_ss = ( TITR_HCl * AIRMW / AD(I,J,L) ) / 1000.0_fp
        Spc(I,J,L,id_HCl) = MAX( HCl_vv - HCl_ss, MINDAT )
     ENDIF

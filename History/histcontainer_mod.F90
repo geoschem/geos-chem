@@ -1108,19 +1108,27 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year,   Month,   Day
-    INTEGER            :: Hour,   Minute,  Second
+    ! Scalars
+    INTEGER            :: IncYear,  IncMonth, IncDay, newYmd
+    INTEGER            :: Year,     Month,    Day
+    INTEGER            :: Hour,     Minute,   Second
+    REAL(f8)           :: extraIval
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    logical :: debug
+
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = &
+    RC        = GC_SUCCESS
+    newYmd    = 0
+    extraIval = 0.0_f8
+    ErrMsg    = ''
+    ThisLoc   = &
      ' -> at HistContainer_UpdateIvalSet (in History/histcontainer_mod.F90)'
+
+    ! Split the FileCloseYmd interval into constituent fields
+    CALL Ymd_Extract( Container%UpdateYmd, IncYear, IncMonth, IncDay )
 
     !=======================================================================
     ! Compute the interval for the "UpdateAlarm"
@@ -1139,6 +1147,17 @@ CONTAINS
                                  Year        = Year,                         &
                                  Month       = Month,                        &
                                  Increment   = Container%UpdateIvalSec      )
+
+       ! Update the alarm increment for additional months & days
+       IF ( IncMonth > 0 .or. IncDay > 0 ) THEN
+          newYmd = ( IncMonth * 100 ) + IncDay
+          CALL AlarmIncrementMonths( IntervalYmd = newYmd,                   &
+                                     Year        = Year,                     &
+                                     Month       = Month,                    &
+                                     Increment   = extraIval                )
+
+          Container%UpdateIvalSec = Container%UpdateIvalSec + extraIval
+       ENDIF
 
     ELSE IF ( Container%UpdateYmd <  001200  .and.                           &
               Container%UpdateYmd >= 000100 ) THEN
@@ -1223,19 +1242,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year,   Month,   Day
-    INTEGER            :: Hour,   Minute,  Second
+    INTEGER            :: IncYear,  IncMonth, IncDay, newYmd
+    INTEGER            :: Year,     Month,    Day
+    INTEGER            :: Hour,     Minute,   Second
+    REAL(f8)           :: extraIval
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = &
+    RC        = GC_SUCCESS
+    newYmd    = 0
+    extraIval = 0.0_f8
+    ErrMsg    = ''
+    ThisLoc   = &
     ' -> at HistContainer_FileCloseIvalSet (in History/histcontainer_mod.F90)'
+
+    ! Split the FileCloseYmd interval into constituent fields
+    CALL Ymd_Extract( Container%FileCloseYmd, IncYear, IncMonth, IncDay )
 
     !=======================================================================
     ! Compute the interval for the "FileCloseAlarm"
@@ -1254,6 +1280,17 @@ CONTAINS
                                  Year        = Year,                         &
                                  Month       = Month,                        &
                                  Increment   = Container%FileCloseIvalSec   )
+
+       ! Update the alarm increment for additional months & days
+       IF ( IncMonth > 0 .or. IncDay > 0 ) THEN
+          newYmd = ( IncMonth * 100 ) + IncDay
+          CALL AlarmIncrementMonths( IntervalYmd = newYmd,                   &
+                                     Year        = Year,                     &
+                                     Month       = Month,                    &
+                                     Increment   = extraIval                )
+
+          Container%FileCloseIvalSec = Container%FileCloseIvalSec + extraIval
+       ENDIF
 
     ELSE IF ( Container%FileCloseYmd <  001200  .and.                        &
               Container%FileCloseYmd >= 000100 ) THEN
@@ -1338,18 +1375,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Year,   Month,   Day
-    INTEGER            :: Hour,   Minute,  Second
+    INTEGER            :: IncYear,  IncMonth, IncDay, newYmd
+    INTEGER            :: Year,     Month,    Day
+    INTEGER            :: Hour,     Minute,   Second
+    REAL(f8)           :: extraIval
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = &
+    RC        = GC_SUCCESS
+    newYmd    = 0
+    extraIval = 0.0_f8
+    ErrMsg    = ''
+    ThisLoc   = &
     ' -> at HistContainer_FileWriteIvalSet (in History/histcontainer_mod.F90)'
+
+    ! Split the FileCloseYmd interval into constituent fields
+    CALL Ymd_Extract( Container%FileWriteYmd, IncYear, IncMonth, IncDay )
 
     !=======================================================================
     ! Compute the interval for the "FileWriteAlarm"
@@ -1368,6 +1413,17 @@ CONTAINS
                                  Year        = Year,                         &
                                  Month       = Month,                        &
                                  Increment   = Container%FileWriteIvalSec   )
+
+       ! Update the alarm increment for additional months & days
+       IF ( IncMonth > 0 .or. IncDay > 0 ) THEN
+          newYmd = ( IncMonth * 100 ) + IncDay
+          CALL AlarmIncrementMonths( IntervalYmd = newYmd,                   &
+                                     Year        = Year,                     &
+                                     Month       = Month,                    &
+                                     Increment   = extraIval                )
+
+          Container%FileWriteIvalSec = Container%FileWriteIvalSec + extraIval
+       ENDIF
 
     ELSE IF ( Container%FileWriteYmd <  001200  .and.                        &
               Container%FileWriteYmd >= 000100 ) THEN
@@ -1521,7 +1577,7 @@ CONTAINS
 ! !USES:
 !
     USE History_Util_Mod, ONLY : SECONDS_PER_DAY
-    USE Time_Mod,         ONLY : Its_A_Leapyear
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
@@ -1546,7 +1602,7 @@ CONTAINS
     LOGICAL :: FirstLeap
 
     ! Scalars
-    INTEGER :: nYears, T, M, YYYY
+    INTEGER :: ivalYears, ivalMonths, ivalDays, nYears, T, M, YYYY
 
     !=======================================================================
     ! AlarmIncrementYears begins here!
@@ -1556,6 +1612,9 @@ CONTAINS
     FirstLeap = .TRUE.
     Increment = 0.0_fp
     nYears    = IntervalYmd / 10000
+
+    ! Break the interval YYYYMMDD into its constituent values
+    CALL Ymd_Extract( IntervalYmd, ivalYears, ivalMonths, ivalDays )
 
     ! Loop over the requested # of years
     DO T = 0, nYears-1
@@ -1616,7 +1675,7 @@ CONTAINS
 ! !USES:
 !
     USE History_Util_Mod, ONLY : SECONDS_PER_DAY
-    USE Time_Mod,         ONLY : Its_A_Leapyear
+    USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
@@ -1637,7 +1696,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MM, nDays, nMonths, T, YYYY
+    INTEGER :: ivalYears, ivalMonths, ivalDays
+    INTEGER :: MM,        nDays,      nMonths
+    INTEGER :: T,         YYYY
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1655,10 +1716,14 @@ CONTAINS
     nMonths   = IntervalYmd / 100
     YYYY      = Year
 
+    ! Break the interval YYYMMDD into constituent values
+    CALL Ymd_Extract( IntervalYmd, ivalYears, ivalMonths, ivalDays )
+
     ! Loop over the requested # of months
     DO T = 0, nMonths-1
 
        ! Keep a running total of the number of days in the interval
+       ! (i.e. days corresponding to whole months)
        nDays = nDays + DpM(MM)
 
        ! Add the leap year day if necessary
@@ -1677,8 +1742,10 @@ CONTAINS
 
     ENDDO
 
-    ! Convert from days to seconds
-    Increment = DBLE( nDays ) * SECONDS_PER_DAY
+    ! Convert from days to seconds.  Also add the number of
+    ! days in the increment not corresponding to whole months
+    ! (e.g. for intervals of a month & a day, etc.)
+    Increment = DBLE( nDays + ivalDays ) * SECONDS_PER_DAY
 
   END SUBROUTINE AlarmIncrementMonths
 !EOC

@@ -246,6 +246,9 @@ def expand_restart_file_names(paths, args, run_info):
                 else:
                     remote_rst = root + rst["fullchem"]["remote"]
 
+            elif "mercury" in run_info["sim"]:
+                remote_rst = root + rst["mercury"]["remote"]
+
             elif "TransportTracers" in run_info["sim"]:
                 remote_rst = root + rst["transporttracers"]["remote"]
 

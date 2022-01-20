@@ -184,6 +184,24 @@ function update_config_files() {
     sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
 
     #------------------------------------------------------------------------
+    # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
+    #------------------------------------------------------------------------
+
+    if [[ -f ${root}/${runDir}/HEMCO_Config.rc.gmao_metfields ]]; then
+	# For all nested-grid rundirs, add a NA into the entries for met fields
+	if grep -q "025x03125" <<< "${runDir}"; then
+	    sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	fi
+	if grep -q "05x0625" <<< "${runDir}"; then
+	    sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	fi
+
+	# Other text replacements
+	sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+    fi
+
+    #------------------------------------------------------------------------
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
 
@@ -244,6 +262,12 @@ function cleanup_files() {
     #========================================================================
     if [[ "x${1}" != "x" ]]; then
 
+	# Exit if directory is already empty
+	if [[ ! $(ls -A ${1}) ]]; then
+	    echo "${1} is empty... nothing to clean up!"
+	    return 0
+	fi
+
 	# Give user a chance to avoid removing files
 	printf "\nRemoving files and directories in ${1}:\n"
 	printf "If this is OK, type 'yes to proceed or 'no' to quit:\n"
@@ -296,7 +320,7 @@ function gcclassic_exe_name() {
     exeFileName="gcclassic"
 
     # Append a suffix to the executable file name for specific directories
-    for suffix in apm bpch luowd rrtmg tomas15 tomas40; do
+    for suffix in apm bpch hg luowd rrtmg tomas15 tomas40; do
 	if [[ ${1} =~ ${suffix} ]]; then
 	    exeFileName+=".${suffix}"
 	    break
@@ -319,12 +343,12 @@ function gcclassic_config_options() {
     #========================================================================
 
     # Arguments
-    dir=${1}
+    dir=$(basename ${1})  # Only take last part of path
     baseOptions=${2}
 
     # Local variables
     exeFileName=$(gcclassic_exe_name ${dir})
-
+    
     # Turn on case-insensitivity
     shopt -s nocasematch
 
@@ -333,6 +357,8 @@ function gcclassic_config_options() {
 	options="${baseOptions} -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "bpch" ]]; then
 	options="${baseOptions} -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "hg" ]]; then
+	options="${baseOptions} -DMECH=Hg -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "luowd" ]]; then
 	options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
@@ -361,7 +387,7 @@ function gcclassic_compiletest_name() {
     #========================================================================
 
     # Arguments
-    dir=${1}
+    dir=$(basename ${1})   # Only take last part of path
 
     # Turn on case-insensitivity
     shopt -s nocasematch
@@ -373,6 +399,8 @@ function gcclassic_compiletest_name() {
 	result="GCClassic with BPCH diagnostics"
     elif [[ ${dir} =~ "luowd" ]]; then
 	result="GCClassic with Luo et al wetdep"
+    elif [[ ${dir} =~ "hg" ]]; then
+	result="GCClassic with Hg (as a KPP mechanism)"
     elif [[ ${dir} =~ "rrtmg" ]]; then
 	result="GCClassic with RRTMG"
     elif [[ ${dir} =~ "tomas15" ]]; then

@@ -66,8 +66,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
-  Restart.frequency:          'End',
-  Restart.duration:           'End',
+  Restart.frequency:          ${RUNDIR_HIST_INST_FREQ}
+  Restart.duration:           ${RUNDIR_HIST_INST_DUR}
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
                               'Chem_H2O2AfterChem             ',
@@ -112,8 +112,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.frequency:      {FREQUENCY}
-  SpeciesConc.duration:       {DURATION}
+  SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConc_?ALL?             ',
 ::
@@ -125,8 +125,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  AdvFluxVert.frequency:      {FREQUENCY}
-  AdvFluxVert.duration:       {DURATION}
+  AdvFluxVert.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  AdvFluxVert.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   AdvFluxVert.mode:           'time-averaged'
   AdvFluxVert.fields:         'AdvFluxVert_O3                 ',
 ::
@@ -138,8 +138,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry and aerosol-only simulations
 #==============================================================================
   AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  AerosolMass.frequency:      {FREQUENCY}
-  AerosolMass.duration:       {DURATION}
+  AerosolMass.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  AerosolMass.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   AerosolMass.mode:           'time-averaged'
   AerosolMass.fields:         'AerMassASOA                  ',
                               'AerMassBC                    ',
@@ -156,7 +156,8 @@ COLLECTIONS: 'Restart',
                               'AerMassSOAIE                 ',
                               'AerMassTSOA                  ',
                               'BetaNO                       ',
-                              'PM25                         ',
+			      'PM25                         ',
+                              'PM10                         ',
                               'TotalBiogenicOA              ',
                               'TotalOA                      ',
                               'TotalOC                      ',
@@ -169,8 +170,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry or aerosol-only simulations
 #==============================================================================
   Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  Aerosols.frequency:         {FREQUENCY}
-  Aerosols.duration:          {DURATION}
+  Aerosols.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Aerosols.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   Aerosols.mode:              'time-averaged'
   Aerosols.fields:            'AODDust                       ',
                               'AODDustWL1_?DUSTBIN?          ',
@@ -265,8 +266,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.frequency:    {FREQUENCY}
-  Budget.duration:     {DURATION}
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
   Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
                        'BudgetEmisDryDepTrop_?ADV?           ',
@@ -295,8 +296,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.frequency:    {FREQUENCY}
-  CloudConvFlux.duration:     {DURATION}
+  CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CloudConvFlux.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
 ::
@@ -313,8 +314,8 @@ COLLECTIONS: 'Restart',
 # (3) This collection is best used with mode "instantaneous".
 #==============================================================================
   ConcAboveSfc.template:      '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAboveSfc.frequency:     {FREQUENCY}
-  ConcAboveSfc.duration:      {DURATION}
+  ConcAboveSfc.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ConcAboveSfc.duration:      ${RUNDIR_HIST_TIME_AVG_DUR}
   ConcAboveSfc.mode:          'instantaneous'
   ConcAboveSfc.fields:        'DryDepRaALT1                  ',
                               'DryDepVelForALT1_?DRYALT?     ',
@@ -331,8 +332,8 @@ COLLECTIONS: 'Restart',
 # O1D, O3P: Availalbe for full-chemistry simulations using UCX mechanism
 #==============================================================================
   ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAfterChem.frequency:    {FREQUENCY}
-  ConcAfterChem.duration:     {DURATION}
+  ConcAfterChem.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ConcAfterChem.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   ConcAfterChem.mode:         'time-averaged'
   ConcAfterChem.fields:       'OHconcAfterChem               ',
                               'HO2concAfterChem              ',
@@ -347,8 +348,8 @@ COLLECTIONS: 'Restart',
 # Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  DryDep.frequency:           {FREQUENCY}
-  DryDep.duration:            {DURATION}
+  DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
+  DryDep.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   DryDep.mode:                'time-averaged'
   DryDep.fields:              'DryDep_?DRY?                  ',
                               'DryDepVel_?DRY?               ',
@@ -363,8 +364,8 @@ COLLECTIONS: 'Restart',
 # Available for all full-chemistry simulations
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
-  JValues.frequency:          {FREQUENCY}
-  JValues.duration:           {DURATION}
+  JValues.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
+  JValues.duration:           ${RUNDIR_HIST_TIME_AVG_DUR}
   JValues.mode:               'time-averaged'
   JValues.fields:             'Jval_?PHO?                    ',
                               'JvalO3O1D                     ',
@@ -381,8 +382,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry simulations (all variations)
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  KppDiags.frequency:         {FREQUENCY}
-  KppDiags.duration:          {DURATION}
+  KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppDiags.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   KppDiags.mode:              'time-averaged'
   KppDiags.fields:            'KppIntCounts                  ',
                               'KppJacCounts                  ',
@@ -401,8 +402,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   {FREQUENCY}
-  LevelEdgeDiags.duration:    {DURATION}
+  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
   LevelEdgeDiags.mode:        'time-averaged'
   LevelEdgeDiags.fields:      'Met_CMFMC                     ',
                               'Met_PEDGE                     ',
@@ -420,8 +421,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  ProdLoss.frequency:         {FREQUENCY}
-  ProdLoss.duration:          {DURATION}
+  ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   ProdLoss.mode:              'time-averaged'
   ProdLoss.fields:            'Prod_?PRD?                    ',
                               'ProdBCPIfromBCPO              ',
@@ -462,8 +463,8 @@ COLLECTIONS: 'Restart',
 # (4) Optics diagnostics have a reduced set of output species (no BASE, O3, ME)
 #==============================================================================
   RRTMG.template:             '%y4%m2%d2_%h2%n2z.nc4',
-  RRTMG.frequency:            {FREQUENCY}
-  RRTMG.duration:             {DURATION}
+  RRTMG.frequency:            ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RRTMG.duration:             ${RUNDIR_HIST_TIME_AVG_DUR}
   RRTMG.mode:                 'time-averaged'
   RRTMG.fields:               'RadClrSkyLWSurf_BASE   ',
                               'RadClrSkyLWSurf_O3     ',
@@ -523,8 +524,8 @@ COLLECTIONS: 'Restart',
 # Available for the fullchem simulations.
 #==============================================================================
   RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
-  RxnRates.frequency:  {FREQUENCY}
-  RxnRates.duration:   {DURATION}
+  RxnRates.frequency:  ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnRates.duration:   ${RUNDIR_HIST_TIME_AVG_DUR}
   RxnRates.mode:       'time-averaged'
   RxnRates.fields:     'RxnRate_EQ001                           ',
                        'RxnRate_EQ002                           ',
@@ -537,8 +538,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry and aerosols-only simulations
 #==============================================================================
   StateChm.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateChm.frequency:         {FREQUENCY}
-  StateChm.duration:          {DURATION}
+  StateChm.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateChm.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   StateChm.mode:              'time-averaged'
   StateChm.fields:            'Chem_IsorropAeropHAccum       ',
                               'Chem_IsorropAeropHCoarse      ',
@@ -571,8 +572,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet.frequency:         {FREQUENCY}
-  StateMet.duration:          {DURATION}
+  StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMet.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   StateMet.mode:              'time-averaged'
   StateMet.fields:            'Met_AD                        ',
                               'Met_AIRDEN                    ',
@@ -685,8 +686,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations that have soluble species
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.frequency:      {FREQUENCY}
-  WetLossConv.duration:       {DURATION}
+  WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossConv.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   WetLossConv.mode:           'time-averaged'
   WetLossConv.fields:         'WetLossConv_?WET?             ',
                               'WetLossConvFrac_?WET?         ',
@@ -700,8 +701,8 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # Loss due to rainout and washout (per deposited species)
   WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossLS.frequency:        {FREQUENCY}
-  WetLossLS.duration:         {DURATION}
+  WetLossLS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossLS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
   WetLossLS.mode:             'time-averaged'
   WetLossLS.fields:           'WetLossLS_?WET?               ',
 ::

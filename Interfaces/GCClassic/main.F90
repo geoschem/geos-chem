@@ -791,7 +791,7 @@ PROGRAM GEOS_Chem
   ! Moved here because some of the variables are used for non-local
   ! PBL mixing BEFORE the first call of the chemistry routines
   ! (ckeller, 05/19/14).
-  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
+  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM .OR. ITS_A_MERCURY_SIM ) THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 
      ! Trap potential errors
@@ -1240,20 +1240,20 @@ PROGRAM GEOS_Chem
 
           ! Read data required for Hg2 gas-particle partitioning
           ! (H Amos, 25 Oct 2011)
-          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
-             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
-                                         MONTH,     RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( prtDebug ) THEN
-                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
-             ENDIF
-          ENDIF
+!>>          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
+!>>             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
+!>>                                         MONTH,     RC )
+!>>
+!>>             ! Trap potential errors
+!>>             IF ( RC /= GC_SUCCESS ) THEN
+!>>                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
+!>>                CALL Error_Stop( ErrMsg, ThisLoc )
+!>>             ENDIF
+!>>
+!>>             IF ( prtDebug ) THEN
+!>>                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
+!>>             ENDIF
+!>>          ENDIF
        ENDIF
 
        ! Prescribe methane surface concentrations throughout PBL
@@ -2570,7 +2570,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! FAST-J is only used for fullchem and offline aerosol, skip otherwise
-    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  ) THEN
+    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  .or. ITS_A_MERCURY_SIM ) THEN
 
        ! Only execute this if we are doing chemistry
        ! and if it we are at a chemistry timestep
