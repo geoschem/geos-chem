@@ -198,7 +198,8 @@ CONTAINS
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(f4)               :: NOxTau, NOxConc, Vdotout(NVAR)
+    REAL(f4)               :: NOxTau, NOxConc
+    REAL(dp)               :: Vdotout(NVAR)
 #endif
 
     ! Objects
