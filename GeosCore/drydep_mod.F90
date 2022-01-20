@@ -424,7 +424,7 @@ CONTAINS
     !=================================================================
     !$OMP PARALLEL DO                                           &
     !$OMP DEFAULT( SHARED                                     ) &
-    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, S, A )
+    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -594,7 +594,7 @@ CONTAINS
 
        !$OMP PARALLEL DO                                           &
        !$OMP DEFAULT( SHARED                                     ) &
-       !$OMP PRIVATE( N, D, S, NDVZ )
+       !$OMP PRIVATE( D, S, N, A, NDVZ )
        DO D = 1, State_Chm%nDryDep
 
           ! Point to State_Chm%DryDepVel [m/s]

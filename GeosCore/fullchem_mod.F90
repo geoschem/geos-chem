@@ -196,9 +196,9 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
-    REAL(dp)               :: Vloc(NVAR), Aout(NREACT), Vdotout(NVAR)
+    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(f4)               :: NOxTau,     NOxConc
+    REAL(f4)               :: NOxTau, NOxConc, Vdotout(NVAR)
 #endif
 
     ! Objects
@@ -560,9 +560,9 @@ CONTAINS
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, Vdotout          )&
+    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC                   )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,   NOxConc                                        )&
+    !$OMP PRIVATE( NOxTau,   NOxConc,  Vdotout                              )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
@@ -892,7 +892,13 @@ CONTAINS
        ! See gckpp_Monitor.F90 for a list of chemical reactions
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate ) THEN
+#ifdef MODEL_GEOS
+          ! gckpp_Function.F90 function Fun must be modified to use optional
+          ! argument Vdotout if building with GEOS
           CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+#else
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+#endif
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
@@ -1234,6 +1240,8 @@ CONTAINS
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
        IF ( State_Diag%Archive_NoxTau ) THEN
+          ! gckpp_Function.F90 function Fun must be modified to use optional
+          ! argument Vdotout if building with GEOS
           CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
           NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
                  + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
