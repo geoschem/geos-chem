@@ -761,7 +761,7 @@ CONTAINS
                   CALL GetHcoValEmis ( Input_Opt, State_Grid, N, I, J, L, FND, TMP, SkipCheck=.true. )
 #ifdef MODEL_CLASSIC
                 ENDIF
-#endif          
+#endif
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -822,20 +822,30 @@ CONTAINS
              ENDIF
 
              ! Check for negative concentrations
-             ! KLUDGE: skip the warning message for CH4_SAB, which can be 
-             ! negative (it's a soil absorption flux).  The TagCH4 simulation
-             ! is not used regularly as of Feb 2021 -- fix this later if
-             ! need by. (bmy, 2/25/21)
              IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+#ifdef TOMAS
+                ! For TOMAS simulations only, look for negative and reset
+                ! to small positive.  This prevents the run from dying,
+                ! while we look for the root cause of the issue.
+                !  -- Betty Croft, Bob Yantosca (21 Jan 2022)
+                print *, 'Found negative ', N, State_Chm%Species(I,J,L,N)
+                State_Chm%Species(I,J,L,N) = 1e-26_fp
+#else
+
+                ! KLUDGE: skip the warning message for CH4_SAB, which can be
+                ! negative (it's a soil absorption flux).  The TagCH4
+                ! simulation is not used regularly as of Feb 2021 -- fix this
+                ! later if need by. (bmy, 2/25/21)
                 IF ( N /= id_CH4_SAB ) THEN
                  Print*, 'WARNING: Negative concentration for species ',     &
-                          TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L 
+                          TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
                  ErrorMsg = 'Negative species concentations encountered.' // &
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
-                            ' the transport time step.'  
+                            ' the transport time step.'
                  RC = GC_FAILURE
                 ENDIF
+#endif
              ENDIF
 
           ENDDO !L
@@ -885,7 +895,7 @@ CONTAINS
              ENDIF
 
              ! Check for negative concentrations
-             ! KLUDGE: skip the warning message for CH4_SAB, which can be 
+             ! KLUDGE: skip the warning message for CH4_SAB, which can be
              ! negative (it's a soil absorption flux).  The TagCH4 simulation
              ! is not used regularly as of Feb 2021 -- fix this later if
              ! need by. (bmy, 2/25/21)
@@ -893,11 +903,11 @@ CONTAINS
                 IF ( N /= id_CH4_SAB ) THEN
                  Print*, 'WARNING: Negative concentration for species ',     &
                          TRIM( State_Chm%SpcData(N)%Info%Name),              &
-                         ' at (I,J,L) = ', I, J, L 
+                         ' at (I,J,L) = ', I, J, L
                  ErrorMsg = 'Negative species concentations encountered.' // &
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
-                            ' the transport time step.'  
+                            ' the transport time step.'
                  RC = GC_FAILURE
                 ENDIF
              ENDIF
