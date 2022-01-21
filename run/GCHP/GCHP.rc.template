@@ -67,9 +67,8 @@ RECORD_REF_DATE: 20000101
 RECORD_REF_TIME: 000000
 
 # Chemistry/AEROSOL Model Restart Files
-# Enter +none for GCHPchem_INTERNAL_RESTART_FILE not use an initial restart file
 # -------------------------------------
-GCHPchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_${RUNDIR_SIM_NAME}.nc
+GCHPchem_INTERNAL_RESTART_FILE:     initial_GEOSChem_rst.c24_${RUNDIR_SIM_NAME}.nc
 GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
 GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
 GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4

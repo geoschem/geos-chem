@@ -409,8 +409,13 @@ do
 	# NOTE: We must now link restart files from v2021-09, since these will
 	# have extra species such as HMS, C2H2, C2H4, etc. (bmy, 9/23/21)
         #ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+        #
+        # UPDATE: We now link restarts from v2022-01. These are the v2021-09 
+        # restart files with explicit zero-arrays for variables that were 
+        # previously missing. This is because MAPL 2.12 removed the '+' 
+        # bootstrapping option.
 	#----------------------------------------------------------------------
-        ln -s ${restarts}/v2021-09/${src_name} ${rundir}/${target_name}
+        ln -s ${restarts}/v2022-01/${src_name} ${rundir}/${target_name}
     elif [[ ${sim_name} = "TransportTracers" ]]; then
         start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"

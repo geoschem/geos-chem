@@ -609,7 +609,7 @@ fi
 print_msg " "
 print_msg "Initial restart file:"
 print_msg "---------------------"
-replace_val GCHPchem_INTERNAL_RESTART_FILE "+${INITIAL_RESTART}" GCHP.rc
+replace_val GCHPchem_INTERNAL_RESTART_FILE "${INITIAL_RESTART}" GCHP.rc
 
 ### adjoint model phase
 replace_val MODEL_PHASE "FORWARD" GCHP.rc
