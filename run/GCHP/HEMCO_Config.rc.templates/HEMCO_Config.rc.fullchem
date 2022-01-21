@@ -104,8 +104,6 @@ Warnings:                    1
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
-#    - Note: The offline dust emissions are considered to be buggy. Until
-#      further notice online dust emissions are recommended.
 #   OFFLINE_BIOGENICVOC - MEGAN
 #    - Note: MEGAN must always be on for species not in OFFLINE_BIOGENICVOC
 #   OFFLINE_SEASALT     - SeaSalt
