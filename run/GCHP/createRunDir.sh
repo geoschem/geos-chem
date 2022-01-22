@@ -419,7 +419,7 @@ do
     elif [[ ${sim_name} = "TransportTracers" ]]; then
         start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+        ln -s ${restarts}/v2022-01/${src_name} ${rundir}/${target_name}
     fi
 done
 
