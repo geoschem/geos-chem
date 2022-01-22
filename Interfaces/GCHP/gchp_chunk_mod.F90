@@ -881,8 +881,12 @@ CONTAINS
     ! Pre-Run assignments
     !-------------------------------------------------------------------------
 
-    ! Zero out certain State_Diag arrays
-    CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+    ! Zero out certain State_Diag arrays. This should not be done in a phase 2
+    ! call since this can erase diagnostics filled during phase 1 (e.g., drydep) 
+    ! (ckeller, 1/21/2022).
+    IF ( Phase /= 2 ) THEN
+       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+    ENDIF
 
     ! Eventually initialize/reset wetdep
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
