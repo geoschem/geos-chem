@@ -210,10 +210,16 @@ inst_collections=(ConcAboveSfc      \
 #   (1) GEOS-Chem core: Set "Turn on debug printout?" to T in input.geos
 #   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
 #   (3) MAPL ExtData (handles GCHP inputs):
-#         - For root thread prints set CAP.EXTDATA logger option 'root_level'
-#           to DEBUG in run directory file logging.yml
-#         - For prints by all threads set CAP.EXTDATA logger option 'level' to
-#           DEBUG in run directory file logging.yml 
+#         - For root thread prints: 
+#              1. Open run directory file logging.yml
+#              2. Set CAP.EXTDATA logger option 'root_level' to DEBUG
+#              3. Run GCHP
+#              4. Check output file allPEs.log for error messages
+#         - For prints by all threads:
+#              1. Open run directory file logging.yml
+#              2. Set CAP.EXTDATA logger option 'level' to DEBUG
+#              3. Run GCHP
+#              4. Check output file allPEs.log for error messages
 #
 # WARNING: Turning on debug prints significantly slows down the model!
 #          Remember to turn back off before doing a long simulation.
@@ -541,15 +547,19 @@ replace_val NY            ${NY}                 GCHP.rc
 replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 
 #### If # cores exceeds 1000 then write restart via o-server
-if [ ${TOTAL_CORES} -gt 1000 ]; then
-   print_msg "WARNING: write restarts by o-server is enabled since >1000 cores"
+if [ ${TOTAL_CORES} -ge 1000 ]; then
+   print_msg "WARNING: write restarts by o-server is enabled since >=1000 cores"
    replace_val WRITE_RESTART_BY_OSERVER   YES   GCHP.rc
+else
+   print_msg "WARNING: write restarts by o-server is disabled since <1000 cores"
+   replace_val WRITE_RESTART_BY_OSERVER   NO    GCHP.rc
 fi
 
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
 ### needed for forward run, but we need it now
-sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'#Adjoint',/" HISTORY.rc
-sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'#SFEmissions',/" HISTORY.rc
+print_msg "Removing adjoint history collections"
+sed -i "s/^\([\t ]*\)'Adjoint',/\1#'Adjoint',/" HISTORY.rc
+sed -i "s/^\([\t ]*\)'SFEmissions',/\1#'SFEmissions',/" HISTORY.rc
 replace_val SFEmissions.backwards 0 HISTORY.rc
 sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
 

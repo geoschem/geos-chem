@@ -243,6 +243,9 @@ CONTAINS
     ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
     PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()/TS_EMIS )
 
+    ! Prevent denormal numbers (bmy, 01 Oct 2021)
+    PPROD = MAX( PPROD, 1.0e-30_fp )
+
     !-----------------------
     ! #1: Total P(O3)
     !-----------------------
@@ -525,10 +528,11 @@ CONTAINS
           ENDIF
 
           ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
+          ! Prevent denormal numbers (bmy, 01 Oct 2021
+          LL = 0.0_fp
           IF ( State_Met%InTroposphere(I,J,L) ) THEN
              LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
-          ELSE
-             LL = 0.0e+0_fp
+             LL = MAX( LL, 1.0e-30_fp )
           ENDIF
 
           !===========================================================
@@ -540,7 +544,11 @@ CONTAINS
           ! Production of tagged O3 species [kg/s]
           IF ( State_Diag%Archive_Prod ) THEN
              IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
-                State_Diag%Prod(I,J,L,N) = P24Hptr(I,J,L) * BOXVL / TS_EMIS
+                !-------------------------------------------------------------
+                ! This seems to cause a floating point exception error
+                !State_Diag%Prod(I,J,L,N) = P24Hptr(I,J,L) * BOXVL / TS_EMIS
+                !-------------------------------------------------------------
+                State_Diag%Prod(I,J,L,N) = PP(I,J,L,N) * BOXVL / TS_EMIS
              ENDIF
           ENDIF
 
@@ -554,6 +562,9 @@ CONTAINS
           ! Apply chemical P(O3) - L(O3) to each tagged species
           !===========================================================
           Spc(I,J,L,N) = Spc(I,J,L,N) + PP(I,J,L,N) - LL
+
+          ! Prevent denormal values (bmy, 10/1/21)
+          IF ( Spc(I,J,L,N) < 1.0e-30_fp ) Spc(I,J,L,N) = 0.0_fp
 
        ENDDO
        ENDDO

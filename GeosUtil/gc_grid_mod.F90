@@ -95,6 +95,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL  :: is_GMAO
     INTEGER  :: I, J, L, IG, JG
     REAL(fp) :: YEDGE_VAL, YSIN_VAL
     REAL(fp) :: SIN_N, SIN_S, SIN_DIFF
@@ -146,11 +147,16 @@ CONTAINS
     ENDIF
 
     ! Set maximum number of levels in the chemistry grid
-    IF ( Input_Opt%LUCX ) THEN
-       State_Grid%MaxChemLev  = State_Grid%MaxStratLev
-    ELSE
-       State_Grid%MaxChemLev  = State_Grid%MaxTropLev
-    ENDIF
+    State_Grid%MaxChemLev  = State_Grid%MaxStratLev
+
+    ! Set a flag to denote if this is a GMAO met field
+    ! (which has half-sized polar grid boxes)
+    SELECT CASE( TRIM( Input_Opt%MetField ) )
+       CASE( 'MERRA2', 'GEOSFP' )
+          is_GMAO = .TRUE.
+       CASE DEFAULT
+          is_GMAO = .FALSE.
+    END SELECT
 
     !======================================================================
     ! Global Horizontal Grid
@@ -162,7 +168,7 @@ CONTAINS
 
     ! Compute number of grid boxes on global grid
     State_Grid%GlobalNX =   360.0_fp / State_Grid%DX
-    IF ( State_Grid%HalfPolar ) THEN
+    IF ( State_Grid%HalfPolar .or. is_GMAO ) THEN
        State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY ) + 1
     ELSE
        State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY )
@@ -198,44 +204,76 @@ CONTAINS
     State_Grid%GlobalYEdge = 0e+0_fp
 
     !======================================================================
-    ! Global Horizontal Grid
+    ! Global Horizontal Grid: Edges
     !======================================================================
     DO J = 1, State_Grid%GlobalNY
     DO I = 1, State_Grid%GlobalNX
 
-      IF ( J == 1 ) THEN
-         State_Grid%GlobalYEdge(I,J) = -90.0
-      ELSE
-         IF ( State_Grid%HalfPolar ) THEN
-            State_Grid%GlobalYEdge(I,J) = -90.0 - State_Grid%DY/2.0 + State_Grid%DY*(J-1)  
-         ELSE
-            State_Grid%GlobalYEdge(I,J) = -90.0 + State_Grid%DY*(J-1)  
-         ENDIF
-         IF ( J == State_Grid%GlobalNY ) THEN
-            State_Grid%GlobalYEdge(I,J+1) = 90.0
-         ENDIF
-      ENDIF
+       ! Latitude edges
+       IF ( J == 1 ) THEN
 
-      IF ( I == 1 ) THEN
-         IF ( State_Grid%Center180 ) THEN
-            State_Grid%GlobalXEdge(I,J) = -180.0 - State_Grid%DX / 2.0
-         ELSE
-            State_Grid%GlobalXEdge(I,J) = -180.0 
-         ENDIF
-      ELSE
-         State_Grid%GlobalXEdge(I,J) = State_Grid%GlobalXEdge(1,J) + State_Grid%DX * ( I - 1 )
-         IF ( I == State_Grid%GlobalNX ) THEN
-            State_Grid%GlobalXEdge(I+1,J) = State_Grid%GlobalXEdge(1,J) + 360.0
-         ENDIF
-      ENDIF
+          ! South Pole
+          State_Grid%GlobalYEdge(I,J) = -90.0_fp
+
+       ELSE
+
+          IF ( State_Grid%HalfPolar .or. is_GMAO ) THEN
+             State_Grid%GlobalYEdge(I,J) = -90.0_fp                          &
+                                         - ( State_Grid%DY * 0.5_fp    )     &
+                                         + ( State_Grid%DY * ( J - 1 ) )
+          ELSE
+             State_Grid%GlobalYEdge(I,J) = -90.0_fp                          &
+                                         + ( State_Grid%DY * ( J - 1 ) )
+          ENDIF
+
+          IF ( J == State_Grid%GlobalNY ) THEN
+
+             ! North pole
+             State_Grid%GlobalYEdge(I,J+1) = +90.0_fp
+
+          ENDIF
+
+       ENDIF
+
+       ! Longitude edges
+       IF ( I == 1 ) THEN
+
+          IF ( State_Grid%Center180 ) THEN
+             State_Grid%GlobalXEdge(I,J) = -180.0_fp                         &
+                                         - ( State_Grid%DX * 0.5_fp )
+          ELSE
+             State_Grid%GlobalXEdge(I,J) = -180.0_fp
+          ENDIF
+
+       ELSE
+
+          State_Grid%GlobalXEdge(I,J) = State_Grid%GlobalXEdge(1,J)          &
+                                      + ( State_Grid%DX * ( I - 1 ) )
+
+          IF ( I == State_Grid%GlobalNX ) THEN
+             State_Grid%GlobalXEdge(I+1,J) = State_Grid%GlobalXEdge(1,J)     &
+                                           + 360.0_fp
+          ENDIF
+
+       ENDIF
 
     ENDDO
     ENDDO
 
+    !======================================================================
+    ! Global Horizontal Grid: Centers
+    !======================================================================
     DO J = 1, State_Grid%GlobalNY
     DO I = 1, State_Grid%GlobalNX
-       State_Grid%GlobalYMid(I,J) = 0.5 * ( State_Grid%GlobalYEdge(I,J) + State_Grid%GlobalYEdge(I,J+1) )
-       State_Grid%GlobalXMid(I,J) = 0.5 * ( State_Grid%GlobalXEdge(I,J) + State_Grid%GlobalXEdge(I+1,J) )
+
+       ! Latitude centers
+       State_Grid%GlobalYMid(I,J) = 0.5_fp *                                 &
+            ( State_Grid%GlobalYEdge(I,J) + State_Grid%GlobalYEdge(I,J+1) )
+
+       ! Longitude centers
+       State_Grid%GlobalXMid(I,J) = 0.5_fp *                                 &
+            ( State_Grid%GlobalXEdge(I,J) + State_Grid%GlobalXEdge(I+1,J) )
+
     ENDDO
     ENDDO
 
@@ -286,22 +324,22 @@ CONTAINS
        !--------------------------------
        ! Longitude centers [degrees]
        !--------------------------------
-       State_Grid%XMid(I,J) = State_Grid%GlobalXMid( IG, JG ) 
+       State_Grid%XMid(I,J) = State_Grid%GlobalXMid( IG, JG )
 
        !--------------------------------
        ! Longitude edges [degrees]
        !--------------------------------
-       State_Grid%XEdge(I,J) = State_Grid%GlobalXEdge( IG, JG)
+       State_Grid%XEdge(I,J) = State_Grid%GlobalXEdge( IG, JG )
 
        ! Compute the last longitude edge
        IF ( I == State_Grid%NX ) THEN
-          State_Grid%XEdge(I+1,J) = State_Grid%GlobalXEdge(I+1,J)
+          State_Grid%XEdge(I+1,J) = State_Grid%GlobalXEdge(IG+1,J)
        ENDIF
 
        !--------------------------------
        ! Latitude centers [degrees]
        !--------------------------------
-       State_Grid%YMid(I,J) = State_Grid%GlobalYMid( IG, JG ) 
+       State_Grid%YMid(I,J) = State_Grid%GlobalYMid( IG, JG )
 
        !--------------------------------
        ! Latitude centers [radians]
@@ -311,7 +349,7 @@ CONTAINS
        !-----------------------------------------
        ! Latitude edges [degrees; rad; sin(lat)]
        !-----------------------------------------
-       State_Grid%YEdge(I,J)   = State_Grid%GlobalYEdge( IG, JG ) 
+       State_Grid%YEdge(I,J)   = State_Grid%GlobalYEdge( IG, JG )
        State_Grid%YEdge_R(I,J) = ( PI_180  * State_Grid%YEdge(I,J) )
        State_Grid%YSIN(I,J)    = SIN( State_Grid%YEdge_R(I,J) )
 
@@ -425,11 +463,11 @@ CONTAINS
        WRITE( 6, '(''%%%%%%%%%%%%%%% GLOBAL GRID %%%%%%%%%%%%%%%'')' )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%GlobalXMid(I,1), &
+       WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid%GlobalXMid(I,1), &
                                     I=1,State_Grid%GlobalNX )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%GlobalYMid(1,J), &
+       WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid%GlobalYMid(1,J), &
                                     J=1,State_Grid%GlobalNY )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''%%%%%%%%%%%% USER-DEFINED GRID %%%%%%%%%%%%'')' )
@@ -441,19 +479,19 @@ CONTAINS
        WRITE( 6, '(a)' )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XMid(I,1), I=1,State_Grid%NX )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%XMid(I,1), I=1,State_Grid%NX )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XEdge(I,1), I=1,State_Grid%NX+1 )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%XEdge(I,1), I=1,State_Grid%NX+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YMid(1,J), J=1,State_Grid%NY )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%YMid(1,J), J=1,State_Grid%NY )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YEdge(1,J), J=1,State_Grid%NY+1 )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%YEdge(1,J), J=1,State_Grid%NY+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''SIN( grid box latitude edges )'')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YSIN(1,J), J=1,State_Grid%NY+1 )
+       WRITE( 6, '(7(f10.5,1x))') ( State_Grid%YSIN(1,J), J=1,State_Grid%NY+1 )
     ENDIF
 
   END SUBROUTINE Compute_Grid
@@ -465,14 +503,16 @@ CONTAINS
 !
 ! !IROUTINE: Compute_Scaled_Grid
 !
-! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid State
-!  object ("Destination") by performing a linear scaling refinement of the primary
-!  ("Source") Grid. e.g. a scale of 2 will yield 2 x 2.5 -> 1 x 1.25.
+! !DESCRIPTION: Subroutine COMPUTE\_SCALED\_GRID populates a secondary Grid
+!  State object ("Destination") by performing a linear scaling refinement
+!  of the primary ("Source") Grid. e.g. a scale of 2 will yield
+!  2 x 2.5 -> 1 x 1.25.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Scaled_Grid( Input_Opt, State_Grid, State_Grid_Dst, XScale, YScale, RC )
+  SUBROUTINE Compute_Scaled_Grid( Input_Opt, State_Grid, State_Grid_Dst,      &
+                                  XScale,    YScale,      RC                 )
 !
 ! !USES:
 !
@@ -482,14 +522,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt       ! Input Options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(GrdState), INTENT(IN   ) :: State_Grid        ! Grid State object, orig
-    TYPE(GrdState), INTENT(INOUT) :: State_Grid_Dst    ! Grid State object, scaled
-    INTEGER,        INTENT(IN   ) :: XScale            ! Long dimension scale (>=1)
-    INTEGER,        INTENT(IN   ) :: YScale            ! Lat  dimension scale (>=1)
+    TYPE(GrdState), INTENT(IN   ) :: State_Grid      ! Grid State object, orig
+    TYPE(GrdState), INTENT(INOUT) :: State_Grid_Dst  ! Grid State object, scaled
+    INTEGER,        INTENT(IN   ) :: XScale          ! Long dim scale (>=1)
+    INTEGER,        INTENT(IN   ) :: YScale          ! Lat  dim scale (>=1)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -626,19 +666,19 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
       WRITE( 6, '(''%%%%%%%%%%%%%%% SCALED (HEMCO) GRID %%%%%%%%%%%%%%%'')' )
       WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%XMid(I,1), I=1,State_Grid_Dst%NX )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%XMid(I,1), I=1,State_Grid_Dst%NX )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%XEdge(I,1), I=1,State_Grid_Dst%NX+1 )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%XEdge(I,1), I=1,State_Grid_Dst%NX+1 )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YMid(1,J), J=1,State_Grid_Dst%NY )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%YMid(1,J), J=1,State_Grid_Dst%NY )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YEdge(1,J), J=1,State_Grid_Dst%NY+1 )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%YEdge(1,J), J=1,State_Grid_Dst%NY+1 )
       WRITE( 6, '(a)' )
       WRITE( 6, '(''SIN( grid box latitude edges )'')' )
-      WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid_Dst%YSIN(1,J), J=1,State_Grid_Dst%NY+1 )
+      WRITE( 6, '(7(f10.5,1x))' ) ( State_Grid_Dst%YSIN(1,J), J=1,State_Grid_Dst%NY+1 )
     ENDIF
   END SUBROUTINE Compute_Scaled_Grid
 !EOC

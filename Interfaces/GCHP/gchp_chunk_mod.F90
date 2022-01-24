@@ -76,6 +76,7 @@ CONTAINS
     USE HCO_Types_Mod,           ONLY : ConfigObj
     USE Input_Mod,               ONLY : Read_Input_File
     USE Input_Opt_Mod,           ONLY : OptInput, Set_Input_Opt
+    USE Linear_Chem_Mod,         ONLY : Init_Linear_Chem
     USE Linoz_Mod,               ONLY : Linoz_Read
     USE PhysConstants,           ONLY : PI_180
     USE Pressure_Mod,            ONLY : Init_Pressure
@@ -84,7 +85,6 @@ CONTAINS
     USE State_Diag_Mod,          ONLY : DgnState
     USE State_Grid_Mod,          ONLY : GrdState, Init_State_Grid
     USE State_Met_Mod,           ONLY : MetState
-    USE Strat_Chem_Mod,          ONLY : Init_Strat_Chem
 !#if defined( MODEL_GEOS )
 !    USE Tendencies_Mod,          ONLY : TEND_INIT
 !#endif
@@ -199,11 +199,7 @@ CONTAINS
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Grid')
 
     ! Set maximum number of levels in the chemistry grid
-    IF ( Input_Opt%LUCX ) THEN
-       State_Grid%MaxChemLev  = State_Grid%MaxStratLev
-    ELSE
-       State_Grid%MaxChemLev  = State_Grid%MaxTropLev
-    ENDIF
+    State_Grid%MaxChemLev  = State_Grid%MaxStratLev
 
     ! In the ESMF/MPI environment, we can get the total overhead ozone
     ! either from the met fields (GCHPsa) or from the Import State (GEOS-5)
@@ -285,7 +281,7 @@ CONTAINS
     ENDIF
 
 
-    if (.not. FD_STEP == -1 .and. input_opt%IS_ADJOINT) THEN
+    if (.not. FD_STEP == -1 .or. input_opt%IS_ADJOINT) THEN
        Input_Opt%FD_STEP = FD_STEP
 
        call ESMF_ConfigGetAttribute(CF, FD_SPEC, &
@@ -536,21 +532,16 @@ CONTAINS
                          HcoConfig=HcoConfig )
     _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_INIT')
 
-    ! Stratosphere - can't be initialized without HEMCO because of STATE_PSC
-    IF ( Input_Opt%LUCX ) THEN
-
-       ! Initialize stratospheric routines
-       CALL INIT_UCX( Input_Opt, State_Chm, State_Diag, State_Grid )
-
-    ENDIF
+    ! Initialize UCX routines
+    CALL INIT_UCX( Input_Opt, State_Chm, State_Diag, State_Grid )
 
 #if defined( MODEL_GEOS )
-    ! Keep commented out line with LLSTRAT as a GEOS-5 option reminder
-    !IF ( Input_Opt%LSCHEM .AND. Input_Opt%LLSTRAT < value_LM ) THEN
+    ! Keep commented out line as a GEOS-5 option reminder
+    !IF ( Input_Opt%LINEAR_CHEM .AND. Input_Opt%LLSTRAT < value_LM ) THEN
 #endif
-     IF ( Input_Opt%LSCHEM ) THEN
-       CALL INIT_STRAT_CHEM( Input_Opt, State_Chm, State_Met, State_Grid, RC )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_STRAT_CHEM')
+     IF ( Input_Opt%LINEAR_CHEM ) THEN
+       CALL INIT_LINEAR_CHEM( Input_Opt, State_Chm, State_Met, State_Grid, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_LINEAR_CHEM')
     ENDIF
 
     !-------------------------------------------------------------------------
@@ -647,6 +638,7 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
 #ifdef ADJOINT
+    USE PhysConstants,      ONLY : AIRMW
     USE Diagnostics_Mod,    ONLY :  Set_SpcAdj_Diagnostic
 #endif
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
@@ -916,8 +908,9 @@ CONTAINS
     CALL Compute_XLAI( Input_Opt, State_Grid, State_Met, RC )
 
     ! Set the pressure at level edges [hPa] from the ESMF environment
-    CALL Accept_External_Pedge( State_Met = State_Met,  &
-                                RC        = RC         )
+    CALL Accept_External_Pedge( State_Met  = State_Met,   &
+                                State_Grid = State_Grid,  &
+                                RC         = RC          )
 
     ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 1 )
@@ -991,10 +984,9 @@ CONTAINS
        IF ( FIRST .OR. FrstRewind ) THEN
           Input_Opt%LSETH2O = LSETH2O_orig
        ENDIF
-       IF ( Input_Opt%LSETH2O .OR. .NOT. Input_Opt%LUCX .OR. &
-            Input_Opt%AlwaysSetH2O ) THEN
+       IF ( Input_Opt%LSETH2O .OR. Input_Opt%AlwaysSetH2O ) THEN
 #else
-       IF ( Input_Opt%LSETH2O .OR. .NOT. Input_Opt%LUCX ) THEN
+       IF ( Input_Opt%LSETH2O ) THEN
 #endif
           SetStratH2O = .TRUE.
        ENDIF
@@ -1002,8 +994,8 @@ CONTAINS
                           State_Grid,  State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_H2O_TRAC')
 
-      ! Only force strat once if using UCX
-       IF (Input_Opt%LSETH2O) Input_Opt%LSETH2O = .FALSE.
+      ! Only force strat once
+       IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
     ENDIF
 
 #if defined( MODEL_GEOS )
@@ -1324,7 +1316,7 @@ CONTAINS
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected
        IF ( IND_('H2O','A') > 0 ) THEN
-          CALL SET_H2O_TRAC( (.not. Input_Opt%LUCX), Input_Opt, &
+          CALL SET_H2O_TRAC( .FALSE., Input_Opt, &
                              State_Chm, State_Grid, State_Met, RC )
        ENDIF
 #endif
@@ -1423,7 +1415,7 @@ CONTAINS
        !
        ! RRTMG outputs (scheduled in HISTORY.rc):
        !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
-       !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+       !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST
        !
        ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
        ! to how it is populated from HISTORY.rc diaglist_mod.F90.
@@ -1510,16 +1502,6 @@ CONTAINS
        _ASSERT(RC==GC_SUCCESS, 'Error calling Set_AerMass_Diagnostic')
     ENDIF
 
-    CALL MAPL_TimerOff( STATE, 'GC_DIAGN' )
-    if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Diagnostics done!'
-
-    !=======================================================================
-    ! Convert State_Chm%Species units
-    !=======================================================================
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
-
 #if defined( MODEL_GEOS )
     ! Save specific humidity and dry air mass for total mixing ratio
     ! adjustment in next timestep, if needed (ewl, 11/8/18)
@@ -1546,7 +1528,9 @@ CONTAINS
           ! Find the non-adjoint variable or this
           TRACNAME = ThisSpc%Name
 
-          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(:,:,:,N)
+          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(:,:,:,N) * &
+               ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+
           if (Input_Opt%IS_FD_SPOT_THIS_PET .and. Input_Opt%IFD > 0) THEN
              write(*,*) 'After conversion ',  &
                   State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,N)
@@ -1558,6 +1542,15 @@ CONTAINS
     ENDIF
 #endif
 
+    CALL MAPL_TimerOff( STATE, 'GC_DIAGN' )
+    if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Diagnostics done!'
+
+    !=======================================================================
+    ! Convert State_Chm%Species units
+    !=======================================================================
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             OrigUnit, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
     ! Clean up

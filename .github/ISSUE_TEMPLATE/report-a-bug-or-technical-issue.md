@@ -6,6 +6,10 @@ labels: bug
 assignees: ''
 
 ---
+
+### What institution are you from?
+Please tell us what institution you are from.
+
 ### Description of the problem
 Describe your problem here.  Describe the steps to reproduce the problem here, if possible.
 

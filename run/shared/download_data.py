@@ -37,6 +37,7 @@ Remarks:
 import os
 import sys
 import subprocess
+import yaml
 
 # Exit with error if we are not using Python3
 assert sys.version_info.major >= 3, \
@@ -47,27 +48,27 @@ INPUT_GEOS_FILE = "./input.geos"
 DATA_DOWNLOAD_SCRIPT = "./auto_generated_download_script.sh"
 
 
-def extract_pathnames_from_log(dryrun_log):
+def extract_pathnames_from_log(args):
     """
     Returns a list of pathnames from a GEOS-Chem log file.
 
     Args:
     -----
-        dryrun_log : str
-            GEOS-Chem or HEMCO-standalone log file with dry-run output.
+    args : dict
+        Contains output from function parse_args.
 
     Returns:
     --------
-        paths : dict
-            paths["comments"]: Dry-run comment lines.
-            paths["found"] : List of file paths found on disk.
-            paths["missing"]: List of file paths that are missing.
-            paths["local_prefix"]: Local data directory root.
+    paths : dict
+        paths["comments"]: Dry-run comment lines.
+        paths["found"] : List of file paths found on disk.
+        paths["missing"]: List of file paths that are missing.
+        paths["local_prefix"]: Local data directory root.
 
     Author:
     -------
-        Jiawei Zhuang (jiaweizhuang@g.harvard.edu)
-        Modified by Bob Yantosca (yantosca@seas.harvard.edu)
+    Jiawei Zhuang (jiaweizhuang@g.harvard.edu)
+    Modified by Bob Yantosca (yantosca@seas.harvard.edu)
     """
 
     # Initialization
@@ -75,12 +76,14 @@ def extract_pathnames_from_log(dryrun_log):
                 "!!! LIST OF (UNIQUE) FILES REQUIRED FOR THE SIMULATION"]
     data_found = set()
     data_missing = set()
+    dryrun_log = args["dryrun_log"]
 
     # Open file (or die with error)
     try:
         f = open(dryrun_log, "r")
     except FileNotFoundError:
-        raise FileNotFoundError("Could not find file {}".format(dryrun_log))
+        msg = "Could not find file " + dryrun_log
+        raise FileNotFoundError(msg)
 
     # Read data from the file line by line.
     # Add file paths to the data_list set.
@@ -135,8 +138,14 @@ def extract_pathnames_from_log(dryrun_log):
     # Close file and return
     # The "sorted" command will return unique values
     f.close()
-    return {"comments": comments, "found": found,
-            "missing": missing, "local_prefix": local_prefix}
+
+    paths = {
+        "comments": comments,
+        "found": found,
+        "missing": missing,
+        "local_prefix": local_prefix
+    }
+    return paths
 
 
 def get_run_info():
@@ -145,9 +154,9 @@ def get_run_info():
 
     Returns:
     -------
-        run_info : dict of str
-            Contains the GEOS-Chem run parameters: start_date,
-            start_time, end_date, end_time, met, grid, and sim.
+    run_info : dict
+        Contains the GEOS-Chem run parameters: start_date,
+        start_time, end_date, end_time, met, grid, and sim.
     """
     run_info = {}
     run_info["nest"] = ""
@@ -194,12 +203,13 @@ def get_run_info():
                     run_info["tomas40"] = True
             f.close()
     except FileNotFoundError:
-        raise FileNotFoundError("Could not open {}".format(INPUT_GEOS_FILE))
+        msg = "Could not open " + INPUT_GEOS_FILE
+        raise FileNotFoundError(msg)
 
     return run_info
 
 
-def expand_restart_file_names(paths, run_info):
+def expand_restart_file_names(paths, args, run_info):
     """
     Tests if the GEOS-Chem restart file is a symbolic link to
     ExtData.  If so, will append the link to the remote file
@@ -207,93 +217,66 @@ def expand_restart_file_names(paths, run_info):
 
     Args:
     ----
-        paths : dict
-            Output of function extract_pathnames_from_log.
-
-        run_info : dict
-            Output of function get_run_info.
+    paths : dict
+        Contains output from function extract_pathnames_from_log.
+    args : dict
+        Contains output from function parse_args.
+    run_info : dict
+        Contains output from function get_run_info.
     """
-    prefix = ""
+    remote_rst = ""
+    rst = args["config"]["restarts"]
 
-    # Get the prefix to ExtData
+    # ------------------------------------------------------------------
+    # Get the full name of the restart file in ExtData
+    # ------------------------------------------------------------------
     for path in paths["found"] + paths["missing"]:
         if "ExtData" in path:
             index = path.find("ExtData")+8
+            root = path[0:index] + rst["root"]
 
-            # Fullchem simulations use restarts from benchmarks (GC_13.0.0)
-            # but TOMAS simulations use restarts from v2020-02
-            if "fullchem" in run_info["sim"]:
-                if run_info["tomas15"] is True or run_info["tomas40"] is True:
-                    prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2020-02/"
+            if "aerosol" in run_info["sim"]:
+                remote_rst = root + rst["aerosol"]["remote"]
+
+            elif "fullchem" in run_info["sim"]:
+                if run_info["tomas15"] is True:
+                    remote_rst = root + rst["tomas15"]["remote"]
+                elif run_info["tomas40"] is True:
+                    remote_rst = root + rst["tomas40"]["remote"]
                 else:
-                    prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
-                break
+                    remote_rst = root + rst["fullchem"]["remote"]
 
-            # TransportTracers sims use restarts from benchmarks (GC_13.0.0)
             elif "TransportTracers" in run_info["sim"]:
-                prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
-                break
+                remote_rst = root + rst["transporttracers"]["remote"]
 
-            elif "aerosol" in run_info["sim"]:
-                prefix = path[0:index] + "GEOSCHEM_RESTARTS/GC_13.0.0/"
-                break
-
-            # All other simulations use restarts from v2020-02
             else:
-                prefix = path[0:index] + "GEOSCHEM_RESTARTS/v2020-02/"
+                remote_rst = root + rst["other"]["remote"]
 
-    # Search for the restart file name in the found files
-    new_list = []
-
-    # Suffix string (takes into account nested grids)
+    # Append a suffix string (e.g. for nested grids) if necessary
     if run_info["nest"] == "":
         suffix = "{}.nc".format(run_info["sim"])
     else:
         suffix = "{}_{}.nc".format(run_info["sim"], run_info["nest"])
+    remote_rst = remote_rst.replace("@SUFFIX@", suffix)
 
+    # ------------------------------------------------------------------
+    # Search for the restart file name in the found files
+    # ------------------------------------------------------------------
+    new_list = []
     for path in paths["found"]:
         if "GEOSChem.Restart" in path:
-            if "fullchem" in run_info["sim"]:
-                if run_info["tomas15"] is True:
-                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS15.nc"
-                elif run_info["tomas40"] is True:
-                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS40.nc"
-                else:
-                    realpath = prefix + \
-                        "GEOSChem.Restart.fullchem.20190701_0000z.nc4"
-            elif "TransportTracers" in run_info["sim"]:
-                realpath = prefix + \
-                    "GEOSChem.Restart.TransportTracers.20190101_0000z.nc4"
-            elif "aerosol" in run_info["sim"]:
-                    realpath = prefix + \
-                        "GEOSChem.Restart.fullchem.20190101_0000z.nc4"
-            else:
-                realpath = prefix + "initial_GEOSChem_rst.2x25_" + suffix
-            path = path + " --> " + realpath
+            path = path + " --> " + remote_rst
+
         new_list.append(path)
     paths["found"] = sorted(new_list)
 
+    # ------------------------------------------------------------------
     # Search for the restart file name in the missing files
+    # ------------------------------------------------------------------
     new_list = []
     for path in paths["missing"]:
         if "GEOSChem.Restart" in path:
-            if "fullchem" in run_info["sim"]:
-                if run_info["tomas15"] is True:
-                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS15.nc"
-                elif run_info["tomas40"] is True:
-                    realpath = prefix + "initial_GEOSChem_rst.4x5_TOMAS40.nc"
-                else:
-                    realpath = prefix + \
-                        "GEOSChem.Restart.fullchem.20190701_0000z.nc4"
-            elif "TransportTracers" in run_info["sim"]:
-                realpath = prefix + \
-                    "GEOSChem.Restart.TransportTracers.20190101_0000z.nc4"
-            elif "aerosol" in run_info["sim"]:
-                    realpath = prefix + \
-                        "GEOSChem.Restart.fullchem.20190101_0000z.nc4"
-            else:
-                realpath = prefix + "initial_GEOSChem_rst.2x25_" + suffix
-            path = path + " --> " + realpath
+            path = path + " --> " + remote_rst
         new_list.append(path)
     paths["missing"] = sorted(new_list)
 
@@ -308,7 +291,7 @@ def write_unique_paths(paths, unique_log):
     Args:
     -----
         paths : dict
-            Output of function extract_pathnames_from_log.
+            Contains output from function extract_pathnames_from_log.
 
         unique_log : str
             Log file that will hold unique data paths.
@@ -330,7 +313,7 @@ def write_unique_paths(paths, unique_log):
         raise FileNotFoundError("Could not write {}".format(unique_log))
 
 
-def create_download_script(paths, from_aws=False):
+def create_download_script(paths, args):
     """
     Creates a data download script to obtain missing files
     from the ComputeCanada data archive (default), or the
@@ -338,25 +321,21 @@ def create_download_script(paths, from_aws=False):
 
     Args:
     -----
-        paths : dict
-            Output of function extract_pathnames_from_log.
-
-        from_aws : bool
-            If True, download from AWS s3://gcgrid.
-            If False, download from ComputeCanada (default).
+    paths : dict
+        Contains output from function extract_pathnames_from_log.
+    args : dict
+        Contains output from function parse_args.
     """
 
-    # Define variables to create data download commands
-    # for either ComputeCanada or AWS
-    if from_aws:
-        cmd_prefix = "aws s3 cp --request-payer=requester "
-        remote_root = "s3://gcgrid"
-        quote = ""
-    else:
-        cmd_prefix = 'wget -r -np -nH -R "*.html" -N -P ' +  \
-                     paths["local_prefix"] + " "
-        remote_root = "http://geoschemdata.computecanada.ca/ExtData"
-        quote = '"'
+    # Extract mirror parameters
+    mirror_name = args["mirror"]
+    mirror = args["config"]["mirrors"][mirror_name]
+    is_s3_bucket = mirror["s3_bucket"]
+    remote_root = mirror["remote"]
+    quote = mirror["quote"]
+    cmd_prefix = mirror["command"]
+    if "@PATH@" in cmd_prefix:
+        cmd_prefix = cmd_prefix.replace("@PATH@", paths["local_prefix"])
 
     # Create the data download script
     with open(DATA_DOWNLOAD_SCRIPT, "w") as f:
@@ -383,16 +362,15 @@ def create_download_script(paths, from_aws=False):
                 extdata = remote_rst[:index2]
                 remote_rst = remote_root + remote_rst[index2:]
                 cmd = cmd_prefix + quote + remote_rst + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + prefix
                 print(cmd, file=f)
                 print(file=f)
 
                 # If the file does not exist in the run directory,
                 # then copy it from the restart folder.
-                # This only has to be done from Compute Canada,
-                # since AWS will download directly to the rundir
-                if not from_aws:
+                # This only has to be done if not using the amazon mirror.
+                if not is_s3_bucket:
                     if not os.path.exists(local_rst):
                         index3 = remote_rst.find("GEOSCHEM_RESTARTS")
                         rst = os.path.join(extdata, remote_rst[index3:])
@@ -412,7 +390,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("IPMN", "PMN")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -433,7 +411,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("NPMN", "PMN")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -455,7 +433,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("RIPA", "RIP")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -477,7 +455,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("RIPB", "RIP")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -499,7 +477,7 @@ def create_download_script(paths, from_aws=False):
                 remote_path = remote_root + path[index:]
                 remote_path = remote_path.replace("RIPD", "RIP")
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
 
@@ -518,7 +496,7 @@ def create_download_script(paths, from_aws=False):
                 local_dir = os.path.dirname(path)
                 remote_path = remote_root + path[index:]
                 cmd = cmd_prefix + quote + remote_path + quote
-                if from_aws:
+                if is_s3_bucket:
                     cmd += " " + local_dir + "/"
                 print(cmd, file=f)
                 print(file=f)
@@ -543,8 +521,8 @@ def download_the_data(args):
 
     Args:
     -----
-        args : dict
-            Output of runction parse_args.
+    args : dict
+        Output of runction parse_args.
     """
 
     # Get information about the run
@@ -552,25 +530,26 @@ def download_the_data(args):
 
     # Get a unique list of data paths, both found and missing:
     # Expand the data paths to include links to restart files
-    paths = extract_pathnames_from_log(args["dryrun_log"])
-    paths = expand_restart_file_names(paths, run_info)
+    paths = extract_pathnames_from_log(args)
+    paths = expand_restart_file_names(paths, args, run_info)
 
     # Write a list of unique file paths
-    write_unique_paths(paths,
-                       args["dryrun_log"] + ".unique")
+    write_unique_paths(paths, args["dryrun_log"] + ".unique")
 
     # Exit without downloading if skip-download lag was specified
     if args["skip_download"]:
         return
 
     # Print a message
-    if args["from_aws"]:
-        print("Downloading data from AWS")
-    else:
-        print("Downloading data from ComputeCanada")
+    if len(args["mirror"]) > 0:
+        print("Downloading data from " + args["mirror"])
 
     # Create script to download missing files from AWS S3
-    create_download_script(paths, args["from_aws"])
+    create_download_script(paths, args)
+
+    #### DEBUG: Uncomment this if you want to see the download script
+    #if args["skip_download"]:
+    #    return
 
     # Run the data download script and return the status
     # Remove the file afterwards
@@ -579,50 +558,85 @@ def download_the_data(args):
 
     # Raise an exception if the data was not successfully downloaded
     if status != 0:
-        if args["from_aws"]:
-            err_msg = "Error downloading data from AWS!"
-        else:
-            err_msg = "Error downloading data from ComputeCanada!"
+        err_msg = "Error downloading data from " + args["mirror"]
         raise Exception(err_msg)
 
 
 def parse_args():
     """
-    Parses the arguments passed to the main program.
-
-    Args:
-    -----
-        argv : list
-            List of arguments passed from main().
+    Reads global settings from the download_data.yml configuration file.
+    Also parses command-line arguments and returns a dictionary
+    containing all of these settings.
 
     Returns:
     --------
-        args : dict
-            args["dryrun_log"]: Log file with dry-run output.
-            args["from_aws"]: Download from AWS S3? (True/False)
-            args["skip-download"]: Skip downloading and only write
-               out the log with unique file names.
+    args : dict
+        args["config"] : Dict with global settings from download_data.yml
+        args["dryrun_log"] Name of the GEOS-Chem dry-run log file
+        args["mirror"]: Name of the remote mirror for download
+        args["skip_download"]: Are we skipping the download? (T/F)
     """
-    dryrun_log = ""
-    from_aws = False
+    dryrun_log = None
+    dryrun_found = False
+    mirror_found = False
+    mirror_remote = None
     skip_download = False
+    skip_found = False
 
+    # Read the YAML configuration file
+    try:
+        config = yaml.load(open("download_data.yml"), Loader=yaml.FullLoader)
+    except FileNotFoundError:
+        msg = "Could not find configuration file 'download_data.yml'!"
+        raise FileNotFoundError(msg)
+
+    # Get a list of mirror names + short names
+    mirror_list = list(config["mirrors"].keys())
+    short_name_list = []
+    for m in mirror_list:
+        short_name_list.append(config["mirrors"][m]["short_name"])
+
+    # Parse command-line arguments (argument 0 is the program name)
     for i in range(1, len(sys.argv)):
-        if "AWS" in sys.argv[i].upper():
-            from_aws = True
-        elif "CC" in sys.argv[i].upper():
-            from_aws = False
-        elif "SKIP" in sys.argv[i].upper():
-            skip_download = True
-        else:
-            dryrun_log = sys.argv[i]
+        arg = sys.argv[i].lower()
+        arg = arg.lstrip('-')
 
-    if len(dryrun_log) == 0:
-        raise ValueError("Need to specify the log file with dryrun output!")
+        if not dryrun_found:
+            dryrun_log = arg
+            dryrun_found = True
+            continue
 
-    return {"dryrun_log": dryrun_log,
-            "from_aws": from_aws,
-            "skip_download" : skip_download}
+        if not mirror_found:
+            for m in mirror_list:
+                mirror = m.lower()
+                short_name = config["mirrors"][m]["short_name"].lower()
+                if arg in mirror or arg in short_name:
+                    mirror_remote = mirror
+                    mirror_found = True
+                    continue
+
+        if not skip_found:
+            if "skip" in arg:
+                skip_download = True
+                skip_found = True
+                continue
+
+
+    if dryrun_log is None:
+        msg = "The dryrun log file was not supplied!  Exiting ..."
+        raise ValueError(msg)
+
+    if mirror_remote is None and not skip_download:
+        msg = "Mirror name missing or invalid!  Exiting ..."
+        raise ValueError(msg)
+
+    args = {
+        "config": config,
+        "dryrun_log": dryrun_log,
+        "mirror": mirror_remote,
+        "skip_download": skip_download
+    }
+    return args
 
 
 def main():
@@ -632,10 +646,11 @@ def main():
 
     Calling sequence:
     -----------------
-        ./download_data.py log -aws            # from AWS
-        ./download_data.py log -cc             # from ComputeCanada
+        ./download_data.py log MIRROR-NAME
         ./download_data.py log -skip-download  # Print unique log & exit
     """
+
+    # Download the data files from the remote server
     download_the_data(parse_args())
 
 

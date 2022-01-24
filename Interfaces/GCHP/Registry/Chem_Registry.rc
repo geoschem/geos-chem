@@ -42,6 +42,7 @@
   GWETTOP            |     1	   | xy  |   |    |   |   |	|      | 
   HFLUX              |     1	   | xy  |   |    |   |   |	|      | 
   LAI                |     1	   | xy  |   |    |   |   |	|      | 
+  QV2M               |     1	   | xy  |   |    |   |   |	|      | 
   RADLWG             |     1	   | xy  |   |    |   |   |	|      | 
   PARDF              |     1	   | xy  |   |    |   |   |	|      | 
   PARDR              |     1	   | xy  |   |    |   |   |	|      | 

@@ -105,8 +105,8 @@ MODULE HCO_Interface_GC_Mod
 #if defined( MODEL_CLASSIC )
 
   !------------------------------------------------
-  ! %%% Internal HEMCO intermediate resolution %%% 
-  ! %%%        meteorological fields           %%% 
+  ! %%% Internal HEMCO intermediate resolution %%%
+  ! %%%        meteorological fields           %%%
   !------------------------------------------------
 
   ! These will ONLY be allocated and used if HEMCO-intermediate grid
@@ -314,9 +314,9 @@ CONTAINS
 
     ! Are we using HEMCO intermediate grid implementation?
     ! Note: The mere presence of State_Grid_HCO does not mean
-    ! that the intermediate grid is necessarily different. 
+    ! that the intermediate grid is necessarily different.
     ! The code path is decided if the intermediate is actually a different grid.
-    IF ( Input_Opt%IMGRID_XSCALE .ne. 1 .or. Input_Opt%IMGRID_XSCALE .ne. 1 ) THEN 
+    IF ( Input_Opt%IMGRID_XSCALE .ne. 1 .or. Input_Opt%IMGRID_XSCALE .ne. 1 ) THEN
       ! Force .or. .true. to waste CPU cycles in regridding and debug Map_A2A above
       Input_Opt%LIMGRID = .true.
 
@@ -894,7 +894,6 @@ CONTAINS
     minute    = GET_MINUTE()
     second    = GET_SECOND()
 
-#if !defined( MODEL_CESM )
     CALL SetHcoTime( HcoState, ExtState, year,   month,     day, dayOfYr, &
                      hour,     minute,   second, EmisTime,  HMRC         )
 
@@ -906,7 +905,6 @@ CONTAINS
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
-#endif
 
     !=======================================================================
     ! See if it's time for emissions. Don't just use the EmisTime flag in
@@ -1391,7 +1389,6 @@ CONTAINS
     minute    = GET_MINUTE()
     second    = GET_SECOND()
 
-#if !defined( MODEL_CESM )
     CALL SetHcoTime( HcoState, ExtState, year,   month,   day, dayOfYr, &
                      hour,     minute,   second, .FALSE., HMRC         )
 
@@ -1403,7 +1400,6 @@ CONTAINS
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
-#endif
 
     !-----------------------------------------------------------------------
     ! Write diagnostics
@@ -1432,9 +1428,9 @@ CONTAINS
 ! that act as targets for the ExtState object.
 !\\
 ! If State_Grid_HCO is not given or Input_Opt%LIMGRID is set to false (from Init),
-! this explicitly assumes that the HEMCO emissions grid is the same as the GEOS-Chem 
-! simulation grid. 
-! 
+! this explicitly assumes that the HEMCO emissions grid is the same as the GEOS-Chem
+! simulation grid.
+!
 ! Otherwise, the met data has to be regridded explicitly at every time step!
 ! This is performed by creating a set of in-memory array temporaries within this module,
 ! that can be pointed to by ExtState. Note that a SET of temporaries MUST be always
@@ -2553,6 +2549,40 @@ CONTAINS
        RETURN
     ENDIF
 
+! start blowing snow
+    ! FRSEAICE (for blowing snow, huang & jaegle 04/12/20)
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE', &
+                     HMRC,     FIRST=FIRST )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Met%FRSEAICE )
+#endif
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( FRSEAICE_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! QV2M (for blowing snow, huang & jaegle 04/12/20)
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M', &
+                     HMRC,     FIRST=FIRST )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M_FOR_EMIS', &
+                     HMRC,     FIRST,          State_Met%QV2M )
+#endif
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( QV2M_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+! end blowing snow
+
     ! FRLAKE
 #if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE', &
@@ -2784,7 +2814,7 @@ CONTAINS
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
-                         HMRC,     FIRST,             State_Chm%WetDepNitrogen )  
+                         HMRC,     FIRST,             State_Chm%WetDepNitrogen )
 #if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
@@ -2866,7 +2896,7 @@ CONTAINS
 !
     USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
+    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -3002,13 +3032,8 @@ CONTAINS
                 JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
-                IF ( Input_Opt%LUCX ) THEN
-                   ! RXN_O3_1: O3  + hv --> O2  + O
-                   JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-                ELSE
-                   ! RXN_O3_2a: O3 + hv --> 2OH
-                   JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
-                ENDIF
+                ! RXN_O3_1: O3  + hv --> O2  + O
+                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
              ENDIF
           ENDIF
 
@@ -3356,7 +3381,7 @@ CONTAINS
     ThisLoc  = &
        ' -> at GridEdge_Set (in module GeosCore/hco_interface_gc_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
-               'HEMCO log file for additional error messages!'  
+               'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
     ! Allocate all arrays.
@@ -3440,7 +3465,7 @@ CONTAINS
       TK(:,:,1:State_Grid%NZ)       = REGR_3DO(:,:,1:State_Grid%NZ)
     ENDIF
 #endif
-    
+
 
     !-----------------------------------------------------------------------
     ! Calculate vertical grid properties
@@ -3650,15 +3675,17 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM   .or. &
-         Input_OPt%ITS_A_CH4_SIM        .or. &
-         Input_Opt%ITS_A_MERCURY_SIM    .or. &
-         Input_Opt%ITS_A_POPS_SIM       .or. &
-         Input_Opt%ITS_A_RnPbBe_SIM     .or. &
-         Input_Opt%ITS_A_TAGO3_SIM      .or. &
-         Input_Opt%ITS_A_TAGCO_SIM      .or. &
-         Input_Opt%ITS_A_CO2_SIM              ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
+         Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
+         Input_Opt%ITS_A_CO2_SIM          .or.                               &
+         Input_OPt%ITS_A_CH4_SIM          .or.                               &
+         Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
+         Input_Opt%ITS_A_POPS_SIM         .or.                               &
+         Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
+         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
+         Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
+         Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
+
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -4102,36 +4129,6 @@ CONTAINS
 
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! PSC STATE (for UCX)
-    !-----------------------------------------------------------------------
-#if !defined( ESMF_ )
-    IF ( Input_Opt%LUCX ) THEN
-
-       CALL GetExtOpt( HcoConfig, -999, 'STATE_PSC',          &
-                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "GetExtOpt( STATE_PSC )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-       IF ( .not. FOUND ) THEN
-          ErrMsg = 'STATE_PSC not found in HEMCO_Config.rc file!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       IF ( .not. LTMP ) THEN
-          ErrMsg = 'STATE_PSC is set to false in HEMCO_Config.rc ' // &
-                   'but should be set to true for this simulation.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-#endif
-
 #ifdef ESMF_
     !-----------------------------------------------------------------------
     ! Also check that HEMCO_RESTART is not set in ESMF
@@ -4265,7 +4262,7 @@ CONTAINS
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'
-       Print*, '  EMISSIONS : ', Input_Opt%DoEmissions 
+       Print*, '  EMISSIONS : ', Input_Opt%DoEmissions
        Print*, '  LightNOx  : ', Input_Opt%DoLightNOx
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
     ENDIF
@@ -4355,7 +4352,7 @@ CONTAINS
 !
    USE Calc_Met_Mod
    USE ErrCode_Mod
-   USE FlexGrid_Read_Mod 
+   USE FlexGrid_Read_Mod
    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetPtr
    USE Input_Opt_Mod,        ONLY : OptInput
    USE Pressure_Mod,         ONLY : Set_Floating_Pressures
@@ -4605,7 +4602,7 @@ CONTAINS
 
       D = GET_I3_TIME()
       CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
-      
+
       ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
       ! and compute avg dry pressure near polar caps
       CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
@@ -4648,7 +4645,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_State_GC_Mod,     ONLY : ExtState
-    USE HCO_State_GC_Mod,     ONLY : HcoState   
+    USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Mercury_Mod,          ONLY : HG_Emis
     USE PhysConstants

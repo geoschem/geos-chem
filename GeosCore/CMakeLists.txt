@@ -57,7 +57,7 @@ add_library(GeosCore
   dust_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
-  flexchem_mod.F90
+  fullchem_mod.F90
   gamap_mod.F90
   gc_environment_mod.F90
   get_ndep_mod.F90
@@ -72,6 +72,7 @@ add_library(GeosCore
   input_mod.F90
   isorropiaII_mod.F90
   land_mercury_mod.F90
+  linear_chem_mod.F90
   linoz_mod.F90
   mapping_mod.F90
   mercury_mod.F90
@@ -90,7 +91,6 @@ add_library(GeosCore
   set_global_ch4_mod.F90
   set_prof_o3.F90
   sfcvmr_mod.F90
-  strat_chem_mod.F90
   sulfate_mod.F90
   tagged_co_mod.F90
   tagged_o3_mod.F90
@@ -117,18 +117,13 @@ if(("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU") AND NOT (CMAKE_Fortran_COMPIL
   )
 endif()
 
-# Dependencies
-target_link_libraries(GeosCore
-  PUBLIC
-  Transport ObsPack History Isorropia
+# Define dependencies for libGeosCore.a
+target_link_libraries(GeosCore PUBLIC
+  Transport ObsPack History Isorropia KPP
   
-  $<LINK_ONLY:HCOI_Shared>  #  link only to avoid gathering the rest of the TURs
+  $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
 
-  # Add dependency on the correct KPP library
-  $<$<STREQUAL:${MECH},fullchem>:KPP_fullchem>
-  $<$<STREQUAL:${MECH},custom>:KPP_custom>
-
-  $<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
-  $<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
-  $<$<BOOL:${GTMM}>:Hg>				# depends on Hg iff GTMM is true
+  $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
+  $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
+  $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
 )

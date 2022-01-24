@@ -111,6 +111,15 @@ Warnings:                    1
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
+    --> Reduce SS cold water   :       true
+    --> Blowing Snow SS        :       true
+    --> NH FYI snow salinity   :       0.1
+    --> NH MYI snow salinity   :       0.05
+    --> SH FYI snow salinity   :       0.03
+    --> SH MYI snow salinity   :       0.015
+    --> NH snow age            :       3.0
+    --> SH snow age            :       1.5
+    --> N per snowflake        :       5.0
     --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
@@ -124,7 +133,6 @@ Warnings:                    1
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
 111     GFED              : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/NAP
-    --> GFED3             :       false
     --> GFED4             :       true
     --> GFED_daily        :       false
     --> GFED_3hourly      :       false
@@ -136,16 +144,14 @@ Warnings:                    1
     --> hydrophilic OC    :       0.5
     --> fraction POG1     :       0.49
     --> CO to SOAP        :       0.013
-117     Volcano           : on    SO2/SO4
+    --> GFED_subgrid_coag :       false
+117     Volcano           : on    SO2
     --> Volcano_Source    :       AeroCom
 # use flat degassing file for ops:
 #    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 # use degassing and eruptive for reanalysis:
     --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
-    --> Scaling_SO2       :       0.95
-    --> Scaling_SO4       :       0.05
-    --> Cat_Eruptive      :       61
-    --> Cat_Degassing     :       62
+    --> Volcano_Climatology :     /discover/nobackup/ewlundgr/data/ExtData/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 120     Inorg_Iodine      : on    HOI/I2
     --> Emit HOI          :       true
     --> Emit I2           :       true
@@ -984,6 +990,17 @@ Warnings:                    1
 105 DEAD_SFC_TYP  ~/data/dst_tibds.geos.2x25.nc     SFC_TYP  1985/1/1/0    C xy count    * - 1 1
 105 DEAD_GOC_SRC  ~/data/GOCART_src_fn.geos.2x25.nc GOC_SRC  1985/1/1/0    C xy unitless * - 1 1
 105 DEAD_VAI      ~/data/dst_tvbds.geos.2x25.nc     VAI      1985/1-12/1/0 C xy unitless * - 1 1
+
+
+#==============================================================================
+# --- Sea salt emissions (Extensions 107 and 130)
+#
+# MODIS Chlorophyll-A fields used for emissions of marine organic aerosols
+#==============================================================================
+(((SeaSalt
+#107 MODIS_CHLR  ~/data/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS    2005-2014/1-12/1/0 C    xy 1 * - 1 1
+107 MULTISEAICE ~/data/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
+)))SeaSalt
 
 #=======================================================================================================================================
 # --- MEGAN biogenic emissions (Extension 108)
