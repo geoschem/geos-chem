@@ -85,7 +85,7 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in default apm bpch luowd rrtmg tomas15 tomas40; do
+for dir in default apm bpch hg luowd rrtmg tomas15 tomas40; do
 
     # Define build directory
     buildDir="${root}/build/${dir}"

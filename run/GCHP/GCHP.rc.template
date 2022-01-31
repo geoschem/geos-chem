@@ -23,6 +23,8 @@ LM: 72
 
 GEOSChem_CTM: 1
 
+METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN: .false.
+
 AdvCore_Advection: 1
 	DYCORE: OFF
   HEARTBEAT_DT: 600
@@ -67,7 +69,7 @@ RECORD_REF_TIME: 000000
 # Chemistry/AEROSOL Model Restart Files
 # Enter +none for GCHPchem_INTERNAL_RESTART_FILE not use an initial restart file
 # -------------------------------------
-GCHPchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_{SIMULATION}.nc
+GCHPchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_${RUNDIR_SIM_NAME}.nc
 GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
 GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
 GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4

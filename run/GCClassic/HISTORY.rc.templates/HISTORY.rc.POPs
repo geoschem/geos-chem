@@ -72,8 +72,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.frequency:      {FREQUENCY}
-  SpeciesConc.duration:       {DURATION}
+  SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
 ::
@@ -87,8 +87,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.frequency:    {FREQUENCY}
-  Budget.duration:     {DURATION}
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
   Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
                        'BudgetEmisDryDepTrop_?ADV?           ',  
@@ -117,8 +117,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.frequency:    {FREQUENCY}
-  CloudConvFlux.duration:     {DURATION}
+  CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CloudConvFlux.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
 ::
@@ -130,8 +130,8 @@ COLLECTIONS: 'Restart',
 # Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  DryDep.frequency:           {FREQUENCY}
-  DryDep.duration:            {DURATION}
+  DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
+  DryDep.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   DryDep.mode:                'time-averaged'
   DryDep.fields:              'DryDepVel_?DRY?               ',
                               'DryDep_?DRY?                  ',
@@ -146,8 +146,8 @@ COLLECTIONS: 'Restart',
 # Available for the POPs simulation only
 #==============================================================================
   POPS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  POPS.frequency:        {FREQUENCY}
-  POPS.duration:         {DURATION}
+  POPS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
+  POPS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
   POPS.mode:             'time-averaged'
   POPS.fields:           'LossPOPPOCPObyGasPhase             ',
                          'ProdPOPPOCPOfromGasPhase           ',
@@ -171,8 +171,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   {FREQUENCY}
-  LevelEdgeDiags.duration:    {DURATION}
+  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
   LevelEdgeDiags.mode:        'time-averaged'
   LevelEdgeDiags.fields:      'Met_CMFMC                     ',
                               'Met_PEDGE                     ',
@@ -190,8 +190,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet.frequency:         {FREQUENCY}
-  StateMet.duration:          {DURATION}
+  StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMet.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   StateMet.mode:              'time-averaged'
   StateMet.fields:            'Met_AD                        ',
                               'Met_AIRDEN                    ',
@@ -281,8 +281,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations that have soluble species
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.frequency:      {FREQUENCY}
-  WetLossConv.duration:       {DURATION}
+  WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossConv.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   WetLossConv.mode:           'time-averaged'
   WetLossConv.fields:         'WetLossConv_?WET?             ',
                               'WetLossConvFrac_?WET?         ',
@@ -296,8 +296,8 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # Loss due to rainout and washout (per deposited species)
   WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossLS.frequency:        {FREQUENCY}
-  WetLossLS.duration:         {DURATION}
+  WetLossLS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossLS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
   WetLossLS.mode:             'time-averaged'
   WetLossLS.fields:           'WetLossLS_?WET?               ',
 ::

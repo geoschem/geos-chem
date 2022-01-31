@@ -508,7 +508,7 @@ CONTAINS
           ELSE IF ( INDEX( key, "%Is_DryDep" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( v_bool ) THEN
+             IF ( v_bool .AND. ThisSpc%Is_Advected ) THEN
                 SpcCount%nDryDep  = SpcCount%nDryDep + 1
                 ThisSpc%DryDepId  = SpcCount%nDryDep
                 ThisSpc%Is_DryDep = v_bool
@@ -1103,6 +1103,8 @@ CONTAINS
     USE Input_Opt_Mod,    ONLY : OptInput
     USE GcKpp_Monitor,    ONLY : Spc_Names
     USE GcKpp_Parameters, ONLY : NFIX, NSPEC, NVAR
+!    USE GcKpp_Monitor,    ONLY : Hg_Spc_Names => Spc_Names
+!    USE GcKpp_Parameters, ONLY : HgNFIX => NFIX, HgNSPEC => NSPEC, HgNVAR => NVAR
     USE Species_Mod,      ONLY : MISSING_INT
 !
 ! !INPUT PARAMETERS:
@@ -1156,10 +1158,10 @@ CONTAINS
     nSpecies = nAdvect
 
     !=======================================================================
-    ! For full-chemistry simulations with KPP, get the list of all of
+    ! For full-chemistry and Hg simulations with KPP, get the list of all of
     ! species names in the KPP mechanism, and their indices
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Allocate a temporary array large enough to hold all of the
        ! advected species listed in input.geos as well as all of the
@@ -1267,6 +1269,65 @@ CONTAINS
              ENDIF
           ENDDO
        ENDDO
+
+!    ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+!       ! Repeated for the Hg KPP mechanism just as for FULLCHEM
+!       ! Commented deleted for compactcity ;-). Refer above. (MSL)
+!       ALLOCATE( Tmp( nAdvect + NSPEC ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:Tmp', 0 , RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       Tmp = ''
+!
+!       DO S = 1, nSpecies
+!          Tmp(S) = Input_Opt%AdvectSpc_Name(S)
+!       ENDDO
+!
+!       DO K = 1, HgNSPEC
+!          SpcName = ADJUSTL( Spc_Names(K) )
+!          IF ( SpcName(1:2) == 'RR' ) CYCLE
+!          IF ( .not. ANY( Input_Opt%AdvectSpc_Name == Hg_Spc_Names(K) ) ) THEN
+!             nSpecies      = nSpecies + 1
+!             Tmp(nSpecies) = Hg_Spc_Names(K)
+!          ENDIF
+!       ENDDO
+!
+!       ALLOCATE( Species_Names( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:Species_Names', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       Species_Names = Tmp(1:nSpecies )
+!
+!       IF ( ALLOCATED( Tmp ) ) DEALLOCATE( Tmp )
+!
+!       ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:KppSpcId', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       KppSpcId = MISSING_INT
+!
+!       ALLOCATE( KppFixId( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:KppFixId', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       KppFixId = MISSING_INT
+!
+!       ALLOCATE( KppVarId( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:KppVarId', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       KppVarId = MISSING_INT
+!
+!       DO S = 1, nSpecies
+!          DO K = 1, HgNSPEC
+!             SpcName = ADJUSTL( Hg_Spc_Names(K) )
+!             IF ( SpcName(1:2) == 'RR' ) CYCLE
+!             IF ( Species_Names(S) == Hg_Spc_Names(K) ) THEN
+!                KppSpcId(S) = K
+!                IF ( K <= HgNVAR ) THEN
+!                   KppVarId(S) = K
+!                ELSE
+!                   KppFixId(S) = K - HgNVAR
+!                ENDIF
+!                EXIT
+!             ENDIF
+!          ENDDO
+!       ENDDO
 
     !=======================================================================
     ! For specialty simulations, we do not have KPP species.  Thus, the

@@ -19,6 +19,8 @@ rm -fv slurm-*
 rm -fv 1
 rm -fv EGRESS
 rm -fv core.*
+rm -fv PET*.ESMF_LogFile
+rm -fv allPEs.log
 
 # Clean data too. Prompt user to confirm they want to do this.
 # perhaps asking if they want to archive before deletion.

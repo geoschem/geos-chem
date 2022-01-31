@@ -65,12 +65,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_Interface_GC_Mod, ONLY : HCoi_GC_Init
-    USE HCO_Types_Mod,      ONLY : ConfigObj
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Types_Mod,        ONLY : ConfigObj
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -143,23 +143,22 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CARBON_MOD,         ONLY : EMISSCARBON
-    USE CO2_MOD,            ONLY : EMISSCO2
+    USE CARBON_MOD,            ONLY : EMISSCARBON
+    USE CO2_MOD,               ONLY : EMISSCO2
     USE ErrCode_Mod
-    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_RUN
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE GLOBAL_CH4_MOD,        ONLY : EMISSCH4
+    USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_RUN
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE Precision_Mod
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE Time_Mod,           ONLY : Get_Ts_Emis
-    Use SfcVmr_Mod,         Only : FixSfcVmr_Run
-    USE MERCURY_MOD,        ONLY : EMISSMERCURY
+    USE State_Chm_Mod,         ONLY : ChmState
+    USE State_Diag_Mod,        ONLY : DgnState
+    USE State_Grid_Mod,        ONLY : GrdState
+    USE State_Met_Mod,         ONLY : MetState
+    USE Time_Mod,              ONLY : Get_Ts_Emis
+    Use SfcVmr_Mod,            ONLY : FixSfcVmr_Run
 #ifdef TOMAS
-    USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
-    USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
+    USE CARBON_MOD,            ONLY : EMISSCARBONTOMAS !jkodros
+    USE SULFATE_MOD,           ONLY : EMISSSULFATETOMAS !jkodros
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -282,19 +281,6 @@ CONTAINS
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "EmissCH4"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! For mercury, use old emissions code for now
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissMercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

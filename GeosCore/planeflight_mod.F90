@@ -1547,6 +1547,11 @@ CONTAINS
 !  some of the legacy unit conversions were incorrect but have now been
 !  fixed. -- Bob Yantosca, 30 Jul 2021
 !
+!  Also note: The calls to Convert_Spc_Units were not necessary, and have
+!  since been removed.  Direct unit conversions for kg/kg dry -> v/v dry
+!  and kg/kg dry -> molec/cm3 are now done, which are more computationally
+!  efficient.  -- Bob Yantosca, 27 Oct 2021
+!
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1700,10 +1705,6 @@ CONTAINS
 
           ! Initialize production count:
           PR = 0
-
-          ! Convert species units to [v/v]
-          CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                  'v/v dry', RC, OrigUnit=OrigUnit )
 
           ! Initialize GEOS-Chem species array
           Spc => State_Chm%SpeciesVec
@@ -2273,7 +2274,7 @@ CONTAINS
                 MW_g    = State_Chm%SpcData(N)%Info%MW_g
                 VARI(V) = Spc(N)%Conc(I,J,L) * ( AIRMW / MW_g )
 
-                IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
+                IF ( VARI(V) < TINY ) VARI(V) = 0.0_fp
 
 #ifdef TOMAS
 #ifdef BPCH_DIAG
@@ -2311,12 +2312,8 @@ CONTAINS
 
           ENDDO
 
-          ! Convert species units back to original unit
-          CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                  OrigUnit, RC )
-
           ! Free pointer
-          NULLIFY( Spc )
+          Spc => NULL()
 
           ! Write data for the Mth plane point out to disk
           CALL WRITE_VARS_TO_FILE( Input_Opt, State_Grid, State_Met, M, VARI )

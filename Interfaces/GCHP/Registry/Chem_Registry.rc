@@ -24,7 +24,7 @@
 #  Short	     |  	   |	 | V |Item|Intervl| Sub | Def  |	Long
 #  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault |	Name
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
-  AIRDENS            |  kg m-3     | xyz | C |    |   |   |     |      | air_density
+# AIRDENS            |  kg m-3     | xyz | C |    |   |   |     |      | air_density
   AREA               |     m2      | xy  |   |    |   |   |	|      | 
   FRLAKE             |     1	   | xy  |   |    |   |   |	|      | 
   FRLAND             |     1	   | xy  |   |    |   |   |	|      | 
