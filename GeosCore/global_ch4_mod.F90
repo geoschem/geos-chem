@@ -1062,7 +1062,7 @@ CONTAINS
           airMass_kg   = airMass_m / XNUMOLAIR
 
           ! CH4 mass [kg]
-          CH4mass_kg   = State_Chm%Species(I,J,L,id_CH4)
+          CH4mass_kg   = State_Chm%SpeciesVec(id_CH4)%Conc(I,J,L)
 
           ! CH4 concentration [kg m-3] and [molec cm-3]
           CH4conc_kgm3 = CH4mass_kg   / volume

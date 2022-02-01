@@ -535,10 +535,6 @@ CONTAINS
 
     ! Arrays
     REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
-!ewl: I am going to try to reduce the size of this local array
-!     It seems like it only needs to be scalar given how it is used
-    !REAL(fp)           :: DTC(State_Grid%NX,State_Grid%NY,                   &
-    !                          State_Grid%NZ,State_Chm%nAdvect)
     REAL(fp)           :: DTC
 
     ! Strings

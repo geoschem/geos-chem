@@ -462,7 +462,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%SpeciesVec(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -1496,7 +1496,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%SpeciesVec(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 

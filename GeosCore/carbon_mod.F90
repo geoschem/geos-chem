@@ -781,7 +781,7 @@ CONTAINS
       DO I = 1, State_Grid%NX
          DO N=1,NBCOC
             Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
-               Spc(APMIDS%id_OCBIN1+N-1)+ &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
                POAEMISS(I,J,L,1)*0.9d0*CEMITBCOC1(N,1)
          ENDDO
       ENDDO
@@ -796,17 +796,13 @@ CONTAINS
                  State_Met, 'CHECKMN from chemcarbon', RC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
-      CALL AGING_CARB( State_Grid, &
-                       Spc(:,:,:,id_ECIL1:id_ECIL1+IBINS-1), &
-                       Spc(:,:,:,id_ECOB1:id_ECOB1+IBINS-1) )
+      CALL AGING_CARB( id_ECIL1, id_ECOB1, State_Grid, State_Chm )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
       ENDIF
    ENDIF
    IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
-      CALL AGING_CARB( State_Grid, &
-                       Spc(:,:,:,id_OCIL1:id_OCIL1+IBINS-1), &
-                       Spc(:,:,:,id_OCOB1:id_OCOB1+IBINS-1) )
+      CALL AGING_CARB( id_OCIL1, id_OCOB1, State_Grid, State_Chm )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
@@ -826,7 +822,7 @@ CONTAINS
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         NEWSOA  = Spc(id_SOAP) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
+         NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,L)
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
@@ -835,8 +831,8 @@ CONTAINS
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
                           State_Chm, State_Grid, RC)
          ENDIF
-         Spc(id_SOAS) = Spc(id_SOAS) + NEWSOA
-         Spc(id_SOAP) = Spc(id_SOAP) - NEWSOA
+         Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
+         Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
       ENDDO
       ENDDO
       ENDDO
@@ -1362,24 +1358,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE AGING_CARB( State_Grid, MIL, MOB )
+ SUBROUTINE AGING_CARB( id_MIL, id_MOB, State_Grid, State_Chm )
 !
 ! !USES:
 !
+   USE Species_Mod,    ONLY : SpcConc
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
    USE TIME_MOD,       ONLY : GET_TS_CHEM    ! [=] second
    USE TOMAS_MOD,      ONLY : IBINS
 !
 ! !INPUT PARAMETERS:
 !
+   INTEGER,        INTENT(IN) :: id_MIL
+   INTEGER,        INTENT(IN) :: id_MOB
    TYPE(GrdState), INTENT(IN) :: State_Grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   REAL(fp), INTENT(INOUT) :: MIL(State_Grid%NX,State_Grid%NY, &
-                                  State_Grid%NZ, IBINS)
-   REAL(fp), INTENT(INOUT) :: MOB(State_Grid%NX,State_Grid%NY, &
-                                  State_Grid%NZ, IBINS)
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !REMARKS:
 !  11 Sep 2007 - W. Trivitayanurak - Initial version
@@ -1390,21 +1387,28 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER                :: I, J, L, K
+   INTEGER                :: I, J, L, N
    REAL(fp)               :: DTCHEM
    REAL(fp),  PARAMETER   :: TAU_HYDRO = 1.15e+0_fp  ! [=]day
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! AGING_CARB begins here!
    !=================================================================
 
+   Spc => State_Chm%SpeciesVec
+
    DTCHEM = GET_TS_CHEM() / 3600e+0_fp / 24e+0_fp    ![=] day
 
-   DO K = 1, IBINS
-      MIL(:,:,:,K) = MIL(:,:,:,K) + &
-                     MOB(:,:,:,K) * (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
-      MOB(:,:,:,K) = MOB(:,:,:,K) * (DEXP(-DTCHEM/TAU_HYDRO))
+   DO N = 1, IBINS
+      Spc(id_MIL+N-1)%Conc(:,:,:) = Spc(id_MIL+N-1)%Conc(:,:,:)   &
+                                    + Spc(id_MOB+N-1)%Conc(:,:,:) &
+                                    * (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
+      Spc(id_MOB+N-1)%Conc(:,:,:) = Spc(id_MOB+N-1)%Conc(:,:,:)   &
+                                    * (DEXP(-DTCHEM/TAU_HYDRO))
    ENDDO
+
+   NULLIFY(Spc)
 
  END SUBROUTINE AGING_CARB
 !EOC
@@ -1636,6 +1640,7 @@ CONTAINS
 #ifdef APM
    INTEGER           :: IFINORG
    INTEGER           :: NTEMP
+   REAL(fp)          :: OCBIN_SUM
 #endif
 
    !=================================================================
@@ -1866,7 +1871,11 @@ CONTAINS
       ! (Colette Heald, 12/3/09)
       !-----------------------------------------------------------
 #ifdef APM
-      MPOC = FAC * SUM(Spc(APMIDS%id_OCBIN1:(APMIDS%id_OCBIN1+NBCOC-1)))
+      OCBIN_SUM = 0.e+0_fp
+      DO N = 1, NBCOC
+         OCBIN_SUM = OCBIN_SUM + SUM(Spc(APMIDS%id_OCBIN1+N-1)%Conc(:,:,:))
+      ENDDO
+      MPOC = FAC * OCBIN_SUM
       MPOC = MPOC * 2.1d0
 
       IFINORG = 2
@@ -4375,7 +4384,7 @@ CONTAINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K)
             NDIST(K) = Spc(id_NK1+K-1)%Conc(I,J,L)
             DO C = 1, ICOMP-IDIAG
-               MDIST(K,C) = Spc(id_NK1+IBINS*C+K-)%Conc(I,J,L)
+               MDIST(K,C) = Spc(id_NK1+IBINS*C+K-1)%Conc(I,J,L)
                IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                   PRINT *,'+++++++ Found NaN in EMITSGC ++++++++'
                   PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
@@ -8675,7 +8684,7 @@ CONTAINS
    DO I = 1, State_Grid%NX
 
       DO L = 1, State_Grid%NZ
-         DO N = APIDS%id_OCBIN1, IDTEMP
+         DO N = APMIDS%id_OCBIN1, IDTEMP
             MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
          ENDDO
          DO K = 1, NCTOC
@@ -8715,7 +8724,7 @@ CONTAINS
                VTS(L) = 0.e+0_fp
             ENDIF
 
-         ENDDO
+         ENDDO ! L
 
          ! Method is to solve bidiagonal matrix
          ! which is implicit and first order accurate in Z
@@ -8791,9 +8800,9 @@ CONTAINS
                ENDDO
             ENDIF
 
-         ENDDO
+         ENDDO ! L
 
-      ENDDO
+      ENDDO ! N
 
       DO L = 1, State_Grid%NZ
          DO K = 1, NCTOC
@@ -8802,8 +8811,8 @@ CONTAINS
          ENDDO
       ENDDO
 
-   ENDDO
-   ENDDO
+   ENDDO ! I
+   ENDDO ! J
    !$OMP END PARALLEL DO
 
    ! Clear the pointer

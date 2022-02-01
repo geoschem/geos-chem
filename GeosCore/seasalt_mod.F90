@@ -184,7 +184,7 @@ CONTAINS
     LOGICAL           :: prtDebug
 
 #if   defined( APM )
-    INTEGER           :: Seasalt_ids(NSALTBIN)
+    INTEGER           :: N, Seasalt_ids(NSALTBIN)
 #endif
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -309,8 +309,10 @@ CONTAINS
     !----------------------------------------
     ! Sea salt emissions for extra APM bins
     !----------------------------------------
-    Seasalt_Ids = APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)
-    CALL SRCSALTBIN( Seasalt_Ids, State_Chm, State_Grid, State_Met )
+    DO N = 1, NSALTBIN
+       Seasalt_Ids(N) = APMIDS%id_SEABIN1 + N - 11
+    ENDDO
+    CALL SRCSALTBIN( Seasalt_Ids, State_Grid, State_Met, State_Chm )
     IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
 
     !----------------------------------------
@@ -1410,7 +1412,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: Spc_IDs     ! Seasalt species ids
+    INTEGER,        INTENT(IN)    :: Spc_IDs(:)  ! Seasalt species ids
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
@@ -1426,7 +1428,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I,     J,      L
+    INTEGER                :: I,     J,      L,      N
     INTEGER                :: NTOP
     INTEGER                :: Spc_ID
     REAL*8                 :: W10M,  DTEMIS
@@ -1667,7 +1669,7 @@ CONTAINS
              MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
           ENDDO
           DO K = 1, NCTSEA
-             OLD(L,K) = Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L,)
+             OLD(L,K) = Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L)
              Spc(APMIDS%id_CTSEA+K-1)%Conc(I,J,L) = 0.D0
           ENDDO
        ENDDO
@@ -1677,7 +1679,7 @@ CONTAINS
 
           DO L = 1, State_Grid%NZ
 
-             TC0(L) = Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L,)
+             TC0(L) = Spc(APMIDS%id_SEABIN1+N-1)%Conc(I,J,L)
 
              IF(TC0(L)>1.D-30)THEN
                 ! Initialize

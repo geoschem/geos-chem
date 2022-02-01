@@ -27,7 +27,6 @@
     USE PhysConstants,      ONLY : g0
     USE PhysConstants,      ONLY : AVO
     USE PRECISION_MOD
-!ewlspc
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -494,7 +493,7 @@
        ! mixing_mod.F90 (ckeller, 3/5/15)
        ! ***********************************************************************
        ! Dry deposit H2SO4 gas (win, 5/24/06)
-       Y0 = Spc(id_H2SO4)%Conc(I,J,L,)
+       Y0 = Spc(id_H2SO4)%Conc(I,J,L)
        RKT = DepFreq(I,J,H2SO4ID) * State_Met%F_UNDER_PBLTOP(I,J,L)
        Y = Y0 * EXP(-RKT)
 
@@ -519,7 +518,7 @@
 #endif
 
        !Swap final H2SO4 back into Spc array
-       Spc(id_H2SO4)%Conc(I,J,L,) = Y
+       Spc(id_H2SO4)%Conc(I,J,L) = Y
 
     ENDDO
     ENDDO

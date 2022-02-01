@@ -492,10 +492,6 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)
 
-!ewl
-!    ! Tracer "mixing ratios" [kg tracer/moist air kg]
-!    REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
-
     ! Diagnostics state object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
@@ -810,7 +806,6 @@ CONTAINS
           ! Zero PRIVATE variables for safety's sake
           adx   =  0.0_fp
           ady   =  0.0_fp
-!ewl          ptr_Q => NULL()
           qqu   =  0.0_fp
           qqv   =  0.0_fp
 
@@ -820,14 +815,10 @@ CONTAINS
 
           !.sds.. convert to "mass"
           dq1(:,:,ik) = q_ptr(:,:,ik) * delp1(:,:,ik)
-!ewl
-!          dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
 
         ! ===========================
           call Calc_Advec_Cross_Terms                                        &
         ! ===========================
-!ewl
-!               ( north,      south,      q(:,:,ik,iq), qqu, qqv,             &
                ( north,      south,      q_ptr(:,:,ik), qqu, qqv,             &
                  ua(:,:,ik), va(:,:,ik), j1p,           j2p, im,              &
                  1,          jm,         1,             im,  1,               &
@@ -886,8 +877,6 @@ CONTAINS
 
           !... update constituent array qq1 by adding in cross terms
           !           - use in fzppm
-!ewl
-!          q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
           q_ptr(:,:,ik) = q_ptr(:,:,ik) + ady + adx
 
 
@@ -937,22 +926,12 @@ CONTAINS
 
        qtemp(:,:,:,iq) = q_ptr(:,:,:)
 
-       ! Set up temporary pointer to Q to avoid array temporary in FZPPM
-       ! (bmy, 6/5/13)
-!ewl: I think we can now just pass q_ptr?
-!       ptr_Q => q_ptr(:,:,:)
-
      ! ==========
        call Fzppm                                                            &
      ! ==========
-!ewl            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), j1p, &
             ( klmt, delp1, wz, dq1, q_ptr, fz(:,:,:,iq), j1p,                &
               1,    jm,    1,  im,  1,     jm,           im,                 &
               km,   1,     im, 1,   jm,    1,            km                 )
-
-!ewl
-!       ! Free pointer memory (bmy, 6/5/13)
-!       ptr_Q => NULL()
 
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux

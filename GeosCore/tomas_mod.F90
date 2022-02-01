@@ -396,6 +396,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -694,8 +695,7 @@ CONTAINS
 
        ! Get NH4 mass from the bulk mass and scale to bin with sulfate
        IF ( SRTNH4 > 0 ) THEN
-          CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(id_NH4)%Conc(I,J,L)
-, TRANSFER )
+          CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(id_NH4)%Conc(I,J,L), TRANSFER )
           MK(1:IBINS,SRTNH4) = TRANSFER(1:IBINS)
           Gc(SRTNH4) = Spc(id_NH3)%Conc(I,J,L)
 
@@ -3581,6 +3581,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -3915,6 +3916,7 @@ CONTAINS
 #endif
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -6568,6 +6570,7 @@ CONTAINS
 ! !USES:
 !
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
@@ -6737,6 +6740,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
@@ -6969,6 +6973,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
 !
@@ -7154,6 +7159,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -7333,6 +7339,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -9000,6 +9007,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
 !

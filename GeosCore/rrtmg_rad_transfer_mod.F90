@@ -810,13 +810,13 @@ CONTAINS
              CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
                               State_Chm%SpcData(id_CFC11)%Info%MW_g
 
-             CFC12VMR(I,J,L) =Spc(I,J,L,id_CFC12) * AIRMW / &
+             CFC12VMR(I,J,L) =Spc(id_CFC12)%Conc(I,J,L) * AIRMW / &
                               State_Chm%SpcData(id_CFC12)%Info%MW_g
 
-             CCL4VMR(I,J,L)  =Spc(I,J,L,id_CCL4) * AIRMW / &
+             CCL4VMR(I,J,L)  =Spc(id_CCL4)%Conc(I,J,L) * AIRMW / &
                               State_Chm%SpcData(id_CCL4)%Info%MW_g
 
-             CFC22VMR(I,J,L) =Spc(I,J,L,id_HCFC22) * AIRMW/ &
+             CFC22VMR(I,J,L) =Spc(id_HCFC22)%Conc(I,J,L) * AIRMW/ &
                               State_Chm%SpcData(id_HCFC22)%Info%MW_g
 
           ENDIF

@@ -3224,11 +3224,10 @@ CONTAINS
        !=======================================================================
        DO I = 1, SIZE(Int2Spc,1)
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-          State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,:) = Int2Spc(I)%Internal
-
-          ! Flip in the vertical
-          State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,:) = &
-              State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,State_Grid%NZ:1:-1) 
+          DO L = 1, State_Grid%NZ
+             State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,L) = &
+                Int2Spc(I)%Internal(:,:,State_Grid%NZ-L+1)
+          ENDDO
        ENDDO
        
 #ifdef ADJOINT
@@ -3283,7 +3282,10 @@ CONTAINS
                 State_Chm%SpeciesVec(IND)%Conc(:,:,:) = 1d-26
                 CYCLE
              ENDIF
-             State_Chm%SpeciesVec(IND)%Conc(:,:,:) = Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
+             DO L = 1, State_Grid%NZ
+                State_Chm%SpeciesVec(IND)%Conc(:,:,L) = &
+                   Ptr3D_R8(:,:,State_Grid%NZ-L+1)
+             ENDDO
              if ( MAPL_am_I_Root()) WRITE(*,*)                                &
              'Initialized species from INTERNAL state: ', TRIM(ThisSpc%Name)
 
@@ -3293,6 +3295,7 @@ CONTAINS
              CALL ESMF_AttributeGet( trcFIELD, NAME="RESTART",                &
                   VALUE=RST, RC=STATUS )
        
+!ewl: check if this is behavior in GC-Classic too these days...
              ! Set spc conc to background value if rst skipped or var not there
              IF ( RC /= ESMF_SUCCESS .OR. RST == MAPL_RestartBootstrap .OR.   &
                       RST == MAPL_RestartSkipInitial ) THEN
@@ -3307,10 +3310,10 @@ CONTAINS
                       ! For all other cases, use the background value in spc db
                       State_Chm%SpeciesVec(IND)%Conc(I,J,L) = ThisSpc%BackgroundVV 
                    ENDIF
+                   PTR3D_R8(I,J,State_Grid%NZ-L+1) = State_Chm%SpeciesVec(IND)%Conc(I,J,L)
                 ENDDO
                 ENDDO
                 ENDDO
-                Ptr3D_R8(:,:,:) = State_Chm%SpeciesVec(IND)%Conc(:,:,State_Grid%NZ:1:-1)
                 IF ( MAPL_am_I_Root()) THEN
                    WRITE(*,*)  &
                    '   WARNING: using background values from species database'
@@ -3582,9 +3585,11 @@ CONTAINS
        ! Fix negatives!
        ! These can be brought in as an artifact of convection.
 #ifndef ADJOINT
-       WHERE ( State_Chm%Species < 0.0e0 )
-          State_Chm%Species = 1.0e-36
-       END WHERE 
+       DO N = 1, State_Chm%nSpecies
+          WHERE ( State_Chm%SpeciesVec(N)%Conc < 0.0e0 )
+             State_Chm%SpeciesVec(N)%Conc = 1.0e-36
+          END WHERE 
+       ENDDO
 #endif
        
        ! Execute GEOS-Chem if it's time to run it
@@ -3724,12 +3729,21 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GCHPCTM )
-       State_Chm%Species = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
-       
+       ! --- Update to remove %Species ---
+       !State_Chm%Species = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
+       !
+       !DO I = 1, SIZE(Int2Spc,1)
+       !   IF ( Int2Spc(I)%ID <= 0 ) CYCLE
+       !   Int2Spc(I)%Internal = State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,:)
+       !ENDDO
        DO I = 1, SIZE(Int2Spc,1)
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-          Int2Spc(I)%Internal = State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,:)
+          DO L = 1, State_Grid%NZ
+             Int2Spc(I)%Internal(:,:,State_Grid%NZ-L+1) = &
+                State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,L)
+          ENDDO
        ENDDO
+       ! ---
 #ifdef ADJOINT
        IF (Input_Opt%Is_Adjoint) THEN
           State_Chm%SpeciesAdj = State_Chm%SpeciesAdj(:,:,State_Grid%NZ:1:-1,:)
@@ -4092,7 +4106,9 @@ CONTAINS
           IF ( .NOT. ASSOCIATED(Ptr3D_R8) ) CYCLE
 999       FORMAT(' No INTERNAL pointer found for ', a12, ' with IND ', i3)
 
-          State_Chm%SpeciesVec(IND)%Conc(:,:,:) = Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
+          DO L = 1, State_Grid%NZ
+             State_Chm%SpeciesVec(IND)%Conc(:,:,L) = Ptr3D_R8(:,:,State_Grid%NZ-L+1)
+          ENDDO
           ! Verbose 
           if ( MAPL_am_I_Root()) write(*,*)                &
                'Species copied from INTERNAL state: ',  &
@@ -4103,7 +4119,9 @@ CONTAINS
        ! Get data from internal state and copy to species array
        CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(ThisSpc%Name), &
                              notFoundOK=.TRUE., __RC__ )
-       Ptr3D_R8 = State_Chm%SpeciesVec(IND)%Conc(:,:,State_Grid%NZ:1:-1)
+       DO L = 1, State_Grid%NZ
+          Ptr3D_R8(:,:,State_Grid%NZ-L+1) = State_Chm%SpeciesVec(IND)%Conc(:,:,L)
+       ENDDO
        Ptr3D_R8 => NULL()
 
        ! Verbose 
@@ -4265,7 +4283,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
           if (State_Chm%CostFuncMask(I,J,L) > 0d0) THEN
              WRITE (*, 1047) I, J, L, state_chm%speciesVec(NFD)%conc(I,J,L)
-             CFN = CFN + state_chm%SpeciesVec(NFD)%conc(I,J,L)
+             CFN = CFN + state_chm%SpeciesVec(NFD)%Conc(I,J,L)
           endif
        ENDDO
         ENDDO

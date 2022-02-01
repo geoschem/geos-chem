@@ -354,8 +354,6 @@ CONTAINS
     REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
     REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
     REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
-!ewl
-!    REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
     !=================================================================
     ! DO_GLOBAL_ADV begins here!
@@ -441,16 +439,6 @@ CONTAINS
     p_XMASS   => XMASS            (:,:,State_Grid%NZ:1:-1)
     p_YMASS   => YMASS            (:,:,State_Grid%NZ:1:-1)
 
-!ewl
-!
-!    ! NOTE: For now, so as to avoid having to rewrite the internals
-!    ! of the TPCORE routines, just point to 1:nAdvect entries of
-!    ! State_Chm%Species.  This is OK for now, as of July 2016, all of
-!    ! the advected species are listed first.  This may change in the
-!    ! future, but we'll worry about that later.  The units of p_SPC
-!    ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
-!    p_Spc     => State_Chm%Species(:,:,State_Grid%NZ:1:-1,1:nAdvect)
-
     ! Do the advection
     CALL TPCORE_FVDAS( D_DYN,     Re, &
                        State_Grid%NX, &
@@ -469,8 +457,6 @@ CONTAINS
     p_VWND  => NULL()
     p_XMASS => NULL()
     p_YMASS => NULL()
-!ewl
-!    p_Spc   => NULL()
     p_MFLEW => NULL()
     p_MFLNS => NULL()
     p_MFLUP => NULL()
@@ -597,8 +583,6 @@ CONTAINS
     REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
     REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
     REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
-!ewl
-!    REAL(fp),  POINTER :: p_Spc   (:,:,:,:)
 
     !=================================================================
     ! DO_FVDAS_WINDOW_TRANSPORT begins here!
@@ -627,8 +611,6 @@ CONTAINS
     p_MFLEW     => NULL()
     p_MFLNS     => NULL()
     p_MFLUP     => NULL()
-!ewl
-!    p_Spc       => NULL()
 
     ! Get nested-grid lon/lat offsets [# boxes]
     I0          =  State_Grid%XMinOffset
@@ -714,17 +696,6 @@ CONTAINS
                             J0_W1+1 : J0_W1+JM_W1, &
                             State_Grid%NZ:1:-1  )
 
-!ewl
-!    ! NOTE: For now, so as to avoid having to rewrite the internals
-!    ! of the TPCORE routines, just point to 1:nAdvect entries of
-!    ! State_Chm%Species.  This is OK for now, as of July 2016, all of
-!    ! the advected species are listed first.  This may change in the
-!    ! future, but we'll worry about that later. (bmy, 7/13/16)
-!    p_Spc => State_Chm%Species( I0_W1+1 : I0_W1+IM_W1, &
-!                                J0_W1+1 : J0_W1+JM_W1, &
-!                                State_Grid%NZ:1:-1,    &
-!                                1:nAdvect )
-
     p_XMASS  => XMASS( I0_W1+1 : I0_W1+IM_W1, &
                        J0_W1+1 : J0_W1+JM_W1, &
                        State_Grid%NZ:1:-1 )
@@ -756,8 +727,6 @@ CONTAINS
     ! Free pointer memory
     p_UWND   => NULL()
     p_VWND   => NULL()
-!ewl
-!    p_Spc    => NULL()
     p_XMASS  => NULL()
     p_YMASS  => NULL()
     p_P_TP1  => NULL()

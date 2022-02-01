@@ -848,10 +848,8 @@ CONTAINS
        ENDDO
 
        !IF ( id_SF1 > 0 ) THEN
-!ewl
        CALL SRCSF30( Input_Opt, State_Grid, State_Met, &
-                     State_Chm, &
-                     BINMASS(:,:,:,:), RC )
+                     State_Chm, BINMASS(:,:,:,:), RC )
 
        ! Return the aerosol mass after emission subroutine to Spc
        ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
@@ -989,7 +987,7 @@ CONTAINS
     ! Pointers
     REAL(f4),      POINTER :: Ptr2D(:,:  )
     REAL(f4),      POINTER :: Ptr3D(:,:,:)
-    TYPE(SpcConc), POINTER :: TC1
+    TYPE(SpcConc), POINTER :: TC1(:)
 
     INTEGER                :: N_TRACERS
 
@@ -1176,7 +1174,7 @@ CONTAINS
 
           !save number and mass before emission
           !DO M = 1, IBINS
-          !   N0(:,M) = TC1(M)%Conc(I,J,:)
+          !   N0(:,M) = TC1(id_NK1+M-1)%Conc(I,J,:)
           !ENDDO
           !M0(:,:) = TC2(I,J,:,1:IBINS)
 
@@ -1192,7 +1190,7 @@ CONTAINS
                 !sfarina - sqrt is expensive.
                 !NDISTINIT(K) = SO4(L) * BFRAC(K) / ( SQRT( XK(K)*XK(K+1) ) )
                 !set existing number of particles
-                NDIST(K) = TC1(id_NK1+K)%Conc(I,J,L)
+                NDIST(K) = TC1(id_NK1+K-1)%Conc(I,J,L)
                 !sfarina - what are the chances aerosol water and ammonium
                 ! are properly equilibrated?
                 DO C = 1, ICOMP
@@ -1289,7 +1287,7 @@ CONTAINS
                                        'after SUBGRIDCOAG at ',I,J,L
 
              DO K = 1, IBINS
-                TC1(id_NK1+K)%Conc(I,J,L) = NDIST2(K)
+                TC1(id_NK1+K-1)%Conc(I,J,L) = NDIST2(K)
                 DO C=1,ICOMP
                    TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
                 ENDDO
@@ -1302,7 +1300,7 @@ CONTAINS
              !
              !DO K = 1, IBINS
              !!sfarina debug
-             !if(TC1(id_NK1+K)%Conc(I,J,L)-N0(L,K) < 0d0) then
+             !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
              ! write(*,*) '"Negative NK emis" details:'
              ! write(*,*) 'NTOP       ', NTOP
              ! write(*,*) 'S_SO4:     ', S_SO4
@@ -1310,7 +1308,7 @@ CONTAINS
              ! write(*,*) 'EFRAC(L):  ', EFRAC(L)
              ! DO Bi=1,IBINS
              !  write(*,*) 'Bin        ',Bi
-             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK1+Bi)%Conc(I,J,L)
+             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK1+Bi-1)%Conc(I,J,L)
              !  write(*,*) 'ndist1,2   ', NDIST(Bi), NDIST2(Bi)
              !  write(*,*) 'ndistfinal ', NDISTFINAL(Bi)
              !  write(*,*) 'MADDFINAL  ', MADDFINAL(Bi)
@@ -1343,10 +1341,10 @@ CONTAINS
                 !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
                 !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
                 !     'at',I,J,L,K
-                !if(TC1(id_NK1+K)%Conc(I,J,L)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(id_NK1+K)%Conc(I,J,L)-N0(L,K), &
+                !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+                !   print *,'Negative NK emis ',TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K), &
                 !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(id_NK1+K)%Conc(I,J,L),N0(L,K)
+                !   print *,'tc1, N0 ',TC1(id_NK1+K-1)%Conc(I,J,L),N0(L,K)
                 !end if
 
                 !sfarina - I have studied this extensively and determined that
@@ -1364,7 +1362,7 @@ CONTAINS
                 !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
                 !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
                 !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(id_NK1+K)%Conc(I,J,L)-N0(L,K) &
+                !                      TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) &
                 AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                 AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
              ENDDO
@@ -1381,9 +1379,9 @@ CONTAINS
           DO L = 1, State_Grid%NZ
              SO4(L) = TSO4 * EFRAC(L)
              DO K = 1, IBINS
-                TC1(id_NK1+K)%Conc(I,J,L) = TC1(id_NK1+K)%Conc(I,J,L) + &
+                TC1(id_NK1+K-1)%Conc(I,J,L) = TC1(id_NK1+K-1)%Conc(I,J,L) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
-               TC2(id_NK1+K)%Conc(I,J,L) = TC2(id_NK1+K)%Conc(I,J,L) + &
+               TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
              ENDDO
           ENDDO
@@ -1415,6 +1413,8 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    NULLIFY(TC1)
 
     IF ( prtDebug ) print *,'   ### Finish SRCSF30'
 
@@ -9378,8 +9378,10 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        DO L = 1, State_Grid%NZ
-!ewl
-          MASS(L) = SUM(Spc(IDTEMP1:IDTEMP2))
+          MASS(L) = 0.d8
+          DO N = IDTEMP1, IDTEMP2
+             MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
+          ENDDO
           DO K = 1, NCTSO4
              OLD(L,K) = Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L)
              Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) = 0.D0

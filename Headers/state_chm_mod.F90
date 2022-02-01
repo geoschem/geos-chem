@@ -114,9 +114,6 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
-                                                        !  [kg/kg dry air]
-!ewlspc
      TYPE(SpcConc),     POINTER :: SpeciesVec (:      ) ! Vector for species
                                                         ! concentrations
                                                         !  [kg/kg dry air]

@@ -541,9 +541,6 @@ CONTAINS
  real, intent(in):: dt                    ! Transport time step in seconds
  real, intent(in):: ae                    ! Earth's radius (m)
 
-!ewl
-! real, intent(inout):: q(:,:,:,:)         ! Tracer "mixing ratios"
-!                                          ! q could easily be re-dimensioned
  TYPE(ChmState), intent(inout) :: State_Chm ! Chemistry state object
 
  real, intent(out):: ps(im,jfirst:jlast)  ! "predicted" surface pressure
@@ -669,7 +666,7 @@ CONTAINS
 
 ! Average q at both poles
 !  do iq=1,nq
-!     q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:-1:1)
+!     q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
 !!$omp parallel do   &
 !!$omp shared(im)    &
 !!$omp private(k)
@@ -736,9 +733,10 @@ CONTAINS
 ! Multi_Tracer:
    do iq=1,nq
 
+      q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
+
 #if defined(SPMD)
-! Receive current tracer
- q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
+ ! Receive current tracer
  q_ptr2 => State_Chm%SpeciesVec(iq+1)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
 #if defined(PILGRIM)
  call parendtransfer(pattern2dng,km,q_ptr(:,:,:),q_ptr(:,:,:))
@@ -851,14 +849,13 @@ CONTAINS
 !$OMP DEFAULT( SHARED )     &
 !$OMP PRIVATE( I, J, IQ )
     DO IQ = 1, NQ
-       q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:-1:1)
-       QTEMP(:,:,:,IQ) = q_ptr(:,:,:)
-       NULLIFY(q_ptr)
+       QTEMP(:,:,:,IQ) = &
+            State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:-1:1)
     ENDDO
 ! ENDIF 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-!ewl....maybe pass state_chm rather than q here? Nullify q_ptr above if yes.
+!ewl....maybe pass state_chm rather than q here?
  call qmap(pe, QTEMP, im, jm, km, nx, jfirst, jlast, ng, nq,         &
            ps, ak, bk, kord, iv )
 
@@ -882,12 +879,15 @@ CONTAINS
 
 !$OMP PARALLEL DO           &
 !$OMP DEFAULT( SHARED )     &
-!$OMP PRIVATE( I, J, IQ )
+!$OMP PRIVATE( I, J, IQ, q_ptr )
     DO IQ = 1, NQ
+
+    q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
+
     DO I  = 1, IM
     DO J  = 1, JM
 
-       DTC(I,J,K,IQ) = ( q_ptr(I,J,K)     * DELP1(I,J,K)   -          &
+       DTC(I,J,K,IQ) = ( q_ptr(I,J,K) * DELP1(I,J,K)   -  &
                          QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
                          AREA_M2(J) * g0_100
 
@@ -897,6 +897,9 @@ CONTAINS
        !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
     ENDDO
     ENDDO
+
+    NULLIFY(q_ptr)
+
     ENDDO
 !$OMP END PARALLEL DO
 
@@ -906,26 +909,30 @@ CONTAINS
     DO K  = 2, KM
 !$OMP PARALLEL DO                      &
 !$OMP DEFAULT( SHARED )                &
-!$OMP PRIVATE( I, J, IQ, TRACE_DIFF )
+!$OMP PRIVATE( I, J, IQ, TRACE_DIFF, q_ptr )
     DO IQ = 1, NQ
+
+    q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
+
     DO I  = 1, IM
     DO J  = 1, JM
 
-       TRACE_DIFF         = ( q_ptr(I,J,K)     * DELP1(I,J,K)  -     &
-                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
+       TRACE_DIFF         = ( q_ptr(I,J,K) * DELP1(I,J,K)  - &
+                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *         &
                               AREA_M2(J) * g0_100
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
     ENDDO
     ENDDO
+
+    NULLIFY(q_ptr)
+
     ENDDO
 !$OMP END PARALLEL DO
     ENDDO
 
     ENDIF
-
-    NULLIFY(q_ptr)
 
  END subroutine TPCORE_WINDOW
 
@@ -2341,7 +2348,6 @@ CONTAINS
 ! Local arrays:
   real pe2(im,km+1)
 
-  real temp
   integer i, j, k, iq
   integer ixj, jp, it, i1, i2
   integer kord
@@ -2380,8 +2386,6 @@ CONTAINS
         pe2(i,km+1) = ps(i,j)
      enddo
 
-     ! temp is not used so commenting out (ewl, 1/27/22)
-     !temp = sum(q)
      do iq=1,nq
         call map1_ppm ( km,   pe(1,1,j),   q(1,jfirst-ng,1,iq),   &
                         km,   pe2,         q(1,jfirst-ng,1,iq),   &
@@ -2428,7 +2432,6 @@ CONTAINS
  integer i, k, l, ll, k0
  real  pl, pr, qsum, delp, esl
  real       r3, r23
- real temp
  parameter (r3 = 1./3., r23 = 2./3.)
 
  ! Initialize local arrays (bmy, 7/10/17)
@@ -2442,13 +2445,9 @@ CONTAINS
          enddo
       enddo
 
-      ! temp is not used so commenting out (ewl, 1/27/22)
-      !temp = sum(q4)
 ! Compute vertical subgrid distribution
       call ppm2m( q4, dp1, km, i1, i2, iv, kord )
 
-      ! temp is not used so commenting out (ewl, 1/27/22)
-      !temp = sum(q2)
 ! Mapping
       do 1000 i=i1,i2
          k0 = 1

@@ -702,13 +702,11 @@ CONTAINS
                 ! QC =  --------------------------------------------
                 !            Dry air mass below cloud base
                 !
-!ewlspc
                 QC = ( MB*QB + CMFMC(CLDBASE-1) * Q(CLDBASE) * SDT  ) / &
                      ( MB    + CMFMC(CLDBASE-1) * SDT  )
 
                 ! Copy QC to all levels of the species array Q
                 ! that are below the cloud base level [kg/kg]
-!ewlspc
                 Q(1:CLDBASE-1) = QC
 
              ELSE
@@ -719,7 +717,6 @@ CONTAINS
 
                 ! When CMFMC is negligible, then set QC to the species
                 ! concentration at the cloud base level [kg/kg]
-!ewlspc
                 QC = Q(CLDBASE)
 
              ENDIF
@@ -731,8 +728,6 @@ CONTAINS
              ! set QC to the species concentration at the surface
              ! level [kg/kg]
              !-----------------------------------------------------
-!ewlspc
-!             QC = Q(CLDBASE,IC)
              QC = Q(CLDBASE)
           ENDIF
 

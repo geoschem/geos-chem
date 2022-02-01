@@ -498,7 +498,7 @@ CONTAINS
 
              ! Compute mol of Tracer needed to achieve the desired value
              Total_Spc = Total_Spc + &
-                ( GlobalBurden - State_Chm%Species(I,J,L,N)) * &
+                ( GlobalBurden - State_Chm%SpeciesVec(N)%Conc(I,J,L) ) * &
                 (State_Met%AIRNUMDEN(I,J,L)/ AVO) * State_Met%AIRVOL(I,J,1)
 
              ! To distribute it uniformly on the surface, compute the total

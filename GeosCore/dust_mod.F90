@@ -238,7 +238,7 @@ CONTAINS
           Spc(APMIDS%id_DSTBIN1+8)%Conc(I,J,1)  =                             &
                                       Spc(APMIDS%id_DSTBIN1+8)%Conc(I,J,1)    &
                                       +E_DST*0.1880182758312848
-          Spc(APMIDS%id_DSTBIN1+9%Conc(I,J,1)  =                              &
+          Spc(APMIDS%id_DSTBIN1+9)%Conc(I,J,1)  =                              &
                                       Spc(APMIDS%id_DSTBIN1+9)%Conc(I,J,1)    &
                                       +E_DST*0.2448371224641443
           Spc(APMIDS%id_DSTBIN1+10)%Conc(I,J,1) =                             &
@@ -583,7 +583,7 @@ CONTAINS
     LOGICAL           :: LDUST
     LOGICAL           :: prtDebug
     LOGICAL           :: LINTERP
-    INTEGER           :: I, J, K
+    INTEGER           :: I, J, K, N
     REAL(fp)          :: MEMIS
     REAL(fp)          :: MINIT(State_Grid%NX,State_Grid%NY,1,IBINS)
 
@@ -632,8 +632,8 @@ CONTAINS
     !=================================================================
     IF ( id_NK1 > 0 .and. id_DUST1 > 0 ) THEN
 
-       DO M = 1, IBINS
-          MINIT(:,:,1,M) = Spc(M-1+id_DUST1)%Conc(:,:,1)
+       DO N = 1, IBINS
+          MINIT(:,:,1,N) = Spc(id_DUST1+N-1)%Conc(:,:,1)
        ENDDO
 
        IF ( LDEAD ) THEN
@@ -1051,11 +1051,11 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        DO L = 1, State_Grid%NZ
-          DO M = APMIDS%id_DSTBIN1, IDTEMP
-             MASS(L) = MASS(L) + Spc(M)%Conc(I,J,L) 
+          DO N = APMIDS%id_DSTBIN1, IDTEMP
+             MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
           ENDDO
           DO K = 1, NCTDST
-             OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTDST+K-1))
+             OLD(L,K) = Spc(APMIDS%id_CTDST+K-1)%Conc(I,J,L)
              Spc(APMIDS%id_CTDST+K-1)%Conc(I,J,L) = 0.D0
           ENDDO
        ENDDO
@@ -1115,7 +1115,7 @@ CONTAINS
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
                 Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                     * (Spc(APMIDS%id_DSTBIN1+N-1%Conc(I,J,L) &
+                     * (Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L) &
                      + DT_SETTL * VTS(L+1) / DELZ1 * TC0(L+1) )
 
                 DO K = 1, NCTDST

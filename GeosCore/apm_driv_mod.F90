@@ -476,7 +476,7 @@ CONTAINS
     REAL :: p_atm,cairclmdum,gas(4),aer(14),aerh2o,XM,VRATIO
     REAL :: gasold(4),aerold(14)
     REAL :: t_k4,rh4,dtchem,aersize
-    REAL :: so4_bin_sum, sea_bin_sum
+    REAL :: SO4_bin_sum, SEA_bin_sum, DST_bin_sum
 
     ! Array dimensions
     INTEGER, PARAMETER       :: NOTHERA  =  9
@@ -727,6 +727,7 @@ CONTAINS
        !$OMP PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             ) &
        !$OMP PRIVATE( TSO4COAT ,DNH3MAX            )                          &
        !$OMP PRIVATE( TH2O, XM,VRATIO)                                        &
+       !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum)                               &
        !$OMP SCHEDULE( DYNAMIC )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
@@ -763,13 +764,15 @@ CONTAINS
 
              !GanLuo+ Deduce SULFLO form TSO4,
              ! Add those sulfate coated on primary particles
-!ewl
-             !GanLuo mv LVSOG         TSO4     = (SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))
-             !GanLuo mv LVSOG     &            ) * 1.e+3_fp / ( 96.e+0_fp * VOL )
-             TSO4 = (SUM( &
-!ewl
-                    Spc(I,J,L,APMIDS%ID_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1))) &
-                    - Spc(APMIDS%id_CTSO4)%Conc(I,J,L))*1.e+3_fp / ( 96.e+0_fp * VOL )
+             SO4_bin_sum = 0.d8
+             DO M = APMIDS%id_SO4BIN1, APMIDS%id_SO4BIN1+NSO4-1
+                SO4_bin_sum = SO4_bin_sum + Spc(M)%Conc(I,J,L)
+             ENDDO
+
+             !GanLuo mv LVSOG     TSO4 = SO4_bin_sum*1.e+3_fp/(96.e+0_fp*VOL)
+
+             TSO4 = ( SO4_bin_sum - Spc(APMIDS%id_CTSO4)%Conc(I,J,L) ) &
+                    * 1.e+3_fp / ( 96.e+0_fp * VOL )
 
              TSO4COAT = (Spc(APMIDS%id_CTBC)%Conc(I,J,L) + &
                          Spc(APMIDS%id_CTOC)%Conc(I,J,L) + &
@@ -790,15 +793,16 @@ CONTAINS
                     DNH3MAX * 1.e+3_fp / ( 17.e+0_fp * VOL )
              MASSISRP(I,J,L,1) = Spc(APMIDS%id_NH3)%Conc(I,J,L)-DNH3MAX !remaining NH3
 
+             !sea_bin_sum=0.d8
+             !DO M = APMIDS%id_SEABIN1, APMIDS%id_SEABIN1+NSEA-1
+             !   sea_bin_sum = sea_bin_sum + Spc(M)%Conc(I,J,L)
+             !ENDDO
+
              ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-!ewl
-             !TNA = SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-             !      * 0.3061e+0_fp * 1.e+3_fp /( 22.99e+0_fp  * VOL  )
+             !TNA = SEA_BIN_SUM * 0.3061e+0_fp * 1.e+3_fp /( 22.99e+0_fp * VOL )
 
              ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-!ewl
-             !TCL = SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-             !      * 0.5504e+0_fp * 1.e+3_fp /( 22.99e+0_fp  * VOL  )
+             !TCL = SEA_BIN_SUM * 0.5504e+0_fp * 1.e+3_fp /( 22.99e+0_fp * VOL )
 
              !GLuo: Sea salt in ISORROPIA needs to be updated.
              TNA      = 0e+0_fp
@@ -892,24 +896,24 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          if((Spc(APMIDS%id_NH3)%Conc(I,J,L)  + &
-              Spc(APMIDS%id_NH4)%Conc(I,J,L)  + &
-              Spc(APMIDS%id_HNO3)%Conc(I,J,L) + &
-              Spc(APMIDS%id_NIT)%Conc(I,J,L)) > 1.d-16)then
+          if( (   Spc(APMIDS%id_NH3 )%Conc(I,J,L)    &
+                + Spc(APMIDS%id_NH4 )%Conc(I,J,L)  &
+                + Spc(APMIDS%id_HNO3)%Conc(I,J,L)  &
+                + Spc(APMIDS%id_NIT )%Conc(I,J,L) ) > 1.d-16)then
 
              aersize=0.d0
 
-             so4_bin_sum=0.d0
+             SO4_bin_sum = 0.d0
              DO M = APMIDS%id_SO4BIN1, APMIDS%id_SO4BIN1+NSO4-1
-                so4_bin_sum = so4_bin_sum + Spc(M)%Conc(I,J,L)
+                SO4_bin_sum = SO4_bin_sum + Spc(M)%Conc(I,J,L)
              ENDDO
 
-             ssea_bin_sum=0.d0
+             SEA_bin_sum = 0.d0
              DO M = APMIDS%id_SEABIN1, APMIDS%id_SEABIN1+NSEA-1
-                sea_bin_sum = sea_bin_sum + Spc(M)%Conc(I,J,L)
+                SEA_bin_sum = SEA_bin_sum + Spc(M)%Conc(I,J,L)
              ENDDO
 
-             IF( so4_bin_sum + sea_binsum ) > 1.d-30)THEN
+             IF( ( SO4_bin_sum + SEA_bin_sum ) > 1.d-30 )THEN
                 DO N=1,NSO4
                    SIZENUM=APMIDS%id_SO4BIN1+N-1
                    aersize=aersize+Spc(SIZENUM)%Conc(I,J,L)*RDRY(N)*GFTOT3D(I,J,L,1)
@@ -918,7 +922,7 @@ CONTAINS
                    SIZENUM=APMIDS%id_SEABIN1+N-1
                    aersize=aersize+Spc(SIZENUM)%Conc(I,J,L)*RSALT(N)*GFTOT3D(I,J,L,2)
                 ENDDO
-                aersize=aersize / ( so4_bin_sum + sea_bin_sum )
+                aersize=aersize / ( SO4_bin_sum + SEA_bin_sum )
              ELSE
                 aersize=50.D-9
              ENDIF
@@ -938,12 +942,11 @@ CONTAINS
              gas(3) = real(Spc(APMIDS%id_HNO3)%Conc(I,J,L)*MAIR/ &
                           (State_Met%AD(I,J,L)*63.0e-3))!HNO3
               
-             aer(1) = real(((MAX(1.e-30, &
-                 (  so4_bin_sum &
-                   -Spc(APMIDS%id_CTSO4)%Conc(I,J,L)) )) &
-                   +Spc(APMIDS%id_CTBC)%Conc(I,J,L))    &
-                   +Spc(APMIDS%id_CTOC)%Conc(I,J,L))    &
-                   +Spc(APMIDS%id_CTDST)%Conc(I,J,L)+Spc(I,J,L,APMIDS%id_CTSEA)%Conc(I,J,L))*MAIR&
+             aer(1) = real(((MAX(1.e-30, (SO4_bin_sum - Spc(APMIDS%id_CTSO4)%Conc(I,J,L)) )) &
+                   +Spc(APMIDS%id_CTBC)%Conc(I,J,L)    &
+                   +Spc(APMIDS%id_CTOC)%Conc(I,J,L)    &
+                   +Spc(APMIDS%id_CTDST)%Conc(I,J,L)   &
+                   +Spc(APMIDS%id_CTSEA)%Conc(I,J,L) )*MAIR&
                    /(State_Met%AD(I,J,L)*96.0e-3)) !SO4
              aer(2) = real(Spc(APMIDS%id_NH4)%Conc(I,J,L)*MAIR/ &
                           (State_Met%AD(I,J,L)*18.0e-3))!NH4
@@ -1323,13 +1326,13 @@ CONTAINS
           ENDDO
 
           DO N=1,NDSTB      ! dust
-             XMDST(N) = Spc((APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L))/VOL   !kg/m3
+             XMDST(N) = Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L)/VOL   !kg/m3
              IF(XMDST(N).LT.1.d-20) THEN   !debug force
                 XMDST(N) = 1.d-20
-                Spc((APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L)) = XMDST(N) * VOL
+                Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L) = XMDST(N) * VOL
              ENDIF
              MWSIZE3D(I,J,L,3)=MWSIZE3D(I,J,L,3)+ &
-                               Spc((APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L))*RDST(N)
+                               Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L)*RDST(N)
           ENDDO
 
           DO N= 1, NBCOC
@@ -2284,13 +2287,13 @@ CONTAINS
                       REAL(State_Met%U(ATOMGRID(1,J),ATOMGRID(2,J),L)),       &
                       REAL(State_Met%V(ATOMGRID(1,J),ATOMGRID(2,J),L)),       &
                      (REAL(TEMPOUT(ATOMGRID(1,J),ATOMGRID(2,J),L,N)),N=1,77), &
-                     (REAL(Spc(M)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)),             &
+                     (REAL(Spc(M)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)),       &
                            M=APMIDS%id_SO4G,(APMIDS%id_AMINE+2)),             &
-                      REAL(Spc(APMIDS%id_SO2)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L))), &
-                      REAL(Spc(APMIDS%id_NH3)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L))), &
-                      REAL(Spc(APMIDS%id_NH4)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L))), &
-                      REAL(Spc(APMIDS%id_HNO3)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L))),&
-                      REAL(Spc(APMIDS%ID_NIT)%CONC(ATOMGRID(1,J),ATOMGRID(2,J),L)))
+                      REAL(Spc(APMIDS%id_SO2 )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%id_NH3 )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%id_NH4 )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%id_HNO3)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%ID_NIT )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L))
                       RECID=RECID+1
              ENDDO
           ENDDO
@@ -2298,33 +2301,43 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !$OMP PARALLEL DO         &
-    !$OMP DEFAULT( SHARED )   &
-    !$OMP PRIVATE( I, J, L )  &
+    !$OMP PARALLEL DO                                       &
+    !$OMP DEFAULT( SHARED )                                 &
+    !$OMP PRIVATE( I, J, L, M )                             &
+    !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum, DST_bin_sum )  &
     !$OMP SCHEDULE( DYNAMIC )
     DO L = 1, STATE_GRID%NZ
     DO J = 1, STATE_GRID%NY
     DO I = 1, STATE_GRID%NX
-       IF(SUM(SPC(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1))) &
-          >1.d-30)THEN
-          MWSIZE3D(I,J,L,1)=MWSIZE3D(I,J,L,1)/ &
-             SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))
+
+       SO4_bin_sum = 0.d0
+       DO M = 1, NSO4
+          SO4_bin_sum = SO4_bin_sum + Spc(APMIDS%id_SO4BIN1+M-1)%Conc(I,J,L)
+       ENDDO
+       IF( SO4_bin_sum > 1.d-30 )THEN
+          MWSIZE3D(I,J,L,1) = MWSIZE3D(I,J,L,1) / SO4_bin_sum
        ELSE
-          MWSIZE3D(I,J,L,1)=RDRY(39)*GFTOT3D(I,J,L,1)
+          MWSIZE3D(I,J,L,1) = RDRY(39) * GFTOT3D(I,J,L,1)
        ENDIF
-       IF(SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-          >1.d-30)THEN
-          MWSIZE3D(I,J,L,2)=MWSIZE3D(I,J,L,2)/ &
-             SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1)))
+
+       SEA_bin_sum = 0.d0
+       DO M = 1, NSEA
+          SEA_bin_sum = SEA_bin_sum + Spc(APMIDS%id_SEABIN1+M-1)%Conc(I,J,L)
+       ENDDO
+       IF( SEA_bin_sum > 1.d-30 ) THEN
+          MWSIZE3D(I,J,L,2) = MWSIZE3D(I,J,L,2) / SEA_bin_sum
        ELSE
-          MWSIZE3D(I,J,L,2)=RSALT(19)*GFTOT3D(I,J,L,2)
+          MWSIZE3D(I,J,L,2) = RSALT(19) * GFTOT3D(I,J,L,2)
        ENDIF
-       IF(SUM(Spc(I,J,L,APMIDS%id_DSTBIN1:(APMIDS%id_DSTBIN1+NDSTB-1))) &
-          >1.d-30)THEN
-          MWSIZE3D(I,J,L,3)=MWSIZE3D(I,J,L,3)/ &
-             SUM(Spc(I,J,L,APMIDS%id_DSTBIN1:(APMIDS%id_DSTBIN1+NDSTB-1)))
+
+       DST_bin_sum = 0.d0
+       DO M = 1, NDSTB
+          DST_bin_sum = DST_bin_sum + Spc(APMIDS%id_DSTBIN1+M-1)%Conc(I,J,L)
+       ENDDO
+       IF( DST_bin_sum > 1.d-30 )THEN
+          MWSIZE3D(I,J,L,3) = MWSIZE3D(I,J,L,3) / DST_bin_sum
        ELSE
-          MWSIZE3D(I,J,L,3)=RDRY(14)
+          MWSIZE3D(I,J,L,3) = RDRY(14)
        ENDIF
     ENDDO
     ENDDO
