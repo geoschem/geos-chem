@@ -6,7 +6,7 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name gc_{met}_{sim_name}.
+# default name gc_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
@@ -466,6 +466,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/nested_grid.txt)\n"
 	    if [[ ${domain_num} = "2" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AS'\n"
+		grid_nest="AS"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE=' 60.0 150.0'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='-11.0  55.0'\n"
@@ -475,6 +476,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		fi
 	    elif [[ ${domain_num} = "3" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='EU'\n"
+	        grid_nest="EU"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-30.0 50.0'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 30.0 70.0'\n"
@@ -484,6 +486,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		fi
 	    elif [[ ${domain_num} = "4" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='NA'\n"
+		grid_nest+="NA"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-140.0 -40.0'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='  10.0  70.0'\n"
@@ -492,6 +495,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='   9.75  60.0'\n"
 		fi
 	    elif [[ ${domain_num} = "5" ]]; then
+		grid_nest="CU"
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='custom'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='MinLon MaxLon'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='MinLat MaxLat'\n"
@@ -620,6 +624,7 @@ if [[ ${met} = "geosfp" ]] || [[ ${met} = "merra2" ]]; then
         if [[ ${lev_num} = "1" ]]; then
             RUNDIR_VARS+="RUNDIR_GRID_NLEV='72'\n"
         elif [[ ${lev_num} = "2" ]]; then
+	    grid_lev="47L"
 	    RUNDIR_VARS+="RUNDIR_GRID_NLEV='47'\n"
         else
             valid_lev=0
@@ -713,10 +718,13 @@ if [ -z "$1" ]; then
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
     read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gc_${met}_${sim_name}
+	grid_display="${grid_res}"
+        [[ "x${grid_nest}" != "x" ]] && grid_display+="_${grid_nest}"
+	[[ "x${grid_lev}"  != "x" ]] && grid_display+="_${grid_lev}"
+	if [[ "x${sim_extra_option}" = "xnone" ]]; then
+	    rundir_name=gc_${grid_display}_${met}_${sim_name}
 	else
-	    rundir_name=gc_${met}_${sim_name}_${sim_extra_option}
+	    rundir_name=gc_${grid_display}_${met}_${sim_name}_${sim_extra_option}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -1116,7 +1124,9 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run *.py input.geos getRunInfo
+	git add *.rc *.sh *.yml *.py input.geos getRunInfo
+	[[ -f geoschem.benchmark.run ]] && git add geoschem.benchmark.run
+	[[ -f geoschem.run           ]] && git add geoschem.run
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
