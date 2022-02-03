@@ -40,6 +40,7 @@
       use parrrsw, only : mg, nbndsw, ngptsw
       use rrsw_tbl, only: ntbl, tblint, pade, bpade, tau_tbl, exp_tbl
       use rrsw_vsn, only: hvrini, hnamini
+      use rrtmg_sw_k_g
 
       real(kind=rb), parameter :: cpdair=1003.5     ! Specific heat capacity of dry air
                                                     ! at constant pressure at 273 K
