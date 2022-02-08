@@ -144,17 +144,23 @@ MODULE Chem_GridCompMod
   LOGICAL                          :: DoRATS
   LOGICAL                          :: DoANOX
 
-  ! To set ozone from PCHEM 
+  ! To update ozone from external analysis field
   LOGICAL                          :: LANAO3
   LOGICAL                          :: LPCHEMO3
+  LOGICAL                          :: ANAO3FWD
   INTEGER                          :: ANAO3TROPP
   INTEGER                          :: ANAO3L1
   INTEGER                          :: ANAO3L2
   INTEGER                          :: ANAO3L3
   INTEGER                          :: ANAO3L4
   INTEGER                          :: ANAO3ERR
-  REAL                             :: ANAO3FR 
+  INTEGER                          :: ANAO3FREQ
+  INTEGER                          :: ANAO3HR
+  INTEGER                          :: ANAO3MIN
+  REAL                             :: ANAO3FR
   CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3FILE
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3VAR
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3VARUNIT
 #else
   LOGICAL                          :: isProvider ! provider to AERO, RATS, ANOX?
   LOGICAL                          :: calcOzone  ! if PTR_GCCTO3 is associated
@@ -1399,11 +1405,20 @@ CONTAINS
     ! Diagnostics for applied ozone increment
     call MAPL_AddExportSpec(GC,                        &
        SHORT_NAME         = 'GCC_ANA_O3_INC',          &
-       LONG_NAME          = 'Applied_ozone_increment', &
+       LONG_NAME          = 'Applied_ozone_increment_in_kg_kg_total_air', &
        UNITS              = 'kg/kg',                   &
        DIMS               = MAPL_DimsHorzVert,         &
        VLOCATION          = MAPL_VLocationCenter,      &
                                                  __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_O3_INC_PPMV',     &
+       LONG_NAME          = 'Applied_ozone_increment_in_ppmv_total_air', &
+       UNITS              = 'mol/mol',                 &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
 #else
     CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
 #endif
@@ -2413,12 +2428,13 @@ CONTAINS
     ! Overwrite strat. O3 with ANA_OZ 
     ! Default settings
     LANAO3  = .FALSE.
-    ANAO3L1 = value_LLSTRAT 
+    ANAO3L1 = value_LLSTRAT
     ANAO3L2 = value_LLSTRAT
     ANAO3L3 = LM
     ANAO3L4 = LM
     ANAO3FR = 1.0
     ANAO3TROPP = 0
+    ANAO3FWD = .FALSE.
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_ANA_O3:", &
                                   Default = 0, __RC__ ) 
     IF ( DoIt == 1 ) THEN
@@ -2437,11 +2453,24 @@ CONTAINS
                                      Default = 1.0, __RC__ ) 
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3FILE, Label = "ANAO3TMPL:", &
                                      Default = '/dev/null', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3VAR, Label = "ANAO3VAR:", &
+                                     Default = 'O3', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3VARUNIT, Label = "ANAO3VARUNIT:", &
+                                     Default = 'kg/kg', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3FREQ, Label = "ANAO3FREQ:", &
+                                     Default = 3, __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3HR, Label = "ANAO3HR:", &
+                                     Default = 1, __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3MIN, Label = "ANAO3MIN:", &
+                                     Default = 30, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3ERR, Label = "ERROR_MODE:", &
                                      Default = 1, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "Use_PCHEM_O3:", &
                                      Default = 0, __RC__ )
        LPCHEMO3 = ( I == 1 )
+       CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "ANAO3FWD:", &
+                                     Default = 1, __RC__ )
+       ANAO3FWD = ( I == 1 )
        ASSERT_(ANAO3L1 >  0)
        ASSERT_(ANAO3L1 <= LM)
        ASSERT_(ANAO3L2 >= ANAO3L1)
@@ -2456,11 +2485,14 @@ CONTAINS
        IF ( LANAO3 ) THEN 
           WRITE(*,*) '-> Nudge above tropopause level  : ',ANAO3TROPP
           WRITE(*,*) '-> Use internal PCHEM field?     : ',LPCHEMO3
-          WRITE(*,*) '-> Analysis ozone bottom level 1 : ',ANAO3L1
-          WRITE(*,*) '-> Analysis ozone bottom level 2 : ',ANAO3L2
-          WRITE(*,*) '-> Analysis ozone top level 3    : ',ANAO3L3
-          WRITE(*,*) '-> Analysis ozone top level 4    : ',ANAO3L4
-          WRITE(*,*) '-> Analysis ozone blend factor   : ',ANAO3FR
+          WRITE(*,*) '-> Analysis update frequency       : ',ANAO3FREQ
+          WRITE(*,*) '-> Analysis update offset (hh/mm)  : ',ANAO3HR, ANAO3MIN
+          WRITE(*,*) '-> Apply analysis 1 time step ahead: ',ANAO3FWD
+          WRITE(*,*) '-> Analysis ozone bottom level 1   : ',ANAO3L1
+          WRITE(*,*) '-> Analysis ozone bottom level 2   : ',ANAO3L2
+          WRITE(*,*) '-> Analysis ozone top level 3      : ',ANAO3L3
+          WRITE(*,*) '-> Analysis ozone top level 4      : ',ANAO3L4
+          WRITE(*,*) '-> Analysis ozone blend factor     : ',ANAO3FR
        ENDIF
     ENDIF
 
@@ -6143,6 +6175,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE TIME_MOD,  ONLY : GET_TS_CHEM
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6179,25 +6212,27 @@ CONTAINS
     LOGICAL                    :: am_I_Root     ! Are we on the root PET?
     LOGICAL                    :: TimeForAna
     REAL, POINTER              :: ANAO3(:,:,:)
-    REAL, POINTER              :: O3INC(:,:,:)
+    REAL, POINTER              :: O3INC(:,:,:), O3INCPPMV(:,:,:)
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam, compName ! Gridded component name
     CHARACTER(LEN=ESMF_MAXSTR) :: SpcName
     INTEGER                    :: I, J, L, N, LR, IM, JM, LM 
     INTEGER                    :: STATUS
-    REAL                       :: O3new, MW, ifrac
+    REAL                       :: O3new, O3ana, O3MW, ifrac
     REAL                       :: ITROPP
-    INTEGER                    :: idx
+    INTEGER                    :: UnitFlag, idx
     INTEGER                    :: LB, L0, L1, L2, L3, L4
     CHARACTER(LEN=2)           :: SL1, SL2 
 
     ! To read from file
-    LOGICAL                    :: HasFile 
+    LOGICAL                    :: HasFile, HasBundle 
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile
     CHARACTER(LEN=ESMF_MAXSTR) :: VarName
     TYPE(MAPL_SimpleBundle)    :: VarBundle
     TYPE(ESMF_Grid)            :: grid
     TYPE(ESMF_TIME)            :: currTime 
-    TYPE(ESMF_TIME)            :: fileTime 
+    TYPE(ESMF_TIME)            :: fileTime
+    TYPE(ESMF_TimeInterval)    :: tsChemInt 
+    REAL                       :: tsChem
     TYPE(ESMF_Field)           :: iFld
     INTEGER                    :: VarID, fid 
     INTEGER                    :: nymd, nhms, yy, mm, dd, h, m, s, incSecs    
@@ -6221,8 +6256,17 @@ CONTAINS
     ! (middle of 3-hour time step)
     ! Get current time
     CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
-    CALL ESMF_TimeGet( currTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
-    IF ( m==30 .AND. MOD(h,3)==1 ) THEN
+
+    ! Eventually adjust time
+    IF ( ANAO3FWD ) THEN
+       tsChem = GET_TS_CHEM()
+    ELSE
+       tsChem = 0.0
+    ENDIF
+    CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
+    CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
+    !IF ( m==30 .AND. MOD(h,3)==1 ) THEN
+    IF ( m==ANAO3MIN .AND. MOD(h,ANAO3FREQ)==ANAO3HR ) THEN
        TimeForAna = .TRUE.
     ELSE
        TimeForAna = .FALSE.
@@ -6231,12 +6275,28 @@ CONTAINS
     ! Diagnostics
     CALL MAPL_GetPointer ( Export, O3INC, 'GCC_ANA_O3_INC', NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(O3INC) ) O3INC = 0.0
+    CALL MAPL_GetPointer ( Export, O3INCPPMV, 'GCC_ANA_O3_INC_PPMV', NotFoundOk=.TRUE., __RC__ )
+    IF ( ASSOCIATED(O3INCPPMV) ) O3INCPPMV = 0.0
 
     ! Get lower bound of PLE array
     LB = LBOUND(PLE,3)
-   
+
+    ! Initialize bundle flag
+    HasBundle = .FALSE.
+
     ! Get target ozone field 
     IF ( TimeForAna ) THEN
+       ! Select ozone index
+       ! Loop over all species
+       O3MW = 0.0
+       N = -1
+       DO I = 1, State_Chm%nSpecies
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
+             N = I
+             O3MW = State_Chm%SpcData(I)%Info%MW_g
+          ENDIF
+       ENDDO
+       ASSERT_(N > 0)
 
        ! Verbose
        WRITE(SL2,'(I2)') ANAO3L4
@@ -6251,7 +6311,7 @@ CONTAINS
        ! Get analysis O3 field from import in kg/kg
        IF ( LPCHEMO3 ) THEN
           CALL MAPL_GetPointer ( IMPORT, ANAO3, 'PCHEM_O3', __RC__ )
-   
+
        ! If not PCHEM, try to read it from the specified file
        ELSE
           !CALL MAPL_GetPointer ( IMPORT, ANAO3, 'ANA_O3', __RC__ )
@@ -6271,12 +6331,12 @@ CONTAINS
           CALL ReplaceChar ( ifile, '%h2', sh  )
           write(sm,'(I2.2)') m
           CALL ReplaceChar ( ifile, '%n2', sm  )
-  
+
           ! testing only
           !IF ( am_I_Root ) WRITE(*,*) 'parsed file: '//TRIM(ifile)
 
           ! Check if file exists
-          INQUIRE( FILE=ifile, EXIST=HasFile ) 
+          INQUIRE( FILE=ifile, EXIST=HasFile )
           IF ( HasFile ) THEN
              ! Try reading current time stamp on file 
              s = 0
@@ -6310,13 +6370,14 @@ CONTAINS
                    m  = (nhms- h*10000) / 100
                    s  = nhms - (10000*h  +  m*100)
                    VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, __RC__ )
-                ENDIF  
-             ENDIF  
+                ENDIF
+             ENDIF
              ! Read variable 
-             VarName   =  'O3'
-             VarID     =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
-             ANAO3     => VarBundle%r3(VarID)%q
-             IF ( am_I_Root ) WRITE(*,*) 'Use analysis ozone from '//TRIM(ifile)
+             VarName =  ANAO3VAR
+             VarID   =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
+             ANAO3   => VarBundle%r3(VarID)%q
+             IF ( am_I_Root ) WRITE(*,*) 'Use analysis ozone ('//TRIM(ANAO3VAR)//', assumed units='//TRIM(ANAO3VARUNIT)//') from '//TRIM(ifile)
+             HasBundle = .TRUE.
           ELSE
              ! If file not found and error mode is zero, stop with error
              IF ( ANAO3ERR == 0 ) THEN
@@ -6327,94 +6388,107 @@ CONTAINS
                 ASSERT_(.FALSE.)
              ! If file not found and error mode is not zero, just skip nudging 
              ELSE
-                TimeForAna = .FALSE.
                 IF ( am_I_Root ) WRITE(*,*) 'File not found - skip ozone nudging: '//TRIM(ifile)
-             ENDIF   
-          ENDIF   
-       ENDIF
-    ENDIF
-
-    ! Apply ozone analysis increment if it's time to do so
-    IF ( TimeForAna ) THEN  
- 
-       ! Select ozone index
-       ! Loop over all species
-       N = -1
-       DO I = 1, State_Chm%nSpecies
-          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
-             N = I 
+             ENDIF
           ENDIF
-       ENDDO
-       ASSERT_(N > 0)
+       ENDIF
 
-       ! array dimensions 
-       IM = SIZE(ANAO3,1)
-       JM = SIZE(ANAO3,2)
-       LM = SIZE(ANAO3,3)
+       ! Apply increments if available 
+       IF ( HasBundle ) THEN
 
-       DO J=1,JM
-       DO I=1,IM
- 
-          ! Determine levels to loop over: upper level is always the same
-          ! Lower level may be dynamic if along tropopause. In that case 
-          ! find lowest level above tropopause as reference point. 
-          L3 = ANAO3L3
-          L4 = ANAO3L4
-          IF ( ANAO3TROPP > 0 ) THEN
-             ! Find first level edge above tropopause.
-             ITROPP = TROPP(I,J)
-             L0 = -1
-             DO L=1,LM
-                IF ( PLE(I,J,LM-L+LB) < ITROPP ) THEN
-                   L0 = L
-                   EXIT
+          ! array dimensions 
+          IM = SIZE(ANAO3,1)
+          JM = SIZE(ANAO3,2)
+          LM = SIZE(ANAO3,3)
+
+          ! Set unit flag. This is to prevent parsing the unit string within the loop below
+          SELECT CASE ( TRIM(ANAO3VARUNIT) )
+             CASE ( 'kg/kg' )
+                UnitFlag = 1
+             CASE ( 'mol/mol' )
+                UnitFlag = 2
+             CASE ( 'ppmv', 'ppm', 'PPMV', 'PPM' )
+                UnitFlag = 3
+             CASE ( 'ppbv', 'ppb', 'PPBV', 'PPB' )
+                UnitFlag = 4
+             CASE DEFAULT
+                UnitFlag = 1
+          END SELECT
+
+          DO J=1,JM
+          DO I=1,IM
+
+             ! Determine levels to loop over: upper level is always the same
+             ! Lower level may be dynamic if along tropopause. In that case 
+             ! find lowest level above tropopause as reference point. 
+             L3 = ANAO3L3
+             L4 = ANAO3L4
+             IF ( ANAO3TROPP > 0 ) THEN
+                ! Find first level edge above tropopause.
+                ITROPP = TROPP(I,J)
+                L0 = -1
+                DO L=1,LM
+                   IF ( PLE(I,J,LM-L+LB) < ITROPP ) THEN
+                      L0 = L
+                      EXIT
+                   ENDIF
+                ENDDO
+                ! Set lower nudging levels based on tropopause level L0.
+                ! The lowest level is determined based on L0 and the offset
+                ! value ANAO3TROPP (provided in GEOSCHEMchem_GridComp.rc).
+                ASSERT_(L0>0)
+                L1 = L0 - 1 + ANAO3TROPP
+                L2 = L1 + ( ANAO3L2 - ANAO3L1 )
+             ELSE
+                L1 = ANAO3L1
+                L2 = ANAO3L2
+             ENDIF
+
+             ! Loop over all relevant levels
+             DO L = L1, L4
+
+                ! LR is the reverse of L
+                LR = LM - L + 1
+
+                ! Get fraction of analysis field to be used. 
+                ! This goes gradually from 0.0 to ANAO3FR between ANAO3L1 to ANAO3L2, 
+                ! and is ANAO3FR above.
+                ifrac = 0.0
+                IF ( L >= L2 .AND. L <= L3 ) THEN
+                   ifrac = ANAO3FR
+                ELSEIF ( L < L2 ) THEN
+                   ifrac = ANAO3FR * ( (L-L1) / (L2-L1) )
+                ELSEIF ( L > L3 ) THEN
+                   ifrac = ANAO3FR * ( (L4-L) / (L4-L3) )
                 ENDIF
-             ENDDO
-             ! Set lower nudging levels based on tropopause level L0.
-             ! The lowest level is determined based on L0 and the offset
-             ! value ANAO3TROPP (provided in GEOSCHEMchem_GridComp.rc).
-             ASSERT_(L0>0)
-             L1 = L0 - 1 + ANAO3TROPP
-             L2 = L1 + ( ANAO3L2 - ANAO3L1 )
-          ELSE
-             L1 = ANAO3L1
-             L2 = ANAO3L2
-          ENDIF 
+                ifrac = max(0.0,min(1.0,ifrac))
+                IF ( ifrac == 0.0 ) CYCLE
 
-          ! Loop over all relevant levels
-          DO L = L1, L4
- 
-             ! LR is the reverse of L
-             LR = LM - L + 1
+                ! Get target ozone concentration in kg/kg total
+                ! Note: assume that mol/mol is in dry air, and ppmv and ppbv is in total air
+                O3ana = ANAO3(I,J,LR)
+                IF ( UnitFlag == 2 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * ( 1. - Q(I,J,LR) )
+                IF ( UnitFlag == 3 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-6
+                IF ( UnitFlag == 4 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-9
 
-             ! Get fraction of analysis field to be used. 
-             ! This goes gradually from 0.0 to ANAO3FR between ANAO3L1 to ANAO3L2, 
-             ! and is ANAO3FR above
-             ifrac = 0.0
-             IF ( L >= L2 .AND. L <= L3 ) THEN
-                ifrac = ANAO3FR 
-             ELSEIF ( L < L2 ) THEN
-                ifrac = ANAO3FR * ( (L-L1) / (L2-L1) )
-             ELSEIF ( L > L3 ) THEN
-                ifrac = ANAO3FR * ( (L4-L) / (L4-L3) )
-             ENDIF
-             ifrac = max(0.0,min(1.0,ifrac))
-             IF ( ifrac == 0.0 ) CYCLE  
- 
-             ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
-             IF ( ANAO3(I,J,LR) > 0.0 ) THEN
-                O3new = ( (1.0-ifrac) * State_Chm%Species(I,J,L,N) ) &
-                      + (      ifrac  * ANAO3(I,J,LR)              )
-                IF ( ASSOCIATED(O3INC) ) O3INC(I,J,LR) = O3new - State_Chm%Species(I,J,L,N) 
-                State_Chm%Species(I,J,L,N) = O3new 
-             ENDIF
-          ENDDO ! L 
-       ENDDO
-       ENDDO
-   
+                ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
+                IF ( ANAO3(I,J,LR) > 0.0 ) THEN
+                   O3new = ( (1.0-ifrac) * State_Chm%Species(I,J,L,N) ) &
+                         + (      ifrac  * O3ana )
+                   IF ( ASSOCIATED(O3INC) )    O3INC(I,J,LR)     =  O3new - State_Chm%Species(I,J,L,N)
+                   IF ( ASSOCIATED(O3INCPPMV)) O3INCPPMV(I,J,LR) = (O3new-State_Chm%Species(I,J,L,N)) &
+                                                                   *(MAPL_AIRMW/O3MW)*1.0e6
+                   State_Chm%Species(I,J,L,N) = O3new
+                ENDIF
+             ENDDO ! L 
+          ENDDO
+          ENDDO
+
+       ENDIF ! HasBundle 
+
        ! Clean up
        IF ( ASSOCIATED(ANAO3 ) ) ANAO3 => NULL()
-       IF ( .NOT. LPCHEMO3 ) CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
+       IF ( HasBundle ) CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
     ENDIF
 
     ! All done

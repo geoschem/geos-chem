@@ -166,27 +166,43 @@ GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf
 #
 Use_GMI_O3_PL:        0
 
-# Options to nudge O3 between level ANAO3L1 and ANAO3L4. If the flag Use_ANA_O3 is set to 1, GEOS-Chem ozone is nudged to 
+# Options to nudge O3 between level ANAO3L1 and ANAO3L4. If the flag Use_ANA_O3 is set to 1, GEOS-Chem ozone is nudged to
 # the analysis field taken from the file specified in ANAO3TMPL. Nudging is performed between levels ANAO3L1 and ANAO3L4
 # (level numbers go from 1 = surface to top of atmosphere).
-# The value specified in ANAO3FR is used as the 'blending factor', with a smooth vertical transition between zero and full 
-# nudging between levels ANAO3L1 to ANAO3L2 (lower boundary), and ANAO3L3 to ANAO3L4 (upper boundary), respectively. If 
+# The value specified in ANAO3FR is used as the 'blending factor', with a smooth vertical transition between zero and full
+# nudging between levels ANAO3L1 to ANAO3L2 (lower boundary), and ANAO3L3 to ANAO3L4 (upper boundary), respectively. If
 # NUDGE_RELATIVE_TO_TROPOPAUSE is set to a value above 0, the lower boundary will be determined based on the tropopause and
 # nudging will be performed from the nearest model level below tropopause plus NUDGE_RELATIVE_TO_TROPOPAUSE. For instance,
 # when set to a value of 1, nudging will start on the first level above the tropopause. If set to 3, nudging will begin from
-# the 3rd level above tropopause upwards. Vertical smoothing is determined based on the difference between ANAO3L1 and ANAO3L2. 
-# If the flag 'Use_PCHEM_O3' is enabled, it will use the internal PCHEM O3 to do the nudging instead of the field provided 
+# the 3rd level above tropopause upwards. Vertical smoothing is determined based on the difference between ANAO3L1 and ANAO3L2.
+# If the flag 'Use_PCHEM_O3' is enabled, it will use the internal PCHEM O3 to do the nudging instead of the field provided
 # in ANAO3TMPL. Use_ANA_O3 must still be enabled in this case.
-# A nuding attempt is made every three hours (0130, 0430, ...) at the beginning of phase one of GEOS-Chem. If using ANAO3TMPL,
-# it will look for variable 'O3' in that file, and the units of the field are assumed to be kg/kg (total air). This field
-# must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
-# If no file is found for a given time step, nudging is skipped. Diagnostics 'GCC_ANA_O3_INC' outputs the ozone increments 
+# If using ANAO3TMPL, it will look for variable ANAO3VAR in that file. The variable units are set in parameter ANAO3VARUNIT. 
+# The unit entry is used to align the field with the GEOS-Chem internal state, which is in kg/kg total. Supported units are: 
+# 'kg/kg' (assumed to be kg/kg total), 'mol/mol' (assumed to be dry air), 'ppmv' (total), and 'ppbv' (total).
+# The input field must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
+# If no file is found for a given time step, nudging is skipped. Diagnostics 'GCC_ANA_O3_INC' outputs the ozone increments
 # added to the GEOS-Chem ozone field.
+# A nudging attempt is made at the end of phase two of GEOS-Chem. The nudging frequency and time is determined by three variables:
+# ANAO3FREQ determines the update frequency (in hours), ANAO3HR sets the hour offset relative to ANAO3FREQ, and ANAO3MIN sets the
+# minutes offset relative to ANAO3FREQ. For example, ANAO3FREQ=3, ANAO3HR=1, ANAO3MIN=30 will perform the nudging every three hours at 0130, 0430, etc.
+# Since MAPL History outputs at the beginning of the time step, there is an option to read then analysis
+# files in a 'forward looking' mode (ANAO3FWD = 1). For example, an instantaneous ana.eta file with time
+# stamp 0600z will contain the fields produced by GEOS-Chem in the previous time step, e.g., at 0545z if
+# the chemistry time step is 15 minutes. Thus, any analysis update in GEOS-Chem should be performed one
+# time step in advance. If ANAO3FWD is set to 1, the analysis is done that way. Otherwise, the analysis
+# will be performed on the actual time stamp, which might create a slight offset in the increments.
 # The error mode flag determines what happens if (a) the file is not found or (b) the current time is not found on file. Error
-# mode of 0 exits with an error in all cases, 1 skips nudging (default), and 2 skips nudging if file not found and uses the 
-# first time slice on file if file is found but the current time stamp is not on file. 
+# mode of 0 exits with an error in all cases, 1 skips nudging (default), and 2 skips nudging if file not found and uses the
+# first time slice on file if file is found but the current time stamp is not on file.
 Use_ANA_O3: 0
 ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
+ANAO3VAR: O3
+ANAO3VARUNIT: kg/kg
+ANAO3FREQ: 3
+ANAO3HR: 1
+ANAO3MIN: 30
+ANAO3FWD: 1
 NUDGE_RELATIVE_TO_TROPOPAUSE: 1
 ANAO3L1: 38
 ANAO3L2: 40
