@@ -1491,9 +1491,14 @@ CONTAINS
 
     ! Set certain diagnostics dependent on state at end of step. This
     ! includes species concentration and dry deposition flux.
+    ! For GEOS, this is now done in Chem_GridCompMod.F90. This makes sure
+    ! that the diagnostics include any post-run updates (e.g., if assimilation
+    ! increments are being applied (ckeller, 2/7/22).
+#if !defined( MODEL_GEOS )
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
+#endif
 
     ! Archive aerosol mass and PM2.5 diagnostics
     IF ( State_Diag%Archive_AerMass ) THEN
