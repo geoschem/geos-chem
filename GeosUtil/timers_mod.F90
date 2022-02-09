@@ -27,7 +27,7 @@ MODULE Timers_Mod
   PUBLIC  :: Timer_Start          ! Starts a timer ticking
   PUBLIC  :: Timer_End            ! Stops a timer ticking
   PUBLIC  :: Timer_Sum_Loop       ! Sums the timers within a loop
-! PUBLIC  :: Timer_Print          ! Prints the specified timer
+  PUBLIC  :: Timer_Print          ! Prints the specified timer
   PUBLIC  :: Timer_PrintAll       ! Prints all timers
   PUBLIC  :: Timer_StopAll        ! Stops all currently running timers
 !
@@ -596,77 +596,81 @@ CONTAINS
     !Print*, 'Total time', SavedTimers(TimerLoc)%TOTAL_TIME
 
   END SUBROUTINE Timer_Sum_Loop
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Timer_Print
-!!
-!! !DESCRIPTION: Prints the specified Timer by name.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE Timer_Print( TimerName, RC, LunJson )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!!
-!! !INPUT PARAMETERS:
-!!
-!    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer
-!    INTEGER,          OPTIONAL      :: LunJson    !
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    INTEGER,          INTENT(INOUT) :: RC          ! Success / Failure
-!!
-!! !REMARKS:
-!!  This is useful if you only want to print a single timer.
-!!
-!! !REVISION HISTORY:
-!!  24 Jul 2015 - M. Yannetti - Initial version.
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: TimerLoc           ! Timer number
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=30)  :: TempTimerName
-!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+! !IROUTINE: Timer_Print
 !
-!    !=======================================================================
-!    ! Timer_Print begins here!
-!    !=======================================================================
+! !DESCRIPTION: Prints the specified Timer by name.
+!\\
+!\\
+! !INTERFACE:
 !
-!    ! Initialize
-!    RC       = GC_SUCCESS
-!    ErrMsg   = ''
-!    ThisLoc  = ' -> at Timer_Print (in module GeosUtil/timers_mod.F90)'
+  SUBROUTINE Timer_Print( TimerName, RC, LunJson )
 !
-!    TempTimerName = TimerName
+! !USES:
 !
-!    TimerLoc = Timer_Find( TempTimerName )
+    USE ErrCode_Mod
 !
-!    ! Exit if timer is not found
-!    IF (TimerLoc .eq. 0) THEN
-!       ErrMsg = 'Timer not found: ' // TRIM( TimerName )
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
+! !INPUT PARAMETERS:
 !
-!    ! Print the timer output
-!    CALL Timer_PrintNum( TimerLoc )
+    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer
+    INTEGER,          OPTIONAL      :: LunJson     ! Logical unit for JSON
 !
-!  END SUBROUTINE Timer_Print
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT) :: RC          ! Success / Failure
+!
+! !REMARKS:
+!  This is useful if you only want to print a single timer.
+!
+! !REVISION HISTORY:
+!  24 Jul 2015 - M. Yannetti - Initial version.
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: TimerLoc           ! Timer number
+
+    ! Strings
+    CHARACTER(LEN=30)  :: TempTimerName
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Timer_Print begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Timer_Print (in module GeosUtil/timers_mod.F90)'
+
+    TempTimerName = TimerName
+
+    TimerLoc = Timer_Find( TempTimerName )
+
+    ! Exit if timer is not found
+    IF ( TimerLoc == 0 ) THEN
+       ErrMsg = 'Timer not found: ' // TRIM( TimerName )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Print the timer output; write to JSON if LunJson is passed
+    IF ( PRESENT( LunJson ) ) THEN
+       CALL Timer_PrintNum( TimerLoc, LunJson )
+    ELSE
+       CALL Timer_PrintNum( TimerLoc          )
+    ENDIF
+
+  END SUBROUTINE Timer_Print
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -690,11 +694,11 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt
+    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success / Failure
+    INTEGER, INTENT(OUT)       :: RC          ! Success / Failure
 !
 ! !REMARKS:
 !  This prints all timers in the order added.
@@ -709,7 +713,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, LunJson
+    INTEGER            :: I,      LunJson
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -724,7 +728,7 @@ CONTAINS
     ThisLoc  = ' -> at Timer_PrintAll (in module GeosUtil/timers_mod.F90)'
 
     ! Exit if no timers were turned on
-    IF(TimerCurrentSize < 1) THEN
+    IF ( TimerCurrentSize < 1 ) THEN
        ErrMsg = 'No timers are defined!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -735,7 +739,7 @@ CONTAINS
 
        ! Find LUN and open a file for JSON output
        LunJson = findFreeLun()
-       OPEN( LunJson, file='gcclassic_timers.json', FORM='formatted' )
+       OPEN( LunJson, FILE='gcclassic_timers.json', FORM='formatted' )
 
        ! Print headers for both logfile and JSON output
        CALL Timer_PrintHeaders( LunJson )
@@ -855,7 +859,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer
-    INTEGER, INTENT(IN) :: LunJson    ! Logical unit # for JSON file
+    INTEGER, OPTIONAL   :: LunJson     ! Logical unit # for JSON file
 !
 ! !REMARKS:
 !  This actually does the printing, and is called by other print
@@ -868,7 +872,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    IF(TimerCurrentSize < 1) THEN  ! Return if it's empty
+    IF ( TimerCurrentSize < 1 ) THEN  ! Return if it's empty
        RETURN
     ENDIF
 
@@ -876,7 +880,12 @@ CONTAINS
        PRINT*, "** WARNING: Timer still enabled! "
     ENDIF
 
-    CALL Timer_TimePrint( SlotNumber, LunJson )
+    ! Print the timer info; write to JSON if LunJson is passed
+    IF ( PRESENT( LunJson ) ) THEN
+       CALL Timer_TimePrint( SlotNumber, LunJson )
+    ELSE
+       CALL Timer_TimePrint( SlotNumber          )
+    ENDIF
 
   END SUBROUTINE Timer_PrintNum
 !EOC
@@ -992,7 +1001,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer
-    INTEGER, INTENT(IN) :: LunJson    ! File unit for Json write
+    INTEGER, OPTIONAL   :: LunJson    ! File unit for Json write
 !
 ! !REMARKS:
 !  This is a private subroutine.
@@ -1105,17 +1114,19 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Also write to JSON format
     !-----------------------------------------------------------------------
-    WRITE( JsonDhms, 140      ) DD, HH, MM, SS, MS
-    WRITE( JsonSecs, '(f14.3)') InputSecs
-140 FORMAT( a2,'-',a2,':',a2,':',a2,'.',a3 )
+    IF ( PRESENT( LunJson ) ) THEN
+       WRITE( JsonDhms, 140      ) DD, HH, MM, SS, MS
+       WRITE( JsonSecs, '(f14.3)') InputSecs
+140    FORMAT( a2,'-',a2,':',a2,':',a2,'.',a3 )
 
-    ! Write to JSON file
-    CALL Timer_TimePrint_JSON(                                               &
-         lun        = LunJson,                                              &
-         slot       = SlotNumber,                                            &
-         timer_name = TRIM( SavedTimers(SlotNumber)%TIMER_NAME ),            &
-         d_hms      = TRIM( ADJUSTL( JsonDhms )               ),            &
-         seconds    = TRIM( ADJUSTL( JsonSecs )               )            )
+       ! Write to JSON file
+       CALL Timer_TimePrint_JSON(                                            &
+            lun        = LunJson,                                            &
+            slot       = SlotNumber,                                         &
+            timer_name = TRIM( SavedTimers(SlotNumber)%TIMER_NAME ),         &
+            d_hms      = TRIM( ADJUSTL( JsonDhms )               ),          &
+            seconds    = TRIM( ADJUSTL( JsonSecs )               )          )
+    ENDIF
 
   END SUBROUTINE Timer_TimePrint
 !EOC
