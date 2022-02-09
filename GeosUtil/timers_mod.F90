@@ -609,7 +609,7 @@ CONTAINS
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE Timer_Print( TimerName, RC, lun_JSON )
+!  SUBROUTINE Timer_Print( TimerName, RC, LunJson )
 !!
 !! !USES:
 !!
@@ -618,7 +618,7 @@ CONTAINS
 !! !INPUT PARAMETERS:
 !!
 !    CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer
-!    INTEGER,          OPTIONAL      :: lun_JSON    !
+!    INTEGER,          OPTIONAL      :: LunJson    !
 !!
 !! !INPUT/OUTPUT PARAMETERS:
 !!
@@ -709,7 +709,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, lun_JSON
+    INTEGER            :: I, LunJson
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -734,15 +734,15 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
 
        ! Find LUN and open a file for JSON output
-       lun_JSON = findFreeLun()
-       OPEN( lun_JSON, file='gcclassic_timers.json', FORM='formatted' )
+       LunJson = findFreeLun()
+       OPEN( LunJson, file='gcclassic_timers.json', FORM='formatted' )
 
        ! Print headers for both logfile and JSON output
-       CALL Timer_PrintHeaders( lun_JSON )
+       CALL Timer_PrintHeaders( LunJson )
 
        ! Print formatted output to stdout and to a JSON file
        DO I = 1, TimerCurrentSize
-          CALL Timer_PrintNum( I, lun_JSON )
+          CALL Timer_PrintNum( I, LunJson )
 
           ! Deallocate loop timer arrays
           IF ( ALLOCATED( SavedTimers(I)%START_TIME_LOOP ) ) THEN
@@ -761,9 +761,9 @@ CONTAINS
        ENDDO
 
        ! Close the JSON file
-       WRITE( lun_json, '(a)' ) '    }'
-       WRITE( lun_json, '(a)' ) '}'
-       CLOSE( lun_JSON )
+       WRITE( LunJson, '(a)' ) '    }'
+       WRITE( LunJson, '(a)' ) '}'
+       CLOSE( LunJson        )
     ENDIF
 
   END SUBROUTINE Timer_PrintAll
@@ -850,12 +850,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Timer_PrintNum( SlotNumber, lun_JSON )
+  SUBROUTINE Timer_PrintNum( SlotNumber, LunJson )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer
-    INTEGER, INTENT(IN) :: lun_JSON    ! Logical unit # for JSON file
+    INTEGER, INTENT(IN) :: LunJson    ! Logical unit # for JSON file
 !
 ! !REMARKS:
 !  This actually does the printing, and is called by other print
@@ -876,7 +876,7 @@ CONTAINS
        PRINT*, "** WARNING: Timer still enabled! "
     ENDIF
 
-    CALL Timer_TimePrint( SlotNumber, lun_JSON )
+    CALL Timer_TimePrint( SlotNumber, LunJson )
 
   END SUBROUTINE Timer_PrintNum
 !EOC
@@ -987,12 +987,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Timer_TimePrint( SlotNumber, Lun_JSON )
+  SUBROUTINE Timer_TimePrint( SlotNumber, LunJson )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer
-    INTEGER, INTENT(IN) :: Lun_JSON    ! File unit for Json write
+    INTEGER, INTENT(IN) :: LunJson    ! File unit for Json write
 !
 ! !REMARKS:
 !  This is a private subroutine.
@@ -1018,8 +1018,8 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=100) :: OutputStr       ! Combined output string
-    CHARACTER(LEN=15)  :: json_dhms
-    CHARACTER(LEN=14)  :: json_secs
+    CHARACTER(LEN=15)  :: JsonDhms
+    CHARACTER(LEN=14)  :: JsonSecs
     CHARACTER(LEN=10)  :: TempStr         ! Needed to remove whitespace.
     CHARACTER(LEN=2)   :: DD, HH, MM, SS
     CHARACTER(LEN=3)   :: MS
@@ -1105,17 +1105,17 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Also write to JSON format
     !-----------------------------------------------------------------------
-    WRITE( json_dhms, 140      ) DD, HH, MM, SS, MS
-    WRITE( json_secs, '(f14.3)') InputSecs
+    WRITE( JsonDhms, 140      ) DD, HH, MM, SS, MS
+    WRITE( JsonSecs, '(f14.3)') InputSecs
 140 FORMAT( a2,'-',a2,':',a2,':',a2,'.',a3 )
 
     ! Write to JSON file
     CALL Timer_TimePrint_JSON(                                               &
-         lun        = lun_json,                                              &
+         lun        = LunJson,                                              &
          slot       = SlotNumber,                                            &
          timer_name = TRIM( SavedTimers(SlotNumber)%TIMER_NAME ),            &
-         d_hms      = TRIM( ADJUSTL( json_dhms )               ),            &
-         seconds    = TRIM( ADJUSTL( json_secs )               )            )
+         d_hms      = TRIM( ADJUSTL( JsonDhms )               ),            &
+         seconds    = TRIM( ADJUSTL( JsonSecs )               )            )
 
   END SUBROUTINE Timer_TimePrint
 !EOC
