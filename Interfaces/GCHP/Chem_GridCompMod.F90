@@ -3482,7 +3482,9 @@ CONTAINS
           CALL ESMF_ConfigGetAttribute( GeosCF, InitZero, Default=0, &
                                         Label = "INIT_ZERO:", __RC__ ) 
           IF ( InitZero == 1 ) THEN
-             State_Chm%Species = 0.0d0
+             DO N = 1, State_Chm%nSpecies
+                State_Chm%SpeciesVec(N)%Conc = 0.0d0
+             EDNDO
              IF ( am_I_Root ) THEN
                 write(*,*) ' '
                 write(*,*) ' '
@@ -3729,13 +3731,6 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GCHPCTM )
-       ! --- Update to remove %Species ---
-       !State_Chm%Species = State_Chm%Species(:,:,State_Grid%NZ:1:-1,:)
-       !
-       !DO I = 1, SIZE(Int2Spc,1)
-       !   IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-       !   Int2Spc(I)%Internal = State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,:)
-       !ENDDO
        DO I = 1, SIZE(Int2Spc,1)
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
           DO L = 1, State_Grid%NZ
@@ -6165,13 +6160,17 @@ CONTAINS
 
     ! Initialize array to missing values 
     IF ( UniformIfMissing >= 0.0 ) THEN
-        State_Chm%Species(:,:,:,:) = UniformIfMissing 
+        DO N = 1, State_Chm%nSpecies
+           State_Chm%SpeciesVec(N)%Conc(:,:,:) = UniformIfMissing 
+        ENDDO
         IF ( am_I_Root ) WRITE(*,*) 'All species initialized to ',UniformIfMissing
     ENDIF
 
     ! Initialize array to missing values 
     IF ( UniformIfMissing >= 0.0 ) THEN
-        State_Chm%Species(:,:,:,:) = UniformIfMissing 
+        DO N = 1, State_Chm%nSpecies
+           State_Chm%SpeciesVec(N)%Conc(:,:,:) = UniformIfMissing 
+        ENDDO
         IF ( am_I_Root ) WRITE(*,*) 'All species initialized to ',UniformIfMissing
     ENDIF
 
@@ -6378,7 +6377,10 @@ CONTAINS
     CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
 
     ! Make sure that values are not zero
-    WHERE ( State_Chm%Species <= 0.0 ) State_Chm%Species = MISSVAL
+    DO N = 1, State_Chm%nSpecies
+       WHERE ( State_Chm%SpeciesVec%Conc <= 0.0 ) &
+          State_Chm%SpeciesVec%Conc = MISSVAL
+    ENDDO
 
     ENDIF ! DoUpdate 
 
