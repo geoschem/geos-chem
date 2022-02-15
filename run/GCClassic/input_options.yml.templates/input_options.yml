@@ -1,0 +1,430 @@
+### GEOS-Chem main configuration file
+---
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: fullchem
+  start: [20190701, 000000]
+  end: [20190801, 000000]
+  data_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData
+  met_field: MERRA2
+  species_database_file: species_database.yml
+  debug_printout: false
+  use_gcclassic_timers: false
+
+#============================================================================
+# Grid settings
+#============================================================================
+grid:
+  resolution: 0.5x0.625
+  longitude_range: [-140.0, -40.0]
+  center_lon_at_180: true
+  latitude_range: [-10.0, 70.0]
+  half_size_polar_boxes: true
+  number_of_levels: 72
+  nested_grid_simulation: true
+  buffer_zone_NSEW: [3, 3, 3, 3]
+
+#============================================================================
+# Timesteps settings
+#============================================================================
+timesteps:
+  transport_and_convection: 300
+  chemistry_and_emissions: 600
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+    linear_chemistry_aloft:
+      activate: true
+      use_linoz_for_O3: true
+    use_static_H2O_bc: true
+    gamma_HO2: 0.2
+
+  convection:
+    activate: true
+
+  dry_deposition:
+    activate: true
+    CO2_effect: false
+    CO2_level: 600.0
+    reference_CO2_level: 380.0
+    diag_alt_above_sfc_in_m: 10
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: true
+
+  photolysis:
+    input_directory: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/FAST_JX/v2021-10/
+    overhead_O3:
+      use_online_O3_from_model: true
+      use_column_O3_from_met: true
+      use_TOMS_SBUV_O3: false
+
+  rrtmg:
+    activate: false
+    aod_wavelength_in_nm: 550
+    longwave_fluxes: false
+    shortwave_fluxes: false
+    clear_sky_flux: false
+    all_sky_flux: false
+    radiation_timestep_in_s: 10800
+
+  transport:
+    activate: true
+    fill_negative_values: true
+    iord_jord_kord: [3, 3, 7]
+    transported_species:
+      - ACET
+      - ACTA
+      - AERI
+      - ALD2
+      - ALK4
+      - ASOA1
+      - ASOA2
+      - ASOA3
+      - ASOAN
+      - ASOG1
+      - ASOG2
+      - ASOG3
+      - AONITA
+      - AROMP4
+      - AROMP5
+      - ATOOH
+      - BALD
+      - BCPI
+      - BCPO
+      - BENZ
+      - BENZP
+      - Br
+      - Br2
+      - BrCl
+      - BrNO2
+      - BrNO3
+      - BrO
+      - BrSALA
+      - BrSALC
+      - BZCO3H
+      - BZPAN
+      - C2H2
+      - C2H4
+      - C2H6
+      - C3H8
+      - CCl4
+      - CFC11
+      - CFC113
+      - CFC114
+      - CFC115
+      - CFC12
+      - CH2Br2
+      - CH2Cl2
+      - CH2I2
+      - CH2IBr
+      - CH2ICl
+      - CH2O
+      - CH3Br
+      - CH3CCl3
+      - CH3Cl
+      - CH3I
+      - CH4
+      - CHBr3
+      - CHCl3
+      - Cl
+      - Cl2
+      - Cl2O2
+      - ClNO2
+      - ClNO3
+      - ClO
+      - ClOO
+      - CLOCK
+      - CO
+      - CSL
+      - DMS
+      - DST1
+      - DST2
+      - DST3
+      - DST4
+      - EOH
+      - ETHLN
+      - ETHN
+      - ETHP
+      - ETNO3
+      - ETP
+      - GLYC
+      - GLYX
+      - H1211
+      - H1301
+      - H2402
+      - H2O
+      - H2O2
+      - HAC
+      - HBr
+      - HC5A
+      - HCFC123
+      - HCFC141b
+      - HCFC142b
+      - HCFC22
+      - HCl
+      - HCOOH
+      - HI
+      - HMHP
+      - HMML
+      - HMS
+      - HNO2
+      - HNO3
+      - HNO4
+      - HOBr
+      - HOCl
+      - HOI
+      - HONIT
+      - HPALD1
+      - HPALD2
+      - HPALD3
+      - HPALD4
+      - HPETHNL
+      - I
+      - I2
+      - I2O2
+      - I2O3
+      - I2O4
+      - IBr
+      - ICHE
+      - ICl
+      - ICN
+      - ICPDH
+      - IDC
+      - IDCHP
+      - IDHDP
+      - IDHPE
+      - IDN
+      - IEPOXA
+      - IEPOXB
+      - IEPOXD
+      - IHN1
+      - IHN2
+      - IHN3
+      - IHN4
+      - INDIOL
+      - INO
+      - INPB
+      - INPD
+      - IO
+      - IONITA
+      - IONO
+      - IONO2
+      - IPRNO3
+      - ISALA
+      - ISALC
+      - ISOP
+      - ITCN
+      - ITHN
+      - LIMO
+      - LVOC
+      - LVOCOA
+      - MACR
+      - MACR1OOH
+      - MAP
+      - MCRDH
+      - MCRENOL
+      - MCRHN
+      - MCRHNB
+      - MCRHP
+      - MCT
+      - MEK
+      - MENO3
+      - MGLY
+      - MOH
+      - MONITA
+      - MONITS
+      - MONITU
+      - MP
+      - MPAN
+      - MPN
+      - MSA
+      - MTPA
+      - MTPO
+      - MVK
+      - MVKDH
+      - MVKHC
+      - MVKHCB
+      - MVKHP
+      - MVKN
+      - MVKPC
+      - N2O
+      - N2O5
+      - NH3
+      - NH4
+      - NIT
+      - NITs
+      - 'NO'
+      - NO2
+      - NO3
+      - NPHEN
+      - NPRNO3
+      - O3
+      - OClO
+      - OCPI
+      - OCPO
+      - OCS
+      - OIO
+      - PAN
+      - pFe
+      - PHEN
+      - PIP
+      - PP
+      - PPN
+      - PROPNN
+      - PRPE
+      - PRPN
+      - PYAC
+      - R4N2
+      - R4P
+      - RA3P
+      - RB3P
+      - RCHO
+      - RIPA
+      - RIPB
+      - RIPC
+      - RIPD
+      - RP
+      - SALA
+      - SALAAL
+      - SALACL
+      - SALC
+      - SALCAL
+      - SALCCL
+      - SO2
+      - SO4
+      - SO4s
+      - SOAGX
+      - SOAIE
+      - SOAP
+      - SOAS
+      - TOLU
+      - TSOA0
+      - TSOA1
+      - TSOA2
+      - TSOA3
+      - TSOG0
+      - TSOG1
+      - TSOG2
+      - TSOG3
+      - XYLE
+
+  wet_deposition:
+    activate: true
+
+#============================================================================
+# Settings for GEOS-Chem aerosols
+#============================================================================
+aerosols:
+
+  carbon:
+    activate: true
+    brown_carbon: false
+
+  complex_SOA:
+    activate: true
+    semivolatile_POA: false
+
+  dust:
+    activate: true
+    acid_uptake_on_dust: false
+
+  sea_salt:
+    activate: true
+    SALA_radius_bin_in_um: [0.01, 0.05]
+    SALC_radius_bin_in_um: [0.5,  0.8 ]
+    marine_organic_aerosols: false
+
+  stratosphere:
+    settle_strat_aerosol: true
+    polar_strat_clouds:
+      activate: true
+      het_chem: true
+    homogeneous_NAT: false
+    NAT_supercooling_req_in_K: 3.0
+    calc_strat_aero_optdepth: true
+    enhance_BC_absorption:
+      activate: true
+      hydrophilic_BC: 1.5
+      hydrophobic_BC: 1.0
+    photolyze_nitrate:
+      activate: true
+      NITs_Jscale_JHNO3: 0.0
+      NIT_Jscale_JHNO2: 0.0
+      percent_channel_A_HONO: 66.667
+      percent_channel_B_NO2: 33.333
+
+  sulfate:
+    activate: true
+    metal_cat_SO2_oxidation: true
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - CO
+      - 'NO'
+      - O3
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: plane.log.YYYYMMDD
+
+  legacy_bpch:                #          1         2         3
+     output_menu:             # 1234567890123456789012345678901
+       schedule_output_for_JAN: 3000000000000000000000000000000
+       schedule_output_for_FEB: 30000000000000000000000000000
+       schedule_output_for_MAR: 3000000000000000000000000000000
+       schedule_output_for_APR: 300000000000000000000000000000
+       schedule_output_for_MAY: 3000000000000000000000000000000
+       schedule_output_for_JUN: 300000000000000000000000000000
+       schedule_output_for_JUL: 3000000000000000000000000000000
+       schedule_output_for_AUG: 3000000000000000000000000000000
+       schedule_output_for_SEP: 300000000000000000000000000000
+       schedule_output_for_OCT: 3000000000000000000000000000000
+       schedule_output_for_NOV: 300000000000000000000000000000
+       schedule_output_for_DEC: 3000000000000000000000000000000
+    gamap:
+      diaginfo_dat_path: diaginfo.dat
+      tracerinfo_dat_path: tracerinfo.dat
+    bpch_diagnostics:
+      TOMAS_aerosol_emissions: "0 all"
+      TOMAS_rate: "0 all"
+      TOMAS_3D_rate: "0 all"
+# NOTE: These might be obsolete in 14.0.0, so comment out
+#    ND51_satellite:
+#      activate: false
+#      output_file: ts_satellite.YYYYMMDD.bpch
+#      tracers: [1, 2, 501]
+#      UTC_hour_for_write: 1
+#      averaging_period_in_LT: [13, 15]
+#      IMIN_and_IMAX_of_region: [1, 72]
+#      JMIN_and_JMAX_of_region: [1, 46]
+#      LMIN_and_LMAX_of_region: [1, 1]
+#
+#    ND51b_satellite:
+#      activate: false
+#      output_file: ts_satellite.YYYYMMDD.bpch
+#      tracers: [1, 2, 501]
+#      UTC_hour_for_write: 1
+#      averaging_period_in_LT: [13, 15]
+#      IMIN_and_IMAX_of_region: [1, 72]
+#      JMIN_and_JMAX_of_region: [1, 46]
+#      LMIN_and_LMAX_of_region: [1, 1]
