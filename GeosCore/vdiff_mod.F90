@@ -2007,6 +2007,13 @@ CONTAINS
     p_kvm    => kvm                (:, :, State_Grid%NZ+1:1:-1           )
     p_cgs    => cgs                (:, :, State_Grid%NZ+1:1:-1           )
 
+
+    ! Convert v/v -> m/m (i.e., kg/kg)
+    DO NA = 1, nAdvect
+       State_Chm%SpeciesVec(NA)%Conc(:,:,:) = State_Chm%SpeciesVec(NA)%Conc(:,:,:)                                     &
+                       / ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
+    ENDDO
+
     ! Convert g/kg -> kg/kg
     p_shp              =  p_shp * 1.e-3_fp
 
@@ -2030,6 +2037,12 @@ CONTAINS
 
     !### Debug
     IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+
+    ! Convert kg/kg -> v/v
+    DO NA = 1, nAdvect
+       State_Chm%SpeciesVec(NA)%Conc(:,:,:) = State_Chm%SpeciesVec(NA)%Conc(:,:,:)                                     &
+                       * ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
+    ENDDO
 
     ! Convert kg/kg -> g/kg
     p_shp    = p_shp * 1.e+3_fp
@@ -2181,7 +2194,7 @@ CONTAINS
 
     ! Convert species concentration to v/v dry
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, 'kg/kg dry', RC,                        &
+                            State_Met, 'v/v dry', RC,                        &
                             OrigUnit=OrigUnit                               )
 
     ! Trap potential errors
@@ -2246,7 +2259,7 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
+       ErrMsg = 'Error encountred in "Convert_Spc_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
