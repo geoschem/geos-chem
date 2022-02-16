@@ -4,7 +4,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: yaml_mod.F90
+! !MODULE: qfyaml_mod.F90
 !
 ! !DESCRIPTION: Contains routines for reading a YAML file into Fortran,
 !  based off the "config_fortran" package of H. J. Teunissen.
@@ -79,7 +79,7 @@ MODULE QFYAML_Mod
 ! !DEFINED PARAMETERS:
 !
   ! The precision kind-parameter (4-byte)
-  INTEGER, PARAMETER :: yp                    = KIND( 0.0_4 )
+  INTEGER, PARAMETER :: yp                    = KIND( 0.0e0 )
 
   ! Success/failure return codes
   INTEGER, PARAMETER :: QFYAML_Success        =  0
@@ -97,10 +97,12 @@ MODULE QFYAML_Mod
   INTEGER, PARAMETER :: QFYAML_set_by_default =  1
   INTEGER, PARAMETER :: QFYAML_set_by_file    =  3
 
-  ! Maxima
-  INTEGER, PARAMETER :: QFYAML_NamLen         =  80    ! Max len for names
-  INTEGER, PARAMETER :: QFYAML_StrLen         =  255   ! Max len for strings
+  ! Other constants
+  INTEGER, PARAMETER :: QFYAML_MaxStack       =  20    ! Max cat_stack size
+  INTEGER, PARAMETER :: QFYAML_NamLen         =  100   ! Max len for names
+  INTEGER, PARAMETER :: QFYAML_StrLen         =  512   ! Max len for strings
   INTEGER, PARAMETER :: QFYAML_MaxArr         =  1000  ! Max entries per array
+  INTEGER, PARAMETER :: QFYAML_MaxDataLen     =  20000 ! Max stored data size
 
   CHARACTER(LEN=7), PARAMETER :: QFYAML_type_names(0:QFYAML_num_types) = &
       (/ 'storage', 'integer', 'real   ', 'string ', 'bool   ' /)
@@ -129,7 +131,7 @@ MODULE QFYAML_Mod
      LOGICAL                                   :: dynamic_size
      LOGICAL                                   :: used
      INTEGER                                   :: set_by=QFYAML_set_by_default
-     CHARACTER(LEN=QFYAML_strlen)              :: stored_data
+     CHARACTER(LEN=QFYAML_maxDataLen)          :: stored_data
      CHARACTER(LEN=QFYAML_namlen)              :: anchor_ptr
      CHARACTER(LEN=QFYAML_namlen)              :: anchor_tgt
      REAL(yp),                     ALLOCATABLE :: real_data(:)
@@ -153,7 +155,7 @@ MODULE QFYAML_Mod
      MODULE PROCEDURE  Add_Bool,       Add_Bool_Array
   END INTERFACE QFYAML_Add
 
-  ! Interface to get variables from the configuration
+  ! INTERFACE to get variables from the configuration
   INTERFACE QFYAML_Get
      MODULE PROCEDURE  Get_Real,       Get_Real_Array
      MODULE PROCEDURE  Get_Int,        Get_Int_Array
@@ -715,19 +717,31 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                      :: append
-    INTEGER                      :: ix
-    INTEGER                      :: ampsnd_ix
-    INTEGER                      :: anchor_ix
-    INTEGER                      :: colon_ix
-    INTEGER                      :: star_ix
-    INTEGER                      :: trim_len
+    LOGICAL                            :: append
+    INTEGER                            :: ix
+    INTEGER                            :: ampsnd_ix
+    INTEGER                            :: anchor_ix
+    INTEGER                            :: colon_ix
+    INTEGER                            :: star_ix
+    INTEGER                            :: trim_len
+    INTEGER                            :: pos
+    INTEGER                            :: C
+    INTEGER                            :: CC
 
     ! Strings
-    CHARACTER(LEN=QFYAML_namlen) :: var_name
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: line
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_namlen)       :: var_name
+    CHARACTER(LEN=QFYAML_strlen)       :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)       :: line
+    CHARACTER(LEN=QFYAML_strlen)       :: line2
+    CHARACTER(LEN=QFYAML_strlen)       :: thisLoc
+    CHARACTER(LEN=QFYAML_strlen)       :: last_cat
+
+    ! SAVEd variables
+    LOGICAL,                      SAVE :: is_list_var                = .FALSE.
+    INTEGER,                      SAVE :: last_pos                   = 0
+    INTEGER,                      SAVE :: cat_pos(20)                = 0
+    INTEGER,                      SAVE :: cat_index                  = 0
+    CHARACTER(LEN=QFYAML_NamLen), SAVE :: cat_stack(QFYAML_MaxStack) = ""
 
     !=======================================================================
     ! Parse_Line begins here!
@@ -747,53 +761,145 @@ CONTAINS
     CALL Trim_Comment(line, '#;')
 
     ! Skip empty lines
-    IF ( line == "" ) RETURN
+    IF ( line == ""    ) RETURN
+    IF ( line == "---" ) RETURN
 
     ! Get the length of the line (excluding trailing whitespace)
     trim_len  = LEN_TRIM( line )
+
+    ! Get the position of the first non-whitespace character in the line
+    pos       = First_Char_Pos( line )
 
     ! Look for the positions of certain characters
     colon_ix  = INDEX( line, ":" )
     ampsnd_ix = INDEX( line, "&" )
     star_ix   = INDEX( line, "*" )
 
-    ! If the text is flush with the first column
-    ! and has a colon in the line, then it's a category
-    ! FUTURE TODO: Check the indentation level to add nested categories
-    IF ( line(1:1) /= "" .and. colon_ix > 0 ) THEN
+    !========================================================================
+    ! Handling for categories and YAML anchors
+    !========================================================================
 
-       ! If there is nothing after the colon ...
+    !---------------------------------------------------------------------
+    ! Special handling for YAML sequences:
+    ! Set is_list_var = F once we encounter a new category or variable
+    !---------------------------------------------------------------------
+    IF ( is_list_var .and. line(pos:pos) /= "-" ) THEN
+       is_list_var  = .FALSE.
+       append       = .FALSE.
+    ENDIF
+
+    ! If the text is flush with the first column and has a colon
+    ! in the line, then it's a category or a YAML anchor
+    IF ( line(pos:pos) /= "" .and. colon_ix > 0 ) THEN
+
+       !---------------------------------------------------------------------
+       ! Categories
+       !
+       ! If there is nothing after the colon, then this indicates
+       ! a category (without an anchor) rather than a variable
+       !---------------------------------------------------------------------
        IF ( colon_ix == trim_len ) THEN
 
-          ! Then this indicates a category name, so return
-          ! and there is no anchor present
+          ! If this category starts further along the line than the last
+          ! category, then increment index and add its position to the stack.
+          IF ( pos > last_pos ) THEN
+             cat_index          = cat_index + 1
+             cat_pos(cat_index) = pos
+          ENDIF
+
+          ! If this category starts earlier along the line than the last
+          ! category, then decrement index and add its position to the stack.
+          ! last category, then this
+          IF ( pos < last_pos ) THEN
+             cat_index          = cat_index - 1
+             cat_pos(cat_index) = pos
+          ENDIF
+
+          ! If the index is negative or the category begins at the first
+          ! character of the line, then set index to 1 and store its
+          ! starting position in the first element of the stack.
+          IF ( cat_index <= 0 .or. pos == 1 ) THEN
+             cat_index          = 1
+             cat_pos(cat_index) = pos
+          ENDIF
+
+          ! Extract the category name and add it to the stack
           anchor_tgt = ""
-          category   = line(1:colon_ix-1)
+          category   = line(pos:colon_ix-1)
           IF ( category == "'NO'" ) category = "NO"   ! Avoid clash w/ FALSE
+          cat_stack(cat_index) = category
+
+          ! Update the category starting position for the next iteration
+          last_pos = pos
           RETURN
 
+       !---------------------------------------------------------------------
+       ! YAML Anchors
+       !
        ! If there is an ampersand following the colon
        ! then this denotes a YAML anchor
+       !
+       ! For simplicity, assume anchors are always at level 1.
+       !---------------------------------------------------------------------
        ELSE IF ( colon_ix > 0 .and. ampsnd_ix > 0 ) THEN
 
           ! Return anchor target and category name
-          anchor_tgt = line(ampsnd_ix+1:trim_len)
-          category   = line(1:colon_ix-1)
+          ! Also save the category start position for next time
+          anchor_tgt   = line(ampsnd_ix+1:trim_len)
+          category     = line(pos:colon_ix-1)
+          cat_stack(1) = category
           IF ( category == "'NO'" ) category = "NO"   ! Avoid clash w/ FALSE
+          last_pos     = pos
           RETURN
        ENDIF
     ENDIF
 
-    ! ... otherwise we'll use a category of "" for the variable name
+    !========================================================================
+    ! Handling for variables
+    !========================================================================
 
     ! define the variable name
     append = .FALSE.
-    var_name = line(1:colon_ix-1)
 
-    ! If there are less than two spaces or a tab, reset to no category
-    IF (var_name(1:2) /= " " .and. var_name(1:1) /= tab_char) THEN
-       category = ""
+    !-----------------------------------------------------------------------
+    ! Special handling for YAML sequences
+    ! (i.e. free lists where each element starts with -)
+    !-----------------------------------------------------------------------
+
+    ! If the line begins with -, then it denotes an element of a sequence
+    IF ( line(pos:pos) == "-" ) THEN
+
+       ! Set flag to denote that we are in a YAML sequence
+       is_list_var = .TRUE.
+
+       ! Compute the variable name for the sequence
+       ! NOTE: The variable name has the category prefixed to it!
+       CALL Get_Sequence_VarName( cat_index, cat_stack,                      &
+                                  category,  var_name, append )
+
+       ! Add the YAML sequence variable to the YML object
+       CALL Add_Variable( yml            = yml,                              &
+                          append         = append,                           &
+                          set_by         = set_by,                           &
+                          line_arg       = line(pos+1:),                     &
+                          anchor_ptr_arg = anchor_ptr,                       &
+                          anchor_tgt_arg = anchor_tgt,                       &
+                          category_arg   = category,                         &
+                          var_name_arg   = var_name,                         &
+                          RC             = RC                               )
+
+       ! Return so that we can get the next line
+       RETURN
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Regular handling for all other variables
+    !-----------------------------------------------------------------------
+
+    append = .FALSE.
+
+    ! Get the variable name
+    var_name = line(pos:colon_ix-1)
 
     ! Replace leading tabs by spaces
     ix = VERIFY(var_name, tab_char) ! Find first non-tab character
@@ -801,6 +907,47 @@ CONTAINS
 
     ! Remove leading blanks
     var_name = ADJUSTL(var_name)
+
+    category = ""
+    DO C = cat_index, 1, -1
+
+       ! If the variable starts at position 1, then it has no category.
+       IF ( pos == 1 ) THEN
+          category = ""
+          last_cat = ""
+          EXIT
+       ENDIF
+
+       ! If the variable starts beyond the highest category's
+       ! starting position, then it belongs to that category.
+       ! Also reference the category from the start.
+       IF ( pos > cat_pos(C) ) THEN
+          category = cat_stack(C)
+          IF ( C > 1 ) THEN
+             DO CC = C-1, 1, -1
+                category = TRIM( cat_stack(CC) ) // &
+                           QFYAML_Category_Separator // &
+                           TRIM( category )
+             ENDDO
+          ENDIF
+          EXIT
+       ENDIF
+
+       ! If the variable starts at the same position as the highest
+       ! category, then it belongs to the previous category
+       IF ( pos == cat_pos(C) ) THEN
+          category = cat_stack( MAX( C-1, 1 ) )
+          IF ( C-1 > 1 ) THEN
+             DO CC = C-2, 1, -1
+                category = TRIM( cat_stack(CC) ) // &
+                           QFYAML_Category_Separator // &
+                           TRIM( category )
+             ENDDO
+          ENDIF
+          EXIT
+       ENDIF
+    ENDDO
+
 
     ! Test if the variable is a YAML anchor
     IF ( var_name == "<<" ) THEN
@@ -822,9 +969,9 @@ CONTAINS
        ! There we will create a new variable with all of the
        ! properties of the anchor target.
        CALL Add_Variable( yml            = yml_anchored,                     &
-                          append         = append,                           &
+                          append         = .FALSE.,                          &
                           set_by         = set_by,                           &
-                          line_arg       = "",                               &
+                          line_arg       = line,                             &
                           anchor_ptr_arg = anchor_ptr,                       &
                           anchor_tgt_arg = anchor_tgt,                       &
                           category_arg   = category,                         &
@@ -854,7 +1001,7 @@ CONTAINS
 
        ! Add the variable to the config object
        CALL Add_Variable( yml            = yml,                              &
-                          append         = append,                           &
+                          append         = .FALSE.,                          &
                           set_by         = set_by,                           &
                           line_arg       = line,                             &
                           anchor_ptr_arg = anchor_ptr,                       &
@@ -1601,6 +1748,7 @@ CONTAINS
     errMsg  = ""
     thisLoc = " -> at Prepare_Get_Var (in module qfyaml_mod.F90)"
 
+    ! Get the variable index from the name
     CALL Get_Var_Index( yml, var_name, ix )
 
     IF ( ix == QFYAML_Failure ) THEN
@@ -1621,7 +1769,7 @@ CONTAINS
        CALL Handle_Error( errMsg, RC, thisLoc )
        RETURN
 
-    ELSE IF ( yml%vars(ix)%var_size /= var_size ) THEN
+    ELSE IF ( var_size < yml%vars(ix)%var_size ) THEN
 
        ! Variable has different size than requested: exit w/ error
        WRITE( errMsg, "(a,i0,a,i0,a)" )                                      &
@@ -1736,11 +1884,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                      :: B, ix, ix_prev
+    INTEGER                          :: B, ix, ix_prev
 
     ! Strings
-    CHARACTER(LEN=1            ) :: bkt
-    CHARACTER(LEN=QFYAML_strlen) :: line
+    CHARACTER(LEN=1                ) :: bkt
+    CHARACTER(LEN=QFYAML_MaxDataLen) :: line
 
     !=======================================================================
     ! Get_Fields_String begins here!
@@ -2181,9 +2329,119 @@ CONTAINS
 
   END SUBROUTINE QFYAML_get_type
 !EOC
+!------------------------------------------------------------------------------
+! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
+! Based on existing package https://github.com/jannisteunissen/config_fortran
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: First_Char_Pos
+!
+! !DESCRIPTION:Returns the position of the first non-whitespace
+!  character in a string
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION First_Char_Pos( str ) RESULT( pos )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: str
+!
+! !RETURN VALUE:
+!
+    INTEGER                      :: pos
+!
+! !REVISION HISTORY:
+!  09 Feb 2022- R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=QFYAML_strlen) :: temp
+
+    ! Remove leading whitespace and store in str
+    temp = ADJUSTL( str )
+
+    ! Return the location of the first non-whitespace character
+    pos  = INDEX( str, temp(1:1) )
+
+  END FUNCTION First_Char_Pos
+!EOC
+!------------------------------------------------------------------------------
+! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
+! Based on existing package https://github.com/jannisteunissen/config_fortran
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Sequence_VarName
+!
+! !DESCRIPTION:  Computes the category and varname from the category stack.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Sequence_VarName( cat_index, cat_stack,                     &
+                                   category,  var_name,  append             )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,                      INTENT(IN)  :: cat_index
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)  :: cat_stack(QFYAML_MaxStack)
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT) :: category
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT) :: var_name
+    LOGICAL,                      INTENT(OUT) :: append
+!
+! !REVISION HISTORY:
+!  09 Feb 2022- R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                            :: C
+    CHARACTER(LEN=QFYAML_NamLen), SAVE :: last_var = ""
+
+    ! Get the variable name for YAML sequences, which includes
+    ! the category prefixed to it.
+    category = ""
+    var_name = ""
+    IF ( cat_index == 1 ) THEN
+       category = ""
+       var_name = cat_stack(1)
+    ELSE
+       DO C = 1, cat_index-1
+          category = TRIM( category ) // TRIM( cat_stack(C) )
+          IF ( C < cat_index-1 ) THEN
+             category = TRIM( category ) // QFYAML_category_separator
+          ENDIF
+       ENDDO
+       var_name = TRIM( category             )                            // &
+                  QFYAML_category_separator                               // &
+                  TRIM( cat_stack(cat_index) )
+    ENDIF
+
+    ! If this variable name is the same as on the last call, then set
+    ! append=T.  This will tell Add_Variable to append the value into the
+    ! same variable in the YAML object rather than saving it into a new
+    ! variable.
+    append = .FALSE.
+    IF ( TRIM( var_name ) == TRIM( last_var ) ) append = .TRUE.
+
+    ! Save for next iteration
+    last_var = var_name
+  END SUBROUTINE Get_Sequence_VarName
+!EOC
 !############################################################################
-!### HERE FOLLOWS OVERLOADED MODULE PROCEDURES.  THESE ARE SIMPLE SO
-!### WE WILL OMIT ADDING SUBROUTINE HEADERS
+!### HERE FOLLOWS OVERLOADED MODULE PROCEDURES.
+!### THESE ARE SIMPLE ROUTINES, SO WE WILL OMIT ADDING SUBROUTINE HEADERS
 !############################################################################
 
   SUBROUTINE Add_Real( yml, var_name, real_data, comment, RC )
@@ -2524,6 +2782,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
+    INTEGER                         :: sz_data
+    INTEGER                         :: sz_stored
     CHARACTER(LEN=QFYAML_strlen)    :: errMsg
     CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
@@ -2532,15 +2792,35 @@ CONTAINS
     errMsg  = ''
     thisLoc = ' -> at Get_Real_Array (in module qfyaml_mod.F90)'
 
-    CALL Prepare_Get_Var( yml,             var_name, QFYAML_real_type,       &
-                          SIZE(real_data), ix,       RC                     )
+    ! Make sure the real_data array has at last 1 element
+    sz_data = SIZE( real_data )
+    IF ( sz_data < 1 ) THEN
+       errMsg = 'Argument "real_data" must be an array!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Look up the stored data
+    CALL Prepare_Get_Var( yml,     var_name, QFYAML_real_type,               &
+                          sz_data, ix,       RC                             )
     IF ( RC /= QFYAML_Success ) THEN
        errMsg = 'Error encountered in "Prepare_Get_Var"!'
        CALL Handle_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    real_data = yml%vars(ix)%real_data
+    ! Number of elements of stored data in this variable
+    sz_stored = SIZE( yml%vars(ix)%real_data )
+
+    ! Make sure the data array has enough elements
+    IF ( sz_data < sz_stored ) THEN
+       errMsg = 'Argument "real_data" does not have enough elements!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Only copy over as many elements as are stored
+    real_data(1:sz_stored) = yml%vars(ix)%real_data(1:sz_stored)
 
   END SUBROUTINE Get_Real_Array
 
@@ -2555,6 +2835,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
+    INTEGER                         :: sz_data
+    INTEGER                         :: sz_stored
     CHARACTER(LEN=QFYAML_strlen)    :: errMsg
     CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
@@ -2563,15 +2845,35 @@ CONTAINS
     errMsg  = ''
     thisLoc = ' -> at Get_Int_Array (in module qfyaml_mod.F90)'
 
-    CALL Prepare_Get_Var( yml,            var_name, QFYAML_integer_type,     &
-                          SIZE(int_data), ix,       RC                      )
+    ! Make sure the real_data array has at last 1 element
+    sz_data = SIZE( int_data )
+    IF ( sz_data < 1 ) THEN
+       errMsg = 'Argument "int_data" must be an array!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Look up the stored data
+    CALL Prepare_Get_Var( yml,     var_name, QFYAML_integer_type,            &
+                          sz_data, ix,       RC                             )
     IF ( RC /= QFYAML_Success ) THEN
        errMsg = 'Error encountered in "Prepare_Get_Var"!'
        CALL Handle_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    int_data    = yml%vars(ix)%int_data
+    ! Number of elements of stored data in this variable
+    sz_stored = SIZE( yml%vars(ix)%int_data )
+
+    ! Make sure the data array has enough elements
+    IF ( sz_data < sz_stored ) THEN
+       errMsg = 'Argument "real_data" does not have enough elements!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Only copy over as many elements as are stored
+    int_data(1:sz_stored) = yml%vars(ix)%int_data(1:sz_stored)
 
   END SUBROUTINE Get_Int_Array
 
@@ -2580,11 +2882,13 @@ CONTAINS
     ! Get a character array of a given name
     !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
-    CHARACTER(LEN=*), INTENT(IN   )    :: var_name
+    CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: char_data(:)
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
+    INTEGER                         :: sz_data
+    INTEGER                         :: sz_stored
     CHARACTER(LEN=QFYAML_strlen)    :: errMsg
     CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
@@ -2593,15 +2897,36 @@ CONTAINS
     errMsg  = ''
     thisLoc = ' -> at Get_String_Array (in module qfyaml_mod.F90)'
 
-    CALL Prepare_Get_Var( yml,             var_name, QFYAML_string_type,     &
-                          SIZE(char_data), ix,       RC                     )
+    ! Make sure the char_data array has at last 1 element
+    sz_data = SIZE( char_data )
+    IF ( sz_data < 1 ) THEN
+       errMsg = 'Argument "char_data" must be an array!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Look up the stored data
+    CALL Prepare_Get_Var( yml,     var_name, QFYAML_string_type,             &
+                          sz_data, ix,       RC                             )
+
     IF ( RC /= QFYAML_Success ) THEN
        errMsg = 'Error encountered in "Prepare_Get_Var"!'
        CALL Handle_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    char_data = yml%vars(ix)%char_data
+    ! Number of elements of stored data in this variable
+    sz_stored = SIZE( yml%vars(ix)%char_data )
+
+    ! Make sure the data array has enough elements
+    IF ( sz_data < sz_stored ) THEN
+       errMsg = 'Argument "char_data" does not have enough elements!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Copy over only the number of elements that are stored
+    char_data(1:sz_stored) = yml%vars(ix)%char_data(1:sz_stored)
 
   END SUBROUTINE Get_String_Array
 
@@ -2615,6 +2940,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
+    INTEGER                         :: sz_data
+    INTEGER                         :: sz_stored
     CHARACTER(LEN=QFYAML_strlen)    :: errMsg
     CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
@@ -2623,6 +2950,15 @@ CONTAINS
     errMsg  = ''
     thisLoc = ' -> at Get_Bool_Array (in module qfyaml_mod.F90)'
 
+    ! Make sure the char_data array has at last 1 element
+    sz_data = SIZE( bool_data )
+    IF ( sz_data < 1 ) THEN
+       errMsg = 'Argument "char_data" must be an array!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Look up the stored data
     CALL Prepare_Get_Var( yml,             var_name, QFYAML_bool_type,       &
                           SIZE(bool_data), ix,       RC                     )
     IF ( RC /= QFYAML_Success ) THEN
@@ -2631,7 +2967,18 @@ CONTAINS
        RETURN
     ENDIF
 
-    bool_data = yml%vars(ix)%bool_data
+    ! Number of elements of stored data in this variable
+    sz_stored = SIZE( yml%vars(ix)%bool_data )
+
+    ! Make sure the data array has enough elements
+    IF ( sz_data < sz_stored ) THEN
+       errMsg = 'Argument "bool_data`" does not have enough elements!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Copy over only the number of elements that are stored
+    bool_data(1:sz_stored) = yml%vars(ix)%bool_data(1:sz_stored)
 
   END SUBROUTINE Get_Bool_Array
 
@@ -2823,8 +3170,8 @@ CONTAINS
 
   END SUBROUTINE Add_Get_Int_Array
 
-  SUBROUTINE Add_Get_String_Array( yml,     var_name,     char_data,         &
-                                   comment, dynamic_size, RC                )
+  SUBROUTINE Add_Get_String_Array( yml,     var_name, char_data,             &
+                                   comment, RC,       dynamic_size          )
     !
     ! Get or add a character array of a given name
     !
@@ -2832,7 +3179,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: char_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
-    LOGICAL,          optional      :: dynamic_size
+    LOGICAL,          OPTIONAL      :: dynamic_size
     INTEGER,          INTENT(OUT  ) :: RC
 
     CHARACTER(LEN=QFYAML_strlen)    :: errMsg
@@ -2859,8 +3206,8 @@ CONTAINS
 
   END SUBROUTINE Add_Get_String_Array
 
-  SUBROUTINE Add_Get_Bool_Array(yml,     var_name,     bool_data,            &
-                                comment, dynamic_size, RC                   )
+  SUBROUTINE Add_Get_Bool_Array(yml,     var_name, bool_data,                &
+                                comment, RC,       dynamic_size             )
     !
     ! Get or add a LOGICAL array of a given name
     !

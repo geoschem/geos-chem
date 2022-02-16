@@ -22,6 +22,7 @@ MODULE Roundoff_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: Cast_and_RoundOff
   PUBLIC :: Roundoff
   INTERFACE RoundOff
      MODULE PROCEDURE RoundOff_F4
@@ -33,9 +34,6 @@ MODULE Roundoff_Mod
   PRIVATE :: Roundoff_F4
   PRIVATE :: Roundoff_F8
 !
-! !REVISION HISTORY:
-!  18 Aug 2017 - R. Yantosca - Initial version, split off from gc_grid_mod.F90
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,10 +77,6 @@ CONTAINS
 !  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
 !                                                                             .
 !  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,10 +124,6 @@ CONTAINS
 !  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
 !                                                                             .
 !  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,5 +132,44 @@ CONTAINS
     Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
 
   END FUNCTION RoundOff_f8
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cast_and_roundoff
+!
+! !DESCRIPTION: Casts a 4-byte variable to 8-byte, and then rounds off
+!  to 2 decimal places.  Used for species database fields.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Cast_and_RoundOff( v_real, places ) RESULT( v_dble )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(f4), INTENT(IN) :: v_real   ! Input, 4-byte real
+    INTEGER,  INTENT(IN) :: places   ! Keep this many places
+!
+! !RETURN VALUE:
+!
+    REAL(f8)             :: v_dble   ! Output, 8-byte real
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! If v_real is a missing value, return with 8-byte missing value
+    ! Assume missing value is -999.0
+    IF ( v_real < -900.0_f4 ) THEN
+       v_dble = -999.0_fp
+       RETURN
+    ENDIF
+
+    ! Cast to real*8 and roundoff (if the number isn't too large)
+    v_dble = RoundOff( DBLE( v_real ), places )
+
+  END FUNCTION Cast_And_RoundOff
 !EOC
 END MODULE Roundoff_Mod
