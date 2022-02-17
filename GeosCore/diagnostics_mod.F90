@@ -2,6 +2,7 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
+!SatDiagn
 !
 ! !MODULE: diagnostics_mod.F90
 !
