@@ -299,64 +299,50 @@ CONTAINS
        ! Relative humidity [%]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnRH ) THEN
-          
           State_Diag%SatDiagnRH(I,:,:) = State_Met%RH(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Air density [molec/m3]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnAirDen ) THEN
-          
           State_Diag%SatDiagnAirDen(I,:,:) = State_Met%AirNumDen(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Grid box height [m]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnBoxHeight ) THEN
-          
           State_Diag%SatDiagnBoxHeight(I,:,:) = State_Met%BXHEIGHT(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Pressure edges [hPa]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPEdge ) THEN
-          
           State_Diag%SatDiagnPEdge(I,:,:) = &
                State_Met%PEDGE(I,:,1:State_Grid%NZ) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Tropopause pressure [hPa]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
-          
           State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! PBL Height [m]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPBLHeight ) THEN
-          
           State_Diag%SatDiagnPBLHeight(I,:) = State_Met%PBLH(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! PBL Top [m]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPBLTop ) THEN
-          
           State_Diag%SatDiagnPBLTop(I,:) = State_Met%PBL_TOP_m(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -364,27 +350,21 @@ CONTAINS
        ! This temperture is interpolated from 3 h Met Field (TMPU1 and TMPU2)
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTAir ) THEN
-          
           State_Diag%SatDiagnTAir(I,:,:) = State_Met%T(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Root Zone Soil Moisture (or Wetness) [fraction]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnGWETROOT ) THEN
-          
           State_Diag%SatDiagnGWETROOT(I,:) = State_Met%GWETROOT(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Topsoil Moisture (or Wetness) [fraction]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnGWETTOP ) THEN
-          
           State_Diag%SatDiagnGWETTOP(I,:) = State_Met%GWETTOP(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -392,9 +372,7 @@ CONTAINS
        ! Aka Surface downward PAR beam flux
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPARDR ) THEN
-          
           State_Diag%SatDiagnPARDR(I,:) = State_Met%PARDR(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -402,9 +380,7 @@ CONTAINS
        ! Aka Surface downward PAR diffuse flux
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPARDF ) THEN
-          
           State_Diag%SatDiagnPARDF(I,:) = State_Met%PARDF(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -412,18 +388,14 @@ CONTAINS
        ! Documentation says this variable is converted from original units of kg/m2/s
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPRECTOT ) THEN
-          
           State_Diag%SatDiagnPRECTOT(I,:) = State_Met%PRECTOT(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Sea Level Pressure [hPa]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnSLP ) THEN
-          
           State_Diag%SatDiagnSLP(I,:) = State_Met%SLP(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -431,27 +403,21 @@ CONTAINS
        ! Linearly interpolated from 3 h met field (SPHU1 and SPHU2)
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnSPHU ) THEN
-          
           State_Diag%SatDiagnSPHU(I,:,:) = State_Met%SPHU(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! Surface Temperature at 2m [K]
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTS ) THEN
-          
           State_Diag%SatDiagnTS(I,:) = State_Met%TS(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! PBL Top Height [Levels]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPBLTOPL ) THEN
-          
           State_Diag%SatDiagnPBLTOPL(I,:) = State_Met%PBL_TOP_L(I,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -460,9 +426,7 @@ CONTAINS
        ! MODIS LAI used by MEGAN and Soil NOx extension
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnMODISLAI ) THEN
-          
           State_Diag%SatDiagnMODISLAI(I,:) = State_Met%MODISLAI(I,:) * GOOD
-          
        ENDIF
 
        !=======================================================================
@@ -532,18 +496,14 @@ CONTAINS
        ! SatDiagn Diagnostic for JvalO3O1D [units of s-1 as per JvalO3O1D]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-          
           State_Diag%SatDiagnJvalO3O1D(I,:,:) = State_Diag%JvalO3O1D(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
        ! SatDiagn Diagnostic for JvalO3O3P [units of s-1 as per JvalO3O3P]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-          
           State_Diag%SatDiagnJvalO3O3P(I,:,:) = State_Diag%JvalO3O3P(I,:,:) * GOOD
-          
        ENDIF
 
        !=======================================================================
@@ -592,19 +552,15 @@ CONTAINS
        ! SatDiagn Diagnostic for OH Reactivity [units of s-1 as per OHreactivity]:
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
-          
           State_Diag%SatDiagnOHreactivity(I,:,:) = State_Diag%OHreactivity(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
-       ! SatDiagn Diagnostic for Surface Emissions (eflx) [units of kg/m2/s]:
-       ! From surface to top of the PBL for Advected Species
+       ! SatDiagn Diagnostic for Column Emissions (ColEmis) [units of kg/m2/s]:
+       ! From surface to maximum vertical level for advected species
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
-          
           State_Diag%SatDiagnColEmis(I,:,:) = State_Diag%SatDiagnColEmis(I,:,:) * GOOD
-          
        ENDIF
 
        ! --------------------------------------------
@@ -612,16 +568,13 @@ CONTAINS
        ! From surface to top of the PBL for Advected Species (eflx (emis) - dflx(drydep)))
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
-          
           State_Diag%SatDiagnSurfFlux(I,:,:) = State_Diag%SatDiagnSurfFlux(I,:,:) * GOOD
-          
        ENDIF
 
        !=======================================================================
        ! SatDiagn Diagnostic for Chemical Loss
        !=======================================================================
        IF ( State_Diag%Archive_SatDiagnLoss ) THEN
-   
           State_Diag%SatDiagnLoss(I,:,:,:) = State_Diag%Loss(I,:,:,:) * GOOD
        ENDIF
 
@@ -629,7 +582,6 @@ CONTAINS
        ! SatDiagn Diagnostic for Chemical Production
        !=======================================================================
        IF ( State_Diag%Archive_SatDiagnProd ) THEN
-       
           State_Diag%SatDiagnProd(I,:,:,:) = State_Diag%Prod(I,:,:,:) * GOOD
        ENDIF
 
@@ -638,7 +590,6 @@ CONTAINS
        ! SatDiagnRxnRate was previously defined in fullchem_mod.F90
        !=======================================================================
        IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
-       
           State_Diag%SatDiagnRxnRate(I,:,:,:) = State_Diag%SatDiagnRxnRate(I,:,:,:) * GOOD
        ENDIF
 
