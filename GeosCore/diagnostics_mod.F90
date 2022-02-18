@@ -2,7 +2,6 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!SatDiagn Another Edit in Jupyter (remove JDS!)
 !
 ! !MODULE: diagnostics_mod.F90
 !
@@ -65,9 +64,10 @@ CONTAINS
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Met_Mod,    ONLY : MetState
     USE State_Chm_Mod,    ONLY : ChmState, Ind_
-    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Diag_Mod,   ONLY : DgnState, DgnMap 
     USE State_Grid_Mod,   ONLY : GrdState
-    USE PhysConstants,    ONLY : AIRMW
+    USE PhysConstants,    ONLY : AIRMW,  AVO
+    USE TIME_MOD,         ONLY : GET_LOCALTIME
 !
 ! !INPUT PARAMETERS:
 !
@@ -95,15 +95,20 @@ CONTAINS
 !
     ! Scalars
     INTEGER                 :: I, J, L, N, S
-    REAL(fp)                :: ToPptv
+    REAL(fp)                :: ToPptv, LT, GOOD
 
     ! SAVEd scalars
     INTEGER, SAVE           :: id_Hg2 = -1
     INTEGER, SAVE           :: id_HgP = -1
-    LOGICAL, SAVE           :: FIRST  = .TRUE.
+    LOGICAL, SAVE           :: FIRST_Hg  = .TRUE.
+    INTEGER, SAVE           :: id_OH = -1
+    LOGICAL, SAVE           :: FIRST_Sat = .TRUE.
 
     ! Strings
     CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
+    
+    ! Objects
+    TYPE(DgnMap), POINTER   :: mapData
 
     !=======================================================================
     ! Set_Diagnostics_EndofTimestep begins here
@@ -194,10 +199,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Get species indices for Hg2 and HgP
-       IF ( FIRST ) THEN
+       IF ( FIRST_Hg ) THEN
           id_Hg2 = Ind_('Hg2')
           id_HgP = Ind_('HgP')
-          FIRST  = .FALSE.
+          FIRST_Hg  = .FALSE.
        ENDIF
 
        !--------------------------------------------
@@ -230,6 +235,423 @@ CONTAINS
                                         * ToPptv
        ENDIF
     ENDIF
+
+    !=======================================================================
+    ! Satellite diagnostics:
+    !=======================================================================
+    IF ( FIRST_Sat ) THEN
+
+       ! Get the species ID for OH
+       id_OH  = Ind_('OH')
+       IF ( id_OH < 0 ) THEN
+          errMsg = 'OH is not a defined species in this simulation!!!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       FIRST_Sat = .FALSE.
+
+    ENDIF
+       
+    ! Loop over longitudes:
+    DO I = 1, State_Grid%NX
+          
+       ! Get local time in hours:
+       LT = GET_LOCALTIME(I, 1, 1, State_Grid)
+       IF ( LT < 0 ) LT = LT + 24e+0_fp
+       
+       ! Determine whether during satellite overpass time window:
+       IF ( LT >= State_Diag%SatDiagn_StartHr .and. &
+            LT <= State_Diag%SatDiagn_EndHr ) THEN
+
+          ! GOOD = 1 if during local time range, 0 otherwise:
+          GOOD = 1e+0_fp
+          
+       ELSE
+          
+          GOOD = 0e+0_fp
+          
+       ENDIF
+       
+       !ENDIF
+
+       ! --------------------------------------------
+       ! Count number of local times:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnCount ) THEN
+
+          State_Diag%SatDiagnCount(I,:,:) = &
+                  State_Diag%SatDiagnCount(I,:,:) + GOOD
+       ENDIF
+
+       ! --------------------------------------------
+       ! OH concentration [molec/cm3]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnOH ) THEN
+
+          State_Diag%SatDiagnOH(I,:,1:State_Grid%MaxChemLev) = &
+               (State_Chm%Species(I,:,1:State_Grid%MaxChemLev,id_OH) * GOOD * &
+                State_Met%AIRDEN(I,:,1:State_Grid%MaxChemLev)  * AVO ) /      &
+               ( State_Chm%SpcData(id_OH)%Info%Mw_g ) / 1.0e+3_fp !JDS Changed to 1.0e+3_fp (orig 1.0e+6) (1/20/22)
+       ENDIF
+    
+       ! --------------------------------------------
+       ! Relative humidity [%]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnRH ) THEN
+          
+          State_Diag%SatDiagnRH(I,:,:) = State_Met%RH(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Air density [molec/m3]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnAirDen ) THEN
+          
+          State_Diag%SatDiagnAirDen(I,:,:) = State_Met%AirNumDen(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Grid box height [m]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnBoxHeight ) THEN
+          
+          State_Diag%SatDiagnBoxHeight(I,:,:) = State_Met%BXHEIGHT(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Pressure edges [hPa]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPEdge ) THEN
+          
+          State_Diag%SatDiagnPEdge(I,:,:) = &
+               State_Met%PEDGE(I,:,1:State_Grid%NZ) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Tropopause pressure [hPa]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
+          
+          State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! PBL Height [m]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPBLHeight ) THEN
+          
+          State_Diag%SatDiagnPBLHeight(I,:) = State_Met%PBLH(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! PBL Top [m]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPBLTop ) THEN
+          
+          State_Diag%SatDiagnPBLTop(I,:) = State_Met%PBL_TOP_m(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Air temperature [K]: Temperature Interpolated to Current Time
+       ! This temperture is interpolated from 3 h Met Field (TMPU1 and TMPU2)
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTAir ) THEN
+          
+          State_Diag%SatDiagnTAir(I,:,:) = State_Met%T(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Root Zone Soil Moisture (or Wetness) [fraction]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnGWETROOT ) THEN
+          
+          State_Diag%SatDiagnGWETROOT(I,:) = State_Met%GWETROOT(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Topsoil Moisture (or Wetness) [fraction]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnGWETTOP ) THEN
+          
+          State_Diag%SatDiagnGWETTOP(I,:) = State_Met%GWETTOP(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Direct Photosynthetically Active Radiation [W/m2]:
+       ! Aka Surface downward PAR beam flux
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPARDR ) THEN
+          
+          State_Diag%SatDiagnPARDR(I,:) = State_Met%PARDR(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Diffuse Photosynthetically Active Radiation [W/m2]:
+       ! Aka Surface downward PAR diffuse flux
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPARDF ) THEN
+          
+          State_Diag%SatDiagnPARDF(I,:) = State_Met%PARDF(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Total Precipitation (at surface) [mm/day]:
+       ! Documentation says this variable is converted from original units of kg/m2/s
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPRECTOT ) THEN
+          
+          State_Diag%SatDiagnPRECTOT(I,:) = State_Met%PRECTOT(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Sea Level Pressure [hPa]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnSLP ) THEN
+          
+          State_Diag%SatDiagnSLP(I,:) = State_Met%SLP(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Specific Humidity Interpolated to Current Time [g H2O/kg air]:
+       ! Linearly interpolated from 3 h met field (SPHU1 and SPHU2)
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnSPHU ) THEN
+          
+          State_Diag%SatDiagnSPHU(I,:,:) = State_Met%SPHU(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! Surface Temperature at 2m [K]
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTS ) THEN
+          
+          State_Diag%SatDiagnTS(I,:) = State_Met%TS(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! PBL Top Height [Levels]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPBLTOPL ) THEN
+          
+          State_Diag%SatDiagnPBLTOPL(I,:) = State_Met%PBL_TOP_L(I,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! MODIS Daily LAI [m2/m2]:
+       ! Don't use Met_LAI (lacks interannual variability); use MODIS LAI instead
+       ! MODIS LAI used by MEGAN and Soil NOx extension
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnMODISLAI ) THEN
+          
+          State_Diag%SatDiagnMODISLAI(I,:) = State_Met%MODISLAI(I,:) * GOOD
+          
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for WetLossLS [units of kg/s as per WetLossLS]
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+   
+             ! Point to mapping obj specific to species boundary conditions
+             mapData => State_Diag%Map_SatDiagnWetLossLS
+
+                !$OMP PARALLEL DO       &
+                !$OMP DEFAULT( SHARED ) &
+                !$OMP PRIVATE( N, S   )
+                DO S = 1, mapData%nSlots
+                   N = mapData%slot2id(S)
+                   State_Diag%SatDiagnWetLossLS(I,:,:,S) = State_Diag%WetLossLS(I,:,:,N) * GOOD   
+                ENDDO
+               !$OMP END PARALLEL DO
+  
+             ! Free pointer
+             mapData => NULL()
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for WetLossConv [units of kg/s as per WetLossConv]
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnWetLossConv ) THEN
+   
+             ! Point to mapping obj specific to species boundary conditions
+             mapData => State_Diag%Map_SatDiagnWetLossConv
+
+                !$OMP PARALLEL DO       &
+                !$OMP DEFAULT( SHARED ) &
+                !$OMP PRIVATE( N, S   )
+                DO S = 1, mapData%nSlots
+                   N = mapData%slot2id(S)
+                   State_Diag%SatDiagnWetLossConv(I,:,:,S) = State_Diag%WetLossConv(I,:,:,N) * GOOD
+                ENDDO
+               !$OMP END PARALLEL DO
+  
+             ! Free pointer
+             mapData => NULL()
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for Jval [units of s-1 as per Jval]
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnJval ) THEN
+   
+             ! Point to mapping obj specific to species boundary conditions
+             mapData => State_Diag%Map_SatDiagnJval
+
+                !$OMP PARALLEL DO       &
+                !$OMP DEFAULT( SHARED ) &
+                !$OMP PRIVATE( N, S   )
+                DO S = 1, mapData%nSlots
+                   N = mapData%slot2id(S)
+                   State_Diag%SatDiagnJval(I,:,:,S) = State_Diag%Jval(I,:,:,N) * GOOD
+                ENDDO
+               !$OMP END PARALLEL DO
+  
+             ! Free pointer
+             mapData => NULL()
+       ENDIF
+
+       ! --------------------------------------------
+       ! SatDiagn Diagnostic for JvalO3O1D [units of s-1 as per JvalO3O1D]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+          
+          State_Diag%SatDiagnJvalO3O1D(I,:,:) = State_Diag%JvalO3O1D(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! SatDiagn Diagnostic for JvalO3O3P [units of s-1 as per JvalO3O3P]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+          
+          State_Diag%SatDiagnJvalO3O3P(I,:,:) = State_Diag%JvalO3O3P(I,:,:) * GOOD
+          
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for DryDep [units of molec cm-2 s-1 as per DryDep]
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnDryDep ) THEN
+   
+             ! Point to mapping obj specific to species boundary conditions
+             mapData => State_Diag%Map_SatDiagnDryDep
+
+                !$OMP PARALLEL DO       &
+                !$OMP DEFAULT( SHARED ) &
+                !$OMP PRIVATE( N, S   )
+                DO S = 1, mapData%nSlots
+                   N = mapData%slot2id(S)
+                   State_Diag%SatDiagnDryDep(I,:,S) = State_Diag%DryDep(I,:,N) * GOOD
+                ENDDO
+               !$OMP END PARALLEL DO
+  
+             ! Free pointer
+             mapData => NULL()
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for DryDepVel [units of cm s-1 as per DryDepVel]
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+   
+             ! Point to mapping obj specific to species boundary conditions
+             mapData => State_Diag%Map_SatDiagnDryDepVel
+
+                !$OMP PARALLEL DO       &
+                !$OMP DEFAULT( SHARED ) &
+                !$OMP PRIVATE( N, S   )
+                DO S = 1, mapData%nSlots
+                   N = mapData%slot2id(S)
+                   State_Diag%SatDiagnDryDepVel(I,:,S) = State_Diag%DryDepVel(I,:,N) * GOOD
+                ENDDO
+               !$OMP END PARALLEL DO
+  
+             ! Free pointer
+             mapData => NULL()
+       ENDIF
+
+       ! --------------------------------------------
+       ! SatDiagn Diagnostic for OH Reactivity [units of s-1 as per OHreactivity]:
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
+          
+          State_Diag%SatDiagnOHreactivity(I,:,:) = State_Diag%OHreactivity(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! SatDiagn Diagnostic for Surface Emissions (eflx) [units of kg/m2/s]:
+       ! From surface to top of the PBL for Advected Species
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+          
+          State_Diag%SatDiagnColEmis(I,:,:) = State_Diag%SatDiagnColEmis(I,:,:) * GOOD
+          
+       ENDIF
+
+       ! --------------------------------------------
+       ! SatDiagn Diagnostic for Total Surface Fluxes [units of kg/m2/s]:
+       ! From surface to top of the PBL for Advected Species (eflx (emis) - dflx(drydep)))
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
+          
+          State_Diag%SatDiagnSurfFlux(I,:,:) = State_Diag%SatDiagnSurfFlux(I,:,:) * GOOD
+          
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for Chemical Loss
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+   
+          State_Diag%SatDiagnLoss(I,:,:,:) = State_Diag%Loss(I,:,:,:) * GOOD
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for Chemical Production
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+       
+          State_Diag%SatDiagnProd(I,:,:,:) = State_Diag%Prod(I,:,:,:) * GOOD
+       ENDIF
+
+       !=======================================================================
+       ! SatDiagn Diagnostic for Reaction Rates
+       ! SatDiagnRxnRate was previously defined in fullchem_mod.F90
+       !=======================================================================
+       IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+       
+          State_Diag%SatDiagnRxnRate(I,:,:,:) = State_Diag%SatDiagnRxnRate(I,:,:,:) * GOOD
+       ENDIF
+
+
+    ENDDO
+
+    ! Error handling
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error converting species units for archiving diagnostics #2'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
 
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
@@ -393,7 +815,7 @@ CONTAINS
     ! Scalars
     LOGICAL               :: Found
     INTEGER               :: D, I, J, L, N, S
-    REAL(fp)              :: TmpVal, Conv
+    REAL(fp)              :: TmpVal, Conv, LT,  GOOD
 
     ! Strings
     CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
@@ -461,6 +883,51 @@ CONTAINS
 
     ENDIF
 
+    !=======================================================================
+    ! Copy species to SatDiagn (satellite diagnostic output) [v/v dry]
+    !=======================================================================
+    IF ( State_Diag%Archive_SatDiagnConc ) THEN
+
+       ! Point to mapping obj specific to species boundary conditions
+       mapData => State_Diag%Map_SatDiagnConc
+
+       ! Loop over the number of advected species that we wish
+       ! to save at a user-specified local time range
+       ! Loop over longitudes:
+       DO I = 1, State_Grid%NX
+
+          ! Get local time in hours:
+          LT = GET_LOCALTIME(I, 1, 1, State_Grid)
+          IF ( LT < 0  ) LT = LT + 24e+0_fp
+          ! Check if local time is during satellite overpass time:
+          IF ( LT >= State_Diag%SatDiagn_StartHr .and. &
+               LT <= State_Diag%SatDiagn_EndHr ) THEN
+
+             ! GOOD = 1 if during local time range, 0 otherwise:
+             GOOD = 1e+0_fp 
+
+          ELSE
+
+             GOOD = 0e+0_fp
+
+          ENDIF
+             
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( N, S   )
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
+          ENDDO
+          !$OMP END PARALLEL DO
+
+       ENDDO
+
+       ! Free pointer
+       mapData => NULL()
+
+    ENDIF
+
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error converting species units for archiving diagnostics #2'
@@ -498,6 +965,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+    USE TIME_MOD,       ONLY : GET_LOCALTIME
 !
 ! !INPUT PARAMETERS:
 !
@@ -526,7 +994,7 @@ CONTAINS
     ! Scalars
     LOGICAL               :: Found
     INTEGER               :: D, I, J, L, N, S
-    REAL(fp)              :: TmpVal, Conv
+    REAL(fp)              :: TmpVal, Conv, LT, GOOD
 
     ! Strings
     CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
@@ -559,7 +1027,8 @@ CONTAINS
     IF ( State_Diag%Archive_SpeciesConc .OR. &
          State_Diag%Archive_SpeciesBC   .OR. &
          State_Diag%Archive_SpeciesRst  .OR. &
-         State_Diag%Archive_ConcAboveSfc ) THEN
+         State_Diag%Archive_ConcAboveSfc .OR. &
+         State_Diag%Archive_SatDiagnConc ) THEN
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -594,6 +1063,52 @@ CONTAINS
           State_Diag%SpeciesConc(:,:,:,S) = TmpSpcArr(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+
+    ENDIF
+
+    !=======================================================================
+    ! Copy species to SatDiagn (satellite diagnostic output) [v/v dry]
+    !=======================================================================
+    IF ( State_Diag%Archive_SatDiagnConc ) THEN
+
+       ! Point to mapping obj specific to species boundary conditions
+       mapData => State_Diag%Map_SatDiagnConc
+
+       ! Loop over the number of advected species that we wish
+       ! to save at a user-specified local time range
+       ! Loop over longitudes:
+       DO I = 1, State_Grid%NX
+
+          ! Get local time in hours:
+          LT = GET_LOCALTIME(I, 1, 1, State_Grid)
+          
+          IF ( LT < 0  ) LT = LT + 24e+0_fp
+          ! Check if local time is during satellite overpass time:
+          IF ( LT >= State_Diag%SatDiagn_StartHr .and. &
+               LT <= State_Diag%SatDiagn_EndHr ) THEN
+
+             ! GOOD = 1 if during local time range, 0 otherwise:
+             GOOD = 1e+0_fp 
+
+          ELSE
+
+             GOOD = 0e+0_fp
+
+          ENDIF
+             
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( N, S   )
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD             
+          ENDDO
+          !$OMP END PARALLEL DO
+
+       ENDDO
 
        ! Free pointer
        mapData => NULL()
