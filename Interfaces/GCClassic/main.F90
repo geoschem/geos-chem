@@ -1855,7 +1855,7 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Update each HISTORY ITEM from its data source
-          CALL History_Update( Input_Opt, RC )
+          CALL History_Update( Input_Opt, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -2079,7 +2079,7 @@ PROGRAM GEOS_Chem
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
-          CALL History_Write( Input_Opt, State_Chm%Spc_Units, RC )
+          CALL History_Write( Input_Opt, State_Diag, State_Chm%Spc_Units, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
