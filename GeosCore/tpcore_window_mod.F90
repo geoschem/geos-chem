@@ -436,9 +436,9 @@ CONTAINS
 
 
 !----------------------------------------------------------------------------
- subroutine TPCORE_WINDOW( dt,    ae, i0, j0, im, jm, km, jfirst,         &
+ subroutine TPCORE_WINDOW( dt,    ae, im, jm, km, jfirst,         &
                            jlast, ng, mg,                         &
-                           nq,    ak, bk, u, v, ps1, ps2, ps,     &
+                           nq,    ak, bk, u, v, ps1, ps2, ps,  q, &
                            iord, jord, kord, n_adj,               &
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
@@ -448,18 +448,15 @@ CONTAINS
  !%%%
                            XMASS,    YMASS,                       &
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        AREA_M2, ND24, ND25, ND26, State_Chm   )
+                        AREA_M2, ND24, ND25, ND26   )
 !----------------------------------------------------------------------------
 
 ! Uses:
     USE PhysConstants  ! Physical constants g0_100 and AIRMW
-    USE State_Chm_Mod, ONLY : ChmState
 
  implicit none
 
 ! Input:
- integer, intent(in):: i0         ! State_Grid%WestBuffer  - BUFF_SIZE
- integer, intent(in):: j0         ! State_Grid%SouthBuffer - BUFF_SIZE
  integer, intent(in):: im         ! Global E-W dimension
  integer, intent(in):: jm         ! Global N-S dimension
  integer, intent(in):: km         ! Vertical dimension
@@ -541,7 +538,8 @@ CONTAINS
  real, intent(in):: dt                    ! Transport time step in seconds
  real, intent(in):: ae                    ! Earth's radius (m)
 
- TYPE(ChmState), intent(inout) :: State_Chm ! Chemistry state object
+ real, intent(inout):: q(:,:,:,:)         ! Tracer "mixing ratios"
+                                          ! q could easily be re-dimensioned
 
  real, intent(out):: ps(im,jfirst:jlast)  ! "predicted" surface pressure
 
@@ -594,10 +592,6 @@ CONTAINS
  integer jn1gd                      ! Northern latitude border (JM on NP PE)
  integer nx                         ! Internal E-W OpenMP decomposition
  integer iv                         ! Monotonicity constraints for top and bottom
-
- real, pointer :: q_ptr(:,:,:)      ! Pointer to species concentrations array
- real, pointer :: q_ptr2(:,:,:)     ! Pointer to species concentrations array
-
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
@@ -666,19 +660,17 @@ CONTAINS
 
 ! Average q at both poles
 !  do iq=1,nq
-!     q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
 !!$omp parallel do   &
 !!$omp shared(im)    &
 !!$omp private(k)
 !     do k=1,km
 !        if ( jfirst == 1 ) then
-!             call xpavg(q_ptr(:,1,k), im)
+!             call xpavg(q(:,1,k,iq), im)
 !        endif
 !        if ( jlast == jm ) then
-!             call xpavg(q_ptr(:,jm,k), im)
+!             call xpavg(q(:,jm,k,iq), im)
 !        endif
 !     enddo
-!      nullify(q_ptr)
 !  enddo
 
 #if defined(SPMD)
@@ -719,43 +711,36 @@ CONTAINS
 
 #if defined(SPMD)
 ! non-blocking-send for tracer #1
-    q_ptr => State_Chm%SpeciesVec(1)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
 #if defined(PILGRIM)
-    call parbegintransfer(pattern2dng,km,q_ptr(:,:,:),q_ptr(:,:,:))
+    call parbegintransfer(pattern2dng,km,q(:,:,:,1),q(:,:,:,1))
 #else
     call mp_send3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, &
-                      q_ptr(1,jfirst-ng,1), 1)
+                      q(1,jfirst-ng,1,1), 1)
 #endif
-    nullify(q_ptr)
 #endif
 
 
 ! Multi_Tracer:
    do iq=1,nq
 
-      q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
-
 #if defined(SPMD)
- ! Receive current tracer
- q_ptr2 => State_Chm%SpeciesVec(iq+1)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
+! Receive current tracer
 #if defined(PILGRIM)
- call parendtransfer(pattern2dng,km,q_ptr(:,:,:),q_ptr(:,:,:))
+ call parendtransfer(pattern2dng,km,q(:,:,:,iq),q(:,:,:,iq))
  if (iq < nq) then
-   call parbegintransfer(pattern2dng,km,q_ptr2(:,:,:),q_ptr2(:,:,:))
+   call parbegintransfer(pattern2dng,km,q(:,:,:,iq+1),q(:,:,:,iq+1))
  endif
 #else
  call mp_barrier()
  call mp_recv3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, &
-                   q_ptr(1,jfirst-ng,1),iq)
+                   q(1,jfirst-ng,1,iq),iq)
  call mp_barrier()
  if ( iq < nq ) then
 !   non-blocking send for next tracer
-    q_ptr2 => State_Chm%SpeciesVec(iq+1)%Conc(:,:,km:-1:1)
     call mp_send3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, &
-                      q_ptr2(1,jfirst-ng,1),iq+1)
+                      q(1,jfirst-ng,1,iq+1),iq+1)
  endif
 #endif
- nullify(q_ptr2)
 #endif
 
 !$omp parallel do                                   &
@@ -774,7 +759,7 @@ CONTAINS
 
     do j=js1gd,jn1gd
        do i=1,im
-          q2(i,j) = q_ptr(i,j,k)
+          q2(i,j) = q(i,j,k,iq)
        enddo
     enddo
 
@@ -810,7 +795,7 @@ CONTAINS
 !    !do j=jfirst,jlast
 !    do j=max(jfirst,jord+1),min(jlast,jm-jord+1)   ! Lin_20140518
 !       do i=1,im
-!          q_ptr(i,j,k) = q2(i,j)
+!          q(i,j,k,iq) = q2(i,j)
 !       enddo
 !    enddo
 !------------------------------------------------------------------------------
@@ -818,18 +803,15 @@ CONTAINS
     ! the previous code but we'll put it here for now. (bmy, 4/1/15)
     do j=jfirst+2,jlast-2             ! (lzh, 05/10/2014)
        do i=3,im-2
-           q_ptr(i,j,k) = q2(i,j)
+           q(i,j,k,iq) = q2(i,j)
         enddo
      enddo
 
 ! enddo Vertical_OMP
 ! enddo Multi_Tracer
 
-   enddo ! k
-
-   NULLIFY(q_ptr)
-
-   enddo ! iq
+   enddo
+   enddo
 
 !---------------------------------------------------------------
 ! Perform Remapping back to the hybrid sigma-pressure coordinate
@@ -840,24 +822,14 @@ CONTAINS
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%
  !%%% Save tracer values before vertical transport (bdf, bmy, 9/28/04)
- !%%% 
-!ewl : Copying q to QTEMP should be in ND26 brackets but was not. I'm taking
-!      it out, however, to temporarily let qmap work. We don't need QTEMP
-!      since ND26 binary diags are retired, but it is not ideal to copy.
-! IF ( ND26 > 0 ) THEN
-!$OMP PARALLEL DO           &
-!$OMP DEFAULT( SHARED )     &
-!$OMP PRIVATE( I, J, IQ )
-    DO IQ = 1, NQ
-       QTEMP(:,:,:,IQ) = &
-            State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:-1:1)
-    ENDDO
-! ENDIF 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%%
+ IF ( ND26 > 0 ) THEN
+    QTEMP = Q
+ ENDIF
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-!ewl....maybe pass state_chm rather than q here?
- call qmap(pe, QTEMP, im, jm, km, nx, jfirst, jlast, ng, nq,         &
-           ps, ak, bk, kord, iv )
+ call qmap(pe, q, im, jm, km, nx, jfirst, jlast, ng, nq,         &
+           ps, ak, bk, kord, iv)
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
@@ -879,15 +851,12 @@ CONTAINS
 
 !$OMP PARALLEL DO           &
 !$OMP DEFAULT( SHARED )     &
-!$OMP PRIVATE( I, J, IQ, q_ptr )
+!$OMP PRIVATE( I, J, IQ )
     DO IQ = 1, NQ
-
-    q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
-
     DO I  = 1, IM
     DO J  = 1, JM
 
-       DTC(I,J,K,IQ) = ( q_ptr(I,J,K) * DELP1(I,J,K)   -  &
+       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
                          QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
                          AREA_M2(J) * g0_100
 
@@ -897,9 +866,6 @@ CONTAINS
        !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
     ENDDO
     ENDDO
-
-    NULLIFY(q_ptr)
-
     ENDDO
 !$OMP END PARALLEL DO
 
@@ -909,25 +875,19 @@ CONTAINS
     DO K  = 2, KM
 !$OMP PARALLEL DO                      &
 !$OMP DEFAULT( SHARED )                &
-!$OMP PRIVATE( I, J, IQ, TRACE_DIFF, q_ptr )
+!$OMP PRIVATE( I, J, IQ, TRACE_DIFF )
     DO IQ = 1, NQ
-
-    q_ptr => State_Chm%SpeciesVec(iq)%Conc(i0+1:i0+im,j0+1:j0+jm,km:1:-1)
-
     DO I  = 1, IM
     DO J  = 1, JM
 
-       TRACE_DIFF         = ( q_ptr(I,J,K) * DELP1(I,J,K)  - &
-                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *         &
+       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
+                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
                               AREA_M2(J) * g0_100
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
     ENDDO
     ENDDO
-
-    NULLIFY(q_ptr)
-
     ENDDO
 !$OMP END PARALLEL DO
     ENDDO
@@ -2348,6 +2308,7 @@ CONTAINS
 ! Local arrays:
   real pe2(im,km+1)
 
+  real temp
   integer i, j, k, iq
   integer ixj, jp, it, i1, i2
   integer kord
@@ -2386,6 +2347,7 @@ CONTAINS
         pe2(i,km+1) = ps(i,j)
      enddo
 
+     temp = sum(q)
      do iq=1,nq
         call map1_ppm ( km,   pe(1,1,j),   q(1,jfirst-ng,1,iq),   &
                         km,   pe2,         q(1,jfirst-ng,1,iq),   &
@@ -2432,6 +2394,7 @@ CONTAINS
  integer i, k, l, ll, k0
  real  pl, pr, qsum, delp, esl
  real       r3, r23
+ real temp
  parameter (r3 = 1./3., r23 = 2./3.)
 
  ! Initialize local arrays (bmy, 7/10/17)
@@ -2445,9 +2408,11 @@ CONTAINS
          enddo
       enddo
 
+      temp = sum(q4)
 ! Compute vertical subgrid distribution
       call ppm2m( q4, dp1, km, i1, i2, iv, kord )
 
+      temp = sum(q2)
 ! Mapping
       do 1000 i=i1,i2
          k0 = 1
