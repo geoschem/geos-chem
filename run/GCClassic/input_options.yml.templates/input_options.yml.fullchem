@@ -9,8 +9,8 @@
 #============================================================================
 simulation:
   name: ${RUNDIR_SIM_NAME}
-  start: [${RUNDIR_SIM_START_DATE}, ${RUNDIR_SIM_START_TIME}]
-  end: [${RUNDIR_SIM_END_DATE}, ${RUNDIR_SIM_END_TIME}]
+  start_date: [${RUNDIR_SIM_START_DATE}, ${RUNDIR_SIM_START_TIME}]
+  end_date: [${RUNDIR_SIM_END_DATE}, ${RUNDIR_SIM_END_TIME}]
   root_data_dir: ${RUNDIR_DATA_ROOT}
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
@@ -22,13 +22,16 @@ simulation:
 #============================================================================
 grid:
   resolution: ${RUNDIR_GRID_RES_LONG}
-  longitude_range: ${RUNDIR_GRID_LON_RANGE}
-  center_lon_at_180: ${RUNDIR_CENTER_LON_180}
-  latitude_range: ${RUNDIR_GRID_LAT_RANGE}
-  half_size_polar_boxes: ${RUNDIR_GRID_HALF_POLAR}
   number_of_levels: ${RUNDIR_GRID_NLEV}
-  nested_grid_simulation: ${RUNDIR_GRID_NESTED_SIM}
-  buffer_zone_NSEW: ${RUNDIR_GRID_BUFFER_ZONE}
+  longitude:
+    range: ${RUNDIR_GRID_LON_RANGE}
+    center_at_180: ${RUNDIR_CENTER_LON_180}
+  latitude:
+    range: ${RUNDIR_GRID_LAT_RANGE}
+    half_size_polar_boxes: ${RUNDIR_GRID_HALF_POLAR}
+  nested_grid_simulation:
+    activate: ${RUNDIR_GRID_NESTED_SIM}
+    buffer_zone_NSEW: ${RUNDIR_GRID_BUFFER_ZONE}
 
 #============================================================================
 # Timesteps settings
@@ -36,6 +39,7 @@ grid:
 timesteps:
   transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
   chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
+  radiation_timestep_in_s: 10800
 
 #============================================================================
 # Settings for GEOS-Chem operations
@@ -47,7 +51,9 @@ operations:
     linear_chemistry_aloft:
       activate: true
       use_linoz_for_O3: true
-    use_static_H2O_bc: true
+    active_strat_H2O:
+      activate: true
+      use_static_bnd_cond: true
     gamma_HO2: 0.2
 
   convection:
@@ -55,9 +61,10 @@ operations:
 
   dry_deposition:
     activate: true
-    CO2_effect: false
-    CO2_level: 600.0
-    reference_CO2_level: 380.0
+    CO2_effect:
+      activate: false
+      CO2_level: 600.0
+      reference_CO2_level: 380.0
     diag_alt_above_sfc_in_m: 10
 
   pbl_mixing:
@@ -70,15 +77,21 @@ operations:
       use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
       use_column_O3_from_met: true
       use_TOMS_SBUV_O3: false
+    photolyze_nitrate_aerosol:
+      activate: false
+      NITs_Jscale_JHNO3: 0.0
+      NIT_Jscale_JHNO2: 0.0
+      percent_channel_A_HONO: 66.667
+      percent_channel_B_NO2: 33.333
 
   rrtmg:
     activate: false
-    aod_wavelength_in_nm: 550
+    aod_wavelengths_in_nm:
+      - 550
     longwave_fluxes: ${RUNDIR_RRTMG_OPTS}
     shortwave_fluxes: ${RUNDIR_RRTMG_OPTS}
     clear_sky_flux: ${RUNDIR_RRTMG_OPTS}
     all_sky_flux: ${RUNDIR_RRTMG_OPTS}
-    radiation_timestep_in_s: 10800
 
   transport:
     activate: true
@@ -317,6 +330,10 @@ aerosols:
   carbon:
     activate: true
     brown_carbon: false
+    enhance_black_carbon_absorption:
+      activate: true
+      hydrophilic: 1.5
+      hydrophobic: 1.0
 
   complex_SOA:
     activate:  ${RUNDIR_COMPLEX_SOA}
@@ -328,8 +345,8 @@ aerosols:
 
   sea_salt:
     activate: true
-    SALA_radius_bin_in_um: [0.01, 0.05]
-    SALC_radius_bin_in_um: [0.5,  0.8 ]
+    SALA_radius_bin_in_um: [0.01, 0.5]
+    SALC_radius_bin_in_um: [0.5,  8.0]
     marine_organic_aerosols: ${RUNDIR_MARINE_POA}
 
   stratosphere:
@@ -337,20 +354,10 @@ aerosols:
     polar_strat_clouds:
       activate: true
       het_chem: true
-    homogeneous_NAT: false
+    allow_homogeneous_NAT: false
     NAT_supercooling_req_in_K: 3.0
-    ice_supersaturation_req: 1.2
+    supersat_factor_req_for_ice_nucl: 1.2
     calc_strat_aero_optdepth: true
-    enhance_BC_absorption:
-      activate: true
-      hydrophilic_BC: 1.5
-      hydrophobic_BC: 1.0
-    photolyze_nitrate:
-      activate: true
-      NITs_Jscale_JHNO3: 0.0
-      NIT_Jscale_JHNO2: 0.0
-      percent_channel_A_HONO: 66.667
-      percent_channel_B_NO2: 33.333
 
   sulfate:
     activate: true
@@ -391,8 +398,8 @@ extra_diagnostics:
        schedule_output_for_NOV: 300000000000000000000000000000
        schedule_output_for_DEC: 3000000000000000000000000000000
     gamap:
-      diaginfo_dat_path: diaginfo.dat
-      tracerinfo_dat_path: tracerinfo.dat
+      diaginfo_dat_file: ./diaginfo.dat
+      tracerinfo_dat_file: ./tracerinfo.dat
     bpch_diagnostics:
       TOMAS_aerosol_emissions: "0 all"
       TOMAS_rate: "0 all"

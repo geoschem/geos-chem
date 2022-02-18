@@ -137,7 +137,9 @@ CONTAINS
     CALL Config_Simulation( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Simulation"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
@@ -147,7 +149,9 @@ CONTAINS
     CALL Config_Grid( Config, Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Grid"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 #endif
@@ -156,19 +160,24 @@ CONTAINS
     CALL Config_Timesteps( Config, Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Grid"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
     !========================================================================
     ! Get settings for GEOS-Chem operations from the YAML Config object
+    ! (read in the same order as we did from input.geos)
     !========================================================================
 
     ! Transport settings
-    CALL Config_Chemistry( Config, Input_Opt, RC )
+    CALL Config_Transport( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Chemistry"!'
+       errMsg = 'Error in "Config_Transport"!'
        CALL GC_Error( errMsg, RC, thisLoc )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
@@ -176,12 +185,34 @@ CONTAINS
     CALL Config_Convection_Mixing( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Chemistry"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
+    ! Aerosol settings
+    CALL Config_Aerosol( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_Aerosol"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
     ! Dry deposition and wet deposition settings
     CALL Config_DryDep_WetDep( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_DryDep_WetDep"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
+    ! Chemistry settings
+    CALL Config_Chemistry( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Chemistry"!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -192,70 +223,63 @@ CONTAINS
     CALL Config_Photolysis( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Photolysis"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    ! Transport settings
-    CALL Config_Transport( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Transport"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
     ! RRTMG (radiative transfer model) settings
     CALL Config_RRTMG( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Transport"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       errMsg = 'Error in "Config_RRTMG"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
-
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     !========================================================================
     ! Get settings for extra diagnostics from the YAML Config object
     !========================================================================
+    ! Obspack diagnostic settings
+    CALL Config_ObsPack( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_ObsPack"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 
     ! Planeflight diagnostic settings
     ! (Skip if we are connecting to an external model)
-    CALL Config_Planeflight( Config, Input_Opt, RC )
+    CALL Config_PlaneFlight( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Transport"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       errMsg = 'Error in "Config_PlaneFlight"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 
 #ifdef BPCH_DIAG
     ! Planeflight diagnostic settings
     ! (Skip if we are connecting to an external model)
-    CALL Config_Planeflight( Config, Input_Opt, RC )
+    CALL Config_Gamap( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Transport"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
+       errMsg = 'Error in "Config_Gamap"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 #endif
 
 #endif
 
-    ! Obspack diagnostic settings
-    CALL Config_ObsPack( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Transport"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-!       ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-!          CALL READ_AEROSOL_MENU( Input_Opt, RC )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_Aerosol_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
-!
 !       ELSE IF ( INDEX( LINE, 'CO SIM MENU'     ) > 0 ) THEN
 !          CALL READ_CO_SIM_MENU( Input_Opt, RC )
 !          IF ( RC /= GC_SUCCESS ) THEN
@@ -363,9 +387,22 @@ CONTAINS
 !    ! Close input file
 !    CLOSE( IU_GEOS )
 !
+
+    !========================================================================
+    ! Check GEOS-CHEM timesteps
+    !========================================================================
+    CALL Check_Time_Steps( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Check_Time_Steps"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     !========================================================================
     ! Further error-checking and initialization
     !========================================================================
+    CALL QFYAML_CleanUp( Config         )
+    CALL QFYAML_CleanUp( ConfigAnchored )
 
   END SUBROUTINE Read_Input_File
 !EOC
@@ -424,8 +461,8 @@ CONTAINS
     CHARACTER(LEN=24)            :: sim
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
-    CHARACTER(LEN=QFYAML_strLen) :: key
-    CHARACTER(LEN=QFYAML_strLen) :: v_str
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
     ! Parse_Simulation begins here!
@@ -433,8 +470,9 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
-    thisLoc = ' -> at Read_Simulation_Menu (in GeosCore/input_mod.F90)'
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Read_Simulation_Menu (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Simulation start date
@@ -482,7 +520,7 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%NYMDe = a_int(1)
-    Input_Opt%NHMSb = a_int(2)
+    Input_Opt%NHMSe = a_int(2)
 
     ! Make sure the starting date NYMDb is valid
     IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
@@ -779,7 +817,7 @@ CONTAINS
     USE CharPak_Mod,    ONLY : StrSplit
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE RoundOff_Mod,   ONLY : Cast_and_RoundOff
+    USE RoundOff_Mod,   ONLY : RoundOff
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -810,7 +848,6 @@ CONTAINS
 
     ! Arrays
     INTEGER                      :: a_int(4)
-    REAL(yp)                     :: a_real(2)
 
     ! Strings
     CHARACTER(LEN=10)            :: xMin_Str, xMax_Str
@@ -821,8 +858,8 @@ CONTAINS
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     ! String arrays
-    ! Arrays
     CHARACTER(LEN=255)           :: subStrs(MAXDIM)
+    CHARACTER(LEN=QFYAML_StrLen) :: a_str(2)
 
     !========================================================================
     ! Config_Grid begins here!
@@ -830,7 +867,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
+    errMsg  = ''
     thisLoc = ' -> at Read_Grid_Menu (in GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
@@ -878,16 +915,18 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Longitude range
     !------------------------------------------------------------------------
-    key    = "grid%longitude%range"
-    a_real = MISSING_REAL
-    CALL QFYAML_Add_Get( Config, key, a_real, "", RC )
+    key   = "grid%longitude%range"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    State_Grid%XMin = Cast_and_Roundoff( a_real(1), 4 )
-    State_Grid%XMax = Cast_and_Roundoff( a_real(2), 4 )
+    READ( a_str(1), * ) State_Grid%XMin
+    READ( a_str(2), * ) State_Grid%XMax
+    State_Grid%XMin = Roundoff( State_Grid%XMin, 4 )
+    State_Grid%XMax = Roundoff( State_Grid%XMax, 4 )
 
     ! Make sure values are in valid rangre
     IF ( State_Grid%XMin >= State_Grid%XMax ) THEN
@@ -915,16 +954,18 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Latitude range
     !------------------------------------------------------------------------
-    key    = "grid%latitude%range"
-    a_real = MISSING_REAL
-    CALL QFYAML_Add_Get( Config, key, a_real, "", RC )
+    key   = "grid%latitude%range"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    State_Grid%YMin = Cast_and_Roundoff( a_real(1), 4 )
-    State_Grid%YMax = Cast_and_Roundoff( a_real(2), 4 )
+    READ( a_str(1), * ) State_Grid%YMin
+    READ( a_str(2), * ) State_Grid%YMax
+    State_Grid%YMin = Roundoff( State_Grid%YMin, 4 )
+    State_Grid%YMax = Roundoff( State_Grid%YMax, 4 )
 
     ! Make sure values are in valid range
     IF ( State_Grid%YMin >= State_Grid%YMax ) THEN
@@ -1218,18 +1259,22 @@ CONTAINS
     ! Return success
     RC = GC_SUCCESS
 
+    !========================================================================
+    ! Print to screen
+    !========================================================================
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'TIMESTEP MENU'
+       WRITE( 6, '(  a)' ) '---------------'
+       WRITE( 6, 100     ) 'Transport/Convection [sec]  : ',                 &
+                            Input_Opt%TS_DYN
+       WRITE( 6, 100     ) 'Chemistry/Emissions  [sec]  : ',                 &
+                            Input_Opt%TS_CHEM
+       WRITE( 6, 100     ) 'RRTMG rad transfer   [sec]  : ',                 &
+                            Input_Opt%TS_RAD
+    ENDIF
+
     ! Format statements
 100 FORMAT( A, I5  )
-
-    !========================================================================
-    ! Check GEOS-CHEM timesteps
-    !========================================================================
-    CALL Check_Time_Steps( Input_Opt, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Check_Time_Steps"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
   END SUBROUTINE Config_Timesteps
 !EOC
@@ -1272,19 +1317,19 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: v_bool
-    INTEGER            :: N
+    LOGICAL                      :: v_bool
+    INTEGER                      :: N
 
     ! Arrays
-    INTEGER            :: a_int(3)
+    INTEGER                      :: a_int(3)
 
     ! Strings
-    CHARACTER(LEN=80)  :: key
-    CHARACTER(LEN=255) :: thisLoc
-    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
 
     ! String arrays
-    CHARACTER(LEN=14)  :: a_str(QFYAML_MaxArr)
+    CHARACTER(LEN=14)            :: a_str(QFYAML_MaxArr)
 
     !========================================================================
     ! Config_Transport begins here!
@@ -1410,403 +1455,453 @@ CONTAINS
     CALL Set_Input_Opt_Advect( Input_Opt, RC )
 
   END SUBROUTINE Config_Transport
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_aerosol_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_AEROSOL\_MENU reads the AEROSOL MENU
-!!  section of the GEOS-Chem input file.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_AEROSOL_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!!
-!! !REMARKS:
-!!  Move error checks that depend on species indices to the subroutine
-!!  DO_ERROR_CHECKS.  This is now called from GC_INIT_EXTRA, after the
-!!  initialization of the species database.
-!!
-!! !REVISION HISTORY:
-!!  20 Jul 2004 - R. Yantosca - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: N, T
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg, thisLoc
+! !IROUTINE: config_aerosol
 !
-!    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+! !DESCRIPTION: Copies aerosol information from the Config object
+!  to Input_Opt, and does necessary checks.
+!\\
+!\\
+! !INTERFACE:
 !
-!    !=================================================================
-!    ! READ_AEROSOL_MENU begins here!
-!    !=================================================================
+  SUBROUTINE Config_Aerosol( Config, Input_Opt, RC )
 !
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_Aerosol_Menu (in module GeosCore/input_mod.F90)'
+! !USES:
 !
-!    ! Error check
-!    IF ( CT1 /= 2 ) THEN
-!       errMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' // &
-!                'must be read in first!'
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE RoundOff_Mod,  ONLY : RoundOff
 !
-!    ! Use online sulfate aerosols?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSULF', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LSULF
+! !INPUT/OUTPUT PARAMETERS:
 !
-!    ! Use metal catalyzed oxidation of SO2?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LMETALCATSO2', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LMETALCATSO2
+    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
-!    ! Use online carbon aerosols?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCARB', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LCARB
+! !OUTPUT PARAMETERS:
 !
-!    ! Use brown carbon aerosols?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBRC', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LBRC
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-!    ! Use secondary organic aerosols?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOA', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LSOA
+! !REMARKS:
+!  Move error checks that depend on species indices to the subroutine
+!  DO_ERROR_CHECKS.  This is now called from GC_INIT_EXTRA, after the
+!  initialization of the species database.
+!------------------------------------------------------------------------------
+!BOC
 !
-!    ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSVPOA', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LSVPOA
+! !LOCAL VARIABLES:
 !
-!    ! Use online dust aerosols ?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDUST', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LDUST
-!
-!    ! Use SO2 and HNO3 uptake on dust aerosols
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDSTUP', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LDSTUP
-!
-!    ! Use online sea-salt aerosols?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSSALT', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LSSALT
-!
-!    ! Accum mode seasalt radii bin edges [um]
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'SALA_REDGE_um', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    DO T = 1, N
-!       READ( SUBSTRS(T), * ) Input_Opt%SALA_REDGE_um(T)
-!    ENDDO
-!
-!    ! Coarse mode seasalt radii bin edges [um]
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'SALC_REDGE_um', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    DO T = 1, N
-!       READ( SUBSTRS(T), * ) Input_Opt%SALC_REDGE_um(T)
-!    ENDDO
-!
-!    ! Use marine organic aerosols?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LMPOA', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LMPOA
-!
-!    ! Apply gravitational settling in stratosphere?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LGRAVSTRAT', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LGRAVSTRAT
-!
-!    ! Use solid polar stratospheric clouds (PSCs)?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOLIDPSC', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LSOLIDPSC
-!
-!    ! Allow homogeneous nucleation of NAT?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LHOMNUCNAT', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LHOMNUCNAT
-!
-!    ! NAT supercooling requirement (K)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'T_NAT_SUPERCOOL', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%T_NAT_SUPERCOOL
-!
-!    ! Ice supersaturation ratio requirement
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'P_ICE_SUPERSAT', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%P_ICE_SUPERSAT
-!
-!    ! Perform PSC-related heterogeneous chemistry?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPSCCHEM', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LPSCCHEM
-!
-!    ! Include stratospheric aerosols optical depths?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTRATOD', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LSTRATOD
-!
-!    ! Include BC absorption enhancement due to coating? (xnw, 8/24/15)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBCAE', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LBCAE
-!
-!    ! Define BC absorption enhancement (xnw, 8/24/15)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'BCAE_1', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%BCAE_1
-!
-!    ! Define BC absorption enhancement (xnw, 8/24/15)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'BCAE_2', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%BCAE_2
-!
-!    ! Photoylse nitrate aerosol? (TMS, 23/08/18)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT
-!
-!    ! scalar for JHNO3 for photoylsing NITs aerosol (TMS, 23/08/18)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT_JNITs', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT_JNITs
-!
-!    ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT_JNIT', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT_JNIT
-!
-!    ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis (TMS, 10/10/18)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'JNITChanA', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%JNITChanA
-!
-!    ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis (TMS, 10/10/18)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'JNITChanB', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%JNITChanB
-!
-!    ! Separator line
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    !=================================================================
-!    ! Error checks
-!    !=================================================================
-!
-!    ! Make sure that SALA, SALC bins are contiguous
-!    IF ( Input_Opt%SALA_REDGE_um(2) /= &
-!         Input_Opt%SALC_REDGE_um(1)     ) THEN
-!       errMsg = 'SALA and SALC bin edges are not contiguous!'
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    ! Turn off switches for simulations that don't use aerosols
-!    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. &
-!         ( .not. Input_OPt%ITS_AN_AEROSOL_SIM ) ) THEN
-!       Input_Opt%LSULF        = .FALSE.
-!       Input_Opt%LMETALCATSO2 = .FALSE.
-!       Input_Opt%LCARB        = .FALSE.
-!       Input_Opt%LBRC         = .FALSE.
-!       Input_Opt%LSOA         = .FALSE.
-!       Input_Opt%LDUST        = .FALSE.
-!       Input_Opt%LSSALT       = .FALSE.
-!       Input_Opt%LMPOA        = .FALSE.
-!       Input_Opt%LSVPOA       = .FALSE.
-!       Input_Opt%LBCAE        = .FALSE.
-!       Input_Opt%hvAerNIT     = .FALSE.
-!    ENDIF
-!
-!    ! Return success
-!    RC = GC_SUCCESS
-!
-!    !=================================================================
-!    ! Print to screen
-!    !=================================================================
-!    IF ( Input_Opt%amIRoot ) THEN
-!       WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
-!       WRITE( 6, '(  a)' ) '------------'
-!       WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', &
-!                            Input_Opt%LSULF
-!       WRITE( 6, 100     ) 'Metal catalyzed SO2 ox.?    : ', &
-!                            Input_Opt%LMETALCATSO2
-!       WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', &
-!                            Input_Opt%LCARB
-!       WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', &
-!                            Input_Opt%LBRC
-!       WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', &
-!                            Input_Opt%LSOA
-!       WRITE( 6, 100     ) 'Semivolatile POA?           : ', &
-!                            Input_Opt%LSVPOA
-!       WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', &
-!                            Input_Opt%LDUST
-!       WRITE( 6, 100     ) 'Acid uptake on dust?        : ', &
-!                            Input_Opt%LDSTUP
-!       WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', &
-!                            Input_Opt%LSSALT
-!       WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', &
-!                            Input_Opt%SALA_REDGE_um(1),      &
-!                            Input_Opt%SALA_REDGE_um(2)
-!       WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ', &
-!                            Input_Opt%SALC_REDGE_um(1),      &
-!                            Input_Opt%SALC_REDGE_um(2)
-!       WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', &
-!                            Input_Opt%LMPOA
-!       WRITE( 6, 100     ) 'Settle strat. aerosols?     : ', &
-!                            Input_Opt%LGRAVSTRAT
-!       WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ', &
-!                            Input_Opt%LSOLIDPSC
-!       WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ', &
-!                            Input_Opt%LHOMNUCNAT
-!       WRITE( 6, 120     ) 'NAT supercooling requirement: ', &
-!                            Input_Opt%T_NAT_SUPERCOOL
-!       WRITE( 6, 120     ) 'Ice supersaturation req.    : ', &
-!                            ((Input_Opt%P_ICE_SUPERSAT-1)*1.e+2_fp)
-!       WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ', &
-!                            Input_Opt%LPSCCHEM
-!       WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ', &
-!                            Input_Opt%LSTRATOD
-!       WRITE( 6, 100     ) 'BC Absorption Enhancement?  : ', &
-!                            Input_Opt%LBCAE
-!       WRITE( 6, 105     ) 'Hydrophilic BC AE factor    : ', &
-!                            Input_Opt%BCAE_1
-!       WRITE( 6, 105     ) 'Hydrophobic BC AE factor    : ', &
-!                            Input_Opt%BCAE_2
-!       WRITE( 6, 100     ) 'Photolyse nitrate aerosol?  : ', &
-!                            Input_Opt%hvAerNIT
-!       WRITE( 6, 105     ) 'JNITs scaling of JHNO3      : ', &
-!                            Input_Opt%hvAerNIT_JNITs
-!       WRITE( 6, 105     ) 'JNIT scaling of JHNO3       : ', &
-!                            Input_Opt%hvAerNIT_JNIT
-!       WRITE( 6, 105     ) 'JNIT(s) channel A (HONO)    : ', &
-!                            Input_Opt%JNITChanA
-!       WRITE( 6, 105     ) 'JNIT(s) channel B (NO2)     : ', &
-!                            Input_Opt%JNITChanB
-!    ENDIF
-!
-!100 FORMAT( A, L5     )
-!105 FORMAT( A, f6.2 )
-!110 FORMAT( A, f6.2, ' - ', f6.2 )
-!120 FORMAT( A, f6.2, 'K' )
-!
-!  END SUBROUTINE READ_AEROSOL_MENU
-!!EOC
+    ! Scalars
+    INTEGER                      :: N, T
+    INTEGER                      :: v_int
+    LOGICAL                      :: v_bool
+    REAL(yp)                     :: v_real
+
+    ! Strings
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=255)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
+    CHARACTER(LEN=QFYAML_StrLen) :: a_str(2)
+
+    !========================================================================
+    ! Config_Aerosol begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Read_Aerosol_Menu (in module GeosCore/input_mod.F90)'
+
+    !------------------------------------------------------------------------
+    ! Use online carbon aerosols?
+    !------------------------------------------------------------------------
+    key    = "aerosols%carbon%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LCARB = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use brown carbon aerosols?
+    !------------------------------------------------------------------------
+    key    = "aerosols%carbon%use_brown_carbon"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LBRC = v_bool
+
+    !------------------------------------------------------------------------
+    ! Include BC absorption enhancement due to coating?
+    !------------------------------------------------------------------------
+    key    = "aerosols%carbon%enhance_black_carbon_absorption%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LBCAE = v_bool
+
+    !------------------------------------------------------------------------
+    ! Define BC absorption enhancement
+    !------------------------------------------------------------------------
+    key   = "aerosols%carbon%enhance_black_carbon_absorption%hydrophilic"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%BCAE_1
+    Input_Opt%BCAE_1 = Roundoff( Input_Opt%BCAE_1, 2 )
+
+    !------------------------------------------------------------------------
+    ! Define BC absorption enhancement (xnw, 8/24/15)
+    !------------------------------------------------------------------------
+    key   = "aerosols%carbon%enhance_black_carbon_absorption%hydrophobic"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%BCAE_2
+    Input_Opt%BCAE_2 = Roundoff( Input_Opt%BCAE_2, 2 )
+
+    !------------------------------------------------------------------------
+    ! Use secondary organic aerosols?
+    !------------------------------------------------------------------------
+    key    = "aerosols%complex_SOA%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LSOA = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use semi-volatile POA?
+    !------------------------------------------------------------------------
+    key    = "aerosols%complex_SOA%semivolatile_POA"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LSVPOA = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use online dust aerosols ?
+    !------------------------------------------------------------------------
+    key    = "aerosols%dust%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LDUST = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use SO2 and HNO3 uptake on dust aerosols
+    !------------------------------------------------------------------------
+    key    = "aerosols%dust%acid_uptake_on_dust"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LDSTUP = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use online sea-salt aerosols?
+    !------------------------------------------------------------------------
+    key    = "aerosols%sea_salt%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LSSALT = v_bool
+
+    !------------------------------------------------------------------------
+    ! Accum mode seasalt radii bin edges [um]
+    !------------------------------------------------------------------------
+    key   = "aerosols%sea_salt%SALA_radius_bin_in_um"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( a_str(1), * ) Input_Opt%SALA_Redge_um(1)
+    READ( a_str(2), * ) Input_Opt%SALA_Redge_um(2)
+    Input_Opt%SALA_Redge_um(1) = RoundOff( Input_Opt%SALA_Redge_um(1), 2 )
+    Input_Opt%SALA_Redge_um(2) = RoundOff( Input_Opt%SALA_Redge_um(2), 2 )
+
+    !------------------------------------------------------------------------
+    ! Coarse mode seasalt radii bin edges [um]
+    !------------------------------------------------------------------------
+    key   = "aerosols%sea_salt%SALC_radius_bin_in_um"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( a_str(1), * ) Input_Opt%SALC_Redge_um(1)
+    READ( a_str(2), * ) Input_Opt%SALC_Redge_um(2)
+
+    !------------------------------------------------------------------------
+    ! Use marine organic aerosols?
+    !------------------------------------------------------------------------
+    key    = "aerosols%sea_salt%marine_organic_aerosols"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LMPOA = v_bool
+
+    !------------------------------------------------------------------------
+    ! Apply gravitational settling in stratosphere?
+    !------------------------------------------------------------------------
+    key    = "aerosols%stratosphere%settle_strat_aerosol"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LGRAVSTRAT = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use solid polar stratospheric clouds (PSCs)?
+    !------------------------------------------------------------------------
+    key    = "aerosols%stratosphere%polar_strat_clouds%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LSOLIDPSC = v_bool
+
+    !------------------------------------------------------------------------
+    ! Perform heterogeneous chemistry on PSCs?
+    !------------------------------------------------------------------------
+    key    = "aerosols%stratosphere%polar_strat_clouds%het_chem"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LPSCCHEM = v_bool
+
+    !------------------------------------------------------------------------
+    ! Allow homogeneous NAT?
+    !------------------------------------------------------------------------
+    key    = "aerosols%stratosphere%allow_homogeneous_NAT"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LHOMNUCNAT = v_bool
+
+    !------------------------------------------------------------------------
+    ! NAT supercooling requirement (K)
+    !------------------------------------------------------------------------
+    key   = "aerosols%stratosphere%NAT_supercooling_req_in_K"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%T_NAT_SUPERCOOL
+    Input_Opt%T_NAT_SUPERCOOL = RoundOff( Input_Opt%T_NAT_SUPERCOOL, 2 )
+
+    !------------------------------------------------------------------------
+    ! Ice supersaturation ratio requirement
+    !------------------------------------------------------------------------
+    key   = "aerosols%stratosphere%supersat_factor_req_for_ice_nucl"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%P_ICE_SUPERSAT
+    Input_Opt%P_ICE_SUPERSAT = RoundOff( Input_Opt%P_ICE_SUPERSAT, 2 )
+
+    !------------------------------------------------------------------------
+    ! Include stratospheric aerosols optical depths?
+    !------------------------------------------------------------------------
+    key    = "aerosols%stratosphere%calc_strat_aero_optdepth"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LSTRATOD = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use online sulfate aerosols?
+    !------------------------------------------------------------------------
+    key    = "aerosols%sulfate%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LSULF = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use metal catalyzed oxidation of SO2?
+    !------------------------------------------------------------------------
+    key    = "aerosols%sulfate%metal_cat_SO2_oxidation"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LMETALCATSO2 = v_bool
+
+    !=================================================================
+    ! Error checks
+    !=================================================================
+
+    ! Make sure that SALA, SALC bins are contiguous
+    IF ( Input_Opt%SALA_REDGE_um(2) /= &
+         Input_Opt%SALC_REDGE_um(1)     ) THEN
+       errMsg = 'SALA and SALC bin edges are not contiguous!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Turn off switches for simulations that don't use aerosols
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. &
+         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       Input_Opt%LSULF        = .FALSE.
+       Input_Opt%LMETALCATSO2 = .FALSE.
+       Input_Opt%LCARB        = .FALSE.
+       Input_Opt%LBRC         = .FALSE.
+       Input_Opt%LSOA         = .FALSE.
+       Input_Opt%LDUST        = .FALSE.
+       Input_Opt%LSSALT       = .FALSE.
+       Input_Opt%LMPOA        = .FALSE.
+       Input_Opt%LSVPOA       = .FALSE.
+       Input_Opt%LBCAE        = .FALSE.
+    ENDIF
+
+    ! Return success
+    RC = GC_SUCCESS
+
+    !=================================================================
+    ! Print to screen
+    !=================================================================
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'AEROSOL SETTINGS'
+       WRITE( 6, '(  a)' ) '----------------'
+       WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', &
+                            Input_Opt%LSULF
+       WRITE( 6, 100     ) 'Metal catalyzed SO2 ox.?    : ', &
+                            Input_Opt%LMETALCATSO2
+       WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', &
+                            Input_Opt%LCARB
+       WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', &
+                            Input_Opt%LBRC
+       WRITE( 6, 100     ) 'BC Absorption Enhancement?  : ', &
+                            Input_Opt%LBCAE
+       WRITE( 6, 105     ) 'Hydrophilic BC AE factor    : ', &
+                            Input_Opt%BCAE_1
+       WRITE( 6, 105     ) 'Hydrophobic BC AE factor    : ', &
+                            Input_Opt%BCAE_2
+       WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', &
+                            Input_Opt%LSOA
+       WRITE( 6, 100     ) 'Semivolatile POA?           : ', &
+                            Input_Opt%LSVPOA
+       WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', &
+                            Input_Opt%LDUST
+       WRITE( 6, 100     ) 'Acid uptake on dust?        : ', &
+                            Input_Opt%LDSTUP
+       WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', &
+                            Input_Opt%LSSALT
+       WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', &
+                            Input_Opt%SALA_REDGE_um(1),      &
+                            Input_Opt%SALA_REDGE_um(2)
+       WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ', &
+                            Input_Opt%SALC_REDGE_um(1),      &
+                            Input_Opt%SALC_REDGE_um(2)
+       WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', &
+                            Input_Opt%LMPOA
+       WRITE( 6, 100     ) 'Settle strat. aerosols?     : ', &
+                            Input_Opt%LGRAVSTRAT
+       WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ', &
+                            Input_Opt%LSOLIDPSC
+       WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ', &
+                            Input_Opt%LHOMNUCNAT
+       WRITE( 6, 120     ) 'NAT supercooling requirement: ', &
+                            Input_Opt%T_NAT_SUPERCOOL
+       WRITE( 6, 120     ) 'Ice supersaturation req.    : ', &
+                            ((Input_Opt%P_ICE_SUPERSAT-1)*1.e+2_fp)
+       WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ', &
+                            Input_Opt%LPSCCHEM
+       WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ', &
+                            Input_Opt%LSTRATOD
+    ENDIF
+
+100 FORMAT( A, L5                )
+105 FORMAT( A, f8.2              )
+110 FORMAT( A, f8.2, ' - ', f8.2 )
+120 FORMAT( A, f8.2, 'K'         )
+
+  END SUBROUTINE Config_Aerosol
+!EOC
 !!------------------------------------------------------------------------------
 !!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
@@ -2124,7 +2219,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
+    USE RoundOff_Mod,  ONLY : RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2143,12 +2238,11 @@ CONTAINS
     ! Scalars
     INTEGER                      :: N
     LOGICAL                      :: v_bool
-    REAL(yp)                     :: v_real
 
     ! Strings
-    CHARACTER(LEN=80)            :: key
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
@@ -2230,14 +2324,15 @@ CONTAINS
     ! GAMMA HO2 ?
     !------------------------------------------------------------------------
     key   = "operations%chemistry%gamma_HO2"
-    v_real = MISSING_REAL
-    CALL QFYAML_Add_Get( Config, key, v_real, "", RC )
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%GAMMA_HO2 = Cast_and_Roundoff( v_real, 2 )
+    READ( v_str, * ) Input_Opt%GAMMA_HO2
+    Input_Opt%GAMMA_HO2 = RoundOff( Input_Opt%GAMMA_HO2, 2 )
 
     ! Return success
     RC = GC_SUCCESS
@@ -2287,7 +2382,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
+    USE RoundOff_Mod,  ONLY : RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2309,18 +2404,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I
-    INTEGER            :: N
-    LOGICAL            :: v_bool
-
-    ! Arrays
-    REAL(yp)           :: a_real(3)
+    INTEGER                      :: I
+    INTEGER                      :: N
+    LOGICAL                      :: v_bool
 
     ! Strings
-    CHARACTER(LEN=20)  :: str
-    CHARACTER(LEN=80)  :: key
-    CHARACTER(LEN=255) :: thisLoc
-    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=20)            :: str
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_NamLen) :: a_str(3)
 
     !========================================================================
     ! Config_RRTMG begins here!
@@ -2347,9 +2440,9 @@ CONTAINS
     !------------------------------------------------------------------------
     ! AOD wavelength selection? (You can have up to 3)
     !------------------------------------------------------------------------
-    key    = "operations%rrtmg%aod_wavelengths_in_nm"
-    a_real = MISSING_REAL
-    CALL QFYAML_Add_Get( Config, key, a_real, "", RC, dynamic_size=.TRUE. )
+    key   = "operations%rrtmg%aod_wavelengths_in_nm"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, a_str, "", RC, dynamic_size=.TRUE. )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2358,13 +2451,13 @@ CONTAINS
 
     ! Copy values into Input_Opt
     I = 0
-    DO N = 1, SIZE( a_real )
-       IF ( a_real(N) == MISSING_REAL ) EXIT
+    DO N = 1, SIZE( a_str )
+       IF ( a_str(N) == MISSING_STR ) EXIT
        I = I + 1
        Input_Opt%nWvSelect      = I
-       Input_Opt%WvSelect(I)    = Cast_and_RoundOff( a_real(N), 2 )
-       WRITE( str, '(f10.2)'   )  a_real(N)
-       Input_Opt%StrWvSelect(I) = TRIM( ADJUSTL( str ) )
+       Input_Opt%StrWvSelect(I) = TRIM( ADJUSTL( a_str(N) ) )
+       READ( a_str(N), *      )   Input_Opt%WvSelect(I)
+       Input_Opt%WvSelect(I)    = RoundOff( Input_Opt%WvSelect(I), 2 )
     ENDDO
 
     !------------------------------------------------------------------------
@@ -2503,6 +2596,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
+    USE RoundOff_Mod,  ONLY : RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2520,11 +2614,12 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                      :: v_bool
+    REAL(yp)                     :: v_real
 
     ! Strings
-    CHARACTER(LEN=80)            :: key
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !=================================================================
@@ -2533,8 +2628,9 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
-    thisLoc = ' -> at Config_Photolysis (in GeosCore/input_mod.F90)'
+    errMsg  = ''
+    thisLoc = &
+      ' -> at Config_Photolysis (in module GeosCore/input_mod.F90)'
 
     !-----------------------------------------------------------------
     ! Directory with photolysis input files
@@ -2587,6 +2683,79 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%USE_TOMS_O3 = v_bool
+
+    !------------------------------------------------------------------------
+    ! Photoylse nitrate aerosol?
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%photolyze_nitrate_aerosol%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%hvAerNIT = v_bool
+
+    !------------------------------------------------------------------------
+    ! Scalar for JHNO3 for photoylsing NITs aerosol
+    !------------------------------------------------------------------------
+    key    = &
+     "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale_JHNO3"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%hvAerNIT_JNITs
+    Input_Opt%hvAerNIT_JNITs = Roundoff( Input_Opt%hvAerNIT_JNITs, 3 )
+
+    !------------------------------------------------------------------------
+    ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
+    !------------------------------------------------------------------------
+    key    = &
+     "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale_JHNO2"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%hvAerNIT_JNIT
+    Input_Opt%hvAerNIT_JNIT = Roundoff( Input_Opt%hvAerNIT_JNIT, 3 )
+
+    !------------------------------------------------------------------------
+    ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis
+    !------------------------------------------------------------------------
+    key   = &
+     "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_A_HONO"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%JNITChanA
+    Input_Opt%JNITChanA = RoundOff( Input_Opt%JNITChanA, 3 )
+
+    !------------------------------------------------------------------------
+    ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis
+    !------------------------------------------------------------------------
+    key    = &
+     "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_B_NO2"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    READ( v_str, * ) Input_Opt%JNITChanB
+    Input_Opt%JNITChanB= RoundOff( Input_Opt%JNITChanB, 3 )
 
     !========================================================================
     ! Error check settings
@@ -2642,6 +2811,16 @@ CONTAINS
 
     ENDIF
 
+    ! Turn off switches for simulations that don't use aerosols
+    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )                        .and. &
+         ( .not. Input_OPt%ITS_AN_AEROSOL_SIM ) ) THEN
+       Input_Opt%hvAerNIT       = .FALSE.
+       Input_Opt%hvAerNIT_JNITs = MISSING_REAL
+       Input_Opt%hvAerNIT_JNIT  = MISSING_REAL
+       Input_Opt%JNITChanA      = MISSING_REAL
+       Input_Opt%JNITChanB      = MISSING_REAL
+    ENDIF
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -2659,7 +2838,16 @@ CONTAINS
                             Input_Opt%USE_O3_FROM_MET
        WRITE( 6, 100     ) 'TOMS/SBUV ozone for FAST-JX?: ', &
                             Input_Opt%USE_TOMS_O3
-
+       WRITE( 6, 100     ) 'Photolyse nitrate aerosol?  : ', &
+                            Input_Opt%hvAerNIT
+       WRITE( 6, 105     ) 'JNITs scaling of JHNO3      : ', &
+                            Input_Opt%hvAerNIT_JNITs
+       WRITE( 6, 105     ) 'JNIT scaling of JHNO3       : ', &
+                            Input_Opt%hvAerNIT_JNIT
+       WRITE( 6, 105     ) 'JNIT(s) channel A (HONO)    : ', &
+                            Input_Opt%JNITChanA
+       WRITE( 6, 105     ) 'JNIT(s) channel B (NO2)     : ', &
+                            Input_Opt%JNITChanB
        ! Write more info
        IF ( Input_Opt%USE_ONLINE_O3 ) THEN
           WRITE( 6, '(a)' ) ''
@@ -2672,7 +2860,8 @@ CONTAINS
     ENDIF
 
     ! FORMAT statements
-100 FORMAT( A, L5  )
+100 FORMAT( A, L5   )
+105 FORMAT( A, F8.3 )
 110 FORMAT( A, F4.2 )
 120 FORMAT( A, A    )
 
@@ -2714,15 +2903,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAl            :: v_bool
+    LOGICAl                      :: v_bool
 
     ! Strings
-    CHARACTER(LEN=80)  :: key
-    CHARACTER(LEN=255) :: thisLoc
-    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
 
     !========================================================================
-    ! READ_CONVECTION_MENU begins here!
+    ! Config_Convection_Mixing begins here!
     !========================================================================
 
     ! Initialize
@@ -2770,6 +2959,13 @@ CONTAINS
     ENDIF
     Input_Opt%LNLPBL = v_bool
 
+    ! Set the PBL drydep flag. This determines if dry deposition is
+    ! applied (and drydep frequencies are calculated) over the entire
+    ! PBL or the first model layer only. For now, set this value
+    ! automatically based upon the selected PBL scheme: 1st model layer
+    ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
+    Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -2814,7 +3010,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
+    USE RoundOff_Mod,  ONLY : RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2831,14 +3027,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: v_bool
-    INTEGER            :: v_int
-    REAL(yp)           :: v_real
+    LOGICAL                      :: v_bool
+    INTEGER                      :: v_int
 
     ! Strings
-    CHARACTER(LEN=80)  :: key
-    CHARACTER(LEN=255) :: thisLoc
-    CHARACTER(LEN=512) :: errMsg
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
     ! Config_DryDep_WetDep begins here!
@@ -2846,7 +3042,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
+    errMsg  = ''
     thisLoc = ' -> at Read_Deposition_Menu (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
@@ -2865,7 +3061,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on CO2 effect on drydep?
     !------------------------------------------------------------------------
-    key    = "operations%dry_deposition%CO2_effect"
+    key    = "operations%dry_deposition%CO2_effect%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2878,28 +3074,30 @@ CONTAINS
     !------------------------------------------------------------------------
     ! CO2 level at simulation
     !------------------------------------------------------------------------
-    key    = "operations%dry_deposition%CO2_level"
-    v_real = MISSING_REAL
-    CALL QFYAML_Add_Get( Config, key, v_real, "", RC )
+    key   = "operations%dry_deposition%CO2_effect%CO2_level"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%CO2_LEVEL = Cast_and_Roundoff( v_real, 2 )
+    READ( v_str, * ) Input_Opt%CO2_LEVEL
+    Input_Opt%CO2_LEVEL = RoundOff( Input_Opt%CO2_LEVEL, 2 )
 
     !------------------------------------------------------------------------
     ! Reference CO2 level
     !------------------------------------------------------------------------
-    key    = "operations%dry_deposition%reference_CO2_level"
-    v_real = MISSING_REAL
-    CALL QFYAML_Add_Get( Config, key, v_real, "", RC )
+    key   = "operations%dry_deposition%CO2_effect%reference_CO2_level"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%CO2_REF = Cast_and_Roundoff( v_real, 2 )
+    READ( v_str, * ) Input_Opt%CO2_REF
+    Input_Opt%CO2_REF = RoundOff( Input_Opt%CO2_REF, 2 )
 
     !------------------------------------------------------------------------
     ! Diag for RA_alt above surface in meters
@@ -2939,17 +3137,6 @@ CONTAINS
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-    ! Set the PBL drydep flag. This determines if dry deposition is
-    ! applied (and drydep frequencies are calculated) over the entire
-    ! PBL or the first model layer only. For now, set this value
-    ! automatically based upon the selected PBL scheme: 1st model layer
-    ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
-    IF ( Input_Opt%LNLPBL ) THEN
-       Input_Opt%PBL_DRYDEP = .FALSE.
-    ELSE
-       Input_Opt%PBL_DRYDEP = .TRUE.
-    ENDIF
-
     ! If CO2 effect on RS in turned on, calculate the scaling factor
     ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)
     If (Input_Opt%CO2_EFFECT) THEN
@@ -2987,7 +3174,7 @@ CONTAINS
 
     ! FORMAT statements
 100 FORMAT( A, L5 )
-110 FORMAT( A, f6.2 )
+110 FORMAT( A, f8.2 )
 
   END SUBROUTINE Config_DryDep_WetDep
 !!EOC
@@ -3032,9 +3219,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=80)            :: key
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
@@ -3076,7 +3263,7 @@ CONTAINS
     ! Print to screen
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'GAMAP SETTGNGS (when -DBPCH_DIAG=y)'
+       WRITE( 6, '(/,a)' ) 'GAMAP SETTINGS (when -DBPCH_DIAG=y)'
        WRITE( 6, '(  a)' ) '-----------------------------------'
        WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ',                 &
                             TRIM( Input_Opt%GAMAP_DIAGINFO   )
@@ -3761,9 +3948,9 @@ CONTAINS
     LOGICAL                      :: v_bool
 
     ! Strings
-    CHARACTER(LEN=80)            :: key
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=255)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     ! String arrays
@@ -5113,7 +5300,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE Time_Mod,      ONLY : Expand_Data
+    USE Time_Mod,      ONLY : Expand_Date
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5266,7 +5453,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Grid_Mod, ONLY : GrdState
-    USE Time_Mod.       ONLY : Set_TimeSteps
+    USE Time_Mod,       ONLY : Set_TimeSteps
 !
 ! !INPUT PARAMETERS:
 !
@@ -5443,13 +5630,13 @@ CONTAINS
     ENDIF
 
     ! Initialize timesteps in "time_mod.F90"
-    CALL SET_TIMESTEPS( Input_Opt,            &
-                        CHEMISTRY  = TS_CHEM, &
-                        EMISSION   = TS_EMIS, &
-                        DYNAMICS   = TS_DYN,  &
-                        UNIT_CONV  = TS_UNIT, &
-                        CONVECTION = TS_CONV, &
-                        DIAGNOS    = TS_DIAG, &
+    CALL Set_Timesteps( Input_Opt,                                           &
+                        CHEMISTRY  = TS_CHEM,                                &
+                        EMISSION   = TS_EMIS,                                &
+                        DYNAMICS   = TS_DYN,                                 &
+                        UNIT_CONV  = TS_UNIT,                                &
+                        CONVECTION = TS_CONV,                                &
+                        DIAGNOS    = TS_DIAG,                                &
                         RADIATION  = TS_RAD )
 
 100 FORMAT( A, ' time step must be a multiple of the smallest one:', i5, i5 )

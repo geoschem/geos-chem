@@ -379,11 +379,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Debug info
-    IF ( prtDebug ) THEN
-       WRITE( 6, '(a)' ) '### fullchem_SulfurCldChem a SET_SO2'
-       CALL Flush(6)
-    ENDIF
+! Disable debug print, which will happen on every (I,J,L) box
+!    ! Debug info
+!    IF ( prtDebug ) THEN
+!       WRITE( 6, '(a)' ) '### fullchem_SulfurCldChem a SET_SO2'
+!       CALL Flush(6)
+!    ENDIF
 
   END SUBROUTINE fullchem_SulfurCldChem
 !EOC
