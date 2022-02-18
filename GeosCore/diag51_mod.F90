@@ -158,9 +158,9 @@ MODULE DIAG51_MOD
   INTEGER              :: IU_ND51
 
   ! Arrays
-  INTEGER, ALLOCATABLE :: GOOD(:)
-  INTEGER, ALLOCATABLE :: GOOD_CT(:)
-  INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
+  REAL(fp), ALLOCATABLE :: GOOD(:)
+  REAL(fp), ALLOCATABLE :: GOOD_CT(:)
+  REAL(fp), ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
   REAL(fp),ALLOCATABLE :: Q(:,:,:,:)
 
 CONTAINS
@@ -295,7 +295,7 @@ CONTAINS
        ! GOOD indicates which boxes have local times between HR1 and HR2
        IF ( LT >= Input_Opt%ND51_HR1 .and. &
             LT <= Input_Opt%ND51_HR2 ) THEN
-          GOOD(I) = 1
+          GOOD(I) = 1e+0_fp
        ENDIF
     ENDDO
 
@@ -552,7 +552,7 @@ CONTAINS
                 ! Accumulate data
                 Q(X,Y,K,W) = Q(X,Y,K,W) +                                    &
                      ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) ) *          &
-                     ( State_Met%AIRDEN(I,J,L)        * CONV_OH )
+                     ( State_Met%AIRDEN(I,J,L)        * CONV_OH   * 1.0e+3_fp) !1.0e+3_fp added by JDS for correct unit conversion (1/20/22)
 
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
@@ -1082,7 +1082,7 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
 
-       GOOD(:) = 0
+       GOOD(:) = 0e+0_fp
 
        ! Free pointers
        Spc => NULL()
@@ -1944,22 +1944,22 @@ CONTAINS
     ! Array denoting where LT is between HR1 and HR2
     ALLOCATE( GOOD( State_Grid%NX ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD' )
-    GOOD = 0
+    GOOD = 0e+0_fp
 
     ! Counter of "good" times per day at each grid box
     ALLOCATE( GOOD_CT( ND51_NI ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT' )
-    GOOD_CT = 0
+    GOOD_CT = 0e+0_fp
 
     ! Accumulating array
     ALLOCATE( Q( ND51_NI, ND51_NJ, ND51_NL, Input_Opt%N_ND51),STAT=AS)
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
-    Q = 0d0
+    Q = 0e+0_fp
 
     ! Accumulating array
     ALLOCATE( COUNT_CHEM3D( ND51_NI, ND51_NJ, ND51_NL ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
-    COUNT_CHEM3D = 0
+    COUNT_CHEM3D = 0e+0_fp
 
   END SUBROUTINE INIT_DIAG51
 !EOC
