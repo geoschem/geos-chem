@@ -231,6 +231,7 @@ CONTAINS
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
     IF (State_Diag%Archive_KppDiags) THEN
        IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
        IF (State_Diag%Archive_KppJacCounts) State_Diag%KppJacCounts   = 0.0_f4
@@ -866,6 +867,14 @@ CONTAINS
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+
+       IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+          DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
+             N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
+             State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
           ENDDO
        ENDIF
 
