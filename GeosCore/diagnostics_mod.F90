@@ -2,7 +2,7 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!SatDiagn
+!SatDiagn Another Edit in Jupyter (remove JDS!)
 !
 ! !MODULE: diagnostics_mod.F90
 !
