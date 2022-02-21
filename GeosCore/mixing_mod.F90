@@ -827,6 +827,9 @@ CONTAINS
              ! is not used regularly as of Feb 2021 -- fix this later if
              ! need by. (bmy, 2/25/21)
              IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+               print*,'Found negative ',N, State_Chm%Species(I,J,L,N)
+             !bc, 29/01/2022 reset to small neg 
+                  State_Chm%Species(I,J,L,N) = 1.e-26_fp 
                 IF ( N /= id_CH4_SAB ) THEN
                  Print*, 'WARNING: Negative concentration for species ',     &
                           TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L 
@@ -834,7 +837,7 @@ CONTAINS
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
                             ' the transport time step.'  
-                 RC = GC_FAILURE
+                 !RC = GC_FAILURE !bc, comment out for test
                 ENDIF
              ENDIF
 
@@ -890,6 +893,9 @@ CONTAINS
              ! is not used regularly as of Feb 2021 -- fix this later if
              ! need by. (bmy, 2/25/21)
              IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+               print*,'Found negative ',N, State_Chm%Species(I,J,L,N)
+             !bc, 29/01/2022 reset to small neg 
+                  State_Chm%Species(I,J,L,N) = 1.e-26_fp 
                 IF ( N /= id_CH4_SAB ) THEN
                  Print*, 'WARNING: Negative concentration for species ',     &
                          TRIM( State_Chm%SpcData(N)%Info%Name),              &
@@ -898,7 +904,7 @@ CONTAINS
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
                             ' the transport time step.'  
-                 RC = GC_FAILURE
+                ! RC = GC_FAILURE  ! comment this out as tesst
                 ENDIF
              ENDIF
 

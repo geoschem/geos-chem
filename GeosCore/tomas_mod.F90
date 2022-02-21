@@ -350,7 +350,8 @@ CONTAINS
     ENDIF
 
     ! Do TOMAS aerosol microphysics
-    CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+    CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                   State_Diag, RC )
 
     !print *, 'call checkmn in tomas_mod:222'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
@@ -385,7 +386,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                       State_Diag, RC )
 !
 ! !USES:
 !
@@ -399,6 +401,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -406,6 +409,7 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -544,6 +548,7 @@ CONTAINS
     nucrate(:,:)  = 0.e+0_fp
     nucrate1(:,:) = 0.e+0_fp
 
+    !betty - remove BPCH diagnostics
     ! First-time setup
     if (firsttime) then
 
@@ -553,19 +558,19 @@ CONTAINS
        ! timestep.  The prod/loss family has to be set with at least one
        ! with the family name PSO4 and SO4 as its one member. (win, 9/30/08)
        !====================================================================
-
-       DO N = 1, Input_Opt%NFAM
-          ! If family name 'PSO4' is found, then skip error-stop
-          IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1
-       ENDDO
-       ! Family name 'PSO4' not found... exit with error message
-       write(*,*)'-----------------------------------------------'
-       write(*,*)' Need to setup ND65 family PSO4 with SO4 as '
-       write(*,*)' a member to have H2SO4RATE array '
-       write(*,*)'  ... need H2SO4RATE for nucl & cond in TOMAS'
-       write(*,*)'-----------------------------------------------'
-       CALL ERROR_STOP('AEROPHYS','Enter microphys')
-1      CONTINUE
+!betty - not needed
+!       DO N = 1, Input_Opt%NFAM
+!          ! If family name 'PSO4' is found, then skip error-stop
+!          IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1
+!       ENDDO
+!       ! Family name 'PSO4' not found... exit with error message
+!       write(*,*)'-----------------------------------------------'
+!       write(*,*)' Need to setup ND65 family PSO4 with SO4 as '
+!       write(*,*)' a member to have H2SO4RATE array '
+!       write(*,*)'  ... need H2SO4RATE for nucl & cond in TOMAS'
+!       write(*,*)'-----------------------------------------------'
+!       CALL ERROR_STOP('AEROPHYS','Enter microphys')
+!1      CONTINUE
 
        write(*,*) 'AEROPHYS: This run uses coupled condensation-', &
                   'nucleation scheme with pseudo-steady state H2SO4'
@@ -699,8 +704,13 @@ CONTAINS
 
        ! Give it the pseudo-steady state value instead later (win,9/30/08)
        !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
-
+!betty
+!       H2SO4_RATE(I,J,L) = State_Diag%Prod_SO4(I,J,L)  ! ? molecules/cm3/s needed in [kg S/box/s]  !!!! check this and units are wrong!!!
+!       H2SO4_RATE(I,J,L) = H2SO4_RATE(I,J,L) * 98.e+0_fp/32.e+0_fp ! put in [kg H2SO4/s]
        H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
+        !  if (H2SO4_RATE(I,J,L) > 0.e+0_fp) then
+        !  print*,'H2SO4 is ',H2SO4_RATE(I,J,L), I, J, L
+        !  endif  
        ! Pengfei Liu add 2018/04/18, debug
        IF ( H2SO4rate_o .lt. 0.e0 ) THEN
           Print*, 'Debug TOMAS: H2SO4RATE = ', H2SO4rate_o, 'I = ', I, &
@@ -782,7 +792,9 @@ CONTAINS
        !-------------------------------------
        ! Condensation and nucleation (coupled)
        !-------------------------------------
-       IF ( COND .AND. NUCL ) THEN
+!betty
+!       IF ( COND .AND. NUCL ) THEN
+       IF ( COND .AND. NUCL .AND. H2SO4rate_o > 0.e0_fp) THEN
 
           !if(printdebug .and. i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE.
 
@@ -915,7 +927,7 @@ CONTAINS
              ENDDO
           ENDDO
 
-       ENDIF
+       ENDIF ! end of cond and nuc !betty - note changed the if above here
 
        ! nitrogen and sulfur mass checks
        ! get the total mass of N
@@ -1740,7 +1752,7 @@ CONTAINS
        Kn      = 2.0 * l_ab / Dpk(k)     !S&Pv2 chapter 12 - Kn for Dahneke correction factor
        beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )   !S&P eqn 11.35
     enddo
-
+    
     ! get condensation sink
     CS = 0.e+0_fp
     surf_area = 0.e+0_fp
@@ -1748,11 +1760,20 @@ CONTAINS
        CS = CS + Dpk(k)*Nko(k)*beta(k)
        surf_area = surf_area+Nko(k)*pi*(Dpk(k)*1.0e+6_fp)**2
     enddo
+!bc 21/01/2022 - check if divide by zero below -added 2 if 
     do k=1,ibins
+       if (CS > 0.e-0_fp) then
        sinkfrac(k) = Dpk(k)*Nko(k)*beta(k)/CS
+       else
+       sinkfrac(k) = 0.e-0_fp
+       endif
     enddo
-    CS = 2.e+0_fp*pi*dble(Di)*CS/(dble(boxvol)*1e-6_fp)
+    CS = 2.e+0_fp*pi*dble(Di)*CS/(dble(boxvol)*1.e-6_fp)
+    if (CS  > 0.e-0_fp) then
     surf_area = surf_area/(dble(boxvol))
+    else
+    surf_area = 0.e-0_fp
+    endif
     
     return
 
@@ -4020,7 +4041,6 @@ CONTAINS
     ! Establish an 30-bin array and accculate the total
     ! of the absorbing media.  The choices can be:
     ! organic mass, surface area, organic+inorganic. (win, 3/5/08)
-
     MEDTOT = 0.e+0_fp
     MED = 0.e+0_fp
     mtot = 0.e+0_fp
@@ -4044,11 +4064,13 @@ CONTAINS
     ENDDO
 
     ! Fraction to each bin for mass partitioning
+
+    if (MEDTOT > 0.e+0_fp) then  !bc, 20/01/2022, skip this if no abssorning media
+
     do k = 1,IBINS
        partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per
                                      ! total absorbing media)
     enddo
-
     ! Fraction to each bin for surface condensation
     call getCondSink(Nk,Mk,srtocil,CS,sinkfrac,surf_area, &
                      BOXVOL,TEMPTMS, PRES)
@@ -4062,6 +4084,13 @@ CONTAINS
     do k = 1, ibins
        ntot = ntot + Nk(k)
     enddo
+
+!bc 21/01/2021 - prevent divide by zero as a test
+    if (Ntot .LE. 0.e+0_fp) then ! set to some small negative
+      print *, 'negative Ntot found', Ntot
+      Ntot = 1.e-35_fp
+      print *, 'new Ntot ', Ntot
+    endif
 
     IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS+1) / thresh ) THEN
        IF ( .not. SPINUP(14.0) ) THEN
@@ -4147,6 +4176,22 @@ CONTAINS
        ENDDO
     ENDDO
 
+    elseif ( .not. SPINUP(60.0) ) THEN
+           
+!          WRITE(*,*) 'Location: ',I,J,L
+!          WRITE(*,*) 'Mtot: ',Mtot
+          IF ( MSOA > 5e+0_fp ) THEN
+             CALL ERROR_STOP('Too few no. for SOAcond','SOACOND:10')
+          ENDIF
+    else
+          ! Put a limit on the amount of screen warnings that we get 
+          ! to keep logfile sizes low (bmy, 9/30/19)
+          SOACOND_WARNING_CT = SOACOND_WARNING_CT + 1
+          IF ( SOACOND_WARNING_CT < SOACOND_WARNING_MAX ) THEN
+             WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
+          ENDIF
+    endif ! bc, 13/01/22 medtot can be low on spinup
+
 30  CONTINUE
 
     ! Save changes to diagnostic
@@ -4169,6 +4214,8 @@ CONTAINS
        ENDDO
        Spc(I,J,L,id_AW1-1+K) = Mk(K,SRTH2O)
     ENDDO
+
+
 
     ! Free pointer memory
     Spc => NULL()

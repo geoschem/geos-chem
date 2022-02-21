@@ -38,6 +38,7 @@ MODULE FullChem_Mod
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
   INTEGER               :: id_PCO, id_LCH4
+  INTEGER               :: id_PSO4  !bc, 19/01/2022
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -126,9 +127,9 @@ CONTAINS
     USE UCX_MOD,            ONLY : UCX_NOX
     USE UCX_MOD,            ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
-#ifdef BPCH_DIAG
+!#ifdef BPCH_DIAG
     USE TOMAS_MOD,          ONLY : H2SO4_RATE
-#endif
+!#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1164,39 +1165,62 @@ CONTAINS
                             RC        = RC                                  )
        ENDIF
 
-#ifdef BPCH_DIAG
+!#ifdef BPCH_DIAG
+!#ifdef TOMAS
+!       !always calculate rate for TOMAS
+!       DO F = 1, NFAM
+!
+!          ! Determine dummy species index in KPP
+!          KppID =  PL_Kpp_Id(F)
+!
+!          !-----------------------------------------------------------------
+!          ! FOR TOMAS MICROPHYSICS:
+!          !
+!          ! Obtain P/L with a unit [kg S] for tracing
+!          ! gas-phase sulfur species production (SO2, SO4, MSA)
+!          ! (win, 8/4/09)
+!          !-----------------------------------------------------------------!
+!
+!          ! Calculate H2SO4 production rate [kg s-1] in each
+!          ! time step (win, 8/4/09)
+!          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
+!             ! Hard-coded MW
+!             H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
+!                                 State_Met%AIRVOL(I,J,L)  * &
+!                                 1.0e+6_fp / DT
+!
+!            IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
+!              write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
+!                 I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
+!              H2SO4_RATE(I,J,L) = 0.0d0
+!            ENDIF
+!          ENDIF
+!       ENDDO
+!
+!#endif
+!#endif
+
+!betty
 #ifdef TOMAS
-       !always calculate rate for TOMAS
-       DO F = 1, NFAM
-
-          ! Determine dummy species index in KPP
-          KppID =  PL_Kpp_Id(F)
-
           !-----------------------------------------------------------------
           ! FOR TOMAS MICROPHYSICS:
           !
-          ! Obtain P/L with a unit [kg S] for tracing
+          ! Obtain P/L with a unit [kg S] at each timestep for tracing
           ! gas-phase sulfur species production (SO2, SO4, MSA)
-          ! (win, 8/4/09)
+          ! (win, 8/4/09), 
+          ! Note: VAR (id_PSO4) units are [molec/cm3] (bc, 19/01/2022)
           !-----------------------------------------------------------------
 
-          ! Calculate H2SO4 production rate [kg s-1] in each
-          ! time step (win, 8/4/09)
-          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
-             ! Hard-coded MW
-             H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
+          ! Calculate H2SO4 production rate [kg H2SO4 box-1 s-1] in each
+          ! time step (win, 8/4/09, bc, 19/01/2022)
+         H2SO4_RATE(I,J,L) = VAR (id_PSO4)/ AVO * 98.e-3_fp * &
                                  State_Met%AIRVOL(I,J,L)  * &
                                  1.0e+6_fp / DT
-
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
               write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
                  I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
               H2SO4_RATE(I,J,L) = 0.0d0
             ENDIF
-          ENDIF
-       ENDDO
-
-#endif
 #endif
 
        !====================================================================
@@ -2424,6 +2448,7 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
+    id_PSO4 =  -1  ! bc, 19/01/2022
     id_PCO =  -1
     id_LCH4 = -1
 
@@ -2450,6 +2475,12 @@ CONTAINS
           IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
           IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
 
+!betty
+          ! Find the KPP Id corresponding to PSO4
+          ! so that we can save output for TOMAS simulations
+          IF ( TRIM( Fam_Names(N) ) == 'PSO4'  ) id_PSO4  = KppId
+
+
           ! Exit if an invalid ID is encountered
           IF ( KppId <= 0 ) THEN
              ErrMsg = 'Invalid KPP ID for prod/loss species: '            // &
@@ -2463,6 +2494,23 @@ CONTAINS
        ENDDO
 
     ENDIF
+
+#ifdef TOMAS
+    !--------------------------------------------------------------------
+    ! If we are finding H2SO4_RATE from a fullchem
+    ! simulation for the TOMAS simulation, throw an error if we cannot find
+    ! the PSO4 prod family in this KPP mechanism.
+    !--------------------------------------------------------------------
+    IF ( State_Diag%Archive_Prod ) THEN
+
+       IF ( id_PSO4 < 1 ) THEN
+          ErrMsg = 'Could not find PSO4 in list of KPP families!  This   ' // &
+                   'is needed for TOMAS H2SO4_RATE!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+     ENDIF
+#endif
 
     !--------------------------------------------------------------------
     ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem

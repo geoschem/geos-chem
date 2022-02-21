@@ -816,7 +816,7 @@ CONTAINS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                     State_Met, 'CHECKMN from chemcarbon', RC)
 
-      !$OMP PARALLEL DO       &
+      !$OMP PARALLEL DO ssta      &
       !$OMP DEFAULT( SHARED ) &
       !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
       DO L = 1, State_Grid%NZ
@@ -827,6 +827,8 @@ CONTAINS
          TEMPTMS = State_Met%T(I,J,L)
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
+             !print*, 'NEWSOA ', NEWSOA,i,j,l,BOXVOL, TEMPTMS, PRES
+             !        !     State_Chm, State_Grid, RC
             !sfarina16: SOAP -> size Resolved TOMAS SOA
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
                           State_Chm, State_Grid, RC)
@@ -4822,6 +4824,7 @@ CONTAINS
    USE ErrCode_Mod
    USE ERROR_MOD
    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+   USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
    USE HCO_Interface_Common, ONLY : GetHcoDiagn! TOMAS: HEMCO diags (not IMGrid ready)
    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
@@ -4960,8 +4963,9 @@ CONTAINS
          emis2d  => OCPO_ANTH_BULK
       END SELECT
 
-      CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
-                        ERR, Ptr3D=Ptr3D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+      !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
+      !                  ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
                            ERR, THISLOC=LOC )
@@ -4989,7 +4993,9 @@ CONTAINS
    !end 3d emis
 
    DgnName = 'BCPI_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -4999,7 +5005,9 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'BCPO_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5009,7 +5017,9 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPI_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5019,7 +5029,10 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPO_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                       ERR, THISLOC=LOC)
@@ -5129,7 +5142,9 @@ CONTAINS
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()
    DgnName = 'BIOGENIC_SOAS'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
       RETURN
