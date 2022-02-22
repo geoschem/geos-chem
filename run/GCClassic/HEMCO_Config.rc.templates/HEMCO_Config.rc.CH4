@@ -210,7 +210,7 @@ Warnings:                    1
 0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
 0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
 0 MEX_RICE_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
-
+0 MEX_OTHER_COAST       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
 )))Scarpelli_Mexico
 
 #==============================================================================

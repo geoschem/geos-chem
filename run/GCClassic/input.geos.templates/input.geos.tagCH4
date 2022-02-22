@@ -116,6 +116,11 @@ Radiation Timestep [sec]: 10800
 Use GOSAT obs operator? : F
 Use AIRS obs operator?  : F
 Use TCCON obs operator? : F
+Do analytical inversion?: F
+ => Emiss perturbation  : 1.0
+ => State vector elem. #: 0
+Use emis scale factor   : F
+Use OH scale factors    : F
 ------------------------+------------------------------------------------------
 %%% OBSPACK MENU %%%    :
 Turn on ObsPack diag?   : F

@@ -367,6 +367,11 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: AIRS_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
+     LOGICAL                     :: AnalyticalInv
+     REAL(fp)                    :: PerturbEmis
+     INTEGER                     :: StateVectorElement
+     LOGICAL                     :: UseEmisSF
+     LOGICAL                     :: UseOHSF
 
      !----------------------------------------
      ! POPS MENU fields
@@ -915,6 +920,11 @@ CONTAINS
     Input_Opt%GOSAT_CH4_OBS          = .FALSE.
     Input_Opt%AIRS_CH4_OBS           = .FALSE.
     Input_Opt%TCCON_CH4_OBS          = .FALSE.
+    Input_Opt%AnalyticalInv          = .FALSE.
+    Input_Opt%PerturbEmis            = 1.0
+    Input_Opt%StateVectorElement     = 0
+    Input_Opt%UseEmisSF              = .FALSE.
+    Input_Opt%UseOHSF                = .FALSE.
 
     !----------------------------------------
     ! POPS MENU fields
