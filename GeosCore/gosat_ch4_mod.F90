@@ -163,12 +163,11 @@ CONTAINS
     WRITE( CYEAR, '(i4)' ) YEAR
 
     ! Filename
-    nc_file = 'ESACCI-GHG-L2-CH4-GOSAT-OCPR-YYYYMMDD-fv7.0.nc'
+    nc_file = 'UoL-GHG-L2-CH4-GOSAT-OCPR-YYYYMMDD-fv9.0.nc'
     CALL Expand_Date( nc_file, YYYYMMDD, 9999 )
 
     ! Construct complete file path
-    dir = '/n/regal/jacob_lab/msulprizio/ExtData/Obs/ULGOSAT_v7/' // &
-           CYEAR // '/'
+    dir = '/n/holylfs/LABS/jacob_lab/zhenqu/CH4_GOS_OCPR/' // CYEAR // '/'
     nc_file = TRIM( dir ) // TRIM( nc_file )
     WRITE( 6, 10 ) TRIM( nc_file )
 10  FORMAT( '     - Reading ', a)
@@ -401,11 +400,13 @@ CONTAINS
     INTEGER            :: L,       LL,     LGOS
     INTEGER            :: JLOOP,   NOBS,   IND
     INTEGER            :: INDS(MAXGOS)
-    REAL(fp)           :: REF_DATE
+    REAL(fp)           :: REF_DATE, TIME
     REAL(fp)           :: GC_PRES(State_Grid%NZ)
     REAL(fp)           :: GC_PEDGE(State_Grid%NZ+1)
     REAL(fp)           :: GC_CH4_NATIVE(State_Grid%NZ)
+    REAL(fp)           :: GC_CH4_NATIVE_EDGE(State_Grid%NZ+1)
     REAL(fp)           :: GC_CH4(MAXLEV)
+    REAL(fp)           :: GC_CH4_ORIG(MAXLEV)
     REAL(fp)           :: GC_CH4_cm2(MAXLEV)
     REAL(fp)           :: GC_PSURF
     REAL(fp)           :: MAP(State_Grid%NZ,MAXLEV)
@@ -418,22 +419,36 @@ CONTAINS
     REAL(fp)           :: CH4_PRIOR(MAXLEV)
     REAL(fp)           :: CH4_PRIOR_cm2(MAXLEV)
     REAL(fp)           :: molecongos(MAXLEV)
-    REAL(fp)           :: GOS_XCH4, GC_XCH4, GOS_XCH4_ERROR
-    REAL(fp)           :: p(MAXLEV), h(MAXLEV)
+    REAL(fp)           :: GOS_XCH4, GOS_XCH4_ERROR
+    REAL(fp)           :: p(MAXLEV)!, h(MAXLEV)
     REAL(fp)           :: ak(MAXLEV), prior(MAXLEV)
     REAL(fp)           :: pres_w(MAXLEV)
-    REAL(fp)           :: XCH4m, XCH4a
+    !REAL(fp)           :: XCH4m, XCH4a  !zyz
     REAL(fp)           :: SATELLITE_BIAS(3) ! Hardcode for now (mps,6/16/17)
     REAL(fp)           :: MEAN_MODEL_BIAS   ! Hardcode for now (mps,6/16/17)
     REAL(fp)           :: FORCE
     REAL(fp)           :: DIFF
     REAL(fp)           :: S_OBS
-    REAL(f8)           :: TIME
+    REAL(fp)           :: DRY_AIR(State_Grid%NZ)
 
     ! --- zyz --- Sept 19, 2018
     ! fix the problem that some GOSAT record has negative pressure
     ! values if the surface has high altidue
     INTEGER            :: L0
+
+    REAL(fp)           :: TropP     !tropopause pressure (hPa)
+    INTEGER            :: LGOS_Trop !tropopause layer in GOSAT levels
+    REAL(fp)           :: WT_LGOS_Trop
+
+    ! -- use pressure weight from GOSAT data file,zyz
+    REAL(fp)           :: GC_XCH4
+    REAL(fp)           :: XCH4_prior, XCH4_trop, XCH4_strat
+
+    ! -- use pressure weight computed based on pressure level
+    ! -- and simple linear interpolation 
+    ! -- this is used in JDM's work, zyz
+    real(fp)           :: h(MAXLEV)
+    REAL(fp)           :: GC_XCH4_ORIG, GC_XCH4_ORIG_OLDPW
 
     ! For miscellaneous
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -444,6 +459,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ThisLoc
     CHARACTER(LEN=512) :: ErrMsg
     INTEGER            :: RC
+    REAL(fp)           :: foo ! throwaway variable
 
     !=================================================================
     ! CALC_GOS_CH4_FORCE begins here!
@@ -454,10 +470,10 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at CALC_GOS_CH4_FORCE (in gosat_ch4_mod.F)'
+    ThisLoc = ' -> at CALC_GOS_CH4_FORCE (in gosat_ch4_mod.F90)'
 
     ! Initialize species ID flag
-    id_CH4     = Ind_('CH4'       )
+    id_CH4 = Ind_('CH4')
 
     ! Reset
     NEW_COST(:) = 0.0_fp
@@ -471,6 +487,9 @@ CONTAINS
     ! Open files for diagnostic output
     IF ( FIRST ) THEN
 
+       ! Initialize
+       COST_FUNC = 0.0_fp
+
        ! For recording model and observation values
        FILENAME = 'sat_obs.gosat.00.m'
        FILENAME = TRIM( Input_Opt%RUN_DIR ) //  TRIM( FILENAME )
@@ -480,14 +499,20 @@ CONTAINS
        ! Write header of sat_obs.NN.m
        WRITE( 117, 281 ) '       NNN', &
                          '   I', '   J', '     LON','     LAT', &
-                         'YYYY','MM', 'DD', 'hh', 'mm', 'ss',   &
+                         'YYYY', 'MM', 'DD', 'hh', 'mm', 'ss',  &
                          '         TAU', '       GOSAT', &
                          '       model', '       S_OBS', &
-                         '    COST_FUN', 'GLINT', 'GAIN', &
+                         '       TropP', ' model_prior', & !zyz
+                         '  model_trop', ' model_strat', & !zyz
+                         '  model_orig', ' model_oldpw', & !erp
+                         'GLINT', ' GAIN',               &
                          'EXPOSURE_ID'
-281    FORMAT( A10,2x,A4,2x,A4,2x,A8,2x,A8,2x,A4,2x,A2,2x,A2,2x,A2,2x, &
-               A2,2x,A2,2x,A12,2x,A12,2x,A12,2x,A12,2x,A12,2x, &
-               A5,2x,A4,2x,A22)
+281    FORMAT( A10,2x, A4,2x,  A4,2x,  A8,2x,  A8,2x,  A4,2x, &
+               A2,2x,  A2,2x,  A2,2x,  A2,2x,  A2,2x,         &
+               A12,2x, A12,2x, A12,2x, A12,2x,                &
+               A12,2x, A12,2x, A12,2x, A12,2x,                &
+               A12,2x, A12,2x,                                &
+               A5,2x,  A5,2x,  A22)
 
        ! Set Total Observations = 0
        TotalObs = 0
@@ -707,10 +732,9 @@ CONTAINS
        ! Get GC surface pressure (mbar)
        GC_PSURF = State_Met%PEDGE(I,J,1)
 
-       ! Calculate the interpolation weight matrix
-       MAP(:,:) = 0.0_fp
-       CALL GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES, &
-                        L0, LGOS, MAP )
+       ! Get # mols of dry air in each gridbox
+       DRY_AIR(:) =  State_Met%AIRDEN(I,J,:) * XNUMOLAIR * &
+                     1e-6_fp * State_Met%BXHEIGHT(I,J,:)*1e2_fp 
 
        ! Get CH4 values at native model resolution
        GC_CH4_NATIVE(:) = 0.0_fp
@@ -718,27 +742,52 @@ CONTAINS
        ! Get species concentrations [v/v]
        GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4)
 
+       CALL MASS_INTERP( GC_PEDGE, GOS(NT)%PRES, GC_CH4_NATIVE, &
+                         L0, State_Grid%NZ, LGOS, GC_CH4 )
+
+       ! test out the old way of interpolating
+       ! Calculate the interpolation weight matrix
+       MAP(:,:) = 0.0_fp
+       CALL OLD_GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES, &
+                        L0, LGOS, MAP )
+
        ! Interpolate GC CH4 column to GOSAT grid
        ! Use L0 for lowest valid layer for GOSAT (zyz)
        DO LL = L0, LGOS
-          GC_CH4(LL) = 0.0_fp
+          GC_CH4_ORIG(LL) = 0.0_fp
           DO L = 1, State_Grid%NZ
-             GC_CH4(LL) = GC_CH4(LL) + MAP(L,LL) * GC_CH4_NATIVE(L)
+             GC_CH4_ORIG(LL) = GC_CH4_ORIG(LL) + MAP(L,LL) * GC_CH4_NATIVE(L)
           ENDDO
        ENDDO
+
+       ! end testing old way of interpolating
+
+       !!DO LL = 1, LGOS
+       ! DO L=1, LLPAR
+       !    IF (MAP(L,LL)>0E0) PRINT*,L,LL,MAP(L,LL)
+       ! ENDDO
+       !ENDDO
+       !print*,'GC_CH4',GC_CH4
+       !stop 
 
        ! GOSAT Proxy XCH4 [ppb] --> [v/v]
        GOS_XCH4       = GOS(NT)%CH4(1)       * 1e-9_fp
        GOS_XCH4_ERROR = GOS(NT)%CH4_ERROR(1) * 1e-9_fp
 
        ! Remove any GOSAT bias
-       GOS_XCH4 = GOS_XCH4 + 1e-9 * ( SATELLITE_BIAS(1) &
-                           + SATELLITE_BIAS(2)*(GOS(NT)%LAT(1)) &
-                           + SATELLITE_BIAS(3)*(GOS(NT)%LAT(1))**2 )
+       ! Do not do latitudinal bias correction from now, zyz,
+       ! 19/9/2018
+       !GOS_XCH4 = GOS_XCH4 + 1e-9 * ( SATELLITE_BIAS(1) &
+       !                    + SATELLITE_BIAS(2)*(GOS(NT)%LAT(1)) &
+       !                    + SATELLITE_BIAS(3)*(GOS(NT)%LAT(1))**2 )
 
        ! Get the S_obs, assume stddev adds in quadrature, variance
        ! adds linearly.  (ajt, 03/27/2013)
-       S_OBS = GOS_XCH4_ERROR**2 + (GC_XCH4_ERROR * 1e-9_fp)**2
+       !S_OBS = GOS_XCH4_ERROR**2 + (GC_XCH4_ERROR * 1e-9_fp)**2
+
+       ! Record satellite error directly, you can modify later if you
+       ! want. We don't seem to use it anyway (erp, 10/08/2020)
+       S_OBS = GOS_XCH4_ERROR ! erp 
 
        !--------------------------------------------------------------
        ! Apply GOSAT observation operator
@@ -758,10 +807,53 @@ CONTAINS
 
        ! Pressure weighting array
        ! Use L0 for lowest valid layer in GOSAT
-       h(:)          = 0.0_fp
        p(L0:LGOS)     = GOS(NT)%PRES(L0:LGOS)
        ak(L0:LGOS)    = GOS(NT)%AVG_KERNEL(L0:LGOS)
+       ! JDM Replace calculated h with pres_w provided by GOSAT files
+       pres_w(L0:LGOS)= GOS(NT)%P_WEIGHT(L0:LGOS)
        prior(L0:LGOS) = GOS(NT)%PRIOR(L0:LGOS) * 1e-9_fp  ! [ppb] --> [v/v]
+
+       !---zyz---
+       !compute the GOSAT layer that encloses tropopause
+       TropP = State_Met%TROPP(I,J)
+       CALL GET_TROP_LAYER(TropP, p, LGOS, LGOS_Trop, WT_LGOS_Trop)
+       !---zyz---
+
+       !=========================================================
+       ! Add computation to record separate tropospheric contribution
+       ! to XCH4, zyz, Sept 19, 2018
+       ! We can record XCH4_prior, XCH4_trop, XCH4_strat, 
+       ! so startospheric bias correction can be done offline
+       ! XCH4m = XCH4a + XCH4c 
+       !       = SUM(l) (wl*pl) + SUM(l) (wl*al*(ml-pl))
+       !       = SUM(l) ((1-al)*wl*pl) + SUM(l) (al*wl*ml)
+       !       = SUM(l) ((1-al)*wl*pl) +       ===> XCH4m_prior
+       !         SUM(l<=LTROP) (al*wl*ml) +    ===> XCH4m_trop
+       !         SUM(l>LTROP) (al*wl*ml)       ===> XCH4m_strat
+       ! 
+       ! wl: weight for layer l
+       ! pl: prior mixing ratio at layer l
+       ! ml: model mixing ratio at layer l
+       ! al: column averaging kernel at layer l
+       ! LTROP: layer of tropopause
+       !=========================================================
+
+       !====================================================================
+       ! Compute GC_XCH4 with the pressure weighting provided in GOSAT data
+       ! file,zyz
+       !====================================================================
+       CALL CALC_GC_XCH4( GC_CH4, ak, pres_w, prior, L0, LGOS, &
+                          LGOS_Trop, WT_LGOS_Trop, GC_XCH4, &
+                          XCH4_prior, XCH4_trop, XCH4_strat )
+
+       !====================================================================
+       ! Compute GC_XCH4 with the h operator used in AJT and JDM's work
+       ! This method seems to have two problems:
+       ! 1. It ignores the impact of  vertical variation in specific humidity
+       !    on the weighting function
+       ! 2. The layer boundary here is at the altidue midpoint
+       !    The paper that the UL-GOSAT paper cites uses pressure midpoint
+       !====================================================================
 
        ! Need to integrate from the toa to surface (ajt, 05/21/13)
        IF (LGOS .GT. 1) THEN
@@ -784,29 +876,25 @@ CONTAINS
 
        ! Now return to the orientation of the other variables
        IF (LGOS .GT. 1) THEN
-          IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN
+          IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN
              h(1:LGOS) = h(LGOS:1:-1)
              p(1:LGOS) = p(LGOS:1:-1)
           ENDIF
        ENDIF
 
-       ! Calculate Xch4_a
-       XCH4a = 0.0_fp
-       DO L = L0,LGOS
-          XCH4a = XCH4a + h(L) * prior(L)
-       ENDDO
+       ! Use original interpolation with h operator from AJT/JDM
+       !  We don't need the strat/trop/prior so assign to dummy var.
+       CALL CALC_GC_XCH4( GC_CH4_ORIG, ak, h, prior, L0, LGOS, &
+                          LGOS_Trop, WT_LGOS_Trop, GC_XCH4_ORIG_OLDPW, &
+                          foo, foo, foo ) 
+         
+       ! Use original interpolation with GOSAT operator
+       !  We don't need the strat/trop/prior so assign to dummy var.
+       CALL CALC_GC_XCH4( GC_CH4_ORIG, ak, h, prior, L0, LGOS, &
+                          LGOS_Trop, WT_LGOS_Trop, &
+                          GC_XCH4_ORIG, foo, foo, foo )
 
-       ! Calculate Xch4_m
-       XCH4m = 0.0_fp
-       XCH4m = XCH4a
-       DO L = L0, LGOS
-          XCH4m = XCH4m + ( h(L) * ak(L) * ( GC_CH4(L) - prior(L) ) )
-       ENDDO
-       GC_XCH4 = 0.0_fp
-       GC_XCH4 = XCH4m
-
-       ! Remove mean bias from GEOS-Chem XCH4
-       GC_XCH4 = GC_XCH4 - ( 1e-9_fp * MEAN_MODEL_BIAS )
+       !---  zyz test with weighting function
 
        !--------------------------------------------------------------
        ! Calculate cost function, given S is error in vmr
@@ -818,18 +906,20 @@ CONTAINS
 
        ! Calculate 1/2 * DIFF^T * S_{obs}^{-1} * DIFF
        ! Need to account for the model error (ajt, 03/27/2013)
-       FORCE        = ( 1.0_fp / (S_OBS) ) * DIFF
+
        NEW_COST(NT) = NEW_COST(NT) + 0.5e0 * DIFF * FORCE
 
        TotalObs = TotalObs + 1
 
        ! Record information for satellite diagnostics
        IF ( LDCH4SAT ) THEN
-          WRITE( 117, 282 ) TotalObs, I, J, GOS(NT)%LON(1), &
+          WRITE( 117, 283 ) TotalObs, I, J, GOS(NT)%LON(1), &
                 GOS(NT)%LAT(1),GOS(NT)%YEAR(1), &
                 GOS(NT)%MONTH(1),GOS(NT)%DAY(1), GOS(NT)%HOUR(1), &
                 GOS(NT)%MINUTE(1), GOS(NT)%SEC(1), &
-                GET_TAU(), GOS_XCH4, GC_XCH4, S_OBS, 0.5d0*FORCE*DIFF, &
+                GET_TAU(), GOS_XCH4, GC_XCH4, S_OBS, &
+                TROPP, XCH4_prior, XCH4_trop, XCH4_strat, &
+                GC_XCH4_ORIG, GC_XCH4_ORIG_OLDPW, & ! erp
                 GOS(NT)%GLINT(1),GOS(NT)%GAIN(1),GOS(NT)%EXP_ID(1)
        ENDIF
 
@@ -851,9 +941,12 @@ CONTAINS
        RETURN
     ENDIF
 
-282 FORMAT( I10,2x,I4,2x,I4,2x,F8.3,2x,F8.4,2x,I4,2x,I2,2x,I2,2x,I2, &
-            2x,I2,2x,I2,2x,F12.3,2x,E12.6,2x,E12.6,2x,E12.6,2x,E12.6, &
-            2x,I5,2x,I5,2x,A22)
+283 FORMAT( I10,2x,I4,2x,I4,2x,F8.3,2x,F8.4,2x,I4,2x,  &
+            I2,2x,I2,2x,I2,2x,I2,2x,I2,2x,             &
+            F12.3,2x,E12.6,2x,E12.6,2x,E12.6,2x,       &
+            F12.3, 2x,E12.6, 2x, E12.6, 2x, E12.6, 2x, &
+            E12.6, 2x, E12.6, 2x,                      &
+            I5,2x,I5,2x,A22)
 
     print*, ' Updated value of COST_FUNC = ', COST_FUNC
     print*, ' GOS contribution           = ', COST_FUNC - OLD_COST
@@ -875,7 +968,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_INTMAP( State_Grid, GCPCEN, GCPSURF, GOSPEDGE, &
+  SUBROUTINE OLD_GET_INTMAP( State_Grid, GCPCEN, GCPSURF, GOSPEDGE, &
                          L0, L1, INTMAP )
 !
 ! !USES:
@@ -892,7 +985,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(fp), INTENT(OUT) :: INTMAP(State_Grid%NZ,MAXLEV)
+    REAL(fp),       INTENT(OUT) :: INTMAP(State_Grid%NZ,MAXLEV)
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on GOSAT CH4 observation
@@ -946,6 +1039,411 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE GET_INTMAP
+  END SUBROUTINE OLD_GET_INTMAP
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_trop_layer
+!
+! !DESCRIPTION: Function GET\_TROP\_LAYER (zyz)
+!\\
+!\\
+! !INTERFACE:
+!  
+  SUBROUTINE GET_TROP_LAYER( TROPP, GOSP, nlev, LTROP, WT_LTROP )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN)  :: TROPP
+    REAL(fp), INTENT(IN)  :: GOSP(MAXLEV) 
+    INTEGER,  INTENT(IN)  :: nlev
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(OUT) :: LTROP
+    REAL(fp), INTENT(OUT) :: WT_LTROP
+!
+! !REVISION HISTORY:
+!  
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: L
+    REAL(fp)              :: GOSP_HF(nlev-1)
+
+    !Estimate the edge of GOSAT layers
+    DO L = 1, nlev-1
+       GOSP_HF(L) = (GOSP(L)+GOSP(L+1))/2e+0_fp
+    ENDDO
+
+    !Find the layer that enclose the tropopause
+    !Estimate the WT_LTROP as the fraction of pressure
+    !difference in that layer
+    LTROP = 1
+    WT_LTROP = 0
+    DO L = 1, nlev-2
+       IF (TROPP < GOSP_HF(L) .and. TROPP>= GOSP_HF(L+1)) THEN
+          LTROP=L+1
+          WT_LTROP= (GOSP_HF(L)-TROPP)/(GOSP_HF(L)-GOSP_HF(L+1))
+          EXIT
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE GET_TROP_LAYER
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_gc_xch4
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CALC_GC_XCH4( GC_CH4, AK, PRES_WT, PRIOR, L0, L1, &
+                           LTROP, WT_LTROP, &
+                           XCH4, XCH4_prior, XCH4_trop, XCH4_strat)
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN):: GC_CH4(MAXLEV), AK(MAXLEV) 
+    REAL(fp), INTENT(IN):: PRIOR(MAXLEV), PRES_WT(MAXLEV)
+    INTEGER,  INTENT(IN) :: L0, L1, LTROP
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN):: WT_LTROP
+    REAL(fp), INTENT(OUT):: XCH4, XCH4_prior, XCH4_trop, XCH4_strat
+!
+! !REMARKS:
+!
+!  Add computation to record separate tropospheric contribution
+!  to XCH4, zyz, Sept 19, 2018
+!  We can record XCH4_prior, XCH4_trop, XCH4_strat, 
+!  so startospheric bias correction can be done offline
+!  XCH4m = XCH4a + XCH4c 
+!        = SUM(l) (wl*pl) + SUM(l) (wl*al*(ml-pl))
+!        = SUM(l) ((1-al)*wl*pl) + SUM(l) (al*wl*ml)
+!        = SUM(l) ((1-al)*wl*pl) +       ===> XCH4m_prior
+!          SUM(l<=LTROP) (al*wl*ml) +    ===> XCH4m_trop
+!         SUM(l>LTROP) (al*wl*ml)       ===> XCH4m_strat
+! 
+!   wl: weight for layer l
+!   pl: prior mixing ratio at layer l
+!   ml: model mixing ratio at layer l
+!   al: column averaging kernel at layer l
+!   LTROP: layer of tropopause
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: L
+
+    ! Calculate XCH4_prior
+    XCH4_PRIOR = 0.0_fp
+    DO L = L0, L1
+       XCH4_PRIOR = XCH4_PRIOR + (1.0_fp - AK(L)) * PRES_WT(L) * PRIOR(L)
+    ENDDO
+
+    ! Calculate XCH4_trop
+    XCH4_trop = 0.0_fp
+    DO L = L0, LTROP
+       XCH4_trop = XCH4_trop + AK(L) * PRES_WT(L) * GC_CH4(L)
+    ENDDO
+    IF (LTROP .ge. L0) THEN
+       XCH4_trop = XCH4_trop - (1.0_fp - WT_LTROP) * &
+                   AK(LTROP) * PRES_WT(LTROP) * GC_CH4(LTROP)
+    ENDIF
+
+    ! Calculate XCH4_strat
+    XCH4_strat = 0.0_fp
+    DO L = LTROP, L1
+       XCH4_strat = XCH4_strat + AK(L) * PRES_WT(L) * GC_CH4(L)
+    ENDDO
+    IF (LTROP .le. L1) THEN
+       XCH4_strat = XCH4_strat - WT_LTROP * &
+                    AK(LTROP) * PRES_WT(LTROP) * GC_CH4(LTROP)
+    ENDIF
+
+    ! Calculate total column
+    XCH4 = XCH4_PRIOR + XCH4_trop + XCH4_strat
+      
+  END SUBROUTINE CALC_GC_XCH4
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: h_to_hprime
+!
+! !DESCRIPTION: Calculate HPRIME pressure edges from equation 11 of Keppens 2019
+!               erp, Oct 6, 2020
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE H_TO_HPRIME( OBS_PEDGE, L0, nlev_obs, HPRIME )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN)  :: nlev_obs, L0
+    REAL(fp), INTENT(IN)  :: OBS_PEDGE(nlev_obs)
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp), INTENT(OUT) :: HPRIME(nlev_obs+1)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: L
+
+    ! Initialize
+    HPRIME(:) = -9999.0_fp  ! this is your missing value
+         
+    HPRIME(L0) = OBS_PEDGE(L0)
+    HPRIME(nlev_obs+1) = OBS_PEDGE(nlev_obs)
+
+    ! Loop over each pressure level of observation grid
+    DO L = L0+1, nlev_obs
+       HPRIME(L) = 0.5_fp*OBS_PEDGE(L) + 0.5_fp*OBS_PEDGE(L-1)
+    ENDDO
+       
+  END SUBROUTINE H_TO_HPRIME
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: extend_gc
+!
+! !DESCRIPTION: Extend GEOS-Chem pressure leveys so they cover the full
+!   vertical range of the observations
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE EXTEND_GC( GC_PEDGE, OBS_PEDGE, L0, &
+                        nlev_gc, nlev_obs, GC_PEDGE_EXT )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN) :: nlev_obs, nlev_gc, L0
+    REAL(fp), INTENT(IN) :: GC_PEDGE(nlev_gc+1)
+    REAL(fp), INTENT(IN) :: OBS_PEDGE(nlev_obs)
+!         
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp), INTENT(OUT) :: GC_PEDGE_EXT(nlev_gc+1)
+    !EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Initialize
+    GC_PEDGE_EXT(:) = 0.0_fp
+    GC_PEDGE_EXT(:) = GC_PEDGE(:)
+         
+    ! if observation surf pres. is higher than model, then
+    ! extend the surface model layer down to the obs. surface
+    IF ( OBS_PEDGE(L0) > GC_PEDGE(1) ) THEN
+       GC_PEDGE_EXT(1) = OBS_PEDGE(L0)
+    ENDIF
+         
+    ! if observation TOA pres. is lower than model, then 
+    ! extend the top model layer up to the obs. TOA
+    IF ( OBS_PEDGE(nlev_obs) < GC_PEDGE(nlev_gc+1) ) THEN
+       GC_PEDGE_EXT(nlev_gc+1) = OBS_PEDGE(nlev_obs)
+    ENDIF
+       
+  END SUBROUTINE EXTEND_GC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: overlap_map
+!
+! !DESCRIPTION: OVERLAP_MAP is W in eq 13 of Keppens 2019
+!               erp, Oct 6, 2020
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GET_OVERLAP_MAP( GC_PEDGE, OBS_PEDGE, &
+                              L0, nlev_gc, nlev_obs, OVERLAP_MAP)
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN)  :: nlev_gc
+    INTEGER,  INTENT(IN)  :: nlev_obs
+    REAL(fp), INTENT(IN)  :: GC_PEDGE(nlev_gc)
+    REAL(fp), INTENT(IN)  :: OBS_PEDGE(nlev_obs)
+    INTEGER,  INTENT(IN)  :: L0 ! lowest valid observation level 
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp), INTENT(OUT) :: OVERLAP_MAP(nlev_obs-1,nlev_gc-1)
+!
+! !REVISION HISTORY:
+!  23 Sep 2020 - Elise Penn - get map of layer overlaps based on interpolation
+!                             in Langerock et a. 2015 and used in equation 13 of
+!                             Keppens et al. 2019. See description of 
+!                             "mass-conserved regridding" in Keppens et al.
+!                             2019: https://doi.org/10.5194/amt-12-4379-2019
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: LGC, LTM
+    REAL(fp) :: DIFF
+    REAL(fp) :: LOW_GC, HI_GC
+    REAL(fp) :: LOW_OBS, HI_OBS
+
+    !=================================================================
+    ! GET_OVERLAP_MAP begins here!
+    !=================================================================
+
+    ! Initialize
+    OVERLAP_MAP(:,:) = 0e+0_fp
+         
+    ! Loop over each pressure level of observation retrieval grid
+    DO LTM = L0, nlev_obs-1
+
+       LOW_OBS = OBS_PEDGE(LTM+1)
+       HI_OBS  = OBS_PEDGE(LTM)
+                 
+       ! Find the levels from GC that bracket level LTM
+       DO LGC = 1, nlev_gc-1
+
+          LOW_GC = GC_PEDGE(LGC+1)
+          HI_GC  = GC_PEDGE(LGC)
+
+          ! Match GEOS-Chem level to observation level
+          IF ( ( HI_OBS  <= HI_GC  .and. HI_OBS  >  LOW_GC  ) .or. &
+               ( LOW_OBS <= HI_GC  .and. LOW_OBS >  LOW_GC  ) .or. &
+               ( HI_GC   <= HI_OBS .and. HI_GC   >  LOW_OBS ) .or. &
+               ( LOW_GC  <= HI_OBS .and. LOW_GC  >  LOW_OBS ) ) THEN
+
+             DIFF             = HI_GC- LOW_GC
+             OVERLAP_MAP(LTM,LGC) = ( MIN(HI_OBS,HI_GC) - &
+                                      MAX(LOW_OBS,LOW_GC) ) / DIFF
+                     
+          ENDIF
+
+       ENDDO
+
+    ENDDO
+         
+  END SUBROUTINE GET_OVERLAP_MAP
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: mass_interp
+!
+! !DESCRIPTION: Perform interpolation from model levels to the levels of your
+!   observation, erp, Oct 6, 2020
+!   The interpolation redistributes mass between model and observation layers,
+!   then returns it to the edges of the layers for application of the AK and
+!   pressure weights. Based on equation 13 of Keppens 2019
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE MASS_INTERP( GC_PEDGE, OBS_PEDGE, GC_CH4_NATIVE, L0, &
+                          nlev_gc, nlev_obs, CH4_INTERP_EDGES )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN) :: nlev_obs, nlev_gc, L0
+    REAL(fp), INTENT(IN) :: GC_PEDGE(nlev_gc+1)
+    REAL(fp), INTENT(IN) :: GC_CH4_NATIVE(nlev_gc)
+    REAL(fp), INTENT(IN) :: OBS_PEDGE(nlev_obs)
+!             
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp), INTENT(OUT) :: CH4_INTERP_EDGES(nlev_obs)
+         !EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL(fp) :: GC_PEDGE_EXT(nlev_gc+1), OBS_HPRIME(nlev_obs+1)
+    REAL(fp) :: OVERLAP_MAP(nlev_obs,nlev_gc)
+    REAL(fp) :: M_obs(nlev_obs), M_gc(nlev_gc)
+    REAL(fp) :: CH4_INTERP_INTEGRATED(nlev_obs)
+    REAL(fp) :: CH4_MODEL_INTEGRATED(nlev_gc)
+    INTEGER  :: LGC, LOBS
+         
+    ! Initialize
+    CH4_INTERP_EDGES(:) = 0.0_fp ! note your missing value is 0
+         
+    ! extend GEOS-Chem so it covers the full vertical range 
+    !   of the observations
+    CALL EXTEND_GC( GC_PEDGE, OBS_PEDGE, L0, nlev_gc+1, nlev_obs, GC_PEDGE_EXT )
+
+    ! calculate HPRIME pressure edges from equation 11
+    CALL H_TO_HPRIME( OBS_PEDGE, L0, nlev_obs, OBS_HPRIME )
+
+    ! OVERLAP_MAP is W in eq 13
+    CALL GET_OVERLAP_MAP( GC_PEDGE_EXT, OBS_HPRIME, L0, nlev_gc+1, &
+                          nlev_obs+1, OVERLAP_MAP )
+         
+    ! M_gc and M_obs are M_in and M_out from eq 14
+    ! They are diagonal matrices, so we can use a vector
+    M_gc(:) = 0.0_fp
+    DO LGC = 1, nlev_gc
+       M_gc(LGC) = GC_PEDGE_EXT(LGC) - GC_PEDGE_EXT(LGC+1)
+    ENDDO
+    M_obs(:) = 0.0_fp
+    DO LOBS = L0, nlev_obs
+       M_obs(LOBS) = OBS_HPRIME(LOBS) - OBS_HPRIME(LOBS+1)
+    ENDDO
+         
+    ! Intermediate steps for eq 14:
+    ! 1) M_in * x
+    CH4_MODEL_INTEGRATED(:) = 0.0_fp
+    DO LGC = 1, nlev_gc
+       CH4_MODEL_INTEGRATED(LGC) = M_gc(LGC) * GC_CH4_NATIVE(LGC)
+    ENDDO
+
+    ! 2) W * M_in * x (matrix multiply W and M_in*x)
+    CH4_INTERP_INTEGRATED(:) = 0.0_fp
+    DO LGC = 1, nlev_gc
+       DO LOBS = L0, nlev_obs
+          CH4_INTERP_INTEGRATED(LOBS) = CH4_INTERP_INTEGRATED(LOBS) + &
+               OVERLAP_MAP(LOBS,LGC) * CH4_MODEL_INTEGRATED(LGC)
+       ENDDO
+    ENDDO
+
+    ! 3) inv(M_out) * W * M_in * x
+    DO LOBS = L0, nlev_obs
+       ! inv(M_out) = 1/M_out because it is diagonal
+       CH4_INTERP_EDGES(LOBS) = 1.0_fp/M_obs(LOBS) * CH4_INTERP_INTEGRATED(LOBS)
+    ENDDO
+         
+  END SUBROUTINE MASS_INTERP
 !EOC
 END MODULE GOSAT_CH4_MOD
