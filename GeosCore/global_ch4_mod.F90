@@ -46,10 +46,8 @@ MODULE GLOBAL_CH4_MOD
 !
   !========================================================================
   ! Module Variables:
-  ! BOH        : Array for OH values                        [v/v]
+  ! BOH        : Array for OH values                        [molec/cm3]
   ! BCl        : Array for Cl values                        [v/v]
-  ! COPROD     : Array for zonal mean P(CO)                 [v/v/s]
-  ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
   ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
   ! CH4_EMIS   : Array for CH4 Emissions                    [kg/m2/s]
   !========================================================================
@@ -623,7 +621,7 @@ CONTAINS
     ! HISTORY (aka netCDF diagnostics)
     ! OH concentration in [molec/cm3] after chemistry
     !
-    ! BOH from HEMCO is in mol/mol, convert to molec/cm3
+    ! BOH from HEMCO is in kg/m3, convert to molec/cm3
     !=================================================================
     IF ( State_Diag%Archive_OHconcAfterChem ) THEN
        DO L = 1, State_Grid%NZ
@@ -631,7 +629,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
              State_Diag%OHconcAfterChem(I,J,L) = &
-                  ( BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) )
+                  ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
           ELSE
              State_Diag%OHconcAfterChem(I,J,L) = 0.0_f4
           ENDIF
@@ -838,15 +836,15 @@ CONTAINS
           GCH4 = Spc(I,J,L,1) * Spc2GCH4
 
           ! OH in [molec/cm3]
-          ! BOH from HEMCO in units of mol/mol, convert to molec/cm3
-          C_OH = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+          ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
+          C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
           ! Cl in [molec/cm3]
           ! BCl from HEMCO in units of mol/mol, convert to molec/cm3
           C_Cl = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
-          TROPOCH4=TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
-                            + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
+          TROPOCH4 = TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
+                              + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
 
           !-----------------------------------------------------------
           ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -902,8 +900,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CH4_Metrics( Input_Opt,  State_Chm, State_Diag,                  &
-                         State_Grid, State_Met, RC                          )
+  SUBROUTINE CH4_Metrics( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1067,8 +1065,8 @@ CONTAINS
           CH4conc_mcm3 = CH4conc_kgm3 / MCM3toKGM3_CH4
 
           ! OH concentration [kg m-3] and [molec cm-3]
-          OHconc_mcm3  = BOH(I,J,L)  * State_Met%AIRNUMDEN(I,J,L)
-          OHconc_kgm3  = OHconc_mcm3 * MCM3toKGM3_OH
+          OHconc_kgm3  = BOH(I,J,L)
+          OHconc_mcm3  = OHconc_kgm3 /  MCM3toKGM3_OH
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
           OHmassWgt    = airmass_kg * OHconc_kgm3

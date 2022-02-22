@@ -595,7 +595,7 @@ Warnings:                    1
 ${RUNDIR_CH4_LOSS}
 )))GMI_CH4_LOSS
 (((GLOBAL_OH
-${RUNDIR_GLOBAL_OH}
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH
 (((GLOBAL_CL
 ${RUNDIR_GLOBAL_Cl}
