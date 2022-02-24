@@ -27,11 +27,12 @@ MODULE QFYAML_Mod
 ! !PUBLIC DATA MEMBERS:
 !
   ! Constants
-  PUBLIC :: QFYAML_Success
   PUBLIC :: QFYAML_Failure
+  PUBLIC :: QFYAML_MaxArr
+  PUBLIC :: QFYAML_MaxStack
   PUBLIC :: QFYAML_NamLen
   PUBLIC :: QFYAML_StrLen
-  PUBLIC :: QFYAML_MaxArr
+  PUBLIC :: QFYAML_Success
 
   ! Public methods
   PUBLIC :: QFYAML_Add
@@ -39,6 +40,7 @@ MODULE QFYAML_Mod
   PUBLIC :: QFYAML_CleanUp
   PUBLIC :: QFYAML_Get
   PUBLIC :: QFYAML_Check
+  PUBLIC :: QFYAML_FindNextHigher
   PUBLIC :: QFYAML_Init
   PUBLIC :: QFYAML_Merge
   PUBLIC :: QFYAML_Update
@@ -123,20 +125,20 @@ MODULE QFYAML_Mod
   ! Type for a single variable
   TYPE, PRIVATE :: QFYAML_var_t
      PRIVATE
-     CHARACTER(LEN=QFYAML_namlen)              :: category
-     CHARACTER(LEN=QFYAML_namlen)              :: var_name
-     CHARACTER(LEN=QFYAML_strlen)              :: description
+     CHARACTER(LEN=QFYAML_NamLen)              :: category
+     CHARACTER(LEN=QFYAML_NamLen)              :: var_name
+     CHARACTER(LEN=QFYAML_StrLen)              :: description
      INTEGER                                   :: var_type
      INTEGER                                   :: var_size
      LOGICAL                                   :: dynamic_size
      LOGICAL                                   :: used
      INTEGER                                   :: set_by=QFYAML_set_by_default
      CHARACTER(LEN=QFYAML_maxDataLen)          :: stored_data
-     CHARACTER(LEN=QFYAML_namlen)              :: anchor_ptr
-     CHARACTER(LEN=QFYAML_namlen)              :: anchor_tgt
+     CHARACTER(LEN=QFYAML_NamLen)              :: anchor_ptr
+     CHARACTER(LEN=QFYAML_NamLen)              :: anchor_tgt
      REAL(yp),                     ALLOCATABLE :: real_data(:)
      INTEGER,                      ALLOCATABLE :: int_data(:)
-     CHARACTER(LEN=QFYAML_strlen), ALLOCATABLE :: char_data(:)
+     CHARACTER(LEN=QFYAML_StrLen), ALLOCATABLE :: char_data(:)
      LOGICAL,                      ALLOCATABLE :: bool_data(:)
   END TYPE QFYAML_var_t
 
@@ -314,7 +316,7 @@ CONTAINS
 !
     INTEGER,                      INTENT(OUT) :: begin_ix   ! 1st var w/ anchor
     INTEGER,                      INTENT(OUT) :: end_ix     ! last var w/ anchor
-    CHARACTER(LEN=QFYAML_namlen), INTENT(OUT) :: anchor_cat ! Anchor category
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT) :: anchor_cat ! Anchor category
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -389,7 +391,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg, thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg, thisLoc
 
     !=======================================================================
     ! QFYAML_Init begins here!
@@ -453,8 +455,8 @@ CONTAINS
     INTEGER                      :: N
 
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! QFYAML_Init begins here!
@@ -541,17 +543,17 @@ CONTAINS
     INTEGER                      :: my_unit
 
     ! Strings
-    CHARACTER(LEN=QFYAML_namlen) :: line_fmt
-    CHARACTER(LEN=QFYAML_namlen) :: category
-    CHARACTER(LEN=QFYAML_namlen) :: anchor_cat
-    CHARACTER(LEN=QFYAML_namlen) :: anchor_ptr
-    CHARACTER(LEN=QFYAML_namlen) :: anchor_tgt
-    CHARACTER(LEN=QFYAML_namlen) :: var_pt_to_anchor
-    CHARACTER(LEN=QFYAML_namlen) :: var_w_anchor
-    CHARACTER(LEN=QFYAML_namlen) :: var_name
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: line
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_NamLen) :: line_fmt
+    CHARACTER(LEN=QFYAML_NamLen) :: category
+    CHARACTER(LEN=QFYAML_NamLen) :: anchor_cat
+    CHARACTER(LEN=QFYAML_NamLen) :: anchor_ptr
+    CHARACTER(LEN=QFYAML_NamLen) :: anchor_tgt
+    CHARACTER(LEN=QFYAML_NamLen) :: var_pt_to_anchor
+    CHARACTER(LEN=QFYAML_NamLen) :: var_w_anchor
+    CHARACTER(LEN=QFYAML_NamLen) :: var_name
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: line
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! QFYAML_READ_FILE begins here!
@@ -580,7 +582,7 @@ CONTAINS
     ENDIF
 
     ! Create format line
-    WRITE( line_fmt, "(a,i0,a)") "(a", QFYAML_strlen, ")"
+    WRITE( line_fmt, "(a,i0,a)") "(a", QFYAML_StrLen, ")"
 
     ! Start looping
     DO
@@ -702,9 +704,9 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     LOGICAL,                      INTENT(OUT)   :: valid_syntax
-    CHARACTER(LEN=QFYAML_namlen), INTENT(OUT)   :: category
-    CHARACTER(LEN=QFYAML_namlen), INTENT(OUT)   :: anchor_ptr
-    CHARACTER(LEN=QFYAML_namlen), INTENT(OUT)   :: anchor_tgt
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT)   :: category
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT)   :: anchor_ptr
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT)   :: anchor_tgt
     INTEGER,                      INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
@@ -729,12 +731,12 @@ CONTAINS
     INTEGER                            :: CC
 
     ! Strings
-    CHARACTER(LEN=QFYAML_namlen)       :: var_name
-    CHARACTER(LEN=QFYAML_strlen)       :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)       :: line
-    CHARACTER(LEN=QFYAML_strlen)       :: line2
-    CHARACTER(LEN=QFYAML_strlen)       :: thisLoc
-    CHARACTER(LEN=QFYAML_strlen)       :: last_cat
+    CHARACTER(LEN=QFYAML_NamLen)       :: var_name
+    CHARACTER(LEN=QFYAML_StrLen)       :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)       :: line
+    CHARACTER(LEN=QFYAML_StrLen)       :: line2
+    CHARACTER(LEN=QFYAML_StrLen)       :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)       :: last_cat
 
     ! SAVEd variables
     LOGICAL,                      SAVE :: is_list_var                = .FALSE.
@@ -1044,10 +1046,10 @@ CONTAINS
     LOGICAL,                      INTENT(IN)    :: append
     INTEGER,                      INTENT(IN)    :: set_by
     CHARACTER(LEN=*),             INTENT(IN)    :: line_arg
-    CHARACTER(LEN=QFYAML_namlen), INTENT(IN)    :: anchor_ptr_arg
-    CHARACTER(LEN=QFYAML_namlen), INTENT(IN)    :: anchor_tgt_arg
-    CHARACTER(LEN=QFYAML_namlen), INTENT(IN)    :: category_arg
-    CHARACTER(LEN=QFYAML_namlen), INTENT(IN)    :: var_name_arg
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)    :: anchor_ptr_arg
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)    :: anchor_tgt_arg
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)    :: category_arg
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)    :: var_name_arg
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1168,8 +1170,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,                      INTENT(IN)    :: anchor_ix
-    CHARACTER(LEN=QFYAML_namlen), INTENT(IN)    :: var_w_anchor
-    CHARACTER(LEN=QFYAML_namlen), INTENT(IN)    :: var_pt_to_anchor
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)    :: var_w_anchor
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(IN)    :: var_pt_to_anchor
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1192,8 +1194,8 @@ CONTAINS
     INTEGER :: ix
 
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! Copy_Anchor_Variable begins here!
@@ -1274,12 +1276,12 @@ CONTAINS
     INTEGER                      :: ix_end(QFYAML_MaxArr)
 
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
-    CHARACTER(LEN=QFYAML_strlen) :: s1
-    CHARACTER(LEN=QFYAML_strlen) :: s2
-    CHARACTER(LEN=QFYAML_strlen) :: s3
-    CHARACTER(LEN=QFYAML_strlen) :: s4
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: s1
+    CHARACTER(LEN=QFYAML_StrLen) :: s2
+    CHARACTER(LEN=QFYAML_StrLen) :: s3
+    CHARACTER(LEN=QFYAML_StrLen) :: s4
 
     !=======================================================================
     ! Read_Variable begins here!
@@ -1463,8 +1465,8 @@ CONTAINS
     INTEGER                      :: n
 
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! QFYAML_Check begins here!
@@ -1494,6 +1496,96 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: QFYAML_FindNextHigher
+!
+! !DESCRIPTION: Finds variables that are one category depth higher than
+!  a given target string (trg_str).  Returns the number of variables that
+!  match this criteria (n_matches), as well as the variables themselves
+!  (match_vars).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE QFYAML_FindNextHigher( yml, trg_str, match_ct, match_vars )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(QFYAML_t),               INTENT(IN)  :: yml
+    CHARACTER(LEN=*),             INTENT(IN)  :: trg_str
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,                      INTENT(OUT) :: match_ct
+    CHARACTER(LEN=QFYAML_NamLen), INTENT(OUT) :: match_vars(:)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                  :: c, ix, len_t
+    CHARACTER(QFYAML_NamLen) :: last_match
+
+    !=======================================================================
+    ! QFYAML_FindNextHigher begins here!
+    !=======================================================================
+
+    ! Initialize
+    len_t      = LEN_TRIM( trg_str )
+    match_ct   = 0
+    match_vars = 'UNKNOWN'
+    last_match = 'UNKNOWN'
+
+    ! Loop over # of stored variables
+    DO ix = 1, yml%num_vars
+
+       ! Reset for safety's sake
+       c = 0
+
+       ! Skip to next variable  if the string is shorter than the prefix
+       IF ( LEN_TRIM( yml%vars(ix)%var_name ) < len_t ) CYCLE
+
+       ! Test if the prefix is in the variable name
+       IF ( INDEX( TRIM( yml%vars(ix)%var_name ), trg_str ) > 0 ) THEN
+
+          ! ... then test if the variable contains another separator.
+          c = INDEX( yml%vars(ix)%var_name(len_t+1:),                        &
+                       QFYAML_Category_Separator                            )
+
+          IF ( c == 0 ) THEN
+
+             ! If no other separator is found, the var_name specifies
+             ! a category and a YAML variable (e.g. weather%pressure).
+             ! This qualifies as a match, so match_ct and match_vars.
+             match_ct             = match_ct + 1
+             match_vars(match_ct) = TRIM( yml%vars(ix)%var_name )
+             last_match           = TRIM( match_vars(match_ct) )
+
+          ELSE
+
+             ! If another separator is found, then the var_name contains
+             ! possibly several more categories and a variable (e.g.
+             ! weather%temperature%daily, weather%temperature%weekly).
+             ! In this case, we will only consider the first match
+             ! as a true match (i.e. returns "weather%temperature").
+             IF ( INDEX( TRIM( yml%vars(ix)%var_name ),                      &
+                         TRIM( last_match            )  ) /= 1 ) THEN
+                match_ct             = match_ct + 1
+                match_vars(match_ct) = TRIM( yml%vars(ix)%var_name(1:len_t+c-1))
+                last_match           = TRIM( match_vars(match_ct) )
+             ENDIF
+           ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE QFYAML_FindNextHigher
+!EOC
+!------------------------------------------------------------------------------
+! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
+! Based on existing package https://github.com/jannisteunissen/config_fortran
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Split_Category
 !
 ! !DESCRIPTION: splits the category and the var name
@@ -1510,8 +1602,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    CHARACTER(QFYAML_namlen), INTENT(OUT) :: category
-    CHARACTER(QFYAML_namlen), INTENT(OUT) :: var_name
+    CHARACTER(QFYAML_NamLen), INTENT(OUT) :: category
+    CHARACTER(QFYAML_NamLen), INTENT(OUT) :: var_name
 !
 ! !REMARKS:
 !  TO DO: Support nested categories
@@ -1540,7 +1632,7 @@ CONTAINS
        var_name = variable%var_name(ix+1:)
     ENDIF
 
-  END SUBROUTINE split_category
+  END SUBROUTINE Split_Category
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -1591,7 +1683,7 @@ CONTAINS
 
     END SELECT
 
-  END SUBROUTINE resize_storage
+  END SUBROUTINE Resize_Storage
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | APR 2020
@@ -1636,8 +1728,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! Prepare_Store_Var begins here!
@@ -1736,8 +1828,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! Prepare_Get_Var begins here!
@@ -1843,7 +1935,7 @@ CONTAINS
        ALLOCATE( yml%vars( min_dyn_size ) )
     ENDIF
 
-  END SUBROUTINE ensure_free_storage
+  END SUBROUTINE Ensure_Free_Storage
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -2115,7 +2207,7 @@ CONTAINS
     INTEGER                      :: pivot_ix
 
     ! Strings
-    CHARACTER(LEN=QFYAML_namlen) :: pivot_value
+    CHARACTER(LEN=QFYAML_NamLen) :: pivot_value
 
     ! Objects
     TYPE(QFYAML_var_t)           :: temp
@@ -2240,8 +2332,8 @@ CONTAINS
     INTEGER                      :: ix
 
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! Prepare_Store_Var begins here!
@@ -2302,8 +2394,8 @@ CONTAINS
     INTEGER                      :: ix
 
     ! Strings
-    CHARACTER(LEN=QFYAML_strlen) :: errMsg
-    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen) :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
 
     !=======================================================================
     ! Prepare_Store_Var begins here!
@@ -2361,7 +2453,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=QFYAML_strlen) :: temp
+    CHARACTER(LEN=QFYAML_StrLen) :: temp
 
     ! Remove leading whitespace and store in str
     temp = ADJUSTL( str )
@@ -2455,8 +2547,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2497,8 +2589,8 @@ CONTAINS
     LOGICAL,          OPTIONAL      :: dynamic_size
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2538,8 +2630,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2580,8 +2672,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2620,8 +2712,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2663,8 +2755,8 @@ CONTAINS
     LOGICAL,          OPTIONAL      :: dynamic_size
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2699,8 +2791,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2742,8 +2834,8 @@ CONTAINS
     LOGICAL,          OPTIONAL      :: dynamic_size
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2784,8 +2876,8 @@ CONTAINS
     INTEGER                         :: ix
     INTEGER                         :: sz_data
     INTEGER                         :: sz_stored
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2837,8 +2929,8 @@ CONTAINS
     INTEGER                         :: ix
     INTEGER                         :: sz_data
     INTEGER                         :: sz_stored
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2889,8 +2981,8 @@ CONTAINS
     INTEGER                         :: ix
     INTEGER                         :: sz_data
     INTEGER                         :: sz_stored
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2942,8 +3034,8 @@ CONTAINS
     INTEGER                         :: ix
     INTEGER                         :: sz_data
     INTEGER                         :: sz_stored
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -2992,8 +3084,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3021,8 +3113,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3050,8 +3142,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3079,8 +3171,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
 
     INTEGER                         :: ix
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3110,8 +3202,8 @@ CONTAINS
     INTEGER,          INTENT(OUT  ) :: RC
     LOGICAL,          OPTIONAL      :: dynamic_size
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3146,8 +3238,8 @@ CONTAINS
     LOGICAL,          OPTIONAL      :: dynamic_size
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3182,8 +3274,8 @@ CONTAINS
     LOGICAL,          OPTIONAL      :: dynamic_size
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3218,8 +3310,8 @@ CONTAINS
     LOGICAL,          OPTIONAL      :: dynamic_size
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3252,8 +3344,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3286,8 +3378,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3320,8 +3412,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success
@@ -3354,8 +3446,8 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     INTEGER,          INTENT(OUT  ) :: RC
 
-    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
-    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+    CHARACTER(LEN=QFYAML_StrLen)    :: errMsg
+    CHARACTER(LEN=QFYAML_StrLen)    :: thisLoc
 
     ! Initialize
     RC      = QFYAML_success

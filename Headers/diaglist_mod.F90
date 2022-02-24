@@ -238,13 +238,13 @@ CONTAINS
     CollList%head   => NULL()
 
     !=======================================================================
-    ! Read the input_options.yml configuration file to find out:
+    ! Read the geoschem_config.yml configuration file to find out:
     ! (1) Which wavelength has been selected for optical depth diag output
     ! (2) If this is a fullchem simulation
     !=======================================================================
 
     ! Open the YAML file
-    CALL QFYAML_Init( 'input_options.yml', Config, ConfigAnchored, RC )
+    CALL QFYAML_Init( 'geoschem_config.yml', Config, ConfigAnchored, RC )
     IF ( RC /= QFYAML_Success ) THEN
        errMsg = 'Error opening input_options.yml!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -280,7 +280,7 @@ CONTAINS
     AltAboveSfc = TRIM( ADJUSTL( v_str ) ) // 'm'
 
     ! Read the AOD wavelength in nm for diagnostics
-    key   = "operations%rrtmg%aod_wavelengths_in_nm"
+    key   = "operations%rrtmg_rad_transfer_model%aod_wavelengths_in_nm"
     a_str = "UNKNOWN"
     CALL QFYAML_Add_Get( Config, key, a_str, "", RC, dynamic_size=.TRUE. )
     IF ( RC /= GC_SUCCESS ) THEN

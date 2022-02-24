@@ -500,7 +500,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='MinLon MaxLon'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='MinLat MaxLat'\n"
 	        printf "\n  -- You will need to manually set longitude and latitude"
-		printf "\n     bounds in the Grid Menu of input_options.yml!\n"
+		printf "\n     bounds in the Grid Menu of geoschem_config.yml!\n"
 	    else
   		valid_domain=0
 		printf "Invalid horizontal grid domain option. Try again.\n"
@@ -933,7 +933,7 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 printf "\n  See rundirConfig/rundir_vars.txt for run directory settings.\n\n"
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
-printf "\n     You may modify these settings in input_options.yml.\n"
+printf "\n     You may modify these settings in geoschem_config.yml.\n"
 
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
@@ -1133,7 +1133,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.py input_options.yml getRunInfo
+	git add *.rc *.sh *.yml *.py geoschem_config.yml getRunInfo
 	[[ -f geoschem.benchmark.run ]] && git add geoschem.benchmark.run
 	[[ -f geoschem.run           ]] && git add geoschem.run
 	[[ -f ${rundir_config_log}   ]] && git add ${rundir_config_log}

@@ -1,5 +1,6 @@
 ---
-### GEOS-Chem input_options.yml file for the fullchem simulations
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for simulations using the KPP "fullchem" mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -72,7 +73,7 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   photolysis:
-    input_directory: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
     overhead_O3:
       use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
       use_column_O3_from_met: true
@@ -84,7 +85,7 @@ operations:
       percent_channel_A_HONO: 66.667
       percent_channel_B_NO2: 33.333
 
-  rrtmg:
+  rrtmg_rad_transfer_model:
     activate: false
     aod_wavelengths_in_nm:
       - 550
@@ -94,9 +95,10 @@ operations:
     all_sky_flux: ${RUNDIR_RRTMG_OPTS}
 
   transport:
-    activate: true
-    fill_negative_values: true
-    iord_jord_kord: [3, 3, 7]
+    gcclassic_tpcore:                 # GEOS-Chem Classic only
+      activate: true                  # GEOS-Chem Classic only
+      fill_negative_values: true      # GEOS-Chem Classic only
+      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
       - ACET
       - ACTA
@@ -357,7 +359,7 @@ aerosols:
     allow_homogeneous_NAT: false
     NAT_supercooling_req_in_K: 3.0
     supersat_factor_req_for_ice_nucl: 1.2
-    calc_strat_aero_optdepth: true
+    calc_strat_aod: true
 
   sulfate:
     activate: true

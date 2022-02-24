@@ -1,0 +1,171 @@
+---
+### GEOS-Chem input_options.yml file for the TransportTracers simulations
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: ${RUNDIR_SIM_NAME}
+  start_date: [${RUNDIR_SIM_START_DATE}, ${RUNDIR_SIM_START_TIME}]
+  end_date: [${RUNDIR_SIM_END_DATE}, ${RUNDIR_SIM_END_TIME}]
+  root_data_dir: ${RUNDIR_DATA_ROOT}
+  met_field: ${RUNDIR_MET}
+  species_database_file: ./species_database.yml
+  debug_printout: false
+  use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+
+#============================================================================
+# Grid settings
+#============================================================================
+grid:
+  resolution: ${RUNDIR_GRID_RES_LONG}
+  number_of_levels: ${RUNDIR_GRID_NLEV}
+  longitude:
+    range: ${RUNDIR_GRID_LON_RANGE}
+    center_at_180: ${RUNDIR_CENTER_LON_180}
+  latitude:
+    range: ${RUNDIR_GRID_LAT_RANGE}
+    half_size_polar_boxes: ${RUNDIR_GRID_HALF_POLAR}
+  nested_grid_simulation:
+    activate: ${RUNDIR_GRID_NESTED_SIM}
+    buffer_zone_NSEW: ${RUNDIR_GRID_BUFFER_ZONE}
+
+#============================================================================
+# Timesteps settings
+#============================================================================
+timesteps:
+  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
+  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
+  radiation_timestep_in_s: 10800
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  dry_deposition:
+    activate: true    
+  
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
+
+  transport:
+    gcclassic_tpcore:                 # GEOS-Chem Classic only
+      activate: true                  # GEOS-Chem Classic only
+      fill_negative_values: true      # GEOS-Chem Classic only
+      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
+    transported_species:
+      -  Rn222
+      -  Pb210
+      -  Pb210Strat
+      -  Be7
+      -  Be7Strat
+      -  Be10
+      -  Be10Strat
+      -  PassiveTracer
+      -  CLOCK
+      -  SF6Tracer
+      -  CH3ITracer
+      -  COAnthroEmis25dayTracer
+      -  COAnthroEmis50dayTracer
+      -  COUniformEmis25dayTracer
+      -  GlobEmis90dayTracer
+      -  NHEmis90dayTracer
+      -  SHEmis90dayTracer
+    passive_species:
+      PassiveTracer:
+        long_name: Passive_tracer_for_mass_conservation_evaluation
+        mol_wt_in_g: 1.0
+        lifetime_in_s: -1
+        default_bkg_conc_in_vv: 1.0e-7
+      SF6Tracer:
+        long_name: Sulfur_hexafluoride
+        mol_wt_in_g: 146.0
+        lifetime_in_s: -1
+        default_bkg_conc_in_vv: 1.0e-20
+      CH3ITracer:
+        long_name: Methyl_iodide
+        mol_wt_in_g: 142.0
+        lifetime_in_s: 4.32e5
+        default_bkg_conc_in_vv: 1.0e-20
+      COAnthroEmis25dayTracer:
+        long_name: Anthropogenic_CO_with_25day_lifetime
+        mol_wt_in_g: 28.0
+        lifetime_in_s: 2.16e6
+        default_bkg_conc_in_vv: 1.0e-20
+      COAnthroEmis50dayTracer:
+        long_name: Anthropogenic_CO_with_50day_lifetime
+        mol_wt_in_g: 28.0
+        lifetime_in_s: 4.32e6
+        default_bkg_conc_in_vv: 1.0e-20
+      COUniformEmis25dayTracer:
+        long_name: CO_with_uniform_emission_and_25day_lifetime
+        mol_wt_in_g: 28.0
+        lifetime_in_s: 2.16e6
+        default_bkg_conc_in_vv: 1.0e-20  
+      GlobEmis90dayTracer:
+        long_name: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
+        mol_wt_in_g: 1.0
+        lifetime_in_s: 7.776e6
+        default_bkg_conc_in_vv: 1.0e-20  
+      NHEmis90dayTracer:
+        long_name: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
+        mol_wt_in_g: 1.0
+        lifetime_in_s: 7.776e6
+        default_bkg_conc_in_vv: 1.0e-20  
+      SHEmis90dayTracer:
+        long_name: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
+        mol_wt_in_g: 1.0
+        lifetime_in_s: 7.776e6
+        default_bkg_conc_in_vv: 1.0e-20  
+    
+  wet_deposition:
+    activate: true
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - Rn222
+      - Pb210
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: plane.log.YYYYMMDD
+
+  legacy_bpch:                #          1         2         3
+# NOTE: These might be obsolete in 14.0.0, so comment out
+#    ND51_satellite:
+#      activate: false
+#      output_file: ts_satellite.YYYYMMDD.bpch
+#      tracers: [1, 2, 501]
+#      UTC_hour_for_write: 1
+#      averaging_period_in_LT: [13, 15]
+#      IMIN_and_IMAX_of_region: [1, 72]
+#      JMIN_and_JMAX_of_region: [1, 46]
+#      LMIN_and_LMAX_of_region: [1, 1]
+#
+#    ND51b_satellite:
+#      activate: false
+#      output_file: ts_satellite.YYYYMMDD.bpch
+#      tracers: [1, 2, 501]
+#      UTC_hour_for_write: 1
+#      averaging_period_in_LT: [13, 15]
+#      IMIN_and_IMAX_of_region: [1, 72]
+#      JMIN_and_JMAX_of_region: [1, 46]
+#      LMIN_and_LMAX_of_region: [1, 1]

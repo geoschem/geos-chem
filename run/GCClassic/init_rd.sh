@@ -52,7 +52,7 @@ HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RUNDIR_SIM_NAME}
 """
 
 SUBST_LIST="""
-input_options.yml.templates/input_options.yml.${RUNDIR_SIM_NAME}
+geoschem_config.yml.templates/geoschem_config.yml.${RUNDIR_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RUNDIR_SIM_NAME}
 HISTORY.rc.templates/HISTORY.rc.${RUNDIR_SIM_NAME}
 HEMCO_Config.rc.templates/${RUNDIR_MET_FIELD_CONFIG}

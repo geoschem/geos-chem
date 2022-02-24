@@ -83,7 +83,8 @@ ${NEW_LINE}"
 #### Define function to update config file default settings based on
 #### simulation selected. All settings changed in this function are common
 #### between GEOS-Chem Classic and GCHP. This script mainly now adds species
-###  to input_options.yml and modifies diagnostic output based on simulation type.
+#### geoschem_config.yml and modifies diagnostic output based on simulation
+#### type.
 ####
 #### Argument: Extra option for full-chemistry simulation (string)
 #============================================================================
@@ -155,7 +156,7 @@ function set_common_settings() {
       - ASOG2\
       - ASOG3
 '
-        insert_text "${prev_line}" "${new_line}" input_options.yml
+        insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add complex SOA species TSOA* and TSOG* following TOLU
         prev_line='      - TOLU'
@@ -168,15 +169,15 @@ function set_common_settings() {
       - TSOG2\
       - TSOG3
 '
-        insert_text "${prev_line}" "${new_line}" input_options.yml
+        insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	sed_ie 's/@//' HISTORY.rc
     fi
 
-    # For complexSOA only, remove SOAP and SOAS species from input_options.yml
+    # For complexSOA only, remove SOAP and SOAS species from geoschem_config.yml
     if [[ ${sim_extra_option} =~ "complexSOA" ]]; then
-	remove_text '      - SOAP' input_options.yml
-	remove_text '      - SOAS' input_options.yml
+	remove_text '      - SOAP' geoschem_config.yml
+	remove_text '      - SOAS' geoschem_config.yml
     fi
 
     #------------------------------------------------------------------------
@@ -184,14 +185,14 @@ function set_common_settings() {
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ]]; then
 
-	# Remove non-SVPOA species from input_options.yml
-        remove_text '      - OCPI' input_options.yml
-        remove_text '      - OCPO' input_options.yml
+	# Remove non-SVPOA species from geoschem_config.yml
+        remove_text '      - OCPI' geoschem_config.yml
+        remove_text '      - OCPO' geoschem_config.yml
 
-        # Add semivolatile POA species in input_options.yml
+        # Add semivolatile POA species in geoschem_config.yml
         prev_line='      - N2O5'
         new_line='\      - NAP'
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add OPOA* and OPOG* species following OIO
         prev_line='      - OIO'
@@ -200,7 +201,7 @@ function set_common_settings() {
       - OPOG1\
       - OPOG2
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add POA* and POG* species following PIP
         prev_line='      - PIP'
@@ -209,7 +210,7 @@ function set_common_settings() {
       - POG1\
       - POG2
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's/@//' HISTORY.rc
@@ -227,7 +228,7 @@ function set_common_settings() {
       - DSTAL3\
       - DSTAL4
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add NITD* species after NITs.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after NIT and NITs.
@@ -237,7 +238,7 @@ function set_common_settings() {
       - NITD3\
       - NITD4
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add SO4* species after SO4s.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after SO4 and SO4s.
@@ -247,7 +248,7 @@ function set_common_settings() {
       - SO4D3\
       - SO4D4
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's/@//' HISTORY.rc
@@ -263,7 +264,7 @@ function set_common_settings() {
         new_line='\      - MOPI\
       - MOPO
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's|@||' HISTORY.rc
@@ -280,7 +281,7 @@ function set_common_settings() {
 
 	# Issue a warning
 	printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
-        printf "\nEdit input_options.yml and HISTORY.rc in your new run directory to customize options to only"
+        printf "\nEdit geoschem_config.yml and HISTORY.rc in your new run directory to customize options to only"
         printf "\nwhat you need.\n"
     fi
 
@@ -434,7 +435,7 @@ function set_common_settings() {
       - AW14\
       - AW15
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Special handling for TOMAS-40 bin simulations
         if [[ ${sim_extra_option} = "TOMAS40" ]]; then
@@ -467,7 +468,7 @@ function set_common_settings() {
       - NK39\
       - NK40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add SF16-SF40
 	    prev_line='      - SF15'
@@ -497,7 +498,7 @@ function set_common_settings() {
       - SF39\
       - SF40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add SS16-SS40
     	    prev_line='      - SS15'
@@ -527,7 +528,7 @@ function set_common_settings() {
       - SS39\
       - SS40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add ECOB16-ECOB40
     	    prev_line='      - ECOB15'
@@ -557,7 +558,7 @@ function set_common_settings() {
       - ECOB39\
       - ECOB40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add ECIL15-ECIL40
     	    prev_line='      - ECIL15'
@@ -587,7 +588,7 @@ function set_common_settings() {
       - ECIL39\
       - ECIL40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add OCOB15-OCOB40
     	    prev_line='      - OCOB15'
@@ -617,7 +618,7 @@ function set_common_settings() {
       - OCOB39\
       - OCOB40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add OCIL16-OCIL40
     	    prev_line='      - OCIL15'
@@ -647,7 +648,7 @@ function set_common_settings() {
       - OCIL39\
       - OCIL40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add DUST15-DUST40
     	    prev_line='      - DUST15'
@@ -677,7 +678,7 @@ function set_common_settings() {
       - DUST39\
       - DUST40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add AW15-AW40
     	    prev_line='      - AW15'
@@ -707,7 +708,7 @@ function set_common_settings() {
       - AW39\
       - AW40
 '
-	    insert_text "${prev_line}" "${new_line}" input_options.yml
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
         fi
 
 	# Remove the @ from HISTORY.rc diagnostic fields
@@ -838,7 +839,7 @@ function set_common_settings() {
       - APMSPBIN39\
       - APMSPBIN40
 '
-	insert_text "${prev_line}" "${new_line}" input_options.yml
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's/@//' HISTORY.rc
