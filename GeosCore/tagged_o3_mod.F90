@@ -12,11 +12,11 @@
 !\\
 ! !INTERFACE:
 !
-MODULE TAGGED_O3_MOD
+MODULE Tagged_O3_Mod
 !
 ! !USES:
 !
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
+  USE Precision_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -30,16 +30,16 @@ MODULE TAGGED_O3_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: CHEM_TAGGED_O3
-  PUBLIC  :: INIT_TAGGED_O3
+  PUBLIC  :: Chem_Tagged_O3
+  PUBLIC  :: Init_Tagged_O3
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: GET_REGIONAL_PO3
+  PRIVATE :: Get_Regional_PO3
 !
 ! !REMARKS:
 !  THE SIMPLE TAGGED O3 SIMULATION (default setting) HAS THESE ADVECTED SPECIES:
-!  ----------------------------------------------------------------------------
+!  ------------------ ----------------------------------------------------------
 !  (1 ) O3      : Total O3
 !  (2 ) O3Strat : Stratospheric O3
 !                                                                             .
@@ -92,10 +92,9 @@ MODULE TAGGED_O3_MOD
 !
 
   ! Emission timestep (will be imported from HEMCO)
-  REAL(fp)                     :: TS_EMIS
-
-  ! Species ID flags
-  INTEGER                      :: id_O3Strat
+  REAL(fp)                     :: Ts_Emis         ! Emission timestep [s]
+  REAL(fp)                     :: molcm3_to_kgm3  ! Conversion factor
+  INTEGER                      :: id_O3Strat      ! Strat O3 species ID
 !
 ! !DEFINED PARAMETERS:
 !
@@ -138,10 +137,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PhysConstants            ! SCALE_HEIGHT
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE PhysConstants
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -239,9 +238,10 @@ CONTAINS
     ! Grid box volume [cm3]
     BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
 
-    ! P(O3) [kg]
-    ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
-    PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()/TS_EMIS )
+    ! P(O3) from the GEOS-Chem History ProdLoss collection [molec/cm3/s]
+    ! Unit conversion from [molec/cm3/s] to [kg/m3/s] from Xingpei Ye
+    ! (cf https://github.com/geoschem/geos-chem/issues/1109)
+    PPROD = P24H(I,J,L) * molcm3_to_kgm3 * BOXVL * ( GET_TS_CHEM()/TS_EMIS )
 
     ! Prevent denormal numbers (bmy, 01 Oct 2021)
     PPROD = MAX( PPROD, 1.0e-30_fp )
@@ -339,15 +339,15 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+    USE ERROR_MOD,            ONLY : GEOS_CHEM_STOP
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_State_GC_Mod,     ONLY : HcoState
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE Time_Mod,             ONLY : Get_Ts_Chem
 
     IMPLICIT NONE
 !
@@ -527,11 +527,12 @@ CONTAINS
              CALL GET_REGIONAL_PO3(I, J, L, P24Hptr, PP, State_Grid, State_Met)
           ENDIF
 
-          ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
+          ! L(O3) is now in [molec/cm3/s]
+          ! cf https://github.com/geoschem/geos-chem/issues/1109
           ! Prevent denormal numbers (bmy, 01 Oct 2021
           LL = 0.0_fp
           IF ( State_Met%InTroposphere(I,J,L) ) THEN
-             LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
+             LL = L24H(I,J,L) * molcm3_to_kgm3 * BOXVL * DT
              LL = MAX( LL, 1.0e-30_fp )
           ENDIF
 
@@ -543,11 +544,7 @@ CONTAINS
 
           ! Production of tagged O3 species [kg/s]
           IF ( State_Diag%Archive_Prod ) THEN
-             IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
-                !-------------------------------------------------------------
-                ! This seems to cause a floating point exception error
-                !State_Diag%Prod(I,J,L,N) = P24Hptr(I,J,L) * BOXVL / TS_EMIS
-                !-------------------------------------------------------------
+             IF ( PP(I,J,L,N) > 0.0_fp ) THEN
                 State_Diag%Prod(I,J,L,N) = PP(I,J,L,N) * BOXVL / TS_EMIS
              ENDIF
           ENDIF
@@ -612,6 +609,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AVO
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
@@ -635,6 +633,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER            :: id_O3
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -650,16 +650,26 @@ CONTAINS
     ! Exit immediately if this is a dry-run
     IF ( Input_Opt%DryRun ) RETURN
 
+    ! Index of O3 (should be 1)
+    id_O3 = Ind_('O3')
+    IF ( id_O3 <= 0 ) THEN
+       ErrMsg = 'O3 is an undefined species!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Define species ID flag
     id_O3Strat = Ind_('O3Strat')
-
-    ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
     IF ( id_O3Strat <= 0 ) THEN
        ErrMsg = 'O3Strat is an undefined species!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    ! Conversion factor from molec/cm3 to kg/m3
+    ! cf https://github.com/geoschem/geos-chem/issues/1109
+    molcm3_to_kgm3= ( State_Chm%SpcData(id_O3)%Info%MW_g * 1000.0_fp ) / AVO
+    
     ! Safety valve
     IF ( State_Chm%nAdvect > N_TAGGED ) THEN
        ErrMsg = 'State_Chm%nAdvect is too large for Tagged O3!'

@@ -998,6 +998,11 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	# For metals, use the extra option is in the restart file name
 	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
+    elif [[ "x${sim_name}" == "xtagO3" ]]; then
+
+	# For TagO3, we now use a restart file with all tagged O3 species
+	sample_rst=${rst_root}/v2022-02/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
     else
 
 	# For other specialty simulations, use previoiusly saved restarts
@@ -1064,8 +1069,7 @@ if [[ "x${sim_extra_option}" == "xaciduptake"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
       "x${sim_extra_option}" == "xAPM"               ||
       "x${sim_name}"         == "xPOPs"              ||
-      "x${sim_name}"         == "xtagCH4"            ||
-      "x${sim_name}"         == "xtagO3"             ]]; then
+      "x${sim_name}"         == "xtagCH4"        ]]; then
     old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFYO"
     new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY  "
     sed_ie "s|${old}|${new}|" HEMCO_Config.rc
