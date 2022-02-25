@@ -40,6 +40,7 @@ MODULE QFYAML_Mod
   PUBLIC :: QFYAML_CleanUp
   PUBLIC :: QFYAML_Get
   PUBLIC :: QFYAML_Check
+  PUBLIC :: QFYAML_FindDepth
   PUBLIC :: QFYAML_FindNextHigher
   PUBLIC :: QFYAML_Init
   PUBLIC :: QFYAML_Merge
@@ -741,7 +742,8 @@ CONTAINS
     ! SAVEd variables
     LOGICAL,                      SAVE :: is_list_var                = .FALSE.
     INTEGER,                      SAVE :: last_pos                   = 0
-    INTEGER,                      SAVE :: cat_pos(20)                = 0
+    INTEGER,                      SAVE :: indent                     = 0
+    INTEGER,                      SAVE :: cat_pos(QFYAML_MaxStack)   = 0
     INTEGER,                      SAVE :: cat_index                  = 0
     CHARACTER(LEN=QFYAML_NamLen), SAVE :: cat_stack(QFYAML_MaxStack) = ""
 
@@ -805,15 +807,19 @@ CONTAINS
           ! If this category starts further along the line than the last
           ! category, then increment index and add its position to the stack.
           IF ( pos > last_pos ) THEN
+             indent             = last_pos - pos
              cat_index          = cat_index + 1
              cat_pos(cat_index) = pos
           ENDIF
 
           ! If this category starts earlier along the line than the last
           ! category, then decrement index and add its position to the stack.
-          ! last category, then this
+          ! NOTE: This algorithm will work best if we assume a constant
+          ! indentation level.  Best to use an editor such as emacs
+          ! to enforce a consistent indentation throughout the file.
           IF ( pos < last_pos ) THEN
-             cat_index          = cat_index - 1
+             indent    = last_pos - pos
+             cat_index = cat_index - ( indent / 2 )
              cat_pos(cat_index) = pos
           ENDIF
 
@@ -821,7 +827,7 @@ CONTAINS
           ! character of the line, then set index to 1 and store its
           ! starting position in the first element of the stack.
           IF ( cat_index <= 0 .or. pos == 1 ) THEN
-             cat_index          = 1
+             cat_index = 1
              cat_pos(cat_index) = pos
           ENDIF
 
@@ -927,9 +933,9 @@ CONTAINS
           category = cat_stack(C)
           IF ( C > 1 ) THEN
              DO CC = C-1, 1, -1
-                category = TRIM( cat_stack(CC) ) // &
-                           QFYAML_Category_Separator // &
-                           TRIM( category )
+                category = TRIM( cat_stack(CC)       )                    // &
+                           QFYAML_Category_Separator                      // &
+                           TRIM( category            )
              ENDDO
           ENDIF
           EXIT
@@ -941,15 +947,14 @@ CONTAINS
           category = cat_stack( MAX( C-1, 1 ) )
           IF ( C-1 > 1 ) THEN
              DO CC = C-2, 1, -1
-                category = TRIM( cat_stack(CC) ) // &
-                           QFYAML_Category_Separator // &
-                           TRIM( category )
+                category = TRIM( cat_stack(CC)       )                   // &
+                           QFYAML_Category_Separator                     // &
+                           TRIM( category            )
              ENDDO
           ENDIF
           EXIT
        ENDIF
     ENDDO
-
 
     ! Test if the variable is a YAML anchor
     IF ( var_name == "<<" ) THEN
@@ -1489,6 +1494,51 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE QFYAML_check
+!EOC
+!------------------------------------------------------------------------------
+! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
+! Based on existing package https://github.com/jannisteunissen/config_fortran
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: QFYAML_FindNextHigher
+!
+! !DESCRIPTION: For a given category or variable name, returns its depth
+!  (i.e. indentation level).  This is equal to the number of separator
+!  strings.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION QFYAML_FindDepth( name ) RESULT( depth )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: name
+!
+! RETURN VALUE:
+!
+    INTEGER                       :: depth
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: ix, c
+
+    ! Keep searching for all category separators
+    ! until there aren't any more.
+    depth = 1
+    c     = LEN_TRIM( name )
+    DO
+       ix = INDEX( name(1:c), QFYAML_Category_Separator, back=.TRUE. )
+       IF ( ix <= 1 ) EXIT
+       depth = depth + 1
+       c = ix - 1
+    ENDDO
+
+  END FUNCTION QFYAML_FindDepth
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
