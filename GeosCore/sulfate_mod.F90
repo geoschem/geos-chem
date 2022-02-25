@@ -7883,7 +7883,7 @@ CONTAINS
 
        SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
                  / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g )
-
+       !print*,'SO4OXID is ',SO4OXID, I,J,L
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
