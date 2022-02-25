@@ -36,15 +36,8 @@ MODULE Input_Mod
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES:
+! !DEFINED PARAMETERS:
 !
-  ! QFYAML missing values
-  LOGICAL,           PARAMETER, PRIVATE :: MISSING_BOOL = .FALSE.
-  INTEGER,           PARAMETER, PRIVATE :: MISSING_INT  = -999
-  REAL(yp),          PARAMETER, PRIVATE :: MISSING_MW   = 1.0_yp
-  REAL(yp),          PARAMETER, PRIVATE :: MISSING_REAL = -999e+0_yp
-  CHARACTER(LEN=7),  PARAMETER, PRIVATE :: MISSING_STR  = 'UNKNOWN'
-
   ! YAML configuration file name to be read
   CHARACTER(LEN=21), PARAMETER, PRIVATE :: configFile ='./geoschem_config.yml'
 
@@ -174,6 +167,16 @@ CONTAINS
     CALL Config_Transport( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_Transport"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
+    ! Transport settings
+    CALL Config_PassiveSpecies( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_PassiveSpecies"!'
        CALL GC_Error( errMsg, RC, thisLoc )
        CALL QFYAML_CleanUp( Config         )
        CALL QFYAML_CleanUp( ConfigAnchored )
@@ -315,14 +318,6 @@ CONTAINS
 !          CALL READ_CH4_MENU( Input_Opt, RC )
 !          IF ( RC /= GC_SUCCESS ) THEN
 !             errMsg = 'Error in "Read_CH4_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
-!
-!       ELSE IF ( INDEX( LINE, 'PASSIVE SPECIES' ) > 0 ) THEN
-!          CALL READ_PASSIVE_SPECIES_MENU( Input_Opt, RC )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_Passive_Species_Menu"!'
 !             CALL GC_Error( errMsg, RC, thisLoc )
 !             RETURN
 !          ENDIF
@@ -478,7 +473,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "simulation%start_date"
     a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -512,7 +507,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "simulation%end_date"
     a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -552,7 +547,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "simulation%root_data_dir"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -575,7 +570,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "simulation%met_field"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -607,7 +602,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "simulation%name"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -650,7 +645,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "simulation%species_database_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -663,7 +658,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "simulation%debug_printout"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -676,7 +671,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "simulation%use_gcclassic_timers"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -874,7 +869,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "grid%resolution"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -903,7 +898,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "grid%number_of_levels"
     v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -916,7 +911,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "grid%longitude%range"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -942,7 +937,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "grid%longitude%center_at_180"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -955,7 +950,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "grid%latitude%range"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -997,7 +992,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "grid%latitude%half_size_polar_boxes"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1010,7 +1005,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "grid%nested_grid_simulation%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1031,7 +1026,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "grid%nested_grid_simulations%buffer_zone_NSEW"
     a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1123,8 +1118,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Grid_Mod,     ONLY : GrdState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1166,7 +1161,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "timesteps%transport_timestep_in_s"
     v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1180,7 +1175,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "timesteps%chemistry_timestep_in_s"
     v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1194,7 +1189,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "timesteps%radiation_timestep_in_s"
     v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1328,7 +1323,7 @@ CONTAINS
     CHARACTER(LEN=QFYAML_NamLen) :: key
 
     ! String arrays
-    CHARACTER(LEN=14)            :: a_str(QFYAML_MaxArr)
+    CHARACTER(LEN=QFYAML_NamLen) :: a_str(QFYAML_MaxArr)
 
     !========================================================================
     ! Config_Transport begins here!
@@ -1344,7 +1339,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%transport%gcclassic_tpcore%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1357,7 +1352,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%transport%gcclassic_tpcore%fill_negative_values"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1370,7 +1365,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "operations%transport%gcclassic_tpcore%iord_jord_kord"
     a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1385,7 +1380,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "operations%transport%transported_species"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC, dynamic_size=.TRUE. )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC, dynamic_size=.TRUE. )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1468,7 +1463,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : RoundOff
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1515,7 +1510,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%carbon%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1528,7 +1523,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%carbon%use_brown_carbon"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1541,7 +1536,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%carbon%enhance_black_carbon_absorption%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1554,35 +1549,33 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "aerosols%carbon%enhance_black_carbon_absorption%hydrophilic"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%BCAE_1
-    Input_Opt%BCAE_1 = Roundoff( Input_Opt%BCAE_1, 2 )
+    Input_Opt%BCAE_1 = Cast_and_RoundOff( v_str, places=2 )
 
     !------------------------------------------------------------------------
     ! Define BC absorption enhancement (xnw, 8/24/15)
     !------------------------------------------------------------------------
     key   = "aerosols%carbon%enhance_black_carbon_absorption%hydrophobic"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%BCAE_2
-    Input_Opt%BCAE_2 = Roundoff( Input_Opt%BCAE_2, 2 )
+    Input_Opt%BCAE_2 = Cast_and_RoundOff( v_str, places=2 )
 
     !------------------------------------------------------------------------
     ! Use secondary organic aerosols?
     !------------------------------------------------------------------------
     key    = "aerosols%complex_SOA%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1595,7 +1588,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%complex_SOA%semivolatile_POA"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1608,7 +1601,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%dust%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1621,7 +1614,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%dust%acid_uptake_on_dust"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1634,7 +1627,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%sea_salt%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1647,37 +1640,35 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "aerosols%sea_salt%SALA_radius_bin_in_um"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( a_str(1), * ) Input_Opt%SALA_Redge_um(1)
-    READ( a_str(2), * ) Input_Opt%SALA_Redge_um(2)
-    Input_Opt%SALA_Redge_um(1) = RoundOff( Input_Opt%SALA_Redge_um(1), 2 )
-    Input_Opt%SALA_Redge_um(2) = RoundOff( Input_Opt%SALA_Redge_um(2), 2 )
+    Input_Opt%SALA_Redge_um(1) = Cast_and_RoundOff( a_str(1), places=2 )
+    Input_Opt%SALA_Redge_um(2) = Cast_and_RoundOff( a_str(2), places=2 )
 
     !------------------------------------------------------------------------
     ! Coarse mode seasalt radii bin edges [um]
     !------------------------------------------------------------------------
     key   = "aerosols%sea_salt%SALC_radius_bin_in_um"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( a_str(1), * ) Input_Opt%SALC_Redge_um(1)
-    READ( a_str(2), * ) Input_Opt%SALC_Redge_um(2)
+    Input_Opt%SALC_Redge_um(1) = Cast_and_RoundOff( a_str(1), places=2 )
+    Input_Opt%SALC_Redge_um(2) = Cast_and_RoundOff( a_str(2), places=2 )
 
     !------------------------------------------------------------------------
     ! Use marine organic aerosols?
     !------------------------------------------------------------------------
     key    = "aerosols%sea_salt%marine_organic_aerosols"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1690,7 +1681,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%stratosphere%settle_strat_aerosol"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1703,7 +1694,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%stratosphere%polar_strat_clouds%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1716,7 +1707,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%stratosphere%polar_strat_clouds%het_chem"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1729,7 +1720,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%stratosphere%allow_homogeneous_NAT"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1742,35 +1733,33 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "aerosols%stratosphere%NAT_supercooling_req_in_K"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%T_NAT_SUPERCOOL
-    Input_Opt%T_NAT_SUPERCOOL = RoundOff( Input_Opt%T_NAT_SUPERCOOL, 2 )
+    Input_Opt%T_NAT_SUPERCOOL = Cast_and_RoundOff( v_str, places=2 )
 
     !------------------------------------------------------------------------
     ! Ice supersaturation ratio requirement
     !------------------------------------------------------------------------
     key   = "aerosols%stratosphere%supersat_factor_req_for_ice_nucl"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%P_ICE_SUPERSAT
-    Input_Opt%P_ICE_SUPERSAT = RoundOff( Input_Opt%P_ICE_SUPERSAT, 2 )
+    Input_Opt%P_ICE_SUPERSAT = Cast_and_RoundOff( v_str, places=2 )
 
     !------------------------------------------------------------------------
     ! Include stratospheric aerosols optical depths?
     !------------------------------------------------------------------------
     key    = "aerosols%stratosphere%calc_strat_aod"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1783,7 +1772,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%sulfate%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1796,7 +1785,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "aerosols%sulfate%metal_cat_SO2_oxidation"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2212,7 +2201,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : RoundOff
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2244,7 +2233,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
+    errMsg  = ''
     thisLoc = ' -> at Config_Chemistry (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
@@ -2252,7 +2241,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%chemistry%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2265,7 +2254,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%chemistry%linear_chemistry_aloft%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2278,7 +2267,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%chemistry%linear_chemistry_aloft%use_linoz_for_O3"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2292,7 +2281,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%chemistry%active_strat_H2O%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2305,7 +2294,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%chemistry%active_strat_H2O%use_static_bnd_cond"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2318,14 +2307,13 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "operations%chemistry%gamma_HO2"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%GAMMA_HO2
-    Input_Opt%GAMMA_HO2 = RoundOff( Input_Opt%GAMMA_HO2, 2 )
+    Input_Opt%GAMMA_HO2 = Cast_and_RoundOff( v_str, places=2 )
 
     ! Return success
     RC = GC_SUCCESS
@@ -2375,7 +2363,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : RoundOff
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2422,7 +2410,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2435,7 +2423,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "operations%rrtmg_rad_transfer_model%aod_wavelengths_in_nm"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC, dynamic_size=.TRUE. )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC, dynamic_size=.TRUE. )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2449,8 +2437,7 @@ CONTAINS
        I = I + 1
        Input_Opt%nWvSelect      = I
        Input_Opt%StrWvSelect(I) = TRIM( ADJUSTL( a_str(N) ) )
-       READ( a_str(N), *      )   Input_Opt%WvSelect(I)
-       Input_Opt%WvSelect(I)    = RoundOff( Input_Opt%WvSelect(I), 2 )
+       Input_Opt%WvSelect(I)    = Cast_and_RoundOff( a_str(N), places=2 )
     ENDDO
 
     !------------------------------------------------------------------------
@@ -2458,7 +2445,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%longwave_fluxes"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2471,7 +2458,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%shortwave_fluxes"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2484,7 +2471,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%clear_sky_flux"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2497,7 +2484,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%all_sky_flux"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2589,7 +2576,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : RoundOff
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2630,7 +2617,7 @@ CONTAINS
     !-----------------------------------------------------------------
     key   = "operations%photolysis%input_dir"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2643,7 +2630,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_online_O3_from_model"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2656,7 +2643,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_column_O3_from_met"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2669,7 +2656,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_TOMS_SBUV_O3"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2682,7 +2669,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%photolysis%photolyze_nitrate_aerosol%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2696,14 +2683,13 @@ CONTAINS
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale_JHNO3"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%hvAerNIT_JNITs
-    Input_Opt%hvAerNIT_JNITs = Roundoff( Input_Opt%hvAerNIT_JNITs, 3 )
+    Input_Opt%hvAerNIT_JNITs = Cast_and_RoundOff( v_str, places=3 )
 
     !------------------------------------------------------------------------
     ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
@@ -2711,14 +2697,13 @@ CONTAINS
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale_JHNO2"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%hvAerNIT_JNIT
-    Input_Opt%hvAerNIT_JNIT = Roundoff( Input_Opt%hvAerNIT_JNIT, 3 )
+    Input_Opt%hvAerNIT_JNIT = Cast_and_RoundOff( v_str, places=3 )
 
     !------------------------------------------------------------------------
     ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis
@@ -2726,14 +2711,13 @@ CONTAINS
     key   = &
      "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_A_HONO"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%JNITChanA
-    Input_Opt%JNITChanA = RoundOff( Input_Opt%JNITChanA, 3 )
+    Input_Opt%JNITChanA = Cast_and_RoundOff( v_str, places=3 )
 
     !------------------------------------------------------------------------
     ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis
@@ -2741,14 +2725,13 @@ CONTAINS
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_B_NO2"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%JNITChanB
-    Input_Opt%JNITChanB= RoundOff( Input_Opt%JNITChanB, 3 )
+    Input_Opt%JNITChanB = Cast_and_RoundOff( v_str, places=3 )
 
     !========================================================================
     ! Error check settings
@@ -2918,7 +2901,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%convection%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2931,7 +2914,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%pbl_mixing%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2944,7 +2927,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%pbl_mixing%use_non_local_pbl"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2991,8 +2974,8 @@ CONTAINS
 !
 ! !IROUTINE: config_drydep_wetdep
 !
-! !DESCRIPTION: Subroutine READ\_DEPOSITION\_MENU reads the DEPOSITION MENU
-!  section of the GEOS-Chem input file.
+! !DESCRIPTION: Copies drydep and wetdep information from the Config object
+!  to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -3003,7 +2986,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : RoundOff
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3043,7 +3026,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%dry_deposition%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3056,7 +3039,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%dry_deposition%CO2_effect%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3069,35 +3052,33 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "operations%dry_deposition%CO2_effect%CO2_level"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%CO2_LEVEL
-    Input_Opt%CO2_LEVEL = RoundOff( Input_Opt%CO2_LEVEL, 2 )
+    Input_Opt%CO2_LEVEL = Cast_and_RoundOff( v_str, places=2 )
 
     !------------------------------------------------------------------------
     ! Reference CO2 level
     !------------------------------------------------------------------------
     key   = "operations%dry_deposition%CO2_effect%reference_CO2_level"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%CO2_REF
-    Input_Opt%CO2_REF = RoundOff( Input_Opt%CO2_REF, 2 )
+    Input_Opt%CO2_REF = Cast_and_RoundOff( v_str, places=2 )
 
     !------------------------------------------------------------------------
     ! Diag for RA_alt above surface in meters
     !------------------------------------------------------------------------
     key   = "operations%dry_deposition%diag_alt_above_sfc_in_m"
     v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3110,7 +3091,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "operations%wet_deposition%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3231,7 +3212,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%gamap%diaginfo_dat_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3244,7 +3225,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%gamap%tracerinfo_dat_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3787,8 +3768,8 @@ CONTAINS
 !
 ! !IROUTINE: config_planeflight
 !
-! !DESCRIPTION: Copies grid information from the Config object
-!  to Input_Opt, and does necessary checks.
+! !DESCRIPTION: Copies PlaneFlight diagnostic information from the Config
+!  object to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -3838,7 +3819,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "extra_diagnostics%planeflight%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3851,7 +3832,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%planeflight%flight_track_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3864,7 +3845,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%planeflight%output_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3909,8 +3890,8 @@ CONTAINS
 !
 ! !IROUTINE: read_obspack_menu
 !
-! !DESCRIPTION: Subroutine READ\_OBSPACK\_MENU reads the OBSPACK MENU
-!  section of the GEOS-Chem input file.  This turns on the ObsPack diagnostic.
+! !DESCRIPTION: Copies Obspack diagnostic  information from the Config
+!  object to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -3963,7 +3944,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "extra_diagnostics%obspack%activate"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3976,7 +3957,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key    = "extra_diagnostics%obspack%quiet_logfile_output"
     v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3989,7 +3970,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%obspack%input_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -4002,7 +3983,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%obspack%output_file"
     v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -4015,7 +3996,7 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%obspack%output_species"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -5109,169 +5090,199 @@ CONTAINS
 !    RC = GC_SUCCESS
 !
 !  END SUBROUTINE READ_POPS_MENU
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_passive_species_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive
-!!  species menu section of the GEOS-Chem input file; this defines passive
-!!  species to be used for this simulation.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_PASSIVE_SPECIES_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!!
-!! !REVISION HISTORY:
-!!  04 Sep 2015 - C. Keller   - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: N, P, D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg, thisLoc
+! !IROUTINE: read_passive_species_menu
 !
-!    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive
+!  species menu section of the GEOS-Chem input file; this defines passive
+!  species to be used for this simulation.
+!\\
+!\\
+! !INTERFACE:
 !
-!    !=================================================================
-!    ! READ_PASSIVE_SPECIES_MENU begins here!
-!    !=================================================================
+  SUBROUTINE Config_PassiveSpecies( Config, Input_Opt, RC )
 !
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_Passive_Species_Menu (in GeosCore/input_mod.F90)'
+! !USES:
 !
-!    ! Initialize
-!    P = 0
-!    D = 0
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
-!    IF ( Input_Opt%amIRoot ) THEN
-!       WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
-!       WRITE( 6, '(  a)' ) '---------------------'
-!    ENDIF
+! !INPUT/OUTPUT PARAMETERS:
 !
-!    ! Do until exit
-!    DO
+    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
-!       ! Read passive species information for each passive species
-!       ! Every passive species line is expected to have 4 entries:
-!       ! - Species name
-!       ! - Species molecular weight
-!       ! - Atmospheric lifetime (s)
-!       ! - Initial atmospheric concentration (v/v)
-!       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'Passive Species', RC )
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          CALL GC_Error( errMsg, RC, thisLoc )
-!          RETURN
-!       ENDIF
+! !OUTPUT PARAMETERS:
 !
-!       ! Exit here if separator line is encountered
-!       IF ( INDEX ( TRIM(SUBSTRS(1)), '-----' ) > 0 ) EXIT
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-!       ! Make sure there are at least 4 entries
-!       IF ( N < 4 ) THEN
-!          errMsg = 'Each passive species is expected to have '      // &
-!                   'at least four entries: Name, MW, TAU, initial ' // &
-!                   'concentration, and long name (optional).'
-!          CALL GC_Error( errMsg, RC, thisLoc )
-!          RETURN
-!       ENDIF
+! !REVISION HISTORY:
+!  04 Sep 2015 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!       ! Increase number of passive species by one
-!       P = P + 1
+! !LOCAL VARIABLES:
 !
-!       ! Stop simulation and print warning if we exceed maximum number
-!       ! of passive species hardcoded in input_opt_mod.F90.
-!       IF ( P > Input_Opt%Max_PassiveSpc ) THEN
-!          errMsg = 'Number of passive species exceeds maximum. ' // &
-!                   'This value can be modified in input_opt_mod.F90.'
-!          CALL GC_Error( errMsg, RC, thisLoc )
-!          RETURN
-!       ENDIF
-!
-!       ! Read and store species information
-!       Input_Opt%PASSIVE_ID(P)   = P
-!       Input_Opt%PASSIVE_NAME(P) = TRIM( SUBSTRS(1) )
-!       READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(P)
-!       READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
-!       READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
-!
-!       ! Check if optional entry for long name is included
-!       IF ( N > 4 ) THEN
-!          READ( SUBSTRS(5), * ) Input_Opt%PASSIVE_LONGNAME(P)
-!       ENDIF
-!
-!       ! Determine if the passive species decays (i.e. if it has
-!       ! an atmospheric lifetime that is not -1).  This will allow
-!       ! us to skip those passive species that do not decay in
-!       ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-!       IF ( Input_Opt%PASSIVE_TAU(P) > 0.0_fp ) THEN
-!          D                            = D + 1
-!          Input_Opt%NPASSIVE_DECAY     = D
-!          Input_Opt%PASSIVE_DECAYID(D) = P
-!       ENDIF
-!
-!       ! Verbose
-!       IF ( Input_Opt%amIRoot ) THEN
-!          WRITE( 6, '(a)' ) 'Added passive species: '
-!          WRITE( 6, 110   ) ' - Species name                : ', &
-!                TRIM( Input_Opt%PASSIVE_NAME(P) )
-!          WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', &
-!                Input_Opt%PASSIVE_MW(P)
-!          WRITE( 6, 130   ) ' - Lifetime [s]                : ', &
-!                Input_Opt%PASSIVE_TAU(P)
-!          WRITE( 6, 130   ) ' - Initial concentration [v/v] : ', &
-!                Input_Opt%PASSIVE_INITCONC(P)
-!          WRITE( 6, 110   ) ' - Species long name           : ', &
-!                TRIM( Input_Opt%PASSIVE_LONGNAME(P) )
-!       ENDIF
-!
-!    ENDDO
-!
-!    IF ( P < 0 ) THEN
-!       errMsg = 'Cannot add passive species '     // &
-!                TRIM(Input_Opt%PASSIVE_NAME(P) ) // &
-!                ': # of passive species is smaller than 1!'
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    ! Total number of passive species
-!    Input_Opt%NPASSIVE = P
-!
-!110 FORMAT( A, A )
-!120 FORMAT( A, F10.2  )
-!130 FORMAT( A, ES10.2 )
-!
-!    ! Return success
-!    RC = GC_SUCCESS
-!
-!  END SUBROUTINE READ_PASSIVE_SPECIES_MENU
+    ! Scalars
+    INTEGER                      :: C
+    INTEGER                      :: P
+    REAL(yp)                     :: v_real
+
+    ! Strings
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
+
+    ! String arrays
+    CHARACTER(LEN=QFYAML_NamLen) :: passSpcName(Input_Opt%Max_PassiveSpc)
+
+    !========================================================================
+    ! Config_PassiveSpecies
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Read_Passive_Species_Menu (in module GeosCore/input_mod.F90)'
+
+    !========================================================================
+    ! Check for passive species
+    !========================================================================
+    key = "operations%transport%passive_species%"
+    CALL QFYAML_FindNextHigher( Config,             TRIM( key ),             &
+                                Input_Opt%nPassive, passSpcName             )
+
+    ! Return if there are no passive species
+    IF ( Input_Opt%nPassive == 0 ) RETURN
+
+    ! Throw an error if there are more than the max # of passive species
+    IF ( Input_Opt%nPassive > Input_Opt%Max_PassiveSpc ) THEN
+       errMsg = 'Number of passive species exceeds maximum. ' // &
+            'This value can be modified in input_opt_mod.F90.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Copy the passive species names & metadata into Input_Opt
+    !========================================================================
+
+    ! Write header
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
+       WRITE( 6, '(  a)' ) '---------------------'
+    ENDIF
+
+    ! Loop over passive species
+    DO P = 1, Input_Opt%nPassive
+
+       !---------------------------------------------------------------------
+       ! Passive species index and name
+       !---------------------------------------------------------------------
+
+       ! Index
+       Input_Opt%Passive_Id(P)   = P
+
+       ! NOTE: passSpcName is the full YAML variable name
+       ! (e.g. operations%trasnport%passive_species%...",
+       ! but we'll extract the last part of that for saving into
+       ! Input_Opt%Passive_Name.
+       C = INDEX( passSpcName(P), '%', back=.TRUE. )
+       Input_Opt%Passive_Name(P) = TRIM( passSpcName(P)(C+1:) )
+
+       !---------------------------------------------------------------------
+       ! Passive species long name (if found)
+       !---------------------------------------------------------------------
+       key = TRIM( passSpcName(P) ) // '%long_name'
+       v_str = MISSING_STR
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       Input_Opt%Passive_LongName(P) = TRIM( v_str )
+
+       !---------------------------------------------------------------------
+       ! Passive species molecular weight (g)
+       !---------------------------------------------------------------------
+       key = TRIM( passSpcName(P) ) // '%mol_wt_in_g'
+       v_str = MISSING_STR
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       Input_Opt%Passive_MW(P) = Cast_and_RoundOff( v_str, places=2 )
+
+       !---------------------------------------------------------------------
+       ! Passive species lifetime (s); -1 means it never decays
+       !---------------------------------------------------------------------
+       key = TRIM( passSpcName(P) ) // '%lifetime_in_s'
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       Input_Opt%Passive_Tau(P) = Cast_and_RoundOff( v_str, places=-1 )
+
+       ! Determine if the passive species decays (i.e. if it has
+       ! an atmospheric lifetime that is not -1).  This will allow
+       ! us to skip those passive species that do not decay in
+       ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
+       IF ( Input_Opt%Passive_Tau(P) > 0.0_fp ) THEN
+          Input_Opt%nPassive_Decay = Input_Opt%nPassive_Decay + 1
+          Input_Opt%Passive_DecayId(Input_Opt%nPassive_Decay) = P
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Default background concentration (v/v)
+       !---------------------------------------------------------------------
+       key = TRIM( passSpcName(P) ) // '%default_bkg_conc_in_vv'
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       Input_Opt%Passive_Initconc(P) = Cast_and_RoundOff( v_str, places=-1 )
+
+       !---------------------------------------------------------------------
+       ! Logfile output
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%amIRoot ) THEN
+          WRITE( 6, '(a)' ) 'Added passive species: '
+          WRITE( 6, 110   ) ' - Species name                : ',             &
+                TRIM( Input_Opt%Passive_Name(P) )
+          WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ',             &
+                Input_Opt%Passive_MW(P)
+          WRITE( 6, 130   ) ' - Lifetime [s]                : ',             &
+                Input_Opt%Passive_TAU(P)
+          WRITE( 6, 130   ) ' - Initial concentration [v/v] : ',             &
+                Input_Opt%Passive_InitConc(P)
+          WRITE( 6, 110   ) ' - Species long name           : ',             &
+                TRIM( Input_Opt%Passive_LongName(P) )
+       ENDIF
+    ENDDO
+
+    ! Format statememnts
+110 FORMAT( A, A )
+120 FORMAT( A, F10.2  )
+130 FORMAT( A, ES10.2 )
+
+  END SUBROUTINE Config_PassiveSpecies
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

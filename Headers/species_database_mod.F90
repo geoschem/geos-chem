@@ -142,7 +142,7 @@ CONTAINS
     REAL(f4)                    :: wd_retfactor_luo
 
     ! Strings
-    CHARACTER(LEN=14)           :: tag
+    CHARACTER(LEN=17)           :: tag
     CHARACTER(LEN=31)           :: spc
     CHARACTER(LEN=255)          :: v_str
     CHARACTER(LEN=255)          :: key
@@ -371,19 +371,19 @@ CONTAINS
           ! Set intial values to default "missing" values
           ! If the tag isn't found for a given species, then
           ! it will be given the appropriate missing value.
-          a_real_2 = MISSING_R4
-          a_real_3 = MISSING_R4
+          a_real_2 = MISSING_REAL
+          a_real_3 = MISSING_REAL
           v_bool   = MISSING_BOOL
           v_int    = MISSING_INT
-          v_real   = MISSING_R4
+          v_real   = MISSING_REAL
           v_str    = MISSING_STR
 
           ! Create search key for each variable
           key = TRIM( spc ) // '%' // TRIM( tags(N) )
 
-          ! Set a flag if "Luo" is not found in the key 
+          ! Set a flag if "Luo" is not found in the key
           no_luo = ( INDEX( key, "Luo" ) <= 0 )
-          
+
           ! Save into the proper field of the species database
           ! NOTE: Attempt to round off values to 2 decimal places,
           ! unless the values can be either too large or too small
@@ -413,10 +413,10 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              dd_dvzaersnow_luo = Cast_and_RoundOff( v_real, 2 )
-             IF ( dd_dvzaersnow_luo /= MISSING_R4 ) THEN
+             IF ( dd_dvzaersnow_luo /= MISSING_REAL ) THEN
                 found_dd_dvzaersnow_luo = .TRUE.
-             ENDIF             
-             
+             ENDIF
+
           ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
@@ -428,9 +428,9 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              dd_dvzminval_luo(1) = Cast_and_RoundOff( a_real_2(1), 2 )
              dd_dvzminval_luo(2) = Cast_and_RoundOff( a_real_2(2), 2 )
-             IF ( dd_dvzminval_luo(1) /= MISSING_R4 ) THEN
+             IF ( dd_dvzminval_luo(1) /= MISSING_REAL ) THEN
                 found_dd_dvzminval_luo = .TRUE.
-             ENDIF  
+             ENDIF
 
           ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
@@ -471,7 +471,7 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              henry_cr_luo = DBLE( v_real )           ! Don't round off
-             IF ( henry_cr_luo /= MISSING_R4 ) THEN
+             IF ( henry_cr_luo /= MISSING_REAL ) THEN
                 found_henry_cr_luo = .TRUE.
              ENDIF
 
@@ -484,7 +484,7 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              henry_k0_luo = DBLE( v_real )           ! Don't round off
-             IF ( henry_k0_luo /= MISSING_R4 ) THEN
+             IF ( henry_k0_luo /= MISSING_REAL ) THEN
                 found_henry_k0_luo = .TRUE.
              ENDIF
 
@@ -626,7 +626,7 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_convfaci2g_luo = DBLE( v_real )      ! Don't round off
-             IF ( wd_convfaci2g_luo /= MISSING_R4 ) THEN
+             IF ( wd_convfaci2g_luo /= MISSING_REAL ) THEN
                 found_wd_convfaci2g_luo = .TRUE.
              ENDIF
 
@@ -643,7 +643,7 @@ CONTAINS
              wd_kcscalefac_luo(1) = Cast_and_RoundOff( a_real_3(1), 2 )
              wd_kcscalefac_luo(2) = Cast_and_RoundOff( a_real_3(2), 2 )
              wd_kcscalefac_luo(3) = Cast_and_RoundOff( a_real_3(3), 2 )
-             IF ( wd_kcscalefac_luo(1) /= MISSING_R4 ) THEN
+             IF ( wd_kcscalefac_luo(1) /= MISSING_REAL ) THEN
                 found_wd_kcscalefac_luo = .TRUE.
              ENDIF
 
@@ -686,7 +686,7 @@ CONTAINS
              wd_rainouteff_luo(1) = Cast_and_RoundOff( a_real_3(1), 2 )
              wd_rainouteff_luo(2) = Cast_and_RoundOff( a_real_3(2), 2 )
              wd_rainouteff_luo(3) = Cast_and_RoundOff( a_real_3(3), 2 )
-             IF ( wd_rainouteff_luo(1) /= MISSING_R4 ) THEN
+             IF ( wd_rainouteff_luo(1) /= MISSING_REAL ) THEN
                 found_wd_rainouteff_luo = .TRUE.
              ENDIF
 
@@ -699,7 +699,7 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_retfactor_luo = Cast_and_RoundOff( v_real, 2 )
-             IF ( wd_retfactor_luo /= MISSING_R4 ) THEN
+             IF ( wd_retfactor_luo /= MISSING_REAL ) THEN
                 found_wd_retfactor_luo = .TRUE.
              ENDIF
 
@@ -823,7 +823,7 @@ CONTAINS
 
        ! Debug printout
        IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
-       
+
        ! Free pointer
        ThisSpc => NULL()
     ENDDO
@@ -1057,9 +1057,6 @@ CONTAINS
     USE Input_Opt_Mod,    ONLY : OptInput
     USE GcKpp_Monitor,    ONLY : Spc_Names
     USE GcKpp_Parameters, ONLY : NFIX, NSPEC, NVAR
-!    USE GcKpp_Monitor,    ONLY : Hg_Spc_Names => Spc_Names
-!    USE GcKpp_Parameters, ONLY : HgNFIX => NFIX, HgNSPEC => NSPEC, HgNVAR => NVAR
-    USE Species_Mod,      ONLY : MISSING_INT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1223,65 +1220,6 @@ CONTAINS
              ENDIF
           ENDDO
        ENDDO
-
-!    ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-!       ! Repeated for the Hg KPP mechanism just as for FULLCHEM
-!       ! Commented deleted for compactcity ;-). Refer above. (MSL)
-!       ALLOCATE( Tmp( nAdvect + NSPEC ), STAT=RC )
-!       CALL GC_CheckVar( 'species_database_mod.F90:Tmp', 0 , RC )
-!       IF ( RC /= GC_SUCCESS ) RETURN
-!       Tmp = ''
-!
-!       DO S = 1, nSpecies
-!          Tmp(S) = Input_Opt%AdvectSpc_Name(S)
-!       ENDDO
-!
-!       DO K = 1, HgNSPEC
-!          SpcName = ADJUSTL( Spc_Names(K) )
-!          IF ( SpcName(1:2) == 'RR' ) CYCLE
-!          IF ( .not. ANY( Input_Opt%AdvectSpc_Name == Hg_Spc_Names(K) ) ) THEN
-!             nSpecies      = nSpecies + 1
-!             Tmp(nSpecies) = Hg_Spc_Names(K)
-!          ENDIF
-!       ENDDO
-!
-!       ALLOCATE( Species_Names( nSpecies ), STAT=RC )
-!       CALL GC_CheckVar( 'species_database_mod.F90:Species_Names', 0, RC )
-!       IF ( RC /= GC_SUCCESS ) RETURN
-!       Species_Names = Tmp(1:nSpecies )
-!
-!       IF ( ALLOCATED( Tmp ) ) DEALLOCATE( Tmp )
-!
-!       ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
-!       CALL GC_CheckVar( 'species_database_mod.F90:KppSpcId', 0, RC )
-!       IF ( RC /= GC_SUCCESS ) RETURN
-!       KppSpcId = MISSING_INT
-!
-!       ALLOCATE( KppFixId( nSpecies ), STAT=RC )
-!       CALL GC_CheckVar( 'species_database_mod.F90:KppFixId', 0, RC )
-!       IF ( RC /= GC_SUCCESS ) RETURN
-!       KppFixId = MISSING_INT
-!
-!       ALLOCATE( KppVarId( nSpecies ), STAT=RC )
-!       CALL GC_CheckVar( 'species_database_mod.F90:KppVarId', 0, RC )
-!       IF ( RC /= GC_SUCCESS ) RETURN
-!       KppVarId = MISSING_INT
-!
-!       DO S = 1, nSpecies
-!          DO K = 1, HgNSPEC
-!             SpcName = ADJUSTL( Hg_Spc_Names(K) )
-!             IF ( SpcName(1:2) == 'RR' ) CYCLE
-!             IF ( Species_Names(S) == Hg_Spc_Names(K) ) THEN
-!                KppSpcId(S) = K
-!                IF ( K <= HgNVAR ) THEN
-!                   KppVarId(S) = K
-!                ELSE
-!                   KppFixId(S) = K - HgNVAR
-!                ENDIF
-!                EXIT
-!             ENDIF
-!          ENDDO
-!       ENDDO
 
     !=======================================================================
     ! For specialty simulations, we do not have KPP species.  Thus, the
