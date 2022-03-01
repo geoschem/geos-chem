@@ -54,7 +54,7 @@ GRID_LABELS: PE24x144-CF
 # by prefacing lines with @, which will get commented out.
 # (e.g. to get around an "input file too long" error in MAPL)
 #==============================================================================
-COLLECTIONS: 'DefaultCollection',
+COLLECTIONS: @#'DefaultCollection',
              #'AerosolMass',
              #'Aerosols',
              @#'Budget',
