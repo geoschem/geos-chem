@@ -925,7 +925,6 @@ ${srcrundir}/init_rd.sh rundir_vars.txt
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
-printf "\n  See rundir_vars.txt for run directory settings.\n\n"
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
 printf "\n     You may modify these settings in input.geos.\n"
