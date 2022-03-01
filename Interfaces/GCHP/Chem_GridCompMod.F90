@@ -144,6 +144,11 @@ MODULE Chem_GridCompMod
   LOGICAL                          :: DoRATS
   LOGICAL                          :: DoANOX
 
+  ! NO2 analysis
+  LOGICAL                          :: LANANO2, LANANO, LANANO2OBSH
+  LOGICAL                          :: ANANO2FWD, LANANO2INC, LANANO2TROP
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANANO2FILE, ANANO2VAR, ANANO2VARH
+
   ! To update ozone from external analysis field
   LOGICAL                          :: LANAO3
   LOGICAL                          :: LPCHEMO3
@@ -1419,6 +1424,107 @@ CONTAINS
        VLOCATION          = MAPL_VLocationCenter,      &
                                                  __RC__ )
 
+!    ! Import / export for NO2 increments
+!    CALL ESMF_ConfigGetAttribute( myState%myCF, I, &
+!             Label = "Use_ANA_NO2:", Default = 0, __RC__ )
+!    IF ( I == 1 ) THEN
+!       CALL MAPL_AddImportSpec(GC,                   &
+!          SHORT_NAME         = 'ANA_NO2',            &
+!          LONG_NAME          = 'Analysis_NO2',       &
+!          UNITS              = 'v/v',                &
+!          DIMS               = MAPL_DimsHorzVert,    &
+!          VLOCATION          = MAPL_VLocationCenter, &
+!          RESTART            = MAPL_RestartSkip,     &
+!                                               __RC__ )
+!
+!       CALL MAPL_AddImportSpec(GC,                                  &
+!             SHORT_NAME         = 'OMI_OBS_HOUR',                   &
+!             LONG_NAME          = 'OMI_observation_rounded_hour',   &
+!             UNITS              = 'hour',                           &
+!             DIMS               = MAPL_DimsHorzOnly,                &
+!             RESTART            = MAPL_RestartSkip,                 &
+!                                                               __RC__ )
+!    ENDIF
+
+    CALL MAPL_AddExportSpec(GC,                    &
+       SHORT_NAME         = 'GCC_ANA_NO2_ANA',     &
+       LONG_NAME          = 'Analysis_NO2',        &
+       UNITS              = 'v/v',                 &
+       DIMS               = MAPL_DimsHorzVert,     &
+       VLOCATION          = MAPL_VLocationCenter,  &
+                                            __RC__  )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO2_BKG',      &
+       LONG_NAME          = 'NO2_Before_Increment', &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO2_ASM',      &
+       LONG_NAME          = 'NO2_After_Increment',  &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO_BKG',       &
+       LONG_NAME          = 'NO_Before_Increment',  &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO_ASM',       &
+       LONG_NAME          = 'NO_After_Increment',   &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO2_INC',         &
+       LONG_NAME          = 'Applied_NO2_increment',   &
+       UNITS              = 'v/v',                     &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO2_INCF',        &
+       LONG_NAME          = 'Applied_NO2_increment_as_fraction', &
+       UNITS              = '1',                       &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO_INC',          &
+       LONG_NAME          = 'Applied_NO_increment',    &
+       UNITS              = 'v/v',                     &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO_INCF',         &
+       LONG_NAME          = 'Applied_NO_increment_as_fraction', &
+       UNITS              = '1',                       &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                             &
+       SHORT_NAME         = 'GCC_ANA_NO2_MASK',             &
+       LONG_NAME          = 'NO2_analysis_mask',            &
+       UNITS              = '1',                            &
+       DIMS               = MAPL_DimsHorzOnly,              &
+                                                 __RC__ )
+
 #else
     CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
 #endif
@@ -2423,6 +2529,55 @@ CONTAINS
        WRITE(*,*) '- Use GMIOZ: ', Input_Opt%LGMIOZ
        WRITE(*,*) '- Use LINOZ: ', Input_Opt%LLINOZ 
        WRITE(*,*) '- Use SYNOZ: ', Input_Opt%LSYNOZ
+    ENDIF
+
+    ! Do NO2 analysis? 
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_ANA_NO2:", &
+                                  Default = 0, __RC__ )
+    LANANO2      = (DoIt==1)
+    LANANO       = .TRUE.
+    LANANO2OBSH  = .TRUE.
+    LANANO2TROP  = .TRUE.
+    LANANO2INC   = .FALSE.
+    ANANO2FWD    = .TRUE.
+    IF ( LANANO2 ) THEN
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANANO2FILE, Label = "ANANO2TMPL:", &
+                                     Default = '/dev/null', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANANO2VAR, Label = "ANANO2VAR:", &
+                                     Default = 'ana_no2', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Update_NO:", &
+                                     Default = 1, __RC__ )
+       IF ( DoIt/=1) LANANO = .FALSE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_NO2_obshour:", &
+                                     Default = 1, __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANANO2VARH, Label = "ANANO2VAR_HR:", &
+                                     Default = 'ana_hour', __RC__ )
+       IF ( DoIt/=1) LANANO2OBSH = .FALSE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "ANANO2_TROPONLY:", &
+                                     Default = 1, __RC__ )
+       IF ( DoIt/=1) LANANO2TROP = .FALSE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "ANANO2INC:", &
+                                     Default = 0, __RC__ )
+       IF ( DoIt==1) LANANO2INC = .TRUE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "ANANO2FWD:", &
+                                     Default = 1, __RC__ )
+       IF ( DoIt/=1) ANANO2FWD = .FALSE.
+    ENDIF
+
+    IF ( am_I_Root ) THEN
+       WRITE(*,*) 'Overwrite with analysis nitrogen dioxide: ',LANANO2
+       IF ( LANANO2 ) THEN 
+          WRITE(*,*) '-> Analysis file template          : ',TRIM(ANANO2FILE)
+          WRITE(*,*) '-> Analysis NO2 variable name      : ',TRIM(ANANO2VAR)
+          WRITE(*,*) '-> Also update NO?                 : ',LANANO 
+          WRITE(*,*) '-> Use NO2 observation time?       : ',LANANO2OBSH
+          IF ( LANANO2OBSH ) THEN
+           WRITE(*,*) '-> observation time variable name  : ',TRIM(ANANO2VARH)
+          ENDIF
+          WRITE(*,*) '-> Restrict analysis to troposphere: ',LANANO2TROP 
+          WRITE(*,*) '-> Use analysis increments         : ',LANANO2INC
+          WRITE(*,*) '-> Read file one timestep ahead    : ',ANANO2FWD
+       ENDIF
     ENDIF
 
     ! Overwrite strat. O3 with ANA_OZ 
@@ -3685,6 +3840,11 @@ CONTAINS
                              Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ ) 
           ENDIF
 
+          IF ( LANANO2 ) THEN
+             CALL SetAnaNO2_( GC, Import, INTSTATE, Export, Clock, &
+                              Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ )
+          ENDIF
+
           ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
           CALL GEOS_Diagnostics_( GC, IMPORT, EXPORT, Clock, Phase, &
                                   Input_Opt, State_Met, State_Chm, State_Diag, __RC__ )
@@ -4928,7 +5088,7 @@ CONTAINS
     IF ( ASSOCIATED(O3)     ) O3     = PTR_O3
     IF ( ASSOCIATED(O3PPMV) ) O3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
     IF ( ASSOCIATED(OX) ) THEN
-       OX =        PTR_O3  * MAPL_AIRMW / MAPL_O3MW
+       OX = PTR_O3  * MAPL_AIRMW / MAPL_O3MW
        IndSpc = Ind_('O')
        ASSERT_(IndSpc>0)
        OX = OX + ( State_Chm%Species(:,:,LM:1:-1,IndSpc)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
@@ -6314,13 +6474,8 @@ CONTAINS
 
        ! If not PCHEM, try to read it from the specified file
        ELSE
-          !CALL MAPL_GetPointer ( IMPORT, ANAO3, 'ANA_O3', __RC__ )
           ! Parse file name
           ifile = ANAO3FILE
-
-          ! testing only
-          !IF ( am_I_Root ) WRITE(*,*) 'parsing '//TRIM(ifile)
-
           write(syy,'(I4.4)') yy
           CALL ReplaceChar ( ifile, '%y4', syy )
           write(smm,'(I2.2)') mm
@@ -6331,9 +6486,6 @@ CONTAINS
           CALL ReplaceChar ( ifile, '%h2', sh  )
           write(sm,'(I2.2)') m
           CALL ReplaceChar ( ifile, '%n2', sm  )
-
-          ! testing only
-          !IF ( am_I_Root ) WRITE(*,*) 'parsed file: '//TRIM(ifile)
 
           ! Check if file exists
           INQUIRE( FILE=ifile, EXIST=HasFile )
@@ -6495,6 +6647,361 @@ CONTAINS
     RETURN_(ESMF_SUCCESS)
 
   END SUBROUTINE SetAnaO3_ 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetAnaNO2_ 
+!
+! !DESCRIPTION: Apply NO2 analysis to GEOS-Chem fields. This should be done
+!  after the chemistry step.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SetAnaNO2_( GC, Import, Internal, Export, Clock, &
+                         Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, RC )
+!
+! !USES:
+!
+    USE TIME_MOD,  ONLY : GET_TS_CHEM
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC       ! Ref. to this GridComp
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
+    TYPE(ESMF_STATE),    INTENT(INOUT)         :: Internal ! Internal state
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
+    TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock    ! ESMF Clock object
+    TYPE(OptInput)                             :: Input_Opt
+    TYPE(MetState)                             :: State_Met
+    TYPE(ChmState)                             :: State_Chm
+    REAL,                INTENT(IN)            :: Q(:,:,:)
+    REAL,                POINTER               :: PLE(:,:,:)
+    REAL,                POINTER               :: TROPP(:,:)
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  18 Mar 2017 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    ! Objects
+
+    ! Scalars
+    LOGICAL                    :: am_I_Root     ! Are we on the root PET?
+    CHARACTER(LEN=ESMF_MAXSTR) :: Iam, compName ! Gridded component name
+    REAL, POINTER              :: AnaNO2(:,:,:)
+    REAL, POINTER              :: ObsHour(:,:)
+    REAL, POINTER              :: AnaMask(:,:)
+    REAL, POINTER              :: Ptr3D(:,:,:)
+    REAL, ALLOCATABLE          :: NO2bkg(:,:,:), NO2asm(:,:,:)
+    REAL, ALLOCATABLE          :: NObkg(:,:,:),  NOasm(:,:,:)
+
+    TYPE(ESMF_TIME)            :: currTime
+    TYPE(ESMF_TimeInterval)    :: tsChemInt 
+    REAL                       :: tsChem
+    INTEGER                    :: yy, mm, dd, h, m, s
+    REAL                       :: ThisHour
+    LOGICAL                    :: TimeForAna
+    INTEGER                    :: LB
+    INTEGER                    :: indNO, indNO2
+    REAL                       :: mwNO,  mwNO2
+    INTEGER                    :: IM, JM, LM
+    INTEGER                    :: I, J, L
+    INTEGER                    :: STATUS
+    REAL, ALLOCATABLE          :: wgt(:), IncMask(:,:,:)
+
+    ! To read from file
+    LOGICAL                    :: HasFile, HasBundle 
+    CHARACTER(LEN=ESMF_MAXSTR) :: ifile
+    TYPE(ESMF_Grid)            :: grid
+    CHARACTER(LEN=4)           :: syy
+    CHARACTER(LEN=2)           :: smm, sdd, sh, sm
+    INTEGER                    :: nymd, nhms, incSecs    
+    CHARACTER(LEN=ESMF_MAXSTR) :: VarName
+    TYPE(MAPL_SimpleBundle)    :: VarBundle, VarBundleH
+    TYPE(ESMF_TIME)            :: fileTime
+    TYPE(ESMF_Field)           :: iFld
+    INTEGER                    :: VarID, fid 
+
+    !=======================================================================
+    ! Initialization
+    !=======================================================================
+
+    ! Are we on the root PET
+    am_I_Root = MAPL_Am_I_Root()
+
+    ! Set up traceback info
+    CALL ESMF_GridCompGet( GC, name=compName, grid=grid, __RC__ )
+
+    ! Identify this routine to MAPL
+    Iam = TRIM(compName)//'::SetAnaNO2_'
+
+    ! Get current time 
+    CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
+
+    ! Eventually adjust time
+    IF ( ANANO2FWD ) THEN
+       tsChem = GET_TS_CHEM()
+    ELSE
+       tsChem = 0.0
+    ENDIF
+    CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
+    CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
+
+    ! Check if it's time to do analysis
+    TimeForAna = .FALSE.
+    ! If using observation hours, apply analysis every (full) hour 
+    IF ( LANANO2OBSH ) THEN
+       IF ( m==0 ) TimeForAna = .TRUE.
+    ! Otherwise, apply analysis every 6 hours (middle of analysis step)
+    ELSE
+       IF ( m==0 .AND. MOD(h,6)==0 ) TimeForAna = .TRUE.
+    ENDIF
+
+    ! If it's time for analysis, check if file exists
+    HasBundle = .FALSE. 
+    IF ( TimeForAna ) THEN
+       ! Parse file name
+       ifile = ANANO2FILE
+       write(syy,'(I4.4)') yy
+       CALL ReplaceChar ( ifile, '%y4', syy )
+       write(smm,'(I2.2)') mm
+       CALL ReplaceChar ( ifile, '%m2', smm )
+       write(sdd,'(I2.2)') dd
+       CALL ReplaceChar ( ifile, '%d2', sdd )
+       write(sh,'(I2.2)') h
+       CALL ReplaceChar ( ifile, '%h2', sh  )
+       write(sm,'(I2.2)') m
+       CALL ReplaceChar ( ifile, '%n2', sm  )
+
+       ! Check if file exists
+       INQUIRE( FILE=TRIM(ifile), EXIST=HasFile )
+       IF ( HasFile ) THEN
+          IF ( am_I_Root ) WRITE(*,*) 'GCC SetAnaNO2: Reading '//TRIM(ifile)
+          ! Try reading current time stamp on file 
+          s = 0
+          call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
+          VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2', grid, fileTime, ONLY_VARS=TRIM(ANANO2VAR), RC=STATUS )
+          IF ( RC == ESMF_SUCCESS ) HasBundle = .TRUE.
+          ! If current time stamp not found in file, just read the first entry (dangerous!)
+          IF ( .NOT. HasBundle ) THEN
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy,mm,dd,h,m
+             ENDIF
+             ! Get time stamp on file
+             call GFIO_Open( ifile, 1, fid, STATUS )
+             ASSERT_(STATUS==0)
+             call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
+             ASSERT_(STATUS==0)
+             caLL GFIO_Close( fid, STATUS )
+             ASSERT_(STATUS==0)
+             yy = nymd/10000
+             mm = (nymd-yy*10000) / 100
+             dd = nymd - (10000*yy + mm*100)
+             h  = nhms/10000
+             m  = (nhms- h*10000) / 100
+             s  = nhms - (10000*h  +  m*100)
+             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2', grid, fileTime, ONLY_VARS=TRIM(ANANO2VAR), RC=STATUS )
+             IF ( RC==ESMF_SUCCESS ) HasBundle = .TRUE.
+          ENDIF
+
+          ! Read obs time using voting regridding method 
+          IF ( HasBundle .AND. LANANO2OBSH ) THEN 
+             VarBundleH =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2v', grid, fileTime, &
+                                                   voting=.TRUE., ONLY_VARS=TRIM(ANANO2VARH), RC=STATUS )
+             ASSERT_(RC==ESMF_SUCCESS)
+          ENDIF
+
+       ! If file not found, print warning if on root cpu
+       ELSE
+          IF ( am_I_Root ) THEN
+             WRITE(*,*) '*** GCC warning: NO2 analysis file not found: '//TRIM(ifile)
+          ENDIF
+       ENDIF 
+    ENDIF
+
+    ! Apply increments if it's time to do so and if file exists
+    IF ( HasBundle ) THEN
+
+       ! Verbose
+       IF ( am_I_Root ) THEN
+          WRITE(*,100) yy,mm,dd,h,m
+100       FORMAT( "GEOS-Chem: apply NO2 increments for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+       ENDIF
+
+       ! Get imports needed to do the update
+       ! NO2 analysis 
+       !CALL MAPL_GetPointer ( Import, AnaNO2, 'ANA_NO2', __RC__ )
+       VarID   = MAPL_SimpleBundleGetIndex ( VarBundle, TRIM(ANANO2VAR), 3, RC=STATUS, QUIET=.TRUE. )
+       ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
+       AnaNO2  => VarBundle%r3(VarID)%q
+       ! OMI Observation hour
+       IF ( LANANO2OBSH ) THEN
+          !CALL MAPL_GetPointer ( Import, ObsHour, 'NO2_ANALYSIS_HOUR', __RC__ )
+          VarID   =  MAPL_SimpleBundleGetIndex ( VarBundleH, TRIM(ANANO2VARH), 2, RC=STATUS, QUIET=.TRUE. )
+          ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
+          ObsHour => VarBundleH%r2(VarID)%q
+       ENDIF
+
+       ! Select index for NO and NO2
+       ! Loop over all species
+       indNO2 = -1
+       indNO  = -1
+       DO I = 1, State_Chm%nSpecies
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'NO2' ) THEN
+             indNO2 = I
+             mwNO2  = State_Chm%SpcData(I)%Info%MW_g
+          ENDIF
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'NO'  ) THEN
+             indNO = I
+             mwNO  = State_Chm%SpcData(I)%Info%MW_g
+          ENDIF
+       ENDDO
+       ASSERT_(indNO2 > 0  )
+       ASSERT_( mwNO2 > 0.0)
+       ASSERT_(indNO > 0  )
+       ASSERT_( mwNO > 0.0)
+
+       ! array dimensions 
+       IM = SIZE(AnaNO2,1)
+       JM = SIZE(AnaNO2,2)
+       LM = SIZE(AnaNO2,3)
+
+       ! Get lower bound of PLE array
+       LB = LBOUND(PLE,3)
+
+       ! State_Chm%Species are in kg/kg total. Make local copy in v/v dry before applying increments.
+       ! Also flip vertical axis to be consistent with GEOS
+       ALLOCATE(NO2bkg(IM,JM,LM),NO2asm(IM,JM,LM)) 
+       ALLOCATE( NObkg(IM,JM,LM), NOasm(IM,JM,LM)) 
+       NO2bkg(:,:,:) = State_Chm%Species(:,:,LM:1:-1,indNO2) / (1.-Q) * MAPL_AIRMW / mwNO2
+       NObkg(:,:,:)  = State_Chm%Species(:,:,LM:1:-1,indNO ) / (1.-Q) * MAPL_AIRMW / mwNO 
+       NO2asm(:,:,:) = NO2bkg(:,:,:) 
+       NOasm(:,:,:)  = NObkg(:,:,:)
+
+       ! Cast current hour as real 
+       ThisHour = real(h)
+
+       ! Check/initialize diagnostics 
+       ! increment mask
+       CALL MAPL_GetPointer ( Export, AnaMask, 'GCC_ANA_NO2_MASK', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(AnaMask) ) AnaMask(:,:) = 0.0
+
+       ! wgt is the weighting given to the analysis (between 0-1). Use this approach to ignore
+       ! increments in stratosphere
+       ALLOCATE(wgt(LM))
+       wgt(:) = 0.0
+ 
+       ! Mask with increments
+       ALLOCATE(IncMask(IM,JM,LM))
+       IncMask(:,:,:) = 0.0
+
+       ! Apply increments column-wise 
+       DO J=1,JM
+       DO I=1,IM
+
+          ! Move to next grid box if there was no NO2 observation in this cell for the given hour 
+          IF ( LANANO2OBSH ) THEN
+             IF ( ObsHour(I,J) /= ThisHour ) CYCLE
+          ENDIF
+
+          ! Get vertical weights.
+          IF ( LANANO2TROP ) THEN
+             wgt(:) = MAX(0.0,MIN(1.0,(PLE(I,J,(1+LB):(LM+LB))-TROPP(I,J))/(PLE(I,J,(1+LB):(LM+LB))-PLE(I,J,LB:(LM+LB-1)))))
+          ELSE
+             wgt(:) = 1.0
+          ENDIF
+
+          ! updated NO2 field
+          IF ( LANANO2INC ) THEN
+             NO2asm(I,J,:) = NO2bkg(I,J,:) + wgt(:)*AnaNO2(I,J,:)
+          ELSE 
+             NO2asm(I,J,:) = wgt(:)*AnaNO2(I,J,:) + (1.0-wgt(:))*NO2bkg(I,J,:)
+          ENDIF
+
+          ! Update analysis increment mask
+          IncMask(I,J,:) = wgt(:)
+          IF ( ASSOCIATED(AnaMask) ) AnaMask(I,J) = 1.0
+       ENDDO
+       ENDDO
+
+       ! Eventually update NO so that NO/NO2 ratio is maintained
+       IF ( LANANO ) THEN
+          WHERE ( IncMask > 0.0 ) 
+             NOasm = NO2asm * ( NObkg / NO2bkg ) 
+          END WHERE
+       ENDIF
+ 
+       ! Fill diagnostics
+       ! ----------------
+
+       ! NO2 analysis field as read through ExtData (v/v dry)
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_ANA', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = AnaNO2
+
+       ! Fields before applying increments (v/v dry)
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_BKG', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2bkg 
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_BKG', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NObkg
+
+       ! Fields after applying increments (v/v dry)
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_ASM', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2asm
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_ASM', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm
+          
+       ! Concentration increments 
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_INC', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2asm - NO2bkg
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_INC', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm - NObkg
+
+       ! Fractional changes 
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_INCF', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2asm / NO2bkg
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_INCF', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm / NObkg
+
+       ! Pass back to State_Chm%Species array: flip vertical axis and convert v/v dry to kg/kg total
+       State_Chm%Species(:,:,LM:1:-1,indNO2) = NO2asm(:,:,:) * (1.-Q) / MAPL_AIRMW * mwNO2
+       State_Chm%Species(:,:,LM:1:-1,indNO ) = NOasm(:,:,:)  * (1.-Q) / MAPL_AIRMW * mwNO
+    ENDIF
+
+    ! Cleanup
+    IF ( ALLOCATED(NO2bkg))  DEALLOCATE(NO2bkg)
+    IF ( ALLOCATED(NO2asm))  DEALLOCATE(NO2asm)
+    IF ( ALLOCATED(NObkg))   DEALLOCATE(NObkg)
+    IF ( ALLOCATED(NOasm))   DEALLOCATE(NOasm)
+    IF ( ALLOCATED(wgt))     DEALLOCATE(wgt)
+    IF ( ALLOCATED(IncMask)) DEALLOCATE(IncMask)
+
+    IF ( ASSOCIATED(ObsHour) ) ObsHour => NULL()
+    IF ( ASSOCIATED(AnaNO2 ) ) AnaNO2  => NULL()
+    IF ( ASSOCIATED(AnaMask) ) AnaMask => NULL()
+
+    IF ( HasBundle ) THEN
+       CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
+       IF ( LANANO2OBSH ) CALL MAPL_SimpleBundleDestroy ( VarBundleH, __RC__ )
+    ENDIF
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE SetAnaNO2_
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
