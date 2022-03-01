@@ -6335,7 +6335,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TIME_MOD,  ONLY : GET_TS_CHEM
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6386,18 +6385,10 @@ CONTAINS
     ! To read from file
     LOGICAL                    :: HasFile, HasBundle 
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile
-    CHARACTER(LEN=ESMF_MAXSTR) :: VarName
     TYPE(MAPL_SimpleBundle)    :: VarBundle
     TYPE(ESMF_Grid)            :: grid
-    TYPE(ESMF_TIME)            :: currTime 
-    TYPE(ESMF_TIME)            :: fileTime
-    TYPE(ESMF_TimeInterval)    :: tsChemInt 
-    REAL                       :: tsChem
-    TYPE(ESMF_Field)           :: iFld
-    INTEGER                    :: VarID, fid 
-    INTEGER                    :: nymd, nhms, yy, mm, dd, h, m, s, incSecs    
-    CHARACTER(LEN=4)           :: syy
-    CHARACTER(LEN=2)           :: smm, sdd, sh, sm
+    INTEGER                    :: VarID
+    INTEGER                    :: yy, mm, dd, h, m, s
  
     !=======================================================================
     ! Initialization
@@ -6412,20 +6403,8 @@ CONTAINS
     ! Identify this routine to MAPL
     Iam = TRIM(compName)//'::SetAnaO3_'
 
-    ! Is it time to do the analysis? For now, do analysis every three hours
-    ! (middle of 3-hour time step)
-    ! Get current time
-    CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
-
-    ! Eventually adjust time
-    IF ( ANAO3FWD ) THEN
-       tsChem = GET_TS_CHEM()
-    ELSE
-       tsChem = 0.0
-    ENDIF
-    CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
-    CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
-    !IF ( m==30 .AND. MOD(h,3)==1 ) THEN
+    ! Is it time to do the analysis? 
+    CALL GetAnaTime_( Clock, ANAO3FWD, yy, mm, dd, h, m, s, __RC__ )
     IF ( m==ANAO3MIN .AND. MOD(h,ANAO3FREQ)==ANAO3HR ) THEN
        TimeForAna = .TRUE.
     ELSE
@@ -6438,25 +6417,11 @@ CONTAINS
     CALL MAPL_GetPointer ( Export, O3INCPPMV, 'GCC_ANA_O3_INC_PPMV', NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(O3INCPPMV) ) O3INCPPMV = 0.0
 
-    ! Get lower bound of PLE array
-    LB = LBOUND(PLE,3)
-
     ! Initialize bundle flag
     HasBundle = .FALSE.
 
     ! Get target ozone field 
     IF ( TimeForAna ) THEN
-       ! Select ozone index
-       ! Loop over all species
-       O3MW = 0.0
-       N = -1
-       DO I = 1, State_Chm%nSpecies
-          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
-             N = I
-             O3MW = State_Chm%SpcData(I)%Info%MW_g
-          ENDIF
-       ENDDO
-       ASSERT_(N > 0)
 
        ! Verbose
        WRITE(SL2,'(I2)') ANAO3L4
@@ -6471,87 +6436,43 @@ CONTAINS
        ! Get analysis O3 field from import in kg/kg
        IF ( LPCHEMO3 ) THEN
           CALL MAPL_GetPointer ( IMPORT, ANAO3, 'PCHEM_O3', __RC__ )
+          HasBundle = .TRUE.
 
        ! If not PCHEM, try to read it from the specified file
        ELSE
-          ! Parse file name
-          ifile = ANAO3FILE
-          write(syy,'(I4.4)') yy
-          CALL ReplaceChar ( ifile, '%y4', syy )
-          write(smm,'(I2.2)') mm
-          CALL ReplaceChar ( ifile, '%m2', smm )
-          write(sdd,'(I2.2)') dd
-          CALL ReplaceChar ( ifile, '%d2', sdd )
-          write(sh,'(I2.2)') h
-          CALL ReplaceChar ( ifile, '%h2', sh  )
-          write(sm,'(I2.2)') m
-          CALL ReplaceChar ( ifile, '%n2', sm  )
-
-          ! Check if file exists
-          INQUIRE( FILE=ifile, EXIST=HasFile )
-          IF ( HasFile ) THEN
-             ! Try reading current time stamp on file 
-             s = 0
-             call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
-             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, RC=STATUS )
-             ! Fall back if this didn't work: 
-             IF ( RC /= ESMF_SUCCESS ) THEN
-                ! If error mode is 0 or 1, stop with error
-                IF ( ANAO3ERR <= 1 ) THEN
-                   IF ( am_I_Root ) THEN
-                      WRITE(*,*) 'Error: current time not found in file: ',TRIM(ifile),yy,mm,dd,h,m
-                      WRITE(*,*) 'You can get past this error by disabling ozone nudging or setting the error mode to > 1 in GEOSCHEMchem_GridComp.rc'
-                   ENDIF
-                   ASSERT_(.FALSE.)
-                ! If error mode is larger than 1, just read first variable on file. This can be dangerous! 
-                ELSE
-                   IF ( am_I_Root ) THEN
-                      WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy,mm,dd,h,m
-                   ENDIF
-                   ! Get time stamp on file
-                   call GFIO_Open( ifile, 1, fid, STATUS )
-                   ASSERT_(STATUS==0)
-                   call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
-                   ASSERT_(STATUS==0)
-                   caLL GFIO_Close( fid, STATUS )
-                   ASSERT_(STATUS==0)
-                   yy = nymd/10000
-                   mm = (nymd-yy*10000) / 100
-                   dd = nymd - (10000*yy + mm*100)
-                   h  = nhms/10000
-                   m  = (nhms- h*10000) / 100
-                   s  = nhms - (10000*h  +  m*100)
-                   VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, __RC__ )
-                ENDIF
-             ENDIF
-             ! Read variable 
-             VarName =  ANAO3VAR
-             VarID   =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
+          CALL GetAnaBundle_( am_I_Root, ANAO3FILE, 'GCCAnaO3', yy, mm, dd, h, m, grid, VarBundle, &
+                              HasBundle, ifile=ifile, only_vars=TRIM(ANAO3VAR), err_mode=ANAO3ERR, __RC__ )
+          ! Read variable 
+          IF ( HasBundle ) THEN
+             VarID   =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(ANAO3VAR), 3, RC=STATUS, QUIET=.TRUE. )
              ANAO3   => VarBundle%r3(VarID)%q
              IF ( am_I_Root ) WRITE(*,*) 'Use analysis ozone ('//TRIM(ANAO3VAR)//', assumed units='//TRIM(ANAO3VARUNIT)//') from '//TRIM(ifile)
              HasBundle = .TRUE.
-          ELSE
-             ! If file not found and error mode is zero, stop with error
-             IF ( ANAO3ERR == 0 ) THEN
-                IF ( am_I_Root ) THEN
-                   WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile)
-                   WRITE(*,*) 'You can get past this error by disabling ozone nudging or setting the error mode to > 0 in GEOSCHEMchem_GridComp.rc'
-                ENDIF
-                ASSERT_(.FALSE.)
-             ! If file not found and error mode is not zero, just skip nudging 
-             ELSE
-                IF ( am_I_Root ) WRITE(*,*) 'File not found - skip ozone nudging: '//TRIM(ifile)
-             ENDIF
           ENDIF
        ENDIF
 
        ! Apply increments if available 
        IF ( HasBundle ) THEN
 
+          ! Select ozone index
+          ! Loop over all species
+          O3MW = 0.0
+          N = -1
+          DO I = 1, State_Chm%nSpecies
+             IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
+                N = I
+                O3MW = State_Chm%SpcData(I)%Info%MW_g
+              ENDIF
+          ENDDO
+          ASSERT_(N > 0)
+
           ! array dimensions 
           IM = SIZE(ANAO3,1)
           JM = SIZE(ANAO3,2)
           LM = SIZE(ANAO3,3)
+
+          ! Get lower bound of PLE array
+          LB = LBOUND(PLE,3)
 
           ! Set unit flag. This is to prevent parsing the unit string within the loop below
           SELECT CASE ( TRIM(ANAO3VARUNIT) )
@@ -6666,7 +6587,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE TIME_MOD,  ONLY : GET_TS_CHEM
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6709,9 +6629,6 @@ CONTAINS
     REAL, ALLOCATABLE          :: NO2bkg(:,:,:), NO2asm(:,:,:)
     REAL, ALLOCATABLE          :: NObkg(:,:,:),  NOasm(:,:,:)
 
-    TYPE(ESMF_TIME)            :: currTime
-    TYPE(ESMF_TimeInterval)    :: tsChemInt 
-    REAL                       :: tsChem
     INTEGER                    :: yy, mm, dd, h, m, s
     REAL                       :: ThisHour
     LOGICAL                    :: TimeForAna
@@ -6727,14 +6644,10 @@ CONTAINS
     LOGICAL                    :: HasFile, HasBundle 
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile
     TYPE(ESMF_Grid)            :: grid
-    CHARACTER(LEN=4)           :: syy
-    CHARACTER(LEN=2)           :: smm, sdd, sh, sm
     INTEGER                    :: nymd, nhms, incSecs    
-    CHARACTER(LEN=ESMF_MAXSTR) :: VarName
     TYPE(MAPL_SimpleBundle)    :: VarBundle, VarBundleH
     TYPE(ESMF_TIME)            :: fileTime
-    TYPE(ESMF_Field)           :: iFld
-    INTEGER                    :: VarID, fid 
+    INTEGER                    :: VarID
 
     !=======================================================================
     ! Initialization
@@ -6749,20 +6662,12 @@ CONTAINS
     ! Identify this routine to MAPL
     Iam = TRIM(compName)//'::SetAnaNO2_'
 
-    ! Get current time 
-    CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
-
-    ! Eventually adjust time
-    IF ( ANANO2FWD ) THEN
-       tsChem = GET_TS_CHEM()
-    ELSE
-       tsChem = 0.0
-    ENDIF
-    CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
-    CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
-
     ! Check if it's time to do analysis
     TimeForAna = .FALSE.
+    CALL GetAnaTime_( Clock, ANANO2FWD, yy, mm, dd, h, m, s, __RC__ )
+    ! Cast current hour as real 
+    ThisHour = real(h)
+
     ! If using observation hours, apply analysis every (full) hour 
     IF ( LANANO2OBSH ) THEN
        IF ( m==0 ) TimeForAna = .TRUE.
@@ -6774,63 +6679,15 @@ CONTAINS
     ! If it's time for analysis, check if file exists
     HasBundle = .FALSE. 
     IF ( TimeForAna ) THEN
-       ! Parse file name
-       ifile = ANANO2FILE
-       write(syy,'(I4.4)') yy
-       CALL ReplaceChar ( ifile, '%y4', syy )
-       write(smm,'(I2.2)') mm
-       CALL ReplaceChar ( ifile, '%m2', smm )
-       write(sdd,'(I2.2)') dd
-       CALL ReplaceChar ( ifile, '%d2', sdd )
-       write(sh,'(I2.2)') h
-       CALL ReplaceChar ( ifile, '%h2', sh  )
-       write(sm,'(I2.2)') m
-       CALL ReplaceChar ( ifile, '%n2', sm  )
+       CALL GetAnaBundle_( am_I_Root, ANANO2FILE, 'AnaNO2', yy, mm, dd, h, m, grid, &
+                           VarBundle, HasBundle, ifile=ifile, fileTime=fileTime,    &
+                           only_vars=TRIM(ANANO2VAR), err_mode=2, anatime=.TRUE., __RC__ ) 
 
-       ! Check if file exists
-       INQUIRE( FILE=TRIM(ifile), EXIST=HasFile )
-       IF ( HasFile ) THEN
-          IF ( am_I_Root ) WRITE(*,*) 'GCC SetAnaNO2: Reading '//TRIM(ifile)
-          ! Try reading current time stamp on file 
-          s = 0
-          call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
-          VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2', grid, fileTime, ONLY_VARS=TRIM(ANANO2VAR), RC=STATUS )
-          IF ( RC == ESMF_SUCCESS ) HasBundle = .TRUE.
-          ! If current time stamp not found in file, just read the first entry (dangerous!)
-          IF ( .NOT. HasBundle ) THEN
-             IF ( am_I_Root ) THEN
-                WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy,mm,dd,h,m
-             ENDIF
-             ! Get time stamp on file
-             call GFIO_Open( ifile, 1, fid, STATUS )
-             ASSERT_(STATUS==0)
-             call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
-             ASSERT_(STATUS==0)
-             caLL GFIO_Close( fid, STATUS )
-             ASSERT_(STATUS==0)
-             yy = nymd/10000
-             mm = (nymd-yy*10000) / 100
-             dd = nymd - (10000*yy + mm*100)
-             h  = nhms/10000
-             m  = (nhms- h*10000) / 100
-             s  = nhms - (10000*h  +  m*100)
-             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2', grid, fileTime, ONLY_VARS=TRIM(ANANO2VAR), RC=STATUS )
-             IF ( RC==ESMF_SUCCESS ) HasBundle = .TRUE.
-          ENDIF
-
-          ! Read obs time using voting regridding method 
-          IF ( HasBundle .AND. LANANO2OBSH ) THEN 
-             VarBundleH =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2v', grid, fileTime, &
-                                                   voting=.TRUE., ONLY_VARS=TRIM(ANANO2VARH), RC=STATUS )
-             ASSERT_(RC==ESMF_SUCCESS)
-          ENDIF
-
-       ! If file not found, print warning if on root cpu
-       ELSE
-          IF ( am_I_Root ) THEN
-             WRITE(*,*) '*** GCC warning: NO2 analysis file not found: '//TRIM(ifile)
-          ENDIF
-       ENDIF 
+       ! Read obs time using voting regridding method 
+       IF ( HasBundle .AND. LANANO2OBSH ) THEN 
+          VarBundleH =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2v', grid, fileTime, &
+                                                voting=.TRUE., ONLY_VARS=TRIM(ANANO2VARH), __RC__ )
+       ENDIF
     ENDIF
 
     ! Apply increments if it's time to do so and if file exists
@@ -6891,9 +6748,6 @@ CONTAINS
        NObkg(:,:,:)  = State_Chm%Species(:,:,LM:1:-1,indNO ) / (1.-Q) * MAPL_AIRMW / mwNO 
        NO2asm(:,:,:) = NO2bkg(:,:,:) 
        NOasm(:,:,:)  = NObkg(:,:,:)
-
-       ! Cast current hour as real 
-       ThisHour = real(h)
 
        ! Check/initialize diagnostics 
        ! increment mask
@@ -7002,6 +6856,237 @@ CONTAINS
     RETURN_(ESMF_SUCCESS)
 
   END SUBROUTINE SetAnaNO2_
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetAnaTime_ 
+!
+! !DESCRIPTION: Get analysis time. This is either the current date/time or one
+! GEOS-Chem time step ahead, depending on the Fwd input argument.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetAnaTime_( Clock, Fwd, yy, mm, dd, h, m, s, RC ) 
+!
+! !USES:
+!
+    USE TIME_MOD,  ONLY : GET_TS_CHEM
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock      ! ESMF Clock object
+    LOGICAL,             INTENT(IN)            :: Fwd        ! Adjust time one time step forward?
+    INTEGER,             INTENT(OUT)           :: yy, mm, dd ! year, month, day
+    INTEGER,             INTENT(OUT)           :: h,  m,  s  ! hour, minute, second
+    INTEGER,             INTENT(OUT)           :: RC         ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  01 Mar 2022 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(ESMF_TIME)            :: currTime
+    TYPE(ESMF_TimeInterval)    :: tsChemInt
+    REAL                       :: tsChem
+
+    ! Begins here
+    __Iam__('GetAnaTime_')
+
+    ! Get current time 
+    CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
+
+    ! Eventually adjust time
+    IF ( Fwd ) THEN
+       tsChem = GET_TS_CHEM()
+    ELSE
+       tsChem = 0.0
+    ENDIF
+    CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
+    CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+    END SUBROUTINE GetAnaTime_
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetAnaBundle_ 
+!
+! !DESCRIPTION: Get analysis data bundle. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetAnaBundle_( am_I_Root, FileTmpl,  bName, yy, mm, dd, h, m, grid, &
+                            VarBundle, HasBundle, ifile, fileTime, only_vars,   &
+                            err_mode,  anatime,   RC ) 
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)            :: am_I_Root  ! Root CPU?
+    CHARACTER(LEN=*),    INTENT(IN)            :: FileTmpl   ! file template
+    CHARACTER(LEN=*),    INTENT(IN)            :: bName      ! bundle name 
+    INTEGER,             INTENT(IN)            :: yy, mm, dd ! year, month, day
+    INTEGER,             INTENT(IN)            :: h,  m      ! hour, minute, second
+    TYPE(ESMF_Grid),     INTENT(INOUT)         :: grid       ! output grid
+    TYPE(MAPL_SimpleBundle)                    :: VarBundle  ! Bundle
+    LOGICAL,             INTENT(INOUT)         :: HasBundle  ! Was bundle found?
+    CHARACTER(LEN=*),    INTENT(OUT), OPTIONAL :: ifile      ! file name 
+    TYPE(ESMF_TIME),     INTENT(OUT), OPTIONAL :: fileTime   ! file time
+    CHARACTER(LEN=*),    INTENT(IN),  OPTIONAL :: only_vars  ! variables to read
+    INTEGER,             INTENT(IN),  OPTIONAL :: err_mode   ! error mode
+    LOGICAL,             INTENT(IN),  OPTIONAL :: anatime    ! round time to analysis time? 
+    INTEGER,             INTENT(OUT), OPTIONAL :: RC         ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  01 Mar 2022 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    CHARACTER(LEN=ESMF_MAXSTR) :: ifile_
+    CHARACTER(LEN=4)           :: syy
+    CHARACTER(LEN=2)           :: smm, sdd, sh, sm    
+    INTEGER                    :: nymd, nhms, incSecs
+    INTEGER                    :: yy_, mm_, dd_, h_, m_, s_, fid
+    TYPE(ESMF_TIME)            :: currTime, fileTime_
+    TYPE(ESMF_TimeInterval)    :: tsInt
+    LOGICAL                    :: HasFile,  anatime_
+    INTEGER                    :: errmode_
+    
+    ! Begins here
+    __Iam__('GetAnaBundle_')
+
+    ! Initialize
+    HasBundle = .FALSE.
+    errmode_ = 2
+    anatime_ = .FALSE. 
+    if ( present(err_mode) ) errmode_ = err_mode   
+    if ( present(anatime ) ) anatime_ = anatime
+
+    ! Get date & time of file. These are the passed values by default 
+    yy_ = yy
+    mm_ = mm
+    dd_ = dd
+    h_  = h
+    m_  = m
+    ! If anatime is true, set time to closest analysis hour (0z, 6z, 12z, 18z)
+    IF ( anatime_ ) THEN
+       IF (     h < 3  ) THEN
+          h_ = 0
+       ELSEIF ( h < 9  ) THEN
+          h_ = 6
+       ELSEIF ( h < 15 ) THEN
+          h_ = 12
+       ELSEIF ( h < 21 ) THEN
+          h_ = 18
+       ! If 21z, get next day (but keep minutes)
+       ELSE
+          call ESMF_TimeSet(currTime, yy=yy_, mm=mm_, dd=dd_, h=23, m=m_, s=0)
+          call ESMF_TimeIntervalSet(tsInt, s_r8=real(120.0,8), __RC__ )
+          call ESMF_TimeGet( currTime+tsInt, yy=yy_, mm=mm_, dd=dd_)
+          h_ = 0 
+       ENDIF
+    ENDIF
+
+    ! Parse file name
+    ifile_ = FileTmpl 
+    write(syy,'(I4.4)') yy_
+    CALL ReplaceChar ( ifile_, '%y4', syy )
+    write(smm,'(I2.2)') mm_
+    CALL ReplaceChar ( ifile_, '%m2', smm )
+    write(sdd,'(I2.2)') dd_
+    CALL ReplaceChar ( ifile_, '%d2', sdd )
+    write(sh,'(I2.2)') h_
+    CALL ReplaceChar ( ifile_, '%h2', sh  )
+    write(sm,'(I2.2)') m_
+    CALL ReplaceChar ( ifile_, '%n2', sm  )
+       
+    ! set default file time 
+    s_ = 0
+    call ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=s_)
+
+    ! Check if file exists
+    INQUIRE( FILE=TRIM(ifile_), EXIST=HasFile )
+    IF ( HasFile ) THEN
+       IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Reading '//TRIM(ifile_)
+       ! Try reading current time stamp on file 
+       VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile_), TRIM(bname), grid, fileTime_, ONLY_VARS=only_vars, RC=STATUS )
+       IF ( STATUS == ESMF_SUCCESS ) HasBundle = .TRUE.
+       ! If current time stamp not found in file, just read the first entry (dangerous!)
+       IF ( .NOT. HasBundle ) THEN
+          ! If error mode is 0 or 1, stop with error
+          IF ( errmode_ <= 1 ) THEN
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'Error: current time not found in file: ',TRIM(ifile_),yy_,mm_,dd_,h_,m_
+                WRITE(*,*) 'You can get past this error by setting the error mode to > 1'
+             ENDIF
+             ASSERT_(.FALSE.)
+          ELSE 
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy_,mm_,dd_,h_,m_
+             ENDIF
+             ! Get time stamp on file
+             call GFIO_Open( ifile_, 1, fid, STATUS )
+             ASSERT_(STATUS==0)
+             call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
+             ASSERT_(STATUS==0)
+             caLL GFIO_Close( fid, STATUS )
+             ASSERT_(STATUS==0)
+             yy_ = nymd/10000
+             mm_ = (nymd-yy_*10000) / 100
+             dd_ = nymd - (10000*yy_ + mm_*100)
+             h_  = nhms/10000
+             m_  = (nhms- h_*10000) / 100
+             s_  = nhms - (10000*h_  + m_*100)
+             call ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=s_)
+             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile_), TRIM(bname), grid, fileTime_, ONLY_VARS=only_vars, RC=STATUS )
+             IF ( STATUS==ESMF_SUCCESS ) HasBundle = .TRUE.
+          ENDIF
+       ENDIF
+    ! error handling if file not found 
+    ELSE
+       ! If file not found and error mode is zero, stop with error
+       IF ( errmode_ == 0 ) THEN
+          IF ( am_I_Root ) THEN
+             WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile_)
+             WRITE(*,*) 'You can get past this error setting the error mode to > 0'
+          ENDIF
+          ASSERT_(.FALSE.)
+       ! If file not found and error mode is not zero, just skip nudging 
+       ELSE
+          IF ( am_I_Root ) WRITE(*,*) '*** GCC warning in GetAnaBundle_, file not found: '//TRIM(ifile_)
+       ENDIF
+    ENDIF
+
+    ! Return
+    IF ( present(ifile   ) ) ifile    = ifile_    
+    IF ( present(fileTime) ) fileTime = fileTime_
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE GetAnaBundle_
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
