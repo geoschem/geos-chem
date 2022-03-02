@@ -87,6 +87,9 @@ Warnings:                    1
     --> GLOBAL_CL              :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
+    --> AnalyticalInv          :       false
+    --> Emis_ScaleFactor       :       false
+    --> OH_ScaleFactor         :       false
 # ----------------------------------------------------------------------------
 111     GFED                   : off   CH4
     --> GFED4                  :       true
@@ -207,7 +210,7 @@ Warnings:                    1
 0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
 0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
 0 MEX_RICE_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
-
+0 MEX_OTHER_COAST       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
 )))Scarpelli_Mexico
 
 #==============================================================================
@@ -507,7 +510,7 @@ Warnings:                    1
 ${RUNDIR_CH4_LOSS}
 )))GMI_CH4_LOSS
 (((GLOBAL_OH
-${RUNDIR_GLOBAL_OH}
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH
 (((GLOBAL_CL
 ${RUNDIR_GLOBAL_Cl}
@@ -681,6 +684,39 @@ ${RUNDIR_GLOBAL_Cl}
 * XLAI71 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI71 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 * XLAI72 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 )))YUAN_MODIS_LAI
+
+#==============================================================================
+# --- Files needed for analytical inversion ---
+#
+# These fields are are only used if 'Do analytical inversion?' is set to T
+# in input.geos. These fields are manually obtained from HEMCO and applied in
+# global_ch4_mod.F90.
+#
+# Entries below provided for examples only. Add your own here!
+#==============================================================================
+(((AnalyticalInv
+
+# State vector file
+* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1 
+
+)))AnalyticalInv
+
+#==============================================================================
+# --- Scale factors for posterior run ---
+#
+# Enable emission scale factors by setting the emissions, wetland, or OH
+# scale factor options to T in the CH4 MENU of input.geos. These fields are
+# manually obtained from HEMCO and applied in global_ch4_mod.F90.
+#
+# Entries below are provided for examples only. Add your own here!
+#==============================================================================
+(((Emis_ScaleFactor
+* EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 * - 1 1
+)))Emis_ScaleFactor
+
+(((OH_ScaleFactor
+* OH_SF      Post_SF_OH.nc         SF_OH         2010-2017/1/1/0    E xy 1 * - 1 1
+)))OH_ScaleFactor
 
 ### END SECTION BASE EMISSIONS ###
 

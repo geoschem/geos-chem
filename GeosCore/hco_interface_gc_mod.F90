@@ -3678,7 +3678,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
          Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
          Input_Opt%ITS_A_CO2_SIM          .or.                               &
-         Input_OPt%ITS_A_CH4_SIM          .or.                               &
+         Input_Opt%ITS_A_CH4_SIM          .or.                               &
          Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
          Input_Opt%ITS_A_POPS_SIM         .or.                               &
          Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
@@ -4221,6 +4221,85 @@ CONTAINS
                    'but LDYNOCEAN is true in input.geos.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Input data for CH4 simulations only
+    !
+    ! If we have turned on options in the CH4 MENU of input.geos, then we
+    ! also need to toggle switches so that HEMCO reads the appropriate data.
+    !-----------------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+
+       IF ( Input_Opt%AnalyticalInv ) THEN
+          CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
+                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "GetExtOpt( AnalyticalInv )"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             RETURN
+          ENDIF
+          IF ( .not. FOUND ) THEN
+             ErrMsg = 'AnalyticalInv not found in HEMCO_Config.rc file!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          IF ( .not. LTMP ) THEN
+             ErrMsg = 'AnalyticalInv is set to false in HEMCO_Config.rc ' // &
+                  'but should be set to true for this simulation.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       IF ( Input_Opt%UseEmisSF ) THEN
+          CALL GetExtOpt( HcoConfig, -999, 'Emis_ScaleFactor', &
+                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "GetExtOpt( Emis_ScaleFactor )"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             RETURN
+          ENDIF
+          IF ( .not. FOUND ) THEN
+             ErrMsg = 'Emis_ScaleFactor not found in HEMCO_Config.rc file!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          IF ( .not. LTMP ) THEN
+             ErrMsg = 'Emis_ScaleFactor is set to false in HEMCO_Config.rc '// &
+                  'but should be set to true for this simulation.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       IF ( Input_Opt%UseOHSF ) THEN
+          CALL GetExtOpt( HcoConfig, -999, 'OH_ScaleFactor',           &
+                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "GetExtOpt( OH_ScaleFactor )"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             RETURN
+          ENDIF
+          IF ( .not. FOUND ) THEN
+             ErrMsg = 'OH_ScaleFactor not found in HEMCO_Config.rc file!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          IF ( .not. LTMP ) THEN
+             ErrMsg = 'OH_ScaleFactor is set to false in HEMCO_Config.rc ' // &
+                  'but should be set to true for this simulation.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
     ENDIF

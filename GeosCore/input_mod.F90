@@ -4799,6 +4799,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
 
+    ! Use AIRS CH4 observation operator?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'AIRS_CH4_OBS', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%AIRS_CH4_OBS
+
     ! Use TCCON CH4 observation operator?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TCCON_CH4_OBS', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4806,6 +4814,46 @@ CONTAINS
        RETURN
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%TCCON_CH4_OBS
+
+    ! Do analytical inversion?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'AnalyticalInv', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%AnalyticalInv
+
+    ! Emission perturbation
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'PerturbEmis', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%PerturbEmis
+
+    ! Current state vector element number
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'StateVectorElement', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%StateVectorElement
+
+    ! Use emission scale factors?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'UseEmisSF', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%UseEmisSF
+
+    ! Use OH scale factors?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'UseOHSF', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%UseOHSF
 
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
@@ -4820,14 +4868,28 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) 'CH4 MENU'
        WRITE( 6, '(  a)' ) '-----------'
-       WRITE( 6, 100     ) 'Use GOSAT obs operator: ', &
+       WRITE( 6, 100     ) 'Use GOSAT obs operator   : ', &
                             Input_Opt%GOSAT_CH4_OBS
-       WRITE( 6, 100     ) 'Use TCCON obs operator: ', &
-            Input_Opt%TCCON_CH4_OBS
+       WRITE( 6, 100     ) 'Use AIRS obs operator    : ', &
+                            Input_Opt%AIRS_CH4_OBS
+       WRITE( 6, 100     ) 'Use TCCON obs operator   : ', &
+                            Input_Opt%TCCON_CH4_OBS
+       WRITE( 6, 100     ) 'Do analytical inversion  : ', &
+                            Input_Opt%AnalyticalInv
+       WRITE( 6, 110     ) 'Emission perturbation    : ', &
+                            Input_Opt%PerturbEmis
+       WRITE( 6, 120     ) 'Current state vector elem: ', &
+                            Input_Opt%StateVectorElement
+       WRITE( 6, 100     ) 'Use emis scale factors   : ', &
+                            Input_Opt%UseEmisSF
+       WRITE( 6, 100     ) 'Use OH scale factors     : ', &
+                            Input_Opt%UseOHSF 
     ENDIF
 
     ! FORMAT statements
-100 FORMAT( A, L5  )
+100 FORMAT( A, L5   )
+110 FORMAT( A, f6.2 )
+120 FORMAT( A, I5   )
 
     ! Return success
     RC = GC_SUCCESS
