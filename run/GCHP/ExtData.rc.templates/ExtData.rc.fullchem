@@ -1,4 +1,3 @@
-
 Ext_AllowExtrap: .true.
 #
 PrimaryExports%%
@@ -30,108 +29,108 @@ PrimaryExports%%
 ###############################################################################
 #
 # --- 2D variables, 1-hr averaged ---
-ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-EFLUX    1 N Y F0;003000 none none EFLUX    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-EVAP     1 N Y F0;003000 none none EVAP     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-FRSEAICE 1 N Y F0;003000 none none FRSEAICE ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-FRSNO    1 N Y F0;003000 none none FRSNO    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-GRN      1 N Y F0;003000 none none GRN      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-HFLUX    1 N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-LAI      1 N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-LWI      1 N Y F0;003000 none none LWI      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-RADLWG   1 N Y F0;003000 none none LWGNT    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PARDF    1 N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PARDR    1 N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PBLH     1 N Y F0;003000 none none PBLH     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PRECANV  1 N Y F0;003000 none none PRECANV  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PRECCON  1 N Y F0;003000 none none PRECCON  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-QV2M     1 N Y F0;003000 none none QV2M     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE00 1 N Y F0;003000 none none SEAICE00 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE10 1 N Y F0;003000 none none SEAICE10 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE20 1 N Y F0;003000 none none SEAICE20 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE30 1 N Y F0;003000 none none SEAICE30 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE40 1 N Y F0;003000 none none SEAICE40 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE50 1 N Y F0;003000 none none SEAICE50 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE60 1 N Y F0;003000 none none SEAICE60 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE70 1 N Y F0;003000 none none SEAICE70 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE80 1 N Y F0;003000 none none SEAICE80 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SEAICE90 1 N Y F0;003000 none none SEAICE90 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+EFLUX    1 N Y F0;003000 none none EFLUX    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+EVAP     1 N Y F0;003000 none none EVAP     ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+FRSEAICE 1 N Y F0;003000 none none FRSEAICE ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+FRSNO    1 N Y F0;003000 none none FRSNO    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+GRN      1 N Y F0;003000 none none GRN      ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+HFLUX    1 N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+LAI      1 N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+LWI      1 N Y F0;003000 none none LWI      ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+RADLWG   1 N Y F0;003000 none none LWGNT    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PARDF    1 N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PARDR    1 N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PBLH     1 N Y F0;003000 none none PBLH     ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PRECANV  1 N Y F0;003000 none none PRECANV  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PRECCON  1 N Y F0;003000 none none PRECCON  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+QV2M     1 N Y F0;003000 none none QV2M     ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE00 1 N Y F0;003000 none none SEAICE00 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE10 1 N Y F0;003000 none none SEAICE10 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE20 1 N Y F0;003000 none none SEAICE20 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE30 1 N Y F0;003000 none none SEAICE30 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE40 1 N Y F0;003000 none none SEAICE40 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE50 1 N Y F0;003000 none none SEAICE50 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE60 1 N Y F0;003000 none none SEAICE60 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE70 1 N Y F0;003000 none none SEAICE70 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE80 1 N Y F0;003000 none none SEAICE80 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SEAICE90 1 N Y F0;003000 none none SEAICE90 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-SLP {PRES_UNIT} N Y F0;003000 none {PRES_SCALE} SLP ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SLP ${RUNDIR_MET_PRES_UNIT} N Y F0;003000 none ${RUNDIR_MET_PRES_SCALE} SLP ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-SNODP  1 N Y F0;003000 none none SNODP  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-SNOMAS 1 N Y F0;003000 none none SNOMAS ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-RADSWG 1 N Y F0;003000 none none SWGDN  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SNODP  1 N Y F0;003000 none none SNODP  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SNOMAS 1 N Y F0;003000 none none SNOMAS ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+RADSWG 1 N Y F0;003000 none none SWGDN  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-TO3 dobson N Y F0;003000 none none TO3 ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TO3 dobson N Y F0;003000 none none TO3 ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-TROPP {PRES_UNIT} N Y F0;003000 none {PRES_SCALE} TROPPT ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TROPP ${RUNDIR_MET_PRES_UNIT} N Y F0;003000 none ${RUNDIR_MET_PRES_SCALE} TROPPT ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-TSKIN 1 N Y F0;003000 none none TS    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-TS    1 N Y F0;003000 none none T2M   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-USTAR 1 N Y F0;003000 none none USTAR ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TSKIN 1 N Y F0;003000 none none TS    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+TS    1 N Y F0;003000 none none T2M   ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+USTAR 1 N Y F0;003000 none none USTAR ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-U10M m_s-1 N Y F0;003000 none none U10M ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
-V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+U10M m_s-1 N Y F0;003000 none none U10M ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A1.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
 # --- Surface pressure, 3-hr instantaneous ---
-PS1 {PRES_UNIT} N Y 0        none {PRES_SCALE} PS ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
-PS2 {PRES_UNIT} N Y 0;001000 none {PRES_SCALE} PS ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+PS1 ${RUNDIR_MET_PRES_UNIT} N Y 0        none ${RUNDIR_MET_PRES_SCALE} PS ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.I3.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PS2 ${RUNDIR_MET_PRES_UNIT} N Y 0;001000 none ${RUNDIR_MET_PRES_SCALE} PS ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.I3.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
 # --- 3D variables, 3-hr instantaneous ---
-SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
-SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.I3.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.I3.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
-TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.I3.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.I3.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
 # --- 3D variables, 3-hr averaged ---
-QI     1 N Y F0;013000 none none QI       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
-QL     1 N Y F0;013000 none none QL       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
-TAUCLI 1 N Y F0;013000 none none TAUCLI   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
-TAUCLW 1 N Y F0;013000 none none TAUCLW   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
-OPTDEP 1 N Y F0;013000 none none OPTDEPTH ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
-CLDF   1 N Y F0;013000 none none CLOUD    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
-DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+QI     1 N Y F0;013000 none none QI       ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3cld.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+QL     1 N Y F0;013000 none none QL       ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3cld.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+TAUCLI 1 N Y F0;013000 none none TAUCLI   ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3cld.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+TAUCLW 1 N Y F0;013000 none none TAUCLW   ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3cld.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+OPTDEP 1 N Y F0;013000 none none OPTDEPTH ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3cld.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+CLDF   1 N Y F0;013000 none none CLOUD    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3cld.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3dyn.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3dyn.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3dyn.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3dyn.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
-DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
-REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
-REEVAPLS 1 N Y F0;013000 none none REEVAPLS ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
-CMFMC    1 N Y F0;013000 none none CMFMC    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
-PFICU    1 N Y F0;013000 none none PFICU    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
-PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
-PFLCU    1 N Y F0;013000 none none PFLCU    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
-PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
+DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstC.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstC.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstC.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+REEVAPLS 1 N Y F0;013000 none none REEVAPLS ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstC.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+CMFMC    1 N Y F0;013000 none none CMFMC    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstE.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PFICU    1 N Y F0;013000 none none PFICU    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstE.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstE.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PFLCU    1 N Y F0;013000 none none PFLCU    ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstE.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/${RUNDIR_MET}.%y4%m2%d2.A3mstE.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
 # --- Fixed variables, from constants file ---
-FRLAKE   1 N Y - none none FRLAKE   ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
-FRLAND   1 N Y - none none FRLAND   ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
-FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
-FROCEAN  1 N Y - none none FROCEAN  ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+FRLAKE   1 N Y - none none FRLAKE   ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+FRLAND   1 N Y - none none FRLAND   ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+FROCEAN  1 N Y - none none FROCEAN  ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
-PHIS m2_s-2 N Y - none none PHIS ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+PHIS m2_s-2 N Y - none none PHIS ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
 #
 #==============================================================================
 # --- Fields for lightning emissions (Extension 103) ---
 # These fields are stored in State_Met, along with the other met fields
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
-CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
+FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
+CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
 #
 ###############################################################################
 ###
@@ -216,81 +215,6 @@ OLSON69 1 N F;69 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_La
 OLSON70 1 N F;70 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
 OLSON71 1 N F;71 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
 OLSON72 1 N F;72 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
-#
-# Alternatively read files containing land type masks. This implementation needs further testing to assess relative performance.
-#OLSON00 1 N Y - none none LANDTYPE00 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON01 1 N Y - none none LANDTYPE01 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON02 1 N Y - none none LANDTYPE02 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON03 1 N Y - none none LANDTYPE03 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON04 1 N Y - none none LANDTYPE04 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON05 1 N Y - none none LANDTYPE05 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON06 1 N Y - none none LANDTYPE06 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON07 1 N Y - none none LANDTYPE07 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON08 1 N Y - none none LANDTYPE08 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON09 1 N Y - none none LANDTYPE09 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON10 1 N Y - none none LANDTYPE10 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON11 1 N Y - none none LANDTYPE11 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON12 1 N Y - none none LANDTYPE12 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON13 1 N Y - none none LANDTYPE13 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON14 1 N Y - none none LANDTYPE14 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON15 1 N Y - none none LANDTYPE15 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON16 1 N Y - none none LANDTYPE16 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON17 1 N Y - none none LANDTYPE17 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON18 1 N Y - none none LANDTYPE18 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON19 1 N Y - none none LANDTYPE19 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON20 1 N Y - none none LANDTYPE20 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON21 1 N Y - none none LANDTYPE21 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON22 1 N Y - none none LANDTYPE22 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON23 1 N Y - none none LANDTYPE23 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON24 1 N Y - none none LANDTYPE24 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON25 1 N Y - none none LANDTYPE25 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON26 1 N Y - none none LANDTYPE26 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON27 1 N Y - none none LANDTYPE27 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON28 1 N Y - none none LANDTYPE28 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON29 1 N Y - none none LANDTYPE29 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON30 1 N Y - none none LANDTYPE30 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON31 1 N Y - none none LANDTYPE31 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON32 1 N Y - none none LANDTYPE32 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON33 1 N Y - none none LANDTYPE33 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON34 1 N Y - none none LANDTYPE34 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON35 1 N Y - none none LANDTYPE35 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON36 1 N Y - none none LANDTYPE36 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON37 1 N Y - none none LANDTYPE37 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON38 1 N Y - none none LANDTYPE38 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON39 1 N Y - none none LANDTYPE39 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON40 1 N Y - none none LANDTYPE40 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON41 1 N Y - none none LANDTYPE41 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON42 1 N Y - none none LANDTYPE42 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON43 1 N Y - none none LANDTYPE43 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON44 1 N Y - none none LANDTYPE44 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON45 1 N Y - none none LANDTYPE45 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON46 1 N Y - none none LANDTYPE46 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON47 1 N Y - none none LANDTYPE47 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON48 1 N Y - none none LANDTYPE48 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON49 1 N Y - none none LANDTYPE49 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON50 1 N Y - none none LANDTYPE50 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON51 1 N Y - none none LANDTYPE51 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON52 1 N Y - none none LANDTYPE52 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON53 1 N Y - none none LANDTYPE53 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON54 1 N Y - none none LANDTYPE54 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON55 1 N Y - none none LANDTYPE55 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON56 1 N Y - none none LANDTYPE56 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON57 1 N Y - none none LANDTYPE57 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON58 1 N Y - none none LANDTYPE58 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON59 1 N Y - none none LANDTYPE59 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON60 1 N Y - none none LANDTYPE60 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON61 1 N Y - none none LANDTYPE61 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON62 1 N Y - none none LANDTYPE62 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON63 1 N Y - none none LANDTYPE63 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON64 1 N Y - none none LANDTYPE64 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON65 1 N Y - none none LANDTYPE65 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON66 1 N Y - none none LANDTYPE66 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON67 1 N Y - none none LANDTYPE67 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON68 1 N Y - none none LANDTYPE68 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON69 1 N Y - none none LANDTYPE69 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON70 1 N Y - none none LANDTYPE70 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON71 1 N Y - none none LANDTYPE71 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
-#OLSON72 1 N Y - none none LANDTYPE72 ./HcoDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
 #
 #==============================================================================
 # Yuan-processed MODIS Leaf Area Index
@@ -1687,43 +1611,43 @@ PM25FINE_3 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2
 #==============================================================================
 # --- Offline dust emissions (OFFLINE_DUST)---
 #==============================================================================
-EMIS_DST1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST1 ./HcoDir/OFFLINE_DUST/v2021-08/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
-EMIS_DST2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST2 ./HcoDir/OFFLINE_DUST/v2021-08/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
-EMIS_DST3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST3 ./HcoDir/OFFLINE_DUST/v2021-08/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
-EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./HcoDir/OFFLINE_DUST/v2021-08/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
+EMIS_DST1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST1 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST2 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST3 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./HcoDir/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/dust_emissions_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 #==============================================================================
 # --- Offline biogenic VOC emissions (OFFLINE_BIOGENICVOC) ---
 #==============================================================================
-BIOGENIC_ACET kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ACET_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_ALD2 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ALD2_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_C2H4 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none C2H4_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_EOH  kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EOH_MEGAN  ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_ISOP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ISOP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_PRPE kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none PRPE_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_SOAP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_SOAS kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAS_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_MTPA kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPA_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_MTPO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_LIMO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none LIMO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
-BIOGENIC_SESQ kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SESQ_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_ACET kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ACET_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_ALD2 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ALD2_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_C2H4 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none C2H4_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_EOH  kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EOH_MEGAN  ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_ISOP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ISOP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_PRPE kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none PRPE_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_SOAP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_SOAS kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAS_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_MTPA kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPA_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_MTPO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_LIMO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none LIMO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_SESQ kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SESQ_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
-BIOGENIC_CO   kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BIOGENIC_CO ./HcoDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_CO   kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BIOGENIC_CO ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 #==============================================================================
 # --- Offline sea salt emissions (OFFLINE_SEASALT) ---
 #==============================================================================
-SEASALT_SALA kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALA_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
-SEASALT_SALC kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALC_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
+SEASALT_SALA kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALA_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/seasalt_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+SEASALT_SALC kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALC_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/seasalt_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
-#SEASALT_Br2    kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none Br2_TOTAL    ./HcoDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
-#SEASALT_BrSALA kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BrSALA_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
-#SEASALT_BrSALC kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BrSALC_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
+#SEASALT_Br2    kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none Br2_TOTAL    ./HcoDir/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/seasalt_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+#SEASALT_BrSALA kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BrSALA_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/seasalt_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+#SEASALT_BrSALC kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BrSALC_TOTAL ./HcoDir/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/seasalt_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 #==============================================================================
 # --- Offline soil NOx emissions (OFFLINE_SOILNOX) ---
 #==============================================================================
-SOILNOX_NO kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./HcoDir/OFFLINE_SOILNOX/v2019-01/{NATIVE_RES}/%y4/%m2/soilnox_{LATRES}.%y4%m2%d2.nc
+SOILNOX_NO kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./HcoDir/OFFLINE_SOILNOX/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/soilnox_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 ###############################################################################
 ###

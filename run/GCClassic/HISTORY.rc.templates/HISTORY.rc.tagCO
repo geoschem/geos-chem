@@ -70,8 +70,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.frequency:      {FREQUENCY}
-  SpeciesConc.duration:       {DURATION}
+  SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConc_?ADV?             ', 
 ::
@@ -85,8 +85,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.frequency:    {FREQUENCY}
-  Budget.duration:     {DURATION}
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
   Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',   
                        'BudgetEmisDryDepTrop_?ADV?           ',   
@@ -115,8 +115,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.frequency:    {FREQUENCY}
-  CloudConvFlux.duration:     {DURATION}
+  CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CloudConvFlux.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ', 
 ::
@@ -128,8 +128,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   {FREQUENCY}
-  LevelEdgeDiags.duration:    {DURATION}
+  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
   LevelEdgeDiags.mode:        'time-averaged'
   LevelEdgeDiags.fields:      'Met_CMFMC                     ', 
                               'Met_PEDGE                     ', 
@@ -147,8 +147,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  ProdLoss.frequency:         {FREQUENCY}
-  ProdLoss.duration:          {DURATION}
+  ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   ProdLoss.mode:              'time-averaged'
   ProdLoss.fields:            'Loss_?LOS?                    ', 
 ::
@@ -160,8 +160,8 @@ COLLECTIONS: 'Restart',
 # Only available for the CO specialty simulation
 #==============================================================================
   CO.template:                '%y4%m2%d2_%h2%n2z.nc4',
-  CO.frequency:               {FREQUENCY}
-  CO.duration:                {DURATION}
+  CO.frequency:               ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CO.duration:                ${RUNDIR_HIST_TIME_AVG_DUR}
   CO.mode:                    'time-averaged'
   CO.fields:                  'ProdCOfromCH4                 ', 
                               'ProdCOfromNMVOC               ', 
@@ -174,8 +174,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet.frequency:         {FREQUENCY}
-  StateMet.duration:          {DURATION}
+  StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMet.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   StateMet.mode:              'time-averaged'
   StateMet.fields:            'Met_AD                        ', 
                               'Met_AIRDEN                    ', 

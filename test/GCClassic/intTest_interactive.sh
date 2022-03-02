@@ -14,10 +14,6 @@
 # !CALLING SEQUENCE:
 #  ./intTests_interactive.sh /integration/test/root/folder ENV-FILE          or
 #  ./intTests_interactive.sh /integration/test/root/folder ENV-FILE short=1
-#
-# !REVISION HISTORY:
-#  03 Sep 2021 - L. Estrada - Initial version
-#  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -77,15 +73,28 @@ fi
 #=============================================================================
 # run compilation tests script
 #=============================================================================
-./intTestCompile_slurm.sh
+./intTestCompile_interactive.sh
+if [[ $? != 0 ]]; then
+    echo ""
+    echo "Compilation tests failed!  Exiting..."
+    cd ${THIS_DIR}
+    exit 1
+fi
 echo ""
-echo "Compilation tests finished"
+echo "Compilation tests finished!"
+
 #=============================================================================
 # run execution tests script as a job dependency
 #=============================================================================
-./intTestExecute_slurm.sh
+./intTestExecute_interactive.sh
+if [[ $? != 0 ]]; then
+    echo ""
+    echo "Execution tests failed!  Exiting..."
+    cd ${THIS_DIR}
+    exit 1
+fi
 echo ""
-echo "Execution tests finished"
+echo "Execution tests finished!"
 
 # Change back to this directory
 cd ${THIS_DIR}

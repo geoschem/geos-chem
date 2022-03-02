@@ -1429,7 +1429,7 @@ CONTAINS
     ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Need Hg0, Hg2, HgP for tagged Mercury
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 3 )
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 25 )
 
     ELSE
 
@@ -2309,7 +2309,8 @@ CONTAINS
 
     ! FAST-JX is only used for fullchem and offline aerosol
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM  ) THEN
+         Input_Opt%ITS_AN_AEROSOL_SIM  .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  ) THEN
 
        ! Make sure either O3 from met or TOMS is selected
        IF ( .not. Input_Opt%USE_O3_FROM_MET .and. &
@@ -3454,7 +3455,6 @@ CONTAINS
 #endif
 
     !--------------------------
-    ! ND60: Wetland Fraction
     ! ND60: TOMAS rate
     !--------------------------
     CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND60', RC )

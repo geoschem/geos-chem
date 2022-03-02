@@ -1,35 +1,35 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : {DATE1} {TIME1}
-End   YYYYMMDD, hhmmss  : {DATE2} {TIME2}
+Start YYYYMMDD, hhmmss  : ${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}
+End   YYYYMMDD, hhmmss  : ${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}
 Run directory           : ./
-Root data directory     : {DATA_ROOT}
-Met field               : {MET}
-Simulation name         : {SIM}
+Root data directory     : ${RUNDIR_DATA_ROOT}
+Met field               : ${RUNDIR_MET}
+Simulation name         : ${RUNDIR_SIM_NAME}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
-Use GC classic timers?  : F
+Use GC classic timers?  : ${RUNDIR_USE_GCCLASSIC_TIMERS}
 ------------------------+------------------------------------------------------
 %%% GRID MENU %%%       :
-Grid resolution         : {RES}
-Longitude min/max       : {LON_RANGE}
- Center on 180E/W?      : {CENTER_180}
-Latitude  min/max       : {LAT_RANGE}
- Half-sized polar boxes?: {HALF_POLAR}
-Number of levels        : {NLEV}
-Nested grid simulation? : {NESTED_SIM}
- Buffer zone (N S E W ) :  {BUFFER_ZONE}
+Grid resolution         : ${RUNDIR_GRID_RES_LONG}
+Longitude min/max       : ${RUNDIR_GRID_LON_RANGE}
+ Center on 180E/W?      : ${RUNDIR_CENTER_LON_180}
+Latitude  min/max       : ${RUNDIR_GRID_LAT_RANGE}
+ Half-sized polar boxes?: ${RUNDIR_GRID_HALF_POLAR}
+Number of levels        : ${RUNDIR_GRID_NLEV}
+Nested grid simulation? : ${RUNDIR_GRID_NESTED_SIM}
+ Buffer zone (N S E W ) : ${RUNDIR_GRID_BUFFER_ZONE}
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
-Tran/conv timestep [sec]: 600
-Chem/emis timestep [sec]: 1200
+Tran/conv timestep [sec]: ${RUNDIR_TRANSPORT_TS}
+Chem/emis timestep [sec]: ${RUNDIR_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
-Species name            : POPG_{POPs_SPC}
-Species name            : POPPOCPO_{POPs_SPC}
-Species name            : POPPOCPI_{POPs_SPC}
-Species name            : POPPBCPO_{POPs_SPC}
-Species name            : POPPBCPI_{POPs_SPC}
+Species name            : POPG_${RUNDIR_POP_SPC}
+Species name            : POPPOCPO_${RUNDIR_POP_SPC}
+Species name            : POPPOCPI_${RUNDIR_POP_SPC}
+Species name            : POPPBCPO_${RUNDIR_POP_SPC}
+Species name            : POPPBCPI_${RUNDIR_POP_SPC}
 ------------------------+------------------------------------------------------
 %%% TRANSPORT MENU %%%  :
 Turn on Transport       : T
@@ -71,17 +71,17 @@ Photolyse nitrate aer.? : F
  => % channel B (NO2)   : 33.333
 ------------------------+------------------------------------------------------
 %%% POPS MENU %%%       :
-POP type [PHE,PYR,BAP]  : {POPs_SPC}
+POP type [PHE,PYR,BAP]  : ${RUNDIR_POP_SPC}
 Chemistry processing on?: T
-POP_XMW                 : {POPs_XMW}
-POP_KOA                 : {POPs_KOA}
-POP_KBC                 : {POPs_KBC}
-POP_K_POPG_OH           : {POPs_K_POPG_OH}
-POP_K_POPG_O3A          : {POPs_K_POPG_O3A}
-POP_K_POPG_O3B          : {POPs_K_POPG_O3B}
-POP_HSTAR               : {POPs_HSTAR}
-POP_DEL_H               : {POPs_DEL_H}
-POP_DEL_Hw              : {POPs_DEL_Hw}
+POP_XMW                 : ${RUNDIR_POP_XMW}
+POP_KOA                 : ${RUNDIR_POP_KOA}
+POP_KBC                 : ${RUNDIR_POP_KBC}
+POP_K_POPG_OH           : ${RUNDIR_POP_K_POPG_OH}
+POP_K_POPG_O3A          : ${RUNDIR_POP_K_POPG_O3A}
+POP_K_POPG_O3B          : ${RUNDIR_POP_K_POPG_O3B}
+POP_HSTAR               : ${RUNDIR_POP_HSTAR}
+POP_DEL_H               : ${RUNDIR_POP_DEL_H}
+POP_DEL_Hw              : ${RUNDIR_POP_DEL_Hw}
 ------------------------+------------------------------------------------------
 %%% DEPOSITION MENU %%% :
 Turn on Dry Deposition? : T
@@ -96,7 +96,7 @@ Turn on Chemistry?      : T
 Use linear. chem aloft? : F
  => Use Linoz for O3?   : F
 Use active strat. H2O?  : F
-Use static H2O BC       : F
+Use static H2O BC?      : F
 Overhead O3 for FAST-JX :---
  => Online O3 from model: F
  => O3 from met fields  : F
@@ -104,7 +104,7 @@ Overhead O3 for FAST-JX :---
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550

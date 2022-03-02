@@ -1,5 +1,0 @@
-###############################################################################
-
-ROOT:                        {DATA_ROOT}/HEMCO
-SCENARIO:                    HIST
-METDIR:                      {DATA_ROOT}/GEOS_{GRID_DIR}/{MET_DIR}

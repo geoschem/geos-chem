@@ -1,4 +1,43 @@
+#------------------------------------------------------------------------------
+#                  Harmonized Emissions Component (HEMCO)                     !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Config.rc.gcap2_metfields
+#
+# !DESCRIPTION: Contains configuration information for GCAP2 meteorology fields
+#  in HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  See The HEMCO User's Guide for file details:
+#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#
+# !REVISION HISTORY:
+#  See https://github.com/geoschem/geos-chem for complete history
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+###############################################################################
+### BEGIN SECTION SETTINGS
+###############################################################################
+
+ROOT:    ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:  ${RUNDIR_MET_DIR}
+RUNID:   ${RUNDIR_GCAP2_RUNID}
+
+### END SECTION SETTINGS ###
+
+###############################################################################
+### BEGIN SECTION BASE EMISSIONS
+###############################################################################
+
+# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+
 #==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
+
 # --- CN fields ---
 * FRLAKE    $METDIR/TOPO                                       flake       */1/1/0                         C   xy  1  * -  1 1
 * FRLAND    $METDIR/TOPO                                       fgrnd       */1/1/0                         C   xy  1  * -  1 1
@@ -88,3 +127,8 @@
 * SEAICE70   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * SEAICE80   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * SEAICE90   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
+
+### END SECTION BASE EMISSIONS ###
+
+### END OF HEMCO INPUT FILE ###
+#EOC

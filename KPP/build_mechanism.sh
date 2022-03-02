@@ -12,6 +12,7 @@
 #
 # !CALLING SEQUENCE:
 #  ./build_mechanism.sh fullchem   # builds mechanism in KPP/fullchem folder
+#  ./build_mechanism.sh Hg         # builds mechanism in KPP/Hg folder
 #  ./build_mechanism.sh custom     # builds mechanism in KPP/custom folder
 #
 # !AUTHOR:
@@ -46,9 +47,9 @@ fi
 # Check that directory exists before proceeding
 #============================================================================
 if [ "x${1}" != "x" ]; then
-    mechanismDir=${1}
-    if [ ! -d "$mechanismDir" ]; then
-        echo "ERROR: Mechanism directory '${1}' does not exist."
+    mechDir=${1}
+    if [ ! -d "$mechDir" ]; then
+        echo "ERROR: Mechanism directory ${mechDir} does not exist."
         exit 1
     fi
 else
@@ -59,32 +60,47 @@ fi
 #============================================================================
 # Remove prior files that have been built with KPP
 # while leaving those files containing the chemistry mechanism specification
+#
+# NOTE: KPP-generated source code files for GEOS-Chem will have the
+# prefix "gckpp".  This is necessary because a consistent naming scheme
+# needs to used so that modules in GeosCore etc. can find KPP code.
 #============================================================================
-cd ${mechanismDir}
+cd ${mechDir}
+
+# Find the mechanism name (which is at the top of the .eqn file)
+mechName=$(grep ".eqn" *.eqn)
+mechName="${mechName/\{ /}"
+mechName="${mechName/\.eqn/}"
+
+# Exit if mechanism name isn't found
+if [[ "x${mechName}" == "x" ]]; then
+    echo "Could not find the mechanism name in the ${mechanismDir}/*.eqn file"
+    exit 1
+fi
 
 # Remove these files, which will be will be regnerated by KPP
-filesToRemove=(                \
-    gckpp_Function.F90         \
-    gckpp_Global.F90           \
-    gckpp_Initialize.F90       \
-    gckpp_Integrator.F90       \
-    gckpp_Jacobian.F90         \
-    gckpp_JacobianSP.F90       \
-    gckpp_LinearAlgebra.F90    \
-    gckpp_Model.F90            \
-    gckpp_Monitor.F90          \
-    gckpp_Parameters.F90       \
-    gckpp_Precision.F90        \
-    gckpp_Rates.F90            \
-    gckpp_Util.F90             \
+filesToRemove=(                     \
+    gckpp.map               \
+    gckpp_Function.F90      \
+    gckpp_Global.F90        \
+    gckpp_Initialize.F90    \
+    gckpp_Integrator.F90    \
+    gckpp_Jacobian.F90      \
+    gckpp_JacobianSP.F90    \
+    gckpp_LinearAlgebra.F90 \
+    gckpp_Model.F90         \
+    gckpp_Monitor.F90       \
+    gckpp_Parameters.F90    \
+    gckpp_Precision.F90     \
+    gckpp_Rates.F90         \
+    gckpp_Util.F90          \
 )
-
-for f in ${filesToRemove[@]}; do
+for f in ${filesToRemove[@]}; do 
     rm -f $f
 done
 
-# Also remove any object files
-rm -f *.o
+# Also remove any generated files
+rm -f *.o *.mod *.a
 
 #============================================================================
 # Build the mechanism!
@@ -92,18 +108,16 @@ rm -f *.o
 if [[ -f gckpp.kpp ]]; then
     kpp gckpp.kpp
 else
-    echo "Could not find the gckpp.kpp file... Aborting!"
+    echo "Could not find the 'gckpp.kpp' file... Aborting!"
     exit 1
 fi
 
-# Remove the KPP Makefile (this is GNU Make, but we now use CMake)
-if [[ -f Makefile_gckpp ]]; then
-    rm -f Makefile_gckpp
-fi
+# Remove the GNU Makefile (not needed, since we use CMake)
+[[ -f Makefile_gckpp ]] && rm -f Makefile_gckpp
 
 # If the gckpp_Rates.F90 file is not found, there was an error
-if [[ ! -e gckpp_Rates.F90 ]]; then
-  echo "KPP failed to build gckpp_Rates.F90! Aborting."
+if [[ ! -f gckpp_Rates.F90 ]]; then
+  echo "KPP failed to build 'gckpp_Rates.F90'! Aborting."
   exit 1
 fi
 

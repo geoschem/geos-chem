@@ -6,7 +6,7 @@
 #
 # If optional run directory name argument is not passed then the user
 # will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{simulation}.
+# default name gchp_{met}_{sim_name}.
 #
 # Usage: ./createRunDir.sh [rundirname]
 #
@@ -15,13 +15,17 @@
 srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
-gcdir=$(pwd)
+gcdir=$(pwd -P)
 cd ../../../..
-gchpdir=$(pwd)
+wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
 # Load file with utility functions to setup configuration files
 . ${gcdir}/run/shared/setupConfigFiles.sh
+
+# Initialize run directory variables
+RUNDIR_VARS=""
+RUNDIR_VARS+="RUNDIR_GC_MODE='GCHP'\n"
 
 # Define separator lines
 thickline="\n===========================================================\n"
@@ -50,8 +54,7 @@ fi
 if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
-    while [ "$valid_path" -eq 0 ]
-    do
+    while [ "$valid_path" -eq 0 ]; do
 	read -e extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
@@ -65,6 +68,8 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 	fi
     done
 fi
+
+RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -83,13 +88,13 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
-	sim_name_long=${sim_name}
-	sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
+
+RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -107,7 +112,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  5. Acid uptake on dust\n"
     printf "  6. TOMAS\n"
     printf "  7. APM\n"
-    printf "  8. Standard w/ RRTMG\n"
+    printf "  8. RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read sim_option
@@ -134,13 +139,13 @@ if [[ ${sim_name} = "fullchem" ]]; then
 		fi
 	    done
 	elif [[ ${sim_option} = "4" ]]; then
-	   sim_extra_option="marinePOA"
+	    sim_extra_option="marinePOA"
 	elif [[ ${sim_option} = "5" ]]; then
-	   sim_extra_option="aciduptake"
+	    sim_extra_option="aciduptake"
 	elif [[ ${sim_option} = "6" ]]; then
 	    printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
-	    printf "  1. TOASS with 40 bins\n"
+	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
 		read tomas_option
@@ -167,7 +172,65 @@ if [[ ${sim_name} = "fullchem" ]]; then
 
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
-   sim_extra_option=none
+    sim_extra_option=none
+fi
+
+RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
+
+# Determine settings based on simulation type
+if [[ ${sim_extra_option} == "benchmark"  ]] || \
+   [[ ${sim_extra_option} =~ "complexSOA" ]] || \
+   [[ ${sim_extra_option} == "APM"        ]]; then
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
+    if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
+	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
+    else
+	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+    fi
+else
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+fi
+
+if [[ ${sim_extra_option} == "aciduptake" ]]; then
+    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
+else
+    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
+fi
+
+if [[ ${sim_extra_option} == "marinePOA" ]]; then
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
+else
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
+fi
+
+if [[ ${sim_extra_option} == "RRTMG" ]]; then
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
+else
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
+fi
+
+if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
+else
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
+fi
+
+# NOTE: Fullchem benchmarks use the climatological volcano emissions!
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+
+    if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+    else
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc'\n"
+    fi
 fi
 
 #-----------------------------------------------------------------
@@ -176,34 +239,17 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
+
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
     read met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
-	met_name='MERRA2'
-	met_name_lc="merra2"
-	met_dir='MERRA2'
-	met_resolution='05x0625'
-	met_native='0.5x0.625'
-	met_latres='05'
-	met_lonres='0625'
-	met_extension='nc4'
-	met_cn_year='2015'
-	pressure_unit='Pa '
-	pressure_scale='0.01'
+	met="merra2"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
     elif [[ ${met_num} = "2" ]]; then
-	met_name='GEOSFP'
-	met_name_lc="merra2"
-	met_dir='GEOS_FP'
-	met_resolution='025x03125'
-	met_native='0.25x0.3125'
-	met_latres='025'
-	met_lonres='03125'
-	met_extension='nc'
-	met_cn_year='2011'
-	pressure_unit='hPa'
-	pressure_scale='1.0 '
+	met="geosfp"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -211,7 +257,7 @@ while [ "${valid_met}" -eq 0 ]; do
 done
 
 #-----------------------------------------------------------------
-# Ask user to define path where directoy will be created
+# Ask user to define path where directory will be created
 #-----------------------------------------------------------------
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
@@ -219,7 +265,7 @@ while [ "$valid_path" -eq 0 ]; do
     read -e rundir_path
 
     # Test for quitting
-    if [[ "x${rundir_path}" = "xq" ]]; then
+    if [[ "x${rundir_path}" == "xq" ]]; then
 	printf "\nExiting.\n"
 	exit 1
     fi
@@ -227,8 +273,8 @@ while [ "$valid_path" -eq 0 ]; do
     # Replace ~ with the user's home directory
     # NOTE: This is a safe algorithm.
     if [[ "${rundir_path}" =~ '~' ]]; then
-       rundir_path="${rundir_path/#\~/$HOME}"
-       echo "Expanding to: ${rundir_path}"
+	rundir_path="${rundir_path/#\~/$HOME}"
+	echo "Expanding to: ${rundir_path}"
     fi
 
     # If this is just a new directory within an existing one,
@@ -263,9 +309,9 @@ if [ -z "$1" ]; then
     read -e rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gchp_${met_name_lc}_${sim_name}
+	    rundir_name=gchp_${met}_${sim_name}
 	else
-	    rundir_name=gchp_${met_name_lc}_${sim_name}_${sim_extra_option}
+	    rundir_name=gchp_${met}_${sim_name}_${sim_extra_option}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -302,63 +348,54 @@ mkdir -p ${rundir}
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
-cp ./input.nml                        ${rundir}
 cp ./logging.yml                      ${rundir}
 cp ./README                           ${rundir}
 cp ./setEnvironment.sh                ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
-cp ./GCHP.rc.template                 ${rundir}/GCHP.rc
-cp ./CAP.rc.template                  ${rundir}/CAP.rc
-cp ./runConfig.sh.template            ${rundir}/runConfig.sh
+
 # Only copy adjoint for CO2 simulation (for now)
 if [ "${sim_name}" == "CO2" ]; then
     cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
 fi
-cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
-cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
-cp ./ExtData.rc.templates/ExtData.rc.${sim_name}            ${rundir}/ExtData.rc
-cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
-cp -r ./utils ${rundir}
-if [[ ${sim_name} = "fullchem" ]]; then
+
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
-mkdir ${rundir}/OutputDir
 
 # Set permissions
-chmod 744 ${rundir}/setEnvironment.sh
 chmod 744 ${rundir}/cleanRunDir.sh
-chmod 744 ${rundir}/runConfig.sh
+chmod 744 ${rundir}/archiveRun.sh
+chmod 744 ${rundir}/setEnvironment.sh
+
 if [ "${sim_name}" == "CO2" ]; then
     chmod 744 ${rundir}/runConfig_adj.sh
 fi
-chmod 744 ${rundir}/archiveRun.sh
 
 # Copy species database; append APM or TOMAS species if needed
+# Also copy APM input files to the run directory
 cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
 elif [[ ${sim_extra_option} =~ "APM" ]]; then
     cat ${gcdir}/run/shared/species_database_apm.yml >> ${rundir}/species_database.yml
+    cp ${gcdir}/run/shared/apm_tmp.dat ${rundir}/apm_tmp.dat
+    cp ${gcdir}/run/shared/input.apm   ${rundir}/input.apm
 fi
 
 # If benchmark simulation, put run script in directory
-if [[ ${sim_extra_option} = "benchmark" ]]; then
-    cp ${gcdir}/run/GCHP/runScriptSamples/operational_examples/harvard_gcst/gchp.benchmark.run ${rundir}
+if [[ ${sim_extra_option} == "benchmark" ]]; then
+    cp ./runScriptSamples/operational_examples/harvard_gcst/gchp.benchmark.run ${rundir}
     chmod 744 ${rundir}/gchp.benchmark.run
 fi
 
-# Create symbolic links to data directories, restart files, code, run scripts
-ln -s ${gchpdir}                                ${rundir}/CodeDir
-ln -s ${gcdir}/run/GCHP/runScriptSamples        ${rundir}/runScriptSamples
-ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDir
-ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/HcoDir
-if [ "${met_name}" == "GEOSFP" ]; then
-   ln -s ${GC_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP  ${rundir}/MetDir
-else
-   ln -s ${GC_DATA_ROOT}/GEOS_0.5x0.625/MERRA2  ${rundir}/MetDir
-fi
+# Create symbolic link to code directory
+ln -s ${wrapperdir} ${rundir}/CodeDir
+ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
+
+#--------------------------------------------------------------------
+# Link to sample restart files
+#--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 for N in 24 48 90 180 360
 do
@@ -381,149 +418,131 @@ do
     fi
 done
 
+# Add restart file to RUNDIR vars
+RUNDIR_VARS+="RUNDIR_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc\n"
+
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
 cd ${rundir}
 
-# Replace token strings in certain files
-sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
-sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
-if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{SIMULATION}|${sim_name}|"   runConfig_adj.sh
-fi
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
-sed -i -e "s|{MET}|${met_name}|"              input.geos
-sed -i -e "s|{SIM}|${sim_name}|"              input.geos
-sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    HEMCO_Config.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"     HEMCO_Config.rc
-sed -i -e "s|{LATRES}|${met_latres}|"         HEMCO_Config.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"         HEMCO_Config.rc
-sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 1st in line
-sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 2nd in line
-sed -i -e "s|{MET_RES}|${met_resolution}|"    ExtData.rc
-sed -i -e "s|{NATIVE_RES}|${met_native}|"     ExtData.rc
-sed -i -e "s|{LATRES}|${met_latres}|"         ExtData.rc
-sed -i -e "s|{LONRES}|${met_lonres}|"         ExtData.rc
-sed -i -e "s|{MET_EXT}|${met_extension}|"     ExtData.rc
-sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"     ExtData.rc # 1st in line
-sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"     ExtData.rc # 2nd in line
-sed -i -e "s|{PRES_UNIT}|${pressure_unit}|"   ExtData.rc
-sed -i -e "s|{PRES_SCALE}|${pressure_scale}|" ExtData.rc
-
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ ${sim_extra_option} = "benchmark" ]]; then
-    startdate="20190701"
-    enddate="20190801"
-elif [[ ${sim_name} = "fullchem" ]]; then
-    startdate="20190701"
-    enddate="20190701"
-elif [ "${sim_type}" == "CO2" ]; then
-    startdate="20140901"
-    enddate="20140901"
+if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+    startdate='20190101'
+    enddate='20190201'
+elif [[ "x${sim_name}" == "xCO2" ]]; then
+    startdate='20140901'
+    enddate='20141001'
 else
-    startdate="20190101"
-    enddate="20190201"
+    startdate='20190701'
+    enddate='20190801'
 fi
-sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
-sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
-if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{DATE1}|${startdate}|" ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{DATE2}|${enddate}|"   ${rundir}/runConfig_adj.sh
-fi
-sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
-sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
+RUNDIR_VARS+="RUNDIR_SIM_START_DATE=$startdate\n"
+RUNDIR_VARS+="RUNDIR_SIM_END_DATE=$enddate\n"
+RUNDIR_VARS+="RUNDIR_SIM_START_TIME='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_END_TIME='000000'\n"
+RUNDIR_VARS+="RUNDIR_SIM_DUR_YYYYMMDD='00000100'\n"
+RUNDIR_VARS+="RUNDIR_SIM_DUR_HHmmSS='000000'\n"
+
+# Use monthly diagnostics by default
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Special handling for benchmark simulation
 if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
-    total_cores=96
-    num_nodes=2
-    num_cores_per_node=48
-    grid_res=48
-    timeAvg_monthly="1"
-    timeAvg_freq="7440000"
-    inst_freq="7440000"
-    start_time="000000"
-    end_time="000000"
-    dYYYYMMDD="00000100"
-    dHHmmSS="000000"
-    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- Monthly time-averaged diagnostics are enabled in HISTORY.rc."
-elif [ "${sim_type}" == "CO2" ]; then
-    total_cores=48
-    num_nodes=2
-    num_cores_per_node=24
-    grid_res=24
-    diag_freq="010000"
-    inst_freq="010000"
-    inst_dur="010000"
-    timeAvg_monthly=0
-    timeAvg_dur="010000"
-    timeAvg_freq="010000"
-    start_time="000000"
-    end_time="060000"
-    dYYYYMMDD="00000000"
-    dHHmmSS="060000"
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+    RUNDIR_VARS+="RUNDIR_CS_RES='48'\n"
+elif [ "${sim_name}" == "CO2" ]; then
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='48'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
+    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
 else
-    total_cores=24
-    num_nodes=1
-    num_cores_per_node=24
-    grid_res=24
-    timeAvg_monthly=0
-    timeAvg_freq="010000"
-    inst_freq="010000"
-    start_time="000000"
-    end_time="010000"
-    dYYYYMMDD="00000000"
-    dHHmmSS="010000"
-    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
-    printf "\n  -- The default diagnostic frequency, duration, and mode is hourly average."
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='24'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='1'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
+    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
 fi
+
+# Turn on GEOS-Chem timers for benchmark simulations
+if [[ "${sim_extra_option}" == "benchmark" ]]; then
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
+else
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
+fi
+
+# Assign appropriate file paths and settings in HEMCO_Config.rc
+if [[ "${sim_extra_option}" == "benchmark" ]]; then
+    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+else
+    if [[ "${sim_extra_option}" == "marinePOA" ]]; then
+	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+    else
+	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
+	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
+	fi
+    fi
+    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+    else
+	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
+    fi
+    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
+fi
+RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+
+#--------------------------------------------------------------------
+# Replace settings in config files with RUNDIR variables
+#--------------------------------------------------------------------
+
+# Save RUNDIR variables to file
+echo -e "$RUNDIR_VARS" > rundir_vars.txt
+sort -o rundir_vars.txt rundir_vars.txt
+
+# Call init_rd.sh
+${srcrundir}/init_rd.sh rundir_vars.txt
+
+#--------------------------------------------------------------------
+# Print run direcory setup info to screen
+#--------------------------------------------------------------------
+
+printf "\n  -- This run directory has been set up for $startdate - $enddate.\n"
+printf "\n  -- The default frequency and duration of diagnostics is set to monthly.\n"
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
-timeAvg_dur=${timeAvg_freq}
-inst_dur=${inst_freq}
-sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig.sh
-sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
-sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig.sh
-sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
-sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
-sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
-sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
-if [ "${sim_name}" == "CO2" ]; then
-    sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig_adj.sh
-    sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig_adj.sh
-fi
-sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/CAP.rc
-sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/CAP.rc
-sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/CAP.rc
-sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/CAP.rc
 
 # Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP.
-if [[ ${sim_name} = "fullchem" ]]; then
+# GEOS-Chem Classic and GCHP. This script mainly now adds species to input.geos
+# and modifies diagnostic output based on simulation type.
+if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
 
 # Call runConfig.sh so that all config files are consistent with its
 # default settings. Suppress informational prints.
+chmod +x runConfig.sh
 ./runConfig.sh --silent
 
 #--------------------------------------------------------------------
@@ -565,11 +584,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml input.geos input.nml
-	if [[ ${sim_name} = "fullchem" ]]; then
-            git add *.py
-	fi
-	git add README .gitignore
+	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}

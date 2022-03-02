@@ -48,6 +48,7 @@ MODULE Chem_GridCompMod
   USE ESMF                                           ! ESMF library
   USE MAPL_Mod                                       ! MAPL library
   USE MAPL_IOMod
+  use pFlogger, only: logging, Logger
   USE Charpak_Mod                                    ! String functions
   USE DiagList_Mod                                   ! Internal state prefixes
   USE Hco_Types_Mod, ONLY : ConfigObj
@@ -137,6 +138,8 @@ MODULE Chem_GridCompMod
   TYPE(Species),          POINTER  :: ThisSpc => NULL()
   TYPE(HistoryConfigObj), POINTER  :: HistoryConfig
   TYPE(ConfigObj),        POINTER  :: HcoConfig
+  CLASS(Logger),          POINTER  :: lgr => null()
+  LOGICAL                          :: meteorology_vertical_index_is_top_down
 
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX? 
@@ -408,6 +411,9 @@ CONTAINS
 
     __Iam__('SetServices')
 
+
+    lgr => logging%get_logger('GCHPchem')
+
     !=======================================================================
     ! Set services begins here 
     !=======================================================================
@@ -527,17 +533,18 @@ CONTAINS
        VLOCATION          = MAPL_VLocationEdge,    &
                                                       RC=STATUS  )
     _VERIFY(STATUS)
-
-    call MAPL_AddImportSpec(GC, &
-       SHORT_NAME         = 'DryPLE',  &
-       LONG_NAME          = 'dry_pressure_level_edges',  &
-       UNITS              = 'Pa', &
-       PRECISION          = ESMF_KIND_R8, &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationEdge,    &
-                                                      RC=STATUS  )
-    _VERIFY(STATUS)
 #endif
+
+    !=======================================================================
+    ! Get meteorology vertical index orientation
+    !=======================================================================
+    call ESMF_ConfigGetAttribute(myState%myCF,value=meteorology_vertical_index_is_top_down, &
+    label='METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN:', Default=.false., __RC__ )
+    if (meteorology_vertical_index_is_top_down) then
+       call lgr%info('Configured to expect ''top-down'' meteorological data from ''ExtData''')
+    else
+       call lgr%info('Configured to expect ''bottom-up'' meteorological data from ''ExtData''')
+    end if
 
 #if defined( MODEL_GEOS )
     ! Define imports to fill met fields needed for lightning
@@ -2859,7 +2866,6 @@ CONTAINS
     ! ckeller, 8/22/19: In GEOS, PLE and AIRDENS are from the IMPORT state
 #if !defined( MODEL_GEOS )
     REAL(ESMF_KIND_R8),  POINTER :: PLE(:,:,:)     => NULL() ! INTERNAL: PEDGE
-    REAL,                POINTER :: AIRDENS(:,:,:) => NULL() ! INTERNAL: PEDGE
 #endif
 
     ! Initialize variables used for reading Olson and MODIS LAI imports
@@ -2898,6 +2904,7 @@ CONTAINS
     REAL              , POINTER  :: fPtrArray(:,:,:)
     REAL(ESMF_KIND_R8), POINTER  :: fPtrVal, fPtr1D(:)
     INTEGER                      :: IMAXLOC(1)
+    INTEGER                      :: z_lb, z_ub
 
 #endif
 
@@ -3041,7 +3048,6 @@ CONTAINS
 
        !IF ( IsCTM ) THEN
        call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
-       call MAPL_GetPointer ( IMPORT, AIRDENS,  'AIRDENS', __RC__ )
        !ENDIF
 
        ! Set up pointers if GEOS-Chem is a provider
@@ -5328,9 +5334,6 @@ CONTAINS
  
     ! Calculate total ozone
     DO L = 1,LM
-
-!       DUsLayerL(:,:) = AIRDENS(:,:,L) / (MAPL_AIRMW/1000.0) * MAPL_AVOGAD &
-!                        * O3(:,:,L) / 2.69e20
 
        DUsLayerL(:,:) = O3(:,:,L) * ((PLE(:,:,L+LB)-PLE(:,:,L+LB-1))/100.0) &
                         * const / 2.69e16 / 1000.0
