@@ -823,7 +823,9 @@ CONTAINS
  !%%%
  !%%% Save tracer values before vertical transport (bdf, bmy, 9/28/04)
  !%%%
- QTEMP = Q
+ IF ( ND26 > 0 ) THEN
+    QTEMP = Q
+ ENDIF
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  call qmap(pe, q, im, jm, km, nx, jfirst, jlast, ng, nq,         &

@@ -2656,7 +2656,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_O3)
+        Trgt3D => State_Chm%SpeciesVec(id_O3)%Conc
         CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
                          HMRC,     FIRST,       Trgt3D )
 
@@ -2682,7 +2682,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_NO2)
+        Trgt3D => State_Chm%SpeciesVec(id_NO2)%Conc
         CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
                          HMRC,     FIRST,        Trgt3D )
 
@@ -2708,7 +2708,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_NO)
+        Trgt3D => State_Chm%SpeciesVec(id_NO)%Conc
         CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
                          HMRC,     FIRST,       Trgt3D )
 
@@ -2734,7 +2734,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
+        Trgt3D => State_Chm%SpeciesVec(id_HNO3)%Conc
         CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
                          HMRC,     FIRST,         Trgt3D )
 
@@ -2760,7 +2760,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_POPG)
+        Trgt3D => State_Chm%SpeciesVec(id_POPG)%Conc
         CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
                          HMRC,     FIRST,         Trgt3D )
 
@@ -3235,7 +3235,8 @@ CONTAINS
 
     ! O3
     IF ( id_O3 > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_O3)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%SpeciesVec(id_O3)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3244,7 +3245,8 @@ CONTAINS
 
     ! NO2
     IF ( id_NO2 > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_NO2)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%SpeciesVec(id_NO2)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3253,7 +3255,8 @@ CONTAINS
 
     ! NO
     IF ( id_NO > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_NO)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%SpeciesVec(id_NO)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3262,7 +3265,8 @@ CONTAINS
 
     ! HNO3
     IF ( id_HNO3 > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_HNO3)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%SpeciesVec(id_HNO3)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3271,7 +3275,8 @@ CONTAINS
 
     ! POPG
     IF ( id_POPG > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_POPG)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%SpeciesVec(id_POPg)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -4719,7 +4724,6 @@ CONTAINS
                                     State_Chm%nAdvect                       )
 
     ! Pointers and Objects
-    REAL(fp),       POINTER :: spc(:,:,:)
     REAL(f4),       POINTER :: Ptr2D(:,:) => NULL()
 
     REAL(f4),       POINTER :: PNOxLoss_O3(:,:)
@@ -4735,7 +4739,6 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
-    spc     => State_Chm%Species(:,:,1,1:State_Chm%nAdvect)
     ThisSpc => NULL()
     errMsg  = ''
     thisLoc = &
@@ -4898,8 +4901,9 @@ CONTAINS
         IF ( DepSpec ) THEN
           CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
           IF ( found ) THEN
-             dflx(I,J,NA) = dflx(I,J,NA)                                     &
-                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
+             dflx(I,J,NA) = dflx(I,J,NA) + ( dep                   &
+                            * State_Chm%SpeciesVec(NA)%Conc(I,J,1) &
+                            / (AIRMW / ThisSpc%MW_g)  )
           ENDIF
         ENDIF
       ENDDO ! I
@@ -4956,9 +4960,9 @@ CONTAINS
 
           ! only use the lowest model layer for calculating drydep fluxes
           ! given that spc is in v/v
-          dflx(I,J,N) = dflx(I,J,N) &
-                      + State_Chm%DryDepFreq(I,J,ND) * spc(I,J,N)             &
-                      /  ( AIRMW                    / ThisSpc%MW_g        )
+          dflx(I,J,N) = dflx(I,J,N) + State_Chm%DryDepFreq(I,J,ND) &
+                        * State_Chm%SpeciesVec(N)%Conc(I,J,1)      &
+                        /  ( AIRMW / ThisSpc%MW_g )
 
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN

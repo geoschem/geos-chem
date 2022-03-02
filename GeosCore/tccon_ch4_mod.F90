@@ -743,7 +743,7 @@ CONTAINS
 
        ! Get species concentrations
        ! Convert from [kg/box] --> [v/v]
-       GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW / &
+       GC_CH4_NATIVE(:) = State_Chm%SpeciesVec(id_CH4)%Conc(I,J,:) * ( AIRMW / &
                           State_Chm%SpcData(id_CH4)%Info%MW_g )
 
        GC_H2O_NATIVE(:) = State_Met%AVGW(I,J,:)

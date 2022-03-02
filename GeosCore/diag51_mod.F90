@@ -321,6 +321,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
@@ -383,7 +384,7 @@ CONTAINS
     INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! ACCUMULATE_DIAG51 begins here!
@@ -508,7 +509,7 @@ CONTAINS
        ENDIF
 
        ! Initialize pointers
-       Spc => State_Chm%Species
+       Spc => State_Chm%SpeciesVec
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -540,7 +541,7 @@ CONTAINS
 
                 ! Archive afternoon points
                 Q(X,Y,K,W) = Q(X,Y,K,W) + &
-                     ( Spc(I,J,L,N) * (AIRMW &
+                     ( Spc(N)%Conc(I,J,L) * (AIRMW &
                      / State_Chm%SpcData(N)%Info%MW_g ) * GOOD(I) )
 
              ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
@@ -550,9 +551,9 @@ CONTAINS
                 !--------------------------------------
 
                 ! Accumulate data
-                Q(X,Y,K,W) = Q(X,Y,K,W) +                                    &
-                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) ) *          &
-                     ( State_Met%AIRDEN(I,J,L)        * CONV_OH )
+                Q(X,Y,K,W) = Q(X,Y,K,W) + &
+                     ( Spc(id_OH)%Conc(I,J,L) * GOOD(X) ) * &
+                     ( State_Met%AIRDEN(I,J,L) * CONV_OH )
 
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
@@ -567,46 +568,46 @@ CONTAINS
                 ! NO
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_NO)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_NO)    )
+                          * GOOD(I) * Spc(id_NO)%Conc(I,J,L)    )
 
                 ! NO2
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_NO2)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_NO2)   )
+                          * GOOD(I) * Spc(id_NO2)%Conc(I,J,L)   )
                 ! PAN
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_PAN)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_PAN)   )
+                          * GOOD(I) * Spc(id_PAN)%Conc(I,J,L)   )
 
                 ! HNO3
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_HNO3)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_HNO3)  )
+                          * GOOD(I) * Spc(id_HNO3)%Conc(I,J,L)  )
 
                 ! MPAN
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_MPAN)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_MPAN)   )
+                          * GOOD(I) * Spc(id_MPAN)%Conc(I,J,L)   )
 
                 ! PPN
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_PPN)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_PPN)   )
+                          * GOOD(I) * Spc(id_PPN)%Conc(I,J,L)   )
 
                 ! R4N2
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_R4N2)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_R4N2)  )
+                          * GOOD(I) * Spc(id_R4N2)%Conc(I,J,L)  )
 
                 ! N2O5
                 TMP = TMP + ( 2e+0_fp * ( AIRMW &
                           / State_Chm%SpcData(id_N2O5)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_N2O5)  )
+                          * GOOD(I) * Spc(id_N2O5)%Conc(I,J,L)  )
 
                 ! HNO4
                 TMP = TMP + ( ( AIRMW &
                           / State_Chm%SpcData(id_HNO4)%Info%MW_g ) &
-                          * GOOD(I) * Spc(I,J,L,id_HNO4)  )
+                          * GOOD(I) * Spc(id_HNO4)%Conc(I,J,L)  )
 
                 ! Save afternoon points
                 Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -656,8 +657,8 @@ CONTAINS
                 ! TOTAL SEASALT SPECIES [v/v]
                 !--------------------------------------
                 Q(X,Y,K,W) = Q(X,Y,K,W) + &
-                           ( Spc(I,J,L,id_SALA)   + &
-                             Spc(I,J,L,id_SALC) ) * &
+                           ( Spc(id_SALA)%Conc(I,J,L)   + &
+                             Spc(id_SALC)%Conc(I,J,L) ) * &
                              ( AIRMW &
                              / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                                * GOOD(I)
@@ -995,19 +996,19 @@ CONTAINS
 
                 ! IEPOX-OA (ug/m3)
                 IF ( id_SOAIE > 0 ) THEN
-                   TMP = TMP + ( Spc(I,J,L,id_SOAIE)  * GOOD(I) * &
+                   TMP = TMP + ( Spc(id_SOAIE)%Conc(I,J,L)  * GOOD(I) * &
                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                 ENDIF
 
                 ! INDIOL (ug/m3)
                 IF ( id_INDIOL > 0 ) THEN
-                   TMP = TMP + ( Spc(I,J,L,id_INDIOL)  * GOOD(I) * &
+                   TMP = TMP + ( Spc(id_INDIOL)%Conc(I,J,L)  * GOOD(I) * &
                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                 ENDIF
 
                 ! LVOCOA (ug/m3)
                 IF ( id_LVOCOA > 0 ) THEN
-                   TMP = TMP + ( Spc(I,J,L,id_LVOCOA)  * GOOD(I) * &
+                   TMP = TMP + ( Spc(id_LVOCOA)%Conc(I,J,L)  * GOOD(I) * &
                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                 ENDIF
 
@@ -1027,23 +1028,23 @@ CONTAINS
                 TMP = TMP + ( SAVEOA(I,J,L) * GOOD(X) )
 
                 ! Sulfate (ug/m3):
-                TMP = TMP + ( Spc(I,J,L,id_SO4)  * GOOD(X) * &
+                TMP = TMP + ( Spc(id_SO4)%Conc(I,J,L)  * GOOD(X) * &
                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                 ! Ammonium (ug/m3):
-                TMP = TMP + ( Spc(I,J,L,id_NH4)  * GOOD(X) * &
+                TMP = TMP + ( Spc(id_NH4)%Conc(I,J,L)  * GOOD(X) * &
                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                 ! Nitrate (ug/m3):
-                TMP = TMP + ( Spc(I,J,L,id_NIT)  * GOOD(X) * &
+                TMP = TMP + ( Spc(id_NIT)%Conc(I,J,L)  * GOOD(X) * &
                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                 ! Hydrophillic Black carbon (ug/m3):
-                TMP = TMP + ( Spc(I,J,L,id_BCPI)  * GOOD(X) * &
+                TMP = TMP + ( Spc(id_BCPI)%Conc(I,J,L)  * GOOD(X) * &
                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                 ! Hydrophobic Black carbon (ug/m3):
-                TMP = TMP + ( Spc(I,J,L,id_BCPO)  * GOOD(X) * &
+                TMP = TMP + ( Spc(id_BCPO)%Conc(I,J,L)  * GOOD(X) * &
                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                 ! Save afternoon points
@@ -1083,9 +1084,6 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        GOOD(:) = 0
-
-       ! Free pointers
-       Spc => NULL()
 
     ENDIF
 

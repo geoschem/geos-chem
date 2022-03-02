@@ -509,6 +509,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,    ONLY : OptInput
+    USE Species_Mod,      ONLY : SpcConc
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
@@ -572,7 +573,7 @@ CONTAINS
     LOGICAL            :: prtDebug
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
@@ -592,7 +593,7 @@ CONTAINS
     prtDebug= ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to the chemical species
-    Spc     => State_Chm%Species
+    Spc     => State_Chm%SpeciesVec
 
     IF ( prtDebug ) THEN
        WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
@@ -667,7 +668,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          PREVCH4(I,J,L) = Spc(I,J,L,1)
+          PREVCH4(I,J,L) = Spc(1)%Conc(I,J,L)
        ENDDO
        ENDDO
        ENDDO
@@ -724,6 +725,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -768,7 +770,7 @@ CONTAINS
     REAL(fp)          :: KRATE_Cl, C_Cl
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CH4_DECAY begins here!
@@ -781,7 +783,7 @@ CONTAINS
     DT = GET_TS_CHEM()
 
     ! Point to the chemical species array
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     !=================================================================
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -835,7 +837,7 @@ CONTAINS
           Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
 
           ! CH4 in [molec/cm3]
-          GCH4 = Spc(I,J,L,1) * Spc2GCH4
+          GCH4 = Spc(1)%Conc(I,J,L) * Spc2GCH4
 
           ! OH in [molec/cm3]
           ! BOH from HEMCO in units of mol/mol, convert to molec/cm3
@@ -870,7 +872,7 @@ CONTAINS
           GCH4 = GCH4 * ( 1e+0_fp - KRATE_Cl * C_Cl * DT )
 
           ! Convert back from [molec/cm3] --> [kg/box]
-          Spc(I,J,L,1) = GCH4 / Spc2GCH4
+          Spc(1)%Conc(I,J,L) = GCH4 / Spc2GCH4
 
        ENDIF
     ENDDO
@@ -1060,7 +1062,7 @@ CONTAINS
           airMass_kg   = airMass_m / XNUMOLAIR
 
           ! CH4 mass [kg]
-          CH4mass_kg   = State_Chm%Species(I,J,L,id_CH4)
+          CH4mass_kg   = State_Chm%SpeciesVec(id_CH4)%Conc(I,J,L)
 
           ! CH4 concentration [kg m-3] and [molec cm-3]
           CH4conc_kgm3 = CH4mass_kg   / volume
@@ -1197,6 +1199,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,    ONLY : OptInput
+    USE Species_Mod,      ONLY : SpcConc
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
@@ -1242,7 +1245,7 @@ CONTAINS
     CHARACTER(LEN=255)    :: ErrMsg
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Array for monthly average CH4 loss freq [1/s] (from HEMCO)
     REAL(fp)          :: CH4LOSS(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -1257,7 +1260,7 @@ CONTAINS
     ThisLoc     = ' -> at CH4_STRAT (in module GeosCore/global_ch4_mod.F90)'
 
     ! Point to chemical species
-    Spc   => State_Chm%Species
+    Spc   => State_Chm%SpeciesVec
 
     ! Evalulate CH4 loss frequency from HEMCO. This must be done
     ! every timestep to allow masking or scaling in HEMCO config.
@@ -1300,7 +1303,7 @@ CONTAINS
           Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
 
           ! CH4 in [molec/cm3]
-          GCH4 = Spc(I,J,L,1) * Spc2GCH4
+          GCH4 = Spc(1)%Conc(I,J,L) * Spc2GCH4
 
           ! Loss rate [molec/cm3/s]
           LRATE = GCH4 * CH4LOSS( I,J,L )
@@ -1309,7 +1312,7 @@ CONTAINS
           GCH4 = GCH4 - ( LRATE * DT )
 
           ! Convert back from [molec CH4/cm3] --> [kg/box]
-          Spc(I,J,L,1) = GCH4 / Spc2GCH4
+          Spc(1)%Conc(I,J,L) = GCH4 / Spc2GCH4
 
           !------------------------------------------------------------
           ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -1350,6 +1353,7 @@ CONTAINS
 !
     USE ERROR_MOD,          ONLY : SAFE_DIV
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
 
@@ -1379,14 +1383,14 @@ CONTAINS
     INTEGER           :: I, J, L, N, NA, nAdvect
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !========================================================================
     ! CH4_DISTRIB begins here
     !========================================================================
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! fix nAdvect (Xueying Yu, 12/10/2017)
     nAdvect = State_Chm%nAdvect
@@ -1403,8 +1407,9 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          Spc(I,J,L,N) = SAFE_DIV(Spc(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp) &
-                         * Spc(I,J,L,1)
+          Spc(N)%Conc(I,J,L) = &
+                         SAFE_DIV(Spc(N)%Conc(I,J,L),PREVCH4(I,J,L),0.e+0_fp) &
+                         * Spc(1)%Conc(I,J,L)
        ENDDO
        ENDDO
        ENDDO

@@ -226,6 +226,7 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -316,7 +317,7 @@ CONTAINS
     LOGICAL              :: prtDebug
 
     ! Pointers
-    REAL(fp), POINTER    :: Spc (:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Required for updated chemistry
     Integer            :: LMinPhot
@@ -328,8 +329,8 @@ CONTAINS
     ! Copy fields from INPUT_OPT
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    ! Initialize GEOS-Chem species array [kg]
-    Spc => State_Chm%Species
+    ! Point to GEOS-Chem species array
+    Spc => State_Chm%SpeciesVec
 
     ! Retrieve monthly mean data if necessary
     IF (LASTMONTH.ne.GET_MONTH()) THEN
@@ -405,18 +406,18 @@ CONTAINS
        XAIR  = NDAIR / State_Met%AD(I,J,L)
 
        ! Get total mass of N2O
-       kgN2O = Spc(I,J,L,id_N2O)
+       kgN2O = Spc(id_N2O)%Conc(I,J,L)
 
        ! Get local concentrations in molec/cm3
        ! Ignore the data for atomic N - not well defined for
        ! non-chemgrid boxes, and in any case the molar mass
        ! may not be present or correctly defined
        OLD_N   = 0.0_fp
-       OLD_NO  = Spc(I,J,L,id_NO) * &
+       OLD_NO  = Spc(id_NO)%Conc(I,J,L) * &
                  (AIRMW / State_Chm%SpcData(id_NO )%Info%MW_g) * XAIR
-       OLD_NO2 = Spc(I,J,L,id_NO2) * &
+       OLD_NO2 = Spc(id_NO2)%Conc(I,J,L) * &
                  (AIRMW / State_Chm%SpcData(id_NO2)%Info%MW_g) * XAIR
-       OLD_NO3 = Spc(I,J,L,id_NO3) * &
+       OLD_NO3 = Spc(id_NO3)%Conc(I,J,L) * &
                  (AIRMW / State_Chm%SpcData(id_NO3)%Info%MW_g) * XAIR
        OLD_N2O = kgN2O * &
                  (AIRMW / State_Chm%SpcData(id_N2O)%Info%MW_g) * XAIR
@@ -426,7 +427,7 @@ CONTAINS
        localN2O = OLD_N2O
 
        ! Get ozone from model
-       LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / &
+       LOCALO3  = Spc(id_O3)%Conc(I,J,L) *  ( AIRMW / &
                   State_Chm%SpcData(id_O3)%Info%MW_g ) * XAIR
 
        ! These reactions are relevant during both day and night-time
@@ -572,11 +573,11 @@ CONTAINS
                  State_Chm%SpcData(id_NO3)%Info%MW_g * XAIR)
        NEW_N2O = kgN2O
 
-       Spc(I,J,L,id_N)   = 0.d0
-       Spc(I,J,L,id_NO)  = NEW_NO
-       Spc(I,J,L,id_NO2) = NEW_NO2
-       Spc(I,J,L,id_NO3) = NEW_NO3
-       Spc(I,J,L,id_N2O) = NEW_N2O
+       Spc(id_N)%Conc(I,J,L)   = 0.d0
+       Spc(id_NO)%Conc(I,J,L)  = NEW_NO
+       Spc(id_NO2)%Conc(I,J,L) = NEW_NO2
+       Spc(id_NO3)%Conc(I,J,L) = NEW_NO3
+       Spc(id_N2O)%Conc(I,J,L) = NEW_N2O
 
        MESONOX_DELTA = MESONOX_DELTA + DNOX
        MESON2O_DELTA = MESON2O_DELTA + DN2O
@@ -787,6 +788,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -865,7 +867,7 @@ CONTAINS
     LOGICAL                :: LGRAVSTRAT
 
     ! Pointers
-    REAL(fp), POINTER      :: Spc (:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
     REAL(f4), POINTER      :: STATE_PSC(:,:,:)
     REAL(fp), POINTER      :: WERADIUS(:,:,:,:)
 
@@ -884,7 +886,7 @@ CONTAINS
     HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%MW_g ! g/mol
 
     ! Initialize pointers
-    Spc       => State_Chm%Species     ! Chemical species [kg]
+    Spc       => State_Chm%SpeciesVec  ! Chemical species vector
     STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
     WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
@@ -1062,7 +1064,7 @@ CONTAINS
           IF (IDTCURRENT.ne.0) THEN
              ! Calculate local phase partitioning
              ! Total upper gridbox mass
-             PHASEMASS(3,2) = Spc(I,J,L,IDTCURRENT)
+             PHASEMASS(3,2) = Spc(IDTCURRENT)%Conc(I,J,L)
              ! Aerosol-phase upper gridbox mass
              PHASEMASS(2,2) = AERFRAC(I,J,L,K)*PHASEMASS(3,2)
              ! Gas-phase upper gridbox mass
@@ -1083,10 +1085,10 @@ CONTAINS
              ENDIF
 
              ! Store result
-             Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
+             Spc(IDTCURRENT)%Conc(I,J,L) = PHASEMASS(3,2)
           ENDIF
        ENDDO
-       Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC)
+       Spc(id_BCPI)%Conc(I,J,L) = Spc(id_BCPI)%Conc(I,J,L) * CONST_V(IBC)
 
        DO L = State_Grid%NZ-1,1,-1
           IF ( State_Met%InTroposphere(I,J,L+1) ) CYCLE
@@ -1097,14 +1099,14 @@ CONTAINS
              IDTCURRENT = AERFRACIND(K)
              IF (IDTCURRENT.ne.0) THEN
                 ! Total upper gridbox mass
-                PHASEMASS(3,2) = Spc(I,J,L+1,IDTCURRENT)
+                PHASEMASS(3,2) = Spc(IDTCURRENT)%Conc(I,J,L+1)
                 ! Aerosol-phase upper gridbox mass
                 PHASEMASS(2,2) = AERFRAC(I,J,L+1,K)*PHASEMASS(3,2)
                 ! Gas-phase upper gridbox mass
                 PHASEMASS(1,2) = PHASEMASS(3,2) - PHASEMASS(2,2)
 
                 ! Total lower gridbox mass
-                PHASEMASS(3,1) = Spc(I,J,L,IDTCURRENT)
+                PHASEMASS(3,1) = Spc(IDTCURRENT)%Conc(I,J,L)
                 ! Aerosol-phase lower gridbox mass
                 PHASEMASS(2,1) = AERFRAC(I,J,L,K)*PHASEMASS(3,1)
                 ! Gas-phase lower gridbox mass
@@ -1127,13 +1129,14 @@ CONTAINS
                 ENDIF
 
                 ! Store result
-                Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
+                Spc(IDTCURRENT)%Conc(I,J,L) = PHASEMASS(3,1)
              ENDIF
           ENDDO
-          Spc(I,J,L,id_BCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM &
+          Spc(id_BCPI)%Conc(I,J,L) = 1.e+0_fp/(1.e+0_fp+DTCHEM &
                                * VTS(L,IBC) / DELZ) &
-                               * (Spc(I,J,L,id_BCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1 &
-                               * Spc(I,J,L+1,id_BCPI))
+                               * ( Spc(id_BCPI)%Conc(I,J,L) &
+                                   + DTCHEM * VTS(L+1,IBC) / DELZ1 &
+                                   * Spc(id_BCPI)%Conc(I,J,L+1) )
        ENDDO
 
        ! Now perform trapezoidal scheme for particulates
@@ -1164,12 +1167,12 @@ CONTAINS
                 XNAT_0 = 0e+0_fp
                 XICE_0 = 0e+0_fp
              ELSE
-                XNO3_0 = Spc(I,J,L,id_NIT) * AIRMW / &
+                XNO3_0 = Spc(id_NIT)%Conc(I,J,L) * AIRMW / &
                          ( NIT_MW_G * State_Met%AD(I,J,L) )
                 XNAT_0 = XNO3_0! * 4.e+0_fp
                 XICE_0 = (KG_AER(I,J,L,I_SPA)- &
                          ( ( NATMW / NIT_MW_G ) * &
-                         Spc(I,J,L,id_NIT)))*AIRMW/(ICEMW* &
+                         Spc(id_NIT)%Conc(I,J,L)))*AIRMW/(ICEMW* &
                          State_Met%AD(I,J,L))
              ENDIF
              XPSC_0   = XNAT_0 + XICE_0
@@ -1182,14 +1185,15 @@ CONTAINS
                    XNAT_ABOVE = 0e+0_fp
                    XICE_ABOVE = 0e+0_fp
                 ELSE
-                   XNO3_ABOVE = Spc(I,J,L+1,id_NIT) * INVAIR_ABOVE / NIT_MW_G
+                   XNO3_ABOVE = Spc(id_NIT)%Conc(I,J,L+1) &
+                                * INVAIR_ABOVE / NIT_MW_G
                    ! NAT = HNO3.3H2O = 4 molecules
                    XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
-                   ! XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-Spc(I,J,L+1,id_NIT)) &
+                   ! XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-Spc(id_NIT)%Conc(I,J,L+1)) &
                    !                            *INVAIR_ABOVE/ICEMW
                    XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)- &
                                 ( ( NATMW / NIT_MW_G ) * &
-                                Spc(I,J,L+1,id_NIT)))*INVAIR_ABOVE/ICEMW
+                                Spc(id_NIT)%Conc(I,J,L+1)))*INVAIR_ABOVE/ICEMW
                 ENDIF
                 XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                 P_ABOVE    = 100.0e+0_fp * State_Met%PMID(I,J,L+1)
@@ -1234,11 +1238,11 @@ CONTAINS
                 IF (L.lt.(State_Grid%NZ-1)) THEN
                    INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                    IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
-                      XNO3_ABOVE = Spc(I,J,L+2,id_NIT)*INVAIR_ABOVE/NIT_MW_G
+                      XNO3_ABOVE = Spc(id_NIT)%Conc(I,J,L+2)*INVAIR_ABOVE/NIT_MW_G
                       XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
                       XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)- &
                                    ( ( NATMW / NIT_MW_G )* &
-                                   Spc(I,J,L+2,id_NIT)))*INVAIR_ABOVE/ICEMW
+                                   Spc(id_NIT)%Conc(I,J,L+2)))*INVAIR_ABOVE/ICEMW
                    ELSE
                       XNO3_ABOVE = 0e+0_fp
                       XNAT_ABOVE = 0e+0_fp
@@ -1348,14 +1352,14 @@ CONTAINS
                 SEDNO3 = SEDNO3 * NIT_MW_G / INVAIR_0
                 SEDICE = SEDICE*ICEMW/INVAIR_0
 
-                SEDNO3 = MIN(SEDNO3,Spc(I,J,L+1,id_NIT))
-                Spc(I,J,L,id_NIT) = Spc(I,J,L,id_NIT) + SEDNO3
-                Spc(I,J,L+1,id_NIT)=Spc(I,J,L+1,id_NIT)-SEDNO3
+                SEDNO3 = MIN(SEDNO3,Spc(id_NIT)%Conc(I,J,L+1))
+                Spc(id_NIT)%Conc(I,J,L) = Spc(id_NIT)%Conc(I,J,L) + SEDNO3
+                Spc(id_NIT)%Conc(I,J,L+1)=Spc(id_NIT)%Conc(I,J,L+1)-SEDNO3
 
                 ! Settle the ice out too
-                SEDH2O = MIN(SEDICE,Spc(I,J,L+1,id_H2O))
-                Spc(I,J,L,id_H2O) = Spc(I,J,L,id_H2O) + SEDH2O
-                Spc(I,J,L+1,id_H2O)=Spc(I,J,L+1,id_H2O)-SEDH2O
+                SEDH2O = MIN(SEDICE,Spc(id_H2O)%Conc(I,J,L+1))
+                Spc(id_H2O)%Conc(I,J,L) = Spc(id_H2O)%Conc(I,J,L) + SEDH2O
+                Spc(id_H2O)%Conc(I,J,L+1)=Spc(id_H2O)%Conc(I,J,L+1)-SEDH2O
 
                 ! Now correct aerosol totals
                 SEDNAT = SEDNO3 * NATMW / NIT_MW_G
@@ -1397,6 +1401,7 @@ CONTAINS
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1440,7 +1445,7 @@ CONTAINS
     LOGICAL            :: prtDebug
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc (:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CALC_H2SO4_GAS begins here!
@@ -1452,8 +1457,8 @@ CONTAINS
     ! Copy fields from species database
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
 
-    ! Initialize GEOS-Chem species array [kg]
-    Spc => State_Chm%Species
+    ! Point GEOS-Chem species array
+    Spc => State_Chm%SpeciesVec
 
     IF (FIRST) THEN
        FIRST = .FALSE.
@@ -1491,7 +1496,7 @@ CONTAINS
           ! Don't want to interfere with tropospheric aerosols
           AERFRAC(I,J,L,1) = 1e+0_fp
        ELSE
-          H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR / SO4_MW_G
+          H2SO4SUM = Spc(id_SO4)%Conc(I,J,L) * INVAIR / SO4_MW_G
           ! Use approximation from Kumala (1990)
           ! Use dry air partial pressure (ewl, 3/26/15)
           GF_PP = H2SO4SUM*PCENTER_P
@@ -1585,6 +1590,7 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : IS_SAFE_DIV
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1700,7 +1706,7 @@ CONTAINS
     REAL(fp)                :: NIT_MW_G, HNO3_MW_G, H2O_MW_G
 
     ! Pointers
-    REAL(fp), POINTER       :: Spc (:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
     REAL(fp), POINTER       :: KHETI_SLA(:,:,:,:)
     REAL(f4), POINTER       :: STATE_PSC(:,:,:)
 
@@ -1724,8 +1730,8 @@ CONTAINS
     HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%MW_g  ! g/mol
     H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%MW_g   ! g/mol
 
-    ! Initialize GEOS-Chem species array [kg]
-    Spc => State_Chm%Species
+    ! Point to GEOS-Chem species array
+    Spc => State_Chm%SpeciesVec
 
     ! Initialize sticking coefficients for PSC reactions on SLA
     KHETI_SLA => State_Chm%KHETI_SLA
@@ -1807,15 +1813,15 @@ CONTAINS
        INVAIR = AIRMW / State_Met%AD(I,J,L)
 
        ! Get available NO3 mass
-       KG_NO3 = ( Spc(I,J,L,id_HNO3) * NIT_MW_G / HNO3_MW_g ) + &
-                  Spc(I,J,L,id_NIT)
+       KG_NO3 = ( Spc(id_HNO3)%Conc(I,J,L) * NIT_MW_G / HNO3_MW_g ) + &
+                  Spc(id_NIT)%Conc(I,J,L)
 
        ! Calculate HNO3 mixing ratio
-       HNO3SUM = Spc(I,J,L,id_HNO3) * INVAIR / HNO3_MW_G
-       HNO3SUM = HNO3SUM + Spc(I,J,L,id_NIT) * INVAIR / NIT_MW_G
+       HNO3SUM = Spc(id_HNO3)%Conc(I,J,L) * INVAIR / HNO3_MW_G
+       HNO3SUM = HNO3SUM + Spc(id_NIT)%Conc(I,J,L) * INVAIR / NIT_MW_G
 
        ! Calculate H2O mixing ratio
-       H2OSUM = Spc(I,J,L,id_H2O) * INVAIR / H2O_MW_G
+       H2OSUM = Spc(id_H2O)%Conc(I,J,L) * INVAIR / H2O_MW_G
 
        ! Calculate partial pressures (Pa)
        HNO3PP = PCENTER_PA * HNO3SUM
@@ -2048,11 +2054,11 @@ CONTAINS
        IF (LSOLIDPSC.and.IS_STRAT) THEN
 
           ! Convert NAT from kg NAT to kg NO3
-          Spc(I,J,L,id_NIT) = KG_NAT * NIT_MW_G / NATMW
+          Spc(id_NIT)%Conc(I,J,L) = KG_NAT * NIT_MW_G / NATMW
 
           ! Remove (kg NO3 as NAT) from total kg NO3
           ! then convert to kg HNO3
-          Spc(I,J,L,id_HNO3) = (KG_NO3-Spc(I,J,L,id_NIT)) &
+          Spc(id_HNO3)%Conc(I,J,L) = (KG_NO3-Spc(id_NIT)%Conc(I,J,L)) &
                                * HNO3_MW_G / NIT_MW_G
        ENDIF
 
@@ -2064,19 +2070,19 @@ CONTAINS
        H2O_BOX_L  = 0e+0_fp
 
        ! Calculate mixing ratios of other relevant species
-       H2SO4SUM = Spc(I,J,L,id_SO4) * INVAIR / &
+       H2SO4SUM = Spc(id_SO4)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_SO4)%Info%MW_g
-       BrNO3SUM = Spc(I,J,L,id_BrNO3) * INVAIR / &
+       BrNO3SUM = Spc(id_BrNO3)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_BrNO3)%Info%MW_g
-       ClNO3SUM = Spc(I,J,L,id_ClNO3) * INVAIR / &
+       ClNO3SUM = Spc(id_ClNO3)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_ClNO3)%Info%MW_g
-       HOClSUM  = Spc(I,J,L,id_HOCl) * INVAIR / &
+       HOClSUM  = Spc(id_HOCl)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_HOCl)%Info%MW_g
-       HClSUM   = Spc(I,J,L,id_HCl) * INVAIR / &
+       HClSUM   = Spc(id_HCl)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_HCl)%Info%MW_g
-       HOBrSUM  = Spc(I,J,L,id_HOBr) * INVAIR / &
+       HOBrSUM  = Spc(id_HOBr)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_HOBr)%Info%MW_g
-       HBrSUM   = Spc(I,J,L,id_HBr) * INVAIR / &
+       HBrSUM   = Spc(id_HBr)%Conc(I,J,L) * INVAIR / &
                   State_Chm%SpcData(id_HBr)%Info%MW_g
 
        ! H2SO4 gas fraction calculated earlier throughout grid
@@ -3660,6 +3666,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -3716,7 +3723,7 @@ CONTAINS
     REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
 
     ! Pointers
-    REAL(fp), POINTER     :: Spc (:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! If H2O in strat. is not prescribed, set H2O up to tropopause
     ! level plus a given offset (to avoid H2O leaking into
@@ -3740,8 +3747,8 @@ CONTAINS
        CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
     ENDIF
 
-    ! Initialize GEOS-Chem species array [kg/kg dry]
-    Spc => State_Chm%Species
+    ! Point to GEOS-Chem species array
+    Spc => State_Chm%SpeciesVec
 
     ! Error trap: make sure id_H2O is defined. There are instances
     ! in GEOS-5 where we want to call this routine even with UCX
@@ -3799,14 +3806,14 @@ CONTAINS
              ! Set H2O species concentration [kg/kg dry] using SPHU
              ! [kg/kg]
              ! without using box mass (ewl, 7/18/16)
-             Spc(I,J,L,id_H2O) = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
+             Spc(id_H2O)%Conc(I,J,L) = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
 
           ELSE
 
              ! Calculate specific humidity in [kg H2O / kg total air]
              ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
-             SPHU_kgkg =  Spc(I,J,L,id_H2O) / &
-                          ( 1.0e+0_fp + Spc(I,J,L,id_H2O) )
+             SPHU_kgkg =  Spc(id_H2O)%Conc(I,J,L) / &
+                          ( 1.0e+0_fp + Spc(id_H2O)%Conc(I,J,L) )
 
              ! Set State_Met specific humidity [g/kg]
              State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
@@ -3872,6 +3879,7 @@ CONTAINS
     USE CMN_FJX_MOD,        ONLY : ZPJ
     USE FAST_JX_MOD,        ONLY : RXN_H2SO4
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -3906,7 +3914,7 @@ CONTAINS
     INTEGER               :: ICS
 
     ! Pointers
-    REAL(fp), POINTER     :: Spc (:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! UCX_H2SO4PHOT begins here!
@@ -3917,8 +3925,8 @@ CONTAINS
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
     RELWT    = SO2_MW_G / SO4_MW_G
 
-    ! Initialize GEOS-Chem species array [kg]
-    Spc => State_Chm%Species
+    ! Point to GEOS-Chem species array
+    Spc => State_Chm%SpeciesVec
 
     ! Allow for the possibility of variable timestep
     DTCHEM = GET_TS_CHEM()
@@ -3943,12 +3951,12 @@ CONTAINS
           DO L=LMINPHOT+1,State_Grid%NZ
              ! Apply photolysis to SO4
              ! First retrieve gaseous fraction
-             SO4_IN = Spc(I,J,L,id_SO4)*SO4_PHOTFRAC(I,J,L)
+             SO4_IN = Spc(id_SO4)%Conc(I,J,L)*SO4_PHOTFRAC(I,J,L)
              SO4_DELTA = PHOTDELTA*SO4_IN
              ! Remove from SO4
-             Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) - SO4_DELTA
+             Spc(id_SO4)%Conc(I,J,L) = Spc(id_SO4)%Conc(I,J,L) - SO4_DELTA
              ! Add to SO2. Note change in molar mass
-             Spc(I,J,L,id_SO2) = Spc(I,J,L,id_SO2) + (SO4_DELTA*RELWT)
+             Spc(id_SO2)%Conc(I,J,L) = Spc(id_SO2)%Conc(I,J,L) + (SO4_DELTA*RELWT)
           ENDDO
 
        ENDIF

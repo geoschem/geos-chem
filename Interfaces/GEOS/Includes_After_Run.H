@@ -48,10 +48,11 @@
      IF ( .NOT. ASSOCIATED(Int2Spc(I)%Internal) ) THEN
         CYCLE
      ELSE
-        Int2Spc(I)%Internal(:,:,:) = State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID) 
+       Int2Spc(I)%Internal(:,:,:) = &
+                         State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1) 
      ENDIF
      ! testing only
-     !if(MAPL_am_I_Root()) write(*,*) 'Copied to internal: ',I,Int2Spc(I)%ID,trim(Int2Spc(I)%Name),MINVAL(State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID)),MAXVAL(State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID)),SUM(State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID))/IM/JM/LM
+  !if(MAPL_am_I_Root()) write(*,*) 'Copied to internal: ',I,Int2Spc(I)%ID,trim(Int2Spc(I)%Name),MINVAL(State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1)),MAXVAL(State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1)),SUM(State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1))/IM/JM/LM
   ENDDO
   State_Chm%Spc_Units = 'kg/kg total'
 

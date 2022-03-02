@@ -1437,7 +1437,7 @@ CONTAINS
           ! Loop over the # of requested species
           DO R = 1, State_Diag%ObsPack_nSpecies
 
-             ! Get the proper index for State_Chm%Species
+             ! Get the proper index for State_Chm%SpeciesVec
              S = State_Diag%ObsPack_Species_Ind(R)
 
              ! Add the species concentration
@@ -1445,7 +1445,7 @@ CONTAINS
              !%%% converting units for all species if we are only saving
              !%%% out a few.
              State_Diag%ObsPack_Species(N,R) =                               &
-             State_Diag%ObsPack_Species(N,R) + State_Chm%SPECIES(I,J,L,S)
+             State_Diag%ObsPack_Species(N,R) + State_Chm%SpeciesVec(S)%Conc(I,J,L)
           ENDDO
 
           !-----------------------
@@ -1481,7 +1481,7 @@ CONTAINS
     ! Cleanup and quit
     !=======================================================================
 
-    ! Return State_Chm%SPECIES to whatever units they had
+    ! Return State_Chm%SpeciesVec(:)%Conc to whatever units they had
     ! coming into this routine
     call Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             PriorUnit, RC )

@@ -227,6 +227,7 @@ CONTAINS
     USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
@@ -283,7 +284,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 #ifdef APM
     INTEGER           :: IDNH3,IDSO2
     REAL(fp)          :: A_M2
@@ -303,7 +304,7 @@ CONTAINS
     LDSTUP               = Input_Opt%LDSTUP
 
     ! Initialize pointers
-    Spc                  => State_Chm%Species  ! Chemistry species [kg]
+    Spc                  => State_Chm%SpeciesVec  ! Chemistry species [kg]
 
     ! Should we print debug output?
     prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -743,6 +744,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -776,13 +778,13 @@ CONTAINS
     ! Fields for TOMAS simulation
     REAL*8           :: BINMASS(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
                                 IBINS*ICOMP)
-    INTEGER          :: TID, I, J, L
+    INTEGER          :: TID, I, J, L, M
     INTEGER          :: ii=53, jj=29, ll=1
     REAL(fp)         :: NH4_CONC
     CHARACTER(LEN=63):: OrigUnit
 
     ! Pointers
-    REAL*8,  POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Arrays
     REAL(fp)         :: tempnh4(ibins)
@@ -803,20 +805,21 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     IF (id_SF1 > 0 .and. id_NK1 > 0 ) THEN
 
        ! Get NH4 and aerosol water into the same array
-       BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG)) = &
-            Spc(:,:,:,id_SF1:id_SF1+IBINS*(ICOMP-IDIAG) - 1)
+       DO M = 1, IBINS*(ICOMP-IDIAG)
+          BINMASS(:,:,:,M) = Spc(id_SF1+M-1)%Conc(:,:,:)
+       ENDDO
 
        IF ( SRTNH4 > 0 ) THEN
           TID = IBINS*(ICOMP-IDIAG) + 1
 
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L, TEMPNH4, MK_TEMP2, NH4_CONC ) &
+          !$OMP PRIVATE( I, J, L, M, TEMPNH4, MK_TEMP2, NH4_CONC ) &
           !$OMP SCHEDULE( DYNAMIC )
           DO L=1,State_Grid%NZ
           DO J=1,State_Grid%NY
@@ -824,8 +827,10 @@ CONTAINS
 
              ! Change pointer to a variable to avoid array temporary
              ! (bmy, 7/7/17)
-             MK_TEMP2 = Spc(I,J,L,id_SF1:id_SF1-1+IBINS)
-             NH4_CONC = Spc(I,J,L,id_NH4)
+             DO M = 1, IBINS
+                MK_TEMP2(M) = Spc(id_SF1+M-1)%Conc(I,J,L)
+             ENDDO
+             NH4_CONC = Spc(id_NH4)%Conc(I,J,L)
              CALL NH4BULKTOBIN( MK_TEMP2, NH4_CONC, TEMPNH4 )
 
              BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
@@ -838,17 +843,19 @@ CONTAINS
        ENDIF
 
        TID = IBINS*(ICOMP-1) +1
-       BINMASS(:,:,:,TID:TID+IBINS-1) = Spc(:,:,:,id_AW1:id_AW1+IBINS-1)
+       DO M = 1, IBINS
+          BINMASS(:,:,:,TID+M-1) = Spc(id_AW1+M-1)%Conc(:,:,:)
+       ENDDO
 
        !IF ( id_SF1 > 0 ) THEN
        CALL SRCSF30( Input_Opt, State_Grid, State_Met, &
-                     Spc(:,:,:,id_NK1:id_NK1+IBINS-1), &
-                     BINMASS(:,:,:,:), RC )
+                     State_Chm, BINMASS(:,:,:,:), RC )
 
        ! Return the aerosol mass after emission subroutine to Spc
        ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
-       Spc(:,:,:,id_SF1:id_SF1+IBINS*(ICOMP-IDIAG)-1) = &
-            BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
+       DO M = 1, IBINS*(ICOMP-IDIAG)
+          Spc(id_SF1+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
+       ENDDO
     ENDIF
 
     ! Free pointer
@@ -879,7 +886,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #ifdef TOMAS
-  SUBROUTINE SRCSF30( Input_Opt, State_Grid, State_Met, TC1, TC2, RC )
+  SUBROUTINE SRCSF30( Input_Opt, State_Grid, State_Met, State_Chm, TC2, RC )
 !
 ! !USES:
 !
@@ -889,8 +896,10 @@ CONTAINS
 #endif
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE Species_Mod,          ONLY : SpcConc
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
+    USE State_Chm_Mod,        ONLY : ChmState
     USE TOMAS_MOD,            ONLY : IBINS, AVGMASS, ICOMP
     USE TOMAS_MOD,            ONLY : Xk
     USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
@@ -907,8 +916,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(fp), INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                   IBINS)
+    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
     REAL(fp), INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
                                    IBINS*ICOMP)
 !
@@ -979,6 +987,7 @@ CONTAINS
     ! Pointers
     REAL(f4),      POINTER :: Ptr2D(:,:  )
     REAL(f4),      POINTER :: Ptr3D(:,:,:)
+    TYPE(SpcConc), POINTER :: TC1(:)
 
     INTEGER                :: N_TRACERS
 
@@ -1039,6 +1048,9 @@ CONTAINS
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
        TSCALE = 0.5*3600.
     ENDIF
+
+    ! Point to species array
+    TC1 => State_Chm%SpeciesVec
 
     !================================================================
     ! READ IN HEMCO EMISSIONS
@@ -1158,8 +1170,12 @@ CONTAINS
        !=============================================================
        IF ( SGCOAG ) THEN
 
+! ewl: TC1 = Spc(:,:,:,id_NK1:id_NK1+IBINS-1)
+
           !save number and mass before emission
-          !N0(:,:) = TC1(I,J,:,:)
+          !DO M = 1, IBINS
+          !   N0(:,M) = TC1(id_NK1+M-1)%Conc(I,J,:)
+          !ENDDO
           !M0(:,:) = TC2(I,J,:,1:IBINS)
 
           DO L = 1, State_Grid%NZ
@@ -1174,7 +1190,7 @@ CONTAINS
                 !sfarina - sqrt is expensive.
                 !NDISTINIT(K) = SO4(L) * BFRAC(K) / ( SQRT( XK(K)*XK(K+1) ) )
                 !set existing number of particles
-                NDIST(K) = TC1(I,J,L,K)
+                NDIST(K) = TC1(id_NK1+K-1)%Conc(I,J,L)
                 !sfarina - what are the chances aerosol water and ammonium
                 ! are properly equilibrated?
                 DO C = 1, ICOMP
@@ -1271,7 +1287,7 @@ CONTAINS
                                        'after SUBGRIDCOAG at ',I,J,L
 
              DO K = 1, IBINS
-                TC1(I,J,L,K) = NDIST2(K)
+                TC1(id_NK1+K-1)%Conc(I,J,L) = NDIST2(K)
                 DO C=1,ICOMP
                    TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
                 ENDDO
@@ -1284,7 +1300,7 @@ CONTAINS
              !
              !DO K = 1, IBINS
              !!sfarina debug
-             !if(TC1(I,J,L,K)-N0(L,K) < 0d0) then
+             !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
              ! write(*,*) '"Negative NK emis" details:'
              ! write(*,*) 'NTOP       ', NTOP
              ! write(*,*) 'S_SO4:     ', S_SO4
@@ -1292,7 +1308,7 @@ CONTAINS
              ! write(*,*) 'EFRAC(L):  ', EFRAC(L)
              ! DO Bi=1,IBINS
              !  write(*,*) 'Bin        ',Bi
-             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(i,j,l,Bi)
+             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK1+Bi-1)%Conc(I,J,L)
              !  write(*,*) 'ndist1,2   ', NDIST(Bi), NDIST2(Bi)
              !  write(*,*) 'ndistfinal ', NDISTFINAL(Bi)
              !  write(*,*) 'MADDFINAL  ', MADDFINAL(Bi)
@@ -1325,10 +1341,10 @@ CONTAINS
                 !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
                 !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
                 !     'at',I,J,L,K
-                !if(TC1(I,J,L,K)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K), &
+                !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+                !   print *,'Negative NK emis ',TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K), &
                 !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(I,J,L,K),N0(L,K)
+                !   print *,'tc1, N0 ',TC1(id_NK1+K-1)%Conc(I,J,L),N0(L,K)
                 !end if
 
                 !sfarina - I have studied this extensively and determined that
@@ -1346,7 +1362,7 @@ CONTAINS
                 !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
                 !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
                 !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(I,J,L,K)-N0(L,K) &
+                !                      TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) &
                 AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                 AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
              ENDDO
@@ -1363,7 +1379,7 @@ CONTAINS
           DO L = 1, State_Grid%NZ
              SO4(L) = TSO4 * EFRAC(L)
              DO K = 1, IBINS
-                TC1(I,J,L,K) = TC1(I,J,L,K) + &
+                TC1(id_NK1+K-1)%Conc(I,J,L) = TC1(id_NK1+K-1)%Conc(I,J,L) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
                TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
@@ -1397,6 +1413,8 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    NULLIFY(TC1)
 
     IF ( prtDebug ) print *,'   ### Finish SRCSF30'
 
@@ -1546,7 +1564,7 @@ CONTAINS
     ThisSpc       => State_Chm%SpcData(N)%Info
 
     ! Point to the species concentration array
-    TC            => State_Chm%Species(:,:,:,N)
+    TC            => State_Chm%SpeciesVec(N)%Conc(:,:,:)
 
     ! Set a logical to denote that the species is one of the dust
     ! uptake species, i.e. SO4d{1-4}, NITd{1-4} (bmy, 3/17/17)
@@ -1835,6 +1853,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,    ONLY : OptInput
+    USE Species_Mod,      ONLY : SpcConc
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
@@ -1915,7 +1934,7 @@ CONTAINS
     CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Arrays
     REAL(fp)            :: GLOBAL_NO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -1935,7 +1954,7 @@ CONTAINS
     IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
     ! Point to chemical species array [v/v dry]
-    Spc         => State_Chm%Species
+    Spc         => State_Chm%SpeciesVec
 
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM      = GET_TS_CHEM()
@@ -1971,7 +1990,7 @@ CONTAINS
 
        ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3]
        O2     = State_Met%AIRDEN(I,J,L) * f * 0.21e+0_fp
-       DMS0   = Spc(I,J,L,id_DMS)
+       DMS0   = Spc(id_DMS)%Conc(I,J,L)
        OH     = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
 
        ! Get NO3 [molec/cm3]
@@ -2051,7 +2070,7 @@ CONTAINS
        ENDIF
 
        ! Save DMS back to the tracer array
-       Spc(I,J,L,id_DMS) = DMS
+       Spc(id_DMS)%Conc(I,J,L) = DMS
 
        !==============================================================
        ! Save SO2 and MSA production from DMS oxidation
@@ -2119,8 +2138,8 @@ CONTAINS
        ! and NO3 [molec/cm3] back into State_Chm%Species
        !==============================================================
        IF ( IS_FULLCHEM ) THEN
-          Spc(I,J,L,id_OH  ) = OH
-          Spc(I,J,L,id_NO3 ) = XNO3
+          Spc(id_OH  )%Conc(I,J,L) = OH
+          Spc(id_NO3 )%Conc(I,J,L) = XNO3
        ENDIF
     ENDDO
     ENDDO
@@ -2154,6 +2173,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,    ONLY : OptInput
+    USE Species_Mod,      ONLY : SpcConc
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
@@ -2206,7 +2226,7 @@ CONTAINS
     REAL(fp)           :: JH2O2(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
 
     !=================================================================
     ! CHEM_H2O2 begins here!
@@ -2220,7 +2240,7 @@ CONTAINS
     ThisLoc  = ' -> at CHEM_H2O2 (in module GeosCore/sulfate_mod.F90)'
 
     ! Point to chemical species array [v/v dry]
-    Spc       => State_Chm%Species
+    Spc       => State_Chm%SpeciesVec
 
     ! Chemistry timestep [s]
     DT        = GET_TS_CHEM()
@@ -2266,7 +2286,7 @@ CONTAINS
        M     = State_Met%AIRDEN(I,J,L) * f
 
        ! Initial H2O2 [v/v]
-       H2O20 = Spc(I,J,L,id_H2O2)
+       H2O20 = Spc(id_H2O2)%Conc(I,J,L)
 
        ! Loss frequenty due to OH oxidation [s-1]
        KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * &
@@ -2298,7 +2318,7 @@ CONTAINS
        IF ( H2O2 < SMALLNUM ) H2O2 = 0e+0_fp
 
        ! Store final H2O2 in Spc
-       Spc(I,J,L,id_H2O2) = H2O2
+       Spc(id_H2O2)%Conc(I,J,L) = H2O2
 
     ENDDO
     ENDDO
@@ -2335,6 +2355,7 @@ CONTAINS
     USE ERROR_MOD,            ONLY : SAFE_DIV
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
+    USE Species_Mod,          ONLY : SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
@@ -2475,7 +2496,7 @@ CONTAINS
     REAL(fp)              :: O3m(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
-    REAL(fp), POINTER     :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
     !REAL(fp), POINTER     :: SSAlk(:,:,:,:)
     REAL(fp), POINTER     :: H2O2s(:,:,:)
     REAL(fp), POINTER     :: SO2s(:,:,:)
@@ -2501,7 +2522,7 @@ CONTAINS
     IS_OFFLINE           =  Input_Opt%ITS_AN_AEROSOL_SIM
     LDSTUP               =  Input_Opt%LDSTUP
     DTCHEM               =  GET_TS_CHEM()
-    Spc                  => State_Chm%Species
+    Spc                  => State_Chm%SpeciesVec
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
@@ -2659,8 +2680,8 @@ CONTAINS
 #endif
 
        ! Initialize [v/v]
-       SO20   = Spc(I,J,L,id_SO2)
-       H2O20  = Spc(I,J,L,id_H2O2)
+       SO20   = Spc(id_SO2)%Conc(I,J,L)
+       H2O20  = Spc(id_H2O2)%Conc(I,J,L)
 
        ! These species are only needed for fullchem simulations
        HOBr0  = 0.0_fp
@@ -2669,19 +2690,19 @@ CONTAINS
        HMS0   = 0.0_fp
        OH0    = 0.0_fp
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-          HOBr0  = Spc(I,J,L,id_HOBr)
-          HOCl0  = Spc(I,J,L,id_HOCl)
-          HCHO0  = Spc(I,J,L,id_CH2O)
-          HMS0   = Spc(I,J,L,id_HMS)
-          OH0    = Spc(I,J,L,id_OH)
+          HOBr0  = Spc(id_HOBr)%Conc(I,J,L)
+          HOCl0  = Spc(id_HOCl)%Conc(I,J,L)
+          HCHO0  = Spc(id_CH2O)%Conc(I,J,L)
+          HMS0   = Spc(id_HMS)%Conc(I,J,L)
+          OH0    = Spc(id_OH)%Conc(I,J,L)
        ENDIF
 
        ! Calculate O3, defined only in the chemistry grid
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-          ! Get O3 from State_Chm%Species [v/v]
+          ! Get O3 from State_Chm%SpeciesVec%Conc [v/v]
           O3 = 0.0_fp
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
-             O3 = State_Chm%Species(I,J,L,id_O3)
+             O3 = State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)
           ENDIF
        ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
           ! Get offline mean O3 [v/v] for this gridbox and month
@@ -2844,8 +2865,8 @@ CONTAINS
           ! a better way to abstract this code later.
           !   -- Bob Yantosca (09 Sep 2021)
           IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
-             Spc(I,J,L,id_SALAAL) = AlkA
-             Spc(I,J,L,id_SALCAL) = AlkC
+             Spc(id_SALAAL)%Conc(I,J,L) = AlkA
+             Spc(id_SALCAL)%Conc(I,J,L) = AlkC
           ENDIF
        ENDIF
 
@@ -2854,8 +2875,8 @@ CONTAINS
        ! This will make sure that SALAAL and SALCAL have the proper
        ! values befoe sulfate chemistry is computed below.
        IF ( FullRun .and. State_Chm%Do_SulfateMod_SeaSalt ) Then
-          Spc(I,J,L,id_SALAAL) = AlkA
-          Spc(I,J,L,id_SALCAL) = AlkC
+          Spc(id_SALAAL)%Conc(I,J,L) = AlkA
+          Spc(id_SALCAL)%Conc(I,J,L) = AlkC
        ENDIF
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -3088,12 +3109,12 @@ CONTAINS
           ! [moles/liter]
 	  ! Use a cloud scavenging ratio of 0.7
 #ifdef LUO_WETDEP
-          SO4nss = Spc(I,J,L,id_SO4)    * State_Met%AIRDEN(I,J,L) *         &
+          SO4nss = Spc(id_SO4)%Conc(I,J,L)    * State_Met%AIRDEN(I,J,L) *         &
                    one_m_KRATE          / ( AIRMW * LWC )
 #else
-          SO4nss = ( Spc(I,J,L,id_SO4)  * State_Met%AIRDEN(I,J,L) *         &
+          SO4nss = ( Spc(id_SO4)%Conc(I,J,L)  * State_Met%AIRDEN(I,J,L) *         &
                      0.7_fp             / ( AIRMW * LWC )           )       &
-                 + ( Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L) /         &
+                 + ( Spc(id_SO4s)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L) /         &
                      ( AIRMW * LWC )                                )
 #endif
 
@@ -3104,27 +3125,27 @@ CONTAINS
           ! NOTE: Only needed for fullchem sims, otherwise it's zero
           HMSc = 0.0_fp
           IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-             HMSc  =  Spc(I,J,L,id_HMS) * State_Met%AIRDEN(I,J,L) * &
+             HMSc  =  Spc(id_HMS)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L) * &
                                 0.7e+0_fp / ( AIRMW * LWC )
           ENDIF
 
           ! Get total ammonia (NH3 + NH4+) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7 for NH4+
 #ifdef LUO_WETDEP
-          TNH3 = ( Spc(I,J,L,id_NH4) * one_m_KRATE ) + Spc(I,J,L,id_NH3)
+          TNH3 = ( Spc(id_NH4)%Conc(I,J,L) * one_m_KRATE ) + Spc(id_NH3)%Conc(I,J,L)
 #else
-          TNH3 = ( Spc(I,J,L,id_NH4) * 0.7_fp      ) + Spc(I,J,L,id_NH3)
+          TNH3 = ( Spc(id_NH4)%Conc(I,J,L) * 0.7_fp      ) + Spc(id_NH3)%Conc(I,J,L)
 #endif
 
           ! Get total chloride (SALACL + HCL) concentration [v/v]
           ! Use a cloud scavenging ratio of 0.7
 #ifdef LUO_WETDEP
-          CL = ( Spc(I,J,L,id_SALACL) * one_m_KRATE ) + Spc(I,J,L,id_SALCCL)
+          CL = ( Spc(id_SALACL)%Conc(I,J,L) * one_m_KRATE ) + Spc(id_SALCCL)%Conc(I,J,L)
 #else
-          CL = ( Spc(I,J,L,id_SALACL) * 0.7_fp )      + Spc(I,J,L,id_SALCCL)
+          CL = ( Spc(id_SALACL)%Conc(I,J,L) * 0.7_fp )      + Spc(id_SALCCL)%Conc(I,J,L)
 #endif
           IF ( id_HCl > 0 ) THEN
-             CL = CL + Spc(I,J,L,id_HCL)
+             CL = CL + Spc(id_HCL)%Conc(I,J,L)
           ELSE
              CL = CL + GLOBAL_HCL(I,J,L)
           ENDIF
@@ -3133,7 +3154,7 @@ CONTAINS
           ! jmm (12/3/18)
           ! no cloud scavenging because gases?
           IF ( id_HCOOH > 0 ) THEN
-             TFA = Spc(I,J,L,id_HCOOH)
+             TFA = Spc(id_HCOOH)%Conc(I,J,L)
           ELSE
              TFA = GLOBAL_HCOOH(I,J,L)
           ENDIF
@@ -3142,7 +3163,7 @@ CONTAINS
           ! jmm (12/3/18)
           ! no cloud scavenging b/c gases?
           IF ( id_ACTA > 0 ) THEN
-             TAA = Spc(I,J,L,id_ACTA)
+             TAA = Spc(id_ACTA)%Conc(I,J,L)
           ELSE
              TAA = GLOBAL_ACTA(I,J,L)
           ENDIF
@@ -3153,16 +3174,16 @@ CONTAINS
           ! seas salt. Note that we should not consider SO4ss here.
           ! Use a cloud scavenging ratio of 0.7 for fine aerosols
 #ifdef LUO_WETDEP
-          TNA = ( Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L)   *           &
+          TNA = ( Spc(id_SALA)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L)   *           &
                   TNA_CONV           * one_m_KRATE               /           &
                   ( AIRMW * LWC )                                  )         &
-              + ( Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L)   *           &
+              + ( Spc(id_SALC)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L)   *           &
                   TNA_CONV           / ( AIRMW * LWC )             )
 #else
-          TNA = ( Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L)   *           &
+          TNA = ( Spc(id_SALA)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L)   *           &
                   TNA_CONV           * 0.7_fp                    /           &
                   ( AIRMW * LWC )                                  )         &
-              + ( Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L)   *           &
+              + ( Spc(id_SALC)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L)   *           &
                   TNA_CONV           / ( AIRMW * LWC )             )
 #endif
           ! Get total dust cation concentration [mol/L]
@@ -3181,14 +3202,14 @@ CONTAINS
           !
           ! Get dust concentrations [v/v -> ng/m3]
 #ifdef LUO_WETDEP
-          DUST = ( Spc(I,J,L,id_DST1)*one_m_KRATE + Spc(I,J,L,id_DST2) +     &
-                   Spc(I,J,L,id_DST3)             + Spc(I,J,L,id_DST4)   )   &
+          DUST = ( Spc(id_DST1)%Conc(I,J,L)*one_m_KRATE + Spc(id_DST2)%Conc(I,J,L) +     &
+                   Spc(id_DST3)%Conc(I,J,L)             + Spc(id_DST4)%Conc(I,J,L)   )   &
                * 1.e+12_fp * State_Met%AD(I,J,L)                             &
                / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g        )   &
                / State_Met%AIRVOL(I,J,L)
 #else
-          DUST = ( Spc(I,J,L,id_DST1)*0.7_fp + Spc(I,J,L,id_DST2) +          &
-                   Spc(I,J,L,id_DST3)        + Spc(I,J,L,id_DST4)   )        &
+          DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7_fp + Spc(id_DST2)%Conc(I,J,L) +          &
+                   Spc(id_DST3)%Conc(I,J,L)        + Spc(id_DST4)%Conc(I,J,L)   )        &
                * 1.e+12_fp * State_Met%AD(I,J,L)                             &
                / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g )          &
                / State_Met%AIRVOL(I,J,L)
@@ -3204,17 +3225,17 @@ CONTAINS
           ! Use a cloud scavenging ratio of 0.7 for NIT
           IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 #ifdef LUO_WETDEP
-             TNO3 = ( Spc(I,J,L,id_HNO3)                                     &
-                  +   Spc(I,J,L,id_NIT )                                     &
-                  +   Spc(I,J,L,id_NITs) ) * one_m_KRATE
+             TNO3 = ( Spc(id_HNO3)%Conc(I,J,L)                                     &
+                  +   Spc(id_NIT )%Conc(I,J,L)                                     &
+                  +   Spc(id_NITs)%Conc(I,J,L) ) * one_m_KRATE
 #else
-             TNO3 = Spc(I,J,L,id_HNO3)                                       &
-                  + ( Spc(I,J,L,id_NIT) * 0.7_fp )                           &
-                  + Spc(I,J,L,id_NITs)
+             TNO3 = Spc(id_HNO3)%Conc(I,J,L)                                       &
+                  + ( Spc(id_NIT)%Conc(I,J,L) * 0.7_fp )                           &
+                  + Spc(id_NITs)%Conc(I,J,L)
 #endif
-             GNO3 = Spc(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
+             GNO3 = Spc(id_HNO3)%Conc(I,J,L) !For Fahey & Pandis decision algorithm
           ELSE IF ( IS_OFFLINE ) THEN
-             TANIT = Spc(I,J,L,id_NIT) !aerosol nitrate [v/v]
+             TANIT = Spc(id_NIT)%Conc(I,J,L) !aerosol nitrate [v/v]
              GNO3  = GLOBAL_HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
              ANIT  = TANIT * 0.7e+0_fp ! aerosol nitrate in the cloud drops [v/v]
              TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
@@ -3243,8 +3264,8 @@ CONTAINS
              ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
              DUST = 0e+0_fp
 #else
-             DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) + &
-                      Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
+             DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7 + Spc(id_DST2)%Conc(I,J,L) + &
+                      Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) ) * &
                       1.e+12_fp * State_Met%AD(I,J,L) &
                       / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
                       / State_Met%AIRVOL(I,J,L)
@@ -3259,7 +3280,7 @@ CONTAINS
 
              ! Anthropogenic Fe concentrations [v/v -> ng/m3]
              IF ( id_pFe > 0 ) THEN
-                Fe_ant = Spc(I,J,L,id_pFe) * &
+                Fe_ant = Spc(id_pFe)%Conc(I,J,L) * &
                          1.e+12_fp * State_Met%AD(I,J,L) &
                          / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%MW_g ) &
                          / State_Met%AIRVOL(I,J,L)
@@ -3484,10 +3505,10 @@ CONTAINS
           SO4H3_vv = 0.e+0_fp
           SO4H4_vv = 0.e+0_fp
           IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-             SO4H1_vv = Spc(I,J,L,id_SO4H1)
-             SO4H2_vv = Spc(I,J,L,id_SO4H2)
-             SO4H3_vv = Spc(I,J,L,id_SO4H3)
-             SO4H4_vv = Spc(I,J,L,id_SO4H4)
+             SO4H1_vv = Spc(id_SO4H1)%Conc(I,J,L)
+             SO4H2_vv = Spc(id_SO4H2)%Conc(I,J,L)
+             SO4H3_vv = Spc(id_SO4H3)%Conc(I,J,L)
+             SO4H4_vv = Spc(id_SO4H4)%Conc(I,J,L)
           ENDIF
 
           L5S   = SO4H1_vv + SO4H2_vv
@@ -3769,14 +3790,14 @@ CONTAINS
 
           ! For other simulations, Sum up the contributions from
           ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
-          ALKdst = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +            &
-                     Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *          &
+          ALKdst = ( Spc(id_DST1)%Conc(I,J,L) + Spc(id_DST2)%Conc(I,J,L) +            &
+                     Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) ) *          &
                      1.e+9_fp * State_Met%AD(I,J,L)                       &
                      / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
                      / State_Met%AIRVOL(I,J,L)
 #endif
 
-          ALKss  = ( Spc(I,J,L,id_SALA  ) + Spc(I,J,L,id_SALC) ) *        &
+          ALKss  = ( Spc(id_SALA)%Conc(I,J,L) + Spc(id_SALC)%Conc(I,J,L) ) *        &
                      1.e+9_fp * State_Met%AD(I,J,L)                       &
                      / ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
                      / State_Met%AIRVOL(I,J,L)
@@ -3784,7 +3805,7 @@ CONTAINS
           ALKds = ALKdst + ALKss
 
           ! Get NH3 concentrations (v/v)
-          NH3 = Spc(I,J,L,id_NH3)
+          NH3 = Spc(id_NH3)%Conc(I,J,L)
 
           ! Initialize
           BULK = 0
@@ -3921,10 +3942,10 @@ CONTAINS
              ! HET_DROP_CHEM [v/v]
              ! Note that it is better to use coarse sea salt alkalinity
              ! tracer if it is being transported (bec, 12/23/11)
-             SSCvv  = Spc(I,J,L,id_SALC)
+             SSCvv  = Spc(id_SALC)%Conc(I,J,L)
 
              ! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
-             aSO4  =  Spc(I,J,L,id_SO4)
+             aSO4  =  Spc(id_SO4)%Conc(I,J,L)
 
              ! This is to make sure HET_DROP_CHEM does not compute more
              ! sulfate then there is SO2
@@ -4069,21 +4090,21 @@ CONTAINS
        ! Store updated SO2, H2O2 back to the tracer arrays
        ! Add HCHO, OH, O3, and HMS (jmm, 06/13/18)
        If (FullRun) Then
-          Spc(I,J,L,id_SO2)  = SO2s( I,J,L)
-          Spc(I,J,L,id_H2O2) = H2O2s(I,J,L)
+          Spc(id_SO2)%Conc(I,J,L)  = SO2s( I,J,L)
+          Spc(id_H2O2)%Conc(I,J,L) = H2O2s(I,J,L)
 
           IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-             Spc(I,J,L,id_OH)   = OH0
-             Spc(I,J,L,id_O3)   = O3
-             Spc(I,J,L,id_CH2O) = HCHO0
-             Spc(I,J,L,id_HMS)  = HMS0
+             Spc(id_OH)%Conc(I,J,L)   = OH0
+             Spc(id_O3)%Conc(I,J,L)   = O3
+             Spc(id_CH2O)%Conc(I,J,L) = HCHO0
+             Spc(id_HMS)%Conc(I,J,L)  = HMS0
           ENDIF
 
           ! Set SO4H1 and SO4H2 to zero at end of each timestep
-          IF ( id_SO4H1 > 0 ) Spc(I,J,L,id_SO4H1) = 0.0e+0_fp
-          IF ( id_SO4H2 > 0 ) Spc(I,J,L,id_SO4H2) = 0.0e+0_fp
-          IF ( id_SO4H3 > 0 ) Spc(I,J,L,id_SO4H3) = 0.0e+0_fp
-          IF ( id_SO4H4 > 0 ) Spc(I,J,L,id_SO4H4) = 0.0e+0_fp
+          IF ( id_SO4H1 > 0 ) Spc(id_SO4H1)%Conc(I,J,L) = 0.0e+0_fp
+          IF ( id_SO4H2 > 0 ) Spc(id_SO4H2)%Conc(I,J,L) = 0.0e+0_fp
+          IF ( id_SO4H3 > 0 ) Spc(id_SO4H3)%Conc(I,J,L) = 0.0e+0_fp
+          IF ( id_SO4H4 > 0 ) Spc(id_SO4H4)%Conc(I,J,L) = 0.0e+0_fp
        End If
 
        ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
@@ -4316,6 +4337,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
@@ -4409,7 +4431,7 @@ CONTAINS
     REAL(fp)            :: L7A,         L7C,        HCl_EQ_C
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
     REAL(fp), POINTER   :: AD(:,:,:)
     REAL(fp), POINTER   :: AIRVOL(:,:,:)
 
@@ -4421,7 +4443,7 @@ CONTAINS
     RC      = GC_SUCCESS
 
     ! Initialize pointers
-    Spc     => State_Chm%Species
+    Spc     => State_Chm%SpeciesVec
     AD      => State_Met%AD
     AIRVOL  => State_Met%AIRVOL
 
@@ -4440,8 +4462,8 @@ CONTAINS
     ! Get the HNO3 and HCl concentration [v/v], either from the species
     ! array (fullchem sims) or from HEMCO (aerosol-only sims)
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       HNO3_vv = Spc(I,J,L,id_HNO3)
-       HCl_vv  = Spc(I,J,L,id_HCL)
+       HNO3_vv = Spc(id_HNO3)%Conc(I,J,L)
+       HCl_vv  = Spc(id_HCL)%Conc(I,J,L)
     ELSE
        HNO3_vv = GLOBAL_HNO3(I,J,L)
        HCl_vv  = GLOBAL_HCl(I,J,L)
@@ -4693,7 +4715,7 @@ CONTAINS
 
        If (FullRun) Then
           ! Store back into the species array
-          Spc(I,J,L,id_HNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
+          Spc(id_HNO3)%Conc(I,J,L) = MAX( HNO3_vv - HNO3_ss, MINDAT )
        End If
 
     ELSE
@@ -4707,7 +4729,7 @@ CONTAINS
     ! HCl lost [eq/timestep] converted back to [v/v/timestep]
     IF ( FullRun .and. id_HCl > 0 ) THEN
        HCl_ss = ( TITR_HCl * AIRMW / AD(I,J,L) ) / 1000.0_fp
-       Spc(I,J,L,id_HCl) = MAX( HCl_vv - HCl_ss, MINDAT )
+       Spc(id_HCl)%Conc(I,J,L) = MAX( HCl_vv - HCl_ss, MINDAT )
     ENDIF
 
     !=================================================================
@@ -4789,6 +4811,7 @@ CONTAINS
     USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
@@ -4890,7 +4913,7 @@ CONTAINS
     REAL(fp)             :: MW_NIT,      MW_HNO3
 
     ! Pointers
-    REAL(fp), POINTER    :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
     REAL(fp), POINTER    :: AD(:,:,:)
     REAL(fp), POINTER    :: AIRVOL(:,:,:)
 
@@ -4904,7 +4927,7 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
     ! Set pointers
-    Spc                 => State_Chm%Species   ! Chemical species [kg]
+    Spc                 => State_Chm%SpeciesVec   ! Chemical species [kg]
     AD                  => State_Met%AD
     AIRVOL              => State_Met%AIRVOL
 
@@ -4947,7 +4970,7 @@ CONTAINS
        !tdf Note 28.97/63.0 = Mw(air)/Mw(HNO3)
        !    Hence, HNO3_eq =  1. * moles(HNO3) / gridbox
 
-       HNO3_vv = Spc(I,J,L,id_HNO3)
+       HNO3_vv = Spc(id_HNO3)%Conc(I,J,L)
        HNO3_eq = HNO3_vv * AD(I,J,L) / ( AIRMW / 63.e+0_fp ) / 63.e-3_fp
 
     ELSE
@@ -5259,7 +5282,7 @@ CONTAINS
 
     ! HNO3 [v/v]
     IF ( id_HNO3 > 0 ) THEN
-       Spc(I,J,L,id_HNO3) = MAX( HNO3_gas, MINDAT )
+       Spc(id_HNO3)%Conc(I,J,L) = MAX( HNO3_gas, MINDAT )
     ENDIF
 
     DO IBIN = 1, NDSTBIN
@@ -5299,10 +5322,10 @@ CONTAINS
     ! Update dust alkalinity
     ! NB Hardwired for 4 size bins                    tdf 04/08/08
 
-    Spc(I,J,L,id_DAL1) = MAX( ALKA(1), MINDAT )
-    Spc(I,J,L,id_DAL2) = MAX( ALKA(2), MINDAT )
-    Spc(I,J,L,id_DAL3) = MAX( ALKA(3), MINDAT )
-    Spc(I,J,L,id_DAL4) = MAX( ALKA(4), MINDAT )
+    Spc(id_DAL1)%Conc(I,J,L) = MAX( ALKA(1), MINDAT )
+    Spc(id_DAL2)%Conc(I,J,L) = MAX( ALKA(2), MINDAT )
+    Spc(id_DAL3)%Conc(I,J,L) = MAX( ALKA(3), MINDAT )
+    Spc(id_DAL4)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
 
     ! Free pointers
     Spc    => NULL()
@@ -7530,6 +7553,7 @@ CONTAINS
     USE CMN_SIZE_Mod,   ONLY : NDSTBIN
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -7586,7 +7610,7 @@ CONTAINS
     INTEGER           :: IDTRC(NDSTBIN)
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 #ifdef APM
     REAL(fp), POINTER :: PSO4_SO2APM2(:,:,:)
 #endif
@@ -7621,7 +7645,7 @@ CONTAINS
 #endif
 
     ! Point to chemical species array [kg]
-    Spc      => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Loop over chemistry grid boxes
     !$OMP PARALLEL DO       &
@@ -7650,17 +7674,17 @@ CONTAINS
        !==============================================================
 
        ! SO4 [v/v]
-       SO40  = Spc(I,J,L,id_SO4)
+       SO40  = Spc(id_SO4)%Conc(I,J,L)
 
        ! SO4 within coarse seasalt aerosol [v/v]
-       SO40s = Spc(I,J,L,id_SO4s)
+       SO40s = Spc(id_SO4s)%Conc(I,J,L)
 
        IF ( LDSTUP ) THEN
           ! Initial Sulfate w/in dust bins [v/v]   ! tdf 04/07/08
-          SO40d(1) = Spc(I,J,L,id_SO4d1)
-          SO40d(2) = Spc(I,J,L,id_SO4d2)
-          SO40d(3) = Spc(I,J,L,id_SO4d3)
-          SO40d(4) = Spc(I,J,L,id_SO4d4)
+          SO40d(1) = Spc(id_SO4d1)%Conc(I,J,L)
+          SO40d(2) = Spc(id_SO4d2)%Conc(I,J,L)
+          SO40d(3) = Spc(id_SO4d3)%Conc(I,J,L)
+          SO40d(4) = Spc(id_SO4d4)%Conc(I,J,L)
        ENDIF
 
        !==============================================================
@@ -7713,16 +7737,16 @@ CONTAINS
        IF ( SO4s < SMALLNUM ) SO4s = 0e+0_fp
 
        ! Final concentrations [v/v]
-       Spc(I,J,L,id_SO4)  = SO4
-       Spc(I,J,L,id_SO4s) = SO4s
+       Spc(id_SO4)%Conc(I,J,L)  = SO4
+       Spc(id_SO4s)%Conc(I,J,L) = SO4s
 
 !APM_GanLuo+
 #ifdef APM
        IF(NSO4>=1)THEN
           DO N=1,NSO4
              ! Updated SO4 (gas phase) [v/v]
-             Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = &
-                  Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) + &
+             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) + &
                   (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
                   (g0_100*State_Met%DELP_DRY(I,J,L)))* &
                   FCLOUD(I,J,L,N)
@@ -7731,8 +7755,8 @@ CONTAINS
 
        IF(NCTBC>=1)THEN
           DO N=1,1
-             Spc(I,J,L,(APMIDS%id_CTBC+N-1)) = &
-                  Spc(I,J,L,(APMIDS%id_CTBC+N-1)) + &
+             Spc(APMIDS%id_CTBC+N-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_CTBC+N-1)%Conc(I,J,L) + &
                   (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
                   (g0_100*State_Met%DELP_DRY(I,J,L)))* &
                   FCLOUD(I,J,L,(NSO4+N))
@@ -7741,8 +7765,8 @@ CONTAINS
 
        IF(NCTOC>=1)THEN
           DO N=1,1
-             Spc(I,J,L,(APMIDS%id_CTOC+N-1)) = &
-                  Spc(I,J,L,(APMIDS%id_CTOC+N-1)) + &
+             Spc(APMIDS%id_CTOC+N-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_CTOC+N-1)%Conc(I,J,L) + &
                   (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
                   (g0_100*State_Met%DELP_DRY(I,J,L)))* &
                   FCLOUD(I,J,L,(NSO4+N))
@@ -7751,8 +7775,8 @@ CONTAINS
 
        IF(NCTDST>=1)THEN
           DO N=1,1
-             Spc(I,J,L,(APMIDS%id_CTDST+N-1)) = &
-                  Spc(I,J,L,(APMIDS%id_CTDST+N-1)) + &
+             Spc(APMIDS%id_CTDST+N-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_CTDST+N-1)%Conc(I,J,L) + &
                   (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
                   (g0_100*State_Met%DELP_DRY(I,J,L)))* &
                   FCLOUD(I,J,L,(NSO4+3))
@@ -7761,8 +7785,8 @@ CONTAINS
 
        IF(NCTSEA>=1)THEN
           DO N=1,1
-             Spc(I,J,L,(APMIDS%id_CTSEA+N-1)) = &
-                  Spc(I,J,L,(APMIDS%id_CTSEA+N-1)) + &
+             Spc(APMIDS%id_CTSEA+N-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_CTSEA+N-1)%Conc(I,J,L) + &
                   (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
                   (g0_100*State_Met%DELP_DRY(I,J,L)))* &
                   FCLOUD(I,J,L,(NSO4+4)) + PSO4_SO2SEA(I,J,L)
@@ -7775,7 +7799,7 @@ CONTAINS
           DO IBIN = 1, NDSTBIN
              SO40_dust = SO4d(IBIN)
              IF ( SO40_dust < SMALLNUM ) SO40_dust = 0e+0_fp
-             Spc(I,J,L,IDTRC(IBIN)) = SO40_dust ! dust sulfate
+             Spc(IDTRC(IBIN))%Conc(I,J,L) = SO40_dust ! dust sulfate
           ENDDO
        ENDIF    !tdf end of if ( LDSTUP) condition
 
@@ -7947,6 +7971,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -7982,7 +8007,7 @@ CONTAINS
     REAL(fp)          :: MSA0, MSA
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CHEM_MSA begins here!
@@ -7993,7 +8018,7 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Point to chemical species array [v/v/ dry]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Loop over chemistry grid boxes
     !$OMP PARALLEL DO       &
@@ -8008,14 +8033,14 @@ CONTAINS
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        ! Initial MSA [v/v]
-       MSA0 = Spc(I,J,L,id_MSA)
+       MSA0 = Spc(id_MSA)%Conc(I,J,L)
 
        ! MSA production from DMS [v/v/timestep]
        MSA = MSA0 + PMSA_DMS(I,J,L)
 
        ! Final MSA [v/v]
        IF ( MSA < SMALLNUM ) MSA = 0e+0_fp
-       Spc(I,J,L,id_MSA) = MSA
+       Spc(id_MSA)%Conc(I,J,L) = MSA
 
     ENDDO
     ENDDO
@@ -8047,6 +8072,7 @@ CONTAINS
     USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -8092,7 +8118,7 @@ CONTAINS
     REAL(fp)          :: NIT0d(NDSTBIN)
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CHEM_NIT begins here!
@@ -8113,7 +8139,7 @@ CONTAINS
     RC       = GC_SUCCESS
 
     ! Point to chemical species array [v/v dry]
-    Spc      => State_Chm%Species
+    Spc      => State_Chm%SpeciesVec
 
     ! Assign pointers to Spc arrays for loop over dust size bins,
     ! since this can be done outside the parallel DO loop.
@@ -8141,8 +8167,8 @@ CONTAINS
        ! Add NIT prod from HNO3 uptake on fine sea-salt [v/v/timestep]
        ! to the NITs concentration in the Spc array [v/v dry]
        ! Should do for both fine and coarse mode (xnw 12/8/17)
-       Spc(I,J,L,id_NIT)  = Spc(I,J,L,id_NIT) + PNIT(I,J,L)
-       Spc(I,J,L,id_NITs) = Spc(I,J,L,id_NITs) + PNITs(I,J,L)
+       Spc(id_NIT)%Conc(I,J,L)  = Spc(id_NIT)%Conc(I,J,L) + PNIT(I,J,L)
+       Spc(id_NITs)%Conc(I,J,L) = Spc(id_NITs)%Conc(I,J,L) + PNITs(I,J,L)
 
        !==============================================================
        ! NITd chemistry (cf. Duncan Fairlie)
@@ -8153,10 +8179,10 @@ CONTAINS
           NITd     = 0.0_fp
 
           ! Initial NITRATE w/in dust bins [v/v]
-          NIT0d(1) = Spc(I,J,L,id_NITd1)
-          NIT0d(2) = Spc(I,J,L,id_NITd2)
-          NIT0d(3) = Spc(I,J,L,id_NITd3)
-          NIT0d(4) = Spc(I,J,L,id_NITd4)
+          NIT0d(1) = Spc(id_NITd1)%Conc(I,J,L)
+          NIT0d(2) = Spc(id_NITd2)%Conc(I,J,L)
+          NIT0d(3) = Spc(id_NITd3)%Conc(I,J,L)
+          NIT0d(4) = Spc(id_NITd4)%Conc(I,J,L)
 
           ! Loop over size bins
           DO IBIN = 1, NDSTBIN
@@ -8168,7 +8194,7 @@ CONTAINS
              NITd(IBIN)             = NIT0d(IBIN) + PNITd
 
              ! Store final concentration in Spc [v/v]
-             Spc(I,J,L,IDTRC(IBIN)) = NITd(IBIN)
+             Spc(IDTRC(IBIN))%Conc(I,J,L) = NITd(IBIN)
 
           ENDDO
 
@@ -8209,6 +8235,7 @@ CONTAINS
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : SpcConc
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Grid_Mod,     ONLY : GrdState
@@ -8237,7 +8264,7 @@ CONTAINS
       INTEGER           :: I, J, L
 
       ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
+      TYPE(SpcConc), POINTER :: Spc(:)
 
       !=================================================================
       ! CHEM_NIT begins here!
@@ -8250,7 +8277,7 @@ CONTAINS
       RC       = GC_SUCCESS
 
       ! Point to chemical species array [v/v dry]
-      Spc      => State_Chm%Species
+      Spc      => State_Chm%SpeciesVec
 
       !$OMP PARALLEL DO          &
       !$OMP DEFAULT( SHARED )    &
@@ -8268,8 +8295,8 @@ CONTAINS
          !==============================================================
 
          ! Add Cl prod from HCl uptake on fine and coarse sea-salt [v/v/timestep]
-         Spc(I,J,L,id_SALACL)  = Spc(I,J,L,id_SALACL) + PACL(I,J,L)
-         Spc(I,J,L,id_SALCCL)  = Spc(I,J,L,id_SALCCL) + PCCL(I,J,L)
+         Spc(id_SALACL)%Conc(I,J,L)  = Spc(id_SALACL)%Conc(I,J,L) + PACL(I,J,L)
+         Spc(id_SALCCL)%Conc(I,J,L)  = Spc(id_SALCCL)%Conc(I,J,L) + PCCL(I,J,L)
 
       ENDDO
       ENDDO
@@ -8336,7 +8363,7 @@ CONTAINS
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
           ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
-          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) * &
+          OH_MOLEC_CM3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L) * &
                          State_Met%AIRNUMDEN(I,J,L)
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
@@ -8684,9 +8711,9 @@ CONTAINS
     !! alkalinity [v/v] to [kg] use this when transporting alk
     !! or using Liao et al [2004] assumption of a continuous supply of
     ! alkalinity based on Laskin et al. [2003]
-    !ALK1 = Spc(I,J,L,id_SALA) * State_Met%AD(I,J,L)/
+    !ALK1 = Spc(id_SALA)%Conc(I,J,L) * State_Met%AD(I,J,L)/
     !  & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g )
-    !ALK2 = Spc(I,J,L,id_SALC) * State_Met%AD(I,J,L)/
+    !ALK2 = Spc(id_SALC)%Conc(I,J,L) * State_Met%AD(I,J,L)/
     !  & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%MW_g )
     !-----------------------------------------------------------------------
 
@@ -8694,14 +8721,14 @@ CONTAINS
     !N1 = N_DENS(I,J,L,1) * 1.d-6
     !N2 = N_DENS(I,J,L,2) * 1.d-6
        !Read Alkalinity from Alkalinity tracers [v/v] to [kg], xnw 12/8/17
-    ALK1 = State_Chm%Species(I,J,L,id_SALAAL) * State_Met%AD(I,J,L)/ &
+    ALK1 = State_Chm%SpeciesVec(id_SALAAL)%Conc(I,J,L) * State_Met%AD(I,J,L)/ &
          ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
-    ALK2 = State_Chm%Species(I,J,L,id_SALCAL) * State_Met%AD(I,J,L)/ &
+    ALK2 = State_Chm%SpeciesVec(id_SALCAL)%Conc(I,J,L) * State_Met%AD(I,J,L)/ &
       ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
     !Seasalt mass, [v/v] to [kg]
-    !SLA = State_Chm%Species(I,J,L,id_SALA) * State_Met%AD(I,J,L)/
+    !SLA = State_Chm%SpeciesVec(id_SALA)%Conc(I,J,L) * State_Met%AD(I,J,L)/
     !     & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g )
-    !SLC = State_Chm%Species(I,J,L,id_SALC) * State_Met%AD(I,J,L)/
+    !SLC = State_Chm%SpeciesVec(id_SALC)%Conc(I,J,L) * State_Met%AD(I,J,L)/
     !     & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%MW_g )
 
 
@@ -9254,6 +9281,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Diag_Mod, ONLY : DgnState
@@ -9322,7 +9350,7 @@ CONTAINS
     REAL*8                :: OLD(State_Grid%NZ,NCTSO4+2)
 
     ! Make a pointer to the tracer array
-    REAL*8, POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! WET_SETTLINGBIN begins here!
@@ -9332,7 +9360,7 @@ CONTAINS
     RC        = GC_SUCCESS
 
     ! Point to Spc
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Aerosol settling timestep [s]
     DT_SETTL = GET_TS_CHEM()
@@ -9350,15 +9378,18 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        DO L = 1, State_Grid%NZ
-          MASS(L) = SUM(Spc(I,J,L,IDTEMP1:IDTEMP2))
-          DO K = 1, NCTSO4
-             OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTSO4+K-1))
-             Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) = 0.D0
+          MASS(L) = 0.d8
+          DO N = IDTEMP1, IDTEMP2
+             MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
           ENDDO
-          OLD(L,NCTSO4+1) = Spc(I,J,L,APMIDS%id_NIT)
-          OLD(L,NCTSO4+2) = Spc(I,J,L,APMIDS%id_NH4)
-          Spc(I,J,L,APMIDS%id_NIT) = 0.D0
-          Spc(I,J,L,APMIDS%id_NH4) = 0.D0
+          DO K = 1, NCTSO4
+             OLD(L,K) = Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L)
+             Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) = 0.D0
+          ENDDO
+          OLD(L,NCTSO4+1) = Spc(APMIDS%id_NIT)%Conc(I,J,L)
+          OLD(L,NCTSO4+2) = Spc(APMIDS%id_NH4)%Conc(I,J,L)
+          Spc(APMIDS%id_NIT)%Conc(I,J,L) = 0.D0
+          Spc(APMIDS%id_NH4)%Conc(I,J,L) = 0.D0
        ENDDO
 
        ! Loop over aerosol bins
@@ -9366,7 +9397,7 @@ CONTAINS
 
           DO L = 1, State_Grid%NZ
 
-             TC0(L) = Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))
+             TC0(L) = Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)
 
              IF(TC0(L)>1.D-30)THEN
                 ! Initialize
@@ -9399,22 +9430,22 @@ CONTAINS
           L    = State_Grid%NZ
           IF(MASS(L)>1.D-30)THEN
              DELZ = State_Met%BXHEIGHT(I,J,L)
-             Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) =                &
-                  Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) /           &
+             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) =                &
+                  Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) /           &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
              DO K = 1, NCTSO4
-                Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =               &
-                     Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+           &
+                Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) =               &
+                     Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L)+           &
                      OLD(L,K)*TC0(L)/MASS(L) /                   &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
              ENDDO
-             Spc(I,J,L,APMIDS%id_NIT) =                          &
-                  Spc(I,J,L,APMIDS%id_NIT)+                      &
+             Spc(APMIDS%id_NIT)%Conc(I,J,L) =                          &
+                  Spc(APMIDS%id_NIT)%Conc(I,J,L)+                      &
                   OLD(L,NCTSO4+1)*TC0(L)/MASS(L) /               &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
-             Spc(I,J,L,APMIDS%id_NH4) =                          &
-                  Spc(I,J,L,APMIDS%id_NH4)+                      &
+             Spc(APMIDS%id_NH4)%Conc(I,J,L) =                          &
+                  Spc(APMIDS%id_NH4)%Conc(I,J,L)+                      &
                   OLD(L,NCTSO4+2)*TC0(L)/MASS(L) /               &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
           ENDIF
@@ -9423,29 +9454,29 @@ CONTAINS
              IF((MASS(L)*MASS(L+1))>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-                Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = 1.e+0_fp /  &
+                Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) = 1.e+0_fp /  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
-                     * (Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))       &
+                     * (Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)       &
                      + DT_SETTL * VTS(L+1) / DELZ1  * TC0(L+1) )
 
                 DO K = 1, NCTSO4
-                   Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =            &
-                        Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+        &
+                   Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) =            &
+                        Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L)+        &
                         1.e+0_fp /                               &
                         ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )  &
                         * (OLD(L,K)*TC0(L)/MASS(L)               &
                         + DT_SETTL * VTS(L+1) / DELZ1            &
                         * OLD(L+1,K)*TC0(L+1)/MASS(L+1) )
                 ENDDO
-                Spc(I,J,L,APMIDS%id_NIT) =                       &
-                     Spc(I,J,L,APMIDS%id_NIT)+                   &
+                Spc(APMIDS%id_NIT)%Conc(I,J,L) =                       &
+                     Spc(APMIDS%id_NIT)%Conc(I,J,L)+                   &
                      1.e+0_fp /                                  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
                      * (OLD(L,NCTSO4+1)*TC0(L)/MASS(L)           &
                      + DT_SETTL * VTS(L+1) / DELZ1               &
                      * OLD(L+1,NCTSO4+1)*TC0(L+1)/MASS(L+1) )
-                Spc(I,J,L,APMIDS%id_NH4) =                       &
-                     Spc(I,J,L,APMIDS%id_NH4)+                   &
+                Spc(APMIDS%id_NH4)%Conc(I,J,L) =                       &
+                     Spc(APMIDS%id_NH4)%Conc(I,J,L)+                   &
                      1.e+0_fp /                                  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
                      * (OLD(L,NCTSO4+2)*TC0(L)/MASS(L)           &
@@ -9455,25 +9486,25 @@ CONTAINS
              ELSE IF(MASS(L)>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-                Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = 1.e+0_fp /  &
+                Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) = 1.e+0_fp /  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
-                     * (Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))       &
+                     * (Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)       &
                      + DT_SETTL * VTS(L+1) / DELZ1  * TC0(L+1) )
 
                 DO K = 1, NCTSO4
-                   Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =            &
-                        Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+        &
+                   Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) =            &
+                        Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L)+        &
                         1.e+0_fp /                               &
                         ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )  &
                         * OLD(L,K)*TC0(L)/MASS(L)
                 ENDDO
-                Spc(I,J,L,APMIDS%id_NIT) =                       &
-                     Spc(I,J,L,APMIDS%id_NIT)+                   &
+                Spc(APMIDS%id_NIT)%Conc(I,J,L) =                       &
+                     Spc(APMIDS%id_NIT)%Conc(I,J,L)+                   &
                      1.e+0_fp /                                  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
                      * OLD(L,NCTSO4+1)*TC0(L)/MASS(L)
-                Spc(I,J,L,APMIDS%id_NH4) =                       &
-                     Spc(I,J,L,APMIDS%id_NH4)+                   &
+                Spc(APMIDS%id_NH4)%Conc(I,J,L) =                       &
+                     Spc(APMIDS%id_NH4)%Conc(I,J,L)+                   &
                      1.e+0_fp /                                  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
                      * OLD(L,NCTSO4+2)*TC0(L)/MASS(L)
@@ -9481,27 +9512,27 @@ CONTAINS
              ELSE IF(MASS(L+1)>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-                Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = 1.e+0_fp /  &
+                Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) = 1.e+0_fp /  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
-                     * (Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))       &
+                     * (Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)       &
                      + DT_SETTL * VTS(L+1) / DELZ1 * TC0(L+1) )
 
                 DO K = 1, NCTSO4
-                   Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =            &
-                        Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+        &
+                   Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) =            &
+                        Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L)+        &
                         1.e+0_fp /                               &
                         ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )  &
                         * DT_SETTL * VTS(L+1) / DELZ1            &
                         * OLD(L+1,K)*TC0(L+1)/MASS(L+1)
                 ENDDO
-                Spc(I,J,L,APMIDS%id_NIT) =                       &
-                     Spc(I,J,L,APMIDS%id_NIT)+                   &
+                Spc(APMIDS%id_NIT)%Conc(I,J,L) =                       &
+                     Spc(APMIDS%id_NIT)%Conc(I,J,L)+                   &
                      1.e+0_fp /                                  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
                      * DT_SETTL * VTS(L+1) / DELZ1               &
                      * OLD(L+1,NCTSO4+1)*TC0(L+1)/MASS(L+1)
-                Spc(I,J,L,APMIDS%id_NH4) =                       &
-                     Spc(I,J,L,APMIDS%id_NH4)+                   &
+                Spc(APMIDS%id_NH4)%Conc(I,J,L) =                       &
+                     Spc(APMIDS%id_NH4)%Conc(I,J,L)+                   &
                      1.e+0_fp /                                  &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )     &
                      * DT_SETTL * VTS(L+1) / DELZ1               &
@@ -9515,11 +9546,11 @@ CONTAINS
 
        DO L = 1, State_Grid%NZ
           DO K = 1, NCTSO4
-             Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) = &
-                  MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTSO4+K-1)))
+             Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L) = &
+                  MAX(1.d-30,Spc(APMIDS%id_CTSO4+K-1)%Conc(I,J,L))
           ENDDO
-          Spc(I,J,L,APMIDS%id_NIT) = MAX(1.d-30,Spc(I,J,L,APMIDS%id_NIT))
-          Spc(I,J,L,APMIDS%id_NH4) = MAX(1.d-30,Spc(I,J,L,APMIDS%id_NH4))
+          Spc(APMIDS%id_NIT)%Conc(I,J,L) = MAX(1.d-30,Spc(APMIDS%id_NIT)%Conc(I,J,L))
+          Spc(APMIDS%id_NH4)%Conc(I,J,L) = MAX(1.d-30,Spc(APMIDS%id_NH4)%Conc(I,J,L))
        ENDDO
 
     ENDDO

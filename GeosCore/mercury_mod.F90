@@ -356,6 +356,7 @@ CONTAINS
     REAL(fp)           :: REL_HUM                               ! For AOD
     REAL(fp)           :: Start,     Finish,   rtim,      itim  ! For KPP
     REAL(fp)           :: TOUT,      T,         TIN             ! For KPP
+    REAL(fp)           :: Hg2Sum
 
     ! Strings
     CHARACTER(LEN=63)      :: OrigUnit
@@ -375,8 +376,7 @@ CONTAINS
                                          0.7e+0_fp,0.8e+0_fp,0.9e+0_fp/)
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
-    REAL(fp), POINTER  :: TK(:,:,:   )
+    REAL(fp),      POINTER :: TK(:,:,:)
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -415,9 +415,7 @@ CONTAINS
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
 
-
     ! Initialize pointers
-    Spc      => State_Chm%Species   ! Chemical species array [kg]
     TK       => State_Met%T         ! Temperature [K]
     SpcInfo  => NULL()
 
@@ -813,7 +811,7 @@ CONTAINS
              State_Diag%RxnRate(I,J,L,N) = Aout(N)
 #else
           DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRate(I,J,L,N) = RONST(N)!Aout(Input_Opt%RxnRates_IDs(N))
+             State_Diag%RxnRate(I,J,L,N) = RCONST(N)!Aout(Input_Opt%RxnRates_IDs(N))
 #endif
           ENDDO
        ENDIF
@@ -881,7 +879,7 @@ CONTAINS
 
        !====================================================================
        ! Check we have no negative values and copy the concentrations
-       ! calculated from the C array back into State_Chm%Species
+       ! calculated from the C array back into species concentration array
        !====================================================================
        ! Loop over KPP species
        DO N = 1, NSPEC
@@ -895,8 +893,8 @@ CONTAINS
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0E0_dp )
 
-          ! Copy concentrations back into State_Chm%Species
-          State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
+          ! Copy concentrations back into species concentration array
+          State_Chm%SpeciesVec(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
 
@@ -930,28 +928,34 @@ CONTAINS
        ! Archive concetration of short-lived radicals [mol/mol]
        !====================================================================
 !>>       IF ( State_Diag%Archive_HgBrAfterChem ) &
-!>>           State_Diag%HgBrAfterChem(I,J,L)  = Spc(I,J,L,id_HgBr) / &
-!>>                                              State_Met%AirNumDen(I,J,L)
+!>>           State_Diag%HgBrAfterChem(I,J,L)  = &
+!>>                              State_Chm%SpeciesVec(id_HgBr)%Conc(I,J,L) / &
+!>>                              State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgClAfterChem ) &
-!>>           State_Diag%HgClAfterChem(I,J,L)  = Spc(I,J,L,id_HgCl) / &
-!>>                                              State_Met%AirNumDen(I,J,L)
+!>>           State_Diag%HgClAfterChem(I,J,L)  = &
+!>>                              State_Chm%SpeciesVec(id_HgCl)%Conc(I,J,L) / &
+!>>                              State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgOHAfterChem ) &
-!>>           State_Diag%HgOHAfterChem(I,J,L)  = Spc(I,J,L,id_HgOH) / &
-!>>                                              State_Met%AirNumDen(I,J,L)
+!>>           State_Diag%HgOHAfterChem(I,J,L)  = &
+!>>                              State_Chm%SpeciesVec(id_HgOH)%Conc(I,J,L) / &
+!>>                              State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgBrOAfterChem ) &
-!>>           State_Diag%HgBrOAfterChem(I,J,L) = Spc(I,J,L,id_HgBrO) / &
-!>>                                              State_Met%AirNumDen(I,J,L)
+!>>           State_Diag%HgBrOAfterChem(I,J,L) = &
+!>>                               State_Chm%SpeciesVec(id_HgBrO)%Conc(I,J,L) / &
+!>>                               State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgClOAfterChem ) &
-!>>           State_Diag%HgClOAfterChem(I,J,L) = Spc(I,J,L,id_HgClO) / &
-!>>                                              State_Met%AirNumDen(I,J,L)
+!>>           State_Diag%HgClOAfterChem(I,J,L) = &
+!>>                               State_Chm%SpeciesVec(id_HgClO)%Conc(I,J,L) / &
+!>>                               State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgOHOAfterChem ) &
-!>>           State_Diag%HgOHOAfterChem(I,J,L) = Spc(I,J,L,id_HgOHO) / &
-!>>                                              State_Met%AirNumDen(I,J,L)
+!>>           State_Diag%HgOHOAfterChem(I,J,L) = &
+!>>                               State_Chm%SpeciesVec(id_HgOHO)%Conc(I,J,L) / &
+!>>                               State_Met%AirNumDen(I,J,L)
 
     ENDDO
     ENDDO
@@ -982,12 +986,19 @@ CONTAINS
     ENDIF
 
     IF ( ITS_A_NEW_DAY() ) THEN
-        WRITE(*,*) 'Total Hg0 mass [Mg]: ',SUM ( State_Chm%Species(:,:,:,id_Hg0) )
-        WRITE(*,*) 'Total Hg2 mass [Mg]: ',SUM ( State_Chm%Species(:,:,:,2:25) )
+        WRITE(*,*) 'Total Hg0 mass [Mg]: ',SUM ( State_Chm%SpeciesVec(id_Hg0)%Conc(:,:,:) )
+        Hg2Sum = 0.0_fp
+!$OMP PARALLEL DO       &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( N )
+        DO N = 2, 25
+           Hg2Sum = Hg2Sum + SUM(State_Chm%SpeciesVec(N)%Conc(:,:,:))
+        ENDDO
+!$OMP END PARALLEL DO
+        WRITE(*,*) 'Total Hg2 mass [Mg]: ', Hg2Sum
     ENDIF
 
     ! Free pointer memory
-    Spc     => NULL()
     TK      => NULL()
     SpcInfo => NULL()
 
@@ -1254,15 +1265,11 @@ CONTAINS
     CHARACTER(LEN=255) :: ThisLoc            ! routine location
     CHARACTER(LEN=255) :: ErrMsg             ! message
 
-    ! Pointers
-    REAL(fp),  POINTER        :: Spc(:,:,:,:)
-
     ! Objects
-    TYPE(Species),    POINTER :: SpcInfo
+    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize pointers
     SpcInfo     => NULL()
-    Spc         => NULL()
 
     !================================================================
     ! Get_HgOxConc begins here!
@@ -1276,9 +1283,6 @@ CONTAINS
     ! Copy values from Input_Opt
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    ! Point to the chemical spcies array
-    Spc             => State_Chm%Species
-
     !=================================================================
     ! Set instantaneous species concentrations
     !=================================================================
@@ -1291,7 +1295,7 @@ CONTAINS
        SpcID = State_Chm%Map_KppFix(N)
 
        ! Get value from pointer to monthly mean field
-       Spc(:,:,:,SpcID)  = FixSpcPtr(N)%Data(:,:,:)
+       State_Chm%SpeciesVec(SpcID)%Conc(:,:,:) = FixSpcPtr(N)%Data(:,:,:)
     ENDDO
 
     ! Impose diurnal cycle
@@ -1349,18 +1353,9 @@ CONTAINS
     INTEGER  :: I, J, L
     REAL(fp) :: DiurnalFac, C_OH, C_HO2
 
-    ! Pointer to Species array
-    REAL(fp),  POINTER    :: Spc(:,:,:,:)
-
-    ! Initialize pointers
-    Spc         => NULL()
-
     !=================================================================
     ! DirunalHOx begins here!
     !=================================================================
-
-    ! Point to the chemical spcies array
-    Spc             => State_Chm%Species
 
     ! Loop over gridcells
 !$OMP PARALLEL DO                                              &
@@ -1372,8 +1367,8 @@ CONTAINS
     DO I=1, State_Grid%NX
 
         ! Get HOx concentrations
-        C_OH   = Spc( I,J,L,id_OH  )
-        C_HO2  = Spc( I,J,L,id_HO2 )
+        C_OH   = State_Chm%SpeciesVec(id_OH )%Conc(I,J,L)
+        C_HO2  = State_Chm%SpeciesVec(id_HO2)%Conc(I,J,L)
 
         ! Test for sunlight...
         IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and.  TCOSZ(I,J) > 0e+0_fp ) THEN
@@ -1391,16 +1386,13 @@ CONTAINS
 
         ENDIF
 
-        Spc( I,J,L,id_OH  ) = C_OH  * DiurnalFac
-        Spc( I,J,L,id_HO2 ) = C_HO2 * DiurnalFac
+        State_Chm%SpeciesVec(id_OH )%Conc(I,J,L) = C_OH  * DiurnalFac
+        State_Chm%SpeciesVec(id_HO2)%Conc(I,J,L) = C_HO2 * DiurnalFac
 
     ENDDO
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE DiurnalHOx
 !EOC
@@ -1420,6 +1412,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1474,16 +1467,14 @@ CONTAINS
     REAL(fp), PARAMETER   :: C_NO     = 2.5e+8_fp
 
     ! Pointer to Species array
-    REAL(fp),  POINTER    :: Spc(:,:,:,:)
-
-    ! Initialize pointers
-    Spc         => NULL()
+    TYPE(SpcConc),  POINTER :: Spc(:)
 
     !=================================================================
     ! PolarBrOx begins here!
     !=================================================================
-    ! Point to the chemical spcies array
-    Spc             => State_Chm%Species
+
+    ! Point to the chemical species array
+    Spc => State_Chm%SpeciesVec
 
     ! Loop over gridcells and add BrOx in polar regions
 !$OMP PARALLEL DO                                                 &
@@ -1496,77 +1487,77 @@ CONTAINS
     DO J=1, State_Grid%NY
     DO I=1, State_Grid%NX
 
-        IF ( ((State_Grid%YMid(I,J) > 50e+0_fp) .AND.           &
-            (GET_MONTH() >= 2) .AND. (GET_MONTH() <= 6)) .OR.  &
-            ((State_Grid%YMid(I,J) < -50e+0_fp) .AND.            &
-            (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 12)) )  THEN
+       IF ( ((State_Grid%YMid(I,J) > 50e+0_fp) .AND.           &
+          (GET_MONTH() >= 2) .AND. (GET_MONTH() <= 6)) .OR.  &
+          ((State_Grid%YMid(I,J) < -50e+0_fp) .AND.            &
+          (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 12)) )  THEN
 
-            !----------------------------------------------------------------
-            ! Add Br in the polar PBL
-            !----------------------------------------------------------------
-            FPBL = State_Met%F_UNDER_PBLTOP(I,J,L)
+          !----------------------------------------------------------------
+          ! Add Br in the polar PBL
+          !----------------------------------------------------------------
+          FPBL = State_Met%F_UNDER_PBLTOP(I,J,L)
 
-            !
-            ! Bromine in the polar boundary layer requires the following
-            ! criteria be met:
-            ! - In the PBL
-            ! - Downward shortwave radiation > 100 W/m2 (Pohler et al. 2010)
-            ! - Sea ice exists (>50% native boxes have >10% ice cover)
-            ! - Breaks in sea ice exist (<100% native boxes have >90% ice cover)
-            ! - Month is between Feb & June (Arctic) or Aug & Dec (Antarctic)
-            !   based on http://bro.aeronomie.be/level3_monthly.php?cmd=map
-            ! - Temperature is less than 0C
-            !
-            ! If these criteria are met, BrO is a function of ambient temp.
-            ! with [BrO] based on findings from Pohler et al. (2010) and
-            ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
-            ! ppb, based on data from Pohler et al. (2010).
-            !----------------------------------------------------------------
-            SWRAD         = State_Met%SWGDN(I,J)
+          !
+          ! Bromine in the polar boundary layer requires the following
+          ! criteria be met:
+          ! - In the PBL
+          ! - Downward shortwave radiation > 100 W/m2 (Pohler et al. 2010)
+          ! - Sea ice exists (>50% native boxes have >10% ice cover)
+          ! - Breaks in sea ice exist (<100% native boxes have >90% ice cover)
+          ! - Month is between Feb & June (Arctic) or Aug & Dec (Antarctic)
+          !   based on http://bro.aeronomie.be/level3_monthly.php?cmd=map
+          ! - Temperature is less than 0C
+          !
+          ! If these criteria are met, BrO is a function of ambient temp.
+          ! with [BrO] based on findings from Pohler et al. (2010) and
+          ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
+          ! ppb, based on data from Pohler et al. (2010).
+          !----------------------------------------------------------------
+          SWRAD         = State_Met%SWGDN(I,J)
 
-            IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5e+0_fp .AND. &
-                              State_Met%SEAICE90(I,J) < 1e+0_fp )
+          IS_MOSTLY_ICE = ( State_Met%SEAICE00(I,J) <= 0.5e+0_fp .AND. &
+                            State_Met%SEAICE90(I,J) < 1e+0_fp )
 
-            IF ( (FPBL > 0e+0_fp) .AND. (IS_MOSTLY_ICE) .AND. &
-                 (SWRAD > 1e+2_fp) .AND. (State_Met%TS(I,J) <= 273e+0_fp) ) THEN
+          IF ( (FPBL > 0e+0_fp) .AND. (IS_MOSTLY_ICE) .AND. &
+               (SWRAD > 1e+2_fp) .AND. (State_Met%TS(I,J) <= 273e+0_fp) ) THEN
 
-              ! Get BrOx concentration from species data
-              BRO_CONC = Spc(I,J,L,id_BrO)
-              BR_CONC  = Spc(I,J,L,id_Br)
+             ! Get BrOx concentration from species data
+             BRO_CONC = Spc(id_BrO)%Conc(I,J,L)
+             BR_CONC  = Spc(id_Br )%Conc(I,J,L)
+             
+             ! Get JBrO
+             JBrO     = ZPJ(L,id_phot_BrO,I,J)
+             
+             ! [BrO] is a linear function of temperature derived based on
+             ! results from Pohler et al. (2010), Prados-Roman et al. (2011)
+             ! and ability to match Hg0 seasonal cycle at Alert. (jaf,
+             ! 12/24/11)
+             IF ( State_Met%TS(I,J) <= 253e+0_fp ) THEN
+                BRO_POLAR_PPTV = 20e+0_fp
+             ELSE
+                BRO_POLAR_PPTV = -1e+0_fp * ( State_Met%TS(I,J) - 253e+0_fp ) + 20e+0_fp
+             ENDIF
+             
+             ! Convert O3 to molec/cm3
+             O3_POLAR  = O3_POLAR_PPBV * 1.0e-9_fp * State_Met%AIRNUMDEN(I,J,L)
+             
+             ! Compute polar Br, BrO concentrations in pptv
+             BrO_POLAR_PPTV = BrO_POLAR_PPTV * FPBL
+             Br_POLAR_PPTV  = BRO_POLAR_PPTV * ( JBrO + K_BRO_NO * C_NO ) / &
+                                               ( K_BR_O3 * O3_POLAR )
+             
+             ! Convert Br and BrO to molec/cm3
+             BRO_POLAR_CONC = BRO_POLAR_PPTV * 1.0e-12_fp * State_Met%AIRNUMDEN(I,J,L)
+             BR_POLAR_CONC  = BR_POLAR_PPTV  * 1.0e-12_fp * State_Met%AIRNUMDEN(I,J,L)
+             
+             ! Replace concentrations in species array
+             Spc(id_BrO)%Conc(I,J,L) = BRO_CONC + BRO_POLAR_CONC
+             Spc(id_Br )%Conc(I,J,L) = BR_CONC  + BR_POLAR_CONC
+             Spc(id_O3 )%Conc(I,J,L) = O3_POLAR
 
-              ! Get JBrO
-              JBrO     = ZPJ(L,id_phot_BrO,I,J)
+          ENDIF! Polar BrO criteria
 
-              ! [BrO] is a linear function of temperature derived based on
-              ! results from Pohler et al. (2010), Prados-Roman et al. (2011)
-              ! and ability to match Hg0 seasonal cycle at Alert. (jaf,
-              ! 12/24/11)
-              IF ( State_Met%TS(I,J) <= 253e+0_fp ) THEN
-                 BRO_POLAR_PPTV = 20e+0_fp
-              ELSE
-                 BRO_POLAR_PPTV = -1e+0_fp * ( State_Met%TS(I,J) - 253e+0_fp ) + 20e+0_fp
-              ENDIF
-
-              ! Convert O3 to molec/cm3
-              O3_POLAR  = O3_POLAR_PPBV * 1.0e-9_fp * State_Met%AIRNUMDEN(I,J,L)
-
-              ! Compute polar Br, BrO concentrations in pptv
-              BrO_POLAR_PPTV = BrO_POLAR_PPTV * FPBL
-              Br_POLAR_PPTV  = BRO_POLAR_PPTV * ( JBrO + K_BRO_NO * C_NO ) / &
-                                                ( K_BR_O3 * O3_POLAR )
-
-              ! Convert Br and BrO to molec/cm3
-              BRO_POLAR_CONC = BRO_POLAR_PPTV * 1.0e-12_fp * State_Met%AIRNUMDEN(I,J,L)
-              BR_POLAR_CONC  = BR_POLAR_PPTV  * 1.0e-12_fp * State_Met%AIRNUMDEN(I,J,L)
-
-              ! Replace concentrations in species array
-              Spc(I,J,L,id_BrO) = BRO_CONC + BRO_POLAR_CONC
-              Spc(I,J,L,id_Br ) = BR_CONC  + BR_POLAR_CONC
-              Spc(I,J,L,id_O3 ) = O3_POLAR
-
-            ENDIF! Polar BrO criteria
-
-        ENDIF ! Month
+       ENDIF ! Month
 
     ENDDO
     ENDDO
@@ -1654,18 +1645,9 @@ CONTAINS
     !
     !***************************************************************************
 
-    ! Pointer to Species array
-    REAL(fp),  POINTER    :: Spc(:,:,:,:)
-
-    ! Initialize pointers
-    Spc         => NULL()
-
     !=================================================================
     ! PartXOx begins here!
     !=================================================================
-
-    ! Point to the chemical spcies array
-    Spc             => State_Chm%Species
 
     ! Loop over gridcells
 !$OMP PARALLEL DO                                               &
@@ -1681,12 +1663,12 @@ CONTAINS
     DO I=1, State_Grid%NX
 
         ! Get species concentrations
-        C_Br   = Spc( I,J,L,id_Br  )
-        C_Cl   = Spc( I,J,L,id_Cl  )
-        C_BrO  = Spc( I,J,L,id_BrO )
-        C_ClO  = Spc( I,J,L,id_ClO )
-        C_NO   = Spc( I,J,L,id_NO  )
-        C_O3   = Spc( I,J,L,id_O3  )
+        C_Br   = State_Chm%SpeciesVec(id_Br )%Conc(I,J,L)
+        C_Cl   = State_Chm%SpeciesVec(id_Cl )%Conc(I,J,L)
+        C_BrO  = State_Chm%SpeciesVec(id_BrO)%Conc(I,J,L)
+        C_ClO  = State_Chm%SpeciesVec(id_ClO)%Conc(I,J,L)
+        C_NO   = State_Chm%SpeciesVec(id_NO )%Conc(I,J,L)
+        C_O3   = State_Chm%SpeciesVec(id_O3 )%Conc(I,J,L)
 
         C_BrOx = C_Br + C_BrO
         C_ClOx = C_Cl + C_ClO
@@ -1728,18 +1710,15 @@ CONTAINS
             C_ClO    =  0e+0_fp
         ENDIF
 
-        Spc(I,J,L,id_Br ) = C_Br
-        Spc(I,J,L,id_Cl ) = C_Cl
-        Spc(I,J,L,id_BrO) = C_BrO
-        Spc(I,J,L,id_ClO) = C_ClO
+        State_Chm%SpeciesVec(id_Br )%Conc(I,J,L) = C_Br
+        State_Chm%SpeciesVec(id_Cl )%Conc(I,J,L) = C_Cl
+        State_Chm%SpeciesVec(id_BrO)%Conc(I,J,L) = C_BrO
+        State_Chm%SpeciesVec(id_ClO)%Conc(I,J,L) = C_ClO
 
     ENDDO
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE PartXOx
 !EOC
@@ -1816,17 +1795,9 @@ CONTAINS
     !
     !***************************************************************************
 
-    ! Pointer to Species array
-    REAL(fp),  POINTER    :: Spc(:,:,:,:)
-
-    ! Initialize pointers
-    Spc         => NULL()
     !=================================================================
     ! PartNOx begins here!
     !=================================================================
-
-    ! Point to the chemical spcies array
-    Spc             => State_Chm%Species
 
     ! Loop over gridcells
 !$OMP PARALLEL DO                                              &
@@ -1842,8 +1813,9 @@ CONTAINS
             k3 = A*exp(-EdivR/State_Met%T(I,J,L))
 
             ! Get NOx and O3 concentrations (molec cm-3)
-            C_NOx = Spc(I,J,L,id_NO) + Spc(I,J,L,id_NO2)
-            C_O3  = Spc(I,J,L,id_O3)
+            C_NOx = State_Chm%SpeciesVec(id_NO )%Conc(I,J,L) &
+                  + State_Chm%SpeciesVec(id_NO2)%Conc(I,J,L)
+            C_O3  = State_Chm%SpeciesVec(id_O3 )%Conc(I,J,L)
 
             ! Instantaneous JNO2
             J_NO2 = ZPJ(L,id_phot_NO2,I,J)
@@ -1856,16 +1828,13 @@ CONTAINS
             F_NO2 = 1e+0_fp
         ENDIF
 
-        Spc(I,J,L,id_NO2) = F_NO2 * C_NOx
-        Spc(I,J,L,id_NO)  = ( 1e+0_fp - F_NO2 ) * C_NOx
+        State_Chm%SpeciesVec(id_NO2)%Conc(I,J,L) = F_NO2 * C_NOx
+        State_Chm%SpeciesVec(id_NO )%Conc(I,J,L) = ( 1e+0_fp - F_NO2 ) * C_NOx
 
     ENDDO
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE PartNOx
 !EOC
@@ -2138,7 +2107,6 @@ CONTAINS
 !
 ! !USES:
 !
-
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -2148,7 +2116,6 @@ CONTAINS
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3
-
 
 !
 ! !INPUT PARAMETERS:
@@ -2187,10 +2154,6 @@ CONTAINS
     ! Boolean
     LOGICAL           :: prtDebug
 
-    ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-
-
     !=================================================================
     ! SeaSaltUptake begins here!
     !=================================================================
@@ -2203,9 +2166,6 @@ CONTAINS
 
     ! Copy values from Input_Opt
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
-    ! Point to the chemical species array [molec cm-3]
-    Spc => State_Chm%Species
 
     ! Chemistry time step [s]
     DT  = GET_TS_CHEM()
@@ -2247,7 +2207,7 @@ CONTAINS
             SpcID = Map_Hg2gas(N)
 
             ! Initial Hg(II) gas
-            GasConc = Spc(I,J,L,SpcID)
+            GasConc = State_Chm%SpeciesVec(SpcID)%Conc(I,J,L)
 
             ! Hg2 lost in the time step
             dGasConc = GasConc * ( 1.e+0_fp - DEXP( -K_SALT * DT ) )
@@ -2256,7 +2216,7 @@ CONTAINS
             GasConc  = GasConc - dGasConc
 
             ! Final Hg2 gas
-            Spc(I,J,L,SpcID) = GasConc
+            State_Chm%SpeciesVec(SpcID)%Conc(I,J,L) = GasConc
 
             ! Archive diagnostic (molec cm-3 s-1)
 !>>            IF ( State_Diag%Archive_Hg2GasToSSA )                       &
@@ -2268,9 +2228,6 @@ CONTAINS
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE SeaSaltUptake
 !EOC
@@ -2494,6 +2451,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
 
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -2546,8 +2504,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
     CHARACTER(len=255):: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! PARTITIONHG2 begins here!
@@ -2560,7 +2517,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
     ThisLoc   = ' -> at PartitionHg2 (in GeosCore/mercury_mod.F90)'
 
     ! Point to the chemical species array [molec cm-3]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Chemistry time step [s]
     DT  = GET_TS_CHEM()
@@ -2644,17 +2601,18 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                 SpcID = Map_Hg2gas(N)
 
                 ! Total initial Hg(II) gas
-                GasTot = GasTot + Spc(I,J,L,SpcID)
+                GasTot = GasTot + Spc(SpcID)%Conc(I,J,L)
 
             ENDDO
 
             ! Concentration of Hg2 on aerosols
             ! (include any Hg2+ transported from stratosphere)
-            AerConcInOrg = Spc(I,J,L,id_HG2CLP) + Spc(I,J,L,id_HG2STRP)
-            AerConcOrg   = Spc(I,J,L,id_HG2ORGP)
+            AerConcInOrg = Spc(id_HG2CLP)%Conc(I,J,L) &
+                         + Spc(id_HG2STRP)%Conc(I,J,L)
+            AerConcOrg   = Spc(id_HG2ORGP)%Conc(I,J,L)
 
             !Zero stratospheic Hg2
-            Spc(I,J,L,id_HG2STRP)  = 0e0_fp
+            Spc(id_HG2STRP)%Conc(I,J,L) = 0e0_fp
 
             ! Total HgP concentration
             AerConc  =  AerConcInOrg + AerConcOrg
@@ -2679,7 +2637,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                 SpcID      = Map_Hg2gas(N)
 
                 ! Gas concentration
-                GasConc    = Spc(I,J,L,SpcID)
+                GasConc    = Spc(SpcID)%Conc(I,J,L)
 
                 ! Get species molecular wt (acutal mol. wt) [g mol-1]
                 MW = State_Chm%SpcData(SpcID)%Info%MW_g
@@ -2710,7 +2668,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                 dGasConc = GasConc * (1.e+0_fp - DEXP( -k_mt * DT ))
 
                 ! Update species concentrations
-                Spc(I,J,L,SpcID) = GasConc - dGasConc
+                Spc(SpcID)%Conc(I,J,L) = GasConc - dGasConc
 
                 ! Add to aerosol concentration
                 AerConc  =  AerConc + dGasConc
@@ -2765,7 +2723,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
             dGasConc = MIN( dGasConc, AerConc )
 
             ! New HgCl2 gas concentrations
-            Spc(I,J,L,id_HgCl2) = Spc(I,J,L,id_HgCl2) + dGasConc
+            Spc(id_HgCl2)%Conc(I,J,L) = Spc(id_HgCl2)%Conc(I,J,L) + dGasConc
 
             ! New Hg2 particulate concentrations
             AerConc             = AerConc - dGasConc
@@ -2777,8 +2735,11 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
             FracOA = GLOB_fOA(I,J,L)
             FracOA = MIN( FracOA, 1e+0_fp )
 
-            Spc(I,J,L,id_Hg2OrgP)  =  AerConc * FracOA                ! HgIIP(org)
-            Spc(I,J,L,id_Hg2ClP)   =  AerConc * ( 1.e+0_fp - FracOA ) ! HgIIP(inorg)
+            ! HgIIP(org)
+            Spc(id_Hg2OrgP)%Conc(I,J,L) = AerConc * FracOA
+
+            ! HgIIP(inorg)
+            Spc(id_Hg2ClP)%Conc(I,J,L)  = AerConc * ( 1.e+0_fp - FracOA )
 
             ! Archive diagnostic
             IF ( State_Diag%Archive_Hg2PToHg2G )                    &
@@ -2792,11 +2753,13 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
             ! Calculate heterogeneous uptake on stratospheric aqueous aerosols
             !--------------------------------------------------------------------
             ! Concentration of Hg2 on aerosols
-            AerConc = Spc(I,J,L,id_HG2STRP) + Spc(I,J,L,id_HG2ORGP) + Spc(I,J,L,id_HG2CLP)
+            AerConc = Spc(id_HG2STRP)%Conc(I,J,L) &
+                    + Spc(id_HG2ORGP)%Conc(I,J,L) &
+                    + Spc(id_HG2CLP )%Conc(I,J,L)
 
             ! Zero OrgP and ClP in stratosphere
-            Spc(I,J,L,id_HG2ORGP) = 0e+0_fp
-            Spc(I,J,L,id_HG2CLP)  = 0e+0_fp
+            Spc(id_HG2ORGP)%Conc(I,J,L) = 0e+0_fp
+            Spc(id_HG2CLP )%Conc(I,J,L)  = 0e+0_fp
 
             ! Mass transfer rate between gas and aerosol
             DO N=1, nHg2gasSpc
@@ -2813,7 +2776,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                                 (MW**0.5_FP))
 
                 ! Initial Hg(II) gas
-                GasConc = Spc(I,J,L,SpcID)
+                GasConc = Spc(SpcID)%Conc(I,J,L)
 
                 ! Amount of gas transferred in the time step
                 dGasConc = ( - GasConc ) * ( 1.e+0_fp - DEXP(-k_mt * DT) )
@@ -2825,7 +2788,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
                 AerConc  = AerConc - dGasConc
 
                 ! Final Hg2 gas
-                Spc(I,J,L,SpcID) = GasConc
+                Spc(SpcID)%Conc(I,J,L) = GasConc
 
                 ! Archive diagnostic (molec cm-3 s-1)
                 IF ( State_Diag%Archive_Hg2GasToHg2StrP )                       &
@@ -2834,9 +2797,8 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
             ENDDO
 
             ! Update aerosol concentrations
-            Spc(I,J,L,id_HG2STRP) = AerConc
+            Spc(id_HG2STRP)%Conc(I,J,L) = AerConc
         ENDIF
-
 
     ENDDO
     ENDDO
@@ -3078,11 +3040,6 @@ END SUBROUTINE PARTITIONHG2
 
     REAL(fp)                :: SFCWINDSQR
 
-    ! Pointers
-    ! We need to define local arrays to hold corresponding values
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER       :: STT(:,:,:,:)
-
     ! Characters
     CHARACTER(LEN=255)      :: ThisLoc
     CHARACTER(LEN=512)      :: ErrMsg
@@ -3143,8 +3100,6 @@ END SUBROUTINE PARTITIONHG2
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()
-
-    STT => State_Chm%Species
 
     ! Loop over surface boxes
     !$OMP PARALLEL DO       &
@@ -3234,7 +3189,7 @@ END SUBROUTINE PARTITIONHG2
           ! Loop over all Hg categories
           DO NN = 1, N_Hg_CATS
 
-             ! Hg0 tracer number (for STT)
+             ! Hg0 tracer number (for Spc)
              N = id_Hg0 !Hg0_Id_List(NN)
 
              !--------------------------------------------------------
@@ -3246,7 +3201,7 @@ END SUBROUTINE PARTITIONHG2
              CHg0aq = Hg0aq(I,J,NN) *200.59e0_fp * 1.0e9_fp / 1.0e3_fp
 
              ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-             MHg0_air = STT(I,J,1,N)
+             MHg0_air = State_Chm%SpeciesVec(N)%Conc(I,J,1)
              CHg0     = MHg0_air *  1.0e9_fp /State_Met%AIRVOL(I,J,1)
 
              !--------------------------------------------------------
@@ -3338,9 +3293,6 @@ END SUBROUTINE PARTITIONHG2
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Free pointer
-    NULLIFY( STT )
 
   END SUBROUTINE OFFLINEOCEAN_READMO
 !EOC
@@ -4047,7 +3999,7 @@ END SUBROUTINE PARTITIONHG2
     DO N = 1, NSPEC
        SpcID = State_Chm%Map_KppSpc(N)
        IF ( SpcId > 0 ) THEN
-          C(N) = State_Chm%Species(I,J,L,SpcID)
+          C(N) = State_Chm%SpeciesVec(SpcID)%Conc(I,J,L)
        ELSE
           C(N) = 0.0_f8
        ENDIF
