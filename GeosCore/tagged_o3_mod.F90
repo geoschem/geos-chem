@@ -255,7 +255,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Hco_Utilities_GC_Mod, ONLY : Hco_GC_EvalFld
-    USE Hco_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
@@ -286,9 +285,6 @@ CONTAINS
     ! Scalars
     INTEGER            :: I,      J,      L,        N
     REAL(fp)           :: dtChem, LO3_kg, LO3_kgps, PO3_kg, PO3_kgps
-
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.
 
     ! Arrays
     INTEGER            :: GeoMask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -323,24 +319,6 @@ CONTAINS
     ! leftover values from the last timestep near the top of the chemgrid
     IF ( State_Diag%Archive_Loss ) State_Diag%Loss = 0.0_f4
     IF ( State_Diag%Archive_Prod ) State_Diag%Prod = 0.0_f4
-
-    !========================================================================
-    ! Check if the HEMCO State object is a valid pointer
-    ! (this only has to be done on the first call)
-    !========================================================================
-    IF ( first ) THEN
-
-       ! Make sure the HEMCO State object has been first allocated
-       IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
-          errMsg = 'The HcoState object is not allocated!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       ! Reset first-time variable
-       ! so that this won't be executed again
-       first  = .FALSE.
-    ENDIF
 
     !========================================================================
     ! Get production and loss frequencies from HEMCO. These are read
