@@ -811,7 +811,7 @@ CONTAINS
              State_Diag%RxnRate(I,J,L,N) = Aout(N)
 #else
           DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRate(I,J,L,N) = RONST(N)!Aout(Input_Opt%RxnRates_IDs(N))
+             State_Diag%RxnRate(I,J,L,N) = RCONST(N)!Aout(Input_Opt%RxnRates_IDs(N))
 #endif
           ENDDO
        ENDIF

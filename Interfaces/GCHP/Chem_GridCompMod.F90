@@ -3484,7 +3484,7 @@ CONTAINS
           IF ( InitZero == 1 ) THEN
              DO N = 1, State_Chm%nSpecies
                 State_Chm%SpeciesVec(N)%Conc = 0.0d0
-             EDNDO
+             ENDDO
              IF ( am_I_Root ) THEN
                 write(*,*) ' '
                 write(*,*) ' '
@@ -6279,7 +6279,7 @@ CONTAINS
           ! Check for cap at given level 
           IF ( TopLev < LM ) THEN
              DO L = TopLev+1,LM
-                State_Chm%SpeciesVec(N)%Conc(:,:,L,) = &
+                State_Chm%SpeciesVec(N)%Conc(:,:,L) = &
                    State_Chm%SpeciesVec(N)%Conc(:,:,TopLev)
              ENDDO
              IF ( am_I_Root ) WRITE(*,*) 'Extend values from level ',TopLev,' to top of atmosphere: ',TRIM(FldName)
@@ -6378,8 +6378,8 @@ CONTAINS
 
     ! Make sure that values are not zero
     DO N = 1, State_Chm%nSpecies
-       WHERE ( State_Chm%SpeciesVec%Conc <= 0.0 ) &
-          State_Chm%SpeciesVec%Conc = MISSVAL
+       WHERE ( State_Chm%SpeciesVec(N)%Conc <= 0.0 ) &
+          State_Chm%SpeciesVec(N)%Conc = MISSVAL
     ENDDO
 
     ENDIF ! DoUpdate 
