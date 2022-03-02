@@ -20,13 +20,6 @@ MODULE Tagged_O3_Mod
 
   IMPLICIT NONE
   PRIVATE
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 species,
-!%%% then uncomment this #ifdef statement. (bmy, 4/11/14)
-#define USE_ALL_TAGO3_SPECIES 1
-!%%%
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -91,21 +84,17 @@ CONTAINS
 !
   FUNCTION TagSpcId( X, Y, L, InTrop ) RESULT( tagId )
 !
-! !USES:
-!
-    USE PhysConstants
-!
 ! !INPUT PARAMETERS:
 !
-    REAL(fp), INTENT(IN) :: X         ! Longitude value [deg]
-    REAL(fp), INTENT(IN) :: Y         ! Latitude  value [deg]
-    INTEGER,  INTENT(IN) :: L         ! Level index [1]
-    LOGICAL,  INTENT(IN) :: InTrop    ! =T if we are in the troposphere
-                                      ! =F otherwise
+    REAL(fp), INTENT(IN) :: X        ! Longitude value [deg]
+    REAL(fp), INTENT(IN) :: Y        ! Latitude  value [deg]
+    INTEGER,  INTENT(IN) :: L        ! Level index [1]
+    LOGICAL,  INTENT(IN) :: InTrop   ! =T if we are in the troposphere
+                                     ! =F otherwise
 !
 ! !RETURN VALUE:
 !
-    INTEGER              :: tagId     ! # of the region
+    INTEGER              :: tagId    ! # of the region
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,15 +111,12 @@ CONTAINS
     ! Region begins here!
     !========================================================================
 
-    ! NOTE: Geographic regions are only defined for the extended tagged O3
-    ! simulation.  If you are using the simple tagged O3 simulation,
-    ! then return 0.
+    ! Return 0 by default
     tagId = 0
 
     ! Return if we are not in the troposphere
     IF ( .not. InTrop ) RETURN
 
-#ifdef USE_ALL_TAGO3_SPECIES
     !========================================================================
     ! Set up logicals that define each of the extended tagged regions
     !========================================================================
@@ -184,7 +170,6 @@ CONTAINS
        tagId = id_O3row                             ! Rest of world
 
     ENDIF
-#endif
 
   END FUNCTION TagSpcId
 !EOC
@@ -218,10 +203,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-    ! Not over CONUS, return 0
+    ! Return 0 by default
     isConUS = 0
 
-#ifdef USE_ALL_TAGO3_SPECIES
     ! Exit if we are not in the tropopshere
     IF ( .not. InTrop ) RETURN
 
@@ -230,7 +214,6 @@ CONTAINS
          ( Y >   22.0_fp .and. Y <=  50.0_fp ) ) THEN
        isConUS = id_O3usa
     ENDIF
-#endif
 
   END FUNCTION ConUS
 !EOC
@@ -384,22 +367,26 @@ CONTAINS
        LO3_kg   = MAX( LO3_kg,   1.0e-30_fp )
        LO3_kgps = MAX( LO3_kgps, 1.0e-30_fp )
 
-#ifdef USE_ALL_TAGO3_SPECIES
-       !---------------------------------------------------------------------
+       !------------------------------------------------------------------
        ! Find species IDs corresponding to geographic location & altitude
-       !---------------------------------------------------------------------
+       ! (Extended tagged O3 simulaton only)
+       !------------------------------------------------------------------
+       IF ( Input_Opt%LSplit ) THEN
 
-       ! O3usa
-       usaMask(I,J,L) = ConUS(    X      = State_Grid%XMid(I,J),             &
-                                  Y      = State_Grid%YMid(I,J),             &
-                                  inTrop = State_Met%InTroposphere(I,J,L)   )
+          ! O3usa
+          usaMask(I,J,L) = ConUS(                                            &
+             X      = State_Grid%XMid(I,J),                                  &
+             Y      = State_Grid%YMid(I,J),                                  &
+             inTrop = State_Met%InTroposphere(I,J,L)                        )
 
-       ! All other species except O3init
-       geoMask(I,J,L) = TagSpcId( X      = State_Grid%XMid(I,J),             &
-                                  Y      = State_Grid%YMid(I,J),             &
-                                  L      = L,                                &
-                                  inTrop = State_Met%InTroposphere(I,J,L)   )
-#endif
+          ! All other species except O3init
+          geoMask(I,J,L) = TagSpcId(                                         &
+             X      = State_Grid%XMid(I,J),                                  &
+             Y      = State_Grid%YMid(I,J),                                  &
+             L      = L,                                                     &
+             inTrop = State_Met%InTroposphere(I,J,L)                        )
+
+       ENDIF
 
        !=====================================================================
        ! Apply chemical production of ozone (only where it is produced)
@@ -413,23 +400,26 @@ CONTAINS
           Spc(I,J,L,id_O3Strat) = Spc(I,J,L,id_O3Strat) + PO3_kg
        ENDIF
 
-#ifdef USE_ALL_TAGO3_SPECIES
-       ! Add P(O3) [kg] to the tagged species corresponding to the
-       ! geographic/altitude region at this grid box (I,J,L)
-       ! These regions only are defined in the troposphere (N > 0).
-       ! Also, do not apply
-       N = GeoMask(I,J,L)
-       IF ( N > 0 ) THEN
-          Spc(I,J,L,N) = Spc(I,J,L,N) + PO3_kg
+       ! Add P(O3) to extended tagged O3 species
+       IF ( Input_Opt%LSPLIT ) THEN
+
+          ! Add P(O3) [kg] to the tagged species corresponding to the
+          ! geographic/altitude region at this grid box (I,J,L)
+          ! These regions only are defined in the troposphere (N > 0).
+          ! Also, do not apply
+          N = GeoMask(I,J,L)
+          IF ( N > 0 ) THEN
+             Spc(I,J,L,N) = Spc(I,J,L,N) + PO3_kg
+          ENDIF
+
+          ! Add P(O3) [kg] to the O3usa species, if we are within
+          ! the continental USA and below the tropopause.
+          N = UsaMask(I,J,L)
+          IF ( N == id_O3usa ) THEN
+             Spc(I,J,L,N) = Spc(I,J,L,N) + PO3_kg
+          ENDIF
        ENDIF
 
-       ! Add P(O3) [kg] to the O3usa species, if we are within
-       ! the continental USA and below the tropopause.
-       N = UsaMask(I,J,L)
-       IF ( N == id_O3usa ) THEN
-          Spc(I,J,L,N) = Spc(I,J,L,N) + PO3_kg
-       ENDIF
-#endif
        !---------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
@@ -441,18 +431,20 @@ CONTAINS
           State_Diag%Prod(I,J,L,id_O3     ) = PO3_kgps
           State_Diag%Prod(I,J,L,id_O3Strat) = PO3_kgps
 
-#ifdef USE_ALL_TAGO3_SPECIES
-          ! P(O3) over the continental US
-          IF ( usaMask(I,J,L) == id_O3usa ) THEN
-             State_Diag%Prod(I,J,L,id_O3usa) = PO3_kgps
-          ENDIF
+          ! Archve P(O3) for extended tagged O3 species to History
+          IF ( Input_Opt%LSplit ) THEN
 
-          ! P(O3) over the continental USA
-          N  = GeoMask(I,J,L)
-          IF ( N > 0 ) THEN
-             State_Diag%Prod(I,J,L,N) = PO3_kgps
+             ! P(O3) over the continental US
+             IF ( usaMask(I,J,L) == id_O3usa ) THEN
+                State_Diag%Prod(I,J,L,id_O3usa) = PO3_kgps
+             ENDIF
+
+             ! P(O3) over the continental USA
+             N  = GeoMask(I,J,L)
+             IF ( N > 0 ) THEN
+                State_Diag%Prod(I,J,L,N) = PO3_kgps
+             ENDIF
           ENDIF
-#endif
         ENDIF
 
        !=====================================================================
@@ -573,87 +565,88 @@ CONTAINS
     !------------------------------------------------------------------------
     molcm3_to_kgm3 = ( State_Chm%SpcData(id_O3)%Info%MW_g * 1000.0_fp ) / AVO
 
-#ifdef USE_ALL_TAGO3_SPECIES
     !------------------------------------------------------------------------
     ! Define ID's for extended tagged O3 species
     !------------------------------------------------------------------------
-    id_O3ut = Ind_('O3ut')
-    IF ( id_O3ut < 0 ) THEN
-       errMsg = 'O3ut is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    IF ( Input_Opt%LSplit ) THEN
 
-    id_O3mt = Ind_('O3mt')
-    IF ( id_O3ut < 0 ) THEN
-       errMsg = 'O3mt is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3ut = Ind_('O3ut')
+       IF ( id_O3ut < 0 ) THEN
+          errMsg = 'O3ut is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3row = Ind_('O3row')
-    IF ( id_O3row < 0 ) THEN
-       errMsg = 'O3row is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3mt = Ind_('O3mt')
+       IF ( id_O3ut < 0 ) THEN
+          errMsg = 'O3mt is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3pcbl = Ind_('O3pcbl')
-    IF ( id_O3pcbl < 0 ) THEN
-       errMsg = 'O3pcbl is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3row = Ind_('O3row')
+       IF ( id_O3row < 0 ) THEN
+          errMsg = 'O3row is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3nabl = Ind_('O3nabl')
-    IF ( id_O3nabl < 0 ) THEN
-       errMsg = 'O3nabl is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3pcbl = Ind_('O3pcbl')
+       IF ( id_O3pcbl < 0 ) THEN
+          errMsg = 'O3pcbl is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3atbl = Ind_('O3atbl')
-    IF ( id_O3atbl < 0 ) THEN
-       errMsg = 'O3atbl is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3nabl = Ind_('O3nabl')
+       IF ( id_O3nabl < 0 ) THEN
+          errMsg = 'O3nabl is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3eubl = Ind_('O3eubl')
-    IF ( id_O3eubl < 0 ) THEN
-       errMsg = 'O3eubl is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3atbl = Ind_('O3atbl')
+       IF ( id_O3atbl < 0 ) THEN
+          errMsg = 'O3atbl is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3afbl = Ind_('O3afbl')
-    IF ( id_O3afbl < 0 ) THEN
-       errMsg = 'O3afbl is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3eubl = Ind_('O3eubl')
+       IF ( id_O3eubl < 0 ) THEN
+          errMsg = 'O3eubl is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3asbl = Ind_('O3asbl')
-    IF ( id_O3asbl < 0 ) THEN
-       errMsg = 'O3asbl is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3afbl = Ind_('O3afbl')
+       IF ( id_O3afbl < 0 ) THEN
+          errMsg = 'O3afbl is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3init = Ind_('O3init')
-    IF ( id_O3init < 0 ) THEN
-       errMsg = 'O3init is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+       id_O3asbl = Ind_('O3asbl')
+       IF ( id_O3asbl < 0 ) THEN
+          errMsg = 'O3asbl is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
-    id_O3usa = Ind_('O3usa')
-    IF ( id_O3usa < 0 ) THEN
-       errMsg = 'O3usa is an undefined species!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
+       id_O3init = Ind_('O3init')
+       IF ( id_O3init < 0 ) THEN
+          errMsg = 'O3init is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       id_O3usa = Ind_('O3usa')
+       IF ( id_O3usa < 0 ) THEN
+          errMsg = 'O3usa is an undefined species!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ENDIF
-#endif
 
   END SUBROUTINE Init_Tagged_O3
 !EOC
