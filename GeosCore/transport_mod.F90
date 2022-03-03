@@ -648,7 +648,7 @@ CONTAINS
 
     ! Set local array for species concentrations
     DO N = 1, State_Chm%nAdvect
-       Q_Spc(:,:,:,N) = State_Chm%SpeciesVec(N)%Conc(:,:,:)
+       Q_Spc(:,:,:,N) = State_Chm%Species(N)%Conc(:,:,:)
     ENDDO
 
     !=================================================================
@@ -748,7 +748,7 @@ CONTAINS
 
     ! Update species concentrations from local array
     DO N = 1, State_Chm%nAdvect
-       State_Chm%SpeciesVec(N)%Conc(:,:,:) = Q_Spc(:,:,:,N)
+       State_Chm%Species(N)%Conc(:,:,:) = Q_Spc(:,:,:,N)
     ENDDO
 
     ! Free pointer memory

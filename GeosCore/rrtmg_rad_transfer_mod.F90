@@ -613,7 +613,7 @@ CONTAINS
     ENDIF
 
     ! Set pointer to species vector containing concentrations
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !$OMP PARALLEL DO          &
     !$OMP DEFAULT( SHARED )    &
@@ -729,7 +729,7 @@ CONTAINS
        O3_CTM          = 0d0
        LCHEM           = State_Met%ChemGridLev(I,J)
        DO L = 1, LCHEM
-          O3_CTM(L)    = State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)
+          O3_CTM(L)    = State_Chm%Species(id_O3)%Conc(I,J,L)
        ENDDO
 
        DO L = 1, State_Grid%NZ

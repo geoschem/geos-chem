@@ -114,7 +114,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     TYPE(SpcConc),     POINTER :: SpeciesVec (:      ) ! Vector for species
+     TYPE(SpcConc),     POINTER :: Species (:      ) ! Vector for species
                                                         ! concentrations
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
@@ -394,7 +394,7 @@ CONTAINS
 
     ! Species-based quantities
     State_Chm%SpcData           => NULL()
-    State_Chm%SpeciesVec        => NULL()
+    State_Chm%Species           => NULL()
     State_Chm%Spc_Units         =  ''
     State_Chm%BoundaryCond      => NULL()
 
@@ -770,12 +770,12 @@ CONTAINS
     !========================================================================
 
     ! Allocate the array
-    ALLOCATE( State_Chm%SpeciesVec( State_Chm%nSpecies ), STAT=RC )
+    ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
-       ALLOCATE( State_Chm%SpeciesVec(N)%Conc( State_Grid%NX, &
-                                               State_Grid%NY, &
-                                               State_Grid%NZ ), STAT=RC )
-       State_Chm%SpeciesVec(N)%Conc = 0.0_f8
+       ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
+                                            State_Grid%NY, &
+                                            State_Grid%NZ ), STAT=RC )
+       State_Chm%Species(N)%Conc = 0.0_f8
     ENDDO
 
 #ifdef ADJOINT
@@ -2857,18 +2857,18 @@ CONTAINS
        State_Chm%Map_WL => NULL()
     ENDIF
 
-    IF ( ASSOCIATED ( State_Chm%SpeciesVec ) ) THEN
+    IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
        DO N = 1, State_Chm%nSpecies
-          IF ( ASSOCIATED( State_Chm%SpeciesVec(N)%Conc ) ) THEN
-             DEALLOCATE( State_Chm%SpeciesVec(N)%Conc, STAT=RC )
+          IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
+             DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
              IF ( RC /= GC_SUCCESS ) RETURN
-             State_Chm%SpeciesVec(N)%Conc => NULL()
+             State_Chm%Species(N)%Conc => NULL()
           ENDIF
        ENDDO
-       DEALLOCATE( State_Chm%SpeciesVec )
-       CALL GC_CheckVar( 'State_Chm%SpeciesVec', 2, RC )
+       DEALLOCATE( State_Chm%Species )
+       CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SpeciesVec => NULL()    
+       State_Chm%Species => NULL()    
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN

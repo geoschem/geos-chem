@@ -224,7 +224,7 @@ CONTAINS
     ! Initialize pointers
     AD        => State_Met%AD
     AIRVOL    => State_Met%AIRVOL
-    Spc       => State_Chm%SpeciesVec
+    Spc       => State_Chm%Species
     T         => State_Met%T
 
     ! Get the molecular weight of CO [kg/mol] from the species database
@@ -900,7 +900,7 @@ CONTAINS
 
                 ! Error check
                 ERR_LOC = (/ I, J, L, N /)
-                ERR_VAR = 'Spc(N)%Conc (points to State_Chm%SpeciesVec)'
+                ERR_VAR = 'Spc(N)%Conc (points to State_Chm%Species)'
                 ERR_MSG = 'STOP at tagged_co_mod:7'
                 CALL CHECK_VALUE( Spc(N)%Conc(I,J,L), ERR_LOC, ERR_VAR, ERR_MSG )
 

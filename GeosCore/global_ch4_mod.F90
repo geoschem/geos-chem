@@ -593,7 +593,7 @@ CONTAINS
     prtDebug= ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to the chemical species
-    Spc     => State_Chm%SpeciesVec
+    Spc     => State_Chm%Species
 
     IF ( prtDebug ) THEN
        WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
@@ -783,7 +783,7 @@ CONTAINS
     DT = GET_TS_CHEM()
 
     ! Point to the chemical species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !=================================================================
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -1062,7 +1062,7 @@ CONTAINS
           airMass_kg   = airMass_m / XNUMOLAIR
 
           ! CH4 mass [kg]
-          CH4mass_kg   = State_Chm%SpeciesVec(id_CH4)%Conc(I,J,L)
+          CH4mass_kg   = State_Chm%Species(id_CH4)%Conc(I,J,L)
 
           ! CH4 concentration [kg m-3] and [molec cm-3]
           CH4conc_kgm3 = CH4mass_kg   / volume
@@ -1260,7 +1260,7 @@ CONTAINS
     ThisLoc     = ' -> at CH4_STRAT (in module GeosCore/global_ch4_mod.F90)'
 
     ! Point to chemical species
-    Spc   => State_Chm%SpeciesVec
+    Spc   => State_Chm%Species
 
     ! Evalulate CH4 loss frequency from HEMCO. This must be done
     ! every timestep to allow masking or scaling in HEMCO config.
@@ -1390,7 +1390,7 @@ CONTAINS
     !========================================================================
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! fix nAdvect (Xueying Yu, 12/10/2017)
     nAdvect = State_Chm%nAdvect

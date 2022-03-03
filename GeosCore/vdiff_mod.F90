@@ -325,8 +325,8 @@ CONTAINS
     DO M = 1, nspcmix
     DO I = 1, plonl
     DO L = 1, plev
-       qp1(I,L,M) = State_Chm%SpeciesVec(M)%Conc(I,lat,plev-L+1)
-       qp0(I,L,M) = State_Chm%SpeciesVec(M)%Conc(I,lat,plev-L+1)
+       qp1(I,L,M) = State_Chm%Species(M)%Conc(I,lat,plev-L+1)
+       qp0(I,L,M) = State_Chm%Species(M)%Conc(I,lat,plev-L+1)
     ENDDO
     ENDDO
     ENDDO
@@ -706,7 +706,7 @@ CONTAINS
     DO M = 1, nspcmix
     DO I = 1, plonl
     DO L = 1, plev
-       State_Chm%SpeciesVec(M)%Conc(I,lat,L) = qp1(I,plev-L+1,M)
+       State_Chm%Species(M)%Conc(I,lat,L) = qp1(I,plev-L+1,M)
     ENDDO
     ENDDO
     ENDDO
@@ -2010,7 +2010,7 @@ CONTAINS
 
     ! Convert v/v -> m/m (i.e., kg/kg)
     DO NA = 1, nAdvect
-       State_Chm%SpeciesVec(NA)%Conc(:,:,:) = State_Chm%SpeciesVec(NA)%Conc(:,:,:)                                     &
+       State_Chm%Species(NA)%Conc(:,:,:) = State_Chm%Species(NA)%Conc(:,:,:)                                     &
                        / ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
     ENDDO
 
@@ -2040,7 +2040,7 @@ CONTAINS
 
     ! Convert kg/kg -> v/v
     DO NA = 1, nAdvect
-       State_Chm%SpeciesVec(NA)%Conc(:,:,:) = State_Chm%SpeciesVec(NA)%Conc(:,:,:)                                     &
+       State_Chm%Species(NA)%Conc(:,:,:) = State_Chm%Species(NA)%Conc(:,:,:)                                     &
                        * ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
     ENDDO
 

@@ -330,7 +330,7 @@ CONTAINS
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to GEOS-Chem species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Retrieve monthly mean data if necessary
     IF (LASTMONTH.ne.GET_MONTH()) THEN
@@ -886,7 +886,7 @@ CONTAINS
     HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%MW_g ! g/mol
 
     ! Initialize pointers
-    Spc       => State_Chm%SpeciesVec  ! Chemical species vector
+    Spc       => State_Chm%Species  ! Chemical species vector
     STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
     WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
@@ -1458,7 +1458,7 @@ CONTAINS
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
 
     ! Point GEOS-Chem species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     IF (FIRST) THEN
        FIRST = .FALSE.
@@ -1731,7 +1731,7 @@ CONTAINS
     H2O_MW_G  = State_Chm%SpcData(id_H2O)%Info%MW_g   ! g/mol
 
     ! Point to GEOS-Chem species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Initialize sticking coefficients for PSC reactions on SLA
     KHETI_SLA => State_Chm%KHETI_SLA
@@ -3748,7 +3748,7 @@ CONTAINS
     ENDIF
 
     ! Point to GEOS-Chem species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Error trap: make sure id_H2O is defined. There are instances
     ! in GEOS-5 where we want to call this routine even with UCX
@@ -3926,7 +3926,7 @@ CONTAINS
     RELWT    = SO2_MW_G / SO4_MW_G
 
     ! Point to GEOS-Chem species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Allow for the possibility of variable timestep
     DTCHEM = GET_TS_CHEM()

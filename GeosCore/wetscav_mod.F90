@@ -1314,7 +1314,7 @@ CONTAINS
                        (10.D0**(-26.4641D0*&
                        (1.00155D0**p_T)+30.6534D0))
            RAINFRAC = RAINFRAC/&
-                      MAX(1.D-30,(State_Chm%SpeciesVec(N)%Conc(I,J,L)*&
+                      MAX(1.D-30,(State_Chm%Species(N)%Conc(I,J,L)*&
                           28.9644d0/SpcInfo%MW_g/&
                          (State_Met%AIRDEN(I,J,L)*&
                           State_Met%BXHEIGHT(I,J,L))))
@@ -1332,7 +1332,7 @@ CONTAINS
          CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
 
          IF(p_T<237.D0)THEN
-         IF(State_Chm%SpeciesVec(N)%Conc(I,J,L)>1.D-20)THEN
+         IF(State_Chm%Species(N)%Conc(I,J,L)>1.D-20)THEN
            RAINFRAC = RAINFRAC*MAX(0.D0,&
            MIN( (0.06*MAX(0.d0,MIN(1.d0,((237.d0-p_T)/27.d0)))*&
               (State_Met%QI(I,J,L)+State_Met%QL(I,J,L))*&
@@ -1340,8 +1340,8 @@ CONTAINS
                MAX(1.D-4,State_Met%CLDF(I,J,L))*&
                State_Met%BXHEIGHT(I,J,L)&
                *SpcInfo%MW_g/18.d0),&
-               State_Chm%SpeciesVec(N)%Conc(I,J,L) )/&
-               State_Chm%SpeciesVec(N)%Conc(I,J,L))
+               State_Chm%Species(N)%Conc(I,J,L) )/&
+               State_Chm%Species(N)%Conc(I,J,L))
          ENDIF
          ENDIF
 
@@ -1949,7 +1949,7 @@ CONTAINS
 #ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS MICROPHYSICS ONLY
-    ! Convert State_Chm%SpeciesVec%Conc units back to original units
+    ! Convert State_Chm%Species%Conc units back to original units
     ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
     !-----------------------------------------------------------------
     IF ( UNITCHANGE_KGKG ) THEN
@@ -4057,7 +4057,7 @@ CONTAINS
     ThisLoc   = ' -> at DO_RAINOUT_ONLY (in module GeosCore/wetscav_mod.F90)'
 
     ! Point to the chemical species array [kg/m2]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !-----------------------------------------------------------------------
     ! HISTORY (aka netCDF diagnostics)
@@ -4395,7 +4395,7 @@ CONTAINS
     ThisLoc   = ' -> at Do_Washout_Only (in module GeosCore/wetscav_mod.F90)'
 
     ! Point to the chemical species array [kg/m2]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !-----------------------------------------------------------------------
     ! HISTORY (aka netCDF diagnostics)
@@ -4850,7 +4850,7 @@ CONTAINS
     ThisLoc   = ' -> at Do_Complete_Reevap (in module GeosCore/wetscav_mod.F90)'
 
     ! Point to chemical species array [kg/m2]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over wetdep species
     DO NW = 1, State_Chm%nWetDep
@@ -5110,7 +5110,7 @@ CONTAINS
     ThisLoc   = ' -> at Do_Washout_at_Sfc (in module GeosCore/wetscav_mod.F90)'
 
     ! Point to the chemical species array [kg/m2]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !-----------------------------------------------------------------------
     ! HISTORY (aka netCDF diagnostics)
@@ -5880,7 +5880,7 @@ CONTAINS
 
     !====================================================================
     ! We need to initialize the H2O2s and SO2s arrays to the values
-    ! of State_Chm%SpeciesVec%Conc for H2O2 and SO2.  This only needs to be
+    ! of State_Chm%Species%Conc for H2O2 and SO2.  This only needs to be
     ! done the first time this routine is called (which happens after
     ! the restart file is read from disk). If State_Chm%H2O2AfterChem
     ! or State_Chm%SO2AfterChem are already populated from the restart
@@ -5890,23 +5890,23 @@ CONTAINS
 
        ! Set H2O2s to the initial H2O2 from the species array, so that we will
        ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-       ! While State_Chm%SpeciesVec%Conc are now in units of [kg/kg dry air] for
+       ! While State_Chm%Species%Conc are now in units of [kg/kg dry air] for
        ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air]
        ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
        IF ( ( id_H2O2 > 0 ) .AND. &
             ( SUM(State_Chm%H2O2AfterChem(:,:,:)) < 1e-31 ) ) THEN
-          State_Chm%H2O2AfterChem = State_Chm%SpeciesVec(id_H2O2)%Conc &
+          State_Chm%H2O2AfterChem = State_Chm%Species(id_H2O2)%Conc &
                * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%MW_g )
        ENDIF
 
        ! Set SO2s to the initial SO2 from the species array, so that we will
        ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-       ! While State_Chm%SpeciesVec%Conc are now in units of [kg/kg dry air] for
+       ! While State_Chm%Species%Conc are now in units of [kg/kg dry air] for
        ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now
        ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
        IF ( ( id_SO2 > 0 ) .AND. &
             ( SUM(State_Chm%SO2AfterChem(:,:,:)) < 1e-31 ) ) THEN
-          State_Chm%SO2AfterChem = State_Chm%SpeciesVec(id_SO2)%Conc &
+          State_Chm%SO2AfterChem = State_Chm%Species(id_SO2)%Conc &
                * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%MW_g )
        ENDIF
 

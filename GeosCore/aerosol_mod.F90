@@ -315,7 +315,7 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    Spc    => State_Chm%SpeciesVec
+    Spc    => State_Chm%Species
     AIRVOL => State_Met%AIRVOL
     PMID   => State_Met%PMID
     T      => State_Met%T
@@ -2750,7 +2750,7 @@ CONTAINS
     !=======================================================================
 
     ! Point to fielss of State_Chm and State_Met
-    Spc    => State_Chm%SpeciesVec
+    Spc    => State_Chm%Species
     AirDen => State_Met%AIRDEN
 
     !$OMP PARALLEL DO         &

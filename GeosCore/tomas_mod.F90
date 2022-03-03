@@ -525,7 +525,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Get logical values from Input_Opt
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -3659,7 +3659,7 @@ CONTAINS
     ENDIF
 
     ! Point to the chemical species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     PDBG = .FALSE.            !For print debugging
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
@@ -3991,7 +3991,7 @@ CONTAINS
     ENDIF
 
     ! Point to the chemical species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     pdbg = .false.
 
@@ -6643,7 +6643,7 @@ CONTAINS
     ! Point to chemical species array
     ! Units are now [kg/m2] in wet deposition and [kg/kg total air] in
     ! convection (ewl, 9/29/15)
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     BIN = N - id_NK1 + 1
     IF ( BIN > IBINS ) THEN
@@ -6793,7 +6793,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     BIN = N - id_NK1 + 1
     IF ( BIN > IBINS ) THEN
@@ -7015,7 +7015,7 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     rhe = State_Met%RH(i,j,l)             !RH [=] percent
 
@@ -7230,7 +7230,7 @@ CONTAINS
     ENDIF
 
     ! Point to the chemical species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Initialize mass mixing ratios
     MSO4  = 0e+0_fp
@@ -7403,7 +7403,7 @@ CONTAINS
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to chemical species array [kg]
-    Spc       => State_Chm%SpeciesVec
+    Spc       => State_Chm%Species
 
     ERRORSWITCH = .FALSE.
 
@@ -9061,7 +9061,7 @@ CONTAINS
     RC                =  GC_SUCCESS
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !-------------------------------------------------------------
     ! Calculate bin that we're working with

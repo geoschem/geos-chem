@@ -467,7 +467,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !========================================================================
     ! Loop over grid boxes and call ISORROPIA (see comments in the

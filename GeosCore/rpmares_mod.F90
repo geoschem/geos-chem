@@ -186,7 +186,7 @@ CONTAINS
     ENDIF
 
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !=================================================================
     ! Get equilibrium values of water, ammonium  and nitrate content

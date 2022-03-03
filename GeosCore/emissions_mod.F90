@@ -455,7 +455,7 @@ CONTAINS
     ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
 
     ! Point to chemical species array [kg/kg dry air]
-    Spc        => State_Chm%SpeciesVec
+    Spc        => State_Chm%Species
 
     ! Number of advected species
     nAdvect     = State_Chm%nAdvect
@@ -498,7 +498,7 @@ CONTAINS
 
              ! Compute mol of Tracer needed to achieve the desired value
              Total_Spc = Total_Spc + &
-                ( GlobalBurden - State_Chm%SpeciesVec(N)%Conc(I,J,L) ) * &
+                ( GlobalBurden - State_Chm%Species(N)%Conc(I,J,L) ) * &
                 (State_Met%AIRNUMDEN(I,J,L)/ AVO) * State_Met%AIRVOL(I,J,1)
 
              ! To distribute it uniformly on the surface, compute the total

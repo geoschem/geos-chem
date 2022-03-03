@@ -320,7 +320,7 @@ CONTAINS
        !=======================================================================
 
        ! Initialize pointers
-       Spc         => State_Chm%SpeciesVec
+       Spc         => State_Chm%Species
        AD          => State_Met%AD
        T           => State_Met%T
 
@@ -1384,7 +1384,7 @@ CONTAINS
     P70mb = 70e+0_fp
 
     ! Point to chemical species array [v/v dry]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !=================================================================
     ! Compute the proper release rate of O3 coming down from the

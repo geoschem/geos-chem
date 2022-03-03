@@ -177,8 +177,8 @@ CONTAINS
     ! Initialize
     RC            = GC_SUCCESS
     K_MT          = 0.0_dp
-    SALAAL_gt_0_1 = ( State_Chm%SpeciesVec(id_SALAAL)%Conc(I,J,L) > 0.1_dp )
-    SALCAL_gt_0_1 = ( State_Chm%SpeciesVec(id_SALCAL)%Conc(I,J,L) > 0.1_dp )
+    SALAAL_gt_0_1 = ( State_Chm%Species(id_SALAAL)%Conc(I,J,L) > 0.1_dp )
+    SALCAL_gt_0_1 = ( State_Chm%Species(id_SALCAL)%Conc(I,J,L) > 0.1_dp )
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
@@ -203,7 +203,7 @@ CONTAINS
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
        K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%SpeciesVec(id_SALAAL)%Conc(I,J,L)
+               / State_Chm%Species(id_SALAAL)%Conc(I,J,L)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -259,7 +259,7 @@ CONTAINS
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
        K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%SpeciesVec(id_SALCAL)%Conc(I,J,L)
+               / State_Chm%Species(id_SALCAL)%Conc(I,J,L)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -612,7 +612,7 @@ CONTAINS
      ENDIF
 
     ! Convert gas phase concentrations from [v/v] to [pptv]
-    NH3  = State_Chm%SpeciesVec(id_NH3)%Conc(I,J,L) * CVF * 1.0e+12_dp
+    NH3  = State_Chm%Species(id_NH3)%Conc(I,J,L) * CVF * 1.0e+12_dp
     SO2  = MAX( C(ind_SO2) * CVF - ( LST*FC ), 1.0e-20_dp ) * 1.0e+12_dp
     H2O2 = C(ind_H2O2)* CVF * 1.0e12_dp
     HNO3 = C(ind_HNO3)* CVF * 1.0e12_dp
@@ -633,7 +633,7 @@ CONTAINS
     ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
     ! based on equation in Hofmann, Science, 1990.
     ! First convert from [v/v] to [kg/m3 air]
-    CNss = State_Chm%SpeciesVec(id_SALC)%Conc(I,J,L)*CVF * AD(I,J,L)         &
+    CNss = State_Chm%Species(id_SALC)%Conc(I,J,L)*CVF * AD(I,J,L)         &
          / ( ( AIRMW / MW_SALC ) * AIRVOL(I,J,L) )
 
     ! Now convert from [kg/m3 air] to [#/cm3 air]
@@ -994,7 +994,7 @@ CONTAINS
     ThisLoc = ' -> at SET_SO2 (in module GeosCore/sulfate_mod.F90)'
 
     ! Initialize variables
-    Spc                         => State_Chm%SpeciesVec
+    Spc                         => State_Chm%Species
     SSAlk                       => State_Chm%SSAlk(I,J,L,:)
     State_Chm%isCloud(I,J,L)    = 0.0_fp
     State_Chm%pHCloud(I,J,L)    = 0.0_fp

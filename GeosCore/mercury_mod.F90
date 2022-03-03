@@ -894,7 +894,7 @@ CONTAINS
           C(N) = MAX( C(N), 0.0E0_dp )
 
           ! Copy concentrations back into species concentration array
-          State_Chm%SpeciesVec(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
+          State_Chm%Species(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
 
@@ -929,32 +929,32 @@ CONTAINS
        !====================================================================
 !>>       IF ( State_Diag%Archive_HgBrAfterChem ) &
 !>>           State_Diag%HgBrAfterChem(I,J,L)  = &
-!>>                              State_Chm%SpeciesVec(id_HgBr)%Conc(I,J,L) / &
+!>>                              State_Chm%Species(id_HgBr)%Conc(I,J,L) / &
 !>>                              State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgClAfterChem ) &
 !>>           State_Diag%HgClAfterChem(I,J,L)  = &
-!>>                              State_Chm%SpeciesVec(id_HgCl)%Conc(I,J,L) / &
+!>>                              State_Chm%Species(id_HgCl)%Conc(I,J,L) / &
 !>>                              State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgOHAfterChem ) &
 !>>           State_Diag%HgOHAfterChem(I,J,L)  = &
-!>>                              State_Chm%SpeciesVec(id_HgOH)%Conc(I,J,L) / &
+!>>                              State_Chm%Species(id_HgOH)%Conc(I,J,L) / &
 !>>                              State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgBrOAfterChem ) &
 !>>           State_Diag%HgBrOAfterChem(I,J,L) = &
-!>>                               State_Chm%SpeciesVec(id_HgBrO)%Conc(I,J,L) / &
+!>>                               State_Chm%Species(id_HgBrO)%Conc(I,J,L) / &
 !>>                               State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgClOAfterChem ) &
 !>>           State_Diag%HgClOAfterChem(I,J,L) = &
-!>>                               State_Chm%SpeciesVec(id_HgClO)%Conc(I,J,L) / &
+!>>                               State_Chm%Species(id_HgClO)%Conc(I,J,L) / &
 !>>                               State_Met%AirNumDen(I,J,L)
 !>>
 !>>       IF ( State_Diag%Archive_HgOHOAfterChem ) &
 !>>           State_Diag%HgOHOAfterChem(I,J,L) = &
-!>>                               State_Chm%SpeciesVec(id_HgOHO)%Conc(I,J,L) / &
+!>>                               State_Chm%Species(id_HgOHO)%Conc(I,J,L) / &
 !>>                               State_Met%AirNumDen(I,J,L)
 
     ENDDO
@@ -986,13 +986,13 @@ CONTAINS
     ENDIF
 
     IF ( ITS_A_NEW_DAY() ) THEN
-        WRITE(*,*) 'Total Hg0 mass [Mg]: ',SUM ( State_Chm%SpeciesVec(id_Hg0)%Conc(:,:,:) )
+        WRITE(*,*) 'Total Hg0 mass [Mg]: ',SUM ( State_Chm%Species(id_Hg0)%Conc(:,:,:) )
         Hg2Sum = 0.0_fp
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
 !$OMP PRIVATE( N )
         DO N = 2, 25
-           Hg2Sum = Hg2Sum + SUM(State_Chm%SpeciesVec(N)%Conc(:,:,:))
+           Hg2Sum = Hg2Sum + SUM(State_Chm%Species(N)%Conc(:,:,:))
         ENDDO
 !$OMP END PARALLEL DO
         WRITE(*,*) 'Total Hg2 mass [Mg]: ', Hg2Sum
@@ -1295,7 +1295,7 @@ CONTAINS
        SpcID = State_Chm%Map_KppFix(N)
 
        ! Get value from pointer to monthly mean field
-       State_Chm%SpeciesVec(SpcID)%Conc(:,:,:) = FixSpcPtr(N)%Data(:,:,:)
+       State_Chm%Species(SpcID)%Conc(:,:,:) = FixSpcPtr(N)%Data(:,:,:)
     ENDDO
 
     ! Impose diurnal cycle
@@ -1367,8 +1367,8 @@ CONTAINS
     DO I=1, State_Grid%NX
 
         ! Get HOx concentrations
-        C_OH   = State_Chm%SpeciesVec(id_OH )%Conc(I,J,L)
-        C_HO2  = State_Chm%SpeciesVec(id_HO2)%Conc(I,J,L)
+        C_OH   = State_Chm%Species(id_OH )%Conc(I,J,L)
+        C_HO2  = State_Chm%Species(id_HO2)%Conc(I,J,L)
 
         ! Test for sunlight...
         IF ( State_Met%SUNCOS(I,J) > 0e+0_fp .and.  TCOSZ(I,J) > 0e+0_fp ) THEN
@@ -1386,8 +1386,8 @@ CONTAINS
 
         ENDIF
 
-        State_Chm%SpeciesVec(id_OH )%Conc(I,J,L) = C_OH  * DiurnalFac
-        State_Chm%SpeciesVec(id_HO2)%Conc(I,J,L) = C_HO2 * DiurnalFac
+        State_Chm%Species(id_OH )%Conc(I,J,L) = C_OH  * DiurnalFac
+        State_Chm%Species(id_HO2)%Conc(I,J,L) = C_HO2 * DiurnalFac
 
     ENDDO
     ENDDO
@@ -1474,7 +1474,7 @@ CONTAINS
     !=================================================================
 
     ! Point to the chemical species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over gridcells and add BrOx in polar regions
 !$OMP PARALLEL DO                                                 &
@@ -1663,12 +1663,12 @@ CONTAINS
     DO I=1, State_Grid%NX
 
         ! Get species concentrations
-        C_Br   = State_Chm%SpeciesVec(id_Br )%Conc(I,J,L)
-        C_Cl   = State_Chm%SpeciesVec(id_Cl )%Conc(I,J,L)
-        C_BrO  = State_Chm%SpeciesVec(id_BrO)%Conc(I,J,L)
-        C_ClO  = State_Chm%SpeciesVec(id_ClO)%Conc(I,J,L)
-        C_NO   = State_Chm%SpeciesVec(id_NO )%Conc(I,J,L)
-        C_O3   = State_Chm%SpeciesVec(id_O3 )%Conc(I,J,L)
+        C_Br   = State_Chm%Species(id_Br )%Conc(I,J,L)
+        C_Cl   = State_Chm%Species(id_Cl )%Conc(I,J,L)
+        C_BrO  = State_Chm%Species(id_BrO)%Conc(I,J,L)
+        C_ClO  = State_Chm%Species(id_ClO)%Conc(I,J,L)
+        C_NO   = State_Chm%Species(id_NO )%Conc(I,J,L)
+        C_O3   = State_Chm%Species(id_O3 )%Conc(I,J,L)
 
         C_BrOx = C_Br + C_BrO
         C_ClOx = C_Cl + C_ClO
@@ -1710,10 +1710,10 @@ CONTAINS
             C_ClO    =  0e+0_fp
         ENDIF
 
-        State_Chm%SpeciesVec(id_Br )%Conc(I,J,L) = C_Br
-        State_Chm%SpeciesVec(id_Cl )%Conc(I,J,L) = C_Cl
-        State_Chm%SpeciesVec(id_BrO)%Conc(I,J,L) = C_BrO
-        State_Chm%SpeciesVec(id_ClO)%Conc(I,J,L) = C_ClO
+        State_Chm%Species(id_Br )%Conc(I,J,L) = C_Br
+        State_Chm%Species(id_Cl )%Conc(I,J,L) = C_Cl
+        State_Chm%Species(id_BrO)%Conc(I,J,L) = C_BrO
+        State_Chm%Species(id_ClO)%Conc(I,J,L) = C_ClO
 
     ENDDO
     ENDDO
@@ -1813,9 +1813,9 @@ CONTAINS
             k3 = A*exp(-EdivR/State_Met%T(I,J,L))
 
             ! Get NOx and O3 concentrations (molec cm-3)
-            C_NOx = State_Chm%SpeciesVec(id_NO )%Conc(I,J,L) &
-                  + State_Chm%SpeciesVec(id_NO2)%Conc(I,J,L)
-            C_O3  = State_Chm%SpeciesVec(id_O3 )%Conc(I,J,L)
+            C_NOx = State_Chm%Species(id_NO )%Conc(I,J,L) &
+                  + State_Chm%Species(id_NO2)%Conc(I,J,L)
+            C_O3  = State_Chm%Species(id_O3 )%Conc(I,J,L)
 
             ! Instantaneous JNO2
             J_NO2 = ZPJ(L,id_phot_NO2,I,J)
@@ -1828,8 +1828,8 @@ CONTAINS
             F_NO2 = 1e+0_fp
         ENDIF
 
-        State_Chm%SpeciesVec(id_NO2)%Conc(I,J,L) = F_NO2 * C_NOx
-        State_Chm%SpeciesVec(id_NO )%Conc(I,J,L) = ( 1e+0_fp - F_NO2 ) * C_NOx
+        State_Chm%Species(id_NO2)%Conc(I,J,L) = F_NO2 * C_NOx
+        State_Chm%Species(id_NO )%Conc(I,J,L) = ( 1e+0_fp - F_NO2 ) * C_NOx
 
     ENDDO
     ENDDO
@@ -2207,7 +2207,7 @@ CONTAINS
             SpcID = Map_Hg2gas(N)
 
             ! Initial Hg(II) gas
-            GasConc = State_Chm%SpeciesVec(SpcID)%Conc(I,J,L)
+            GasConc = State_Chm%Species(SpcID)%Conc(I,J,L)
 
             ! Hg2 lost in the time step
             dGasConc = GasConc * ( 1.e+0_fp - DEXP( -K_SALT * DT ) )
@@ -2216,7 +2216,7 @@ CONTAINS
             GasConc  = GasConc - dGasConc
 
             ! Final Hg2 gas
-            State_Chm%SpeciesVec(SpcID)%Conc(I,J,L) = GasConc
+            State_Chm%Species(SpcID)%Conc(I,J,L) = GasConc
 
             ! Archive diagnostic (molec cm-3 s-1)
 !>>            IF ( State_Diag%Archive_Hg2GasToSSA )                       &
@@ -2517,7 +2517,7 @@ SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Diag, &
     ThisLoc   = ' -> at PartitionHg2 (in GeosCore/mercury_mod.F90)'
 
     ! Point to the chemical species array [molec cm-3]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Chemistry time step [s]
     DT  = GET_TS_CHEM()
@@ -3201,7 +3201,7 @@ END SUBROUTINE PARTITIONHG2
              CHg0aq = Hg0aq(I,J,NN) *200.59e0_fp * 1.0e9_fp / 1.0e3_fp
 
              ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-             MHg0_air = State_Chm%SpeciesVec(N)%Conc(I,J,1)
+             MHg0_air = State_Chm%Species(N)%Conc(I,J,1)
              CHg0     = MHg0_air *  1.0e9_fp /State_Met%AIRVOL(I,J,1)
 
              !--------------------------------------------------------
@@ -3999,7 +3999,7 @@ END SUBROUTINE PARTITIONHG2
     DO N = 1, NSPEC
        SpcID = State_Chm%Map_KppSpc(N)
        IF ( SpcId > 0 ) THEN
-          C(N) = State_Chm%SpeciesVec(SpcID)%Conc(I,J,L)
+          C(N) = State_Chm%Species(SpcID)%Conc(I,J,L)
        ELSE
           C(N) = 0.0_f8
        ENDIF

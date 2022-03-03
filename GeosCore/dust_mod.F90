@@ -183,7 +183,7 @@ CONTAINS
 #ifdef APM
 
     ! Set pointer to species vector to access concentrations
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Emission timestep
     DTSRCE = HcoState%TS_EMIS
@@ -417,7 +417,7 @@ CONTAINS
     ENDIF
 
     ! Set pointers
-    Spc     => State_Chm%SpeciesVec
+    Spc     => State_Chm%Species
     ThisSpc => NULL()
 
     !=================================================================
@@ -625,7 +625,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !=================================================================
     ! For TOMAS microphysics
@@ -777,7 +777,7 @@ CONTAINS
     ! Initialize
     RC        =  GC_SUCCESS
     ThisSpc   => NULL()
-    Spc       => State_Chm%SpeciesVec
+    Spc       => State_Chm%Species
 
     ! Dust settling timestep [s]
     DT_SETTL  = GET_TS_CHEM()
@@ -1034,7 +1034,7 @@ CONTAINS
     RC        = GC_SUCCESS
 
     ! Point to Spc
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Aerosol settling timestep [s]
     DT_SETTL = GET_TS_CHEM()
@@ -1672,7 +1672,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize pointers
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
     ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
     TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 

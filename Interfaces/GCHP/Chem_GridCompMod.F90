@@ -3194,7 +3194,7 @@ CONTAINS
                    CALL MAPL_GetPointer( INTERNAL, Ptr3D_R8, TRIM(SPFX) //          &
                         TRIM(ThisSpc%Name), notFoundOK=.TRUE.,     &
                         __RC__ )
-                   State_Chm%SpeciesVec(IND)%Conc(:,:,:) = &
+                   State_Chm%Species(IND)%Conc(:,:,:) = &
                                  Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
                    if ( MAPL_am_I_Root()) WRITE(*,*)                                &
                         'Initialized species from INTERNAL state: ', TRIM(ThisSpc%Name)
@@ -3225,7 +3225,7 @@ CONTAINS
        DO I = 1, SIZE(Int2Spc,1)
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
           DO L = 1, State_Grid%NZ
-             State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,L) = &
+             State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,L) = &
                 Int2Spc(I)%Internal(:,:,State_Grid%NZ-L+1)
           ENDDO
        ENDDO
@@ -3279,11 +3279,11 @@ CONTAINS
                 IF ( MAPL_am_I_Root()) WRITE(*,*)                             &
                    'Could not find species in INTERNAL state - will be ' //   &
                    'initialized to zero: ', TRIM(SPFX), TRIM(ThisSpc%Name)
-                State_Chm%SpeciesVec(IND)%Conc(:,:,:) = 1d-26
+                State_Chm%Species(IND)%Conc(:,:,:) = 1d-26
                 CYCLE
              ENDIF
              DO L = 1, State_Grid%NZ
-                State_Chm%SpeciesVec(IND)%Conc(:,:,L) = &
+                State_Chm%Species(IND)%Conc(:,:,L) = &
                    Ptr3D_R8(:,:,State_Grid%NZ-L+1)
              ENDDO
              if ( MAPL_am_I_Root()) WRITE(*,*)                                &
@@ -3305,12 +3305,12 @@ CONTAINS
                    IF ( L > State_Grid%MaxChemLev .AND. &
                             ( .NOT. ThisSpc%Is_Advected ) ) THEN
                       ! For non-advected spc at L > MaxChemLev, use small number
-                      State_Chm%SpeciesVec(IND)%Conc(I,J,L) = 1.0E-30_FP           
+                      State_Chm%Species(IND)%Conc(I,J,L) = 1.0E-30_FP           
                    ELSE
                       ! For all other cases, use the background value in spc db
-                      State_Chm%SpeciesVec(IND)%Conc(I,J,L) = ThisSpc%BackgroundVV 
+                      State_Chm%Species(IND)%Conc(I,J,L) = ThisSpc%BackgroundVV 
                    ENDIF
-                   PTR3D_R8(I,J,State_Grid%NZ-L+1) = State_Chm%SpeciesVec(IND)%Conc(I,J,L)
+                   PTR3D_R8(I,J,State_Grid%NZ-L+1) = State_Chm%Species(IND)%Conc(I,J,L)
                 ENDDO
                 ENDDO
                 ENDDO
@@ -3483,7 +3483,7 @@ CONTAINS
                                         Label = "INIT_ZERO:", __RC__ ) 
           IF ( InitZero == 1 ) THEN
              DO N = 1, State_Chm%nSpecies
-                State_Chm%SpeciesVec(N)%Conc = 0.0d0
+                State_Chm%Species(N)%Conc = 0.0d0
              ENDDO
              IF ( am_I_Root ) THEN
                 write(*,*) ' '
@@ -3588,8 +3588,8 @@ CONTAINS
        ! These can be brought in as an artifact of convection.
 #ifndef ADJOINT
        DO N = 1, State_Chm%nSpecies
-          WHERE ( State_Chm%SpeciesVec(N)%Conc < 0.0e0 )
-             State_Chm%SpeciesVec(N)%Conc = 1.0e-36
+          WHERE ( State_Chm%Species(N)%Conc < 0.0e0 )
+             State_Chm%Species(N)%Conc = 1.0e-36
           END WHERE 
        ENDDO
 #endif
@@ -3735,7 +3735,7 @@ CONTAINS
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
           DO L = 1, State_Grid%NZ
              Int2Spc(I)%Internal(:,:,State_Grid%NZ-L+1) = &
-                State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,L)
+                State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,L)
           ENDDO
        ENDDO
        ! ---
@@ -4102,7 +4102,7 @@ CONTAINS
 999       FORMAT(' No INTERNAL pointer found for ', a12, ' with IND ', i3)
 
           DO L = 1, State_Grid%NZ
-             State_Chm%SpeciesVec(IND)%Conc(:,:,L) = Ptr3D_R8(:,:,State_Grid%NZ-L+1)
+             State_Chm%Species(IND)%Conc(:,:,L) = Ptr3D_R8(:,:,State_Grid%NZ-L+1)
           ENDDO
           ! Verbose 
           if ( MAPL_am_I_Root()) write(*,*)                &
@@ -4115,7 +4115,7 @@ CONTAINS
        CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(ThisSpc%Name), &
                              notFoundOK=.TRUE., __RC__ )
        DO L = 1, State_Grid%NZ
-          Ptr3D_R8(:,:,State_Grid%NZ-L+1) = State_Chm%SpeciesVec(IND)%Conc(:,:,L)
+          Ptr3D_R8(:,:,State_Grid%NZ-L+1) = State_Chm%Species(IND)%Conc(:,:,L)
        ENDDO
        Ptr3D_R8 => NULL()
 
@@ -4277,8 +4277,8 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           if (State_Chm%CostFuncMask(I,J,L) > 0d0) THEN
-             WRITE (*, 1047) I, J, L, state_chm%speciesVec(NFD)%conc(I,J,L)
-             CFN = CFN + state_chm%SpeciesVec(NFD)%Conc(I,J,L)
+             WRITE (*, 1047) I, J, L, State_Chm%Species(NFD)%conc(I,J,L)
+             CFN = CFN + State_Chm%Species(NFD)%Conc(I,J,L)
           endif
        ENDDO
         ENDDO
@@ -6161,7 +6161,7 @@ CONTAINS
     ! Initialize array to missing values 
     IF ( UniformIfMissing >= 0.0 ) THEN
         DO N = 1, State_Chm%nSpecies
-           State_Chm%SpeciesVec(N)%Conc(:,:,:) = UniformIfMissing 
+           State_Chm%Species(N)%Conc(:,:,:) = UniformIfMissing 
         ENDDO
         IF ( am_I_Root ) WRITE(*,*) 'All species initialized to ',UniformIfMissing
     ENDIF
@@ -6169,7 +6169,7 @@ CONTAINS
     ! Initialize array to missing values 
     IF ( UniformIfMissing >= 0.0 ) THEN
         DO N = 1, State_Chm%nSpecies
-           State_Chm%SpeciesVec(N)%Conc(:,:,:) = UniformIfMissing 
+           State_Chm%Species(N)%Conc(:,:,:) = UniformIfMissing 
         ENDDO
         IF ( am_I_Root ) WRITE(*,*) 'All species initialized to ',UniformIfMissing
     ENDIF
@@ -6272,25 +6272,25 @@ CONTAINS
              ENDIF
 
              ! Pass to State_Chm
-             State_Chm%SpeciesVec(N)%Conc(:,:,LM-L+1) = &
-                State_Chm%SpeciesVec(N)%Conc(:,:,LM-L+1)*wgt1 + Temp(:,:)*wgt2
+             State_Chm%Species(N)%Conc(:,:,LM-L+1) = &
+                State_Chm%Species(N)%Conc(:,:,LM-L+1)*wgt1 + Temp(:,:)*wgt2
           ENDDO
  
           ! Check for cap at given level 
           IF ( TopLev < LM ) THEN
              DO L = TopLev+1,LM
-                State_Chm%SpeciesVec(N)%Conc(:,:,L) = &
-                   State_Chm%SpeciesVec(N)%Conc(:,:,TopLev)
+                State_Chm%Species(N)%Conc(:,:,L) = &
+                   State_Chm%Species(N)%Conc(:,:,TopLev)
              ENDDO
              IF ( am_I_Root ) WRITE(*,*) 'Extend values from level ',TopLev,' to top of atmosphere: ',TRIM(FldName)
           ENDIF
 
           ! Verbose
-          IF ( am_I_Root ) WRITE(*,*) 'Species initialized from external field: ',TRIM(FldName),N,MINVAL(State_Chm%SpeciesVec(N)%Conc(:,:,:)),MAXVAL(State_Chm%SpeciesVec(N)%Conc(:,:,:)),SUM(State_Chm%SpeciesVec(N)%Conc(:,:,:))/IM/JM/LM
+          IF ( am_I_Root ) WRITE(*,*) 'Species initialized from external field: ',TRIM(FldName),N,MINVAL(State_Chm%Species(N)%Conc(:,:,:)),MAXVAL(State_Chm%Species(N)%Conc(:,:,:)),SUM(State_Chm%Species(N)%Conc(:,:,:))/IM/JM/LM
 
        ELSE
           IF ( UniformIfMissing >= 0.0 ) THEN
-             State_Chm%SpeciesVec(N)%Conc(:,:,:) = UniformIfMissing 
+             State_Chm%Species(N)%Conc(:,:,:) = UniformIfMissing 
              IF ( am_I_Root ) WRITE(*,*) 'Field not found for species ',TRIM(SpcName),', set to uniform value of ',UniformIfMissing
           ELSE
              IF ( am_I_Root ) WRITE(*,*) 'Species unchanged, field not found for species ',TRIM(SpcName)
@@ -6335,7 +6335,7 @@ CONTAINS
              VarID = MAPL_SimpleBundleGetIndex ( GmiVarBundle, 'species', 3, RC=STATUS, QUIET=.TRUE. )
              IF ( VarID > 0 ) THEN
                 ! Pass to State_Chm, convert v/v to kg/kg.
-                State_Chm%SpeciesVec(N)%Conc(:,:,60:72) = VarBundle%r3(VarID)%q(:,:,13:1:-1) * MW / MAPL_AIRMW * ( 1 - Q(:,:,13:1:-1) )
+                State_Chm%Species(N)%Conc(:,:,60:72) = VarBundle%r3(VarID)%q(:,:,13:1:-1) * MW / MAPL_AIRMW * ( 1 - Q(:,:,13:1:-1) )
                 IF ( am_I_Root ) WRITE(*,*) 'Use GMI concentrations in mesosphere: ',TRIM(SpcName)
              ENDIF
    
@@ -6378,8 +6378,8 @@ CONTAINS
 
     ! Make sure that values are not zero
     DO N = 1, State_Chm%nSpecies
-       WHERE ( State_Chm%SpeciesVec(N)%Conc <= 0.0 ) &
-          State_Chm%SpeciesVec(N)%Conc = MISSVAL
+       WHERE ( State_Chm%Species(N)%Conc <= 0.0 ) &
+          State_Chm%Species(N)%Conc = MISSVAL
     ENDDO
 
     ENDIF ! DoUpdate 
@@ -6767,10 +6767,10 @@ CONTAINS
  
              ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
              IF ( ANAO3(I,J,LR) > 0.0 ) THEN
-                O3new = ( (1.0-ifrac) * State_Chm%SpeciesVec(N)%Conc(I,J,L) ) &
+                O3new = ( (1.0-ifrac) * State_Chm%Species(N)%Conc(I,J,L) ) &
                       + (      ifrac  * ANAO3(I,J,LR)              )
-                IF ( ASSOCIATED(O3INC) ) O3INC(I,J,LR) = O3new - State_Chm%SpeciesVec(N)%Conc(I,J,L) 
-                State_Chm%SpeciesVec(N)%Conc(I,J,L) = O3new 
+                IF ( ASSOCIATED(O3INC) ) O3INC(I,J,LR) = O3new - State_Chm%Species(N)%Conc(I,J,L) 
+                State_Chm%Species(N)%Conc(I,J,L) = O3new 
              ENDIF
           ENDDO ! L 
        ENDDO

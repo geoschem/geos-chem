@@ -524,7 +524,7 @@ CONTAINS
     CALL GET_LOCAL_TIME( State_Grid )
 
     ! Point to Spc
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Chemistry timestep [s]
     DT = GET_TS_CHEM()
@@ -2785,12 +2785,12 @@ CONTAINS
 
           ! convert O3 and CO from kg/box to g/g and then to volume mixing ratio
           ! and then to #/cm2
-          WKL(3,L)= State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)/State_Met%AD(I,J,L) &
+          WKL(3,L)= State_Chm%Species(id_O3)%Conc(I,J,L)/State_Met%AD(I,J,L) &
                     *MAIR/48.0d-3 * AIRD(L)
 
           WKL(4,L)= YN2O * AIRD(L)
           ! CO
-          WKL(5,L)= State_Chm%SpeciesVec(id_CO)%Conc(I,J,L)/State_Met%AD(I,J,L) &
+          WKL(5,L)= State_Chm%Species(id_CO)%Conc(I,J,L)/State_Met%AD(I,J,L) &
                     *MAIR/28.0d-3 * AIRD(L)
 
           WKL(6,L)= YCH4 * AIRD(L)
@@ -3717,7 +3717,7 @@ CONTAINS
        ! Should we put the N loop on the outside?
        DO N = 1, NSO4
           SIZENUM =APMIDS%id_SO4BIN1+N-1 !Luodebug
-          XMATEMP=State_Chm%SpeciesVec(SIZENUM)%Conc(I,J,L) / State_Met%AIRVOL(I,J,L)
+          XMATEMP=State_Chm%Species(SIZENUM)%Conc(I,J,L) / State_Met%AIRVOL(I,J,L)
           XMATEMP= MAX( 1.d-40, XMATEMP)
           XN4D(I,J,L,N)=XMATEMP/(DENSULF*VDRY(N))*1.E-9 !XN4D in #/cm3, VDRY in m3
        ENDDO
@@ -5199,7 +5199,7 @@ CONTAINS
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%SpeciesVec%Conc
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species%Conc
 !  (for coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !\\
@@ -5246,10 +5246,10 @@ CONTAINS
        ! Coupled simulation
        !---------------------
 
-       ! Take OH from State_Chm%SpeciesVec%Conc [molec/cm3]
+       ! Take OH from State_Chm%Species%Conc [molec/cm3]
        ! OH is defined only in the chemistry grid
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
-          OH_MOLEC_CM3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L)
+          OH_MOLEC_CM3 = State_Chm%Species(id_OH)%Conc(I,J,L)
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
        ENDIF

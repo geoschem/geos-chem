@@ -160,7 +160,7 @@ CONTAINS
     DTCHEM  =  GET_TS_CHEM()
 
     ! Point to the species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !-----------------------------------------------------------------
     ! Pre-compute exponential terms and do other first-time setup

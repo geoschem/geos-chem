@@ -378,7 +378,7 @@ CONTAINS
        ! isoprene oxidation counter species
        IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
             TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
-          State_Chm%SpeciesVec(N)%Conc(:,:,:) = 0.0_fp
+          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
        ! aromatic oxidation counter species
@@ -386,7 +386,7 @@ CONTAINS
           SELECT CASE ( TRIM( SpcInfo%Name ) )
              CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
                     'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
-                State_Chm%SpeciesVec(N)%Conc(:,:,:) = 0.0_fp
+                State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
           END SELECT
        ENDIF
 
@@ -394,7 +394,7 @@ CONTAINS
        ! CO2 is a dead species and needs to be set to zero to
        ! match the old SMVGEAR code (mps, 6/14/16)
        IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
-          State_Chm%SpeciesVec(N)%Conc(:,:,:) = 0.0_fp
+          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
        ! Free pointer
@@ -462,7 +462,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%SpeciesVec(N)%Conc(:,:,:)
+          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -764,7 +764,7 @@ CONTAINS
        DO N = 1, NSPEC
           SpcID = State_Chm%Map_KppSpc(N)
           C(N)  = 0.0_dp
-          IF ( SpcId > 0 ) C(N) = State_Chm%SpeciesVec(SpcID)%Conc(I,J,L)
+          IF ( SpcId > 0 ) C(N) = State_Chm%Species(SpcID)%Conc(I,J,L)
        ENDDO
 
        !=====================================================================
@@ -1224,7 +1224,7 @@ CONTAINS
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
-       ! calculated from the C array back into State_Chm%SpeciesVec%Conc
+       ! calculated from the C array back into State_Chm%Species%Conc
        !=====================================================================
 
        ! Loop over KPP species
@@ -1240,7 +1240,7 @@ CONTAINS
           C(N) = MAX( C(N), 0.0_dp )
 
           ! Copy concentrations back into State_Chm%Species
-          State_Chm%SpeciesVec(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
+          State_Chm%Species(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
 
@@ -1451,7 +1451,7 @@ CONTAINS
 
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
-       ! have been archived in State_Chm%SpeciesVec%Conc output.
+       ! have been archived in State_Chm%Species%Conc output.
        CALL Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
 
@@ -1496,7 +1496,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%SpeciesVec(N)%Conc(:,:,:)
+          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -1894,9 +1894,9 @@ CONTAINS
 ! !REMARKS:
 !  This routine replaces both OHSAVE and DIAGOH.  Those routines were needed
 !  for SMVGEAR, when we had separate arrays for the non-advected species.
-!  But now, all species are stored in State_Chm%SpeciesVec%Conc, so the various
+!  But now, all species are stored in State_Chm%Species%Conc, so the various
 !  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
-!  just get values directly from State_Chm%SpeciesVec%Conc.
+!  just get values directly from State_Chm%Species%Conc.
 !
 !  Also note: for the netCDF diagnostics, we have removed multiplication by
 !  LTOH etc arrays.  These are almost always set between 0 and 24.
@@ -1931,7 +1931,7 @@ CONTAINS
 
     ! Point to the array of species concentrations
     AirNumDen => State_Met%AirNumDen
-    Spc       => State_Chm%SpeciesVec
+    Spc       => State_Chm%Species
 
     ! Zero the netCDF diagnostic arrays (if activated) above the
     ! tropopause or mesopause to avoid having leftover values
@@ -2307,7 +2307,7 @@ CONTAINS
           airMass_kg  = airMass_m / XNUMOLAIR
 
           ! OH concentration [molec cm-3]
-          OHconc_mcm3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L)
+          OHconc_mcm3 = State_Chm%Species(id_OH)%Conc(I,J,L)
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
           OHmassWgt   = airMass_kg * ( OHconc_mcm3  * MCM3toKGM3_OH  )

@@ -661,7 +661,7 @@ CONTAINS
     LGTMM     = Input_Opt%LGTMM
 
     ! Point to the chemical species vector
-    Spc       => State_Chm%SpeciesVec
+    Spc       => State_Chm%Species
 
     ! Pointer for the species database object
     ThisSpc   => NULL()

@@ -415,7 +415,7 @@ CONTAINS
     nAdvect   =  State_Chm%nAdvect
 
     ! Pointers
-    Spc       => State_Chm%SpeciesVec   ! Points to chemical species vectors
+    Spc       => State_Chm%Species   ! Points to chemical species vectors
 
     ! Chemistry timestep [s]
     DTCHEM    =  GET_TS_CHEM()

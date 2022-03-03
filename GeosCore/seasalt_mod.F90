@@ -195,7 +195,7 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
 
     ! Do we have to print debug output?
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -838,7 +838,7 @@ CONTAINS
     OCCONV    = 0e+0_fp
 
     ! Set pointer to GEOS-Chem tracer array [kg]
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
 
     !=================================================================
     ! For tracers with dry deposition, the loss rate of dry dep is
@@ -956,7 +956,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Set pointer to GEOS-Chem tracer array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -1535,8 +1535,8 @@ CONTAINS
              FEMIS = State_Met%F_OF_PBL(I,J,L)
 
              ! Add seasalt emissions into box (I,J,L) [kg]
-             State_Chm%SpeciesVec(Spc_ID)%Conc(I,J,L) = &
-                   State_Chm%SpeciesVec(Spc_ID)%Conc(I,J,L) + FEMIS * SALT(I,J)
+             State_Chm%Species(Spc_ID)%Conc(I,J,L) = &
+                   State_Chm%Species(Spc_ID)%Conc(I,J,L) + FEMIS * SALT(I,J)
 
           ENDDO
 
@@ -1646,7 +1646,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Point to Spc
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Aerosol settling timestep [s]
     DT_SETTL = GET_TS_CHEM()

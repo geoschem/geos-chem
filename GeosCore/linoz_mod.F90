@@ -266,7 +266,7 @@ CONTAINS
     L_OVERWRLD = 0
 
     ! Point to chemical species array [v/v dry air]
-    Spc        => State_Chm%SpeciesVec
+    Spc        => State_Chm%Species
 
     ! Point to the TLSTT array
     TLSTT      => State_Chm%TLSTT

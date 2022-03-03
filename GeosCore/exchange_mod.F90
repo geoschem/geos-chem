@@ -804,7 +804,7 @@ CONTAINS
     ! functionality prior to tracer removal. Validation needed by 3rd party
     ! developers (ewl, 8/15/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    SPC      => State_Chm%SpeciesVec
+    SPC      => State_Chm%Species
     prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     IU_RST=2
     IF ( Input_Opt%amIRoot ) THEN
@@ -907,7 +907,7 @@ CONTAINS
     ! functionality prior to tracer removal. Validation needed by
     ! 3rd party developers (ewl, 8/15/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    SPC      => State_Chm%SpeciesVec
+    SPC      => State_Chm%Species
     prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     IU_RST=2
     IOS=1
@@ -1144,7 +1144,7 @@ CONTAINS
     REAL(fp)               :: SRC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     integer                :: L
 
-    SPC => State_Chm%SpeciesVec
+    SPC => State_Chm%Species
 
     IF ( FLAG == 1 ) THEN
        DO L = 1, State_Chm%nSpecies

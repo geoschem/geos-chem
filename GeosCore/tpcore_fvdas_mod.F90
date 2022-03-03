@@ -681,7 +681,7 @@ CONTAINS
 
        do iq = 1, nq
 
-       q_ptr => State_Chm%SpeciesVec(iq)%Conc(:,:,km:1:-1)
+       q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
 
        !  ========================
           call Average_Const_Poles  &
@@ -796,7 +796,7 @@ CONTAINS
 !$OMP PRIVATE( iq, dq1, ik, adx, ady, q_ptr, qqu, qqv, north, south )
     do iq = 1, nq
 
-       q_ptr => State_Chm%SpeciesVec(iq)%Conc(:,:,km:1:-1)
+       q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
 
        ! Zero 3-D arrays for each species
        dq1 = 0.0_fp

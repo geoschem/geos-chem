@@ -1019,7 +1019,7 @@ CONTAINS
     LKRedUV      = Input_Opt%LKRedUV
 
     ! Point to fields in State_Chm
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
     Hg0aq    => State_Chm%OceanHg0
     Hg2aq    => State_Chm%OceanHg2
     HgPaq    => State_Chm%OceanHgP
@@ -2821,7 +2821,7 @@ CONTAINS
     FLAG = .FALSE.
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over grid boxes
     !OMP PARALLEL DO       &

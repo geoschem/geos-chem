@@ -304,7 +304,7 @@ CONTAINS
     LDSTUP               = Input_Opt%LDSTUP
 
     ! Initialize pointers
-    Spc                  => State_Chm%SpeciesVec  ! Chemistry species [kg]
+    Spc                  => State_Chm%Species  ! Chemistry species [kg]
 
     ! Should we print debug output?
     prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -805,7 +805,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     IF (id_SF1 > 0 .and. id_NK1 > 0 ) THEN
 
@@ -1050,7 +1050,7 @@ CONTAINS
     ENDIF
 
     ! Point to species array
-    TC1 => State_Chm%SpeciesVec
+    TC1 => State_Chm%Species
 
     !================================================================
     ! READ IN HEMCO EMISSIONS
@@ -1564,7 +1564,7 @@ CONTAINS
     ThisSpc       => State_Chm%SpcData(N)%Info
 
     ! Point to the species concentration array
-    TC            => State_Chm%SpeciesVec(N)%Conc(:,:,:)
+    TC            => State_Chm%Species(N)%Conc(:,:,:)
 
     ! Set a logical to denote that the species is one of the dust
     ! uptake species, i.e. SO4d{1-4}, NITd{1-4} (bmy, 3/17/17)
@@ -1954,7 +1954,7 @@ CONTAINS
     IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
 
     ! Point to chemical species array [v/v dry]
-    Spc         => State_Chm%SpeciesVec
+    Spc         => State_Chm%Species
 
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM      = GET_TS_CHEM()
@@ -2240,7 +2240,7 @@ CONTAINS
     ThisLoc  = ' -> at CHEM_H2O2 (in module GeosCore/sulfate_mod.F90)'
 
     ! Point to chemical species array [v/v dry]
-    Spc       => State_Chm%SpeciesVec
+    Spc       => State_Chm%Species
 
     ! Chemistry timestep [s]
     DT        = GET_TS_CHEM()
@@ -2522,7 +2522,7 @@ CONTAINS
     IS_OFFLINE           =  Input_Opt%ITS_AN_AEROSOL_SIM
     LDSTUP               =  Input_Opt%LDSTUP
     DTCHEM               =  GET_TS_CHEM()
-    Spc                  => State_Chm%SpeciesVec
+    Spc                  => State_Chm%Species
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
@@ -2699,10 +2699,10 @@ CONTAINS
 
        ! Calculate O3, defined only in the chemistry grid
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-          ! Get O3 from State_Chm%SpeciesVec%Conc [v/v]
+          ! Get O3 from State_Chm%Species%Conc [v/v]
           O3 = 0.0_fp
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
-             O3 = State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)
+             O3 = State_Chm%Species(id_O3)%Conc(I,J,L)
           ENDIF
        ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
           ! Get offline mean O3 [v/v] for this gridbox and month
@@ -4443,7 +4443,7 @@ CONTAINS
     RC      = GC_SUCCESS
 
     ! Initialize pointers
-    Spc     => State_Chm%SpeciesVec
+    Spc     => State_Chm%Species
     AD      => State_Met%AD
     AIRVOL  => State_Met%AIRVOL
 
@@ -4927,7 +4927,7 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
     ! Set pointers
-    Spc                 => State_Chm%SpeciesVec   ! Chemical species [kg]
+    Spc                 => State_Chm%Species   ! Chemical species [kg]
     AD                  => State_Met%AD
     AIRVOL              => State_Met%AIRVOL
 
@@ -7645,7 +7645,7 @@ CONTAINS
 #endif
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over chemistry grid boxes
     !$OMP PARALLEL DO       &
@@ -8018,7 +8018,7 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Point to chemical species array [v/v/ dry]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over chemistry grid boxes
     !$OMP PARALLEL DO       &
@@ -8139,7 +8139,7 @@ CONTAINS
     RC       = GC_SUCCESS
 
     ! Point to chemical species array [v/v dry]
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
 
     ! Assign pointers to Spc arrays for loop over dust size bins,
     ! since this can be done outside the parallel DO loop.
@@ -8277,7 +8277,7 @@ CONTAINS
       RC       = GC_SUCCESS
 
       ! Point to chemical species array [v/v dry]
-      Spc      => State_Chm%SpeciesVec
+      Spc      => State_Chm%Species
 
       !$OMP PARALLEL DO          &
       !$OMP DEFAULT( SHARED )    &
@@ -8363,7 +8363,7 @@ CONTAINS
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
           ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
-          OH_MOLEC_CM3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L) * &
+          OH_MOLEC_CM3 = State_Chm%Species(id_OH)%Conc(I,J,L) * &
                          State_Met%AIRNUMDEN(I,J,L)
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
@@ -8721,14 +8721,14 @@ CONTAINS
     !N1 = N_DENS(I,J,L,1) * 1.d-6
     !N2 = N_DENS(I,J,L,2) * 1.d-6
        !Read Alkalinity from Alkalinity tracers [v/v] to [kg], xnw 12/8/17
-    ALK1 = State_Chm%SpeciesVec(id_SALAAL)%Conc(I,J,L) * State_Met%AD(I,J,L)/ &
+    ALK1 = State_Chm%Species(id_SALAAL)%Conc(I,J,L) * State_Met%AD(I,J,L)/ &
          ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
-    ALK2 = State_Chm%SpeciesVec(id_SALCAL)%Conc(I,J,L) * State_Met%AD(I,J,L)/ &
+    ALK2 = State_Chm%Species(id_SALCAL)%Conc(I,J,L) * State_Met%AD(I,J,L)/ &
       ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
     !Seasalt mass, [v/v] to [kg]
-    !SLA = State_Chm%SpeciesVec(id_SALA)%Conc(I,J,L) * State_Met%AD(I,J,L)/
+    !SLA = State_Chm%Species(id_SALA)%Conc(I,J,L) * State_Met%AD(I,J,L)/
     !     & ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g )
-    !SLC = State_Chm%SpeciesVec(id_SALC)%Conc(I,J,L) * State_Met%AD(I,J,L)/
+    !SLC = State_Chm%Species(id_SALC)%Conc(I,J,L) * State_Met%AD(I,J,L)/
     !     & ( AIRMW / State_Chm%SpcData(id_SALC)%Info%MW_g )
 
 
@@ -9360,7 +9360,7 @@ CONTAINS
     RC        = GC_SUCCESS
 
     ! Point to Spc
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Aerosol settling timestep [s]
     DT_SETTL = GET_TS_CHEM()

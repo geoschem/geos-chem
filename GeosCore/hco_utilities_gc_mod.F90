@@ -1613,7 +1613,7 @@ CONTAINS
    SMALL_NUM = 1.0e-30_fp
 
    ! Set pointer to species concentrations
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    !=================================================================
    ! If running Hg simulation, set Hg-specific local variables
@@ -1642,7 +1642,7 @@ CONTAINS
 
    !=================================================================
    ! Read species concentrations from NetCDF or use default
-   ! background [mol/mol]; store in State_Chm%SpeciesVec%Conc in [kg/kg dry]
+   ! background [mol/mol]; store in State_Chm%Species%Conc in [kg/kg dry]
    !=================================================================
 
    ! Print header for min/max concentration to log
@@ -2411,7 +2411,7 @@ CONTAINS
    SpcInfo   => NULL()
 
    ! Point to species array [kg/kg]
-   Spc       => State_Chm%SpeciesVec
+   Spc       => State_Chm%Species
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hco_utilities_gc_mod.F90)'
