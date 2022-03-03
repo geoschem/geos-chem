@@ -1431,6 +1431,12 @@ CONTAINS
        ! Need Hg0, Hg2, HgP for tagged Mercury
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 25 )
 
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+
+       ! O3 and O3Strat are always present; more than that
+       ! indicate an extended tagged O3 simulation
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 2 )
+
     ELSE
 
        ! All other simulations: tagged if more than 1 species listed
