@@ -148,7 +148,7 @@ CONTAINS
     REAL(fp)                 :: OH_MOLEC_CM3,  FAC_DIURNAL, SUNCOS
     REAL(fp)                 :: PCO_CH4_MCM3S, PCO_NMVOC_MCM3S
     REAL(fp)                 :: kgs_to_atomsC, Emis,        DTEMIS
-    REAL(fp)                 :: kgm3_to_mcm3OH,kgm3_to_mcm3sCO
+    REAL(fp)                 :: kgm3_to_mcm3OH
 
     ! Strings
     CHARACTER(LEN=255)       :: ERR_VAR
@@ -232,11 +232,6 @@ CONTAINS
 
     ! Factor to convert OH from kg/m3 (from HEMCO) to molec/cm3
     kgm3_to_mcm3OH = ( AVO / 17.0e-3_fp ) * 1.0e-6_fp
-
-    ! Factor to convert P(CO) from kg/m3 (from HEMCO) to molec/cm3/s
-    ! HEMCO uses emission timestep to convert from kg/m3/s to kg/m3;
-    ! apply that here.
-    kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
 
     ! Compute diurnal cycle for OH every day (check for new day inside
     ! subroutine) - jaf 7/10/14
@@ -494,9 +489,8 @@ CONTAINS
        ! Also impose diurnal cycle on P(CO) from CH4, NMVOC
        IF ( LPCO_CH4 ) THEN
 
-          ! HEMCO brings in PCO in kg/m3, so we need to also
-          ! apply a conversion to molec/cm3/s
-          PCO_CH4_MCM3S = PCO_CH4(I,J,L) * kgm3_to_mcm3sCO * FAC_DIURNAL
+          ! Apply diurnal scaling factor
+          PCO_CH4_MCM3S = PCO_CH4(I,J,L) * FAC_DIURNAL
 
           ! Make sure PCO_CH4 is not negative
           PCO_CH4_MCM3S = MAX( PCO_CH4_MCM3S, 0e+0_fp )
@@ -505,9 +499,8 @@ CONTAINS
 
        IF ( LPCO_NMVOC ) THEN
 
-          ! HEMCO brings in PCO in kg/m3/s, so we need to also
-          ! apply a conversion to molec/cm3/s
-          PCO_NMVOC_MCM3S = PCO_NMVOC(I,J,L) * kgm3_to_mcm3sCO * FAC_DIURNAL
+          ! Apply diurnal scaling factor
+          PCO_NMVOC_MCM3S = PCO_NMVOC(I,J,L) * FAC_DIURNAL
 
           ! Make sure PCO_NMVOC is not negative
           PCO_NMVOC_MCM3S = MAX( PCO_NMVOC_MCM3S, 0e+0_fp )
