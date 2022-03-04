@@ -232,6 +232,7 @@ MODULE gckpp_Global
      REAL(dp) :: rIce           ! Ice radius
      REAL(dp) :: rLiq           ! Liquid radius
      REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
+     LOGICAL  :: SSA_debrom     ! Use sea salt aerosol debromination?
      LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?
      LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt acidic?
      LOGICAL  :: SSC_is_Alk     ! Is coarse sea-salt alkaline?

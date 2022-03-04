@@ -2285,6 +2285,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
+    ! Use sea salt aerosol debromination?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'SSAdebromination', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%SSAdebromination
+
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2373,6 +2381,8 @@ CONTAINS
                             Input_Opt%USE_TOMS_O3
        WRITE( 6, 110     ) 'GAMMA HO2                   : ', &
                             Input_Opt%GAMMA_HO2
+       WRITE( 6, 100     ) 'Use SSA debromination?      : ', &
+                            Input_Opt%SSAdebromination
        IF ( Input_Opt%USE_ONLINE_O3 ) THEN
           WRITE( 6, '(a)' ) ''
           WRITE( 6, '(a)' ) 'NOTE ABOUT OVERHEAD O3 FOR FAST-JX:'

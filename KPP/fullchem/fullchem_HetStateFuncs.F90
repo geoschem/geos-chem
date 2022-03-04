@@ -151,8 +151,9 @@ CONTAINS
     H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )
     H%SSC_is_Acid   = ( .not.  H%SSC_is_Alk        )
 
-    ! Other fields
+    ! Fields specified in configuration file
     H%gamma_HO2     = Input_Opt%gamma_HO2
+    H%SSA_debrom    = Input_Opt%SSAdebromination
 
     ! Correction factors for HOBr and HOCl removal by SO2 [1]
     H%fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
@@ -313,6 +314,14 @@ CONTAINS
     !=======================================================================
     ! Get halide conc's in cloud (gas-phase, fine & coarse sea salt)
     !=======================================================================
+
+    ! If sea salt aerosol debromination is off, set BrSALA and BrSALC
+    ! concentrations to a small number. This will essentially zero out
+    ! the rates for all reactions involving those species.
+    IF ( .not. H%SSA_debrom ) THEN
+       C(ind_BrSALA) = 1.0e-20_dp
+       C(ind_BrSALA) = 1.0e-20_dp
+    ENDIF
 
     ! Br- and Cl- grid-box concentrations
     HBr = C(ind_HBr) + ( C(ind_BrSALA) * 0.7_dp ) + C(ind_BrSALC)

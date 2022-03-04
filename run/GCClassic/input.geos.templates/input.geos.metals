@@ -114,6 +114,7 @@ Overhead O3 for FAST-JX :---
  => O3 from met fields  : F
  => TOMS/SBUV O3        : F
 Gamma HO2               : 0.2
+Use SSA debromination?  : F
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
 FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
