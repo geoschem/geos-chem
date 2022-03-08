@@ -320,7 +320,7 @@ CONTAINS
     ! the rates for all reactions involving those species.
     IF ( .not. H%SSA_debrom ) THEN
        C(ind_BrSALA) = 1.0e-20_dp
-       C(ind_BrSALA) = 1.0e-20_dp
+       C(ind_BrSALC) = 1.0e-20_dp
     ENDIF
 
     ! Br- and Cl- grid-box concentrations
