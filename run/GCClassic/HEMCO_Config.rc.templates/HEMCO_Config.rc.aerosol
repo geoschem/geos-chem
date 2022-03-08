@@ -1723,7 +1723,7 @@ Warnings:                    1
 #==============================================================================
 (((SeaSalt
 107 MODIS_CHLR  $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS    2005-2014/1-12/1/0 C    xy 1 * - 1 1
-107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
+107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1980-2020/1-12/1-31/0 C xy 1 * - 1 1
 
 # Climatology CHLR
 #107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1

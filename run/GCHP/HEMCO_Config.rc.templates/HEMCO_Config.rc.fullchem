@@ -2412,7 +2412,7 @@ Warnings:                    1
 )))HTAP_SHIP
 
 (((CEDSv2_SHIP
-102 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc NO_shp 1750-2010/1-12/1/0 C xy kg/m2/s NO 25 10 5
+102 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc NO_shp 1750-2019/1-12/1/0 C xy kg/m2/s NO 25 10 5
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
@@ -2897,7 +2897,7 @@ Warnings:                    1
 #==============================================================================
 (((SeaSalt
 107 MODIS_CHLR  $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS    2005-2014/1-12/1/0 C    xy 1 * - 1 1
-107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
+107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1980-2020/1-12/1-31/0 C xy 1 * - 1 1
 
 # Climatology CHLR
 #107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1
