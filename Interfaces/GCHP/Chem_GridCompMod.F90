@@ -3044,6 +3044,7 @@ CONTAINS
     REAL,  ALLOCATABLE, TARGET   :: solar(:,:)    ! Solar insolation
 
     ! Pointer arrays needed to initialize from imports
+    CHARACTER(LEN=2)             :: intStr
     REAL, POINTER                :: Ptr2d   (:,:)   => NULL()
     REAL, POINTER                :: Ptr3d   (:,:,:) => NULL()
     REAL(ESMF_KIND_R8), POINTER  :: Ptr2d_R8(:,:)   => NULL()
@@ -3079,7 +3080,6 @@ CONTAINS
     LOGICAL                      :: FIRSTREWIND
     LOGICAL                      :: AFTERREWIND
     LOGICAL                      :: IsFirst
-    CHARACTER(LEN=2)             :: intStr
     INTEGER, SAVE                :: pymd = 0         ! previous date
     INTEGER, SAVE                :: phms = 0         ! previous time
     INTEGER, SAVE                :: nnRewind = 0
