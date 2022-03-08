@@ -409,6 +409,12 @@ CONTAINS
     LOGICAL                       :: useCFMaskFile
 #endif
 
+    ! Manual internal state entries
+    LOGICAL                       :: am_I_Root
+    INTEGER                       :: II
+    CHARACTER(LEN=2)              :: intStr
+    CHARACTER(LEN=ESMF_MAXSTR)    :: myName
+
     __Iam__('SetServices')
 
     !=======================================================================
@@ -423,7 +429,10 @@ CONTAINS
 
     ! Identify this routine to MAPL
     Iam = TRIM(compName)//'::SetServices'
-    
+   
+    ! Root CPU? 
+    am_I_Root = MAPL_am_I_Root()
+
     !=======================================================================
     ! Wrap internal state for storing in this gridded component
     ! Rename this to a "legacy state"
@@ -632,6 +641,61 @@ CONTAINS
           CALL STRSPLIT( Blacklist, ',', SpcsBlacklist, nBlacklist )
        ENDIF
     ENDIF
+
+    ! Add additional internal state fields if specified so in the RC file
+    DO II=1,11
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'KHETI_SLA_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'AeroArea_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'AeroRadi_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'WetAeroArea_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'WetAeroRadi_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'AeroH2O_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_fine'    , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_coarse'  , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_fine'   , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_coarse' , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_fine'  , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_coarse', 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_01'       , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_02'       , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_03'       , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_01'           , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_02'           , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC'               , 2, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_POA'           , 2, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_OPOA'          , 2, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLArea'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLRadi'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'QLxpHCloud'         , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'pHCloud'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'isCloud'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'HSO3_AQ'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SO3_AQ'             , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOCl'        , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOBr'        , 3, __RC__ ) 
 #endif
 
     ! Open input.geos and read a lines until hit advected species menu
@@ -3015,6 +3079,7 @@ CONTAINS
     LOGICAL                      :: FIRSTREWIND
     LOGICAL                      :: AFTERREWIND
     LOGICAL                      :: IsFirst
+    CHARACTER(LEN=2)             :: intStr
     INTEGER, SAVE                :: pymd = 0         ! previous date
     INTEGER, SAVE                :: phms = 0         ! previous time
     INTEGER, SAVE                :: nnRewind = 0
@@ -4906,6 +4971,94 @@ CONTAINS
   END SUBROUTINE Extract_
 !EOC
 #if defined( MODEL_GEOS )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: AddInternal_ 
+!
+! !DESCRIPTION: AddInternal_ adds a field to an internal state object (if requested
+!               so in the RC file) 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AddInternal_ ( am_I_Root, GC, myCF, FieldName, FieldDim, Units, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL                                    :: am_I_Root
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC       
+    TYPE(ESMF_CONFIG)                          :: myCF
+    CHARACTER(LEN=*),    INTENT(IN)            :: FieldName
+    INTEGER,             INTENT(IN)            :: FieldDim
+    CHARACTER(LEN=*),    INTENT(IN), OPTIONAL  :: Units
+!                                                             
+! !OUTPUT PARAMETERS:                                         
+!              
+    INTEGER, INTENT(OUT), OPTIONAL             :: RC
+!
+! !REVISION HISTORY:
+!  30 Mar 2015 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+
+    INTEGER                      :: DoIt 
+    INTEGER                      :: DimsHorz, VLocation
+    CHARACTER(LEN=ESMF_MAXSTR)   :: Units_ 
+
+    ! Error handling
+    INTEGER                      :: STATUS
+    CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
+
+    !=======================================================================
+    ! AddInternal_ begins here
+    !=======================================================================
+
+    ! Traceback handle
+    Iam = 'AddInternal_'
+ 
+    IF ( PRESENT(Units) ) THEN
+       Units_ = Units
+    ELSE
+       Units_ = '1'
+    ENDIF
+
+    ! Unit parameter
+    IF ( FieldDim==3 ) THEN
+       DimsHorz  = MAPL_DimsHorzVert
+       VLocation = MAPL_VLocationCenter
+    ELSE
+       DimsHorz  = MAPL_DimsHorzOnly
+       VLocation = MAPL_VLocationNone
+    ENDIF 
+
+    CALL ESMF_ConfigGetAttribute( myCF, DoIt, Label = 'Internal_'//TRIM(FieldName)//':', Default=1, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       call MAPL_AddInternalSpec(GC,                      &
+               SHORT_NAME         = TRIM(FieldName),      &
+               LONG_NAME          = TRIM(FieldName),      &
+               UNITS              = Units_,               &
+               DIMS               = DimsHorz,             &
+               VLOCATION          = VLocation,            &
+               FRIENDLYTO         = 'GEOSCHEMCHEM',    __RC__ )
+          if(am_I_Root) WRITE(*,*) 'Added to internal: '//TRIM(FieldName)
+    ENDIF
+
+    ! Successful return
+    RC = ESMF_SUCCESS
+
+  END SUBROUTINE AddInternal_ 
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
