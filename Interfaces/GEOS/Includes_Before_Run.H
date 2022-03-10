@@ -510,5 +510,11 @@
         State_Chm%fupdateHOBr(:,:,:) = Ptr3D(:,:,LM:1:-1)
      ENDIF
      Ptr3D => NULL()
+     importName = 'STATE_PSC'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%STATE_PSC(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
 
 !EOF

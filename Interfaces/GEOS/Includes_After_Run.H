@@ -60,7 +60,7 @@
   !=========================================================================
   CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'H2O2AfterChem', notFoundOK=.TRUE., __RC__ ) 
   IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
-     Ptr3D(:,:,LM:1:-1) = State_Chm%H2O2AfterChem(:,:,LM:1:-1)
+     Ptr3D(:,:,LM:1:-1) = State_Chm%H2O2AfterChem
   ENDIF
   Ptr3D => NULL()
 
@@ -305,6 +305,12 @@
      CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
      IF ( ASSOCIATED(Ptr3D) ) THEN
         Ptr3d(:,:,LM:1:-1) = State_Chm%fupdateHOBr(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'STATE_PSC'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%STATE_PSC(:,:,:)
      ENDIF
      Ptr3D => NULL()
 
