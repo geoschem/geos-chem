@@ -517,12 +517,4 @@
      ENDIF
      Ptr3D => NULL()
 
-! testing only
-!State_Chm%STATE_PSC   = 0.0
-!State_Chm%KHETI_SLA   = 0.0
-!State_Chm%AeroArea    = 0.0
-!State_Chm%AeroRadi    = 0.0
-!State_Chm%WetAeroArea = 0.0
-!State_Chm%WetAeroRadi = 0.0
-
 !EOF
