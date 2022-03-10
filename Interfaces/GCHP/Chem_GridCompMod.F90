@@ -156,6 +156,7 @@ MODULE Chem_GridCompMod
   LOGICAL                          :: LANAO3
   LOGICAL                          :: LPCHEMO3
   LOGICAL                          :: ANAO3FWD
+  LOGICAL                          :: ANAO3INC
   INTEGER                          :: ANAO3TROPP
   INTEGER                          :: ANAO3L1
   INTEGER                          :: ANAO3L2
@@ -2661,6 +2662,7 @@ CONTAINS
     ANAO3FR = 1.0
     ANAO3TROPP = 0
     ANAO3FWD = .FALSE.
+    ANAO3INC = .FALSE.
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_ANA_O3:", &
                                   Default = 0, __RC__ ) 
     IF ( DoIt == 1 ) THEN
@@ -2697,6 +2699,9 @@ CONTAINS
        CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "ANAO3FWD:", &
                                      Default = 1, __RC__ )
        ANAO3FWD = ( I == 1 )
+       CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "ANAO3INC:", &
+                                     Default = 1, __RC__ )
+       ANAO3INC = ( I == 1 )
        ASSERT_(ANAO3L1 >  0)
        ASSERT_(ANAO3L1 <= LM)
        ASSERT_(ANAO3L2 >= ANAO3L1)
@@ -2714,6 +2719,7 @@ CONTAINS
           WRITE(*,*) '-> Analysis update frequency       : ',ANAO3FREQ
           WRITE(*,*) '-> Analysis update offset (hh/mm)  : ',ANAO3HR, ANAO3MIN
           WRITE(*,*) '-> Apply analysis 1 time step ahead: ',ANAO3FWD
+          WRITE(*,*) '-> Apply analysis increments       : ',ANAO3INC
           WRITE(*,*) '-> Analysis ozone bottom level 1   : ',ANAO3L1
           WRITE(*,*) '-> Analysis ozone bottom level 2   : ',ANAO3L2
           WRITE(*,*) '-> Analysis ozone top level 3      : ',ANAO3L3
@@ -6558,7 +6564,8 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR) :: SpcName
     INTEGER                    :: I, J, L, N, LR, IM, JM, LM 
     INTEGER                    :: STATUS
-    REAL                       :: O3new, O3ana, O3MW, ifrac
+    INTEGER                    :: NNEG  
+    REAL                       :: O3new, O3ana, O3diff, O3MW, ifrac
     REAL                       :: ITROPP
     INTEGER                    :: UnitFlag, idx
     INTEGER                    :: LB, L0, L1, L2, L3, L4
@@ -6670,6 +6677,9 @@ CONTAINS
                 UnitFlag = 1
           END SELECT
 
+          ! Number of negative cells
+          NNEG = 0
+
           DO J=1,JM
           DO I=1,IM
 
@@ -6727,18 +6737,33 @@ CONTAINS
                 IF ( UnitFlag == 4 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-9
 
                 ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
-                IF ( ANAO3(I,J,LR) > 0.0 ) THEN
-                   O3new = ( (1.0-ifrac) * State_Chm%SpeciesVec(N)%Conc(I,J,L) ) &
-                         + (      ifrac  * O3ana )
-                   IF ( ASSOCIATED(O3INC) )    O3INC(I,J,LR)     =  O3new - State_Chm%SpeciesVec(N)%Conc(I,J,L)
-                   IF ( ASSOCIATED(O3INCPPMV)) O3INCPPMV(I,J,LR) = (O3new-State_Chm%SpeciesVec(N)%Conc(I,J,L)) &
-                                                                   *(MAPL_AIRMW/O3MW)*1.0e6
-                   State_Chm%SpeciesVec(N)%Conc(I,J,L) = O3new
+                O3new = State_Chm%SpeciesVec(N)%Conc(I,J,L)
+                IF ( ANAO3INC ) THEN
+                   IF ( ABS(O3ana) > tiny(1.0) ) THEN
+                      O3new = State_Chm%SpeciesVec(N)%Conc(I,J,L) + O3ana
+                      IF ( O3new <= tiny(1.0) ) THEN
+                         O3new = tiny(1.0)
+                         NNEG  = NNEG + 1
+                      ENDIF
+                   ENDIF
+                ELSE
+                   IF ( O3ana > 0.0 ) THEN
+                      O3new = ( (1.0-ifrac) * State_Chm%SpeciesVec(N)%Conc(I,J,L) ) &
+                            + (      ifrac  * O3ana )
+                   ENDIF
                 ENDIF
+                O3diff = O3new - State_Chm%SpeciesVec(N)%Conc(I,J,L)
+                IF ( ASSOCIATED(O3INC) )    O3INC(I,J,LR)     = O3diff
+                IF ( ASSOCIATED(O3INCPPMV)) O3INCPPMV(I,J,LR) = O3diff * ( MAPL_AIRMW / MAPL_O3MW ) * 1.0e6
+                State_Chm%SpeciesVec(N)%Conc(I,J,L) = O3new
              ENDDO ! L 
           ENDDO
           ENDDO
 
+          ! Print warning if at least one negative cell
+          IF ( NNEG > 0 ) THEN
+             WRITE(*,*) '*** GCC SetAnaO3 Warning: encountered negative ozone after adding increments, set concentrations to zero ',NNEG,' ***'
+          ENDIF
        ENDIF ! HasBundle 
 
        ! Clean up
