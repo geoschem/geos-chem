@@ -112,6 +112,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+    INTEGER            :: BUFF_SIZE, I0_W1, J0_W1, IM_W1, JM_W1
     INTEGER            :: TS_Dyn
     REAL(f8)           :: DT_Dyn
 
@@ -198,8 +199,20 @@ CONTAINS
     !========================================================================
     IF ( State_Grid%NestedGrid ) THEN
 
+       ! Set buffer size
+       BUFF_SIZE   =  2
+
+       ! (lzh, 09/01/2014)
+       IM_W1       =  ( State_Grid%NX - State_Grid%WestBuffer - &
+                        State_Grid%EastBuffer  ) + 2 * BUFF_SIZE
+       JM_W1       =  ( State_Grid%NY - State_Grid%SouthBuffer - &
+                        State_Grid%NorthBuffer ) + 2 * BUFF_SIZE
+       I0_W1       =  State_Grid%WestBuffer  - BUFF_SIZE
+       J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
+
        ! Nested-grid simulation with GEOS-FP/MERRA2 met
-       CALL DO_WINDOW_TRANSPORT( Input_Opt,  State_Chm, State_Diag, &
+       CALL DO_WINDOW_TRANSPORT( I0_W1, IM_W1, J0_W1, JM_W1,        &
+                                 Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
 
        ! Trap potential errors
@@ -510,7 +523,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_WINDOW_TRANSPORT( Input_Opt,  State_Chm, State_Diag, &
+  SUBROUTINE DO_WINDOW_TRANSPORT( I0,    IM,    J0,     JM,         &
+                                  Input_Opt, State_Chm, State_Diag, &
                                   State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -531,6 +545,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    INTEGER,        INTENT(IN)    :: I0
+    INTEGER,        INTENT(IN)    :: IM
+    INTEGER,        INTENT(IN)    :: J0
+    INTEGER,        INTENT(IN)    :: JM
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -566,8 +584,8 @@ CONTAINS
     LOGICAL            :: LFILL
     LOGICAL            :: prtDebug
     INTEGER            :: IORD,  JORD,  KORD
-    INTEGER            :: I0,    J0,    NA,    nAdvect, N_DYN
-    INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1,   BUFF_SIZE
+    INTEGER            :: IA, IB, JA, JB
+    INTEGER            :: NA,    nAdvect, N_DYN
     INTEGER            :: I,     J,     L,     L2,      N
     INTEGER            :: ND24x, ND25x, ND26x
     REAL(fp)           :: D_DYN
@@ -578,8 +596,7 @@ CONTAINS
     REAL(fp),  TARGET  :: P_TEMP(State_Grid%NX,State_Grid%NY)
     REAL(fp),  TARGET  :: XMASS (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp),  TARGET  :: YMASS (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-    REAL(fp),  TARGET  :: Q_Spc (State_Grid%NX,State_Grid%NY,&
-                                 State_Grid%NZ,State_Chm%nAdvect)
+    REAL(fp),  TARGET  :: Q_Spc (IM,JM,State_Grid%NZ,State_Chm%nAdvect)
 
     ! Pointers
     REAL(fp),  POINTER :: p_A_M2  (  :    )
@@ -632,23 +649,19 @@ CONTAINS
     N_DYN       =  GET_TS_DYN()
     D_DYN       =  N_DYN
 
-    ! (lzh, 09/01/2014)
-    BUFF_SIZE   =  2
-    IM_W1       =  ( State_Grid%NX - State_Grid%WestBuffer - &
-                     State_Grid%EastBuffer  ) + 2 * BUFF_SIZE
-    JM_W1       =  ( State_Grid%NY - State_Grid%SouthBuffer - &
-                     State_Grid%NorthBuffer ) + 2 * BUFF_SIZE
-    I0_W1       =  State_Grid%WestBuffer  - BUFF_SIZE
-    J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
-
+    ! Set start and end indices for the window
+    IA = I0 + 1
+    IB = I0 + IM
+    JA = J0 + 1
+    JB = J0 + JM
     ! Define shadow variables for ND24, ND25, ND26
     ND24x       = 0
     ND25x       = 0
     ND26x       = 0
 
-    ! Set local array for species concentrations
+    ! Set local array for species concentrations in window
     DO N = 1, State_Chm%nAdvect
-       Q_Spc(:,:,:,N) = State_Chm%Species(N)%Conc(:,:,:)
+       Q_Spc(:,:,:,N)= State_Chm%Species(N)%Conc(IA:IB,JA:JB,:)
     ENDDO
 
     !=================================================================
@@ -703,39 +716,16 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
 
     ! Flip array indices in the vertical using pointer storage
-
     ! Exclude the buffer zone (lzh, 4/1/2015)
-    p_UWND  => State_Met%U( I0_W1+1 : I0_W1+IM_W1, &
-                            J0_W1+1 : J0_W1+JM_W1, &
-                            State_Grid%NZ:1:-1 )
-
-    p_VWND  => State_Met%V( I0_W1+1 : I0_W1+IM_W1, &
-                            J0_W1+1 : J0_W1+JM_W1, &
-                            State_Grid%NZ:1:-1  )
-
-    p_Spc    => Q_Spc( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1, &
-                       State_Grid%NZ:1:-1,    &
-                       1:nAdvect )
-
-    p_XMASS  => XMASS( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1, &
-                       State_Grid%NZ:1:-1 )
-
-    p_YMASS  => YMASS( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1, &
-                       State_Grid%NZ:1:-1 )
-
-    p_P_TP1  => P_TP1( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1 )
-
-    p_P_TP2  => P_TP2( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1)
-
-    p_P_TEMP => P_TEMP( I0_W1+1 : I0_W1+IM_W1, &
-                        J0_W1+1 : J0_W1+JM_W1 )
-
-    p_A_M2   => A_M2( J0_W1+1 : J0_W1+JM_W1 )
+    p_A_M2   => A_M2       ( JA:JB                               )
+    p_P_TP1  => P_TP1      ( IA:IB, JA:JB                        )
+    p_P_TP2  => P_TP2      ( IA:IB, JA:JB                        )
+    p_P_TEMP => P_TEMP     ( IA:IB, JA:JB                        )
+    p_UWND   => State_Met%U( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_VWND   => State_Met%V( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_XMASS  => XMASS      ( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_YMASS  => YMASS      ( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_Spc    => Q_Spc      ( :,     :,     State_Grid%NZ:1:-1, : )
 
     ! Do the advection
     CALL TPCORE_WINDOW(D_DYN,   Re,       IM_W1,   JM_W1,   State_Grid%NZ, &
@@ -748,7 +738,7 @@ CONTAINS
 
     ! Update species concentrations from local array
     DO N = 1, State_Chm%nAdvect
-       State_Chm%Species(N)%Conc(:,:,:) = Q_Spc(:,:,:,N)
+       State_Chm%Species(N)%Conc(IA:IB,JA:JB,:) = Q_Spc(:,:,:,N)
     ENDDO
 
     ! Free pointer memory
