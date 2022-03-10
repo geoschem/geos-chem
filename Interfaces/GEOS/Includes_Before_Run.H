@@ -243,7 +243,7 @@
      IF ( .NOT. ASSOCIATED(Int2Spc(I)%Internal) ) THEN
         CYCLE
      ELSE
-        State_Chm%Species(:,:,LM:1:-1,Int2Spc(I)%ID) = Int2Spc(I)%Internal(:,:,:)
+  State_Chm%SpeciesVec(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1) = Int2Spc(I)%Internal(:,:,:)
      ENDIF
      !IF ( MAPL_am_I_Root() ) WRITE(*,*) 'Copying from internal: ',I,Int2Spc(I)%ID,MINVAL(Int2Spc(I)%Internal(:,:,:)),MAXVAL(Int2Spc(I)%Internal(:,:,:)),SUM(Int2Spc(I)%Internal(:,:,:))/IM/JM/LM
   ENDDO

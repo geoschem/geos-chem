@@ -26,7 +26,7 @@ MODULE State_Chm_Mod
   USE PhysConstants                      ! Physical constants
   USE Precision_Mod                      ! GEOS-Chem precision types
   USE Registry_Mod                       ! Registry module
-  USE Species_Mod                        ! For species database object
+  USE Species_Mod                        ! For species database and conc objects
 
   IMPLICIT NONE
   PRIVATE
@@ -114,7 +114,8 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
+     TYPE(SpcConc),     POINTER :: SpeciesVec (:      ) ! Vector for species
+                                                        ! concentrations
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
@@ -272,6 +273,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
+     LOGICAL                    :: SIZE_RES
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -392,7 +394,7 @@ CONTAINS
 
     ! Species-based quantities
     State_Chm%SpcData           => NULL()
-    State_Chm%Species           => NULL()
+    State_Chm%SpeciesVec        => NULL()
     State_Chm%Spc_Units         =  ''
     State_Chm%BoundaryCond      => NULL()
 
@@ -486,8 +488,9 @@ CONTAINS
     ! Flags to toggle sulfate-mod computations or KPP computations
     ! TRUE  = use sulfate_mod
     ! FALSE = use KPP computations
-    State_Chm%Do_SulfateMod_Cld     = .TRUE.
-    State_Chm%Do_SulfateMod_SeaSalt = .TRUE.
+    State_Chm%Do_SulfateMod_Cld     = .FALSE.
+    State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
+    State_Chm%Size_Res              = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -587,16 +590,14 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Decide how sulfur sea salt and cloud chemistry will be handled
+    ! Do sulfur sea-salt and in-cloud chemistry as part of the KPP-generated
+    ! chemical mechanism for all full-chemistry simulations.  For aerosol-
+    ! only simulations, do the sulfur chemistry rxns in sulfate_mod.
     !========================================================================
-
-    ! Always compute sulfur sea salt chemistry in sulfate_mod
-    ! NOTE: This will be activated later, after validation
-    State_Chm%Do_SulfateMod_Seasalt = .TRUE.
-
-    ! Always compute sulfur cloud chemistry in sulfate_mod
-    ! NOTE: This will be activated later, after validation
-    State_Chm%Do_SulfateMod_Cld = .TRUE.
+!    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+!       State_Chm%Do_SulfateMod_Seasalt = .FALSE.
+!       State_Chm%Do_SulfateMod_Cld     = .FALSE.
+!    ENDIF
 
     !========================================================================
     ! Populate the species database object field
@@ -763,24 +764,19 @@ CONTAINS
        RETURN
     ENDIF
 
+
     !========================================================================
     ! Allocate and initialize chemical species fields
     !========================================================================
-    chmID = 'Species'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%Species,                                     &
-         nSlots     = State_Chm%nSpecies,                                    &
-         RC         = RC                                                    )
 
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! Allocate the array
+    ALLOCATE( State_Chm%SpeciesVec( State_Chm%nSpecies ), STAT=RC )
+    DO N = 1, State_Chm%nSpecies
+       ALLOCATE( State_Chm%SpeciesVec(N)%Conc( State_Grid%NX, &
+                                               State_Grid%NY, &
+                                               State_Grid%NZ ), STAT=RC )
+       State_Chm%SpeciesVec(N)%Conc = 0.0_f8
+    ENDDO
 
 #ifdef ADJOINT
     !========================================================================
@@ -1500,7 +1496,7 @@ CONTAINS
     !========================================================================
     ! Allocate and initialize fields only needed for FULLCHEM simulations
     !========================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM) THEN
 
        !---------------------------------------------------------------------
        ! KPPHvalue
@@ -1569,6 +1565,58 @@ CONTAINS
           ENDIF
        ENDDO
 
+       !------------------------------------------------------------------------
+       ! TOMS_MOD
+       ! Not registered to the registry as these are fields internal to the
+       ! toms_mod module state.
+       !------------------------------------------------------------------------
+       chmId = 'TO3_DAILY'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TO3_DAILY,                                &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'TOMS1'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TOMS1,                                    &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'TOMS2'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TOMS2,                                    &
+            noRegister = .TRUE.,                                             &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -2224,6 +2272,10 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
           C                       = ThisSpc%GasSpcId
+          !###
+          !### Uncomment for debug print if Map_GasSpc goes out-of-bounds
+          !### print*, '===> ', ThisSpc%Name, C, ThisSpc%ModelId
+          !###
           State_Chm%Map_GasSpc(C) = ThisSpc%ModelId
        ENDIF
 
@@ -2384,14 +2436,14 @@ CONTAINS
 
     ! Hg0, Hg2, HgP should all have the same number of categories as
     ! returned from the species database.  If not, there's an error.
-    IF ( SpcCount%nHg0 == SpcCount%nHg2 .and.                                &
-         SpcCount%nHg0 == SpcCount%nHgP        ) THEN
-       State_Chm%N_Hg_CATS = SpcCount%nHg0
-    ELSE
-       ErrMsg = 'Inconsistent number of Hg categories!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+!>>    IF ( SpcCount%nHg0 == SpcCount%nHg2 .and.                                &
+!>>         SpcCount%nHg0 == SpcCount%nHgP        ) THEN
+       State_Chm%N_Hg_CATS = 1 !SpcCount%nHg0
+!>>    ELSE
+!>>       ErrMsg = 'Inconsistent number of Hg categories!'
+!>>       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!>>       RETURN
+!>>    ENDIF
 
     ! Index array: Hg0 species # <--> Hg0 category #
     ALLOCATE( State_Chm%Hg0_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
@@ -2399,17 +2451,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Hg0_Id_List = 0
 
-    ! Index array: Hg2 species # <--> Hg0 category #
-    ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%Hg2_Id_List', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%Hg2_Id_List = 0
-
-    ! Index array: HgP species # <--> Hg0 category #
-    ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
-    CALL GC_CheckVar( 'State_Chm%HgP_Id_List', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Chm%HgP_Id_List = 0
+!>>    ! Index array: Hg2 species # <--> Hg0 category #
+!>>    ALLOCATE( State_Chm%Hg2_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+!>>    CALL GC_CheckVar( 'State_Chm%Hg2_Id_List', 0, RC )
+!>>    IF ( RC /= GC_SUCCESS ) RETURN
+!>>    State_Chm%Hg2_Id_List = 0
+!>>
+!>>    ! Index array: HgP species # <--> Hg0 category #
+!>>    ALLOCATE( State_Chm%HgP_Id_List( State_Chm%N_Hg_CATS ), STAT=RC )
+!>>    CALL GC_CheckVar( 'State_Chm%HgP_Id_List', 0, RC )
+!>>    IF ( RC /= GC_SUCCESS ) RETURN
+!>>    State_Chm%HgP_Id_List = 0
 
     ! Hg category names
     ALLOCATE( State_Chm%Hg_Cat_Name( State_Chm%N_Hg_CATS ), STAT=RC )
@@ -2581,6 +2633,59 @@ CONTAINS
          nSlots     = State_Chm%N_Hg_CATS,                                   &
          RC         = RC                                                    )
 
+    !------------------------------------------------------------------------
+    ! TOMS_MOD
+    ! Not registered to the registry as these are fields internal to the
+    ! toms_mod module state.
+    !------------------------------------------------------------------------
+    chmId = 'TO3_DAILY'
+    CALL Init_and_Register(                                               &
+         Input_Opt  = Input_Opt,                                          &
+         State_Chm  = State_Chm,                                          &
+         State_Grid = State_Grid,                                         &
+         chmId      = chmId,                                              &
+         Ptr2Data   = State_Chm%TO3_DAILY,                                &
+         noRegister = .TRUE.,                                             &
+         RC         = RC                                                 )
+    
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    
+    chmId = 'TOMS1'
+    CALL Init_and_Register(                                               &
+         Input_Opt  = Input_Opt,                                          &
+         State_Chm  = State_Chm,                                          &
+         State_Grid = State_Grid,                                         &
+         chmId      = chmId,                                              &
+         Ptr2Data   = State_Chm%TOMS1,                                    &
+         noRegister = .TRUE.,                                             &
+         RC         = RC                                                 )
+    
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    
+    chmId = 'TOMS2'
+    CALL Init_and_Register(                                               &
+         Input_Opt  = Input_Opt,                                          &
+         State_Chm  = State_Chm,                                          &
+         State_Grid = State_Grid,                                         &
+         chmId      = chmId,                                              &
+         Ptr2Data   = State_Chm%TOMS2,                                    &
+         noRegister = .TRUE.,                                             &
+         RC         = RC                                                 )
+    
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2627,7 +2732,7 @@ CONTAINS
 !
 ! !LOCAL VARAIBLES
 !
-    ! Strings
+    INTEGER            :: N
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -2752,11 +2857,18 @@ CONTAINS
        State_Chm%Map_WL => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Species ) ) THEN
-       DEALLOCATE( State_Chm%Species, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
+    IF ( ASSOCIATED ( State_Chm%SpeciesVec ) ) THEN
+       DO N = 1, State_Chm%nSpecies
+          IF ( ASSOCIATED( State_Chm%SpeciesVec(N)%Conc ) ) THEN
+             DEALLOCATE( State_Chm%SpeciesVec(N)%Conc, STAT=RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+             State_Chm%SpeciesVec(N)%Conc => NULL()
+          ENDIF
+       ENDDO
+       DEALLOCATE( State_Chm%SpeciesVec )
+       CALL GC_CheckVar( 'State_Chm%SpeciesVec', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Species => NULL()
+       State_Chm%SpeciesVec => NULL()    
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
@@ -4849,12 +4961,18 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Hg simulation quantities
        !---------------------------------------------------------------------
+ 
+!>>       ! Append the category name to the diagnostic name
+!>>       diagName = TRIM( name ) // TRIM( State_Chm%Hg_Cat_Name(N) )
+!>>
+!>>       ! Append the category name to the description
+!>>       diagDesc = TRIM( desc ) // TRIM( State_Chm%Hg_Cat_Name(N) )
 
-       ! Append the category name to the diagnostic name
-       diagName = TRIM( name ) // TRIM( State_Chm%Hg_Cat_Name(N) )
+       ! Append the species name to the diagnostic name with an underscore
+       diagName = TRIM( name )! // '_' // TRIM( State_Chm%Hg_Cat_Name(N) )
 
-       ! Append the category name to the description
-       diagDesc = TRIM( desc ) // TRIM( State_Chm%Hg_Cat_Name(N) )
+       ! Append the species name to the diagnostic description
+       diagDesc = TRIM( desc )! // ' ' // TRIM( State_Chm%Hg_Cat_Name(N) )
 
     ELSE
 
@@ -6193,7 +6311,7 @@ CONTAINS
     !=======================================================================
     ! Get the number of prod and loss species depending on the simulation
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !------------------------------
        ! Full-chemistry simulations
@@ -6304,7 +6422,7 @@ CONTAINS
     !=======================================================================
     ! Get the number of prod and loss species depending on the simulation
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Full-chemistry simulations

@@ -16,4 +16,8 @@ OutputDir/HEMCO_diagnostics*
 CodeDir
 build
 Plots
+Results
+BenchmarkResults
 rundir.version
+runScriptSamples
+README

@@ -343,6 +343,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -394,8 +395,8 @@ CONTAINS
     REAL(fp) :: PP(State_Grid%NX,State_Grid%NY, State_grid%NZ, N_TAGGED)
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-    REAL(fp), POINTER :: P24Hptr(:,:,:)
+    REAL(fp),      POINTER :: P24Hptr(:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
@@ -414,7 +415,7 @@ CONTAINS
     nAdvect   =  State_Chm%nAdvect
 
     ! Pointers
-    Spc       => State_Chm%Species   ! Points to chemical species [kg]
+    Spc       => State_Chm%SpeciesVec   ! Points to chemical species vectors
 
     ! Chemistry timestep [s]
     DTCHEM    =  GET_TS_CHEM()
@@ -531,7 +532,7 @@ CONTAINS
           ! Prevent denormal numbers (bmy, 01 Oct 2021
           LL = 0.0_fp
           IF ( State_Met%InTroposphere(I,J,L) ) THEN
-             LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
+             LL = Spc(N)%Conc(I,J,L) * L24H(I,J,L) * BOXVL * DT
              LL = MAX( LL, 1.0e-30_fp )
           ENDIF
 
@@ -554,17 +555,17 @@ CONTAINS
 
           ! Loss of tagged O3 species [kg/s]
           IF ( State_Diag%Archive_Loss ) THEN
-             State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L) &
+             State_Diag%Loss(I,J,L,N) = Spc(N)%Conc(I,J,L) * L24H(I,J,L) &
                                         * BOXVL / TS_EMIS
           ENDIF
 
           !===========================================================
           ! Apply chemical P(O3) - L(O3) to each tagged species
           !===========================================================
-          Spc(I,J,L,N) = Spc(I,J,L,N) + PP(I,J,L,N) - LL
+          Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) + PP(I,J,L,N) - LL
 
           ! Prevent denormal values (bmy, 10/1/21)
-          IF ( Spc(I,J,L,N) < 1.0e-30_fp ) Spc(I,J,L,N) = 0.0_fp
+          IF ( Spc(N)%Conc(I,J,L) < 1.0e-30_fp ) Spc(N)%Conc(I,J,L) = 0.0_fp
 
        ENDDO
        ENDDO

@@ -3,7 +3,7 @@
 #SBATCH -n 96
 #SBATCH -N 2
 #SBATCH --exclusive
-#SBATCH -t 0-20:00
+#SBATCH -t 0-8:00
 #SBATCH -p huce_cascade
 #SBATCH --mem=180000
 #SBATCH --mail-type=END

@@ -519,7 +519,7 @@ CONTAINS
                                Item     = Current%Item,                      &
                                VarUnits = VarUnits                          )
 
-          ! Replace "TBD"  with the current units of State_Chm%Species
+          ! Replace "TBD"  with the current units of State_Chm%SpeciesVec(:)%Conc
           IF ( TRIM( VarUnits ) == 'TBD' ) THEN
              VarUnits = Container%Spc_Units
           ENDIF

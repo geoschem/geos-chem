@@ -437,7 +437,7 @@ CONTAINS
     USE ERROR_MOD,      ONLY : DEBUG_MSG
     USE ERROR_MOD,      ONLY : SAFE_DIV
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE Species_Mod,    ONLY : Species
+    USE Species_Mod,    ONLY : Species, SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -640,7 +640,7 @@ CONTAINS
     REAL(fp)            :: DENOM
 
     ! Pointers
-    REAL(fp),      POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
     TYPE(Species), POINTER :: ThisSpc
 
     !=================================================================
@@ -660,8 +660,8 @@ CONTAINS
     LNLPBL    = Input_Opt%LNLPBL
     LGTMM     = Input_Opt%LGTMM
 
-    ! Point to the chemical species array [kg]
-    Spc       => State_Chm%Species
+    ! Point to the chemical species vector
+    Spc       => State_Chm%SpeciesVec
 
     ! Pointer for the species database object
     ThisSpc   => NULL()
@@ -875,11 +875,11 @@ CONTAINS
        ! GAS-PARTICLE PARTITIONING
        !==============================================================
 
-       OLD_POPG      = MAX( Spc(I,J,L,id_POPG),     SMALLNUM ) ![kg]
-       OLD_POPP_OCPO = MAX( Spc(I,J,L,id_POPPOCPO), SMALLNUM ) ![kg]
-       OLD_POPP_BCPO = MAX( Spc(I,J,L,id_POPPBCPO), SMALLNUM ) ![kg]
-       OLD_POPP_OCPI = MAX( Spc(I,J,L,id_POPPOCPI), SMALLNUM ) ![kg]
-       OLD_POPP_BCPI = MAX( Spc(I,J,L,id_POPPBCPI), SMALLNUM ) ![kg]
+       OLD_POPG      = MAX( Spc(id_POPG    )%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_OCPO = MAX( Spc(id_POPPOCPO)%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_BCPO = MAX( Spc(id_POPPBCPO)%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_OCPI = MAX( Spc(id_POPPOCPI)%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_BCPI = MAX( Spc(id_POPPBCPI)%Conc(I,J,L), SMALLNUM ) ![kg]
 
        ! Total POPs in box I,J,L
        OLD_POP_T = OLD_POPG      + &
@@ -1075,8 +1075,8 @@ CONTAINS
        MPOP_BCPO = MPOP_BC * EXP( -FOLD )
 
        ! Hydrophilic particulate POP already existing
-       MPOP_OCPI = MAX( Spc(I,J,L,id_POPPOCPI), SMALLNUM )  ![kg]
-       MPOP_BCPI = MAX( Spc(I,J,L,id_POPPBCPI), SMALLNUM )  ![kg]
+       MPOP_OCPI = MAX( Spc(id_POPPOCPI)%Conc(I,J,L), SMALLNUM )  ![kg]
+       MPOP_BCPI = MAX( Spc(id_POPPBCPI)%Conc(I,J,L), SMALLNUM )  ![kg]
 
        ! Hydrophilic POP that used to be hydrophobic
        NEW_OCPI = MPOP_OC - MPOP_OCPO
@@ -1303,11 +1303,11 @@ CONTAINS
        NEW_POPP_BCPI = MAX( NEW_POPP_BCPI, SMALLNUM )
 
        ! Archive new POPG and POPP values [kg]
-       Spc(I,J,L,id_POPG)     = NEW_POPG
-       Spc(I,J,L,id_POPPOCPO) = NEW_POPP_OCPO
-       Spc(I,J,L,id_POPPBCPO) = NEW_POPP_BCPO
-       Spc(I,J,L,id_POPPOCPI) = NEW_POPP_OCPI
-       Spc(I,J,L,id_POPPBCPI) = NEW_POPP_BCPI
+       Spc(id_POPG    )%Conc(I,J,L) = NEW_POPG
+       Spc(id_POPPOCPO)%Conc(I,J,L) = NEW_POPP_OCPO
+       Spc(id_POPPBCPO)%Conc(I,J,L) = NEW_POPP_BCPO
+       Spc(id_POPPOCPI)%Conc(I,J,L) = NEW_POPP_OCPI
+       Spc(id_POPPBCPI)%Conc(I,J,L) = NEW_POPP_BCPI
 
        ! Net oxidation [kg] (equal to gross ox for now)
        NET_OX      = MPOP_G    - NEW_POPG      - DEP_POPG

@@ -71,8 +71,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.frequency:      {FREQUENCY}
-  SpeciesConc.duration:       {DURATION}
+  SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
 ::
@@ -86,8 +86,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.frequency:    {FREQUENCY}
-  Budget.duration:     {DURATION}
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
   Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
                        'BudgetEmisDryDepTrop_?ADV?           ',  
@@ -116,8 +116,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.frequency:    {FREQUENCY}
-  CloudConvFlux.duration:     {DURATION}
+  CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CloudConvFlux.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
 ::
@@ -134,8 +134,8 @@ COLLECTIONS: 'Restart',
 # (3) This collection is best used with mode "instantaneous".
 #==============================================================================
   ConcAboveSfc.template:      '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAboveSfc.frequency:     {FREQUENCY}
-  ConcAboveSfc.duration:      {DURATION}
+  ConcAboveSfc.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ConcAboveSfc.duration:      ${RUNDIR_HIST_TIME_AVG_DUR}
   ConcAboveSfc.mode:          'instantaneous'
   ConcAboveSfc.fields:        'DryDepRaALT1                  ',
                               'DryDepVelForALT1_?DRYALT?     ',
@@ -149,8 +149,8 @@ COLLECTIONS: 'Restart',
 # Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  DryDep.frequency:           {FREQUENCY}
-  DryDep.duration:            {DURATION}
+  DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
+  DryDep.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   DryDep.mode:                'time-averaged'
   DryDep.fields:              'DryDepVel_?DRY?               ',
                               'DryDep_?DRY?                  ',
@@ -165,8 +165,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   {FREQUENCY}
-  LevelEdgeDiags.duration:    {DURATION}
+  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
   LevelEdgeDiags.mode:        'time-averaged'
   LevelEdgeDiags.fields:      'Met_CMFMC                     ',
                               'Met_PEDGE                     ',
@@ -184,8 +184,8 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  ProdLoss.frequency:         {FREQUENCY}
-  ProdLoss.duration:          {DURATION}
+  ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   ProdLoss.mode:              'time-averaged'
   ProdLoss.fields:            'Prod_?PRD?                    ', 
                               'Loss_?LOS?                    ',
@@ -198,8 +198,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet.frequency:         {FREQUENCY}
-  StateMet.duration:          {DURATION}
+  StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMet.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   StateMet.mode:              'time-averaged'
   StateMet.fields:            'Met_AD                        ',
                               'Met_AIRDEN                    ',

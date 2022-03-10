@@ -82,7 +82,8 @@ ${NEW_LINE}"
 #============================================================================
 #### Define function to update config file default settings based on
 #### simulation selected. All settings changed in this function are common
-#### between GEOS-Chem Classic and GCHP.
+#### between GEOS-Chem Classic and GCHP. This script mainly now adds species
+###  to input.geos and modifies diagnostic output based on simulation type.
 ####
 #### Argument: Extra option for full-chemistry simulation (string)
 #============================================================================
@@ -108,13 +109,7 @@ function set_common_settings() {
     # Benchmark settings
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-        replace_colon_sep_val '--> OFFLINE_DUST'        false HEMCO_Config.rc
-        replace_colon_sep_val '--> OFFLINE_BIOGENICVOC' false HEMCO_Config.rc
-        replace_colon_sep_val '--> OFFLINE_SEASALT'     false HEMCO_Config.rc
-        replace_colon_sep_val '--> OFFLINE_SOILNOX'     false HEMCO_Config.rc
-        sed_ie 's|DustDead               : off|DustDead               : on |' HEMCO_Config.rc
-        sed_ie 's|SoilNOx                : off|SoilNOx                : on |' HEMCO_Config.rc
-        sed_ie 's|SeaSalt                : off|SeaSalt                : on |' HEMCO_Config.rc
+
         sed_ie 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
 	sed_ie 's|SALA  0      3 |SALA  107    -1|'   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
 	sed_ie 's|SALC  0      3 |SALC  107    -1|'   HEMCO_Diagn.rc   #   "   "
@@ -140,7 +135,11 @@ function set_common_settings() {
     # Standard settings
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xnone" ]]; then
-	sed_ie 's/@//' HISTORY.rc
+
+        # Remove @ from HISTORY diagnostic fields & uncomment default collection
+        sed_ie 's|@||'                                 HISTORY.rc
+        sed_ie "s|#'Default|'Default|"                 HISTORY.rc
+
     fi
 
     #------------------------------------------------------------------------
@@ -149,9 +148,6 @@ function set_common_settings() {
     if [[ "x${sim_extra_option}" == "xbenchmark" ]] || \
        [[ ${sim_extra_option}    =~ "complexSOA" ]] || \
        [[ "x${sim_extra_option}" == "xAPM"       ]]; then
-
-        # Turn on complex SOA option in input.geos
-        replace_colon_sep_val 'Online COMPLEX SOA' T input.geos
 
 	# Add complex SOA species ASOA* and ASOG* following ALK4
         prev_line='Species name            : ALK4'
@@ -192,9 +188,6 @@ Species name            : TSOG3
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ]]; then
 
-        # Turn on semivolatile POA option in input.geos
-        replace_colon_sep_val '=> Semivolatile POA?' T input.geos
-
 	# Remove non-SVPOA species from input.geos
         remove_text 'Species name            : OCPI' input.geos
         remove_text 'Species name            : OCPO' input.geos
@@ -230,8 +223,6 @@ Species name            : POG2
     # Acid uptake settings
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xaciduptake" ]]; then
-        replace_colon_sep_val 'DustAlk' on HEMCO_Config.rc
-        replace_colon_sep_val '=> Acidic uptake ?' T input.geos
 
         # Add DSTAL* species after DST4
         prev_line='Species name            : DST4'
@@ -270,8 +261,6 @@ Species name            : SO4D4
     # Marine POA settings
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xmarinePOA" ]]; then
-        replace_colon_sep_val 'SeaSalt'                 on HEMCO_Config.rc
-        replace_colon_sep_val ' => MARINE ORG AEROSOLS' T  input.geos
 
         # Add MOP* species following MONITU
         prev_line='Species name            : MONITU'
@@ -289,13 +278,6 @@ Species name            : MOPO
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xRRTMG" ]]; then
 
-        replace_colon_sep_val 'Turn on RRTMG?'       T input.geos
-        replace_colon_sep_val 'Calculate LW fluxes?' T input.geos
-        replace_colon_sep_val 'Calculate SW fluxes?' T input.geos
-        replace_colon_sep_val 'Clear-sky flux?'      T input.geos
-        replace_colon_sep_val 'All-sky flux?'        T input.geos
-        replace_colon_sep_val '--> RRTMG'         true HEMCO_Config.rc
-
 	# Remove @ from HISTORY diagnostic fields & uncomment RRTMG collection
 	sed_ie 's|@||'                                 HISTORY.rc
         sed_ie "s|##'RRTMG'|'RRTMG'|"                  HISTORY.rc
@@ -310,14 +292,6 @@ Species name            : MOPO
     # TOMAS settings
     #------------------------------------------------------------------------
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-        replace_colon_sep_val ' => Use non-local PBL?'   F    input.geos
-        replace_colon_sep_val 'Use linear. strat. chem?' F    input.geos
-        replace_colon_sep_val '=> Online O3 from model'  F    input.geos
-
-	# Turn on TOMAS size-resolved dust & seasalt extensions
-	sed_ie 's/DustDead               : on /DustDead               : off/' HEMCO_Config.rc
-	sed_ie 's/TOMAS_DustDead         : off/TOMAS_DustDead         : on /' HEMCO_Config.rc
-	sed_ie 's/TOMAS_Jeagle           : off/TOMAS_Jeagle           : on /' HEMCO_Config.rc
 
 	# Remove extra species in extension settings for TOMAS15 simulations
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then

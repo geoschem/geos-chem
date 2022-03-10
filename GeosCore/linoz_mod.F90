@@ -190,6 +190,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW, AVO
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
@@ -234,7 +235,7 @@ CONTAINS
 
     ! We need to define local arrays to hold corresponding values
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Define local arrays to hold the previously global TLSTT array
     ! from the State_Chm object. (hplin, 1/22/19)
@@ -265,7 +266,7 @@ CONTAINS
     L_OVERWRLD = 0
 
     ! Point to chemical species array [v/v dry air]
-    Spc        => State_Chm%Species
+    Spc        => State_Chm%SpeciesVec
 
     ! Point to the TLSTT array
     TLSTT      => State_Chm%TLSTT
@@ -316,7 +317,7 @@ CONTAINS
     ! Perform stratospheric chemistry
     !=================================================================
 
-    ! **** note dbj: check Spc(I,J,20:State_Grid%NZ,NTRACER) = with trop level
+    ! **** note dbj: check Spc(NTRACER)%Conc(I,J,20:State_Grid%NZ) = with trop level
     ! ****         : check DMASS
     DO ITRC = 1, NUM_TRACER
 
@@ -375,8 +376,8 @@ CONTAINS
           ! dbj: for now, set tagged stratospheric tracer to total
           ! O3 in the overworld to avoid issues with spin ups
           IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-             Spc(I,J,(L_OVERWRLD+1):State_Grid%NZ,NTRACER) = &
-                  Spc(I,J,(L_OVERWRLD+1):State_Grid%NZ,1)
+             Spc(NTRACER)%Conc(I,J,(L_OVERWRLD+1):State_Grid%NZ) = &
+                  Spc(1)%Conc(I,J,(L_OVERWRLD+1):State_Grid%NZ)
           ENDIF
 #endif
           !IF ( prtDebug ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
@@ -386,13 +387,13 @@ CONTAINS
           DO L = LM, LBOT, -1
 
              !IF ( prtDebug ) THEN
-             !   PRINT*, '### Spc: ', Spc(I,J,L,NTRACER)
+             !   PRINT*, '### Spc: ', Spc(NTRACER)%Conc(I,J,L)
              !   CALL FLUSH(6)
              !ENDIF
 
              ! Skip if tracer is negative
              ! SDE 2016-04-06: Changed from LE to LT
-             IF ( Spc(I,J,L,NTRACER) .LT. 0.e+0_fp ) CYCLE
+             IF ( Spc(NTRACER)%Conc(I,J,L) .LT. 0.e+0_fp ) CYCLE
 
              ! calculate ozone column above box (and save)
              ! dcolo3 = ozone column (in DU) in given layer
@@ -401,7 +402,7 @@ CONTAINS
 
              ! bdf Spc is in v/v, make conversion to DU
              if (l.eq.lm) then !top model layer
-                dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *             &
+                dcolo3(i,j,l) = (Spc(NTRACER)%Conc(i,j,l) *       &
                       State_Met%AD(I,J,L) / ( AIRMW               &
                       / State_Chm%SpcData(NTRACER)%Info%MW_g ))   &
                       / ( State_Grid%Area_M2(I,J) * 1e+4_fp )     &
@@ -410,7 +411,7 @@ CONTAINS
                       *1e-3_fp) / 2.687e+16_fp
                 colo3(i,j,l) = dcolo3(i,j,l)*0.5
              else
-                dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *             &
+                dcolo3(i,j,l) = (Spc(NTRACER)%Conc(i,j,l) *       &
                       State_Met%AD(I,J,L) / ( AIRMW               &
                       / State_Chm%SpcData(NTRACER)%Info%MW_g ))   &
                       / ( State_Grid%Area_M2(I,J) * 1e+4_fp )     &
@@ -443,18 +444,18 @@ CONTAINS
 
              ! ++++++ change in ozone mass due to chemistry: ++++++
              !ssO3 = f^*
-             dmass=(sso3-Spc(I,J,L,NTRACER))*(1.0-exp(dero3*dtchem))
+             dmass=(sso3-Spc(NTRACER)%Conc(I,J,L))*(1.0-exp(dero3*dtchem))
 
              ! ++++++ update ozone mass ++++++
              ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
              ! dbj: impose exponential fall off of mixing ratio
              ! between 0.3 and 0.01 hPa (with fall off of a scale height)
              IF (State_Met%PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
-                Spc(I,J,L,NTRACER) = &
+                Spc(NTRACER)%Conc(I,J,L) = &
                      (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1))  &
-                     * Spc(I,J,LPOS-1,NTRACER)
+                     * Spc(NTRACER)%Conc(I,J,LPOS-1)
              ELSE
-                Spc(I,J,L,NTRACER) = Spc(I,J,L,NTRACER)+DMASS
+                Spc(NTRACER)%Conc(I,J,L) = Spc(NTRACER)%Conc(I,J,L)+DMASS
              ENDIF
 
           ENDDO       ! loop over L

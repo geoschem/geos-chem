@@ -65,12 +65,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_Interface_GC_Mod, ONLY : HCoi_GC_Init
-    USE HCO_Types_Mod,      ONLY : ConfigObj
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Types_Mod,        ONLY : ConfigObj
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -143,23 +143,22 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CARBON_MOD,         ONLY : EMISSCARBON
-    USE CO2_MOD,            ONLY : EMISSCO2
+    USE CARBON_MOD,            ONLY : EMISSCARBON
+    USE CO2_MOD,               ONLY : EMISSCO2
     USE ErrCode_Mod
-    USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_RUN
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE GLOBAL_CH4_MOD,        ONLY : EMISSCH4
+    USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_RUN
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE Precision_Mod
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE Time_Mod,           ONLY : Get_Ts_Emis
-    Use SfcVmr_Mod,         Only : FixSfcVmr_Run
-    USE MERCURY_MOD,        ONLY : EMISSMERCURY
+    USE State_Chm_Mod,         ONLY : ChmState
+    USE State_Diag_Mod,        ONLY : DgnState
+    USE State_Grid_Mod,        ONLY : GrdState
+    USE State_Met_Mod,         ONLY : MetState
+    USE Time_Mod,              ONLY : Get_Ts_Emis
+    Use SfcVmr_Mod,            ONLY : FixSfcVmr_Run
 #ifdef TOMAS
-    USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
-    USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
+    USE CARBON_MOD,            ONLY : EMISSCARBONTOMAS !jkodros
+    USE SULFATE_MOD,           ONLY : EMISSSULFATETOMAS !jkodros
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -287,19 +286,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! For mercury, use old emissions code for now
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissMercury"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        ! Set other (non-UCX) fixed VMRs
@@ -405,7 +391,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -451,7 +437,7 @@ CONTAINS
     CHARACTER(LEN=512)         :: ErrMsg
 
     ! Pointers
-    REAL(fp),        POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc),   POINTER   :: Spc(:)
     TYPE(Species),   POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
@@ -469,7 +455,7 @@ CONTAINS
     ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
 
     ! Point to chemical species array [kg/kg dry air]
-    Spc        => State_Chm%Species
+    Spc        => State_Chm%SpeciesVec
 
     ! Number of advected species
     nAdvect     = State_Chm%nAdvect
@@ -512,7 +498,7 @@ CONTAINS
 
              ! Compute mol of Tracer needed to achieve the desired value
              Total_Spc = Total_Spc + &
-                ( GlobalBurden - State_Chm%Species(I,J,L,N)) * &
+                ( GlobalBurden - State_Chm%SpeciesVec(N)%Conc(I,J,L) ) * &
                 (State_Met%AIRNUMDEN(I,J,L)/ AVO) * State_Met%AIRVOL(I,J,1)
 
              ! To distribute it uniformly on the surface, compute the total
@@ -539,7 +525,7 @@ CONTAINS
           Flux(:,:) = ( Total_Spc / Total_Area ) * MASK(:,:)
 
           ! Update species concentrations [mol/mol]
-          Spc(:,:,1,N) = Spc(:,:,1,N) + Flux(:,:) * &
+          Spc(N)%Conc(:,:,1) = Spc(N)%Conc(:,:,1) + Flux(:,:) * &
              AVO / ( State_Met%BXHEIGHT(:,:,1) * State_Met%AIRNUMDEN(:,:,1) )
 
        ENDIF ! MMR tracer

@@ -3,7 +3,7 @@
 # Configuration file for the download_data.py script.
 # You should not have to modify this file unless a new data mirror
 # comes online, or the default restart files are updated.
-# 
+#
 mirrors:
   amazon:
     short_name: aws
@@ -15,7 +15,7 @@ mirrors:
     short_name: cc
     s3_bucket: False
     remote: http://geoschemdata.computecanada.ca/ExtData
-    command:  'wget -r -np -nH -R "*.html" -N -P @PATH@ ' 
+    command:  'wget -r -np -nH -R "*.html" -N -P @PATH@ '
     quote: '"'
   rochester:
     short_name: ur
@@ -38,11 +38,14 @@ restarts:
   fullchem:
     remote: v2021-09/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     local: GEOSChem.Restart.20190701_0000z.nc4
+  mercury:
+    remote: v2021-12/GEOSChem.Restart.Hg.20190101_0000z.nc4
+    local: GEOSChem.Restart.20190101_0000z.nc4
   tomas15:
-    remote: v2021-09/GEOSChem.Restart.TOMAS15.20190701_0000z.nc4
+    remote: v2021-12/GEOSChem.Restart.TOMAS15.20190701_0000z.nc4
     local: GEOSChem.Restart.20190701_0000z.nc4
   tomas40:
-    remote: v2021-09/GEOSChem.Restart.TOMAS40.20190701_0000z.nc4
+    remote: v2021-12/GEOSChem.Restart.TOMAS40.20190701_0000z.nc4
     local: GEOSChem.Restart.20190701_0000z.nc4
   transporttracers:
     remote: GC_13.0.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4

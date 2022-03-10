@@ -26,7 +26,7 @@
 ### BEGIN SECTION SETTINGS
 ###############################################################################
 
-ROOT:                        {DATA_ROOT}/HEMCO
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      not_used
 Logfile:                     HEMCO.log
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics

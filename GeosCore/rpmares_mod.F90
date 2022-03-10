@@ -65,6 +65,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AIRMW
+    USE Species_Mod,          ONLY : SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
     USE State_Grid_Mod,       ONLY : GrdState
@@ -115,9 +116,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: X, ErrMsg, ThisLoc
 
     ! Pointers
-    ! We need to define local arrays to hold corresponding values
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Local array for HNO3 from HEMCO
     REAL(fp) :: HCO_HNO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -187,7 +186,7 @@ CONTAINS
     ENDIF
 
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     !=================================================================
     ! Get equilibrium values of water, ammonium  and nitrate content
@@ -210,16 +209,16 @@ CONTAINS
 
        ! Convert sulfate, ammonimum, gaseous NH3, gaseous HNO3,
        ! and aerosol NO3  from [kg] to [ug/m3].
-       SO4   = MAX( Spc(I,J,L,id_SO4) * 1.e+9_fp / AVOL, CONMIN )
-       GNH3  = MAX( Spc(I,J,L,id_NH3) * 1.e+9_fp / AVOL, CONMIN )
-       ANH4  = MAX( Spc(I,J,L,id_NH4) * 1.e+9_fp / AVOL, CONMIN )
-       ANO3  = MAX( Spc(I,J,L,id_NIT) * 1.e+9_fp / AVOL, CONMIN )
+       SO4   = MAX( Spc(id_SO4)%Conc(I,J,L) * 1.e+9_fp / AVOL, CONMIN )
+       GNH3  = MAX( Spc(id_NH3)%Conc(I,J,L) * 1.e+9_fp / AVOL, CONMIN )
+       ANH4  = MAX( Spc(id_NH4)%Conc(I,J,L) * 1.e+9_fp / AVOL, CONMIN )
+       ANO3  = MAX( Spc(id_NIT)%Conc(I,J,L) * 1.e+9_fp / AVOL, CONMIN )
 
        ! For coupled simulations, use HNO3 tracer from Spc array.
        ! For offline simulations, call GET_HNO3, which lets HNO3
        ! conc's evolve, but relaxes to monthly mean values every 3h.
        IF ( id_HNO3 > 0 ) THEN
-          GNO3 = MAX( Spc(I,J,L,id_HNO3) * 1.e+9_fp / AVOL, CONMIN )
+          GNO3 = MAX( Spc(id_HNO3)%Conc(I,J,L) * 1.e+9_fp / AVOL, CONMIN )
        ELSE
           ! Offline simulation
           ! Relax to monthly mean HNO3 concentrations every 3 hours
@@ -255,14 +254,14 @@ CONTAINS
        ! Convert modified concentrations from [ug/m3] to [kg]
        ! for ammonium, ammonia, nitric acid (g), and Nitrate
        ! NOTE: We don't modify the total sulfate mass.
-       Spc(I,J,L,id_NH3) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )
-       Spc(I,J,L,id_NH4) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )
-       Spc(I,J,L,id_NIT) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )
+       Spc(id_NH3)%Conc(I,J,L) = MAX( GNH3 * AVOL * 1.e-9_fp, CONMIN )
+       Spc(id_NH4)%Conc(I,J,L) = MAX( ANH4 * AVOL * 1.e-9_fp, CONMIN )
+       Spc(id_NIT)%Conc(I,J,L) = MAX( ANO3 * AVOL * 1.e-9_fp, CONMIN )
 
        ! For coupled runs, convert HNO3 [kg] and store in Spc.
        ! For offline runs, save evolving HNO3 [ug/m3] for next timestep.
        IF ( id_HNO3 > 0 ) THEN
-          Spc(I,J,L,id_HNO3) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )
+          Spc(id_HNO3)%Conc(I,J,L) = MAX( GNO3 * AVOL * 1.e-9_fp, CONMIN )
        ELSE
           CALL SET_HNO3( I, J, L, GNO3 )
        ENDIF

@@ -1,28 +1,28 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : {DATE1} {TIME1}
-End   YYYYMMDD, hhmmss  : {DATE2} {TIME2}
+Start YYYYMMDD, hhmmss  : ${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}
+End   YYYYMMDD, hhmmss  : ${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}
 Run directory           : ./
-Root data directory     : {DATA_ROOT}
-Met field               : {MET}
-Simulation name         : {SIM}
+Root data directory     : ${RUNDIR_DATA_ROOT}
+Met field               : ${RUNDIR_MET}
+Simulation name         : ${RUNDIR_SIM_NAME}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
-Use GC classic timers?  : F
+Use GC classic timers?  : ${RUNDIR_USE_GCCLASSIC_TIMERS}
 ------------------------+------------------------------------------------------
 %%% GRID MENU %%%       :
-Grid resolution         : {RES}
-Longitude min/max       : {LON_RANGE}
- Center on 180E/W?      : {CENTER_180}
-Latitude  min/max       : {LAT_RANGE}
- Half-sized polar boxes?: {HALF_POLAR}
-Number of levels        : {NLEV}
-Nested grid simulation? : {NESTED_SIM}
- Buffer zone (N S E W ) :  {BUFFER_ZONE}
+Grid resolution         : ${RUNDIR_GRID_RES_LONG}
+Longitude min/max       : ${RUNDIR_GRID_LON_RANGE}
+ Center on 180E/W?      : ${RUNDIR_CENTER_LON_180}
+Latitude  min/max       : ${RUNDIR_GRID_LAT_RANGE}
+ Half-sized polar boxes?: ${RUNDIR_GRID_HALF_POLAR}
+Number of levels        : ${RUNDIR_GRID_NLEV}
+Nested grid simulation? : ${RUNDIR_GRID_NESTED_SIM}
+ Buffer zone (N S E W ) : ${RUNDIR_GRID_BUFFER_ZONE}
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
-Tran/conv timestep [sec]: 600
-Chem/emis timestep [sec]: 1200
+Tran/conv timestep [sec]: ${RUNDIR_TRANSPORT_TS}
+Chem/emis timestep [sec]: ${RUNDIR_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : AlF1
@@ -116,7 +116,7 @@ Overhead O3 for FAST-JX :---
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550
