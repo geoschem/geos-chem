@@ -566,17 +566,8 @@ CONTAINS
 
        ELSE
 
-          IF ( Input_Opt%LUCX ) THEN
-
-             ! UCX mechanisms: Chemistry grid goes up to stratopause
-             State_Met%InChemGrid(I,J,L) = ( L <= State_Grid%MaxChemLev )
-
-          ELSE
-
-             ! "tropchem" mechanisms: Chemistry grid goes up to tropopause
-             State_Met%InChemGrid(I,J,L) = State_Met%InTroposphere(I,J,L)
-
-          ENDIF
+          ! Chemistry grid goes up to stratopause
+          State_Met%InChemGrid(I,J,L) = ( L <= State_Grid%MaxChemLev )
 
        ENDIF
 

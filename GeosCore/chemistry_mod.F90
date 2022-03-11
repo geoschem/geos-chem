@@ -70,13 +70,11 @@ CONTAINS
     USE DUST_MOD,        ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FlexChem_Mod,    ONLY : Do_FlexChem
+    USE FullChem_Mod,    ONLY : Do_FullChem
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
     USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
-    ! The CPP statement simply reflect the dependence in
-    ! these two modules on other code incompatible with
-    ! the coupling of FullChem to CESM - MSL 1-18-18
+    USE LINEAR_CHEM_MOD, ONLY : DO_LINEAR_CHEM
     USE MERCURY_MOD,     ONLY : CHEMMERCURY
     USE POPS_MOD,        ONLY : CHEMPOPS
     USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
@@ -88,7 +86,6 @@ CONTAINS
     USE State_Diag_Mod,  ONLY : DgnState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
-    USE STRAT_CHEM_MOD,  ONLY : DO_STRAT_CHEM
     USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
     USE TAGGED_O3_MOD,   ONLY : CHEM_TAGGED_O3
     USE TIME_MOD,        ONLY : GET_ELAPSED_SEC
@@ -147,15 +144,14 @@ CONTAINS
     LOGICAL            :: LCARB
     LOGICAL            :: LCHEM
     LOGICAL            :: LDUST
-    LOGICAL            :: LSCHEM
+    LOGICAL            :: LINEAR_CHEM
     LOGICAL            :: LSSALT
     LOGICAL            :: LSULF
     LOGICAL            :: LSOA
     LOGICAL            :: LNLPBL
-    LOGICAL            :: LUCX
     LOGICAL            :: prtDebug
     INTEGER            :: TS_Chem
-    REAL(f8)           :: DT_Chem
+    REAL(f8)           :: DT_Chem, sDTFC, fDTFC
 #ifdef APM
     INTEGER            :: I,J,L
     REAL*8             :: CONCTMPSO4(State_Grid%NX,                         &
@@ -183,12 +179,11 @@ CONTAINS
     LCARB                    = Input_Opt%LCARB
     LCHEM                    = Input_Opt%LCHEM
     LDUST                    = Input_Opt%LDUST
-    LSCHEM                   = Input_Opt%LSCHEM
+    LINEAR_CHEM              = Input_Opt%LINEAR_CHEM
     LSSALT                   = Input_Opt%LSSALT
     LSULF                    = Input_Opt%LSULF
     LSOA                     = Input_Opt%LSOA
     LNLPBL                   = Input_Opt%LNLPBL
-    LUCX                     = Input_Opt%LUCX
     IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
@@ -310,12 +305,12 @@ CONTAINS
              CALL Timer_Start( "=> FlexChem", RC )
           ENDIF
 
-          CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
+          CALL Do_FullChem( Input_Opt,  State_Chm, State_Diag,               &
+                            State_Grid, State_Met, RC                       )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-             ErrMsg = 'Incorrect species units after FLEX_CHEMDR!'
+             ErrMsg = 'Incorrect species units after Do_FullChem!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -331,23 +326,22 @@ CONTAINS
              CALL Timer_End( "=> FlexChem", RC )
           ENDIF
 
-          !----------------------------------------
-          ! Call linearized stratospheric scheme
-          !----------------------------------------
-          IF ( LSCHEM ) THEN
+          !-------------------------------------------
+          ! Linearized chemistry above chemistry grid
+          !-------------------------------------------
+          IF ( LINEAR_CHEM ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "=> Linearized strat chem", RC )
+                CALL Timer_Start( "=> Linearized chem", RC )
              ENDIF
 
-             ! Do linearized chemistry for the stratosphere (tropchem)
-             ! or the mesosphere (UCX)
-             CALL Do_Strat_Chem( Input_Opt, State_Chm, State_Grid, &
-                                 State_Met, RC )
+             ! Do linearized chemistry for the mesosphere
+             CALL Do_Linear_Chem( Input_Opt, State_Chm, State_Grid, &
+                                State_Met, RC )
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-                ErrMsg = 'Incorrect species units after DO_STRAT_CHEM!'
+                ErrMsg = 'Incorrect species units after DO_LINEARCHEM!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
              ENDIF
 
@@ -359,7 +353,7 @@ CONTAINS
              ENDIF
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "=> Linearized strat chem", RC )
+                CALL Timer_End( "=> Linearized chem", RC )
              ENDIF
 
           ENDIF
@@ -408,19 +402,14 @@ CONTAINS
           !-------------------------------
           ! Recalculate PSC properties
           !-------------------------------
-          IF ( LUCX ) THEN
+          CALL Calc_Strat_Aer( Input_Opt, State_Chm, State_Grid, &
+                               State_Met, RC )
 
-             ! Recalculate PSC
-             CALL Calc_Strat_Aer( Input_Opt, State_Chm, State_Grid, &
-                                  State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF
 
           !--------------------------------
@@ -755,27 +744,27 @@ CONTAINS
           ENDIF
 
           !-----------------------------------------------
-          ! Call linearized stratospheric scheme (LINOZ)
+          ! Linearized chemistry
           !-----------------------------------------------
-          IF ( LSCHEM ) THEN
+          IF ( LINEAR_CHEM ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "=> Linearized strat chem", RC )
+                CALL Timer_Start( "=> Linearized chem", RC )
              ENDIF
 
              ! Do LINOZ for Ozone
-             CALL Do_Strat_Chem( Input_Opt, State_Chm, State_Grid, &
-                                 State_Met, RC )
+             CALL Do_Linear_Chem( Input_Opt, State_Chm, State_Grid, &
+                                  State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Do_Strat_Chem"!'
+                ErrMsg = 'Error encountered in "Do_Linear_Chem"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
 
              IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "=> Linearized strat chem", RC )
+                CALL Timer_End( "=> Linearized chem", RC )
              ENDIF
 
           ENDIF
@@ -1264,7 +1253,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE FAST_JX_MOD,    ONLY : Init_FJX
-    USE FlexChem_Mod,   ONLY : Init_FlexChem
+    USE FullChem_Mod,   ONLY : Init_FullChem
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
@@ -1320,7 +1309,7 @@ CONTAINS
        ! Initialize FlexChem (skip if it is a dry-run)
        !--------------------------------------------------------------------
        IF ( .not. Input_Opt%DryRun ) THEN
-          CALL Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
+          CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

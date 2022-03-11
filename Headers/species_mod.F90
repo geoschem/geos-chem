@@ -42,7 +42,9 @@ MODULE Species_Mod
      INTEGER :: nKppFix  ! # of fixed KPP species
      INTEGER :: nKppSpc  ! # of species in KPP matrix
      INTEGER :: nPhotol  ! # of photolysis species
+     INTEGER :: nOmitted ! # of omitted species
      INTEGER :: nRadNucl ! # of radionuclide species
+     INTEGER :: nRealSpc ! # of total species (w/ omitted species removed)
      INTEGER :: nWetDep  ! # of wet-deposited species
      INTEGER :: nHg0     ! # of Hg0 tracers
      INTEGER :: nHg2     ! # of Hg2 tracers
@@ -73,6 +75,7 @@ MODULE Species_Mod
      INTEGER            :: KppVarId         ! KPP variable species index
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
      INTEGER            :: KppSpcId         ! KPP species index
+     INTEGER            :: OmittedId        ! Omitted species index
      INTEGER            :: PhotolId         ! Photolysis index
      INTEGER            :: RadNuclId        ! Radionuclide index
      INTEGER            :: WetDepId         ! Wet deposition index
@@ -93,6 +96,7 @@ MODULE Species_Mod
      LOGICAL            :: Is_ActiveChem    ! Is it an active chemical species?
      LOGICAL            :: Is_FixedChem     ! Is it a fixed chemical species?
      LOGICAL            :: Is_Kpp           ! Is it in the KPP mechanism?
+     LOGICAL            :: Is_Omitted       ! Is it omitted from the database?
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
      LOGICAL            :: Is_RadioNuclide  ! Is it a radionuclide species?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
@@ -366,6 +370,7 @@ CONTAINS
     Spc%Is_HygroGrowth  = MISSING_BOOL
     Spc%Is_InRestart    = MISSING_BOOL
     Spc%Is_Kpp          = MISSING_BOOL
+    Spc%Is_Omitted      = MISSING_BOOL
     Spc%Is_Photolysis   = MISSING_BOOL
     Spc%Is_RadioNuclide = MISSING_BOOL
     Spc%Is_WetDep       = MISSING_BOOL
@@ -389,6 +394,7 @@ CONTAINS
     Spc%KppSpcId        = MISSING_INT
     Spc%KppVarId        = MISSING_INT
     Spc%ModelId         = MISSING_INT
+    Spc%OmittedId       = MISSING_INT
     Spc%PhotolId        = MISSING_INT
     Spc%RadNuclId       = MISSING_INT
     Spc%WetDepId        = MISSING_INT
@@ -462,7 +468,7 @@ CONTAINS
     !========================================================================
     ! Spc_Create begins here!
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. ( .not. ThisSpc%Is_Omitted ) ) THEN
 
        !---------------------------------------------------------------------
        ! Print general species info

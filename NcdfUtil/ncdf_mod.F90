@@ -3439,7 +3439,8 @@ CONTAINS
                         Create_NC4,  KeepDefMode,    NcFormat,               &
                         Conventions, History,        ProdDateTime,           &
                         Reference,   Contact,        nIlev,                  &
-                        iLevId,      StartTimeStamp, EndTimeStamp           )
+                        iLevId,      StartTimeStamp, EndTimeStamp,           &
+                        nBounds,     boundsId                               )
 !
 ! !INPUT PARAMETERS:
 !
@@ -3464,6 +3465,7 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL       :: Contact        ! People to contact
     CHARACTER(LEN=*), OPTIONAL       :: StartTimeStamp ! Timestamps at start
     CHARACTER(LEN=*), OPTIONAL       :: EndTimeStamp   !  and end of simulation
+    INTEGER,          OPTIONAL       :: nBounds        ! # of bounds
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3474,6 +3476,7 @@ CONTAINS
     INTEGER,          INTENT(  OUT)  :: timeId         ! time dimension id
     INTEGER,          INTENT(  OUT)  :: VarCt          ! variable counter
     INTEGER,          OPTIONAL       :: ilevId         ! ilev dimension id
+    INTEGER,          OPTIONAL       :: boundsId       ! bounds dimension id
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -3653,6 +3656,15 @@ CONTAINS
     CALL NcDef_Dimension( fId, 'lat',  nLat,  latId  )
     CALL NcDef_Dimension( fId, 'lon',  nLon,  lonId  )
 
+    ! Optional ILev dimension: level interfaces
+    IF ( PRESENT( nBounds ) .and. PRESENT( boundsId ) ) THEN
+       IF ( nBounds > 0 ) THEN
+          CALL NcDef_Dimension( fId, 'nb', nBounds, boundsId )
+       ELSE
+          boundsId = -1
+       ENDIF
+    ENDIF
+
     ! Close definition section
     IF ( QuitDefMode ) THEN
        CALL NcEnd_Def( fId )
@@ -3680,7 +3692,8 @@ CONTAINS
                          DataType,  VarCt,        DefMode,      Compress,    &
                          AddOffset, MissingValue, ScaleFactor,  Calendar,    &
                          Axis,      StandardName, FormulaTerms, AvgMethod,   &
-                         Positive,  iLevId,       nUpdates                  )
+                         Positive,  iLevId,       nUpdates,     boundsId,    &
+                         bounds                                             )
 !
 ! !INPUT PARAMETERS:
 !
@@ -3689,7 +3702,6 @@ CONTAINS
     INTEGER,          INTENT(IN   ) :: lonId        ! ID of lon      (X) dim
     INTEGER,          INTENT(IN   ) :: latId        ! ID of lat      (Y) dim
     INTEGER,          INTENT(IN   ) :: levId        ! ID of lev ctr  (Z) dim
-    INTEGER,          OPTIONAL      :: iLevId       ! ID of lev edge (I) dim
     INTEGER,          INTENT(IN   ) :: TimeId       ! ID of time     (T) dim
     CHARACTER(LEN=*), INTENT(IN   ) :: VarName      ! Variable name
     CHARACTER(LEN=*), INTENT(IN   ) :: VarLongName  ! Long name description
@@ -3708,8 +3720,11 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL      :: FormulaTerms ! Formula for vert coords
     CHARACTER(LEN=*), OPTIONAL      :: AvgMethod    ! Averaging method
     CHARACTER(LEN=*), OPTIONAL      :: Positive     ! Positive dir (up or down)
+    INTEGER,          OPTIONAL      :: iLevId       ! ID of lev edge (I) dim
     REAL*4,           OPTIONAL      :: nUpdates     ! # of updates (for time-
                                                     !  averaged fields only)
+    INTEGER,          OPTIONAL      :: boundsId     ! ID of bounds   (B) dim
+    CHARACTER(LEN=*), OPTIONAL      :: bounds       ! Specify a bounds variable
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3734,7 +3749,7 @@ CONTAINS
 
     ! Scalars
     INTEGER              :: nDim,     Pos
-    INTEGER              :: NF_TYPE,  tmpIlevId
+    INTEGER              :: NF_TYPE,  tmpIlevId, tmpBoundsId
     LOGICAL              :: isDefMode
 
     ! Strings
@@ -3758,6 +3773,13 @@ CONTAINS
        tmpIlevId = -1
     ENDIF
 
+    ! Test if iLevId (dimension for level interfaces) is present
+    IF ( PRESENT( boundsId ) ) THEN
+       tmpBoundsId = boundsId
+    ELSE
+       tmpBoundsId = -1
+    ENDIF
+
     !=======================================================================
     ! DEFINE VARIABLE
     !=======================================================================
@@ -3769,15 +3791,22 @@ CONTAINS
 
     ! number of dimensions
     nDim = 0
-    IF ( lonId     >= 0 ) nDim = nDim + 1
-    IF ( latId     >= 0 ) nDim = nDim + 1
-    IF ( levId     >= 0 ) nDim = nDim + 1
-    IF ( tmpIlevId >= 0 ) nDim = nDim + 1
-    if ( timeId    >= 0 ) nDim = nDim + 1
+    IF ( lonId       >= 0 ) nDim = nDim + 1
+    IF ( latId       >= 0 ) nDim = nDim + 1
+    IF ( levId       >= 0 ) nDim = nDim + 1
+    IF ( tmpIlevId   >= 0 ) nDim = nDim + 1
+    if ( timeId      >= 0 ) nDim = nDim + 1
+    if ( tmpBoundsId >= 0 ) nDim = nDim + 1
 
     ! write dimensions
+    ! NOTE: Need to put bounds before lon & lat so that it will be
+    ! defined in the proper order for the COARDS/CF conventions
     ALLOCATE( VarDims(nDim) )
     Pos = 1
+    IF ( tmpBoundsId >= 0 ) THEN
+       VarDims(Pos) = tmpBoundsId
+       Pos          = Pos + 1
+    ENDIF
     IF ( lonId >= 0 ) THEN
        VarDims(Pos) = lonId
        Pos          = Pos + 1
@@ -3900,6 +3929,14 @@ CONTAINS
        IF ( nUpdates > 0.0 ) THEN
           Att = 'number_of_updates'
           CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), nUpdates )
+       ENDIF
+    ENDIF
+
+    ! Specify a variable that contains bounds information
+    IF ( PRESENT( bounds ) ) THEN
+       IF ( LEN_TRIM( bounds ) > 0 ) THEN
+          Att = 'bounds'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(bounds) )
        ENDIF
     ENDIF
 

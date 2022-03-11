@@ -57,12 +57,13 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=255)          :: Name                ! Container name
      INTEGER                     :: Id                  !  and ID number
-     INTEGER                     :: nX                  ! X (or lon) dim size
-     INTEGER                     :: nY                  ! Y (or lat) dim size
-     INTEGER                     :: nZ                  ! Z (or lev) dim size
-     INTEGER                     :: X0, X1              ! X (or lon) indices
-     INTEGER                     :: Y0, Y1              ! Y (or lon) indices
-     INTEGER                     :: Z0                  ! Z (or lev) indices
+     INTEGER                     :: nX                  ! X (or lon ) dim size
+     INTEGER                     :: nY                  ! Y (or lat ) dim size
+     INTEGER                     :: nZ                  ! Z (or lev ) dim size
+     INTEGER                     :: nB                  ! B (or bnds) dim size
+     INTEGER                     :: X0, X1              ! X (or lon ) indices
+     INTEGER                     :: Y0, Y1              ! Y (or lon ) indices
+     INTEGER                     :: Z0                  ! Z (or lev ) indices
      LOGICAL                     :: OnLevelEdges        ! =T if data is defined
                                                         !    on level edges;
                                                         ! =F if on centers
@@ -150,6 +151,7 @@ MODULE HistContainer_Mod
      INTEGER                     :: zDimId              ! Z (or lev ) dim ID
      INTEGER                     :: iDimId              ! I (or ilev) dim ID
      INTEGER                     :: tDimId              ! T (or time) dim ID
+     INTEGER                     :: bDimId              ! B (or bnds) dim ID
      CHARACTER(LEN=20)           :: StartTimeStamp      ! Timestamps at start
      CHARACTER(LEN=20)           :: EndTimeStamp        !  and end of sim
      CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
@@ -678,6 +680,7 @@ CONTAINS
     Container%zDimId          = UNDEFINED_INT
     Container%iDimId          = UNDEFINED_INT
     Container%tDimId          = UNDEFINED_INT
+    Container%bDimId          = UNDEFINED_INT
     Container%Spc_Units       = ''
 
     ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms, etc.
@@ -699,6 +702,7 @@ CONTAINS
     Container%NX              = UNDEFINED_INT
     Container%NY              = UNDEFINED_INT
     Container%NZ              = UNDEFINED_INT
+    Container%NB              = UNDEFINED_INT
     Container%X0              = UNDEFINED_INT
     Container%X1              = UNDEFINED_INT
     Container%Y0              = UNDEFINED_INT
@@ -891,6 +895,7 @@ CONTAINS
        WRITE( 6, 130 ) 'nX               : ', Container%nX
        WRITE( 6, 130 ) 'nY               : ', Container%nY
        WRITE( 6, 130 ) 'nZ               : ', Container%nZ
+       WRITE( 6, 130 ) 'nB               : ', Container%nB
        WRITE( 6, 160 ) 'EpochJsec        : ', Container%EpochJsec
        WRITE( 6, 160 ) 'EpochJd          : ', Container%EpochJd
        WRITE( 6, 160 ) 'CurrentJSec      : ', Container%CurrentJSec
@@ -925,6 +930,7 @@ CONTAINS
        WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId
        WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId
        WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId
+       WRITE( 6, 130 ) 'bDimId           : ', Container%bDimId
        WRITE( 6, 120 ) 'FileExpId        : ', TRIM( Container%FileExpId    )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
@@ -1131,6 +1137,7 @@ CONTAINS
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%UpdateYmd,          &
                                  Year        = Year,                         &
+                                 Month       = Month,                        &
                                  Increment   = Container%UpdateIvalSec      )
 
     ELSE IF ( Container%UpdateYmd <  001200  .and.                           &
@@ -1245,6 +1252,7 @@ CONTAINS
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%FileCloseYmd,       &
                                  Year        = Year,                         &
+                                 Month       = Month,                        &
                                  Increment   = Container%FileCloseIvalSec   )
 
     ELSE IF ( Container%FileCloseYmd <  001200  .and.                        &
@@ -1358,6 +1366,7 @@ CONTAINS
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%FileWriteYmd,       &
                                  Year        = Year,                         &
+                                 Month       = Month,                        &
                                  Increment   = Container%FileWriteIvalSec   )
 
     ELSE IF ( Container%FileWriteYmd <  001200  .and.                        &
@@ -1507,7 +1516,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AlarmIncrementYears( IntervalYmd, Year, Increment )
+  SUBROUTINE AlarmIncrementYears( IntervalYmd, Year, Month, Increment )
 !
 ! !USES:
 !
@@ -1518,6 +1527,7 @@ CONTAINS
 !
     INTEGER,  INTENT(IN)  :: IntervalYmd  ! Update frequency in YYYYMMDD format
     INTEGER,  INTENT(IN)  :: Year         ! Current year
+    INTEGER,  INTENT(IN)  :: Month        ! Current Month
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1532,13 +1542,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: nYears, T, YYYY
+    ! SAVEd scalars
+    LOGICAL :: FirstLeap
+
+    ! Scalars
+    INTEGER :: nYears, T, M, YYYY
 
     !=======================================================================
     ! AlarmIncrementYears begins here!
     !=======================================================================
 
     ! Initialize
+    FirstLeap = .TRUE.
     Increment = 0.0_fp
     nYears    = IntervalYmd / 10000
 
@@ -1550,9 +1565,32 @@ CONTAINS
 
        ! Compute the increment, accounting for leap years
        IF ( Its_A_LeapYear( YYYY ) ) THEN
-          Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+
+          ! It's the first leap year
+          IF ( FirstLeap ) THEN
+
+             ! If we start after March 1st, the interval is 365 days
+             ! Otherwise, the interval is 366 days.
+             IF ( Month > 2 ) THEN
+                Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
+             ELSE
+                Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+             ENDIF
+
+             ! Reset first leap year flag
+             FirstLeap  = .FALSE.
+
+          ELSE
+
+             ! For each successive leap year, the interval is 366 days.
+             Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+
+          ENDIF
+
        ELSE
+          ! If it's not a leap year, the interval is 365 days.
           Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
+
        ENDIF
 
     ENDDO
@@ -1645,4 +1683,3 @@ CONTAINS
   END SUBROUTINE AlarmIncrementMonths
 !EOC
 END MODULE HistContainer_Mod
-

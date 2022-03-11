@@ -386,13 +386,10 @@ CONTAINS
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%PRECTOT = Q
 
-    !-----------------------------------------------------------------------
-    ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
-    !! Read QV2M
-    !v_name = "QV2M"
-    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-    !State_Met%QV2M = Q
-    !-----------------------------------------------------------------------
+    ! Read QV2M
+    v_name = "QV2M"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%QV2M = Q
 
     ! Read SEAICE00
     v_name = "SEAICE00"
@@ -725,14 +722,24 @@ CONTAINS
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%OPTD = Q
 
-    ! Read QI
+    ! Read QI (and set negative or denormal values to zero)
     v_name = "QI"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
+    WHERE( Q < 1.0e-30_f4 )
+       Q = 0.0_f4
+    ENDWHERE
+#endif
     State_Met%QI = Q
 
-    ! Read QL
+    ! Read QL (and set negative or denormal values to zero)
     v_name = "QL"
     CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
+    WHERE( Q < 1.0e-30_f4 )
+       Q = 0.0_f4
+    ENDWHERE
+#endif
     State_Met%QL = Q
 
     ! Read TAUCLI

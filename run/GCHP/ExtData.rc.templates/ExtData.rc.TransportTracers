@@ -49,6 +49,7 @@ PRECCON  '1'         N Y F0;003000 none none         PRECCON    ./MetDir/%y4/%m2
 PRECLSC  '1'         N Y F0;003000 none none         PRECLSC    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 PRECSNO  '1'         N Y F0;003000 none none         PRECSNO    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 PRECTOT  '1'         N Y F0;003000 none none         PRECTOT    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+QV2M     '1'         N Y F0;003000 none none         QV2M       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE00 '1'         N Y F0;003000 none none         SEAICE00   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE10 '1'         N Y F0;003000 none none         SEAICE10   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
 SEAICE20 '1'         N Y F0;003000 none none         SEAICE20   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
@@ -197,38 +198,25 @@ OLSON69 1 N F;69 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_La
 OLSON70 1 N F;70 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
 OLSON71 1 N F;71 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
 OLSON72 1 N F;72 - none none OLSON ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
-
-#==============================================================================
-# MODIS Leaf Area Index
 #
-# NOTE: There are two options for offline MODIS LAI: legacy and Yuan et al.
-#       Both may be used in GCHP but legacy should be used when comparing with
-#       GEOS-Chem Classic until it because default. Legacy is default in GCHP.
 #==============================================================================
-
-#---------------------------
-# Option 1: legacy MODIS LAI
-#---------------------------
+# Yuan-processed MODIS Leaf Area Index
+#==============================================================================
+#
 # Use file with land type stored as 3rd dimension to speed up file read
-XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./ChemDir/MODIS_LAI_201707/For_Olson_2001/XLAI_for_GCHP/%y4/Condensed_MODIS_XLAI.025x025.%y4%m2.nc
-
-#---------------------------
-# Option 2: Yuan processed
-#---------------------------
-# Use file with land type stored as 3rd dimension to speed up file read
-#XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
-
+XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XLAI/v2021-06/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+#
 ###############################################################################
 ###
 ### HEMCO Base Emissions (Update if HEMCO_Config.rc changes) 
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # SF6 emissions from EDGAR v4.2
 #==============================================================================
 EDGAR_SF6 1 N Y F%y4-01-01T00:00:00 none none emi_sf6 ./HcoDir/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
-
+#
 #==============================================================================
 # --- EDGAR v4.3 (EDGARv4.3) ---
 # EDGARv4.3 is turned off by default in HEMCO_Config.rc
@@ -243,7 +231,7 @@ EDGAR_CO25d_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGA
 #EDGAR_CO25d_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
 EDGAR_CO25d_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
 EDGAR_CO25d_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
-
+#
 #==============================================================================
 # --- HTAP v2 (HTAP) ---
 # HTAP is off by default in HEMCO_Config.rc
@@ -255,45 +243,42 @@ HTAP_CO25d_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTA
 #HTAP_CO25d_AIR1  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc
 #HTAP_CO25d_AIR2  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc
 #HTAP_CO25d_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc
-
+#
 #==============================================================================
-# --- CEDS (CEDS) ---
+# --- CEDS (CEDSv2) ---
 #==============================================================================
-CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_NRTR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_nrtr  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_ROAD   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_road  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcor  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOC   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoc  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_RCOO   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rcoo  ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2020-08/%y4/CO-em-total-anthro_CEDS_%y4.nc
-
+CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#
 ###############################################################################
 ###
 ### HEMCO Non-Emissions Data (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
 TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
-
+#
 ###############################################################################
 ###
 ### HEMCO Scale Factors (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # --- annual scale factors ---
 #==============================================================================
 LIQFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-
+#
 #==============================================================================
 # --- seasonal scale factors ---
 #==============================================================================
@@ -310,18 +295,18 @@ AWB 1 Y Y F2010-%m2-01T00:00:00 none none AWB ./HcoDir/EDGARv43/v2016-11/EDGAR_v
 SOL 1 Y Y F2010-%m2-01T00:00:00 none none SOL ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 SWD 1 Y Y F2010-%m2-01T00:00:00 none none SWD ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
-
+#
 ###############################################################################
 ###
 ### Masks (update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
-
+#
 #==============================================================================
 # Country/region masks
 #==============================================================================
 OCEAN_MASK   1 N Y - none none FROCEAN    ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
-
+#
 %%
 
 DerivedExports%%

@@ -1245,13 +1245,7 @@ CONTAINS
     DUST      => State_Chm%SoilDust     ! Dust aerosol Conc. [kg/m3]
 
     ! Index for dust in ODAER and LUT arrays
-    ! Dust properties are saved to different indices in RD_AOD for
-    ! UCX vs tropchem simulations
-    IF ( Input_Opt%LUCX ) THEN
-       IDST   = 8
-    ELSE
-       IDST   = 6
-    ENDIF
+    IDST      = 8
 
     ! Dust density
     MSDENS(1) = 2500.0_fp
