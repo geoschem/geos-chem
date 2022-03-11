@@ -409,6 +409,12 @@ CONTAINS
     LOGICAL                       :: useCFMaskFile
 #endif
 
+    ! Manual internal state entries
+    LOGICAL                       :: am_I_Root
+    INTEGER                       :: II
+    CHARACTER(LEN=2)              :: intStr
+    CHARACTER(LEN=ESMF_MAXSTR)    :: myName
+
     __Iam__('SetServices')
 
 
@@ -426,7 +432,10 @@ CONTAINS
 
     ! Identify this routine to MAPL
     Iam = TRIM(compName)//'::SetServices'
-    
+
+    ! Root CPU? 
+    am_I_Root = MAPL_am_I_Root()    
+
     !=======================================================================
     ! Wrap internal state for storing in this gridded component
     ! Rename this to a "legacy state"
@@ -637,6 +646,61 @@ CONTAINS
        ENDIF
     ENDIF
 #endif
+
+    ! Add additional internal state fields if specified in the RC file
+    DO II=1,11
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'KHETI_SLA_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'AeroArea_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'AeroRadi_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'WetAeroArea_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'WetAeroRadi_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    DO II=1,14
+     WRITE ( intStr, '(I2.2)' ) II
+     myName = 'AeroH2O_'//TRIM(IntStr)
+     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+    ENDDO
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_fine'    , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_coarse'  , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_fine'   , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_coarse' , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_fine'  , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_coarse', 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_01'       , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_02'       , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_03'       , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_01'           , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_02'           , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC'               , 2, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_POA'           , 2, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_OPOA'          , 2, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLArea'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLRadi'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'QLxpHCloud'         , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'pHCloud'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'isCloud'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'HSO3_AQ'            , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SO3_AQ'             , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOCl'        , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOBr'        , 3, __RC__ ) 
 
     ! Open input.geos and read a lines until hit advected species menu
     IU_GEOS = findFreeLun()
@@ -2852,6 +2916,7 @@ CONTAINS
     REAL,  ALLOCATABLE, TARGET   :: solar(:,:)    ! Solar insolation
 
     ! Pointer arrays needed to initialize from imports
+    CHARACTER(LEN=2) :: intStr ! ewl: for new internal state vars
     REAL, POINTER                :: Ptr2d   (:,:)   => NULL()
     REAL, POINTER                :: Ptr3d   (:,:,:) => NULL()
     REAL(ESMF_KIND_R8), POINTER  :: Ptr2d_R8(:,:)   => NULL()
@@ -3399,6 +3464,199 @@ CONTAINS
                                   Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
+
+! ewl: start new internal state vars (should put in includes before run!)
+!      need to check that no duplicates
+     importName = 'STATE_PSC'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%STATE_PSC(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+ ! Aerosol pH
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%IsorropAeropH(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%IsorropAeropH(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
+  ENDIF
+  Ptr3D => NULL()
+  ! Aerosol H2O
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%IsorropAeroH2O(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%IsorropAeroH2O(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
+  ENDIF
+  Ptr3D => NULL()
+  ! chloride
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%IsorropChloride(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%IsorropChloride(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
+  ENDIF
+  Ptr3D => NULL()
+
+  ! KHETI_SLA
+  DO I=1,11
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'KHETI_SLA_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%KHETI_SLA(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+
+  ! Aerosol properties
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'AeroArea_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%AeroArea(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'AeroRadi_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%AeroRadi(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'WetAeroArea_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%WetAeroArea(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'WetAeroRadi_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%WetAeroRadi(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'AeroH2O_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%AeroH2O(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+
+  ! Various other fields
+  DO I=1,3
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'GammaN2O5_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%GammaN2O5(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,2
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'SSAlk_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%SSAlk(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+     importName = 'OMOC'
+     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) THEN
+        State_Chm%OMOC(:,:) = Ptr2D(:,:)
+     ENDIF
+     Ptr2D => NULL()
+     importName = 'OMOC_POA'
+     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) THEN
+        State_Chm%OMOC_POA(:,:) = Ptr2D(:,:)
+     ENDIF
+     Ptr2D => NULL()
+     importName = 'OMOC_OPOA'
+     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) THEN
+        State_Chm%OMOC_OPOA(:,:) = Ptr2D(:,:)
+     ENDIF
+     Ptr2D => NULL()
+     importName = 'ACLArea'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%ACLArea(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'ACLRadi'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%ACLRadi(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'QLxpHCloud'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%QLxpHCloud(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'pHCloud'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%phCloud(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'isCloud'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%isCloud(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'HSO3_AQ'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%HSO3_AQ(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'SO3_AQ'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%SO3_AQ(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'fupdateHOCl'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%fupdateHOCl(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'fupdateHOBr'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        State_Chm%fupdateHOBr(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     ENDIF
+     Ptr3D => NULL()
+! ewl: end new interanal state vars
 
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                                 notFoundOK=.TRUE., __RC__ )
@@ -3998,6 +4256,10 @@ CONTAINS
     INTEGER                    :: I,  J,  L   ! Loop indices
     REAL                       :: UTC         ! UTC time [hours]
     
+    ! ewl: added for new internal state vars
+    CHARACTER(LEN=ESMF_MAXSTR) :: importName, intStr
+    INTEGER                    :: LM
+
     ! Pointers
     TYPE(MAPL_MetaComp), POINTER :: STATE
 #if !defined( MODEL_GEOS )
@@ -4030,6 +4292,9 @@ CONTAINS
 
     ! Are we on the root PET
     am_I_Root = MAPL_Am_I_Root()
+
+    ! Set number of levels
+    LM = State_Grid%NZ
 
     ! Set up traceback info
     CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
@@ -4190,6 +4455,221 @@ CONTAINS
                  State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ)
     ENDIF
     Ptr3d_R8 => NULL()
+
+! ewl: new internal state vars (should make Includes_After_Run to clean up!)
+!      some might be duplicates. Need to check...
+     importName = 'STATE_PSC'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%STATE_PSC(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropHplus(:,:,:,1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropHplus(:,:,:,2)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeropH(:,:,:,1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeropH(:,:,:,2)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeroH2O(:,:,:,1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeroH2O(:,:,:,2)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_sulfate', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropSulfate(:,:,:)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_bisulfate', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropBisulfate(:,:,:)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropNitrate(:,:,:,1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropNitrate(:,:,:,2)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_fine', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropChloride(:,:,:,1)
+  ENDIF
+  Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_coarse', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropChloride(:,:,:,2)
+  ENDIF
+  Ptr3D => NULL()
+
+  DO I=1,11
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'KHETI_SLA_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3D(:,:,LM:1:-1) = State_Chm%KHETI_SLA(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'AeroArea_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%AeroArea(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'AeroRadi_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%AeroRadi(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'WetAeroArea_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%WetAeroArea(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'WetAeroRadi_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%WetAeroRadi(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,14
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'AeroH2O_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%AeroH2O(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,3
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'GammaN2O5_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%GammaN2O5(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+  DO I=1,2
+     WRITE ( intStr, '(I2.2)' ) I
+     importName = 'SSAlk_'//TRIM(intStr)
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%SSAlk(:,:,:,I)
+     ENDIF
+     Ptr3D => NULL()
+  ENDDO
+     importName = 'OMOC'
+     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) THEN
+        Ptr2d(:,:) = State_Chm%OMOC(:,:)
+     ENDIF
+     Ptr2D => NULL()
+     importName = 'OMOC_POA'
+     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) THEN
+        Ptr2d(:,:) = State_Chm%OMOC_POA(:,:)
+     ENDIF
+     Ptr2D => NULL()
+     importName = 'OMOC_OPOA'
+     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) THEN
+        Ptr2d(:,:) = State_Chm%OMOC_OPOA(:,:)
+     ENDIF
+     Ptr2D => NULL()
+     importName = 'ACLArea'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%ACLArea(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'ACLRadi'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%ACLRadi(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'QLxpHCloud'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%QLxpHCloud(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'pHCloud'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%phCloud(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'isCloud'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%isCloud(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'HSO3_AQ'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%HSO3_AQ(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'SO3_AQ'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%SO3_AQ(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'fupdateHOCl'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%fupdateHOCl(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+     importName = 'fupdateHOBr'
+     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr3D) ) THEN
+        Ptr3d(:,:,LM:1:-1) = State_Chm%fupdateHOBr(:,:,:)
+     ENDIF
+     Ptr3D => NULL()
+! ewl: end new internal state vars
 
     CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' , &
                           notFoundOK=.TRUE., __RC__ ) 
@@ -4841,7 +5321,94 @@ CONTAINS
 
   END SUBROUTINE Extract_
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: AddInternal_ 
+!
+! !DESCRIPTION: AddInternal_ adds a field to an internal state object (if requested
+!               so in the RC file) 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AddInternal_ ( am_I_Root, GC, myCF, FieldName, FieldDim, Units, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL                                    :: am_I_Root
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC       
+    TYPE(ESMF_CONFIG)                          :: myCF
+    CHARACTER(LEN=*),    INTENT(IN)            :: FieldName
+    INTEGER,             INTENT(IN)            :: FieldDim
+    CHARACTER(LEN=*),    INTENT(IN), OPTIONAL  :: Units
+!                                                             
+! !OUTPUT PARAMETERS:                                         
+!              
+    INTEGER, INTENT(OUT), OPTIONAL             :: RC
+!
+! !REVISION HISTORY:
+!  30 Mar 2015 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
 
+    INTEGER                      :: DoIt 
+    INTEGER                      :: DimsHorz, VLocation
+    CHARACTER(LEN=ESMF_MAXSTR)   :: Units_ 
+
+    ! Error handling
+    INTEGER                      :: STATUS
+    CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
+
+    !=======================================================================
+    ! AddInternal_ begins here
+    !=======================================================================
+
+    ! Traceback handle
+    Iam = 'AddInternal_'
+ 
+    IF ( PRESENT(Units) ) THEN
+       Units_ = Units
+    ELSE
+       Units_ = '1'
+    ENDIF
+
+    ! Unit parameter
+    IF ( FieldDim==3 ) THEN
+       DimsHorz  = MAPL_DimsHorzVert
+       VLocation = MAPL_VLocationCenter
+    ELSE
+       DimsHorz  = MAPL_DimsHorzOnly
+       VLocation = MAPL_VLocationNone
+    ENDIF 
+
+    CALL ESMF_ConfigGetAttribute( myCF, DoIt, Label = 'Internal_'//TRIM(FieldName)//':', Default=1, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       call MAPL_AddInternalSpec(GC,                      &
+               SHORT_NAME         = TRIM(FieldName),      &
+               LONG_NAME          = TRIM(FieldName),      &
+               UNITS              = Units_,               &
+               DIMS               = DimsHorz,             &
+               VLOCATION          = VLocation,            &
+               FRIENDLYTO         = 'GEOSCHEMCHEM',    __RC__ )
+          if(am_I_Root) WRITE(*,*) 'Added to internal: '//TRIM(FieldName)
+    ENDIF
+
+    ! Successful return
+    RC = ESMF_SUCCESS
+
+  END SUBROUTINE AddInternal_ 
+!EOC
 #if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
