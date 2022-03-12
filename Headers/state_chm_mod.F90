@@ -214,8 +214,8 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! For HOBr + S(IV) heterogeneous chemistry
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: HSO3_AQ    (:,:,:  ) ! Cloud bisulfite[mol/l]
-     REAL(fp),          POINTER :: SO3_AQ     (:,:,:  ) ! Cloud sulfite  [mol/l]
+     REAL(fp),          POINTER :: HSO3_AQ    (:,:,:  ) ! Cloud bisulfite/SO2 ratio
+     REAL(fp),          POINTER :: SO3_AQ     (:,:,:  ) ! Cloud sulfite/SO2 ratio
      REAL(fp),          POINTER :: fupdateHOBr(:,:,:  ) ! Correction factor for
                                                         ! HOBr removal by SO2
                                                         ! [unitless]
@@ -428,7 +428,7 @@ CONTAINS
     State_Chm%KHETI_SLA         => NULL()
     State_Chm%ACLArea           => NULL()
     State_Chm%ACLRadi           => NULL()
-    State_Chm%HSO3_AQ           => NULL()
+    State_Chm%HSO3_AQ          => NULL()
     State_Chm%SO3_AQ            => NULL()
     State_Chm%fupdateHOBr       => NULL()
     State_Chm%fupdateHOCl       => NULL()

@@ -549,7 +549,7 @@ CONTAINS
     ENDIF
 
     ! HSO3m + HOCl and SO3mm + HOCl
-    R1  = C(ind_HSO3m) * CVF
+    R1  = C(ind_SO2) * CVF * State_Chm%HSO3_aq(I,J,L)
     R2  = C(ind_HOCl)  * CVF
     K   = HOClUptkByHSO3m(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
@@ -561,7 +561,7 @@ CONTAINS
     ENDIF
 
     ! SO3mm + HOCl (add to HSO3m + HOCl rate)
-    R1  = C(ind_SO3mm) * CVF
+    R1  = C(ind_SO2) * CVF * State_Chm%SO3_aq(I,J,L)
     K   = HOClUptkBySO3mm(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
     IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
@@ -572,7 +572,7 @@ CONTAINS
     ENDIF
 
     ! HSO3m + HOBr
-    R1  = C(ind_HSO3m) * CVF
+    R1  = C(ind_SO2) * CVF * State_Chm%HSO3_aq(I,J,L)
     R2  = C(ind_HOBr)  * CVF
     K   = HOBrUptkByHSO3m(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
@@ -584,7 +584,7 @@ CONTAINS
     ENDIF
 
     ! SO3mm + HOBr (add to HSO3m + HOBr rate)
-    R1  = C(ind_SO3mm) * CVF
+    R1  = C(ind_SO2) * CVF * State_Chm%SO3_aq(I,J,L)
     K   = HOBrUptkBySO3mm(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
     IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
@@ -816,7 +816,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE gckpp_Parameters, ONLY : ind_HSO3m, ind_SO3mm
+!!!    USE gckpp_Parameters, ONLY : ind_HSO3m, ind_SO3mm
     USE gckpp_Global,     ONLY : HetState
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
@@ -831,19 +831,19 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    C(ind_HSO3m) = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1d-3 *                &
-                            State_Het%AVO            *                       &
-                            State_Met%QL(I,J,L)      *                       &
-                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-                            State_Met%CLDF(I,J,L),                           &
-                            0.d0                                            )
-
-    C(ind_SO3mm) = SafeDiv( State_Chm%SO3_aq(I,J,L)  * 1d-3 *                &
-                            State_Het%AVO            *                       &
-                            State_Met%QL(I,J,L)      *                       &
-                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-                            State_Met%CLDF(I,J,L),                           &
-                            0.d0                                            )
+!XX    C(ind_HSO3m) = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1d-3 *                &
+!XX                            State_Het%AVO            *                       &
+!XX                            State_Met%QL(I,J,L)      *                       &
+!XX                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
+!XX                            State_Met%CLDF(I,J,L),                           &
+!XX                            0.d0                                            )
+!XX
+!XX    C(ind_SO3mm) = SafeDiv( State_Chm%SO3_aq(I,J,L)  * 1d-3 *                &
+!XX                            State_Het%AVO            *                       &
+!XX                            State_Met%QL(I,J,L)      *                       &
+!XX                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
+!XX                            State_Met%CLDF(I,J,L),                           &
+!XX                            0.d0                                            )
 
   END SUBROUTINE fullchem_UpdateHSO3mAndSO3mm
 !EOC
