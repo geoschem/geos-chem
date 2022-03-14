@@ -4595,7 +4595,7 @@ CONTAINS
                 ENDIF
                 CALL AQOXID( REEVAPSO2, KMIN, I, J, L, &
                              Input_Opt, State_Chm, State_Grid, &
-                             State_Met, RC  )
+                             State_Met, State_Diag, RC  )
              ENDIF
              !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -4930,7 +4930,8 @@ CONTAINS
                 RETURN
              ENDIF
              CALL AQOXID( REEVAPSO2, KMIN, I, J, L,                          &
-                          Input_Opt, State_Chm, State_Grid, State_Met, RC )
+                          Input_Opt, State_Chm, State_Grid, State_Met, &
+                          State_Diag, RC )
           ENDIF
           !end- added for TOMAS (win, 7/16/09)
 #endif

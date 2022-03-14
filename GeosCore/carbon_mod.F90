@@ -789,7 +789,7 @@ CONTAINS
 
 #ifdef TOMAS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, 'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
       CALL AGING_CARB( State_Grid, &
@@ -814,7 +814,7 @@ CONTAINS
 
 #ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                    State_Met, 'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
       !$OMP PARALLEL DO ssta      &
       !$OMP DEFAULT( SHARED ) &
@@ -831,7 +831,7 @@ CONTAINS
              !        !     State_Chm, State_Grid, RC
             !sfarina16: SOAP -> size Resolved TOMAS SOA
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
-                          State_Chm, State_Grid, RC)
+                          State_Chm, State_Grid, State_Diag, RC)
          ENDIF
          Spc(I,J,L,id_SOAS) = Spc(I,J,L,id_SOAS) + NEWSOA
          Spc(I,J,L,id_SOAP) = Spc(I,J,L,id_SOAP) - NEWSOA
@@ -4817,7 +4817,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE EMISSCARBONTOMAS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+ SUBROUTINE EMISSCARBONTOMAS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               State_Diag, RC )
 !
 ! !USES:
 !
@@ -4832,6 +4833,7 @@ CONTAINS
    USE State_Chm_Mod,        ONLY : ChmState
    USE State_Grid_Mod,       ONLY : GrdState
    USE State_Met_Mod,        ONLY : MetState
+   USE State_Diag_Mod,       ONLY : DgnState
    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
    USE PRESSURE_MOD,         ONLY : GET_PCENTER
    USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
@@ -4847,6 +4849,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -5159,13 +5162,13 @@ CONTAINS
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
       CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &
-                    State_Met, 'CHECKMN from emisscarbontomas', RC)
+         State_Met, State_Diag,'CHECKMN from emisscarbontomas', RC)
       IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
          CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, &
-                       State_Chm, State_Grid, RC )
+                       State_Chm, State_Grid, State_Diag, RC )
       END IF
    END DO
    END DO

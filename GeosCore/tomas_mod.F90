@@ -355,7 +355,7 @@ CONTAINS
 
     !print *, 'call checkmn in tomas_mod:222'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met,'Before Aerodrydep', RC)
+                  State_Met, State_Diag,'Before Aerodrydep', RC)
 
     ! in kg
 
@@ -369,7 +369,7 @@ CONTAINS
 
     !print *, 'call checkmn in tomas_mod:229'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met, 'Before exiting DO_TOMAS', RC )
+                  State_Met, State_Diag,'Before exiting DO_TOMAS', RC )
 
   END SUBROUTINE DO_TOMAS
 !EOC
@@ -409,11 +409,11 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -761,11 +761,13 @@ CONTAINS
        ENDIF
 
        MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-       ENDIF
-#endif
+!betty removed
+!#ifdef BPCH_DIAG
+       !IF ( ND60 > 0 ) THEN  ---- need to put a new if here
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+            State_Diag )
+       !ENDIF
+!#endif
 
        !IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
        !   CALL DEBUGPRINT( Nk, Mk, I, J, L, 'After mnfix before cond/nucl' )
@@ -865,18 +867,18 @@ CONTAINS
           ENDDO
 
           MPNUM = 3
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           MPNUM = 7
 #ifdef BPCH_DIAG
           IF ( ND61 > 0 )  THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
+                            State_Grid, State_Diag )
           ENDIF
 #endif
 
@@ -896,12 +898,12 @@ CONTAINS
           Gc(srtso4)=Gcout(srtso4)
 
           MPNUM = 1
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
              CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
@@ -956,12 +958,12 @@ CONTAINS
        ENDIF
 
        MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) THEN
+!#ifdef BPCH_DIAG
+!       IF ( ND60 > 0 ) THEN
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                         State_Grid )
-       ENDIF
-#endif
+                         State_Grid, State_Diag )
+!       ENDIF
+!#endif
 
        !-----------------------------
        ! Coagulation
@@ -981,12 +983,12 @@ CONTAINS
           !    CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
           MPNUM = 2
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           !Fix any inconsistency after coagulation (win, 4/18/06)
           CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
@@ -1006,12 +1008,12 @@ CONTAINS
           ENDIF
 
           MPNUM = 5
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
        ENDIF  ! Coagulation
 
        ! Do water eqm at appropriate times
@@ -1044,12 +1046,12 @@ CONTAINS
 
        ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
        MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) THEN
+!#ifdef BPCH_DIAG
+!       IF ( ND60 > 0 ) THEN
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                         State_Grid )
-       ENDIF
-#endif
+                         State_Grid, State_Diag )
+!       ENDIF
+!#endif
 
        ! Swap Nk, Mk, and Gc arrays back to Spc
        DO N = 1, IBINS
@@ -3587,7 +3589,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE AQOXID( MOXID, KMIN, I, J, L, Input_Opt, &
-                     State_Chm, State_Grid, State_Met, RC )
+                     State_Chm, State_Grid, State_Met, &
+                     State_Diag, RC )
 !
 ! !USES:
 !
@@ -3600,6 +3603,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -3613,6 +3617,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3723,10 +3728,11 @@ CONTAINS
                        'Beginning AQOXID after MNFIX' )
     ENDIF
     MPNUM = 5
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+!    IF ( ND60 > 0 ) &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+             State_Diag )
+!#endif
     CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) &
@@ -3855,10 +3861,11 @@ CONTAINS
 
     ! Save changes to diagnostic
     MPNUM = 4
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+!    IF ( ND60 > 0 ) &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+            State_Diag )
+!#endif
 
     ! Fix any inconsistencies in M/N distribution
     CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
@@ -3870,10 +3877,11 @@ CONTAINS
                        'End of AQOXID after MNFIX' )
     ENDIF
     MPNUM = 5
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+!    IF ( ND60 > 0 ) &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+            State_Diag )
+!#endif
 
     ! Swap Nk and Mk arrays back to Spc
     DO K = 1, IBINS
@@ -3922,7 +3930,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE SOACOND( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
-                      State_Chm, State_Grid, RC )
+                      State_Chm, State_Grid, State_Diag, RC )
 !
 ! !USES:
 !
@@ -3933,6 +3941,7 @@ CONTAINS
     USE ERROR_MOD
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3944,6 +3953,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4196,10 +4206,11 @@ CONTAINS
 
     ! Save changes to diagnostic
     MPNUM = 6
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+    !IF ( ND60 > 0 ) &
+       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+              State_Diag )
+!#endif
 
     ! Fix any inconsistencies in M/N distribution
     !this never happened?
@@ -6058,7 +6069,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
+  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, State_Diag )
 !
 ! !USES:
 !
@@ -6070,12 +6081,14 @@ CONTAINS
 #endif
     USE ERROR_MOD,      ONLY : IT_IS_NAN
     USE State_Grid_Mod, ONLY : GrdState
+    USE State_Diag_Mod, ONLY : DgnState
     USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN) :: PTYPE    ! Number assigned to each dianostic
     INTEGER ,       INTENT(IN) :: I, J, L  ! Grid box indices
+!    INTEGER ,       INTENT(IN) :: LD61   ! betty removed
     REAL(fp),       INTENT(IN) :: Nk(IBINS)
     REAL(fp),       INTENT(IN) :: Nkd(IBINS)
     REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
@@ -6083,6 +6096,8 @@ CONTAINS
     REAL*4,         INTENT(IN) :: BOXVOL
     TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
+! !INPUT/OUTPUT PARAMETERS:   
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
@@ -6091,7 +6106,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: K, JS
+    INTEGER               :: K, JS, S
     REAL*4                :: ADXX(IBINS*(ICOMP-IDIAG+1))
     REAL*4,    SAVE       :: ACCUN, ACCUM(2)
     LOGICAL,   SAVE       :: FIRST = .TRUE.
@@ -6101,7 +6116,156 @@ CONTAINS
     !=================================================================
     ! AERODIAG begins here!
     !=================================================================
-#ifdef BPCH_DIAG
+!betty removed
+!#ifdef BPCH_DIAG
+!LD61 = State_Grid%NZ
+
+       State_Diag%TomasCOND=1.e+0_fp
+       State_Diag%TomasCOAG=2.e+0_fp
+       State_Diag%TomasNUCL=3.e+0_fp
+       State_Diag%TomasAQOX=4.e+0_fp
+       State_Diag%TomasERROR=5.e+0_fp
+       State_Diag%TomasSOA=6.e+0_fp
+
+       IF ( PTYPE == 1 ) THEN
+           State_Diag%TomasCONDmass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasCONDnumber(I,J,L,K) = 0.e+0_fp
+       DO K=1,IBINS
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasCONDmass ) THEN
+             S = State_Diag%Map_TomasCONDmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasCONDmass(I,J,L,K) = & 
+                  State_Diag%TomasCONDmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasCONDnumber ) THEN
+             S = State_Diag%Map_TomasCONDnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasCONDnumber(I,J,L,K) = & 
+                  State_Diag%TomasCONDnumber(I,J,L,K) + NK(K) - NKD(K)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+       IF ( PTYPE == 2 ) THEN
+           State_Diag%TomasCOAGmass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasCOAGnumber(I,J,L,K) = 0.e+0_fp
+       DO K=1,IBINS
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasCOAGmass ) THEN
+             S = State_Diag%Map_TomasCOAGmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasCOAGmass(I,J,L,K) = & 
+                  State_Diag%TomasCOAGmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasCOAGnumber ) THEN
+             S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasCOAGnumber(I,J,L,K) = & 
+                  State_Diag%TomasCOAGnumber(I,J,L,K) + NK(K) - NKD(K)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+       IF ( PTYPE == 3 ) THEN
+           State_Diag%TomasNUCLmass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasNUCLnumber(I,J,L,K) = 0.e+0_fp
+       DO K=1,IBINS
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasNUCLmass ) THEN
+             S = State_Diag%Map_TomasNUCLmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasNUCLmass(I,J,L,K) = & 
+                  State_Diag%TomasNUCLmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasNUCLnumber ) THEN
+             S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasNUCLnumber(I,J,L,K) = & 
+                  State_Diag%TomasNUCLnumber(I,J,L,K) + NK(K) - NKD(K)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+       IF ( PTYPE == 4 ) THEN
+           State_Diag%TomasAQOXmass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasAQOXnumber(I,J,L,K) = 0.e+0_fp
+       DO K=1,IBINS
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasAQOXmass ) THEN
+             S = State_Diag%Map_TomasAQOXmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasAQOXmass(I,J,L,K) = & 
+                  State_Diag%TomasAQOXmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
+             S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasAQOXnumber(I,J,L,K) = & 
+                  State_Diag%TomasAQOXnumber(I,J,L,K) + NK(K) - NKD(K)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+       IF ( PTYPE == 5 ) THEN
+           State_Diag%TomasERRORmass(I,J,L,K) = 0.e+0_fp  !fix this for 1st call
+           State_Diag%TomasERRORnumber(I,J,L,K) = 0.e+0_fp  !fix this for 1st call
+       DO K=1,IBINS
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasERRORmass ) THEN
+             S = State_Diag%Map_TomasERRORmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasERRORmass(I,J,L,K) = & 
+                  State_Diag%TomasERRORmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasERRORnumber ) THEN
+             S = State_Diag%Map_TomasERRORnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasERRORnumber(I,J,L,K) = & 
+                  State_Diag%TomasERRORnumber(I,J,L,K) + NK(K) - NKD(K)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+       IF ( PTYPE == 6 ) THEN
+           State_Diag%TomasSOAmass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasSOAnumber(I,J,L,K) = 0.e+0_fp
+       DO K=1,IBINS
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasSOAmass ) THEN
+             S = State_Diag%Map_TomasSOAmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasSOAmass(I,J,L,K) = & 
+                  State_Diag%TomasSOAmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasSOAnumber ) THEN
+             S = State_Diag%Map_TomasSOAnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasSOAnumber(I,J,L,K) = & 
+                  State_Diag%TomasSOAnumber(I,J,L,K) + NK(K) - NKD(K)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+
 
     ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1
     !  Note: This is created to look at 3-D rate for a selected process
@@ -6109,16 +6273,17 @@ CONTAINS
     !        We can't afford to save all 30-bin and all mass component
     !        in all (I,J,L), thus this is created. (win, 5/21/08)
     IF ( PTYPE == 7 ) THEN
-       IF ( L <= LD61 ) THEN
-          DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
-          AD61(I,J,L,1) = AD61(I,J,L,1)  + ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
-          AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
+      ! IF ( L <= LD61 ) THEN
+!betty - remove for now
+         ! DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
+         ! AD61(I,J,L,1) = AD61(I,J,L,1)  + ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
+         ! AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
 
           !IF(i==39 .and. j==29 ) then
           !if ( AD61_INST(I,J,L) .gt. 1e18)  write(6,*) '*********', &
           !               'AD61_INST(',I,J,L,')', AD61_INST(I,J,L)
           !endif
-       ENDIF
+      ! ENDIF
     ELSE ! PTYPE = 1-6 is for ND60
 
        ADXX(:) = 0e+0_fp
@@ -6136,31 +6301,32 @@ CONTAINS
        !   print *, '   NaCl   :',ACCUM(2)
        !ENDIF
 
-       IF ( L <= LD60 ) THEN
+!betty - comment out and edit later
+!       IF ( L <= LD60 ) THEN
 
           SELECT CASE ( PTYPE )
           CASE ( 1 )                ! Condensation diagnostic
-             ADXX(:) = AD60_COND(1,J,L,:)
+!             ADXX(:) = TOMASCOND(1,J,L,:)
 
           CASE ( 2 )                ! Coagulation diagnostic
-             ADXX(:) = AD60_COAG(1,J,L,:)
+!             ADXX(:) = TOMASCOAG(1,J,L,:)
 
           CASE ( 3 )                ! Nucleation diagnostic
-             ADXX(:) = AD60_NUCL(1,J,L,:)
+!             ADXX(:) = TOMASNUCL(1,J,L,:)
 
           CASE ( 4 )                ! Aqueous oxidation diagnostic
-             ADXX(:) = AD60_AQOX(1,J,L,:)
+!             ADXX(:) = TOMASAQOX(1,J,L,:)
 
           CASE ( 5 )                ! Error fudging diagnostic
-             ADXX(:) = AD60_ERROR(1,J,L,:)
+!             ADXX(:) = TOMASERROR(1,J,L,:)
 
           CASE ( 6 )                ! SOA condensation diagnostic
-             ADXX(:) = AD60_SOA(1,J,L,:)
+!             ADXX(:) = TOMASSOA(1,J,L,:)
           END SELECT
 
           ! Change of aerosol number
           DO K = 1, IBINS
-             ADXX(K) =  ADXX(K) + NK(K) - NKD(K)
+!             ADXX(K) =  ADXX(K) + NK(K) - NKD(K)
              !IF ( PTYPE == 2 ) ACCUN = ACCUN + NK(K) - NKD(K)
           ENDDO
           IF ( IT_IS_NAN(ACCUN)) print *,'AERODIAG: Nan',I,J,L
@@ -6169,7 +6335,7 @@ CONTAINS
           DO JS = 1, ICOMP-IDIAG
              tempsum = 0e0
              DO K = 1, IBINS
-                ADXX(JS*IBINS+K) = ADXX(JS*IBINS+K) + MK(K,JS) - MKD(K,JS)
+!                ADXX(JS*IBINS+K) = ADXX(JS*IBINS+K) + MK(K,JS) - MKD(K,JS)
                 !tempsum = tempsum + MK(K,JS) - MKD(K,JS)
                 !IF (PTYPE == 2 ) ACCUM(JS) = ACCUM(JS) + MK(K,JS) - MKD(K,JS)
              ENDDO
@@ -6179,25 +6345,24 @@ CONTAINS
           ! Put the updated values back into the diagnostic arrays
           SELECT CASE ( PTYPE )
           CASE ( 1 )                ! Condensation diagnostic
-             AD60_COND(1,J,L,:) = ADXX(:)
-
+!             TOMASCOND(1,J,L,:) = ADXX(:)
           CASE ( 2 )                ! Coagulation diagnostic
-             AD60_COAG(1,J,L,:) = ADXX(:)
+!             TOMASCOAG(1,J,L,:) = ADXX(:)
 
           CASE ( 3 )                ! Nucleation diagnostic
-             AD60_NUCL(1,J,L,:) = ADXX(:)
+!             TOMASNUCL(1,J,L,:) = ADXX(:)
 
           CASE ( 4 )                ! Aqueous oxidation diagnostic
-             AD60_AQOX(1,J,L,:) = ADXX(:)
+!             TOMASAQOX(1,J,L,:) = ADXX(:)
 
           CASE ( 5 )                ! Error fudging diagnostic
-             AD60_ERROR(1,J,L,:) = ADXX(:)
+!             TOMASERROR(1,J,L,:) = ADXX(:)
 
           CASE ( 6 )                ! SOA condensation diagnostic
-             AD60_SOA(1,J,L,:) = ADXX(:)
+!             TOMASSOA(1,J,L,:) = ADXX(:)
           END SELECT
 
-       ENDIF
+!       ENDIF
        ! Debug: check error fixed accumulated at each step
        !IF ( I == 3 .and. J == 41 .and. L == 30 .and. PTYPE == 5) then
        !   print *, 'Accumulated diagnostic for ND60 #',PTYPE,' at',i,j,l
@@ -6224,7 +6389,7 @@ CONTAINS
 
     ENDIF ! If (PTYPE == 7)
 
-#endif
+!#endif
 
   END SUBROUTINE AERODIAG
 !EOC
@@ -7189,7 +7354,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE AERO_DIADEN( LEV, Input_Opt, State_Chm, State_Grid, State_Met, &
-                          DIA, DENSITY, RC )
+                          State_Diag, DIA, DENSITY, RC )
 !
 ! !USES:
 !
@@ -7199,6 +7364,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
@@ -7211,6 +7377,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),    INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7279,7 +7446,8 @@ CONTAINS
     MDUST = 0e+0_fp
 
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met, 'AERO_DIADEN called from DEPVEL', RC )
+                  State_Met, State_Diag, &
+                  'AERO_DIADEN called from DEPVEL', RC )
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -7365,7 +7533,8 @@ CONTAINS
 !
 
   SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm, &
-                      State_Grid, State_Met, LOCATION, RC )
+                      State_Grid, State_Met, State_Diag, &
+                      LOCATION, RC )
 !
 ! !USES:
 !
@@ -7378,6 +7547,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -7391,6 +7561,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7525,10 +7696,11 @@ CONTAINS
 
        ! Save the error fixing to diagnostic AERO-FIX
        MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+!       IF ( ND60 > 0 ) &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+            State_Diag )
+!#endif
 
        ! Swap Nk and Mk arrays back to Spc
        DO K = 1, IBINS
