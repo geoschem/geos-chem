@@ -30,7 +30,6 @@ MODULE fullchem_SulfurChemFuncs
   PUBLIC :: fullchem_InitSulfurChem
   PUBLIC :: fullchem_SulfurAqChem
   PUBLIC :: fullchem_SulfurCldChem
-  PUBLIC :: fullchem_UpdateHSO3mAndSO3mm
 !
 ! !PUBLIC TYPES:
 !
@@ -548,7 +547,7 @@ CONTAINS
        XX3 = R1 * ( 1.0_dp - XX )
     ENDIF
 
-    ! HSO3m + HOCl and SO3mm + HOCl
+    ! HSO3- + HOCl and SO3-- + HOCl
     R1  = C(ind_SO2) * CVF * State_Chm%HSO3_aq(I,J,L)
     R2  = C(ind_HOCl)  * CVF
     K   = HOClUptkByHSO3m(State_Het) / CVF
@@ -560,7 +559,7 @@ CONTAINS
        XX4 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
 
-    ! SO3mm + HOCl (add to HSO3m + HOCl rate)
+    ! SO3-- + HOCl (add to HSO3- + HOCl rate)
     R1  = C(ind_SO2) * CVF * State_Chm%SO3_aq(I,J,L)
     K   = HOClUptkBySO3mm(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
@@ -571,7 +570,7 @@ CONTAINS
        XX4 = XX4 + WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
 
-    ! HSO3m + HOBr
+    ! HSO3- + HOBr
     R1  = C(ind_SO2) * CVF * State_Chm%HSO3_aq(I,J,L)
     R2  = C(ind_HOBr)  * CVF
     K   = HOBrUptkByHSO3m(State_Het) / CVF
@@ -583,7 +582,7 @@ CONTAINS
        XX5 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
 
-    ! SO3mm + HOBr (add to HSO3m + HOBr rate)
+    ! SO3-- + HOBr (add to HSO3- + HOBr rate)
     R1  = C(ind_SO2) * CVF * State_Chm%SO3_aq(I,J,L)
     K   = HOBrUptkBySO3mm(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
@@ -797,55 +796,6 @@ CONTAINS
     R = R1 - 1.0_dp / ( K * DT + ( 1.0_dp / R1 ) )
 
   END FUNCTION WhenExpCantBeDone
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: fullchem_UpdateHSO3mAndSO3mm
-!
-! !DESCRIPTION: Divides HSO3- and SO3-- by cloud fraction, in the
-!  appropriate units.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,           &
-                                           State_Chm, State_Het, State_Met   )
-!
-! !USES:
-!
-!!!    USE gckpp_Parameters, ONLY : ind_HSO3m, ind_SO3mm
-    USE gckpp_Global,     ONLY : HetState
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Met_Mod,    ONLY : MetState
-
-   !
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN) :: I, J, L     ! Grid box indices
-    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-    TYPE(HetState), INTENT(IN) :: State_Het   ! Hetchem State object
-    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!XX    C(ind_HSO3m) = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1d-3 *                &
-!XX                            State_Het%AVO            *                       &
-!XX                            State_Met%QL(I,J,L)      *                       &
-!XX                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-!XX                            State_Met%CLDF(I,J,L),                           &
-!XX                            0.d0                                            )
-!XX
-!XX    C(ind_SO3mm) = SafeDiv( State_Chm%SO3_aq(I,J,L)  * 1d-3 *                &
-!XX                            State_Het%AVO            *                       &
-!XX                            State_Met%QL(I,J,L)      *                       &
-!XX                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-!XX                            State_Met%CLDF(I,J,L),                           &
-!XX                            0.d0                                            )
-
-  END SUBROUTINE fullchem_UpdateHSO3mAndSO3mm
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

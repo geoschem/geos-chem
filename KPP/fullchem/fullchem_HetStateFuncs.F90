@@ -57,7 +57,7 @@ CONTAINS
     USE PhysConstants,    ONLY : AVO, PI
     USE Input_Opt_Mod,    ONLY : OptInput
     USE rateLawUtilFuncs
-    USE State_Chm_Mod,    ONLY : ChmState, Ind_
+    USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -159,28 +159,32 @@ CONTAINS
     H%fupdateHOCl  = State_Chm%fupdateHOCl(I,J,L)
 
     ! Aqueous S(IV) in cloudwater
-    ! -- This is the ratio of HSO3m/SO2, both in units of mcl/cm3.
-    !    It allows the use of SO2 in the reactions with 
-    !    HOCl and HOBr, and converts SO2 to HSO3m via the reaction 
-    !    rate constant
-    H%HSO3m = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1d-3 *                &
-                            State_Het%AVO            *                       &
-                            State_Met%QL(I,J,L)      *                       &
-                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-                            State_Met%CLDF(I,J,L),                           &
-                            0.d0                                            )
-    H%HSO3m = H%HSO3m/C(ind_SO2) 
-    ! -- This is the ratio of SO3mm/SO2, both in units of mcl/cm3.
-    !    It allows the use of SO2 in the reactions with 
-    !    HOCl and HOBr, and converts SO2 to HSO3m via the reaction 
-    !    rate constant
-    H%SO3mm = SafeDiv( State_Chm%SO3_aq(I,J,L) * 1d-3 *                 &
-                            State_Het%AVO            *                       &
-                            State_Met%QL(I,J,L)      *                       &
-                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-                            State_Met%CLDF(I,J,L),                           &
-                            0.d0                                            )
-    H%SO3mm = H%SO3mm/C(ind_SO2) 
+    !
+    ! -- This is the ratio of HSO3-/SO2, both in units of molec/cm3.
+    !    It allows the use of SO2 in the reactions with HOCl and HOBr,
+    !    and converts SO2 to HSO3- via the reaction rate constant.
+    H%HSO3m = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1.0e-3_dp *                &
+                       State_Het%AVO            *                            &
+                       State_Met%QL(I,J,L)      *                            &
+                       State_Met%AIRDEN(I,J,L)  * 1.0e-3_dp,                 &
+                       State_Met%CLDF(I,J,L),                                &
+                       0.0_dp                                               )
+
+    ! Avoid div-by-zero condition
+    H%HSO3m = SafeDiv( H%HSO3m, C(ind_SO2), 0.0_dp                          )
+
+    ! -- This is the ratio of SO3--/SO2, both in units of molec/cm3.
+    !    It allows the use of SO2 in the reactions with HOCl and HOBr,
+    !    and converts SO2 to SO3-- via the reaction rate constant.
+    H%SO3mm = SafeDiv( State_Chm%SO3_aq(I,J,L)  * 1.0e-3_dp *                &
+                       State_Het%AVO            *                            &
+                       State_Met%QL(I,J,L)      *                            &
+                       State_Met%AIRDEN(I,J,L)  * 1.0e-3_dp,                 &
+                       State_Met%CLDF(I,J,L),                                &
+                       0.0_dp                                               )
+
+    ! Avoid div-by-zero condition
+    H%SO3mm = SafeDiv( H%SO3mm, C(ind_SO2), 0.0_dp                          )
 
     ! Cloud fields
     CALL Cld_Params( AD      = State_Met%AD(I,J,L),                          &
