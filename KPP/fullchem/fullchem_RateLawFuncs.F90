@@ -2043,7 +2043,8 @@ CONTAINS
     ENDIF
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
-    k = kIIR1Ltd( C(ind_HOBr), C(ind_HSO3m), k )
+    ! Convert SO2 to HSO3m with the HSO3m/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k ) * H%HSO3m
   END FUNCTION HOBrUptkByHSO3m
 
   FUNCTION HOBrUptkBySO3mm( H ) RESULT( k )
@@ -2076,7 +2077,9 @@ CONTAINS
     ENDIF
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
-    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO3mm), k )
+    ! Convert SO2 to SO3mm with the SO3mm/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k ) * H%SO3mm
+
   END FUNCTION HOBrUptkBySO3mm
 
   !=========================================================================
@@ -2336,7 +2339,8 @@ CONTAINS
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
-    k = kIIR1Ltd( C(ind_HOCl), C(ind_HSO3m), k )
+    ! Convert SO2 to HSO3m with the HSO3m/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO2), k ) * H%HSO3m
   END FUNCTION HOClUptkByHSO3m
 
   FUNCTION HOClUptkBySO3mm( H ) RESULT( k )
@@ -2364,7 +2368,8 @@ CONTAINS
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
-    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO3mm), k )
+    ! Convert SO2 to SO3mm with the SO3mm/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO2), k ) * H%SO3mm
   END FUNCTION HOClUptkBySO3mm
 
   !=========================================================================
