@@ -438,9 +438,12 @@ elif [[ ${sim_name} = "fullchem" ]]; then
 elif [ "${sim_type}" == "CO2" ]; then
     startdate="20140901"
     enddate="20140901"
+elif [ "${sim_type}" == "tagO3" ]; then
+     startdate="20190701"
+     enddate="20190801"
 else
-    startdate="20190701"
-    enddate="20190801"
+    startdate="20190101"
+    enddate="20190201"
 fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
