@@ -11,6 +11,7 @@
 # Usage: ./createRunDir.sh [rundirname]
 #
 # Initial version: E. Lundgren,10/5/2018
+# Add tagged O3 simulation. Xingpei Ye, 03/13/2022
 
 srcrundir=$(pwd -P)
 cd ${srcrundir}
@@ -73,6 +74,8 @@ printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   4. Tagged O3\n"
+
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -85,6 +88,10 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=CO2
 	sim_name_long=${sim_name}
 	sim_type=${sim_name}
+    elif [[ ${sim_num} = "4" ]]; then
+    sim_name=tagO3
+    sim_name_long=${sim_name}
+    sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -318,7 +325,11 @@ cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./ExtData.rc.templates/ExtData.rc.${sim_name}            ${rundir}/ExtData.rc
 cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
-cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
+# Some simulations (like tagO3) do not have a HEMCO_Diagn.rc file,
+# so skip copying it unless the file exists
+if [[ -f ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name} ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
+fi
 cp -r ./utils ${rundir}
 if [[ ${sim_name} = "fullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
@@ -378,6 +389,11 @@ do
         start_date="20190101_0000z"
         src_name="${src_prefix}${start_date}${src_suffix}"
         ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+    # For tagO3, use the same restart file as fullchem's
+    elif [[ ${sim_name} = "tagO3" ]]; then
+        start_date="20190701_0000z"
+        src_name="GCHP.Restart.fullchem.${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
     fi
 done
 
@@ -423,8 +439,8 @@ elif [ "${sim_type}" == "CO2" ]; then
     startdate="20140901"
     enddate="20140901"
 else
-    startdate="20190101"
-    enddate="20190201"
+    startdate="20190701"
+    enddate="20190801"
 fi
 sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
 sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
@@ -465,6 +481,18 @@ elif [ "${sim_type}" == "CO2" ]; then
     end_time="060000"
     dYYYYMMDD="00000000"
     dHHmmSS="060000"
+elif [ "${sim_type}" == "tagO3" ]; then
+    total_cores=24
+    num_nodes=1
+    num_cores_per_node=24
+    grid_res=24
+    timeAvg_monthly=0
+    timeAvg_freq="010000"
+    inst_freq="010000"
+    start_time="000000"
+    end_time="000000"
+    dYYYYMMDD="00000100"
+    dHHmmSS="000000"
 else
     total_cores=24
     num_nodes=1
