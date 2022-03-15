@@ -54,21 +54,6 @@ MODULE Regrid_A2A_Mod
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES:
-!
-
-  !---------------------------------------------------------------------------
-  ! These are now kept locally, to "shadow" variables from other parts of
-  ! GEOS-Chem.  This avoids depending on GEOS-Chem code within the core
-  ! HEMCO modules. (bmy, 7/14/14)
-  !---------------------------------------------------------------------------
-  CHARACTER(LEN=255)    :: NC_DIR        ! Directory w/ netCDF files
-  INTEGER               :: OUTNX         ! # of longitudes (x-dimension) in grid
-  INTEGER               :: OUTNY         ! # of latitudes  (y-dimension) in grid
-  REAL(fp), ALLOCATABLE :: OUTLON (:  )  ! Longitude on output grid
-  REAL(fp), ALLOCATABLE :: OUTSIN (:  )  ! Sines of latitudes on output grid
-  REAL(fp), ALLOCATABLE :: OUTAREA(:,:)  ! Surface areas on output grid
-!
 ! !DEFINED PARAMETERS:
 !
   !---------------------------------------------------------------------------
@@ -1706,7 +1691,7 @@ CONTAINS
   END SUBROUTINE xmap_r8r8
 !EOC
 !------------------------------------------------------------------------------
-!                   Harmonized Emissions Component (HEMCO)                    !
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
