@@ -1126,7 +1126,7 @@ CONTAINS
              zp(i) = pblh(i)
           end if
           if( zm(i) < pblh(i) ) then
-             zmzp = 0.5e_fp*(zm(i) + zp(i))
+             zmzp = 0.5_fp*(zm(i) + zp(i))
              zh(i) = zmzp/pblh(i)
              zl(i) = zmzp/obklen(i)
              if( zh(i) <= 1.0_fp ) then
