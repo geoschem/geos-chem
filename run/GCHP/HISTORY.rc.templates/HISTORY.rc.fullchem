@@ -118,8 +118,18 @@ COLLECTIONS: @#'DefaultCollection',
 #           SpeciesConc.levels: 1 2 3
 #
 #==============================================================================
+
+#==============================================================================
+# %%%%% THE DefaultCollection COLLECTION %%%%%
+#
+# Reduced set of output including some species concentrations, met-fields,
+# and PM2.5
+#
+# Available for full-chemistry simulations
+#==============================================================================
   DefaultCollection.template:       '%y4%m2%d2_%h2%n2z.nc4',
   DefaultCollection.format:         'CFIO',
+  DefaultCollection.timestampStart: .true.
   DefaultCollection.frequency:      240000
   DefaultCollection.duration:       240000
   DefaultCollection.mode:           'time-averaged'
@@ -141,7 +151,17 @@ COLLECTIONS: @#'DefaultCollection',
                                     'Met_PS1DRY           ', 'GCHPchem',
                                     'Met_PS1WET           ', 'GCHPchem',
 ::
-# Emissions (see HEMCO_Diagn.rc for additional config settings)
+#==============================================================================
+# %%%%% THE Emissions COLLECTION %%%%%
+#
+# HEMCO emissions by species and category, and inventory emissions
+#
+# Please note that this collection is output with level definition flipped
+# relative to all other GCHP diagnostics. Level index 1 corresponds to
+# top-of-atmosphere.
+#
+# See HEMCO_Diagn.rc for additional config settings
+#==============================================================================
   Emissions.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:         'CFIO',
   Emissions.timestampStart: .true.
