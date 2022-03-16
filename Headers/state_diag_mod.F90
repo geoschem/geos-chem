@@ -342,6 +342,9 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TomasNUCL(:,:,:)
      LOGICAL                     :: Archive_TomasNUCL
 
+     REAL(f4),           POINTER :: TomasNUCRATEFN(:,:,:)
+     LOGICAL                     :: Archive_TomasNUCRATEFN
+
      REAL(f4),           POINTER :: TomasNUCLmass(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TomasNUCLmass
      LOGICAL                     :: Archive_TomasNUCLmass
@@ -349,6 +352,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TomasNUCLnumber(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TomasNUCLnumber
      LOGICAL                     :: Archive_TomasNUCLnumber
+
+     REAL(f4),           POINTER :: TomasNUCRATEnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasNUCRATEnumber
+     LOGICAL                     :: Archive_TomasNUCRATEnumber
 
      REAL(f4),           POINTER :: TomasAQOX(:,:,:)
      LOGICAL                     :: Archive_TomasAQOX
@@ -371,6 +378,78 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TomasERRORnumber(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TomasERRORnumber
      LOGICAL                     :: Archive_TomasERRORnumber
+
+     REAL(f4),           POINTER :: TomasERRORcondmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcondmass
+     LOGICAL                     :: Archive_TomasERRORcondmass
+
+     REAL(f4),           POINTER :: TomasERRORcondnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcondnumber
+     LOGICAL                     :: Archive_TomasERRORcondnumber
+
+     REAL(f4),           POINTER :: TomasERRORcoagmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcoagmass
+     LOGICAL                     :: Archive_TomasERRORcoagmass
+
+     REAL(f4),           POINTER :: TomasERRORcoagnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcoagnumber
+     LOGICAL                     :: Archive_TomasERRORcoagnumber
+
+     REAL(f4),           POINTER :: TomasERRORaqoxmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORaqoxmass
+     LOGICAL                     :: Archive_TomasERRORaqoxmass
+
+     REAL(f4),           POINTER :: TomasERRORaqoxnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORaqoxnumber
+     LOGICAL                     :: Archive_TomasERRORaqoxnumber
+
+     REAL(f4),           POINTER :: TomasERRORezwat1mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat1mass
+     LOGICAL                     :: Archive_TomasERRORezwat1mass
+
+     REAL(f4),           POINTER :: TomasERRORezwat1number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat1number
+     LOGICAL                     :: Archive_TomasERRORezwat1number
+
+     REAL(f4),           POINTER :: TomasERRORezwat2mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat2mass
+     LOGICAL                     :: Archive_TomasERRORezwat2mass
+
+     REAL(f4),           POINTER :: TomasERRORezwat2number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat2number
+     LOGICAL                     :: Archive_TomasERRORezwat2number
+
+     REAL(f4),           POINTER :: TomasERRORezwat3mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat3mass
+     LOGICAL                     :: Archive_TomasERRORezwat3mass
+
+     REAL(f4),           POINTER :: TomasERRORezwat3number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat3number
+     LOGICAL                     :: Archive_TomasERRORezwat3number
+
+     REAL(f4),           POINTER :: TomasERRORcheck1mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck1mass
+     LOGICAL                     :: Archive_TomasERRORcheck1mass
+
+     REAL(f4),           POINTER :: TomasERRORcheck1number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck1number
+     LOGICAL                     :: Archive_TomasERRORcheck1number
+
+     REAL(f4),           POINTER :: TomasERRORcheck2mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck2mass
+     LOGICAL                     :: Archive_TomasERRORcheck2mass
+
+     REAL(f4),           POINTER :: TomasERRORcheck2number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck2number
+     LOGICAL                     :: Archive_TomasERRORcheck2number
+
+     REAL(f4),           POINTER :: TomasERRORcheck3mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck3mass
+     LOGICAL                     :: Archive_TomasERRORcheck3mass
+
+     REAL(f4),           POINTER :: TomasERRORcheck3number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck3number
+     LOGICAL                     :: Archive_TomasERRORcheck3number
 
      REAL(f4),           POINTER :: TomasSOA(:,:,:)
      LOGICAL                     :: Archive_TomasSOA
@@ -1442,6 +1521,9 @@ CONTAINS
     State_Diag%TomasNUCL                          => NULL()
     State_Diag%Archive_TomasNUCL                  = .FALSE.
 
+    State_Diag%TomasNUCRATEFN                          => NULL()
+    State_Diag%Archive_TomasNUCRATEFN                  = .FALSE.
+
     State_Diag%TomasNUCLmass                       => NULL()
     State_Diag%Map_TomasNUCLmass                   => NULL()
     State_Diag%Archive_TomasNUCLmass               = .FALSE.
@@ -1449,6 +1531,10 @@ CONTAINS
     State_Diag%TomasNUCLnumber                       => NULL()
     State_Diag%Map_TomasNUCLnumber                   => NULL()
     State_Diag%Archive_TomasNUCLnumber               = .FALSE.
+
+    State_Diag%TomasNUCRATEnumber                       => NULL()
+    State_Diag%Map_TomasNUCRATEnumber                   => NULL()
+    State_Diag%Archive_TomasNUCRATEnumber               = .FALSE.
 
     State_Diag%TomasAQOX                          => NULL()
     State_Diag%Archive_TomasAQOX                  = .FALSE.
@@ -1472,7 +1558,79 @@ CONTAINS
     State_Diag%Map_TomasERRORnumber                   => NULL()
     State_Diag%Archive_TomasERRORnumber               = .FALSE.
 
-    State_Diag%TomasSOA                            => NULL()
+    State_Diag%TomasERRORcondmass                       => NULL()
+    State_Diag%Map_TomasERRORcondmass                   => NULL()
+    State_Diag%Archive_TomasERRORcondmass               = .FALSE.
+
+    State_Diag%TomasERRORcondnumber                       => NULL()
+    State_Diag%Map_TomasERRORcondnumber                   => NULL()
+    State_Diag%Archive_TomasERRORcondnumber               = .FALSE.
+
+    State_Diag%TomasERRORcoagmass                       => NULL()
+    State_Diag%Map_TomasERRORcoagmass                   => NULL()
+    State_Diag%Archive_TomasERRORcoagmass               = .FALSE.
+
+    State_Diag%TomasERRORcoagnumber                       => NULL()
+    State_Diag%Map_TomasERRORcoagnumber                   => NULL()
+    State_Diag%Archive_TomasERRORcoagnumber               = .FALSE.
+
+    State_Diag%TomasERRORaqoxmass                       => NULL()
+    State_Diag%Map_TomasERRORaqoxmass                   => NULL()
+    State_Diag%Archive_TomasERRORaqoxmass               = .FALSE.
+
+    State_Diag%TomasERRORaqoxnumber                       => NULL()
+    State_Diag%Map_TomasERRORaqoxnumber                   => NULL()
+    State_Diag%Archive_TomasERRORaqoxnumber               = .FALSE.
+
+    State_Diag%TomasERRORezwat1mass                       => NULL()
+    State_Diag%Map_TomasERRORezwat1mass                   => NULL()
+    State_Diag%Archive_TomasERRORezwat1mass               = .FALSE.
+
+    State_Diag%TomasERRORezwat1number                       => NULL()
+    State_Diag%Map_TomasERRORezwat1number                   => NULL()
+    State_Diag%Archive_TomasERRORezwat1number               = .FALSE.
+
+    State_Diag%TomasERRORezwat2mass                       => NULL()
+    State_Diag%Map_TomasERRORezwat2mass                   => NULL()
+    State_Diag%Archive_TomasERRORezwat2mass               = .FALSE.
+
+    State_Diag%TomasERRORezwat2number                       => NULL()
+    State_Diag%Map_TomasERRORezwat2number                   => NULL()
+    State_Diag%Archive_TomasERRORezwat2number               = .FALSE.
+
+    State_Diag%TomasERRORezwat3mass                       => NULL()
+    State_Diag%Map_TomasERRORezwat3mass                   => NULL()
+    State_Diag%Archive_TomasERRORezwat3mass               = .FALSE.
+
+    State_Diag%TomasERRORezwat3number                       => NULL()
+    State_Diag%Map_TomasERRORezwat3number                   => NULL()
+    State_Diag%Archive_TomasERRORezwat3number               = .FALSE.
+ 
+    State_Diag%TomasERRORcheck1mass                       => NULL()
+    State_Diag%Map_TomasERRORcheck1mass                   => NULL()
+    State_Diag%Archive_TomasERRORcheck1mass               = .FALSE.
+
+    State_Diag%TomasERRORcheck1number                       => NULL()
+    State_Diag%Map_TomasERRORcheck1number                   => NULL()
+    State_Diag%Archive_TomasERRORcheck1number               = .FALSE.
+
+    State_Diag%TomasERRORcheck2mass                       => NULL()
+    State_Diag%Map_TomasERRORcheck2mass                   => NULL()
+    State_Diag%Archive_TomasERRORcheck2mass               = .FALSE.
+
+    State_Diag%TomasERRORcheck2number                       => NULL()
+    State_Diag%Map_TomasERRORcheck2number                   => NULL()
+    State_Diag%Archive_TomasERRORcheck2number               = .FALSE.
+
+    State_Diag%TomasERRORcheck3mass                       => NULL()
+    State_Diag%Map_TomasERRORcheck3mass                   => NULL()
+    State_Diag%Archive_TomasERRORcheck3mass               = .FALSE.
+
+    State_Diag%TomasERRORcheck3number                       => NULL()
+    State_Diag%Map_TomasERRORcheck3number                   => NULL()
+    State_Diag%Archive_TomasERRORcheck3number               = .FALSE.
+
+   State_Diag%TomasSOA                            => NULL()
     State_Diag%Archive_TomasSOA                    = .FALSE.
 
     State_Diag%TomasSOAmass                       => NULL()
@@ -5610,6 +5768,31 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation
+       !--------------------------------------------------------------------
+
+       diagID  = 'TomasNUCRATEFN' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCRATEFN,                          &
+            archiveData    = State_Diag%Archive_TomasNUCRATEFN,                  &
+            !mapData        = State_Diag%Map_TomasNUCRATEfn,                      &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Nucleation rate per bin
        !--------------------------------------------------------------------
        ! what is this and do I need similar for tomas bins? 
@@ -5653,6 +5836,33 @@ CONTAINS
             Ptr2Data       = State_Diag%TomasNUCLnumber,                       &
             archiveData    = State_Diag%Archive_TomasNUCLnumber,               &
             mapData        = State_Diag%Map_TomasNUCLnumber,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation rate per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasNUCL' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasNUCRATEnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCRATEnumber,                       &
+            archiveData    = State_Diag%Archive_TomasNUCRATEnumber,               &
+            mapData        = State_Diag%Map_TomasNUCRATEnumber,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -5812,6 +6022,498 @@ CONTAINS
             Ptr2Data       = State_Diag%TomasERRORnumber,                       &
             archiveData    = State_Diag%Archive_TomasERRORnumber,               &
             mapData        = State_Diag%Map_TomasERRORnumber,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcondmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcondmass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcondmass,               &
+            mapData        = State_Diag%Map_TomasERRORcondmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcondnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcondnumber,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcondnumber,               &
+            mapData        = State_Diag%Map_TomasERRORcondnumber,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcoagmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcoagmass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcoagmass,               &
+            mapData        = State_Diag%Map_TomasERRORcoagmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcoagnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcoagnumber,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcoagnumber,               &
+            mapData        = State_Diag%Map_TomasERRORcoagnumber,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORaqoxmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORaqoxmass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORaqoxmass,               &
+            mapData        = State_Diag%Map_TomasERRORaqoxmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORaqoxnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORaqoxnumber,                       &
+            archiveData    = State_Diag%Archive_TomasERRORaqoxnumber,               &
+            mapData        = State_Diag%Map_TomasERRORaqoxnumber,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORezwat1mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORezwat1mass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORezwat1mass,               &
+            mapData        = State_Diag%Map_TomasERRORezwat1mass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORezwat1number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORezwat1number,                       &
+            archiveData    = State_Diag%Archive_TomasERRORezwat1number,               &
+            mapData        = State_Diag%Map_TomasERRORezwat1number,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORezwat2mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORezwat2mass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORezwat2mass,               &
+            mapData        = State_Diag%Map_TomasERRORezwat2mass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORezwat2number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORezwat2number,                       &
+            archiveData    = State_Diag%Archive_TomasERRORezwat2number,               &
+            mapData        = State_Diag%Map_TomasERRORezwat2number,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORezwat3mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORezwat3mass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORezwat3mass,               &
+            mapData        = State_Diag%Map_TomasERRORezwat3mass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORezwat3number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORezwat3number,                       &
+            archiveData    = State_Diag%Archive_TomasERRORezwat3number,               &
+            mapData        = State_Diag%Map_TomasERRORezwat3number,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcheck1mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcheck1mass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcheck1mass,               &
+            mapData        = State_Diag%Map_TomasERRORcheck1mass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcheck1number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcheck1number,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcheck1number,               &
+            mapData        = State_Diag%Map_TomasERRORcheck1number,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcheck2mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcheck2mass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcheck2mass,               &
+            mapData        = State_Diag%Map_TomasERRORcheck2mass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcheck2number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcheck2number,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcheck2number,               &
+            mapData        = State_Diag%Map_TomasERRORcheck2number,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcheck3mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcheck3mass,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcheck3mass,               &
+            mapData        = State_Diag%Map_TomasERRORcheck3mass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       ! what is this and do I need similar for tomas bins? 
+       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
+       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+       diagID  = 'TomasERRORcheck3number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasERRORcheck3number,                       &
+            archiveData    = State_Diag%Archive_TomasERRORcheck3number,               &
+            mapData        = State_Diag%Map_TomasERRORcheck3number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -9319,15 +10021,35 @@ CONTAINS
                                   State_Diag%Archive_TomasCOAG         .or. &
                                   State_Diag%Archive_TomasCOAGmass     .or. &
                                   State_Diag%Archive_TomasCOAGnumber   .or. &
+                                  State_Diag%Archive_TomasNUCRATEFN    .or. &
                                   State_Diag%Archive_TomasNUCL         .or. &
                                   State_Diag%Archive_TomasNUCLmass     .or. &
                                   State_Diag%Archive_TomasNUCLnumber   .or. &
+                                  State_Diag%Archive_TomasNUCRATEnumber   .or. &
                                   State_Diag%Archive_TomasAQOX         .or. &
                                   State_Diag%Archive_TomasAQOXmass     .or. &
                                   State_Diag%Archive_TomasAQOXnumber   .or. &
                                   State_Diag%Archive_TomasERROR        .or. &
                                   State_Diag%Archive_TomasERRORmass    .or. &
                                   State_Diag%Archive_TomasERRORnumber  .or. &
+                                  State_Diag%Archive_TomasERRORcondmass    .or. &
+                                  State_Diag%Archive_TomasERRORcondnumber  .or. &
+                                  State_Diag%Archive_TomasERRORcoagmass    .or. &
+                                  State_Diag%Archive_TomasERRORcoagnumber  .or. &
+                                  State_Diag%Archive_TomasERRORaqoxmass    .or. &
+                                  State_Diag%Archive_TomasERRORaqoxnumber  .or. &
+                                  State_Diag%Archive_TomasERRORezwat1mass    .or. &
+                                  State_Diag%Archive_TomasERRORezwat1number  .or. &
+                                  State_Diag%Archive_TomasERRORezwat2mass    .or. &
+                                  State_Diag%Archive_TomasERRORezwat2number  .or. &
+                                  State_Diag%Archive_TomasERRORezwat3mass    .or. &
+                                  State_Diag%Archive_TomasERRORezwat3number  .or. &
+                                  State_Diag%Archive_TomasERRORcheck1mass    .or. &
+                                  State_Diag%Archive_TomasERRORcheck1number  .or. &
+                                  State_Diag%Archive_TomasERRORcheck2mass    .or. &
+                                  State_Diag%Archive_TomasERRORcheck2number  .or. &
+                                  State_Diag%Archive_TomasERRORcheck3mass    .or. &
+                                  State_Diag%Archive_TomasERRORcheck3number  .or. &
                                   State_Diag%Archive_TomasSOA          .or. &
                                   State_Diag%Archive_TomasSOAmass      .or. &
                                   State_Diag%Archive_TomasSOAnumber           )
@@ -9918,15 +10640,26 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'TomasNUCRATEfn',                             &
+                   Ptr2Data = State_Diag%TomasNUCRATEfn,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'TomasNUCLmass',                               &
                    Ptr2Data = State_Diag%TomasNUCLmass,                      &
                    mapData  = State_Diag%Map_TomasNUCLmass,                  &
-                   RC       = RC                                            )
+                   RC       = RC                                             )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'TomasNUCLnumber',                               &
                    Ptr2Data = State_Diag%TomasNUCLnumber,                      &
                    mapData  = State_Diag%Map_TomasNUCLnumber,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasNUCRATEnumber',                               &
+                   Ptr2Data = State_Diag%TomasNUCRATEnumber,                      &
+                   mapData  = State_Diag%Map_TomasNUCRATEnumber,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9962,6 +10695,114 @@ CONTAINS
     CALL Finalize( diagId   = 'TomasERRORnumber',                               &
                    Ptr2Data = State_Diag%TomasERRORnumber,                      &
                    mapData  = State_Diag%Map_TomasERRORnumber,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcondmass',                               &
+                   Ptr2Data = State_Diag%TomasERRORcondmass,                      &
+                   mapData  = State_Diag%Map_TomasERRORcondmass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcondnumber',                               &
+                   Ptr2Data = State_Diag%TomasERRORcondnumber,                      &
+                   mapData  = State_Diag%Map_TomasERRORcondnumber,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcoagmass',                               &
+                   Ptr2Data = State_Diag%TomasERRORcoagmass,                      &
+                   mapData  = State_Diag%Map_TomasERRORcoagmass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcoagnumber',                               &
+                   Ptr2Data = State_Diag%TomasERRORcoagnumber,                      &
+                   mapData  = State_Diag%Map_TomasERRORcoagnumber,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORaqoxmass',                               &
+                   Ptr2Data = State_Diag%TomasERRORaqoxmass,                      &
+                   mapData  = State_Diag%Map_TomasERRORaqoxmass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORaqoxnumber',                               &
+                   Ptr2Data = State_Diag%TomasERRORaqoxnumber,                      &
+                   mapData  = State_Diag%Map_TomasERRORaqoxnumber,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORezwat1mass',                               &
+                   Ptr2Data = State_Diag%TomasERRORezwat1mass,                      &
+                   mapData  = State_Diag%Map_TomasERRORezwat1mass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORezwat1number',                               &
+                   Ptr2Data = State_Diag%TomasERRORezwat1number,                      &
+                   mapData  = State_Diag%Map_TomasERRORezwat1number,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORezwat2mass',                               &
+                   Ptr2Data = State_Diag%TomasERRORezwat2mass,                      &
+                   mapData  = State_Diag%Map_TomasERRORezwat2mass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORezwat2number',                               &
+                   Ptr2Data = State_Diag%TomasERRORezwat2number,                      &
+                   mapData  = State_Diag%Map_TomasERRORezwat2number,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORezwat3mass',                               &
+                   Ptr2Data = State_Diag%TomasERRORezwat3mass,                      &
+                   mapData  = State_Diag%Map_TomasERRORezwat3mass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORezwat3number',                               &
+                   Ptr2Data = State_Diag%TomasERRORezwat3number,                      &
+                   mapData  = State_Diag%Map_TomasERRORezwat3number,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcheck1mass',                               &
+                   Ptr2Data = State_Diag%TomasERRORcheck1mass,                      &
+                   mapData  = State_Diag%Map_TomasERRORcheck1mass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcheck1number',                               &
+                   Ptr2Data = State_Diag%TomasERRORcheck1number,                      &
+                   mapData  = State_Diag%Map_TomasERRORcheck1number,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcheck2mass',                               &
+                   Ptr2Data = State_Diag%TomasERRORcheck2mass,                      &
+                   mapData  = State_Diag%Map_TomasERRORcheck2mass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcheck2number',                               &
+                   Ptr2Data = State_Diag%TomasERRORcheck2number,                      &
+                   mapData  = State_Diag%Map_TomasERRORcheck2number,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcheck3mass',                               &
+                   Ptr2Data = State_Diag%TomasERRORcheck3mass,                      &
+                   mapData  = State_Diag%Map_TomasERRORcheck3mass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasERRORcheck3number',                               &
+                   Ptr2Data = State_Diag%TomasERRORcheck3number,                      &
+                   mapData  = State_Diag%Map_TomasERRORcheck3number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -11634,7 +12475,7 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOND' ) THEN
        IF ( isDesc    ) Desc  = 'TOMAS Condensation Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCONDMASS'  ) THEN
@@ -11645,7 +12486,7 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCONDNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASCOND Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -11662,13 +12503,18 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOAGNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASCOAG Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCL' ) THEN
        IF ( isDesc    ) Desc  = 'TOMAS Nucleation Rate'
        IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCRATEFN' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Nucleation Rate'
+       IF ( isUnits   ) Units = 'number/cm3/s'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCLMASS'  ) THEN
@@ -11679,7 +12525,13 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCLNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCRATENUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
+       IF ( isUnits   ) Units = 'number/cm3/s'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -11696,7 +12548,7 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASAQOXNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASAQOX Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -11713,7 +12565,115 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASERROR Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCONDMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCOND Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCONDNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCOAG Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCOAGMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCOAG Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCOAGNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORAQOX Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORAQOXMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORAQOX Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORAQOXNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCOND Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT1MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT1 Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT1NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT1 Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT2MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT2 Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT2NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT2 Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT3MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT3 Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT3NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT3 Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK1MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK1 Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK1NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK1 Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK2MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK2 Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK2NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK2 Rate'
+       IF ( isUnits   ) Units = 'number'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK3MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK3 Rate'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK3NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK3 Rate'
+       IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -11730,7 +12690,7 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASSOANUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASSOA Rate'
-       IF ( isUnits   ) Units = 'no'
+       IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 

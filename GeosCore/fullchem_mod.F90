@@ -1221,6 +1221,7 @@ CONTAINS
                  I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
               H2SO4_RATE(I,J,L) = 0.0d0
             ENDIF
+
 #endif
 
        !====================================================================
@@ -1616,23 +1617,6 @@ CONTAINS
 
        State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
        State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
-
-#ifdef TOMAS
-       !-----------------------------------------------------------------                                                                                                                                                     
-       ! For TOMAS microphysics:                                                                                                                                                                                              
-       !                                                                                                                                                                                                                     
-       ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)                                                                                                                                                              
-       !                                                                                                                                                                                                                    
-       ! SO4 produced via aqueous chemistry is distributed onto TOMAS bins
-       ! by TOMAS subroutine AQOXID.   NOTE: This may be moved                                                                                                                                                        
-       ! to tomas_mod.F90 in the future, but for now it still needs to get                                                                                                                                                    
-       ! the PSO4_SO2AQ value while CHEMSULFATE is called                                                                                                                                                                     
-       !-----------------------------------------------------------------                                                                                                                                                     
-       
-       CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                          State_Diag, RC )
-       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
-#endif
 
     ENDIF
 
@@ -2473,6 +2457,7 @@ CONTAINS
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
+
     IF ( nFam > 0 ) THEN
 
        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
