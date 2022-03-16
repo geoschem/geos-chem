@@ -116,6 +116,7 @@ Warnings:                    1
     --> OFFLINE_DUST           :       ${RUNDIR_OFFLINE_DUST}    # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       ${RUNDIR_OFFLINE_BIOVOC}    # 1980-2021
     --> OFFLINE_SEASALT        :       ${RUNDIR_OFFLINE_SEASALT}    # 1980-2021
+    -->  CalcBrSeasalt         :       false
     --> OFFLINE_SOILNOX        :       ${RUNDIR_OFFLINE_SOILNOX}    # 1980-2021
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> UVALBEDO               :       true     # 1985
@@ -157,7 +158,7 @@ Warnings:                    1
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       true
+    --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -2777,11 +2778,15 @@ Warnings:                    1
 0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
 0 SEASALT_SALAAL  -                                                                                     -            -                     - -  -       SALAAL  615 3 2
 0 SEASALT_SALACL  -                                                                                     -            -                     - -  -       SALACL  616 3 2
+(((CalcBrSeasalt
 0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BrSALA  617 3 2
+)))CalcBrSeasalt
 0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
 0 SEASALT_SALCAL  -                                                                                     -            -                     - -  -       SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
+(((CalcBrSeasalt
 0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BrSALC  617 3 2
+)))CalcBrSeasalt
 ))).not.SeaSalt
 )))OFFLINE_SEASALT
 
