@@ -705,8 +705,6 @@ CONTAINS
        ! Give it the pseudo-steady state value instead later (win,9/30/08)
        !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
 !betty
-!       H2SO4_RATE(I,J,L) = State_Diag%Prod_SO4(I,J,L)  ! ? molecules/cm3/s needed in [kg S/box/s]  !!!! check this and units are wrong!!!
-!       H2SO4_RATE(I,J,L) = H2SO4_RATE(I,J,L) * 98.e+0_fp/32.e+0_fp ! put in [kg H2SO4/s]
        H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
         !  if (H2SO4_RATE(I,J,L) > 0.e+0_fp) then
         !  print*,'H2SO4 is ',H2SO4_RATE(I,J,L), I, J, L

@@ -5613,9 +5613,6 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Condensation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasCOND' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
        diagID  = 'TomasCONDmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5640,9 +5637,6 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Condensation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasCOND' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
        diagID  = 'TomasCONDnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5693,9 +5687,6 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Coagulation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasCOAG' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
        diagID  = 'TomasCOAGmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5719,9 +5710,6 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Coagulation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasCOAG' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
        diagID  = 'TomasCOAGnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5795,9 +5783,6 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Nucleation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasNUCL' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
        diagID  = 'TomasNUCLmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5822,9 +5807,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Nucleation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasNUCL' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasNUCLnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5849,9 +5832,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Nucleation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasNUCL' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasNUCRATEnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5902,9 +5883,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Aqueous oxidation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasAQOX' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasAQOXmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5929,9 +5908,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Aqueous oxidation rate per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasAQOX' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasAQOXnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -5981,9 +5958,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6008,9 +5983,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6036,9 +6009,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcondmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6063,9 +6034,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcondnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6092,9 +6061,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcoagmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6119,9 +6086,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcoagnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6148,9 +6113,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORaqoxmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6175,9 +6138,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORaqoxnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6203,9 +6164,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORezwat1mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6230,9 +6189,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORezwat1number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6257,9 +6214,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORezwat2mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6284,9 +6239,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORezwat2number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6311,9 +6264,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORezwat3mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6338,9 +6289,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORezwat3number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6365,9 +6314,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcheck1mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6392,9 +6339,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcheck1number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6419,9 +6364,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcheck2mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6446,9 +6389,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcheck2number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6473,9 +6414,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcheck3mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6500,9 +6439,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasRROR' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasERRORcheck3number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6553,9 +6490,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - SOA Cond per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasSOA' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasSOAmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -6580,9 +6515,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - SOA Cond per bin
        !--------------------------------------------------------------------
-       ! what is this and do I need similar for tomas bins? 
-       !TmpWL   = RadWL(1)                          ! Workaround for ifort 17
-       !diagID  = 'TomasSOA' // TRIM( TmpWL ) // 'bins' ! to avoid seg faults                   
+
        diagID  = 'TomasSOAnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
