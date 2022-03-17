@@ -309,41 +309,41 @@ CONTAINS
     ! Define quantities
     !-----------------------------------------------------------------------
 
-    dlon = 2.e+0_fp * PI / DBLE( IM )
+    dlon = 2.0_fp * PI / DBLE( IM )
 
     ! S. Pole
-    elat(1)    = -0.5e+0_fp*PI
-    sine(1)    = -1.0e+0_fp
-    SINE_25(1) = -1.0e+0_fp
-    cose(1)    =  0.0e+0_fp
+    elat(1)    = -0.5_fp*PI
+    sine(1)    = -1.0_fp
+    SINE_25(1) = -1.0_fp
+    cose(1)    =  0.0_fp
 
     do j=2,jm
-       elat(j)    = 0.5e+0_fp*(clat(j-1) + clat(j))
+       elat(j)    = 0.5_fp*(clat(j-1) + clat(j))
        sine(j)    = SIN( elat(j) )
        SINE_25(J) = SIN( CLAT(J) )
        cose(j)    = COS( elat(j) )
     enddo
 
     ! N. Pole
-    elat(jm+1)    = 0.5e+0_fp*PI
-    sine(jm+1)    = 1.0e+0_fp
-    SINE_25(JM+1) = 1.0e+0_fp
+    elat(jm+1)    = 0.5_fp*PI
+    sine(jm+1)    = 1.0_fp
+    SINE_25(JM+1) = 1.0_fp
 
     ! Polar cap (S. Pole)
-    dlat(1) = 2.e+0_fp*(elat(2) - elat(1))
+    dlat(1) = 2.0_fp*(elat(2) - elat(1))
     do j=2,jm-1
        dlat(j) = elat(j+1) - elat(j)
     enddo
 
     ! Polar cap (N. Pole)
-    dlat(jm) = 2.0e+0_fp*(elat(jm+1) - elat(jm))
+    dlat(jm) = 2.0_fp*(elat(jm+1) - elat(jm))
 
     do j=1,jm
        gw(j)     = sine(j+1) - sine(j)
        cosp(j)   = gw(j) / dlat(j)
 
-       dtdx5(j)  = 0.5e+0_fp * dt / (dlon*ae*cosp(j))
-       dtdy5(j)  = 0.5e+0_fp * dt / (ae*dlat(j))
+       dtdx5(j)  = 0.5_fp * dt / (dlon*ae*cosp(j))
+       dtdy5(j)  = 0.5_fp * dt / (ae*dlat(j))
     enddo
 
     ! Echo info to stdout
@@ -422,77 +422,77 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Transport time step [s]
-    REAL(fp),  INTENT(IN)  :: dt
+    REAL(fp),       INTENT(IN)    :: dt
 
     ! Earth's radius [m]
-    REAL(fp),  INTENT(IN)  :: ae
+    REAL(fp),       INTENT(IN)    :: ae
 
     ! Global E-W, N-S, and vertical dimensions
-    INTEGER, INTENT(IN)    :: IM
-    INTEGER, INTENT(IN)    :: JM
-    INTEGER, INTENT(IN)    :: KM
+    INTEGER,        INTENT(IN)    :: IM
+    INTEGER,        INTENT(IN)    :: JM
+    INTEGER,        INTENT(IN)    :: KM
 
     ! Latitude indices for local first box and local last box
     ! (NOTE: for global grids these are 1 and JM, respectively)
-    INTEGER, INTENT(IN)    :: JFIRST
-    INTEGER, INTENT(IN)    :: JLAST
+    INTEGER,        INTENT(IN)    :: JFIRST
+    INTEGER,        INTENT(IN)    :: JLAST
 
     ! Primary ghost region
     ! (NOTE: only required for MPI parallelization; use 0 otherwise)
-    INTEGER, INTENT(IN)    :: ng
+    INTEGER,        INTENT(IN)    :: ng
 
     ! Secondary ghost region
     ! (NOTE: only required for MPI parallelization; use 0 otherwise)
-    INTEGER, INTENT(IN)    :: mg
+    INTEGER,        INTENT(IN)    :: mg
 
     ! Ghosted latitudes (3 required by PPM)
     ! (NOTE: only required for MPI parallelization; use 0 otherwise)
-    INTEGER, INTENT(IN)    :: nq
+    INTEGER,        INTENT(IN)    :: nq
 
     ! Flags to denote E-W, N-S, and vertical transport schemes
-    INTEGER, INTENT(IN)    :: iord
-    INTEGER, INTENT(IN)    :: jord
-    INTEGER, INTENT(IN)    :: kord
+    INTEGER,        INTENT(IN)    :: iord
+    INTEGER,        INTENT(IN)    :: jord
+    INTEGER,        INTENT(IN)    :: kord
 
     ! Number of adjustments to air_mass_flux (0 = no adjustment)
-    INTEGER, INTENT(IN)    :: n_adj
+    INTEGER,        INTENT(IN)    :: n_adj
 
     ! Ak and Bk coordinates to specify the hybrid grid
     ! (see the REMARKS section below)
-    REAL(fp),  INTENT(IN)  :: ak(KM+1)
-    REAL(fp),  INTENT(IN)  :: bk(KM+1)
+    REAL(fp),       INTENT(IN)    :: ak(KM+1)
+    REAL(fp),       INTENT(IN)    :: bk(KM+1)
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL(fp),  INTENT(IN)  :: u(:,:,:)
+    REAL(fp),       INTENT(IN)    :: u(:,:,:)
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL(fp),  INTENT(IN)  :: XMASS(:,:,:)
-    REAL(fp),  INTENT(IN)  :: YMASS(:,:,:)
+    REAL(fp),       INTENT(IN)    :: XMASS(:,:,:)
+    REAL(fp),       INTENT(IN)    :: YMASS(:,:,:)
 
     ! Grid box surface area for mass flux diag [m2]
-    REAL(fp),  INTENT(IN)  :: AREA_M2(JM)
+    REAL(fp),       INTENT(IN)    :: AREA_M2(JM)
 
     ! Diagnostic flags
-    INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
-    INTEGER, INTENT(IN)    :: ND25    ! Turns on N/S     flux diagnostic
-    INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic
+    INTEGER,        INTENT(IN)    :: ND24  ! Turns on E/W     flux diagnostic
+    INTEGER,        INTENT(IN)    :: ND25  ! Turns on N/S     flux diagnostic
+    INTEGER,        INTENT(IN)    :: ND26  ! Turns on up/down flux diagnostic
 
-    LOGICAL, INTENT(IN)    :: FILL    ! Fill negatives ?
+    LOGICAL,        INTENT(IN)    :: FILL  ! Fill negatives ?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL(fp),  INTENT(INOUT) :: v(:,:,:)
+    REAL(fp),       INTENT(INOUT) :: v(:,:,:)
 
     ! surface pressure at current time
-    REAL(fp),  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)
+    REAL(fp),       INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)
 
     ! surface pressure at future time=t+dt
-    REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)
+    REAL(fp),       INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)
 
     ! Tracer "mixing ratios" [kg tracer/moist air kg]
-    REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
+    REAL(fp), TARGET,INTENT(INOUT):: q(:,:,:,:)
 
     ! Diagnostics state object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
@@ -500,7 +500,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! "Predicted" surface pressure [hPa]
-    REAL(fp),  INTENT(OUT)   :: ps(IM,JFIRST:JLAST)
+    REAL(fp),  INTENT(OUT)        :: ps(IM,JFIRST:JLAST)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO)
@@ -588,6 +588,34 @@ CONTAINS
     !     Begin execution.
     !     ----------------
 
+    ! Set output argument to zero for safety's sake
+    ps      = 0.0_fp
+
+    ! Zero local arrays for safety's sake
+    dap     = 0.0_fp
+    dbk     = 0.0_fp
+    cx      = 0.0_fp
+    cy      = 0.0_fp
+    delp1   = 0.0_fp
+    delp2   = 0.0_fp
+    delpm   = 0.0_fp
+    pu      = 0.0_fp
+    dpi     = 0.0_fp
+    geofac  = 0.0_fp
+    dps_ctm = 0.0_fp
+    ua      = 0.0_fp
+    va      = 0.0_fp
+    wz      = 0.0_fp
+    dq1     = 0.0_fp
+    qqu     = 0.0_fp
+    qqv     = 0.0_fp
+    adx     = 0.0_fp
+    ady     = 0.0_fp
+    fx      = 0.0_fp
+    fy      = 0.0_fp
+    fz      = 0.0_fp
+    qtemp   = 0.0_fp
+
     ! Determine if we need to save any of the bpch diagnostics
     Do_ND24 = ( ND24 > 0 )
     Do_ND25 = ( ND25 > 0 )
@@ -602,26 +630,6 @@ CONTAINS
     j1p = 3
     j2p = jm - j1p + 1
 
-#ifdef TOMAS
-      !================================================================
-      ! For TOMAS microphysics: zero out UA and VA.
-      !
-      ! Segregate this block from the code with an #ifdef block.
-      ! We can't bring this into the standard GEOS-Chem yet, since
-      ! that will make it hard to compare benchmark results to prior
-      ! versions.  When we do bring this change into the standard code,
-      ! we will have to benchmark it. (sfarina, bmy, 5/30/13)
-      !================================================================
-      do ik= 1, km
-      do ij= 1, jm
-      do il= 1, im
-         va(il,ij,ik) = 0.e+0_fp
-         ua(il,ij,ik) = 0.e+0_fp
-      end do
-      end do
-      end do
-#endif
-
     ! Average surf. pressures in the polar cap. (ccc, 11/20/08)
     CALL Average_Press_Poles( area_m2, ps1, 1, im, 1, jm, 1, im, 1, jm )
     CALL Average_Press_Poles( area_m2, ps2, 1, im, 1, jm, 1, im, 1, jm )
@@ -632,11 +640,11 @@ CONTAINS
     dp    = PI / rj2m1
 
     do ij = 1, jm
-       geofac(ij) = dp / (2.0e+0_fp * area_m2(ij)/(sum(area_m2) * im) * im)
+       geofac(ij) = dp / (2.0_fp * area_m2(ij)/(sum(area_m2) * im) * im)
     end do
 
     geofac_pc =  &
-         dp / (2.0e+0_fp * (Sum (area_m2(1:2))/(sum(area_m2) * im)) * im)
+         dp / (2.0_fp * (Sum (area_m2(1:2))/(sum(area_m2) * im)) * im)
 
 
     if (first) then
@@ -944,7 +952,6 @@ CONTAINS
        !.sds
 
 
-
        if (FILL) then
         ! ===========
           call Qckxyz                                                        &
@@ -954,7 +961,6 @@ CONTAINS
 
        q(:,:,:,iq) =  &
             dq1 / delp2
-
 
        if (j1p /= 2) then
 
@@ -1159,30 +1165,30 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Global latitude indices of the South Pole and North Pole
-    INTEGER, INTENT(IN)   :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Global max longitude index
-    INTEGER, INTENT(IN)   :: I2_GL
+    INTEGER,  INTENT(IN)    :: I2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,  I2
-    INTEGER, INTENT(IN)   :: JU1, J2
+    INTEGER,  INTENT(IN)    :: I1,  I2
+    INTEGER,  INTENT(IN)    :: JU1, J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: ILO,  IHI
-    INTEGER, INTENT(IN)   :: JULO, JHI
+    INTEGER,  INTENT(IN)    :: ILO,  IHI
+    INTEGER,  INTENT(IN)    :: JULO, JHI
 
     ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL(fp),  INTENT(IN)   :: dap
+    REAL(fp), INTENT(IN)    :: dap
 
     ! Difference in bi across layer - the dSigma term
-    REAL(fp),  INTENT(IN)   :: dbk
+    REAL(fp), INTENT(IN)    :: dbk
 
     ! Relative surface area of grid box [fraction]
-    REAL(fp),  INTENT(IN)   :: rel_area(JU1:J2)
+    REAL(fp), INTENT(IN)    :: rel_area(JU1:J2)
 
     ! CTM surface pressure at t1 [hPa]
-    REAL(fp),  INTENT(IN)   :: pctm1( ILO:IHI, JULO:JHI )
+    REAL(fp), INTENT(IN)    :: pctm1( ILO:IHI, JULO:JHI )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1205,10 +1211,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: ik, il
+    INTEGER  :: ik, il
 
-    REAL(fp)  :: meanq
-    REAL(fp)  :: sum1, sum2
+    REAL(fp) :: meanq
+    REAL(fp) :: sum1, sum2
 
 !   -----------------------------------------------------------------
 !   delp1n : pressure thickness at North Pole, the psudo-density in a
@@ -1217,13 +1223,21 @@ CONTAINS
 !            hydrostatic system at t1 (mb)
 !   -----------------------------------------------------------------
 
-    REAL(fp)  :: delp1n(i1:i2, j2-1:j2)
-    REAL(fp)  :: delp1s(i1:i2,  ju1:ju1+1)
+    REAL(fp) :: delp1n(i1:i2, j2-1:j2)
+    REAL(fp) :: delp1s(i1:i2,  ju1:ju1+1)
 
 
 !   ----------------
 !   Begin execution.
 !   ----------------
+
+    ! Zero local variables for safety's sake
+    meanq  = 0.0_fp
+    sum1   = 0.0_fp
+    sum2   = 0.0_fp
+    delp1n = 0.0_fp
+    delp1s = 0.0_fp
+
 
 !   =================
     if (ju1 == ju1_gl) then
@@ -1233,8 +1247,8 @@ CONTAINS
             dap +                             &
             (dbk * pctm1(i1:i2,ju1:ju1+1))
 
-       sum1=0.0e+0_fp
-       sum2=0.0e+0_fp
+       sum1=0.0_fp
+       sum2=0.0_fp
        do il = i1, i2
           sum1 = sum1 +                            &
                Sum (const1  (il,ju1:ju1+1) *  &
@@ -1264,8 +1278,8 @@ CONTAINS
             dap +                           &
             (dbk * pctm1(i1:i2,j2-1:j2))
 
-       sum1=0.0e+0_fp
-       sum2=0.0e+0_fp
+       sum1=0.0_fp
+       sum2=0.0_fp
        do il = i1, i2
           sum1 = sum1 +                         &
                Sum (const1  (il,j2-1:j2) * &
@@ -1311,19 +1325,19 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)   :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)   :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,     I2
-    INTEGER, INTENT(IN)   :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: ILO,    IHI
-    INTEGER, INTENT(IN)   :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Courant number in E-W direction
     REAL(fp),  INTENT(IN) :: crx(ILO:IHI, JULO:JHI)
@@ -1332,7 +1346,7 @@ CONTAINS
     REAL(fp),  INTENT(IN) :: cry(ILO:IHI, JULO:JHI)
 
     ! Logical switch.  If CROSS=T then cross-terms will be computed.
-    LOGICAL, INTENT(IN) :: CROSS
+    LOGICAL,  INTENT(IN)  :: CROSS
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1369,24 +1383,29 @@ CONTAINS
 
     if (.not. CROSS) then
 
-       ua(:,:) = 0.0e+0_fp
-       va(:,:) = 0.0e+0_fp
+       ua = 0.0_fp
+       va = 0.0_fp
 
     else
+
+       ! Zero output arguments for safety's sake
+       ua = 0.0_fp
+       va = 0.0_fp
+
 
        do ij = j1p, j2p
           do il = i1, i2-1
 
-             ua(il,ij) = 0.5e+0_fp * (crx(il,ij) + crx(il+1,ij))
+             ua(il,ij) = 0.5_fp * (crx(il,ij) + crx(il+1,ij))
 
           end do
-          ua(i2,ij) = 0.5e+0_fp * (crx(i2,ij) + crx(1,ij))
+          ua(i2,ij) = 0.5_fp * (crx(i2,ij) + crx(1,ij))
        end do
 
        do ij = ju1+1, j2-1
           do il = i1, i2
 
-             va(il,ij) = 0.5e+0_fp * (cry(il,ij) + cry(il,ij+1))
+             va(il,ij) = 0.5_fp * (cry(il,ij) + cry(il,ij+1))
           end do
        end do
 
@@ -1421,19 +1440,19 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,  I2
-    INTEGER, INTENT(IN)   :: JU1, J2
-    INTEGER, INTENT(IN)   :: K1,  K2
+    INTEGER,  INTENT(IN)  :: I1,  I2
+    INTEGER,  INTENT(IN)  :: JU1, J2
+    INTEGER,  INTENT(IN)  :: K1,  K2
 
     ! Difference in bi across layer - the dSigma term
-    REAL(fp),  INTENT(IN)  :: dbk(K1:K2)
+    REAL(fp), INTENT(IN)  :: dbk(K1:K2)
 
     ! CTM surface pressure tendency; sum over vertical of dpi
     ! calculated from original mass fluxes [hPa]
-    REAL(fp),  INTENT(IN)  :: dps_ctm(I1:I2, JU1:J2)
+    REAL(fp), INTENT(IN)  :: dps_ctm(I1:I2, JU1:J2)
 
     ! Divergence at a grid point; used to calculate vertical motion [mb]
-    REAL(fp),  INTENT(IN)  :: dpi(I1:I2, JU1:J2, K1:K2)
+    REAL(fp), INTENT(IN)  :: dpi(I1:I2, JU1:J2, K1:K2)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1463,6 +1482,9 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
+    ! Zero output argument for safety's sake
+    wz = 0.0_fp
+
 !   --------------------------------------------------
 !   Compute vertical mass flux from mass conservation.
 !   --------------------------------------------------
@@ -1476,7 +1498,7 @@ CONTAINS
             dpi(il,ij,k1) -  &
             (dbk(k1) * dps_ctm(il,ij))
 
-       wz(il,ij,k2) = 0.0e+0_fp
+       wz(il,ij,k2) = 0.0_fp
     end do
     end do
     !$OMP END PARALLEL DO
@@ -1524,22 +1546,22 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)   :: J1P,    J2P
+    INTEGER, INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: JU1_GL, J2_GL
+    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,     I2
-    INTEGER, INTENT(IN)   :: JU1,    J2
-    INTEGER, INTENT(IN)   :: K1,     K2
+    INTEGER, INTENT(IN)  :: I1,     I2
+    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: ILO,    IHI
-    INTEGER, INTENT(IN)   :: JULO,   JHI
+    INTEGER, INTENT(IN)  :: ILO,    IHI
+    INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Courant number in E-W direction
-    REAL(fp),  INTENT(IN)  :: crx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp), INTENT(IN) :: crx(ILO:IHI, JULO:JHI, K1:K2)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1575,10 +1597,13 @@ CONTAINS
     INTEGER :: jn0, js0
     INTEGER :: jst, jend
 
-
     !     ----------------
     !     Begin execution.
     !     ----------------
+
+    ! Zero output arguments for safety's sake
+    jn = 0
+    js = 0
 
     js0  = (j2_gl + 1 ) / 2
     jn0  = j2_gl - js0 + 1
@@ -1593,7 +1618,7 @@ CONTAINS
        do ij = jend, jst, -1
           do il = i1, i2
 
-             if (Abs (crx(il,ij,ik)) > 1.0e+0_fp) then
+             if (Abs (crx(il,ij,ik)) > 1.0_fp) then
 
                 js(ik) = ij
 
@@ -1619,7 +1644,7 @@ CONTAINS
        do ij = jst, jend
           do il = i1, i2
 
-             if (Abs (crx(il,ij,ik)) > 1.0e+0_fp) then
+             if (Abs (crx(il,ij,ik)) > 1.0_fp) then
 
                 jn(ik) = ij
 
@@ -1660,27 +1685,27 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,   INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  ::         I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,   INTENT(IN)  ::         I2_GL
+    INTEGER,   INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,   INTENT(IN)  :: I1,     I2
+    INTEGER,   INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,   INTENT(IN)  :: ILO,    IHI
+    INTEGER,   INTENT(IN)  :: JULO,   JHI
 
     ! Northward of latitude index = jn, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: Jn
+    INTEGER,   INTENT(IN)  :: Jn
 
     ! Southward of latitude index = js, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: Js
+    INTEGER,   INTENT(IN)  :: Js
 
     ! Species concentration (mixing ratio)
     REAL(fp),  INTENT(IN)  :: qq1(ILO:IHI, JULO:JHI)
@@ -1692,7 +1717,7 @@ CONTAINS
     REAL(fp),  INTENT(IN)  :: va (ILO:IHI, JULO:JHI)
 
     ! Logical switch: If CROSS=T then cross-terms are being computed
-    LOGICAL, INTENT(IN)  :: CROSS
+    LOGICAL,   INTENT(IN)  :: CROSS
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1718,15 +1743,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: i, imp, il, ij, iu
-    INTEGER :: jv, iuw, iue
-    REAL(fp)  :: ril, rij, riu
-    REAL(fp)  :: ru
-    REAL(fp)  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
+    INTEGER  :: i, imp, il, ij, iu
+    INTEGER  :: jv, iuw, iue
+    REAL(fp) :: ril, rij, riu
+    REAL(fp) :: ru
+    REAL(fp) :: qtmp(-i2/3:i2+i2/3, julo:jhi)
 
     !     ----------------
     !     Begin execution.
     !     ----------------
+
+    ! Zero local variables for safety's sake
+    qtmp = 0.0
+
 
     do ij = julo, jhi
        do i = 1, i2
@@ -1754,8 +1783,8 @@ CONTAINS
     else
 !   ====
 
-       qqu(:,:) = 0.0e+0_fp
-       qqv(:,:) = 0.0e+0_fp
+       qqu(:,:) = 0.0_fp
+       qqv(:,:) = 0.0_fp
 
        do ij = j1p, j2p
 
@@ -1773,7 +1802,7 @@ CONTAINS
                 ru  = ua(il,ij) - riu
                 iu  = il - iu
 
-                if (ua(il,ij) >= 0.0e+0_fp) then
+                if (ua(il,ij) >= 0.0_fp) then
 
                    qqu(il,ij) =  &
                         qtmp(iu,ij) +  &
@@ -1826,10 +1855,10 @@ CONTAINS
        do ij = ju1, j2
        do il = i1,  i2
           qqu(il,ij) =  &
-               qtmp(il,ij) + (0.5e+0_fp * qqu(il,ij))
+               qtmp(il,ij) + (0.5_fp * qqu(il,ij))
 
           qqv(il,ij) =  &
-               qtmp(il,ij) + (0.5e+0_fp * qqv(il,ij))
+               qtmp(il,ij) + (0.5_fp * qqv(il,ij))
        enddo
        enddo
 
@@ -1861,24 +1890,24 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER, INTENT(IN)     :: J1P,    J2P
 
     ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER, INTENT(IN)     :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
+    INTEGER, INTENT(IN)     :: I1,     I2
+    INTEGER, INTENT(IN)     :: JU1,    J2
+    INTEGER, INTENT(IN)     :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER, INTENT(IN)     :: ILO,    IHI
+    INTEGER, INTENT(IN)     :: JULO,   JHI
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! Species density [hPa]
-    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp), INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO)
@@ -1900,20 +1929,9 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER :: il, ij, ik
-    INTEGER :: ip
-    INTEGER :: k1p1, k2m1
-    REAL(fp)  :: dup, qup
-    REAL(fp)  :: qly
-    REAL(fp)  :: sum
-
-
-!     ----------------
-!     Begin execution.
-!     ----------------
-
-    ip = 0
-
+    INTEGER  :: il,   ij,   ik
+    INTEGER  :: k1p1, k2m1
+    REAL(fp) :: dup,  qup,  qly
 
 !     ----------
 !     Top layer.
@@ -1921,18 +1939,16 @@ CONTAINS
 
     k1p1 = k1 + 1
 
-    !$OMP PARALLEL DO          &
-    !$OMP DEFAULT( SHARED )    &
-    !$OMP PRIVATE( IJ, IL, IP )
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( IJ, IL  )
     do ij = j1p, j2p
        do il = i1, i2
 
-          if (dq1(il,ij,k1) < 0.0e+0_fp) then
-
-             ip = ip + 1
+          if (dq1(il,ij,k1) < 0.0_fp) then
 
              dq1(il,ij,k1p1) = dq1(il,ij,k1p1) + dq1(il,ij,k1)
-             dq1(il,ij,k1)   = 0.0e+0_fp
+             dq1(il,ij,k1)   = 0.0_fp
 
           end if
 
@@ -1943,15 +1959,18 @@ CONTAINS
 
     do ik = k1 + 1, k2 - 1
 
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED )                   &
-       !$OMP PRIVATE( IJ, IL, IP, QUP, QLY, DUP )
+       !$OMP PARALLEL DO                      &
+       !$OMP DEFAULT( SHARED                ) &
+       !$OMP PRIVATE( IJ, IL, QUP, QLY, DUP )
        do ij = j1p, j2p
           do il = i1, i2
 
-             if (dq1(il,ij,ik) < 0.0e+0_fp) then
+             ! Zero private loop variables for safety's sake
+             qup = 0.0_fp
+             qly = 0.0_fp
+             dup = 0.0_fp
 
-                ip = ip + 1
+             if (dq1(il,ij,ik) < 0.0_fp) then
 
 !             -----------
 !             From above.
@@ -1969,7 +1988,7 @@ CONTAINS
 !             -----------
 
                 dq1(il,ij,ik+1) = dq1(il,ij,ik+1) + dq1(il,ij,ik)
-                dq1(il,ij,ik)   = 0.0e+0_fp
+                dq1(il,ij,ik)   = 0.0_fp
 
              end if
 
@@ -1984,21 +2003,21 @@ CONTAINS
 !     Bottom layer.
 !     -------------
 
-    sum  = 0.0e+0_fp
-
     k2m1 = k2 - 1
 
     ! NOTE: Sum seems to be not used in the loop below!
-    !$OMP PARALLEL DO                          &
-    !$OMP DEFAULT( SHARED )                    &
-    !$OMP PRIVATE( IJ, IL, IP, QUP, QLY, DUP ) &
-    !$OMP REDUCTION( +:SUM )
+    !$OMP PARALLEL DO                      &
+    !$OMP DEFAULT( SHARED )                &
+    !$OMP PRIVATE( IJ, IL, QUP, QLY, DUP )
     do ij = j1p, j2p
        do il = i1, i2
 
-          if (dq1(il,ij,k2) < 0.0e+0_fp) then
+          ! Zero private loop variables for safety's sake
+          qup = 0.0_fp
+          qly = 0.0_fp
+          dup = 0.0_fp
 
-             ip = ip + 1
+          if (dq1(il,ij,k2) < 0.0_fp) then
 
 !           -----------
 !           From above.
@@ -2014,9 +2033,7 @@ CONTAINS
 !           From "below" the surface.
 !           -------------------------
 
-             sum = sum + qly - dup
-
-             dq1(il,ij,k2) = 0.0e+0_fp
+             dq1(il,ij,k2) = 0.0_fp
 
           end if
 
@@ -2088,6 +2105,11 @@ CONTAINS
 !     Begin execution.
 !     ----------------
 
+    ! Zero output arguments for safety's sake
+    ilmt = 0
+    jlmt = 0
+    klmt = 0
+
     j2_glm1 = j2_gl - 1
 
 !c?
@@ -2144,30 +2166,30 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,   INTENT(IN) :: J1P,    J2P
 
     ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,   INTENT(IN) :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,   INTENT(IN) :: I1,     I2
+    INTEGER,   INTENT(IN) :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,   INTENT(IN) :: ILO,    IHI
+    INTEGER,   INTENT(IN) :: JULO,   JHI
 
     ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL(fp),  INTENT(IN)  :: dap
+    REAL(fp),  INTENT(IN) :: dap
 
     ! Difference in bi across layer - the dSigma term
-    REAL(fp),  INTENT(IN)  :: dbk
+    REAL(fp),  INTENT(IN) :: dbk
 
     ! Surface pressure at t1 [hPa]
-    REAL(fp),  INTENT(IN)  :: pres1(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN) :: pres1(ILO:IHI, JULO:JHI)
 
     ! Surface pressure at t1+tdt [hPa]
-    REAL(fp),  INTENT(IN)  :: pres2(ILO:IHI, JULO:JHI)
+    REAL(fp),  INTENT(IN) :: pres2(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2200,22 +2222,24 @@ CONTAINS
 !
     INTEGER :: il, ij
 
+    ! Zero output arguments for safety's sake
+    delp1 = 0.0_fp
+    delpm = 0.0_fp
+    pu    = 0.0_fp
+
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-       delp1(:,:) = dap + (dbk * pres1(:,:))
+    delp1(:,:) = dap + (dbk * pres1(:,:))
 
-       delpm(:,:) =  &
-                dap+  &
-                (dbk * 0.5e+0_fp * (pres1(:,:) + pres2(:,:)))
+    delpm(:,:) = dap+  &
+                (dbk * 0.5_fp * (pres1(:,:) + pres2(:,:)))
 
     do ij = j1p, j2p
-       pu(1,ij) = 0.5e+0_fp * (delpm(1,ij) + delpm(i2,ij))
+       pu(1,ij) = 0.5_fp * (delpm(1,ij) + delpm(i2,ij))
        do il = i1+1, i2
-
-          pu(il,ij) = 0.5e+0_fp * (delpm(il,ij) + delpm(il-1,ij))
-
+          pu(il,ij) = 0.5_fp * (delpm(il,ij) + delpm(il-1,ij))
        end do
     end do
 
@@ -2244,38 +2268,38 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Cosine of grid box edges
-    REAL(fp),  INTENT(IN)  :: cose (JU1_GL:J2_GL)
+    REAL(fp), INTENT(IN)  :: cose (JU1_GL:J2_GL)
 
     ! Pressure thickness, the pseudo-density in a hydrostatic system
     ! at t1+tdt/2 (approximate) (mb)
-    REAL(fp),  INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI)
 
     ! pressure at edges in "u"  (mb)
-    REAL(fp),  INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI)
 
     ! horizontal mass flux in E-W and N-S directions [hPa]
-    REAL(fp),  INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
-    REAL(fp),  INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Courant numbers in E-W and N-S directions
-    REAL(fp),  INTENT(OUT) :: crx(ILO:IHI, JULO:JHI)
-    REAL(fp),  INTENT(OUT) :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: crx(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: cry(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO)
@@ -2299,8 +2323,9 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-    crx(:,:) = 0.0e+0_fp
-    cry(:,:) = 0.0e+0_fp
+    ! Zero ouptput arguments for safety's sake
+    crx = 0.0_fp
+    cry = 0.0_fp
 
 !      ---------------------------------------------
 !      Calculate E-W and N-S horizontal mass fluxes.
@@ -2313,13 +2338,13 @@ CONTAINS
 
           cry(:,ij) =  &
                ymass(:,ij) /  &
-               ((0.5e+0_fp * cose(ij)) *  &
+               ((0.5_fp * cose(ij)) *  &
                (delpm(:,ij) + delpm(:,ij-1)))
        end do
 
        cry(:,j2p+1) =  &
                ymass(:,j2p+1) /  &
-               ((0.5e+0_fp * cose(j2p+1)) *  &
+               ((0.5_fp * cose(j2p+1)) *  &
                (delpm(:,j2p+1) + delpm(:,j2p)))
 
 
@@ -2350,23 +2375,23 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,   INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,   INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,   INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,   INTENT(IN)  :: I1,     I2
+    INTEGER,   INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,   INTENT(IN)  :: ILO,    IHI
+    INTEGER,   INTENT(IN)  :: JULO,   JHI
 
     ! Set to F if called on root core or T if called by secondary cores
     ! (NOTE: This is only for MPI parallelization, for OPENMP it should be F)
-    LOGICAL, INTENT(IN)  :: do_reduction
+    LOGICAL,   INTENT(IN)  :: do_reduction
 
     ! Special geometrical factor (geofac) for Polar cap
     REAL(fp) , INTENT(IN)  :: geofac_pc
@@ -2406,6 +2431,9 @@ CONTAINS
 !   ----------------
 !   Begin execution.
 !   ----------------
+
+    ! Zero output argument for safety's sake
+    dpi = 0.0_fp
 
 !      -------------------------
 !      Calculate N-S divergence.
@@ -2480,34 +2508,34 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Set to T if called on root core or F if called by secondary cores
     ! NOTE: This seems not to be used here....)
-    LOGICAL, INTENT(IN)   :: do_reduction
+    LOGICAL,  INTENT(IN)  :: do_reduction
 
     ! Special geometrical factor (geofac) for Polar cap
-    REAL(fp),  INTENT(in)   :: geofac_pc
+    REAL(fp), INTENT(IN)  :: geofac_pc
 
     ! Horizontal mass flux in N-S direction [hPa]
-    REAL(fp),  INTENT(IN)   :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL(fp),  INTENT(OUT)  :: dpi(I1:I2, JU1:J2)
+    REAL(fp), INTENT(OUT) :: dpi(I1:I2, JU1:J2)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -2525,26 +2553,32 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: il
-    REAL(fp)  :: ri2
-    REAL(fp)  :: mean_np
-    REAL(fp)  :: mean_sp
-    REAL(fp)  :: sumnp
-    REAL(fp)  :: sumsp
-
+    INTEGER  :: il
+    REAL(fp) :: ri2
+    REAL(fp) :: mean_np
+    REAL(fp) :: mean_sp
+    REAL(fp) :: sumnp
+    REAL(fp) :: sumsp
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    ri2 = i2_gl
+    ! Zero output argument for safety's sake
+    dpi     = 0.0_fp
 
+    ! Zero/initialize local variables for safety's sake
+    mean_np = 0.0_fp
+    mean_sp = 0.0_fp
+    sumnp   = 0.0_fp
+    sumsp   = 0.0_fp
+    ri2     = i2_gl
 
 !   ==================
     if (ju1 == ju1_gl) then
 !   ==================
 
-          sumsp = 0.0e+0_fp
+          sumsp = 0.0_fp
 
           do il = i1, i2
 
@@ -2569,7 +2603,7 @@ CONTAINS
     if (j2 == j2_gl) then
 !   ================
 
-          sumnp = 0.0e+0_fp
+          sumnp = 0.0_fp
 
           do il = i1, i2
 
@@ -2612,27 +2646,27 @@ CONTAINS
     ! Global latitude indices at the edge of the South polar cap
     ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P
+    INTEGER,  INTENT(IN)  :: J1P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Courant number in N-S direction
-    REAL(fp),  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Average of Courant numbers from ij and ij+1
-    REAL(fp),  INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -2657,6 +2691,9 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
+    ! Zero output arguments for safety's sake
+    va = 0.0_fp
+
     i2d2 = i2_gl / 2
 
 
@@ -2676,7 +2713,7 @@ CONTAINS
           do il = i1, i2d2
 
              va(il,ju1) =  &
-                  0.5e+0_fp * (cry(il,ju1+1) - cry(il+i2d2,ju1+1))
+                  0.5_fp * (cry(il,ju1+1) - cry(il+i2d2,ju1+1))
 
              va(il+i2d2,ju1) = -va(il,ju1)
 
@@ -2694,7 +2731,7 @@ CONTAINS
           do il = i1, i2d2
 
              va(il,j2) =  &
-                  0.5e+0_fp * (cry(il,j2) - cry(il+i2d2,j2-1))
+                  0.5_fp * (cry(il,j2) - cry(il+i2d2,j2-1))
 
              va(il+i2d2,j2) = -va(il,j2)
 
@@ -2734,41 +2771,41 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! if iad = 1, use 1st order accurate scheme;
     ! if iad = 2, use 2nd order accurate scheme
-    INTEGER, INTENT(IN)  :: iad
+    INTEGER,  INTENT(IN)  :: iad
 
     ! Northward of latitude index = jn, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: jn
+    INTEGER,  INTENT(IN)  :: jn
 
     ! southward of latitude index = js, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: js
+    INTEGER,  INTENT(IN)  :: js
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from il and il+1
-    REAL(fp),  INTENT(IN)  :: ua(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: ua(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to E-W advection [mixing ratio]
-    REAL(fp),  INTENT(OUT) :: adx(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: adx(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -2787,12 +2824,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij, iu
-    INTEGER :: imp, iue, iuw
-    REAL(fp)  :: a1, b1, c1
-    REAL(fp)  :: rdiff
-    REAL(fp)  :: ril, riu
-    real(fp)  :: ru
+    INTEGER  :: il, ij, iu
+    INTEGER  :: imp, iue, iuw
+    REAL(fp) :: a1, b1, c1
+    REAL(fp) :: rdiff
+    REAL(fp) :: ril, riu
+    real(fp) :: ru
 
     ! Arrays
     REAL(fp)  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
@@ -2801,8 +2838,12 @@ CONTAINS
     !     Begin execution.
     !     ----------------
 
-    ! Zero output array
-    adx = 0e+0_fp
+    ! Zero output argument for safety's sake
+    adx = 0.0_fp
+
+    ! Zero local array for safety's sake
+    qtmp = 0.0_fp
+
 
        do ij = julo, jhi
 
@@ -2843,7 +2884,7 @@ CONTAINS
                    ru  = ua(il,ij) - riu
                    iu  = il - iu
 
-                   if (ua(il,ij) >= 0.0e+0_fp) then
+                   if (ua(il,ij) >= 0.0_fp) then
                       rdiff = qtmp(iu-1,ij) - qtmp(iu,ij)
                    else
                       rdiff = qtmp(iu,ij)   - qtmp(iu+1,ij)
@@ -2895,10 +2936,10 @@ CONTAINS
                    ru  = riu - ua(il,ij)
                    iu  = il - iu
 
-                   a1 = 0.5e+0_fp * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
+                   a1 = 0.5_fp * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
                                  qtmp(iu,ij)
 
-                   b1 = 0.5e+0_fp * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
+                   b1 = 0.5_fp * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
 
                    c1 = qtmp(iu,ij) - qtmp(il,ij)
 
@@ -2919,10 +2960,10 @@ CONTAINS
                    ru  = riu - ua(il,ij)
                    iu  = il - iu
 
-                   a1 = 0.5e+0_fp * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
+                   a1 = 0.5_fp * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
                                  qtmp(iu,ij)
 
-                   b1 = 0.5e+0_fp * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
+                   b1 = 0.5_fp * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
 
                    c1 = qtmp(iu,ij) - qtmp(il,ij)
 
@@ -2940,11 +2981,11 @@ CONTAINS
 
     if (ju1 == ju1_gl) then
 
-          adx(i1:i2,ju1) = 0.0e+0_fp
+          adx(i1:i2,ju1) = 0.0_fp
 
           if (j1p /= ju1_gl+1) then
 
-             adx(i1:i2,ju1+1) = 0.0e+0_fp
+             adx(i1:i2,ju1+1) = 0.0_fp
 
           end if
 
@@ -2953,11 +2994,11 @@ CONTAINS
 
     if (j2 == j2_gl) then
 
-          adx(i1:i2,j2) = 0.0e+0_fp
+          adx(i1:i2,j2) = 0.0_fp
 
           if (j1p /= ju1_gl+1) then
 
-             adx(i1:i2,j2-1) = 0.0e+0_fp
+             adx(i1:i2,j2-1) = 0.0_fp
 
           end if
 
@@ -2989,34 +3030,34 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! If iad = 1, use 1st order accurate scheme;
     ! If iad = 2, use 2nd order accurate scheme
-    INTEGER, INTENT(IN)  :: iad
+    INTEGER,  INTENT(IN)  :: iad
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL(fp),  INTENT(IN)  :: va(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: va(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to N-S advection (mixing ratio)
-    REAL(fp),  INTENT(OUT) :: ady(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: ady(ILO:IHI, JULO:JHI)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -3035,25 +3076,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij
-    INTEGER :: jv
-    REAL(fp)  :: a1, b1, c1
-    REAL(fp)  :: rij, rjv
-    REAL(fp)  :: rv
+    INTEGER  :: il, ij
+    INTEGER  :: jv
+    REAL(fp) :: a1, b1, c1
+    REAL(fp) :: rij, rjv
+    REAL(fp) :: rv
 
     ! Arrays
     ! We may need a small ghost zone depending
     ! on the polar cap used
-    REAL(fp)  :: qquwk(ilo:ihi, julo-2:jhi+2)
+    REAL(fp) :: qquwk(ilo:ihi, julo-2:jhi+2)
 
 !     ----------------
 !     Begin execution.
 !     ----------------
 
-    ! Zero output array
-    ady = 0e+0_fp
+    ! Zero output argument for safety's sake
+    ady   = 0.0_fp
 
-    ! Make work array
+    ! Initialize work array
+    qquwk = 0.0_fp
     do ij = julo, jhi
        qquwk(:,ij) = qqu(:,ij)
     end do
@@ -3104,10 +3146,10 @@ CONTAINS
                 rv  = rjv - va(il,ij)
                 jv  = ij - jv
 
-                a1 = 0.5e+0_fp * (qquwk(il,jv+1) + qquwk(il,jv-1)) -  &
-                              qquwk(il,jv)
+                a1 = 0.5_fp * (qquwk(il,jv+1) + qquwk(il,jv-1)) -  &
+                               qquwk(il,jv)
 
-                b1 = 0.5e+0_fp * (qquwk(il,jv+1) - qquwk(il,jv-1))
+                b1 = 0.5_fp * (qquwk(il,jv+1) - qquwk(il,jv-1))
 
                 c1 = qquwk(il,jv) - qquwk(il,ij)
 
@@ -3150,27 +3192,27 @@ CONTAINS
     ! Global latitude indices at the edges of the South polar cap
     ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P
+    INTEGER,  INTENT(IN)  :: J1P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! concentration contribution from E-W advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! qqu working array [mixing ratio]
-    REAL(fp),  INTENT(OUT) :: qquwk(ILO:IHI, JULO-2:JHI+2)
+    REAL(fp), INTENT(OUT) :: qquwk(ILO:IHI, JULO-2:JHI+2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -3197,6 +3239,9 @@ CONTAINS
 !   ----------------
 !   Begin execution.
 !   ----------------
+
+    ! Zero output argument for safety's sake
+    qquwk = 0.0_fp
 
     i2d2 = i2_gl / 2
 
@@ -3275,24 +3320,24 @@ CONTAINS
     ! Global latitude index at the edge of the South polar cap
     ! J1P=JU1_GL+1; for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P
+    INTEGER,  INTENT(IN)    :: J1P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
+    INTEGER,  INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to N-S advection (mixing ratio)
-    REAL(fp),  INTENT(INOUT) :: ady(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: ady(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -3312,11 +3357,11 @@ CONTAINS
 !
 
     ! Scalars
-    INTEGER :: il
+    INTEGER  :: il
 
     ! Arrays
-    REAL(fp)  :: sumnp
-    REAL(fp)  :: sumsp
+    REAL(fp) :: sumnp
+    REAL(fp) :: sumsp
 
     ! Add
     LOGICAL :: IS_EXT_POLAR_CAP
@@ -3326,6 +3371,14 @@ CONTAINS
     ! Begin execution.
     ! ----------------
 
+    ! Zero output argument for safety's sake
+    ady   = 0.0_fp
+
+    ! Zero local variables for safety's sake
+    sumsp = 0.0_fp
+    sumnp = 0.0_fp
+
+
     ! Test if we are using extended polar caps (i.e. the S pole and next N
     ! latitude and N. Pole and next S latitude).  Do this outside the loops.
     ! (bmy, 12/11/08)
@@ -3334,9 +3387,6 @@ CONTAINS
     ! ------------
     !  South Pole
     ! ------------
-
-          sumsp = 0.0e+0_fp
-          sumnp = 0.0e+0_fp
 
           if ( IS_EXT_POLAR_CAP ) then
 
@@ -3411,55 +3461,55 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P,    J2P
+    INTEGER,  INTENT(IN)    :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    ::         I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    ::         I2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
+    INTEGER,  INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 
     ! Controls various options in E-W advection
-    INTEGER, INTENT(IN)    :: ilmt
+    INTEGER,  INTENT(IN)    :: ilmt
 
     ! Northward of latitude index = jn, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)    :: jn
+    INTEGER,  INTENT(IN)    :: jn
 
     ! Southward of latitude index = js, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)    :: js
+    INTEGER,  INTENT(IN)    :: js
 
     ! Option for E-W transport scheme.  See module header for more info.
-    INTEGER, INTENT(IN)    :: iord
+    INTEGER,  INTENT(IN)    :: iord
 
     ! pressure at edges in "u" [hPa]
-    REAL(fp),  INTENT(IN)    :: pu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: pu(ILO:IHI, JULO:JHI)
 
     ! Courant number in E-W direction
-    REAL(fp),  INTENT(IN)    :: crx(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: crx(ILO:IHI, JULO:JHI)
 
     ! Horizontal mass flux in E-W direction [hPa]
-    REAL(fp),  INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! Species density [hPa]
-    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! E-W flux [mixing ratio]
-    REAL(fp),  INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -3478,30 +3528,34 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij, ic
-    INTEGER :: iu, ix, iuw, iue, imp
-    INTEGER :: jvan
-    REAL(fp)  :: rc
-    REAL(fp)  :: ric, ril
+    INTEGER  :: il, ij, ic
+    INTEGER  :: iu, ix, iuw, iue, imp
+    INTEGER  :: jvan
+    REAL(fp) :: rc
+    REAL(fp) :: ric, ril
 
     ! Arrays
-    INTEGER :: isav(i1:i2)
-    REAL(fp)  :: dcx(-i2/3:i2+i2/3, julo:jhi)
-    REAL(fp)  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
+    INTEGER  :: isav(i1:i2)
+    REAL(fp) :: dcx(-i2/3:i2+i2/3, julo:jhi)
+    REAL(fp) :: qtmp(-i2/3:i2+i2/3, julo:jhi)
 
 
     !     ----------------
     !     Begin execution.
     !     ----------------
 
-    dcx(:,:) = 0.0e+0_fp
-    fx(:,:) = 0.0e+0_fp
+    ! Zero output argument for safety's sake
+    fx   = 0.0_fp
 
-    imp = i2+1
+    ! Zero/initialize local variables for safety's sake
+    isav = 0
+    dcx  = 0.0_fp
+    imp  = i2+1
 
     ! NOTE: these loops do not parallelize well (bmy, 12/5/08)
 
-    ! Populate qtmp
+    ! Populate qtmp work array
+    qtmp = 0.0_fp
     do il=i1,i2
        qtmp(il,:) = qqv(il,:)
     enddo
@@ -3566,7 +3620,7 @@ CONTAINS
                       fx(il,ij) =  &
                            qtmp(iu,ij) +  &
                            (dcx(iu,ij) *  &
-                           (Sign (1.0e+0_fp, crx(il,ij)) - crx(il,ij)))
+                           (Sign (1.0_fp, crx(il,ij)) - crx(il,ij)))
                    end do
 
                 else
@@ -3622,20 +3676,20 @@ CONTAINS
                    fx(il,ij) =  &
                         rc *  &
                         (qtmp(iu,ij) +  &
-                        (dcx(iu,ij) * (Sign (1.0e+0_fp, rc) - rc)))
+                        (dcx(iu,ij) * (Sign (1.0_fp, rc) - rc)))
                 end do
 
              end if
 
              do il = i1, i2
 
-                if (crx(il,ij) > 1.0e+0_fp) then
+                if (crx(il,ij) > 1.0_fp) then
 
                    do ix = isav(il), il - 1
                       fx(il,ij) = fx(il,ij) + qtmp(ix,ij)
                    end do
 
-                else if (crx(il,ij) < -1.0e+0_fp) then
+                else if (crx(il,ij) < -1.0_fp) then
 
                    do ix = il, isav(il) - 1
                       fx(il,ij) = fx(il,ij) - qtmp(ix,ij)
@@ -3692,27 +3746,27 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  ::         I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  ::         I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in E-W direction [mixing ratio]
-    REAL(fp),  INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -3731,23 +3785,29 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij
-    REAL(fp)  :: pmax, pmin
-    REAL(fp)  :: r24
-    REAL(fp)  :: tmp
-
+    INTEGER  :: il, ij
+    REAL(fp) :: pmax, pmin
+    REAL(fp) :: r24
+    REAL(fp) :: tmp
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    r24 = 1.0e+0_fp / 24.0e+0_fp
+    ! Zero output argument for safety's sake
+    dcx = 0.0_fp
+
+    ! Zero/initialize local variables for safety's sake
+    pmax = 0.0_fp
+    pmin = 0.0_fp
+    tmp  = 0.0_fp
+    r24  = 1.0_fp / 24.0_fp
 
        do ij = j1p+1, j2p-1
           do il = i1, i2
 
              tmp =  &
-                  ((8.0e+0_fp * (qqv(il+1,ij) - qqv(il-1,ij))) +  &
+                  ((8.0_fp * (qqv(il+1,ij) - qqv(il-1,ij))) +  &
                   qqv(il-2,ij) - qqv(il+2,ij)) *  &
                   r24
 
@@ -3800,33 +3860,33 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Local min & max longitude (I) and altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: I1,     I2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 
     ! Latitude (IJ) and altitude (IK) indices
-    INTEGER, INTENT(IN)    :: ij
+    INTEGER,  INTENT(IN)    :: ij
 
     ! Controls various options in E-W advection
-    INTEGER, INTENT(IN)    :: ilmt
+    INTEGER,  INTENT(IN)    :: ilmt
 
     ! Courant number in E-W direction
-    REAL(fp),  INTENT(IN)    :: crx(I1:I2, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: crx(I1:I2, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in E-W direction (mixing ratio)
-    REAL(fp),  INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI)
 
     ! E-W flux [mixing ratio]
-    REAL(fp),  INTENT(OUT)   :: fx(I1:I2, JULO:JHI)
+    REAL(fp), INTENT(OUT)   :: fx(I1:I2, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -3849,44 +3909,47 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                   :: il
-    INTEGER                   :: ilm1
-    INTEGER                   :: lenx
-    REAL(fp)                    :: r13, r23
-    REAL(fp)                    :: rval
+    INTEGER  :: il
+    INTEGER  :: ilm1
+    INTEGER  :: lenx
+    REAL(fp) :: r13, r23
+    REAL(fp) :: rval
 
     ! Arrays
-    REAL(fp)                    :: a6( ILO:IHI )
-    REAL(fp)                    :: al( ILO:IHI )
-    REAL(fp)                    :: ar( ILO:IHI )
-    REAL(fp)                    :: a61(   (IHI-1) - (ILO+1) + 1 )
-    REAL(fp)                    :: al1(   (IHI-1) - (ILO+1) + 1 )
-    REAL(fp)                    :: ar1(   (IHI-1) - (ILO+1) + 1 )
-    REAL(fp)                    :: dcxi1( (IHI-1) - (ILO+1) + 1 )
-    REAL(fp)                    :: qqvi1( (IHI-1) - (ILO+1) + 1 )
+    REAL(fp) :: a6( ILO:IHI )
+    REAL(fp) :: al( ILO:IHI )
+    REAL(fp) :: ar( ILO:IHI )
+    REAL(fp) :: a61(   (IHI-1) - (ILO+1) + 1 )
+    REAL(fp) :: al1(   (IHI-1) - (ILO+1) + 1 )
+    REAL(fp) :: ar1(   (IHI-1) - (ILO+1) + 1 )
+    REAL(fp) :: dcxi1( (IHI-1) - (ILO+1) + 1 )
+    REAL(fp) :: qqvi1( (IHI-1) - (ILO+1) + 1 )
 
     !     ----------------
     !     Begin execution.
     !     ----------------
 
-    ! Zero arrays (bmy, 12/5/08)
-    a6    = 0.0e+0_fp
-    al    = 0.0e+0_fp
-    ar    = 0.0e+0_fp
-    a61   = 0.0e+0_fp
-    al1   = 0.0e+0_fp
-    ar1   = 0.0e+0_fp
-    dcxi1 = 0.0e+0_fp
-    qqvi1 = 0.0e+0_fp
+    ! Zero output arguments for safety's sake
+    dcx   = 0.0_fp
+    fx    = 0.0_fp
 
-    r13 = 1.0e+0_fp / 3.0e+0_fp
-    r23 = 2.0e+0_fp / 3.0e+0_fp
+    ! Zero/initialize local variables for safety's sake
+    a6    = 0.0_fp
+    al    = 0.0_fp
+    ar    = 0.0_fp
+    a61   = 0.0_fp
+    al1   = 0.0_fp
+    ar1   = 0.0_fp
+    dcxi1 = 0.0_fp
+    qqvi1 = 0.0_fp
+    r13   = 1.0_fp / 3.0_fp
+    r23   = 2.0_fp / 3.0_fp
 
 
     do il = ilo + 1, ihi
 
-       rval = 0.5e+0_fp * (qqv(il-1,ij) + qqv(il,ij)) +  &
-                      (dcx(il-1,ij) - dcx(il,ij)) * r13
+       rval = 0.5_fp * (qqv(il-1,ij) + qqv(il,ij)) +  &
+                       (dcx(il-1,ij) - dcx(il,ij)) * r13
 
        al(il)   = rval
        ar(il-1) = rval
@@ -3895,7 +3958,7 @@ CONTAINS
 
 
     do il = ilo + 1, ihi - 1
-       a6(il) = 3.0e+0_fp *  &
+       a6(il) = 3.0_fp *  &
                 (qqv(il,ij) + qqv(il,ij) - (al(il) + ar(il)))
     end do
 
@@ -3904,12 +3967,12 @@ CONTAINS
     if (ilmt <= 2) then
 !   ==============
 
-       a61(:) = 0.0e+0_fp
-       al1(:) = 0.0e+0_fp
-       ar1(:) = 0.0e+0_fp
+       a61(:) = 0.0_fp
+       al1(:) = 0.0_fp
+       ar1(:) = 0.0_fp
 
-       dcxi1(:) = 0.0e+0_fp
-       qqvi1(:) = 0.0e+0_fp
+       dcxi1(:) = 0.0_fp
+       qqvi1(:) = 0.0_fp
 
        lenx = 0
 
@@ -3962,46 +4025,46 @@ CONTAINS
 
     do il = i1+1, i2
 
-       if (crx(il,ij) > 0.0e+0_fp) then
+       if (crx(il,ij) > 0.0_fp) then
 
           ilm1 = il - 1
 
           fx(il,ij) =  &
                ar(ilm1) +  &
-               0.5e+0_fp * crx(il,ij) *  &
+               0.5_fp * crx(il,ij) *  &
                (al(ilm1) - ar(ilm1) +  &
-               (a6(ilm1) * (1.0e+0_fp - (r23 * crx(il,ij)))))
+               (a6(ilm1) * (1.0_fp - (r23 * crx(il,ij)))))
 
        else
 
           fx(il,ij) =  &
                al(il) -  &
-               0.5e+0_fp * crx(il,ij) *  &
+               0.5_fp * crx(il,ij) *  &
                (ar(il) - al(il) +  &
-               (a6(il) * (1.0e+0_fp + (r23 * crx(il,ij)))))
+               (a6(il) * (1.0_fp + (r23 * crx(il,ij)))))
 
        end if
 
     end do
 
     ! First box case (ccc, 11/20/08)
-    if (crx(i1,ij) > 0.0e+0_fp) then
+    if (crx(i1,ij) > 0.0_fp) then
 
        ilm1 = i2
 
        fx(i1,ij) =  &
             ar(ilm1) +  &
-            0.5e+0_fp * crx(i1,ij) *  &
+            0.5_fp * crx(i1,ij) *  &
             (al(ilm1) - ar(ilm1) +  &
-            (a6(ilm1) * (1.0e+0_fp - (r23 * crx(i1,ij)))))
+            (a6(ilm1) * (1.0_fp - (r23 * crx(i1,ij)))))
 
     else
 
        fx(i1,ij) =  &
             al(i1) -  &
-            0.5e+0_fp * crx(i1,ij) *  &
+            0.5_fp * crx(i1,ij) *  &
             (ar(i1) - al(i1) +  &
-            (a6(i1) * (1.0e+0_fp + (r23 * crx(i1,ij)))))
+            (a6(i1) * (1.0_fp + (r23 * crx(i1,ij)))))
 
     end if
 
@@ -4030,27 +4093,27 @@ CONTAINS
     ! If 0 => full monotonicity;
     ! If 1 => semi-monotonic constraint (no undershoots);
     ! If 2 => positive-definite constraint
-    INTEGER, INTENT(IN)    :: lmt
+    INTEGER,  INTENT(IN)    :: lmt
 
     ! Vector length
-    INTEGER, INTENT(IN)    :: lenx
+    INTEGER,  INTENT(IN)    :: lenx
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! Curvature of the test parabola
-    REAL(fp),  INTENT(INOUT) :: a6(lenx)
+    REAL(fp), INTENT(INOUT) :: a6(lenx)
 
     ! Left edge value of the test parabola
-    REAL(fp),  INTENT(INOUT) :: al(lenx)
+    REAL(fp), INTENT(INOUT) :: al(lenx)
 
     ! Right edge value of the test parabola
-    REAL(fp),  INTENT(INOUT) :: ar(lenx)
+    REAL(fp), INTENT(INOUT) :: ar(lenx)
 
     ! 0.5 * mismatch
-    REAL(fp),  INTENT(INOUT) :: dc(lenx)
+    REAL(fp), INTENT(INOUT) :: dc(lenx)
 
     ! Cell-averaged value
-    REAL(fp),  INTENT(INOUT) :: qa(lenx)
+    REAL(fp), INTENT(INOUT) :: qa(lenx)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -4069,18 +4132,18 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il
-    REAL(fp)  :: a6da
-    REAL(fp)  :: da1, da2
-    REAL(fp)  :: fmin, ftmp
-    REAL(fp)  :: r12
+    INTEGER  :: il
+    REAL(fp) :: a6da
+    REAL(fp) :: da1, da2
+    REAL(fp) :: fmin, ftmp
+    REAL(fp) :: r12
 
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    r12 = 1.0e+0_fp / 12.0e+0_fp
+    r12 = 1.0_fp / 12.0_fp
 
 
 !   =============
@@ -4093,9 +4156,9 @@ CONTAINS
 
        do il = 1, lenx
 
-          if (dc(il) == 0.0e+0_fp) then
+          if (dc(il) == 0.0_fp) then
 
-             a6(il) = 0.0e+0_fp
+             a6(il) = 0.0_fp
              al(il) = qa(il)
              ar(il) = qa(il)
 
@@ -4107,12 +4170,12 @@ CONTAINS
 
              if (a6da < -da2) then
 
-                a6(il) = 3.0e+0_fp * (al(il) - qa(il))
+                a6(il) = 3.0_fp * (al(il) - qa(il))
                 ar(il) = al(il) - a6(il)
 
              else if (a6da > da2) then
 
-                a6(il) = 3.0e+0_fp * (ar(il) - qa(il))
+                a6(il) = 3.0_fp * (ar(il) - qa(il))
                 al(il) = ar(il) - a6(il)
 
              end if
@@ -4136,18 +4199,18 @@ CONTAINS
 
              if ((qa(il) < ar(il)) .and. (qa(il) < al(il))) then
 
-                a6(il) = 0.0e+0_fp
+                a6(il) = 0.0_fp
                 al(il) = qa(il)
                 ar(il) = qa(il)
 
              else if (ar(il) > al(il)) then
 
-                a6(il) = 3.0e+0_fp * (al(il) - qa(il))
+                a6(il) = 3.0_fp * (al(il) - qa(il))
                 ar(il) = al(il) - a6(il)
 
              else
 
-                a6(il) = 3.0e+0_fp * (ar(il) - qa(il))
+                a6(il) = 3.0_fp * (ar(il) - qa(il))
                 al(il) = ar(il) - a6(il)
 
              end if
@@ -4168,25 +4231,25 @@ CONTAINS
              ftmp = ar(il) - al(il)
 
              fmin = qa(il) +  &
-                    0.25e+0_fp * (ftmp * ftmp) / a6(il) +  &
+                    0.25_fp * (ftmp * ftmp) / a6(il) +  &
                     a6(il) * r12
 
-             if (fmin < 0.0e+0_fp) then
+             if (fmin < 0.0_fp) then
 
                 if ((qa(il) < ar(il)) .and. (qa(il) < al(il))) then
 
-                   a6(il) = 0.0e+0_fp
+                   a6(il) = 0.0_fp
                    al(il) = qa(il)
                    ar(il) = qa(il)
 
                 else if (ar(il) > al(il)) then
 
-                   a6(il) = 3.0e+0_fp * (al(il) - qa(il))
+                   a6(il) = 3.0_fp * (al(il) - qa(il))
                    ar(il) = al(il) - a6(il)
 
                 else
 
-                   a6(il) = 3.0e+0_fp * (ar(il) - qa(il))
+                   a6(il) = 3.0_fp * (ar(il) - qa(il))
                    al(il) = ar(il) - a6(il)
 
                 end if
@@ -4224,58 +4287,58 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P,    J2P
+    INTEGER,  INTENT(IN)    :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
+    INTEGER,  INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 
     ! ???
-    INTEGER, INTENT(IN)    :: ilong
+    INTEGER,  INTENT(IN)    :: ilong
 
     ! Controls various options in N-S advection
-    INTEGER, INTENT(IN)    :: jlmt
+    INTEGER,  INTENT(IN)    :: jlmt
 
     ! N-S transport scheme (see module header for more info)
-    INTEGER, INTENT(IN)    :: jord
+    INTEGER,  INTENT(IN)    :: jord
 
     ! special geometrical factor (geofac) for Polar cap
-    REAL(fp),  INTENT(IN)    :: geofac_pc
+    REAL(fp), INTENT(IN)    :: geofac_pc
 
     ! geometrical factor for meridional advection; geofac uses correct
     ! spherical geometry, and replaces acosp as the  meridional geometrical
     ! factor in tpcore
-    REAL(fp),  INTENT(IN)    :: geofac(JU1_GL:J2_GL)
+    REAL(fp), INTENT(IN)    :: geofac(JU1_GL:J2_GL)
 
     ! Courant number in N-S direction
-    REAL(fp),  INTENT(IN)    :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: cry(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL(fp),  INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI)
 
     ! Horizontal mass flux in N-S direction [hPa]
-    REAL(fp),  INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! Species density [hPa]
-    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! N-S flux [mixing ratio]
-    REAL(fp),  INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1)
+    REAL(fp), INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -4294,21 +4357,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij
-    INTEGER :: jv
-    REAL(fp)  :: rj1p
+    INTEGER  :: il, ij
+    INTEGER  :: jv
+    REAL(fp) :: rj1p
 
     ! Arrays
-    REAL(fp)  :: dcy(ilo:ihi, julo:jhi)
-
+    REAL(fp) :: dcy(ilo:ihi, julo:jhi)
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    dcy(:,:) = 0.0e+0_fp
-    fy(:,:) = 0.0e+0_fp
+    ! Zero output argument for safety's sake
+    fy   = 0.0_fp
 
+    ! Zero/initialize local variables for safety's sake
+    dcy  = 0.0_fp
     rj1p = j1p
 
 
@@ -4356,7 +4420,7 @@ CONTAINS
 
                    qqv(il,ij) =  &
                         qqu(il,jv) +  &
-                        ((Sign (1.0e+0_fp, cry(il,ij)) - cry(il,ij)) *  &
+                        ((Sign (1.0_fp, cry(il,ij)) - cry(il,ij)) *  &
                         dcy(il,jv))
 
                 end do
@@ -4414,31 +4478,31 @@ CONTAINS
     ! Global latitude index at the edge of the South polar cap
     ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P
+    INTEGER,  INTENT(IN)  :: J1P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! The "order" of the accuracy in the computed linear "slope"
     ! (or mismatch, Lin et al. 1994); it is either 2 or 4.
-    INTEGER, INTENT(IN)  :: id
+    INTEGER,  INTENT(IN)  :: id
 
     ! Concentration contribution from E-W advection (mixing ratio)
-    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL(fp),  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -4457,10 +4521,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij
-    REAL(fp)  :: pmax, pmin
-    REAL(fp)  :: r24
-    REAL(fp)  :: tmp
+    INTEGER  :: il, ij
+    REAL(fp) :: pmax, pmin
+    REAL(fp) :: r24
+    REAL(fp) :: tmp
 
     ! Arrays
     ! I suppose the values for these indexes are 0.
@@ -4472,10 +4536,17 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-    r24  = 1.0e+0_fp / 24.0e+0_fp
+    ! Zero output arguments for safety's sake
+    dcy  = 0.0_fp
+
+    ! Zero/initialize local variables for safety's sake
+    qtmp = 0.0_fp
+    pmax = 0.0_fp
+    pmin = 0.0_fp
+    tmp  = 0.0_fp
+    r24  = 1.0_fp / 24.0_fp
 
     ! Populate qtmp
-    qtmp = 0.
     do ij=ju1,j2
        qtmp(:,ij) = qqu(:,ij)
     enddo
@@ -4487,7 +4558,7 @@ CONTAINS
           do ij = ju1 - 1, j2 - 1
              do il = i1, i2
 
-                tmp  = 0.25e+0_fp * (qtmp(il,ij+2) - qtmp(il,ij))
+                tmp  = 0.25_fp * (qtmp(il,ij+2) - qtmp(il,ij))
 
                 pmax =  &
                   Max (qtmp(il,ij), qtmp(il,ij+1), qtmp(il,ij+2)) -  &
@@ -4516,7 +4587,7 @@ CONTAINS
           do ij = ju1 - 2, j2 - 2
              do il = i1, i2
 
-                tmp  = ((8.0e+0_fp * (qtmp(il,ij+3) - qtmp(il,ij+1))) +  &
+                tmp  = ((8.0_fp * (qtmp(il,ij+3) - qtmp(il,ij+1))) +  &
                          qtmp(il,ij) - qtmp(il,ij+4)) *  &
                          r24
 
@@ -4567,24 +4638,24 @@ CONTAINS
     ! Global min & max longitude (I) and latitude (J) indices
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
+    REAL(fp), INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL(fp), INTENT(OUT)  :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -4602,20 +4673,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: i2d2
-    INTEGER :: il
-    REAL(fp)  :: pmax, pmin
-    REAL(fp)  :: r24
-    REAL(fp)  :: tmp
+    INTEGER  :: i2d2
+    INTEGER  :: il
+    REAL(fp) :: pmax, pmin
+    REAL(fp) :: r24
+    REAL(fp) :: tmp
 
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    i2d2 = i2_gl / 2
+    ! Zero output argument for safety's sake
+    dcy  = 0.0_fp
 
-    r24  = 1.0e+0_fp / 24.0e+0_fp
+    ! Zero/initialize local variables for safety's sake
+    pmax = 0.0_fp
+    pmin = 0.0_fp
+    tmp  = 0.0_fp
+    i2d2 = i2_gl / 2
+    r24  = 1.0_fp / 24.0_fp
 
 
 !   ==================
@@ -4625,7 +4702,7 @@ CONTAINS
           do il = i1, i2d2
 
              tmp  =  &
-                  ((8.0e+0_fp * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
+                  ((8.0_fp * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
                   qqu(il+i2d2,ju1+1) - qqu(il,ju1+3)) *  &
                   r24
 
@@ -4645,7 +4722,7 @@ CONTAINS
           do il = i1 + i2d2, i2
 
              tmp  =  &
-                  ((8.0e+0_fp * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
+                  ((8.0_fp * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
                   qqu(il-i2d2,ju1+1) - qqu(il,ju1+3)) *  &
                   r24
 
@@ -4674,7 +4751,7 @@ CONTAINS
           do il = i1, i2d2
 
              tmp  =  &
-                  ((8.0e+0_fp * (qqu(il,j2) - qqu(il,j2-2))) +  &
+                  ((8.0_fp * (qqu(il,j2) - qqu(il,j2-2))) +  &
                   qqu(il,j2-3) - qqu(il+i2d2,j2-1)) *  &
                   r24
 
@@ -4694,7 +4771,7 @@ CONTAINS
          do il = i1 + i2d2, i2
 
              tmp  =  &
-                  ((8.0e+0_fp * (qqu(il,j2) - qqu(il,j2-2))) +  &
+                  ((8.0_fp * (qqu(il,j2) - qqu(il,j2-2))) +  &
                   qqu(il,j2-3) - qqu(il-i2d2,j2-1)) *  &
                   r24
 
@@ -4739,27 +4816,27 @@ CONTAINS
     ! Global latitude index at the edge of the South polar cap
     ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P
+    INTEGER,  INTENT(IN)  :: J1P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
+    REAL(fp), INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL(fp),  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -4778,15 +4855,22 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: i2d2
-    INTEGER :: il
-    REAL(fp)  :: pmax, pmin
-    REAL(fp)  :: tmp
+    INTEGER  :: i2d2
+    INTEGER  :: il
+    REAL(fp) :: pmax, pmin
+    REAL(fp) :: tmp
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
+    ! Zero output argument for safety's sake
+    dcy  = 0.0_fp
+
+    ! Zero/initialize local variables for safety's sake
+    pmin = 0.0_fp
+    pmax = 0.0_fp
+    tmp  = 0.0_fp
     i2d2 = i2_gl / 2
 
 
@@ -4796,7 +4880,7 @@ CONTAINS
 
        if (j1p /= ju1_gl+1) then
 
-          dcy(i1:i2,ju1) = 0.0e+0_fp
+          dcy(i1:i2,ju1) = 0.0_fp
 
        else
 
@@ -4807,7 +4891,7 @@ CONTAINS
              do il = i1, i2d2
 
                 tmp  =  &
-                     0.25e+0_fp *  &
+                     0.25_fp *  &
                      (qqu(il,ju1+1) - qqu(il+i2d2,ju1+1))
 
                 pmax =  &
@@ -4842,7 +4926,7 @@ CONTAINS
 
        if (j1p /= ju1_gl+1) then
 
-          dcy(i1:i2,j2) = 0.0e+0_fp
+          dcy(i1:i2,j2) = 0.0_fp
 
        else
 
@@ -4853,7 +4937,7 @@ CONTAINS
              do il = i1, i2d2
 
                 tmp  =  &
-                     0.25e+0_fp *  &
+                     0.25_fp *  &
                      (qqu(il+i2d2,j2-1) - qqu(il,j2-1))
 
                 pmax =  &
@@ -4907,39 +4991,39 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+    INTEGER,  INTENT(IN)  :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)  :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)  :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+    INTEGER,  INTENT(IN)  :: I1,     I2
+    INTEGER,  INTENT(IN)  :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+    INTEGER,  INTENT(IN)  :: ILO,    IHI
+    INTEGER,  INTENT(IN)  :: JULO,   JHI
 
     ! ILONG ??
-    INTEGER, INTENT(IN)  :: ilong
+    INTEGER,  INTENT(IN)  :: ilong
 
     ! Controls various options in N-S advection
-    INTEGER, INTENT(IN)  :: jlmt
+    INTEGER,  INTENT(IN)  :: jlmt
 
     ! Courant number in N-S direction
-    REAL(fp),  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
 
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL(fp),  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -4958,20 +5042,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: ijm1
-    INTEGER :: il, ij
-    INTEGER :: lenx
-    REAL(fp)  :: r13, r23
+    INTEGER  :: ijm1
+    INTEGER  :: il, ij
+    INTEGER  :: lenx
+    REAL(fp) :: r13, r23
 
     ! Arrays
-    REAL(fp)  :: a61 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL(fp)  :: al1 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL(fp)  :: ar1 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL(fp)  :: dcy1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL(fp)  :: qqu1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL(fp)  :: a6(ILO:IHI, JULO:JHI)
-    REAL(fp)  :: al(ILO:IHI, JULO:JHI)
-    REAL(fp)  :: ar(ILO:IHI, JULO:JHI)
+    REAL(fp) :: a61 (ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp) :: al1 (ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp) :: ar1 (ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp) :: dcy1(ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp) :: qqu1(ilong*((JHI-1)-(JULO+1)+1))
+    REAL(fp) :: a6(ILO:IHI, JULO:JHI)
+    REAL(fp) :: al(ILO:IHI, JULO:JHI)
+    REAL(fp) :: ar(ILO:IHI, JULO:JHI)
 
     ! NOTE: The code was writtein with I1:I2 as the first dimension of AL,
     ! AR, A6, AL1, A61, AR1.  However, the limits should really should be
@@ -4984,16 +5068,26 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-    a6(:,:) = 0.0e+0_fp; al(:,:) = 0.0e+0_fp; ar(:,:) = 0.0e+0_fp
+    ! Zero output argument for safety's sake
+    qqv  = 0.0_fp
 
-
-    r13 = 1.0e+0_fp / 3.0e+0_fp
-    r23 = 2.0e+0_fp / 3.0e+0_fp
+    ! Zero/initialize local variables for safety's sake
+    lenx = 0
+    a61  = 0.0_fp
+    al1  = 0.0_fp
+    ar1  = 0.0_fp
+    dcy1 = 0.0_fp
+    qqu1 = 0.0_fp
+    a6   = 0.0_fp
+    al   = 0.0_fp
+    ar   = 0.0_fp
+    r13  = 1.0_fp / 3.0_fp
+    r23  = 2.0_fp / 3.0_fp
 
     do ij = julo+1, jhi
     do il = ilo,    ihi
        al(il,ij) =  &
-            0.5e+0_fp * (qqu(il,ij-1) + qqu(il,ij)) +  &
+            0.5_fp * (qqu(il,ij-1) + qqu(il,ij)) +  &
             (dcy(il,ij-1) - dcy(il,ij)) * r13
        ar(il,ij-1) = al(il,ij)
     end do
@@ -5010,7 +5104,7 @@ CONTAINS
     do il = ilo,    ihi
 
        a6(il,ij) =  &
-            3.0e+0_fp *  &
+            3.0_fp *  &
             (qqu(il,ij) + qqu(il,ij) -  &
             (al(il,ij) + ar(il,ij)))
 
@@ -5067,21 +5161,21 @@ CONTAINS
 
           do il = ilo, ihi
 
-             if (cry(il,ij) > 0.0e+0_fp) then
+             if (cry(il,ij) > 0.0_fp) then
 
                 qqv(il,ij) =  &
                      ar(il,ijm1) +  &
-                     0.5e+0_fp * cry(il,ij) *  &
+                     0.5_fp * cry(il,ij) *  &
                      (al(il,ijm1) - ar(il,ijm1) +  &
-                     (a6(il,ijm1) * (1.0e+0_fp - (r23 * cry(il,ij)))))
+                     (a6(il,ijm1) * (1.0_fp - (r23 * cry(il,ij)))))
 
              else
 
                 qqv(il,ij) =  &
                      al(il,ij) -  &
-                     0.5e+0_fp * cry(il,ij) *  &
+                     0.5_fp * cry(il,ij) *  &
                      (ar(il,ij) - al(il,ij) +  &
-                     (a6(il,ij) * (1.0e+0_fp + (r23 * cry(il,ij)))))
+                     (a6(il,ij) * (1.0_fp + (r23 * cry(il,ij)))))
 
              end if
 
@@ -5112,22 +5206,22 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
+    INTEGER,  INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Left (al) and right (ar) edge values of the test parabola
-    REAL(fp),  INTENT(INOUT) :: al(ILO:IHI, JULO:JHI)
-    REAL(fp),  INTENT(INOUT) :: ar(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: al(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: ar(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -5190,33 +5284,33 @@ CONTAINS
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P,    J2P
+    INTEGER,  INTENT(IN)    :: J1P,    J2P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    :: I1_GL,  I2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
+    INTEGER,  INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 
     ! Special geometrical factor (geofac) for Polar cap
-    REAL(fp),  INTENT(IN)    :: geofac_pc
+    REAL(fp), INTENT(IN)    :: geofac_pc
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL(fp),  INTENT(IN)    :: qqv(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(IN)    :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! Species density [hPa]
-    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
+    REAL(fp), INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! N-S mass flux [mixing ratio]
-    REAL(fp),  INTENT(INOUT) :: fy (ILO:IHI, JULO:JHI+1)
+    REAL(fp), INTENT(INOUT) :: fy (ILO:IHI, JULO:JHI+1)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -5235,30 +5329,30 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ik
-    REAL(fp)  :: ri2
+    INTEGER  :: il, ik
+    REAL(fp) :: ri2
+    REAL(fp) :: dq_np
+    REAL(fp) :: dq_sp
+    REAL(fp) :: sumnp
+    REAL(fp) :: sumsp
 
     ! Arrays
-    REAL(fp)  :: dq_np
-    REAL(fp)  :: dq_sp
-    REAL(fp)  :: dqik(2)  ! 2 elements array for each pole value.
-    REAL(fp)  :: sumnp
-    REAL(fp)  :: sumsp
-
+    REAL(fp) :: dqik(2)  ! 2 elements array for each pole value.
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    ri2 = i2_gl
-
-    dqik(:) = 0.0e+0_fp
+    ! Zero/initialize local variables for safety's sake
+    dq_np = 0.0_fp
+    dq_sp = 0.0_fp
+    sumnp = 0.0_fp
+    sumsp = 0.0_fp
+    dqik  = 0.0_fp
+    ri2   = i2_gl
 
 
 !... Integrate N-S flux around polar cap lat circle for each level
-
-          sumsp = 0.0e+0_fp
-          sumnp = 0.0e+0_fp
 
           do il = i1, i2
              sumsp = sumsp + qqv(il,j1p)
@@ -5332,46 +5426,46 @@ CONTAINS
     ! Global latitude index at the edges of the South polar cap
     ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
     ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P
+    INTEGER,  INTENT(IN)    :: J1P
 
     ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
+    INTEGER,  INTENT(IN)    :: JU1_GL, J2_GL
 
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
+    INTEGER,  INTENT(IN)    :: I1,     I2
+    INTEGER,  INTENT(IN)    :: JU1,    J2
+    INTEGER,  INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
+    INTEGER,  INTENT(IN)    :: ILO,    IHI
+    INTEGER,  INTENT(IN)    :: JULO,   JHI
 
     ! Dimensions in longitude & altitude ???
-    INTEGER, INTENT(IN)    :: ilong,  ivert
+    INTEGER,  INTENT(IN)    :: ilong,  ivert
 
     ! Controls various options in vertical advection
-    INTEGER, INTENT(IN)    :: klmt
+    INTEGER,  INTENT(IN)    :: klmt
 
     ! Pressure thickness, the pseudo-density in a
     ! hydrostatic system at t1 [hPa]
-    REAL(fp),  INTENT(IN)    :: delp1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp), INTENT(IN)    :: delp1(ILO:IHI, JULO:JHI, K1:K2)
 
     ! Large scale mass flux (per time step tdt) in the vertical
     ! direction as diagnosed from the hydrostatic relationship [hPa]
-    REAL(fp),  INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
+    REAL(fp), INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
 
     ! Species concentration [mixing ratio]
-    REAL(fp),  INTENT(IN)    :: qq1(:,:,:)
+    REAL(fp), INTENT(IN)    :: qq1(:,:,:)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     ! Species density [hPa]
-    REAL(fp),  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL(fp), INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Vertical flux [mixing ratio]
-    REAL(fp),  INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
+    REAL(fp), INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO
@@ -5390,10 +5484,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: il, ij, ik
-    INTEGER :: k1p1, k1p2
-    INTEGER :: k2m1, k2m2
-    INTEGER :: lenx
+    INTEGER   :: il, ij, ik
+    INTEGER   :: k1p1, k1p2
+    INTEGER   :: k2m1, k2m2
+    INTEGER   :: lenx
     REAL(fp)  :: a1, a2
     REAL(fp)  :: aa, bb
     REAL(fp)  :: c0, c1, c2
@@ -5422,29 +5516,34 @@ CONTAINS
     ! Work array
     REAL(fp)  :: dpi(I1:I2, JU1:J2, K1:K2)
 
-
-
 !     ----------------
 !     Begin execution.
 !     ----------------
 
-    a6(:,:) = 0.0e+0_fp
-    al(:,:) = 0.0e+0_fp
-    ar(:,:) = 0.0e+0_fp
-    dc(:,:,:) = 0.0e+0_fp
-!.sds... diagnostic vertical flux for species - set top to 0.0
-    fz(:,:,:) = 0.0
+    ! Zero output arguent for safety's sake
+    fz    = 0.0_fp
 
-
-    k1p1 = k1 + 1
-    k1p2 = k1 + 2
-
-    k2m1 = k2 - 1
-    k2m2 = k2 - 2
-
-    r13  = 1.0e+0_fp / 3.0e+0_fp
-    r23  = 2.0e+0_fp / 3.0e+0_fp
-
+    ! Zero/initialize local variables for safety's sake
+    a61   = 0.0_fp
+    al1   = 0.0_fp
+    ar1   = 0.0_fp
+    dca1  = 0.0_fp
+    qq1a1 = 0.0_fp
+    a6    = 0.0_fp
+    al    = 0.0_fp
+    ar    = 0.0_fp
+    dca   = 0.0_fp
+    dlp1a = 0.0_fp
+    qq1a  = 0.0_fp
+    wza   = 0.0_fp
+    dc    = 0.0_fp
+    dpi   = 0.0_fp
+    k1p1  = k1     + 1
+    k1p2  = k1     + 2
+    k2m1  = k2     - 1
+    k2m2  = k2     - 2
+    r13   = 1.0_fp / 3.0_fp
+    r23   = 2.0_fp / 3.0_fp
 
 !   -------------------
 !   Compute dc for PPM.
@@ -5464,10 +5563,10 @@ CONTAINS
                   (delp1(il,ij,ik-1) + delp1(il,ij,ik) +  &
                   delp1(il,ij,ik+1))
 
-             c1 = (delp1(il,ij,ik-1) + (0.5e+0_fp * delp1(il,ij,ik))) /  &
+             c1 = (delp1(il,ij,ik-1) + (0.5_fp * delp1(il,ij,ik))) /  &
                   (delp1(il,ij,ik+1) + delp1(il,ij,ik))
 
-             c2 = (delp1(il,ij,ik+1) + (0.5e+0_fp * delp1(il,ij,ik))) /  &
+             c2 = (delp1(il,ij,ik+1) + (0.5_fp * delp1(il,ij,ik))) /  &
                   (delp1(il,ij,ik-1) + delp1(il,ij,ik))
 
              tmp = c0 *  &
@@ -5544,16 +5643,16 @@ CONTAINS
           fac2 = (dlp1a(il,k1p1) + dlp1a(il,k1p2)) *  &
                  (dlp1a(il,k1) + dlp1a(il,k1p1) + dlp1a(il,k1p2))
 
-          aa = 3.0e+0_fp * fac1 / fac2
+          aa = 3.0_fp * fac1 / fac2
 
           bb =  &
-               2.0e+0_fp * dpi(il,ij,k1) / (dlp1a(il,k1) + dlp1a(il,k1p1)) -  &
-               r23 * aa * (2.0e+0_fp * dlp1a(il,k1) + dlp1a(il,k1p1))
+               2.0_fp * dpi(il,ij,k1) / (dlp1a(il,k1) + dlp1a(il,k1p1)) -  &
+               r23 * aa * (2.0_fp * dlp1a(il,k1) + dlp1a(il,k1p1))
 
           al(il,k1) = qq1a(il,k1) -  &
                dlp1a(il,k1) *  &
                (r13 * aa * dlp1a(il,k1) +  &
-               0.5e+0_fp * bb)
+               0.5_fp * bb)
 
           al(il,k1p1) = dlp1a(il,k1) * (aa * dlp1a(il,k1) + bb) +  &
                al(il,k1)
@@ -5562,10 +5661,10 @@ CONTAINS
 !         Check if change sign.
 !         ---------------------
 
-          if ((qq1a(il,k1) * al(il,k1)) <= 0.0e+0_fp) then
+          if ((qq1a(il,k1) * al(il,k1)) <= 0.0_fp) then
 
-             al (il,k1) = 0.0e+0_fp
-             dca(il,k1) = 0.0e+0_fp
+             al (il,k1) = 0.0_fp
+             dca(il,k1) = 0.0_fp
 
           else
 
@@ -5587,13 +5686,13 @@ CONTAINS
 
           fac1 = dpi(il,ij,k2m1) * (dlp1a(il,k2) * dlp1a(il,k2)) /  &
                  ((dlp1a(il,k2) + dlp1a(il,k2m1)) *  &
-                 (2.0e+0_fp * dlp1a(il,k2) + dlp1a(il,k2m1)))
+                 (2.0_fp * dlp1a(il,k2) + dlp1a(il,k2m1)))
 
           ar(il,k2) = qq1a(il,k2) + fac1
           al(il,k2) = qq1a(il,k2) - (fac1 + fac1)
 
-          if ((qq1a(il,k2) * ar(il,k2)) <= 0.0e+0_fp) then
-             ar(il,k2) = 0.0e+0_fp
+          if ((qq1a(il,k2) * ar(il,k2)) <= 0.0_fp) then
+             ar(il,k2) = 0.0_fp
           end if
 
           dca(il,k2) = ar(il,k2) - qq1a(il,k2)
@@ -5611,15 +5710,15 @@ CONTAINS
              c1 = (dpi(il,ij,ik-1) * dlp1a(il,ik-1)) /  &
                   (dlp1a(il,ik-1) + dlp1a(il,ik))
 
-             c2 = 2.0e+0_fp /  &
+             c2 = 2.0_fp /  &
                   (dlp1a(il,ik-2) + dlp1a(il,ik-1) +  &
                   dlp1a(il,ik)   + dlp1a(il,ik+1))
 
              a1 = (dlp1a(il,ik-2) + dlp1a(il,ik-1)) /  &
-                  (2.0e+0_fp * dlp1a(il,ik-1) + dlp1a(il,ik))
+                  (2.0_fp * dlp1a(il,ik-1) + dlp1a(il,ik))
 
              a2 = (dlp1a(il,ik) + dlp1a(il,ik+1)) /  &
-                  (2.0e+0_fp * dlp1a(il,ik) + dlp1a(il,ik-1))
+                  (2.0_fp * dlp1a(il,ik) + dlp1a(il,ik-1))
 
              al(il,ik) =  &
                   qq1a(il,ik-1) + c1 +  &
@@ -5647,7 +5746,7 @@ CONTAINS
           do il = i1, i2
 
              a6(il,ik) =  &
-                  3.0e+0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
+                  3.0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
                   (al(il,ik)  + ar(il,ik)))
           end do
 
@@ -5665,7 +5764,7 @@ CONTAINS
           do il = i1, i2
 
              a6(il,ik) =  &
-                  3.0e+0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
+                  3.0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
                   (al(il,ik)  + ar(il,ik)))
           end do
 
@@ -5704,9 +5803,9 @@ CONTAINS
 !             Right edges.
 !             ------------
 
-                qmp   = qq1a(il,ik) + (2.0e+0_fp * dpi(il,ij,ik-1))
+                qmp   = qq1a(il,ik) + (2.0_fp * dpi(il,ij,ik-1))
                 lac   = qq1a(il,ik) +  &
-                     (1.5e+0_fp * dca(il,ik-1)) + (0.5e+0_fp * dpi(il,ij,ik-1))
+                     (1.5_fp * dca(il,ik-1)) + (0.5_fp * dpi(il,ij,ik-1))
                 qmin  = Min (qq1a(il,ik), qmp, lac)
                 qmax  = Max (qq1a(il,ik), qmp, lac)
 
@@ -5716,9 +5815,9 @@ CONTAINS
 !             Left edges.
 !             -----------
 
-                qmp   = qq1a(il,ik) - (2.0e+0_fp * dpi(il,ij,ik))
+                qmp   = qq1a(il,ik) - (2.0_fp * dpi(il,ij,ik))
                 lac   = qq1a(il,ik) +  &
-                        (1.5e+0_fp * dca(il,ik+1)) - (0.5e+0_fp * dpi(il,ij,ik))
+                        (1.5_fp * dca(il,ik+1)) - (0.5_fp * dpi(il,ij,ik))
                 qmin  = Min (qq1a(il,ik), qmp, lac)
                 qmax  = Max (qq1a(il,ik), qmp, lac)
 
@@ -5729,7 +5828,7 @@ CONTAINS
 !             -------------
 
                 a6(il,ik) =  &
-                     3.0e+0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
+                     3.0_fp * (qq1a(il,ik) + qq1a(il,ik) -  &
                      (ar(il,ik)  + al(il,ik)))
              end do
           end do
@@ -5751,7 +5850,7 @@ CONTAINS
                 dca1 (lenx) = dca (il,ik)
                 qq1a1(lenx) = qq1a(il,ik)
 
-                a61  (lenx) = 3.0e+0_fp * (qq1a1(lenx) + qq1a1(lenx) -  &
+                a61  (lenx) = 3.0_fp * (qq1a1(lenx) + qq1a1(lenx) -  &
                              (al1(lenx)  + ar1(lenx)))
              end do
           end do
@@ -5784,15 +5883,15 @@ CONTAINS
        do ik = k1, k2m1
           do il = i1, i2
 
-             if (wza(il,ik) > 0.0e+0_fp) then
+             if (wza(il,ik) > 0.0_fp) then
 
                 cm = wza(il,ik) / dlp1a(il,ik)
 
                 dca(il,ik+1) =  &
                      ar(il,ik) +  &
-                     0.5e+0_fp * cm *  &
+                     0.5_fp * cm *  &
                      (al(il,ik) - ar(il,ik) +  &
-                     a6(il,ik) * (1.0e+0_fp - r23 * cm))
+                     a6(il,ik) * (1.0_fp - r23 * cm))
 
              else
 
@@ -5800,9 +5899,9 @@ CONTAINS
 
                 dca(il,ik+1) =  &
                      al(il,ik+1) +  &
-                     0.5e+0_fp * cp *  &
+                     0.5_fp * cp *  &
                      (al(il,ik+1) - ar(il,ik+1) -  &
-                     a6(il,ik+1) * (1.0e+0_fp + r23 * cp))
+                     a6(il,ik+1) * (1.0_fp + r23 * cp))
 
              end if
 
@@ -5858,15 +5957,15 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Local min & max longitude (I), latitude (J)
-    INTEGER, INTENT(IN)   :: I1,     I2
-    INTEGER, INTENT(IN)   :: JU1,    J2
+    INTEGER,  INTENT(IN)   :: I1,     I2
+    INTEGER,  INTENT(IN)   :: JU1,    J2
 
     ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: ILO,    IHI
-    INTEGER, INTENT(IN)   :: JULO,   JHI
+    INTEGER,  INTENT(IN)   :: ILO,    IHI
+    INTEGER,  INTENT(IN)   :: JULO,   JHI
 
     ! Surface area of grid box
-    REAL(fp),  INTENT(IN)   :: AREA_1D(JU1:J2)
+    REAL(fp), INTENT(IN)   :: AREA_1D(JU1:J2)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5893,7 +5992,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: I, J
+    INTEGER   :: I, J
     REAL(fp)  :: meanp
     REAL(fp)  :: REL_AREA(JU1:J2)
     REAL(fp)  :: SUM_AREA
@@ -5918,7 +6017,7 @@ CONTAINS
     SUM_AREA = SUM( rel_area( JU1:JU1+1 ) ) * DBLE( I2 )
 
     ! Zero
-    meanp = 0.e+0_fp
+    meanp = 0.0_fp
 
     ! Sum pressure * surface area over the S. Polar cap
     DO J = JU1, JU1+1
@@ -5938,7 +6037,7 @@ CONTAINS
     SUM_AREA = SUM( rel_area( J2-1:J2 ) ) * DBLE( I2 )
 
     ! Zero
-    meanp = 0.e+0_fp
+    meanp = 0.0_fp
 
     ! Sum pressure * surface area over the N. Polar cap
     DO J = J2-1, J2

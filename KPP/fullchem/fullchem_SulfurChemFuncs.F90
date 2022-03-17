@@ -16,8 +16,6 @@ MODULE fullchem_SulfurChemFuncs
 !
   USE PhysConstants
   USE Precision_Mod
-  USE gckpp_Global
-  USE rateLawUtilFuncs
 
   IMPLICIT NONE
   PRIVATE
@@ -71,6 +69,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE gckpp_Global,     ONLY : C,          MW
     USE gckpp_Parameters, ONLY : ind_SALAAL, ind_SALCAL
 !EOP
 !------------------------------------------------------------------------------
@@ -97,6 +96,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE gckpp_Global,     ONLY : C,          MW
     USE gckpp_Parameters, ONLY : ind_SALAAL, ind_SALCAL
 !EOP
 !------------------------------------------------------------------------------
@@ -126,8 +126,10 @@ CONTAINS
 !
 
     USE ErrCode_Mod
-    USE GcKpp_Parameters
+    USE gckpp_Global
+    USE gckpp_Parameters
     USE Input_Opt_Mod,    ONLY : OptInput
+    USE rateLawUtilFuncs
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
     USE State_Grid_Mod,   ONLY : GrdState
@@ -141,7 +143,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm  ! Chemistry State object
 !
 ! OUTPUT PARAMETERS:
 !
@@ -176,6 +178,7 @@ CONTAINS
 
     ! Initialize
     RC            = GC_SUCCESS
+    k_ex          = 0.0_dp
     K_MT          = 0.0_dp
     SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
     SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
@@ -197,7 +200,7 @@ CONTAINS
 
        ! 1st order uptake
        k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
-                       radius = State_Het%xRadi(11),                         &
+                       radius = State_Chm%AeroRadi(I,J,L,11),                &
                        gamma  = 0.11_dp,                                     &
                        srMw   = SR_MW(ind_SO2)                              )
 
@@ -209,30 +212,30 @@ CONTAINS
     !------------------------------------------------------------------------
     ! SALAAL + HCL = SALACL
     !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
-                    radius = State_Het%xRadi(11),                            &
-                    gamma  = 0.07_dp,                                        &
-                    srMw   = SR_MW(ind_HCl)                                 )
-
-    ! Assume HCl is limiting, so recompute reaction rate accordingly
     IF ( SALAAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
+                       radius = State_Chm%AeroRadi(I,J,L,11),                &
+                       gamma  = 0.07_dp,                                     &
+                       srMw   = SR_MW(ind_HCl)                              )
+
+       ! Assume HCl is limiting, so recompute reaction rate accordingly
        K_MT(2) = kIIR1Ltd( C(ind_HCl), C(ind_SALAAL), k_ex )
     ENDIF
 
     !------------------------------------------------------------------------
     ! SALAAL + HNO3 = NIT
     !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),                &
-                    radius = State_Het%xRadi(11),                            &
-                    gamma  = 0.5_dp,                                         &
-                    srMw   = SR_MW(ind_HNO3)                                )
-
-    ! Assume HNO3 is limiting, so recompute reaction rate accordingly
     IF ( SALAAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
+                       radius = State_Chm%AeroRadi(I,J,L,11),                &
+                       gamma  = 0.5_dp,                                      &
+                       srMw   = SR_MW(ind_HNO3)                             )
+
+       ! Assume HNO3 is limiting, so recompute reaction rate accordingly
        K_MT(3) = kIIR1Ltd( C(ind_HNO3), C(ind_SALAAL), k_ex )
     ENDIF
 
@@ -253,7 +256,7 @@ CONTAINS
 
        ! 1st order uptake
        k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
-                       radius = State_Het%xRadi(12),                         &
+                       radius = State_Chm%AeroRadi(I,J,L,12),                &
                        gamma  = 0.11_dp,                                     &
                        srMw   = SR_MW(ind_SO2)                              )
 
@@ -265,30 +268,30 @@ CONTAINS
     !------------------------------------------------------------------------
     ! SALCAL + HCl = SALCCL
     !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
-                    radius = State_Het%xRadi(12),                            &
-                    gamma  = 0.07_dp,                                        &
-                    srMw   = SR_MW(ind_HCl)                                 )
-
-    ! Assume HCl is limiting, so recompute rxn rate accordingly
     IF ( SALCAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
+                       radius = State_Chm%AeroRadi(I,J,L,12),                &
+                       gamma  = 0.07_dp,                                     &
+                       srMw   = SR_MW(ind_HCl)                              )
+
+       ! Assume HCl is limiting, so recompute rxn rate accordingly
        K_MT(5) = kIIR1Ltd( C(ind_HCl), C(ind_SALCAL), k_ex )
     ENDIF
 
     !------------------------------------------------------------------------
     ! SALCAL + HNO3 = NITs
     !------------------------------------------------------------------------
-
-    ! 1st order uptake
-    k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),                &
-                    radius = State_Het%xRadi(12),                            &
-                    gamma  = 0.5_dp,                                         &
-                    srMw   = SR_MW(ind_HNO3)                                )
-
-    ! Assume HNO3 is limiting, so recompute rxn rate accordingly
     IF ( SALCAL_gt_0_1 ) THEN
+
+       ! 1st order uptake
+       k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
+                       radius = State_Chm%AeroRadi(I,J,L,12),                &
+                       gamma  = 0.5_dp,                                      &
+                       srMw   = SR_MW(ind_HNO3)                             )
+
+       ! Assume HNO3 is limiting, so recompute rxn rate accordingly
        K_MT(6) = kIIR1Ltd( C(ind_HNO3), C(ind_SALCAL), k_ex )
     ENDIF
 
@@ -413,6 +416,7 @@ CONTAINS
     USE gckpp_Precision
     USE Input_Opt_Mod,         ONLY : OptInput
     USE PhysConstants,         ONLY : AIRMW, AVO, PI, g0
+    USE rateLawUtilFuncs
     USE State_Chm_Mod,         ONLY : ChmState, IND_
     USE State_Met_Mod,         ONLY : MetState
     USE Time_Mod,              ONLY : Get_Ts_Chem
@@ -759,7 +763,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GcKpp_Precision, ONLY : dp
+    USE gckpp_Precision, ONLY : dp
 !
 ! !INPUT PARAMETERS:
 !
@@ -817,7 +821,8 @@ CONTAINS
 ! !USES:
 !
     USE gckpp_Parameters, ONLY : ind_HSO3m, ind_SO3mm
-    USE gckpp_Global,     ONLY : HetState
+    USE gckpp_Global,     ONLY : C,         HetState
+    USE rateLawUtilFuncs, ONLY : SafeDiv
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
 
@@ -868,12 +873,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
-    USE Time_Mod,       ONLY : Get_Ts_Chem
+    USE gckpp_Global
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE rateLawUtilFuncs
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Diag_Mod,  ONLY : DgnState
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Met_Mod,   ONLY : MetState
+    USE Time_Mod,        ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -938,7 +945,7 @@ CONTAINS
     REAL(fp)              :: RK,     RKT,     DTCHEM, DT_T, TK
     REAL(fp)              :: F1,     RK1,     RK3,    SO20, AVO_over_LWC
     REAL(fp)              :: SO2_cd, H2O20,   L2S,    L3S
-    REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM, RHO, CVFAC
+    REAL(fp)              :: LWC,    KaqH2O2, KaqO3,  PATM, RHO, CNVFAC
     REAL(fp)              :: ALK,    ALK1,    ALK2,   SO2_AfterSS
     REAL(fp)              :: AlkA,   AlkC
     REAL(fp)              :: Kt1,    Kt2
@@ -1006,10 +1013,10 @@ CONTAINS
     Ld                          = 0.0_fp
     LSTOT                       = 0.0_fp
     RHO                         = State_Met%AIRDEN(I,J,L)
-    CVFAC                       = 1.E3_fp * AIRMW / ( RHO * AVO ) !mcl/cm3->v/v
-    SO20                        = Spc(id_SO2)  * CVFAC
-    SO2_AfterSS                 = Spc(id_SO2)  * CVFAC
-    H2O20                       = Spc(id_H2O2) * CVFAC
+    CNVFAC                      = 1.E3_fp * AIRMW / ( RHO * AVO ) !mcl/cm3->v/v
+    SO20                        = Spc(id_SO2)  * CNVFAC
+    SO2_AfterSS                 = Spc(id_SO2)  * CNVFAC
+    H2O20                       = Spc(id_H2O2) * CNVFAC
     KaqH2O2                     = 0.0_fp
     KaqO3                       = 0.0_fp
     KaqO3_1                     = 0.0_fp
@@ -1160,22 +1167,22 @@ CONTAINS
 
        ! Get total ammonia (NH3 + NH4+) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7 for NH4+
-       TNH3 = ( ( Spc(id_NH4) * 0.7e+0_fp ) + Spc(id_NH3) ) * CVFAC
+       TNH3 = ( ( Spc(id_NH4) * 0.7e+0_fp ) + Spc(id_NH3) ) * CNVFAC
 
        ! Get total chloride (SALACL + HCL) concentration [v/v]
        ! Use a cloud scavenging ratio of 0.7
        CL = ( Spc(id_SALACL) * 0.7e+0_fp ) + Spc(id_SALCCL)
-       CL = ( CL + Spc(id_HCL) ) * CVFAC
+       CL = ( CL + Spc(id_HCL) ) * CNVFAC
 
        ! Get total formic acid concentration [v/v]
        ! jmm (12/3/18)
        ! no cloud scavenging because gases?
-       TFA = Spc(id_HCOOH) * CVFAC
+       TFA = Spc(id_HCOOH) * CNVFAC
 
        ! Get total acetic acid concentration [v/v]
        ! jmm (12/3/18)
        ! no cloud scavenging b/c gases?
-       TAA = Spc(id_ACTA) * CVFAC
+       TAA = Spc(id_ACTA) * CNVFAC
 
        ! Get total sea salt NVC concentration expressed as NA+ equivalents
        ! and convert from [MND] to [moles/liter]
@@ -1216,8 +1223,8 @@ CONTAINS
        ! Use a cloud scavenging ratio of 0.7 for NIT
        TNO3 = ( Spc(id_HNO3) +             &
               ( Spc(id_NIT)  * 0.7e+0_fp ) + &
-              Spc(id_NITs) ) * CVFAC
-       GNO3 = Spc(id_HNO3)  * CVFAC ! For Fahey & Pandis decision algorithm
+              Spc(id_NITs) ) * CNVFAC
+       GNO3 = Spc(id_HNO3)  * CNVFAC ! For Fahey & Pandis decision algorithm
 
        ! Calculate cloud pH
        CALL GET_HPLUS( SO4nss, HMSc, TNH3, TNO3,  SO2_AfterSS,   CL, TNA, TDCA, &
@@ -1253,7 +1260,7 @@ CONTAINS
 
           ! Anthropogenic Fe concentrations [mcl/cm3 -> ng/m3]
           IF ( id_pFe > 0 ) THEN
-                Fe_ant = Spc(id_pFe) * CVFAC * &
+                Fe_ant = Spc(id_pFe) * CNVFAC * &
                          1.e+12_fp * State_Met%AD(I,J,L) &
                          / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%MW_g ) &
                          / State_Met%AIRVOL(I,J,L)
@@ -1321,9 +1328,9 @@ CONTAINS
                         T       = TK,                                        &
                         P       = PATM,                                      &
                         SO2     = SO2_AfterSS,                               &
-                        H2O2    = Spc(id_H2O2) * CVFAC,                      &
-                        O3      = Spc(id_O3)   * CVFAC,                      &
-                        HCHO    = Spc(id_CH2O) * CVFAC,                      &
+                        H2O2    = Spc(id_H2O2) * CNVFAC,                     &
+                        O3      = Spc(id_O3)   * CNVFAC,                     &
+                        HCHO    = Spc(id_CH2O) * CNVFAC,                     &
                         Hplus   = Hplus,                                     &
                         MnII    = MnII,                                      &
                         FeIII   = FeIII,                                     &
@@ -1337,22 +1344,22 @@ CONTAINS
                         KaqHMS  = KaqHMS,                                    &
                         KaqHMS2 = KaqHMS2                                   )
 
-       K_CLD(1) = KaqH2O2 * FC * CVFAC   ! v/v/s --> cm3/mcl/s
-       K_CLD(2) = KaqO3   * FC * CVFAC   ! v/v/s --> cm3/mcl/s
-       K_CLD(3) = KaqO2   * FC           ! 1/s
+       K_CLD(1) = KaqH2O2 * FC * CNVFAC   ! v/v/s --> cm3/mcl/s
+       K_CLD(2) = KaqO3   * FC * CNVFAC   ! v/v/s --> cm3/mcl/s
+       K_CLD(3) = KaqO2   * FC            ! 1/s
        ! vvvvvv Hold off using CloudHet2R until after initial S-chem benchmark
        !        -- MSL
-       !K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CVFAC )
-       !K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CVFAC )
+       !K_CLD(1) = CloudHet2R( Spc(id_SO2), Spc(id_H2O2), FC, KaqH2O2 * CNVFAC )
+       !K_CLD(2) = CloudHet2R( Spc(id_SO2), Spc(id_O3),   FC, KaqO3   * CNVFAC )
        !K_CLD(3) computed below
 
        ! HMS reaction rates (skip if HMS isn't defined)
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
-          K_CLD(4) = KaqHCHO * FC * CVFAC
+          K_CLD(4) = KaqHCHO * FC * CNVFAC
           K_CLD(5) = KaqHMS  * FC
           K_CLD(6) = KaqHMS2 * FC
           ! Leave comments here (bmy, 18 Jan 2022)
-          !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CVFAC )
+          !          CloudHet2R( Spc(id_HMS), Spc(id_CH2O), FC, KaqHCHO*CNVFAC )
           !          CloudHet1R( FC, KaqHMS ) ! KaqHMS is pseudo-1st order
           !          CloudHet2R( Spc(id_HMS), Spc(id_OH), FC, & ...)       ENDIF
        ENDIF
@@ -1368,14 +1375,14 @@ CONTAINS
        ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
        ! mcl/cm3 -> ug/m3
        ALKdst = ( Spc(id_DST1) + Spc(id_DST2) +            &
-            Spc(id_DST3) + Spc(id_DST4) ) * CVFAC *  &
+            Spc(id_DST3) + Spc(id_DST4) ) * CNVFAC *  &
             1.e+9_fp * State_Met%AD(I,J,L)                       &
             / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
             / State_Met%AIRVOL(I,J,L)
 #endif
 
        ! mcl/cm3 -> ug/m3
-       ALKss  = ( Spc(id_SALA  ) + Spc(id_SALC) ) * CVFAC * &
+       ALKss  = ( Spc(id_SALA  ) + Spc(id_SALC) ) * CNVFAC * &
             1.e+9_fp * State_Met%AD(I,J,L)                       &
             / ( AIRMW / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
             / State_Met%AIRVOL(I,J,L)
@@ -1383,7 +1390,7 @@ CONTAINS
        ALKds = ALKdst + ALKss
 
        ! Get NH3 concentrations (v/v)
-       NH3 = Spc(id_NH3)*CVFAC
+       NH3 = Spc(id_NH3)*CNVFAC
 
        ! Initialize
        State_Chm%SIZE_RES = .FALSE.
@@ -3516,14 +3523,14 @@ CONTAINS
   END SUBROUTINE AQCHEM_SO2
 !EOC
 
-  SUBROUTINE SET_2R_CLD( T, LWC, FC, HPLUS, CVFAC, P, SO2, H2O2, KaqH2O2 )
+  SUBROUTINE SET_2R_CLD( T, LWC, FC, HPLUS, CNVFAC, P, SO2, H2O2, KaqH2O2 )
 
     REAL(fp), PARAMETER   :: R = 0.08205e+0_fp
     REAL(FP) :: KH2O2, KS1, KS2, T, XSO2aq, LWC, FC
     REAL(FP) :: XHSO3, XSO3, HCSO2, HPLUS, FHCSO2
     REAL(FP) :: XSO2g, KH1, HCH2O2, FHCH2O2, XH2O2g
     REAL(FP) :: KaqH2O2
-    REAL(FP) :: SO2, H2O2, A, B, KAB, CVFAC, P
+    REAL(FP) :: SO2, H2O2, A, B, KAB, CNVFAC, P
 
     ! [Jacob, 1986]
     KH2O2  = 6.31e+14_fp * EXP( -4.76e+3_fp / T )
@@ -3554,11 +3561,15 @@ CONTAINS
     B = H2O2
 
     KAB = kh2o2 * Ks1 * FHCH2O2 * HCSO2 * XH2O2g * XSO2g &
-               * P * LWC * R * T * CVFAC ! cm2/mcl/s
+               * P * LWC * R * T * CNVFAC ! cm2/mcl/s
 
   END SUBROUTINE SET_2R_CLD
 
   FUNCTION CloudHet2R( A, B, FC, KAB )  RESULT( KX )
+!
+! !USES
+!
+    USE rateLawUtilFuncs
 !
 ! !INPUT PARAMETERS:
 !
@@ -3650,6 +3661,10 @@ CONTAINS
 ! !INTERFACE:
 !
   FUNCTION CloudHet1R( fc, rate ) RESULT( kHet )
+!
+! !USES:
+!
+    USE rateLawUtilFuncs
 !
 ! !INPUT PARAMETERS:
 !

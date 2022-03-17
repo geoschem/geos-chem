@@ -382,7 +382,7 @@ CONTAINS
       ! due to a compiler bug in ifort 19
       ! we have to use PRESENT and not copy the value, as sometimes it becomes
       ! flipped! (hplin, 9/29/20)
-      IF ( PRESENT( AltBuffer ) ) THEN 
+      IF ( PRESENT( AltBuffer ) ) THEN
         TMP_MDL_target => TMP_MDLb
       ELSE
         TMP_MDL_target => TMP_MDL
@@ -634,9 +634,13 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
+      !=====================================================================
+      ! We ARE USING the HEMCO intermediate grid
+      !=====================================================================
 
-      ! Sanity check - output array must be sized correctly for MODEL grid 
-      IF ( SIZE(Arr3D, 1) /= State_Grid%NX .or. SIZE(Arr3D, 2) /= State_Grid%NY ) THEN
+      ! Sanity check - output array must be sized correctly for MODEL grid
+      IF ( SIZE(Arr3D, 1) /= State_Grid%NX   .or.                            &
+           SIZE(Arr3D, 2) /= State_Grid%NY ) THEN
         RC = GC_FAILURE
         ErrMsg = 'Input array dimensions are incorrect!'
         CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -650,9 +654,10 @@ CONTAINS
         CALL GC_Error( ErrMsg, RC, ThisLoc )
       ENDIF
 
-      ! Check if cName is existing in the regrid buffer. If not, regrid on-the-fly
+      ! Check if cName is existing in the regrid buffer.
+      !If not, regrid on-the-fly
       IF ( cName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid not equal, looking up field ", cName
+        !IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid not equal, looking up field ", cName
 
         ! Now retrieve data into the HEMCO temporary!
         ! The bdy is a slice to ensure safety
@@ -669,7 +674,8 @@ CONTAINS
           ! For safety, overwrite the temporary
           LAST_TMP_REGRID_H2M = "_HCO_Eval3D_TBD"
 
-          ! Regrid the buffer appropriately. We do not use TMP_MDL here in EvalFld,
+          ! Regrid the buffer appropriately.
+          ! We do not use TMP_MDL here in EvalFld,
           ! because the field target is given.
           ! ( Input_Opt, State_Grid, State_Grid_HCO, PtrIn, PtrOut, ZBND )
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, Arr3D, ZBND )
@@ -689,7 +695,9 @@ CONTAINS
         ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid equal, reading from buffer"
       ENDIF
     ELSE
-      ! Not within the intermediate grid code path
+      !=====================================================================
+      ! We ARE NOT USING the HEMCO intermediate grid
+      !=====================================================================
 #endif
       ! In which case, we just pass the call through
       CALL HCO_EvalFld( HcoState, cName, Arr3D, RC, FND )
@@ -768,8 +776,11 @@ CONTAINS
 
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
+      !=====================================================================
+      ! We ARE USING the HEMCO intermediate grid
+      !=====================================================================
 
-      ! Sanity check - output array must be sized correctly for MODEL grid 
+      ! Sanity check - output array must be sized correctly for MODEL grid
       IF ( SIZE(Arr2D, 1) /= State_Grid%NX .or. SIZE(Arr2D, 2) /= State_Grid%NY ) THEN
         RC = GC_FAILURE
         ErrMsg = 'Input array dimensions are incorrect!'
@@ -789,7 +800,7 @@ CONTAINS
         IF ( RC /= GC_SUCCESS ) RETURN
 
         ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Lookup complete", cName, FND
-        
+
         ! If not found, return
         IF ( FND ) THEN
 
@@ -819,7 +830,9 @@ CONTAINS
         ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid equal, reading from buffer"
       ENDIF
     ELSE
-      ! Not within the intermediate grid code path
+      !=====================================================================
+      ! We ARE NOT USING the HEMCO intermediate grid
+      !=====================================================================
 #endif
       ! In which case, we just pass the call through
       CALL HCO_EvalFld( HcoState, cName, Arr2D, RC, FND )
@@ -941,7 +954,7 @@ CONTAINS
         ! If failure, return up the chain. The calls to this function will
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
-        
+
         ! If not found, return
         IF ( iFOUND .and. iFILLED ) THEN
 
@@ -1106,7 +1119,7 @@ CONTAINS
         ! If failure, return up the chain. The calls to this function will
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
-        
+
         ! If not found, return
         IF ( iFOUND .and. iFILLED ) THEN
 
@@ -1263,7 +1276,7 @@ CONTAINS
       ! The first call to the critical section will update the container!!
       !$OMP CRITICAL
 
-      IF ( PRESENT( AltBuffer ) ) THEN 
+      IF ( PRESENT( AltBuffer ) ) THEN
         TMP_MDL_target => TMP_MDLb
         TMP_MDL_target4 => TMP_MDL_r4b
       ELSE
@@ -1283,7 +1296,7 @@ CONTAINS
         ! then demoted again for output.
         CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
                           Ptr3D=TMP_Ptr3D,    COL=iCOL,  AutoFill=iAF )
-        
+
         ! If not found, return
         IF ( ASSOCIATED( TMP_Ptr3D ) ) THEN
 
@@ -1428,7 +1441,7 @@ CONTAINS
       ! The first call to the critical section will update the container!!
       !$OMP CRITICAL
 
-      IF ( PRESENT( AltBuffer ) ) THEN 
+      IF ( PRESENT( AltBuffer ) ) THEN
         TMP_MDL_target => TMP_MDLb
         TMP_MDL_target4 => TMP_MDL_r4b
       ELSE
@@ -1448,7 +1461,7 @@ CONTAINS
         ! then demoted again for output.
         CALL GetHcoDiagn( HcoState, ExtState, DiagnName, StopIfNotFound, RC, &
                           Ptr2D=TMP_Ptr2D,    COL=iCOL,  AutoFill=iAF )
-        
+
         ! If not found, return
         IF ( ASSOCIATED( TMP_Ptr2D ) ) THEN
 
