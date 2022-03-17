@@ -204,6 +204,9 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Zero for safety's sake
+       landFrac = 0.0_fp
+
        ! Loop over all surface types present in this grid cell
        DO S = 1, State_Met%IREG(I,J)
 

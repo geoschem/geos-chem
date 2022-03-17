@@ -1883,7 +1883,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Pointers
-    REAL(hp), POINTER  :: Trgt3D(:,:,:) => NULL()
+    REAL(hp), POINTER  :: Trgt3D(:,:,:)
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -1902,6 +1902,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
+    Trgt3d   => NULL()
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at ExtState_SetFields (in module GeosCore/hco_interface_gc_mod.F90)'
@@ -2867,7 +2868,8 @@ CONTAINS
 #endif
 
     ! Not first call any more
-    FIRST = .FALSE.
+    FIRST  = .FALSE.
+    Trgt3D => NULL()
 
     ! Leave with success
     RC = GC_SUCCESS

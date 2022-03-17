@@ -97,6 +97,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
+    USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
@@ -451,7 +452,7 @@ CONTAINS
 #endif
 
     !=======================================================================
-    ! Archive concentrations before chemistry 
+    ! Archive concentrations before chemistry
     !=======================================================================
     IF ( State_Diag%Archive_ConcBeforeChem ) THEN
        ! Point to mapping obj specific to SpeciesConc diagnostic collection
@@ -583,7 +584,6 @@ CONTAINS
        !=====================================================================
        IERR      = 0                        ! KPP success or failure flag
        ISTATUS   = 0.0_dp                   ! Rosenbrock output
-       PHOTOL    = 0.0_dp                   ! Photolysis array for KPP
        RCNTRL    = 0.0_fp                   ! Rosenbrock input
        RSTATE    = 0.0_dp                   ! Rosenbrock output
        SO4_FRAC  = 0.0_fp                   ! Frac of SO4 avail for photolysis
@@ -595,6 +595,11 @@ CONTAINS
        SR        = 0.0_fp                   ! Enhancement to O2 catalysis rate
        LWC       = 0.0_fp                   ! Liquid water content
        SIZE_RES  = .FALSE.                  ! Size resolved calculation?
+       C         = 0.0_dp                   ! KPP species conc's
+       VAR       = 0.0_dp                   ! KPP variable species conc's
+       FIX       = 0.0_dp                   ! KPP fixed species conc's
+       RCONST    = 0.0_dp                   ! KPP rate constants
+       PHOTOL    = 0.0_dp                   ! Photolysis array for KPP
        K_CLD     = 0.0_dp                   ! Sulfur in-cloud rxn het rates
        K_MT      = 0.0_dp                   ! Sulfur sea salt rxn het rates
 #ifdef MODEL_CLASSIC
@@ -778,11 +783,58 @@ CONTAINS
        ENDIF
 
        !=====================================================================
+       ! CHEMISTRY MECHANISM INITIALIZATION (#1)
+       !
+       ! Populate KPP global variables and arrays in gckpp_global.F90
+       !
+       ! NOTE: This has to be done before Set_Sulfur_Chem_Rates, so that
+       ! the NUMDEN and SR_TEMP KPP variables will be populated first.
+       ! Otherwise this can lead to differences in output that are evident
+       ! when running with different numbers of OpenMP cores.
+       ! See https://github.com/geoschem/geos-chem/issues/1157
+       !    -- Bob Yantosca (08 Mar 2022)
+       !=====================================================================
+
+       ! Start timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( TimerName = "  -> Init KPP",                     &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        =  RC                                 )
+       ENDIF
+
+       ! Initialize KPP for this grid box
+       CALL Init_KPP()
+
+       ! Copy values into the various KPP global variables
+       CALL Set_Kpp_GridBox_Values( I          = I,                          &
+                                    J          = J,                          &
+                                    L          = L,                          &
+                                    Input_Opt  = Input_Opt,                  &
+                                    State_Chm  = State_Chm,                  &
+                                    State_Grid = State_Grid,                 &
+                                    State_Met  = State_Met,                  &
+                                    RC         = RC                         )
+
+       ! Stop timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( TimerName =  "  -> Init KPP",                      &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        =  RC                                   )
+       ENDIF
+
+       !=====================================================================
+       ! CHEMISTRY MECHANISM INITIALIZATION (#2)
+       !
        ! Update reaction rates [1/s] for sulfur chemistry in cloud and on
        ! seasalt.  These will be passed to the KPP chemical solver.
        !
-       ! NOTE: This has to be done before Set_Kpp_Gridbox_Values so that
-       ! State_Chm%HSO3_aq and State_Chm%SO3_aq will be populated properly!
+       ! NOTE: This has to be done before fullchem_SetStateHet so that
+       ! State_Chm%HSO3_aq and State_Chm%SO3_aq will be populated first.
+       ! These are copied into State_Het%HSO3_aq and State_Het%SO3_aq.
+       ! See https://github.com/geoschem/geos-chem/issues/1157
+       !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
        ! Start timer
@@ -814,7 +866,15 @@ CONTAINS
        ENDIF
 
        !=====================================================================
-       ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
+       ! CHEMISTRY MECHANISM INITIALIZATION (#3)
+       !
+       ! Populate the various fields of the State_Het object.
+       !
+       ! NOTE: This has to be done after fullchem_SetStateHet so that
+       ! State_Chm%HSO3_aq and State_Chm%SO3_aq will be populated first.
+       ! These are copied into State_Het%HSO3_aq and State_Het%SO3_aq.
+       ! See https://github.com/geoschem/geos-chem/issues/1157
+       !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
        ! Start timer
@@ -825,19 +885,25 @@ CONTAINS
                             RC        =  RC                                 )
        ENDIF
 
-       ! Initialize KPP for this grid box
-       CALL Init_KPP()
+       ! Populate fields of the State_Het object
+       CALL fullchem_SetStateHet( I         = I,                             &
+                                  J         = J,                             &
+                                  L         = L,                             &
+                                  Input_Opt = Input_Opt,                     &
+                                  State_Chm = State_Chm,                     &
+                                  State_Met = State_Met,                     &
+                                  H         = State_Het,                     &
+                                  RC        = RC                            )
 
-       ! Copy values at each gridbox into KPP global variables
-       ! in gckpp_Global.F90 and into the HetChem state object
-       CALL Set_Kpp_GridBox_Values( I          = I,                          &
-                                    J          = J,                          &
-                                    L          = L,                          &
-                                    Input_Opt  = Input_Opt,                  &
-                                    State_Chm  = State_Chm,                  &
-                                    State_Grid = State_Grid,                 &
-                                    State_Met  = State_Met,                  &
-                                    RC         = RC                         )
+       !=====================================================================
+       ! CHEMISTRY MECHANISM INITIALIZATION (#4)
+       !
+       ! Update HSO3- and SO3-- concentrations [molec/cm3] and divide by
+       ! cloud fraction.  These are stored as C(ind_HSO3m) and C(ind_SO3mm)
+       ! in KPP module gckpp_Global.F90.
+       !=====================================================================
+       CALL fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,           &
+                                          State_Chm, State_Het, State_Met   )
 
        ! Stop timer
        IF ( Input_Opt%useTimers ) THEN
@@ -847,12 +913,9 @@ CONTAINS
                           RC        =  RC                                   )
        ENDIF
 
-       ! Update HSO3- and SO3-- concentrations [molec/cm3]
-       ! and divide by cloud fraction
-       CALL fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,           &
-                                          State_Chm, State_Het, State_Met   )
-
        !=====================================================================
+       ! CHEMISTRY MECHANISM INITIALIZATION (#5)
+       !
        ! Call Het_Drop_Chem (formerly located in sulfate_mod.F90) to
        ! estimate the in-cloud sulfate production rate in heterogeneous
        ! cloud droplets based on the Yuen et al., 1996 parameterization.
@@ -1485,7 +1548,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Archive concentrations after chemistry 
+    ! Archive concentrations after chemistry
     !=======================================================================
     IF ( State_Diag%Archive_ConcAfterChem ) THEN
        ! Point to mapping obj specific to SpeciesConc diagnostic collection
@@ -1670,9 +1733,12 @@ CONTAINS
 !  Seasalt aerosol chemistry reaction rate-law functions are now contained
 !  in module fullchem_RateLawFuncs.F90.
 !
-!  NOTE: This call must come before Set_Kpp_Gridbox_Values, or else
-!  State_Chm%HSO3_aq and State_Chm%SO3aq will be zero!
-!    -- Mike Long, Bob Yantosca (30 Aug 2021)
+!  NOTE This routine defines the variables State_Chm%HSO3_aq and
+!  State_Chm%SO3aq.  Therefore, we must call Set_Sulfur_Chem_Rates after
+!  Set_KPP_GridBox_Values, but before fullchem_SetStateHet.  Otherwise we
+!  will not be able to copy State_Chm%HSO3_aq to State_Het%HSO3_aq and
+!  State_Chm%SO3_aq to State_Het%SO3_aq properly.
+!    -- Mike Long, Bob Yantosca (08 Mar 2022)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1757,7 +1823,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE fullchem_HetStateFuncs, ONLY : fullchem_SetStateHet
     USE GcKpp_Global
     USE GcKpp_Parameters
     USE Input_Opt_Mod,          ONLY : OptInput
@@ -1828,26 +1893,6 @@ CONTAINS
     CONSEXP         = 17.2693882_dp * (TEMP - 273.16_dp) / (TEMP - 35.86_dp)
     VPRESH2O        = CONSVAP * EXP( CONSEXP ) / TEMP
     RELHUM          = ( H2O / VPRESH2O ) * 100_dp
-
-    !========================================================================
-    ! Populate variables in the HetChem state object
-    !========================================================================
-    CALL fullchem_SetStateHet(                                               &
-         I         = I,                                                      &
-         J         = J,                                                      &
-         L         = L,                                                      &
-         Input_Opt = Input_Opt,                                              &
-         State_Chm = State_Chm,                                              &
-         State_Met = State_Met,                                              &
-         H         = State_Het,                                              &
-         RC        = RC                                                     )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "fullchem_SetStateHet"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
   END SUBROUTINE Set_Kpp_GridBox_Values
 !EOC

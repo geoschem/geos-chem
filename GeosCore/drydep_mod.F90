@@ -165,7 +165,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
 
   ! Arrays for Baldocchi drydep polynomial coefficients
-  REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
+  REAL(fp), TARGET               :: DRYCOEFF(NPOLY    ) = 0.0_fp
 
   ! Arrays that hold information for each of the 74 Olson land types
   INTEGER                        :: INDOLSON(NSURFTYPE )
