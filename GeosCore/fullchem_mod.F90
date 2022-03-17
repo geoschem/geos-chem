@@ -101,7 +101,6 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
-    USE fullchem_SulfurChemFuncs, ONLY : fullchem_UpdateHSO3mAndSO3mm
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
@@ -894,16 +893,6 @@ CONTAINS
                                   State_Met = State_Met,                     &
                                   H         = State_Het,                     &
                                   RC        = RC                            )
-
-       !=====================================================================
-       ! CHEMISTRY MECHANISM INITIALIZATION (#4)
-       !
-       ! Update HSO3- and SO3-- concentrations [molec/cm3] and divide by
-       ! cloud fraction.  These are stored as C(ind_HSO3m) and C(ind_SO3mm)
-       ! in KPP module gckpp_Global.F90.
-       !=====================================================================
-       CALL fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,           &
-                                          State_Chm, State_Het, State_Met   )
 
        ! Stop timer
        IF ( Input_Opt%useTimers ) THEN

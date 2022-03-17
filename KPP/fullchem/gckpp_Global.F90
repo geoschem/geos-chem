@@ -212,8 +212,10 @@ MODULE gckpp_Global
      REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt
      REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
      REAL(dp) :: HNO3_theta     ! HNO3 theta for uptake on ice
-     REAL(dp) :: HSO3_aq        ! Cloud bisulfite [mol/L]
-     REAL(dp) :: SO3_aq         ! Cloud sulfite [mol/L]
+     REAL(dp) :: HSO3_aq        ! Cloud bisulfite (aka HSO3-) [mol/L]
+     REAL(dp) :: SO3_aq         ! Cloud sulfite (aka SO3--) [mol/L]
+     REAL(dp) :: HSO3m          ! HSO3-/SO2 ratio [1]
+     REAL(dp) :: SO3mm          ! SO3--/SO2 ratio [1]
      REAL(dp) :: TSO3_aq        ! Cloud sulfite + bisulfite [mol/L]
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc [M]
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA [1]
