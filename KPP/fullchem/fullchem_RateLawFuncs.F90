@@ -563,11 +563,10 @@ CONTAINS
     !
     REAL(dp), INTENT(IN) :: a0
     !
-    REAL(dp)             :: r0,     klo1,   klo2,  khi1,    khi2
+    REAL(dp)             :: klo1,   klo2,   khi1,  khi2
     REAL(dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
     REAL(dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
     !
-    r0     = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
     klo1   = 5.9E-33_dp * K300_OVER_TEMP
     khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
     xyrat1 = klo1 * NUMDEN / khi1
