@@ -6766,6 +6766,7 @@ CONTAINS
 !
 ! !USES:
 !
+  USE MAPL_RegridMethods
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6865,7 +6866,8 @@ CONTAINS
        ! Read obs time using voting regridding method 
        IF ( HasBundle .AND. LANANO2OBSH ) THEN 
           VarBundleH =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2v', grid, fileTime, &
-                                                voting=.TRUE., ONLY_VARS=TRIM(ANANO2VARH), __RC__ )
+                                                ONLY_VARS=TRIM(ANANO2VARH), voting=.TRUE., __RC__ )
+!                           ONLY_VARS=TRIM(ANANO2VARH), regrid_method=REGRID_METHOD_VOTE, __RC__ )
        ENDIF
     ENDIF
 
