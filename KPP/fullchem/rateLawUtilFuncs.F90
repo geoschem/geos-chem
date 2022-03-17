@@ -111,11 +111,11 @@ CONTAINS
     kIEduct = 0.0_dp
     kII     = 0.0_dp
     !
-    ! Prevent div by zero.   NOTE: Now use 1.0e-8 as the error trap for
-    ! concEduct.  100 (the previous criterion) was too large.  We should
-    ! never have have a concentration as low as 1e-8 molec/cm3, as that
-    ! will definitely blow up the division. (bmy, 11/1/21)
-    IF ( concEduct < 1.0e-8_dp                           ) RETURN
+    ! Prevent div by zero.  Now use 1.0 as the error trap for concEduct.
+    ! 100 and 1e-8 (the previous criteria) were too large and too small,
+    ! respectively.  See https://github.com/geoschem/geos-chem/issues/1115.
+    !  -- Seb Eastham, Bob Yantosca (09 Feb 2022)
+    IF ( concEduct < 1.0_dp                              ) RETURN
     IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
     !
     ! Compute rates
