@@ -87,6 +87,10 @@ Warnings:                    1
 #  1. Scaling ALL aviation emissions based on the growth in fuelburn from
 #     1990 to 2019* estimated by Lee et al. (2021); and
 #
+#  2. Scaling aviation NOx emissions by an additional factor to reflect
+#     the changes in the NOx emissions index over the same period as
+#     reported by Lee et al. (2021).
+#
 # See additional notes in the AEIC scale factor section below.
 #------------------------------------------------------------------------------
     --> AEIC2019               :       true     # 2019
@@ -2482,7 +2486,7 @@ Warnings:                    1
 0 AEIC19_CO   $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s CO   241         20 1
 0 AEIC19_SOAP -                                                        -        -                - -   -       SOAP 241/280     20 1
 0 AEIC19_SO2  $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
-0 AEIC19_SO4  -                                                        -        -                - -   -       SO4  241/1 12    20 1
+0 AEIC19_SO4  -                                                        -        -                - -   -       SO4  241/112     20 1
 0 AEIC19_H2O  -                                                        -        -                - -   -       H2O  241/120     20 1
 0 AEIC19_BCPI $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
 0 AEIC19_OCPI $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
