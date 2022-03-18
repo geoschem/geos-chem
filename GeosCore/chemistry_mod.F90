@@ -310,6 +310,7 @@ CONTAINS
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "=> FlexChem", RC )
           ENDIF
+goto 9999
 
           !------------------------------------------------------------------
           ! Linearized chemistry above chemistry grid
@@ -564,6 +565,7 @@ CONTAINS
              CALL Timer_End( "=> Aerosol chem", RC )
           ENDIF
 
+9999 continue
        !=====================================================================
        ! Aerosol-only simulation
        !=====================================================================

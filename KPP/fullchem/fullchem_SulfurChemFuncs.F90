@@ -443,16 +443,16 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! Dry sea-salt density [kg/m3]
-    REAL(dp), PARAMETER   :: SS_DEN        = 2200.0_dp
+    REAL(dp), PARAMETER :: SS_DEN        = 2200.0_dp
 
     ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
-    REAL(fp), PARAMETER   :: SIG_S         = 1.8e+0_dp
+    REAL(fp), PARAMETER :: SIG_S         = 1.8e+0_dp
 
     ! geometric dry mean diameters [m] for computing lognormal size distribution
-    REAL(dp), PARAMETER   :: RG_S          = 0.4e-6_dp !(Jaegle et a., 2011)
-    REAL(dp), PARAMETER   :: RG_D2         = 1.5e-6_dp !(Ginoux et al., 2001)
-    REAL(dp), PARAMETER   :: RG_D3         = 2.5e-6_dp
-    REAL(dp), PARAMETER   :: RG_D4         = 4.e-6_dp
+    REAL(dp), PARAMETER :: RG_S          = 0.4e-6_dp !(Jaegle et a., 2011)
+    REAL(dp), PARAMETER :: RG_D2         = 1.5e-6_dp !(Ginoux et al., 2001)
+    REAL(dp), PARAMETER :: RG_D3         = 2.5e-6_dp
+    REAL(dp), PARAMETER :: RG_D4         = 4.e-6_dp
 
     ! To prevent multiple divisions
     REAL(dp), PARAMETER   :: THREE_FOURTHS = 3.0_dp / 4.0_dp
@@ -461,19 +461,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp)              :: alpha_NH3, alpha_SO2, alpha_H2O2
-    REAL(dp)              :: alpha_HNO3, alpha_B, alpha_CN
-    REAL(dp)              :: alpha_W, alpha_SO4, sum_gas, H
-    REAL(dp)              :: NDss, NDd2, NDd3, NDd4, CN, DEN, REFF, W
-    REAL(dp)              :: DTCHEM, APV, DSVI
-    REAL(dp)              :: B, NH3, SO2, H2O2, HNO3, SO4
-    REAL(dp)              :: CNss, CNd2, CNd3, CNd4
-    REAL(dp)              :: MW_SO4, MW_SALC
-
-    REAL(dp)              :: CVF, R1, R2, XX, FC, LST, CVF_FC
-    REAL(dp)              :: XX1, XX2, XX3, XX4, XX5
-    REAL(dp)              :: SSCvv, aSO4, GNH3, SO2_sr, H2O20, GNO3
-    REAL(dp)              :: Arg,  K
+    REAL(dp)              :: alpha_NH3,  alpha_SO2, alpha_H2O2
+    REAL(dp)              :: alpha_HNO3, alpha_B,   alpha_CN
+    REAL(dp)              :: alpha_W,    alpha_SO4, sum_gas
+    REAL(dp)              :: H,          NDss,      CN
+    REAL(dp)              :: W,          K,         arg
+    REAL(dp)              :: DTCHEM,     APV,       DSVI
+    REAL(dp)              :: B,          NH3,       SO2
+    REAL(dp)              :: H2O2,       HNO3,      SO4
+    REAL(dp)              :: CNss        MW_SO4,    MW_SALC
+    REAL(dp)              :: CVF,        R1,        R2
+    REAL(dp)              :: XX,         FC,        LST
+    REAL(dp)              :: XX1,        XX2        XX3
+    REAL(dp)              :: XX4,        XX5,       GNH3
 
     ! Pointers
     REAL(fp), POINTER     :: AD(:,:,:)
@@ -495,9 +495,27 @@ CONTAINS
     U      => State_Met%U
     V      => State_Met%V
 
-    ! Convert mcl/cm3 back to v/v
-    CVF    =  1.0e3_fp * AIRMW / ( AIRDEN(I,J,L) * AVO )
-    DTCHEM =  GET_TS_CHEM()
+    ! Zero output argument for safety's sake
+    SR     =  0.0_dp
+
+    ! Zero/initialize local variables for safety's sake
+    arg    =  0.0_dp
+    B      =  0.0_dp
+    CVF    =  1.0e3_fp * AIRMW / ( AIRDEN(I,J,L) * AVO ) ! molec/cm3 -> v/v
+    DSVI   =  0.0_dp
+    DTCHEM =  GET_TS_CHEM()                              ! seconds
+    GNH3   =  0.0_dp
+    K      =  0.0_dp
+    LST    =  0.0_dp
+    R1     =  0.0_dp
+    R2     =  0.0_dp
+    W      =  0.0_dp
+    XX     =  0.0_dp
+    XX1    =  0.0_dp
+    XX2    =  0.0_dp
+    XX3    =  0.0_dp
+    XX4    =  0.0_dp
+    XX5    =  0.0_dp
 
     ! FC is guaranteed to be > 1e-4, because HET_DROP_CHEM
     ! is not called otherwise (bmy, 07 Oct 2021)
@@ -677,7 +695,7 @@ CONTAINS
        alpha_W    =  7.22e-6_dp
        alpha_CN   =  2.44e-5_dp
        alpha_SO4  =  3.25e-5_dp
-    ELSE IF ( SO2 >= 1000.0_dp ) THEN
+    ELSE                          ! SO2 > 1000
        alpha_B    =  1.1795_dp
        alpha_NH3  =  2.57e-7_dp
        alpha_SO2  = -5.54e-7_dp
@@ -713,18 +731,15 @@ CONTAINS
 
     ! Only calculate SR when air parcel rises, in consistence with
     ! Yuen et al. (1996) (qjc, 04/10/16)
-    SR = 0.0_dp
     IF ( W > 0.0_dp .and. C(ind_SO2) > 0.0_dp ) THEN
 
-       ! additional sulfate production that can be attributed to
-       ! ozone [ug/m3/timestep]
-       SR = DSVI - B
+       ! additional sulfate production that can be 
+       ! attributed to ozone [ug/m3/timestep]
+       ! Don't allow SR to be negative
+       SR = MAX( ( DSVI - B ), 0.0_dp )
 
        ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
        SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_dp / AIRDEN(I,J,L)
-
-       ! Don't allow SR to be negative
-       SR = MAX( SR, 0.e+0_fp )
 
        ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
        ! -- SR is dSO4/timestep (v/v) convert
