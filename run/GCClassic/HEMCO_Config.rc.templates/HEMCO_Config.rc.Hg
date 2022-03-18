@@ -47,19 +47,19 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
-# ----- NESTED GRID FIELDS ------------------------------------
+# ----- NESTED GRID FIELDS ----------------------------------------------------
     --> GC_BCs                 :       ${RUNDIR_USE_BCs}
-# ----- REGIONAL INVENTORIES ----------------------------------
+# ----- REGIONAL INVENTORIES --------------------------------------------------
     --> ZHAOZHANG              :       false    # 2010
     --> CHAKRABORTY            :       false    # 2010
     --> EMISS_CONTROLS         :       false    # 2010
-# ----- GLOBAL INVENTORIES ------------------------------------
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> AMAP_COMB              :       false    # 2010
     --> AMAP_INDS              :       false    # 2010
     --> AMAP_INTW              :       false    # 2010
@@ -82,7 +82,7 @@ Warnings:                    1
     --> EDGAR_SHIP             :       false    # 1970-2012
     --> EDGAR_TRO              :       false    # 1970-2012
     --> EDGAR_WASTE            :       false    # 1970-2012
-# ----- NON-EMISSIONS DATA ------------------------------------
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> OXIDANT_FIELDS         :       true     # 2010-2019
     --> BrOx_GC                :       true     # 2010-2019
     --> JBrO                   :       true     # 2010-2019
@@ -96,11 +96,11 @@ Warnings:                    1
     --> LRED_INPLUME           :       false
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # NOTE: Changing these options will require a change in reduction rate in order
 #       to maintain agreement with observations. Please see wiki for details
 #       http://wiki.seas.harvard.edu/geos-chem/index.php/Mercury
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 111     GFED              : on    Hg0
     --> GFED4             :       true
     --> GFED_daily        :       false

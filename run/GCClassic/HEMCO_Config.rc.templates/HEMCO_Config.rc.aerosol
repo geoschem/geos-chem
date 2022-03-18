@@ -49,20 +49,20 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
     --> HEMCO_RESTART          :       true
-# ----- NESTED GRID FIELDS ------------------------------------
+# ----- NESTED GRID FIELDS ----------------------------------------------------
     --> GC_BCs                 :       ${RUNDIR_USE_BCs}
-# ----- REGIONAL INVENTORIES ----------------------------------
+# ----- REGIONAL INVENTORIES --------------------------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
     --> DICE_Africa            :       false    # 2013
-# ----- GLOBAL INVENTORIES ------------------------------------
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> CEDSv2                 :       ${RUNDIR_USE_CEDS}    # 1750-2019
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
@@ -70,10 +70,24 @@ Warnings:                    1
     --> HTAP                   :       false    # 2008-2010
     --> GEIA_NH3               :       true     # 1990
     --> SEABIRD_NH3            :       true     # 1990
-    --> AEIC                   :       ${RUNDIR_USE_AEIC}    # 2005
     --> DECAYING_PLANTS        :       true     # 1985
     --> AFCID                  :       true     # 2015
-# ----- SHIP EMISSIONS ----------------------------------------
+# ----- AIRCRAFT EMISSIONS ----------------------------------------------------
+# There are two switches: AEIC2019 and AEIC_SCALE_1990_2019. Users can
+# specify the AEIC2019 inventory alone (i.e. set AEIC_SCALE_1990_2019 to
+# false) if they want to use a “best estimate” of aviation emission. This
+# could be important because simply scaling aviation emissions up and down
+# is rather nonphysical. If AEIC_SCALE_1990_2019 is set to true, then
+# aviation emissions for 1990 to 2019 are estimated by:
+#
+#  1. Scaling ALL aviation emissions based on the growth in fuelburn from
+#     1990 to 2019* estimated by Lee et al. (2021).
+#
+# See additional notes in the AEIC scale factor section below.
+#------------------------------------------------------------------------------
+    --> AEIC2019               :       true     # 2019
+    --> AEIC_SCALE_1990_2019   :       true     # Scale 1990-2019
+# ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
     --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
@@ -82,12 +96,12 @@ Warnings:                    1
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
-# ----- RCP FUTURE EMISSIONS ----------------------------------
+# ----- RCP FUTURE EMISSIONS --------------------------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
-# ----- CMIP6 ANTHRO EMISSIONS / BOUNDARY CONDITIONS ----------
+# ----- CMIP6 ANTHRO EMISSIONS / BOUNDARY CONDITIONS --------------------------
 #   Set GCAP2SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
     --> CMIP6_SFC_BC           :       ${RUNDIR_CMIP6_FIELDS}    # 1750-2100
     --> CMIP6_SFC_LAND_ANTHRO  :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
@@ -97,7 +111,7 @@ Warnings:                    1
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
-# ----- OFFLINE EMISSIONS -------------------------------------
+# ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
@@ -108,12 +122,12 @@ Warnings:                    1
 # NOTE: When switching between offline and online emissions, make sure to also
 # update ExtNr and Cat in HEMCO_Diagn.rc to properly save out emissions for
 # any affected species.
-#--------------------------------------------------------------
+#------------------------------------------------------------------------------
     --> OFFLINE_DUST           :       ${RUNDIR_OFFLINE_DUST}    # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       ${RUNDIR_OFFLINE_BIOVOC}    # 1980-2021
     --> OFFLINE_SEASALT        :       ${RUNDIR_OFFLINE_SEASALT}    # 1980-2021
     --> OFFLINE_SOILNOX        :       ${RUNDIR_OFFLINE_SOILNOX}    # 1980-2021
-# ----- NON-EMISSIONS DATA ------------------------------------
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> UVALBEDO               :       true     # 1985
     --> OMOC_RATIO             :       false    # 2010
     --> OXIDANT_FIELDS         :       true     # 2010-2019
@@ -1162,13 +1176,13 @@ Warnings:                    1
 
 #==============================================================================
 # --- CMIP6_SFC_LAND_ANTHRO ---
-# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
+# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
 #
 #==============================================================================
-(((CMIP6_SFC_LAND_ANTHRO                                                                              
+(((CMIP6_SFC_LAND_ANTHRO
 0 CMIP6_SOAP_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_agr            1750-2100/1-12/1/0 C xy kg/m2/s    SOAP  26/280    1 5
 0 CMIP6_SOAP_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_ene            1750-2100/1-12/1/0 C xy kg/m2/s    SOAP  26/280    1 5
 0 CMIP6_SOAP_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_ind            1750-2100/1-12/1/0 C xy kg/m2/s    SOAP  26/280    1 5
@@ -1176,7 +1190,7 @@ Warnings:                    1
 0 CMIP6_SOAP_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_rco            1750-2100/1-12/1/0 C xy kg/m2/s    SOAP  26/280    1 5
 0 CMIP6_SOAP_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_slv            1750-2100/1-12/1/0 C xy kg/m2/s    SOAP  26/280    1 5
 0 CMIP6_SOAP_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_wst            1750-2100/1-12/1/0 C xy kg/m2/s    SOAP  26/280    1 5
-                                                                              
+
 0 CMIP6_SO2_AGR    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   SO2_agr           1750-2100/1-12/1/0 C xy kg/m2/s    SO2   -         1 5
 0 CMIP6_SO4_AGR    -                                                          -                 -                  - -  -          SO4   63        1 5
 0 CMIP6_pFe_AGR    -                                                          -                 -                  - -  -          pFe   66        1 5
@@ -1198,7 +1212,7 @@ Warnings:                    1
 0 CMIP6_SO2_WST    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   SO2_wst           1750-2100/1-12/1/0 C xy kg/m2/s    SO2   -         1 5
 0 CMIP6_SO4_WST    -                                                          -                 -                  - -  -          SO4   63        1 5
 0 CMIP6_pFe_WST    -                                                          -                 -                  - -  -          pFe   66        1 5
-                                                                                 
+
 0 CMIP6_NH3_AGR    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_agr           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_ENE    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_ene           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_IND    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_ind           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
@@ -1206,7 +1220,7 @@ Warnings:                    1
 0 CMIP6_NH3_RCO    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_rco           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_SLV    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_slv           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_WST    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_wst           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
-                                                                              
+
 0 CMIP6_BCPI_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BC_agr            1750-2100/1-12/1/0 C xy kg/m2/s    BCPI  70        1 5
 0 CMIP6_BCPO_AGR   -                                                          -                 -                  - -  -          BCPO  71        1 5
 0 CMIP6_BCPI_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BC_ene            1750-2100/1-12/1/0 C xy kg/m2/s    BCPI  70        1 5
@@ -1221,7 +1235,7 @@ Warnings:                    1
 0 CMIP6_BCPO_SLV   -                                                          -                 -                  - -  -          BCPO  71        1 5
 0 CMIP6_BCPI_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BC_wst            1750-2100/1-12/1/0 C xy kg/m2/s    BCPI  70        1 5
 0 CMIP6_BCPO_WST   -                                                          -                 -                  - -  -          BCPO  71        1 5
-                                                                              
+
 0 CMIP6_OCPI_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   OC_agr            1750-2100/1-12/1/0 C xy kg/m2/s    OCPI  72        1 5
 0 CMIP6_OCPO_AGR   -                                                          -                 -                  - -  -          OCPO  73        1 5
 0 CMIP6_OCPI_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   OC_ene            1750-2100/1-12/1/0 C xy kg/m2/s    OCPI  72        1 5
@@ -1239,7 +1253,7 @@ Warnings:                    1
 )))CMIP6_SFC_LAND_ANTHRO
 
 #==============================================================================
-# CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft 
+# CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft
 # emissions, consistent with the CMIP6 simulation experimental design
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -1494,7 +1508,7 @@ Warnings:                    1
 
 #==============================================================================
 # --- CMIP6_SHIP ---
-# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
+# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -1515,17 +1529,19 @@ Warnings:                    1
 )))SHIP
 
 #==============================================================================
-# --- AEIC aircraft emissions ---
+# --- AEIC 2019 aircraft emissions ---
 #
-# ==> Now emit aircraft BC and OC into hydrophilic tracers BCPI and OCPI.
+# Data files are for 2019, but scale factors from 1990-2019 can be applied
+# in order to get year-specific emissions.  See the notes in the AEIC2019
+# scale factor section below for more information.
 #==============================================================================
-(((AEIC
-0 AEIC_SOAP $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  CO       2005/1-12/1/0 C xyz kg/m2/s SOAP 110/280 20 1
-0 AEIC_SO2  $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111     20 1
-0 AEIC_SO4  -                                        -        -             - -   -       SO4  112     20 1
-0 AEIC_BCPI -                                        -        -             - -   -       BCPI 113     20 1
-0 AEIC_OCPI -                                        -        -             - -   -       OCPI 113     20 1
-)))AEIC
+(((AEIC2019
+0 AEIC19_SOAP $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s SOAP 241/280 20 1
+0 AEIC19_SO2  $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111 20 1
+0 AEIC19_SO4  -                                                        -        -                - -   -       SO4  241/112 20 1
+0 AEIC19_BCPI $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241     20 1
+0 AEIC19_OCPI $ROOT/AEIC2019/v2022-03/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241     20 1
+)))AEIC2019
 
 #==============================================================================
 # --- RCP future emissions scenarios ---
@@ -1903,15 +1919,15 @@ Warnings:                    1
 #==============================================================================
 (((OXIDANT_FIELDS
 ${RUNDIR_PH2O2}
-${RUNDIR_JH2O2}        
-${RUNDIR_GLOBAL_ACTA}  
-${RUNDIR_GLOBAL_HCl} 
-${RUNDIR_GLOBAL_HCOOH} 
+${RUNDIR_JH2O2}
+${RUNDIR_GLOBAL_ACTA}
+${RUNDIR_GLOBAL_HCl}
+${RUNDIR_GLOBAL_HCOOH}
 ${RUNDIR_GLOBAL_HNO3}
-${RUNDIR_GLOBAL_NIT} 
-${RUNDIR_GLOBAL_NO3}  
-${RUNDIR_GLOBAL_O3}  
-${RUNDIR_GLOBAL_OH}   
+${RUNDIR_GLOBAL_NIT}
+${RUNDIR_GLOBAL_NO3}
+${RUNDIR_GLOBAL_O3}
+${RUNDIR_GLOBAL_OH}
 )))OXIDANT_FIELDS
 
 )))CHEMISTRY_INPUT
@@ -2338,37 +2354,43 @@ ${RUNDIR_TES_CLIM_N2O}
 )))DECAYING_PLANTS
 
 #==============================================================================
-# --- AEIC aircraft emissions ---
+# --- AEIC2019 aircraft emissions scale factors ---
 #
-# Sulfur conversion factors are calculated as
-#     so4 = 3 * a * b and so2 = 2 * a * (1-b)
-#
-# where
-#     a = fraction by mass (6.0e-4) and
-#     b = conversion efficiency (2.0e-2).
-#
-# The factors 2 and 3 come from sulfur mass conversions (96/32 and 64/32).
-# All factors are taken from AEIC_mod.F, following Seb Estham's appraoch.
-# Note that all emissions become multiplied by a factor of 1e-3 (except for
-# the fuelburn emissions) in the original AEIC code. I'm not sure if this
-# is because the netCDF data is in g instead of kg?
+# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
 #==============================================================================
-(((AEIC
-101 AEICACET 3.693477e-3 - -  - xy unitless 1
-102 AEICALD2 4.271822e-2 - -  - xy unitless 1
-103 AEICALK4 2.137911e-1 - -  - xy unitless 1
-104 AEICC2H6 5.214505e-3 - -  - xy unitless 1
-105 AEICC3H8 7.808710e-4 - -  - xy unitless 1
-106 AEICCH2O 1.230811e-1 - -  - xy unitless 1
-107 AEICPRPE 1.780418e-1 - -  - xy unitless 1
-108 AEICMACR 5.362609e-2 - -  - xy unitless 1
-109 AEICRCHO 3.676944e-2 - -  - xy unitless 1
-110 AEICNOCO 1.000000e-3 - -  - xy unitless 1
-111 AEICSO2  1.176000e-3 - -  - xy unitless 1
-112 AEICSO4  3.600000e-5 - -  - xy unitless 1
-113 AEICBC   3.000000e-5 - -  - xy unitless 1
-114 AEICHC   1.160000e-3 - -  - xy unitless 1
-)))AEIC
+(((AEIC2019
+# Conversions from AEIC2019 inventory quantities to individual species
+111 AEICSO2  1.176000e-3 - - - xy unitless 1
+112 AEICSO4  3.600000e-5 - - - xy unitless 1
+
+#------------------------------------------------------------------------------
+# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Increase
+# from 2018 to 2019 is estimated based on the growth from 2017 to 2018.
+# Lee et al. (2021) only covers 1990 to 2018, so to get to 2019 it is
+# assumed that the growth from 2017 to 2018 is the same as that from 2018
+# to 2019. So the formula is something like:
+#
+# Emissions of CO  in 2009 = AEIC 2019 emissions of CO
+#                          * (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
+#
+# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
+# emissions to the “2018” values, and then scale directly using the Lee et al
+# fuel burn. This ensures that, when running with year 2019, you get an
+# unadjusted version of the AEIC2019 inventory, and all previous years are
+# scaled down.
+#
+# All scaling factors are included in here in HEMCO_Config.rc.
+#------------------------------------------------------------------------------
+(((AEIC_SCALE_1990_2019
+241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
+)))AEIC_SCALE_1990_2019
+
+# If not applying 1990-2019 scale factors, use 1.0
+(((.not.AEIC_SCALE_1990_2019
+241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
+))).not.AEIC_SCALE_1990_2019
+)))AEIC2019
 
 #==============================================================================
 # --- EPA NEI day-of-week scale factors ---
@@ -2429,9 +2451,9 @@ ${RUNDIR_TES_CLIM_N2O}
 # --- CEDS vertical partitioning ---
 #==============================================================================
 (((CEDSv2.or.CEDS_GBDMAPS
-315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1 
-316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1 
-317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1 
+315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1
+316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
+317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDSv2.or.CEDS_GBDMAPS
 
 #==============================================================================
