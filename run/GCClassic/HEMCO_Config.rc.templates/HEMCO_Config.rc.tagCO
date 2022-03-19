@@ -24,7 +24,12 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
+###############################################################################
 
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:                      ${RUNDIR_MET_DIR}
+GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
+GCAP2VERTRES:                ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     HEMCO.log
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -47,7 +52,7 @@ Mask fractions:              false
 0       Base                   : on    *           
 # ----- MAIN SWITCHES -----------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       true     {MET_AVAIL}
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------------------------
     --> GC_RESTART             :       true
@@ -78,7 +83,7 @@ Mask fractions:              false
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
 # ----- CMIP6 ANTHRO EMISSIONS / BOUNDARY CONDITIONS ----------
-#   Set SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
+#   Set GCAP2SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
     --> CMIP6_SFC_BC           :       false    # 1750-2100
     --> CMIP6_SFC_LAND_ANTHRO  :       false    # 1850-2100
     --> CMIP6_AIRCRAFT         :       false    # 1850-2100
@@ -411,60 +416,60 @@ Mask fractions:              false
 # CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
 #   the CMIP6 simulation experimental design.
 #
-# Make sure that the desired $SCENARIO is set above in SECTION SETTINGS
+# Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
 #
 #==============================================================================
 (((CMIP6_SFC_LAND_ANTHRO
-0 CMIP6_CO_AGR       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_agr            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_AGR_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_AGR_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_AGR_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_AGR_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
-0 CMIP6_CO_ENE       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_ene            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_ENE_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_ENE_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_ENE_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_ENE_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
-0 CMIP6_CO_IND       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_ind            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_IND_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_IND_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_IND_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_IND_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
-0 CMIP6_CO_TRA       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_tra            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_TRA_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_TRA_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_TRA_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_TRA_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
-0 CMIP6_CO_RCO       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_rco            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_RCO_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_RCO_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_RCO_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_RCO_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
-0 CMIP6_CO_SLV       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_slv            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_SLV_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_SLV_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_SLV_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_SLV_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
-0 CMIP6_CO_WST       $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 CO_wst            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
-0 CMIP6_CO_WST_us    $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
-0 CMIP6_CO_WST_eur   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
-0 CMIP6_CO_WST_asia  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
-0 CMIP6_CO_WST_oth   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_AGR       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_agr            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_AGR_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_AGR_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_AGR_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_AGR_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_ENE       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_ene            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_ENE_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_ENE_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_ENE_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_ENE_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_IND       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_ind            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_IND_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_IND_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_IND_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_IND_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_TRA       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_tra            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_TRA_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_TRA_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_TRA_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_TRA_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_RCO       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_rco            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_RCO_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_RCO_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_RCO_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_RCO_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_SLV       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_slv            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_SLV_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_SLV_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_SLV_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_SLV_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
+0 CMIP6_CO_WST       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 CO_wst            1750-2100/1-12/1/0 C xy kg/m2/s CO       26        1 5
+0 CMIP6_CO_WST_us    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COus     26/1100   1 5
+0 CMIP6_CO_WST_eur   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COeur    26/1101   1 5
+0 CMIP6_CO_WST_asia  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COasia   26/1102   1 5
+0 CMIP6_CO_WST_oth   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                 -                 1750-2100/1-12/1/0 C xy kg/m2/s COoth    26/1103   1 5
 )))CMIP6_SFC_LAND_ANTHRO
 
 #==============================================================================
 # CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft 
 # emissions, consistent with the CMIP6 simulation experimental design
 #
-# Make sure that the desired $SCENARIO is set above in SECTION SETTINGS
+# Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
 #
 #==============================================================================
 (((CMIP6_AIRCRAFT
-0 CMIP6_AIR_CO      $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    CO_air           1750-2100/1-12/1/0 C xyz kg/m2/s  CO      26       20 1
-0 CMIP6_AIR_CO_us   $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COus    26/1100   1 1
-0 CMIP6_AIR_CO_eur  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COeur   26/1101   1 1
-0 CMIP6_AIR_CO_asia $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COasia  26/1102   1 1
-0 CMIP6_AIR_CO_oth  $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY_AIR.{VERTRES}L.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COoth   26/1103   1 1
+0 CMIP6_AIR_CO      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    CO_air           1750-2100/1-12/1/0 C xyz kg/m2/s  CO      26       20 1
+0 CMIP6_AIR_CO_us   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COus    26/1100   1 1
+0 CMIP6_AIR_CO_eur  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COeur   26/1101   1 1
+0 CMIP6_AIR_CO_asia $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COasia  26/1102   1 1
+0 CMIP6_AIR_CO_oth  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    -                1750-2100/1-12/1/0 C xyz kg/m2/s  COoth   26/1103   1 1
 )))CMIP6_AIRCRAFT
 
 #==============================================================================
@@ -631,11 +636,11 @@ Mask fractions:              false
 # CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
 #   the CMIP6 simulation experimental design.
 #
-# Make sure that the desired $SCENARIO is set above in SECTION SETTINGS
+# Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
 #
 #==============================================================================
 (((CMIP6_SHIP
-0 CMIP6_CO_SHP          $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4              CO_shp 1750-2100/1-12/1/0 C xy kg/m2/s   CO     26            10 5
+0 CMIP6_CO_SHP          $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4              CO_shp 1750-2100/1-12/1/0 C xy kg/m2/s   CO     26            10 5
 0 CMIP6_CO_SHP_us       -                                                               -      -                  - -  -         COus   26/1100       10 5
 0 CMIP6_CO_SHP_eur      -                                                               -      -                  - -  -         COeur  26/1101       10 5
 0 CMIP6_CO_SHP_asia     -                                                               -      -                  - -  -         COasia 26/1102       10 5
@@ -729,7 +734,7 @@ Mask fractions:              false
 # --- BB4MIPs biomass burning ---
 #==============================================================================
 (((BB4MIPS
-0 CMIP6_BB_CO      $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4 CO_bbn     1750-2100/1-12/1/0 C xyL=1:PBL kg/m2/s CO      75      5 3
+0 CMIP6_BB_CO      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_bbn     1750-2100/1-12/1/0 C xyL=1:PBL kg/m2/s CO      75      5 3
 0 CMIP6_CObbAm     -                                                  -          -                  - -         -       CObbam  75/1104 5 3
 0 CMIP6_CObbAf     -                                                  -          -                  - -         -       CObbaf  75/1105 5 3
 0 CMIP6_CObbAs     -                                                  -          -                  - -         -       CObbas  75/1106 5 3
@@ -812,10 +817,12 @@ Mask fractions:              false
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
 
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields for FlexGrid ---
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -837,21 +844,21 @@ Mask fractions:              false
 # --- Quantities needed for CO chemistry ---
 #==============================================================================
 (((GLOBAL_OH
-{GLOBAL_OH}
+${RUNDIR_GLOBAL_OH}
 )))GLOBAL_OH
 (((PROD_CO_CH4
-{PCO_CH4}
+${RUNDIR_PCO_CH4}
 )))PROD_CO_CH4
 (((PROD_CO_NMVOC
-{PCO_NMVOC}
+${RUNDIR_PCO_NMVOC}
 )))PROD_CO_NMVOC
 
 #==============================================================================
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
 #==============================================================================
 (((GMI_PROD_LOSS
-{GMI_LOSS_CO}
-{GMI_PROD_CO}
+${RUNDIR_GMI_LOSS_CO}
+${RUNDIR_GMI_PROD_CO}
 )))GMI_PROD_LOSS
 
 )))CHEMISTRY_INPUT

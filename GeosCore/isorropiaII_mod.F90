@@ -129,6 +129,7 @@ CONTAINS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AIRMW, PI
     USE PhysConstants,        ONLY : PI
+    USE Species_Mod,          ONLY : SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Chm_Mod,        ONLY : Ind_
@@ -241,7 +242,7 @@ CONTAINS
     LOGICAL                  :: prtDebug
 
     ! Pointers
-    REAL(fp), POINTER        :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc(:)
 
     ! Are we out of the range of valid inputs?
     Logical                  :: OutOfBounds
@@ -466,7 +467,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     !========================================================================
     ! Loop over grid boxes and call ISORROPIA (see comments in the
@@ -516,17 +517,17 @@ CONTAINS
 
        ! This is for saving PHCl
        IF ( id_HCl > 0 ) THEN
-          PHCl = Spc(I,J,L,id_HCL) !initial HCl, kg
+          PHCl = Spc(id_HCl)%Conc(I,J,L) !initial HCl, kg
        ENDIF
 
        ! Only do coarse mode cacluation when SALC exists
        ! SET NM = 1 to skip coarse SSA thermodynamic
-       IF (Spc(I,J,L,id_SALC) .GT. 1.e-20) THEN
+       IF (Spc(id_SALC)%Conc(I,J,L) .GT. 1.e-20) THEN
           NM = 2
           ! Calculate parameters for mass transfer
           Dcs = State_Chm%AeroRadi(I,J,L,12) * 2.0e-2_fp !(cm->m)
           n_air = State_Met%AIRNUMDEN(I,J,L) !(molec/cm3)
-          n_ssc = Spc(I,J,L,id_SALC) / 2.2e+3_fp / &
+          n_ssc = Spc(id_SALC)%Conc(I,J,L) / 2.2e+3_fp / &
                   ((1.0_fp/6.0_fp) * Pi * Dcs**3 ) / VOL !(kg->#/m3)
        ELSE
           NM = 1
@@ -572,15 +573,15 @@ CONTAINS
           !-----------------------------------------------
 
           IF (N == 1) THEN
-             IF (Spc(I,J,L,id_SALAAL) .GT. CONMIN) THEN
-                AlkR = Spc(I,J,L,id_SALAAL) / Spc(I,J,L,id_SALA)
+             IF (Spc(id_SALAAL)%Conc(I,J,L) .GT. CONMIN) THEN
+                AlkR = Spc(id_SALAAL)%Conc(I,J,L) / Spc(id_SALA)%Conc(I,J,L)
                 AlkR = MAX( (1.0_fp-AlkR), CONMIN)
              ELSE
                 AlkR = 1.0_fp
              ENDIF
           ELSE
-             IF (Spc(I,J,L,id_SALCAL) .GT. CONMIN) THEN
-                AlkR = Spc(I,J,L,id_SALCAL) / Spc(I,J,L,id_SALC)
+             IF (Spc(id_SALCAL)%Conc(I,J,L) .GT. CONMIN) THEN
+                AlkR = Spc(id_SALCAL)%Conc(I,J,L) / Spc(id_SALC)%Conc(I,J,L)
                 AlkR = MAX( (1.0_fp-AlkR), CONMIN)
              ELSE
                 AlkR = 1.0_fp
@@ -595,64 +596,64 @@ CONTAINS
 
              ! Total SO4 [mole/m3], also consider SO4s in SALA
              IF ( IS_HMS ) THEN
-                TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08_fp*AlkR) * &
+                TSO4 = (Spc(id_SO4)%Conc(I,J,L)+Spc(id_SALA)%Conc(I,J,L)*0.08_fp*AlkR) * &
                      1.e+3_fp / ( 96.0_fp * VOL)                             &
-                     + Spc(I,J,L,id_HMS) * 0.5e+3_fp / ( 111.0_fp * VOL )
+                     + Spc(id_HMS)%Conc(I,J,L) * 0.5e+3_fp / ( 111.0_fp * VOL )
              ELSE
-                TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08_fp*AlkR) * &
+                TSO4 = (Spc(id_SO4)%Conc(I,J,L)+Spc(id_SALA)%Conc(I,J,L)*0.08_fp*AlkR) * &
                      1.e+3_fp / ( 96.0_fp * VOL)
              ENDIF
 
 
              ! Total NH3 [mole/m3]
-             TNH3 = Spc(I,J,L,id_NH4) * 1.0e+3_fp / (18.0_fp * VOL) +       &
-                    Spc(I,J,L,id_NH3) * 1.0e+3_fp / (17.0_fp * VOL)
+             TNH3 = Spc(id_NH4)%Conc(I,J,L) * 1.0e+3_fp / (18.0_fp * VOL) + &
+                    Spc(id_NH3)%Conc(I,J,L) * 1.0e+3_fp / (17.0_fp * VOL)
 
           ELSE
 
              ! Total SO4 [mole/m3], also consider SO4s in SALC
-             TSO4 = Spc(I,J,L,id_SO4s) *                                     &
+             TSO4 = Spc(id_SO4s)%Conc(I,J,L) *                               &
                     1.e+3_fp * AlkR / (31.4_fp * VOL) +                      &
-                    Spc(I,J,L,id_SALC) * 0.08_fp *                           &
+                    Spc(id_SALC)%Conc(I,J,L) * 0.08_fp *                     &
                     1.e+3_fp * AlkR / (96.0_fp * VOL)
 
              ! Total NH3 [mole/m3]
-             !TNH3 = Spc(I,J,L,id_NH4s)*1.e+3_fp*AlkR/(31.4e+0_fp*VOL)+ &
-             !       Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL)
+             !TNH3 = Spc(id_NH4s)%Conc(I,J,L)*1.e+3_fp*AlkR/(31.4e+0_fp*VOL)+ &
+             !       Spc(id_NH3)%Conc(I,J,L) * 1.e+3_fp / (17.e+0_fp * VOL)
              TNH3  = 0.0_fp
 
           ENDIF
 
           IF (N == 1) THEN
              ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-             !TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp / &
+             !TNA = Spc(id_SALA)%Conc(I,J,L) * 0.3061e+0_fp * 1.e+3_fp / &
              !      ( 22.99e+0_fp  * VOL  )
 
              ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
              ! increase to account for all cations, xnw 11/26/17
-             TNA = Spc(I,J,L,id_SALA) * 0.397_fp * 1.0e+3_fp                &
+             TNA = Spc(id_SALA)%Conc(I,J,L) * 0.397_fp * 1.0e+3_fp           &
                    * AlkR / ( 23.0_fp  * VOL  )
 
              ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-             !TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp / &
+             !TCL = Spc(id_SALA)%Conc(I,J,L) * 0.5504e+0_fp * 1.e+3_fp / &
              !      ( 35.45e+0_fp  * VOL  )
 
              ! track chloride in sea salt correctly, xnw 10/12/17
              ! Aerosol phase Cl-, [mole/m3]
-             ACL = Spc(I,J,L,id_SALACL) * 1.0e+3_fp * AlkR /                &
+             ACL = Spc(id_SALACL)%Conc(I,J,L) * 1.0e+3_fp * AlkR /           &
                    ( 35.45_fp  * VOL  )
           ELSE
 
-             TNA = Spc(I,J,L,id_SALC) * 0.378_fp * 1.0e+3_fp                &
+             TNA = Spc(id_SALC)%Conc(I,J,L) * 0.378_fp * 1.0e+3_fp           &
                    * AlkR / ( 23.0_fp  * VOL  )
-             ACL = Spc(I,J,L,id_SALCCL) * 1.0e+3_fp * AlkR /                &
+             ACL = Spc(id_SALCCL)%Conc(I,J,L) * 1.0e+3_fp * AlkR /           &
                    ( 35.45_fp  * VOL  )
 
           ENDIF
 
           ! Gas phase Cl-, [mole/m3]
           IF ( id_HCl > 0 ) THEN
-             GCL = Spc(I,J,L,id_HCL) * 1.0e+3_fp /(36.45_fp * VOL)
+             GCL = Spc(id_HCL)%Conc(I,J,L) * 1.0e+3_fp /(36.45_fp * VOL)
           ELSE
              ! HCl is in v/v (from HEMCO)
              GCL = OFFLINE_HCl(I,J,L) / VOL
@@ -668,15 +669,15 @@ CONTAINS
           ! (hotp, bmy, 2/1/10)
           !
           ! ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-          ! TCA      = Spc(I,J,L,id_SALA) * 0.0116e+0_fp * 1.d3 /
+          ! TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.d3 /
           !                            ( 40.08e+0_fp  * VOL  )
           !
           ! ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-          ! TK       = Spc(I,J,L,id_SALA) * 0.0110e+0_fp * 1.d3 /
+          ! TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.d3 /
           !                            ( 39.102e+0_fp * VOL  )
           !
           ! ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-          ! TMG      = Spc(I,J,L,id_SALA) * 0.0369e+0_fp * 1.d3 /
+          ! TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.d3 /
           !                            ( 24.312e+0_fp * VOL  )
           !====================================================================
           !! Set Ca, K, Mg to zero for time being (hotp, bmy, 2/1/10)
@@ -692,14 +693,14 @@ CONTAINS
              !---------------------
 
              ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-             GNO3 = Spc(I,J,L,id_HNO3)
+             GNO3 = Spc(id_HNO3)%Conc(I,J,L)
              GNO3 = MAX( GNO3 * 1.e+3_fp / ( 63.0_fp * VOL ), CONMIN )
 
              ! Aerosol-phase NO3 [mole/m3]
              IF (N == 1) THEN
-                ANO3 = Spc(I,J,L,id_NIT) * 1.e+3_fp / (62.0_fp * VOL)
+                ANO3 = Spc(id_NIT)%Conc(I,J,L) * 1.e+3_fp / (62.0_fp * VOL)
              ELSE
-                ANO3 = Spc(I,J,L,id_NITs) * 1.e+3_fp * AlkR / (31.4_fp * VOL)
+                ANO3 = Spc(id_NITs)%Conc(I,J,L) * 1.e+3_fp * AlkR / (31.4_fp * VOL)
              ENDIF
 
              ! Total NO3 [mole/m3]
@@ -799,9 +800,9 @@ CONTAINS
              OTHER  = 0.0_f8
 
              IF (N == 1) THEN
-                ANO3 = Spc(I,J,L,id_NIT)  * 1.e+3_fp  / (62.0_fp * VOL)
+                ANO3 = Spc(id_NIT)%Conc(I,J,L)  * 1.e+3_fp  / (62.0_fp * VOL)
              ELSE
-                ANO3 = Spc(I,J,L,id_NITs) * 1.e+3_fp * AlkR / (31.4_fp * VOL)
+                ANO3 = Spc(id_NITs)%Conc(I,J,L) * 1.e+3_fp * AlkR / (31.4_fp * VOL)
              ENDIF
 
           ELSE
@@ -861,21 +862,25 @@ CONTAINS
           ! Save tracers back into Spc array [kg]
           ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
           ! (hotp 11/7/07)
-          ! Spc(I,J,L,id_SO4) = TSO4
-          !Spc(I,J,L,id_NH3) = TNH3
+          ! Spc(id_SO4)%Conc(I,J,L) = TSO4
+          !Spc(id_NH3)%Conc(I,J,L) = TNH3
           IF ( id_HCl > 0 ) THEN
-             Spc(I,J,L,id_HCL) = GCL
+             Spc(id_HCL)%Conc(I,J,L) = GCL
           ENDIF
 
           IF (N == 1) THEN
-             Spc(I,J,L,id_NH3)    = TNH3
-             Spc(I,J,L,id_NH4)    = TNH4
-             Spc(I,J,L,id_NIT)    = TNIT
-             Spc(I,J,L,id_SALACL) = Spc(I,J,L,id_SALACL)*(1.0_fp-AlkR) + ACL
+             Spc(id_NH3   )%Conc(I,J,L) = TNH3
+             Spc(id_NH4   )%Conc(I,J,L) = TNH4
+             Spc(id_NIT   )%Conc(I,J,L) = TNIT
+             Spc(id_SALACL)%Conc(I,J,L) = &
+                            Spc(id_SALACL)%Conc(I,J,L)*(1.0_fp-AlkR) + ACL
           ELSE
-            !Spc(I,J,L,id_NH4s)   = Spc(I,J,L,id_NH4s) * (1.0_fp-AlkR) + TNH4
-             Spc(I,J,L,id_NITs)   = Spc(I,J,L,id_NITs) * (1.0_fp-AlkR) + TNIT
-             Spc(I,J,L,id_SALCCL) = Spc(I,J,L,id_SALCCL)*(1.0_fp-AlkR) + ACL
+            !Spc(id_NH4s  )%Conc(I,J,L) = &
+            !               Spc(id_NH4s  )%Conc(I,J,L) * (1.0_fp-AlkR) + TNH4
+             Spc(id_NITs  )%Conc(I,J,L) = &
+                            Spc(id_NITs  )%Conc(I,J,L) * (1.0_fp-AlkR) + TNIT
+             Spc(id_SALCCL)%Conc(I,J,L) = &
+                            Spc(id_SALCCL)%Conc(I,J,L) * (1.0_fp-AlkR) + ACL
           ENDIF
 
           ! Special handling for HNO3 [kg]
@@ -886,10 +891,10 @@ CONTAINS
              !---------------------
 
              ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
-             Spc(I,J,L,id_HNO3) = MAX( 63.0e-3_fp * VOL * GNO3, CONMIN )
+             Spc(id_HNO3)%Conc(I,J,L) = MAX( 63.0e-3_fp * VOL * GNO3, CONMIN )
 
              ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-             HNO3_DEN = Spc(I,J,L,id_HNO3)
+             HNO3_DEN = Spc(id_HNO3)%Conc(I,J,L)
 
           ELSE
 
@@ -951,30 +956,30 @@ CONTAINS
              State_Chm%IsorropBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
              State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
 
-             NUM_SAV = ( Spc(I,J,L,id_NH3)  / 17.0_fp                        &
-                     +   Spc(I,J,L,id_NH4)  / 18.0_fp                        &
-                     +   Spc(I,J,L,id_SALA) * 0.3061_fp / 23.0_fp           )
+             NUM_SAV = ( Spc(id_NH3 )%Conc(I,J,L)  / 17.0_fp                 &
+                     +   Spc(id_NH4 )%Conc(I,J,L)  / 18.0_fp                 &
+                     +   Spc(id_SALA)%Conc(I,J,L) * 0.3061_fp / 23.0_fp     )
 
              ! HMS is only defined for fullchem is simulations,
              ! so skip it if it is not a defined species
              IF ( IS_HMS ) THEN
-                DEN_SAV = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp          &
-                        +   Spc(I,J,L,id_HMS)  / 111.0_fp                    &
-                        +   Spc(I,J,L,id_NIT)  / 62.0_fp                     &
+                DEN_SAV = ( Spc(id_SO4)%Conc(I,J,L)  / 96.0_fp   * 2.0_fp    &
+                        +   Spc(id_HMS)%Conc(I,J,L)  / 111.0_fp              &
+                        +   Spc(id_NIT)%Conc(I,J,L)  / 62.0_fp               &
                         +   HNO3_DEN           / 63.0_fp                     &
-                        +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp       )
+                        +   Spc(id_SALA)%Conc(I,J,L) * 0.55_fp   / 35.45_fp )
              ELSE
-                DEN_SAV = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp          &
-                        +   Spc(I,J,L,id_NIT)  / 62.0_fp                     &
+                DEN_SAV = ( Spc(id_SO4)%Conc(I,J,L)  / 96.0_fp   * 2.0_fp    &
+                        +   Spc(id_NIT)%Conc(I,J,L)  / 62.0_fp               &
                         +   HNO3_DEN           / 63.0_fp                     &
-                        +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp       )
+                        +   Spc(id_SALA)%Conc(I,J,L) * 0.55_fp   / 35.45_fp )
              ENDIF
 
           ENDIF
        ENDDO
 
        IF ( id_HCl > 0 ) THEN
-          PHCl = ( Spc(I,J,L,id_HCL) - PHCl ) * 35.45_fp / 36.45_fp
+          PHCl = ( Spc(id_HCL)%Conc(I,J,L) - PHCl ) * 35.45_fp / 36.45_fp
        ENDIF
 
     ENDDO

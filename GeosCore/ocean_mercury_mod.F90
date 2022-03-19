@@ -747,6 +747,7 @@ CONTAINS
     USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -984,10 +985,10 @@ CONTAINS
     LOGICAL              :: LArcticRiv,  LKRedUV
 
     ! Pointers
-    REAL(fpp), POINTER   :: Spc(:,:,:,:)
-    REAL(fpp), POINTER   :: Hg0aq(:,:,:)
-    REAL(fpp), POINTER   :: Hg2aq(:,:,:)
-    REAL(fpp), POINTER   :: HgPaq(:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc(:)
+    REAL(fpp),     POINTER   :: Hg0aq(:,:,:)
+    REAL(fpp),     POINTER   :: Hg2aq(:,:,:)
+    REAL(fpp),     POINTER   :: HgPaq(:,:,:)
 
     ! Pointers to fields in the HEMCO data structure
     REAL(f4), POINTER    :: TOMS   (:,:)   ! O3
@@ -1018,7 +1019,7 @@ CONTAINS
     LKRedUV      = Input_Opt%LKRedUV
 
     ! Point to fields in State_Chm
-    Spc      => State_Chm%Species
+    Spc      => State_Chm%SpeciesVec
     Hg0aq    => State_Chm%OceanHg0
     Hg2aq    => State_Chm%OceanHg2
     HgPaq    => State_Chm%OceanHgP
@@ -1926,7 +1927,7 @@ CONTAINS
                              ( A_M2          * FRAC_O ) / MLDcm
 
              ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-             CHg0          = Spc(I,J,1,N) * 1.0e+9_fpp / &
+             CHg0          = Spc(N)%Conc(I,J,1) * 1.0e+9_fpp / &
                              State_Met%AIRVOL(I,J,1)
 
              !--------------------------------------------------------
@@ -1980,13 +1981,13 @@ CONTAINS
              !--------------------------------------------------
 
              ! Cap the neg flux w/ the available Hg(0) atm mass
-             IF ( (-FLUX(I,J,NN) * DTSRCE ) > Spc(I,J,1,N) ) THEN
-                FLUX(I,J,NN) = -Spc(I,J,1,N) / DTSRCE
+             IF ( (-FLUX(I,J,NN) * DTSRCE ) > Spc(N)%Conc(I,J,1) ) THEN
+                FLUX(I,J,NN) = -Spc(N)%Conc(I,J,1) / DTSRCE
              ENDIF
 
              ! Cap FDOWN with available Hg(0) atm mass
-             !IF ((FDOWN(I,J,NN)*DTSRCE)>Spc(I,J,1,N)) THEN
-             !   FDOWN(I,J,NN) = Spc(I,J,1,N) / DTSRCE
+             !IF ((FDOWN(I,J,NN)*DTSRCE)>Spc(N)%Conc(I,J,1)) THEN
+             !   FDOWN(I,J,NN) = Spc(N)%Conc(I,J,1) / DTSRCE
              !ENDIF
 
              ! make sure Fup and Fdown do not underflow either
@@ -2784,6 +2785,7 @@ CONTAINS
 ! !USES:
 !
     USE ERROR_MOD,           ONLY : ERROR_STOP
+    USE Species_Mod,         ONLY : SpcConc
     USE State_Chm_Mod,       ONLY : ChmState
     USE State_Grid_Mod,      ONLY : GrdState
 !
@@ -2809,7 +2811,7 @@ CONTAINS
     REAL(fpp)          :: HgP_tot, HgP_tag, RELERRP, ABSERRP
 
     ! Pointers
-    REAL(fpp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CHECK_ATMOS_MERCURY begins here!
@@ -2819,7 +2821,7 @@ CONTAINS
     FLAG = .FALSE.
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Loop over grid boxes
     !OMP PARALLEL DO       &
@@ -2853,12 +2855,12 @@ CONTAINS
 
        ! Total Hg(0)
        N       = Hg0_Id_List(ID_Hg_tot)
-       Hg0_tot = Spc(I,J,L,N)
+       Hg0_tot = Spc(N)%Conc(I,J,L)
 
        ! Sum of tagged Hg(0)
        DO NN = 2, N_Hg_CATS
           N       = Hg0_Id_List(NN)
-          Hg0_tag = Hg0_tag + Spc(I,J,L,N)
+          Hg0_tag = Hg0_tag + Spc(N)%Conc(I,J,L)
        ENDDO
 
        ! Absolute error for Hg0
@@ -2877,12 +2879,12 @@ CONTAINS
 
        ! Total Hg(II)
        N       = Hg2_Id_List(ID_Hg_tot)
-       Hg2_tot = Spc(I,J,L,N)
+       Hg2_tot = Spc(N)%Conc(I,J,L)
 
        ! Sum of tagged Hg(II)
        DO NN = 2, N_Hg_CATS
           N       = Hg2_Id_List(NN)
-          Hg2_tag = Hg2_tag + Spc(I,J,L,N)
+          Hg2_tag = Hg2_tag + Spc(N)%Conc(I,J,L)
        ENDDO
 
        ! Absolute error for Hg2
@@ -2901,12 +2903,12 @@ CONTAINS
 
        ! Total Hg(P)
        N       = HgP_Id_List(ID_Hg_tot)
-       HgP_tot = Spc(I,J,L,N)
+       HgP_tot = Spc(N)%Conc(I,J,L)
 
        ! Sum of tagged Hg(P)
        DO NN = 2, N_Hg_CATS
           N = HgP_Id_List(NN)
-          IF ( N > 0 ) HgP_tag = HgP_tag + Spc(I,J,L,N)
+          IF ( N > 0 ) HgP_tag = HgP_tag + Spc(N)%Conc(I,J,L)
        ENDDO
 
        ! Absolute error for HgP

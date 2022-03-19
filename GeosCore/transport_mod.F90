@@ -354,7 +354,6 @@ CONTAINS
     REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
     REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
     REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
-    REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
     !=================================================================
     ! DO_GLOBAL_ADV begins here!
@@ -446,7 +445,6 @@ CONTAINS
     ! the advected species are listed first.  This may change in the
     ! future, but we'll worry about that later.  The units of p_SPC
     ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
-    p_Spc     => State_Chm%Species(:,:,State_Grid%NZ:1:-1,1:nAdvect)
 
     ! Do the advection
     CALL TPCORE_FVDAS( D_DYN,     Re, &
@@ -456,18 +454,17 @@ CONTAINS
                        JFIRST,    JLAST,    NG, &
                        MG,        nAdvect,  Ap,       Bp,    &
                        p_UWND,    p_VWND,   P_TP1,    P_TP2, &
-                       P_TEMP,    p_Spc,    IORD,     JORD,  &
+                       P_TEMP,    IORD,     JORD,  &
                        KORD,      N_ADJ,    p_XMASS,  p_YMASS, &
                        LFILL,     &
                        A_M2,      ND24x,    ND25x,    ND26x, &
-                       State_Diag                            )
+                       State_Chm, State_Diag                            )
 
     ! Free pointer memory
     p_UWND  => NULL()
     p_VWND  => NULL()
     p_XMASS => NULL()
     p_YMASS => NULL()
-    p_Spc   => NULL()
     p_MFLEW => NULL()
     p_MFLNS => NULL()
     p_MFLUP => NULL()
@@ -581,6 +578,8 @@ CONTAINS
     REAL(fp),  TARGET  :: P_TEMP(State_Grid%NX,State_Grid%NY)
     REAL(fp),  TARGET  :: XMASS (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp),  TARGET  :: YMASS (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(fp),  TARGET  :: Q_Spc (State_Grid%NX,State_Grid%NY,&
+                                 State_Grid%NZ,State_Chm%nAdvect)
 
     ! Pointers
     REAL(fp),  POINTER :: p_A_M2  (  :    )
@@ -647,6 +646,11 @@ CONTAINS
     ND25x       = 0
     ND26x       = 0
 
+    ! Set local array for species concentrations
+    DO N = 1, State_Chm%nAdvect
+       Q_Spc(:,:,:,N) = State_Chm%SpeciesVec(N)%Conc(:,:,:)
+    ENDDO
+
     !=================================================================
     ! Prepare variables for calls to PJC pressure-fixer and TPCORE
     !
@@ -709,15 +713,10 @@ CONTAINS
                             J0_W1+1 : J0_W1+JM_W1, &
                             State_Grid%NZ:1:-1  )
 
-    ! NOTE: For now, so as to avoid having to rewrite the internals
-    ! of the TPCORE routines, just point to 1:nAdvect entries of
-    ! State_Chm%Species.  This is OK for now, as of July 2016, all of
-    ! the advected species are listed first.  This may change in the
-    ! future, but we'll worry about that later. (bmy, 7/13/16)
-    p_Spc => State_Chm%Species( I0_W1+1 : I0_W1+IM_W1, &
-                                J0_W1+1 : J0_W1+JM_W1, &
-                                State_Grid%NZ:1:-1,    &
-                                1:nAdvect )
+    p_Spc    => Q_Spc( I0_W1+1 : I0_W1+IM_W1, &
+                       J0_W1+1 : J0_W1+JM_W1, &
+                       State_Grid%NZ:1:-1,    &
+                       1:nAdvect )
 
     p_XMASS  => XMASS( I0_W1+1 : I0_W1+IM_W1, &
                        J0_W1+1 : J0_W1+JM_W1, &
@@ -745,6 +744,12 @@ CONTAINS
                        p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD,          &
                        KORD,    N_ADJ,    p_XMASS, p_YMASS,                &
                        p_A_M2,  ND24x,    ND25x,   ND26x )
+
+
+    ! Update species concentrations from local array
+    DO N = 1, State_Chm%nAdvect
+       State_Chm%SpeciesVec(N)%Conc(:,:,:) = Q_Spc(:,:,:,N)
+    ENDDO
 
     ! Free pointer memory
     p_UWND   => NULL()

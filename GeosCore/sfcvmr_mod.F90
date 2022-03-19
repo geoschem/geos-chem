@@ -233,7 +233,7 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Chm_Mod,        ONLY : Ind_
-    USE Species_Mod,          ONLY : Species
+    USE Species_Mod,          ONLY : Species, SpcConc
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE TIME_MOD,             ONLY : Get_Month
 
@@ -274,8 +274,8 @@ CONTAINS
     ! Arrays
     REAL(fp)                 :: Arr2D(State_Grid%NX,State_Grid%NY)
 
-    ! Linked list
-    Real(fp),       POINTER  :: Spc(:,:,:,:)   ! Ptr to species array
+    ! Pointers
+    TYPE(SpcConc),  POINTER  :: Spc(:)         ! Ptr to species array
     TYPE(Species),  POINTER  :: SpcInfo        ! Ptr to species database
     TYPE(SfcMrObj), POINTER  :: iObj           ! Linked list
 
@@ -302,7 +302,7 @@ CONTAINS
     ENDIF
 
     ! Get a pointer to the species array
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Loop over all objects
     iObj => SfcMrHead
@@ -326,7 +326,7 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0.0_fp ) THEN
-                Spc(I,J,L,id_Spc) = ( Arr2d(I,J) * 1.0e-9_fp      )          &
+                Spc(id_Spc)%Conc(I,J,L) = ( Arr2d(I,J) * 1.0e-9_fp )    &
                                   / ( AIRMW      / SpcInfo%MW_g   )
              ENDIF  ! end selection of PBL boxes
           ENDDO

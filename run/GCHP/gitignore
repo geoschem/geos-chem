@@ -17,3 +17,6 @@ fort.11
 geos
 setEnvironment
 *.out
+RunScriptSamples
+README
+build

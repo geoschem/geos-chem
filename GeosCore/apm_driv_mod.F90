@@ -349,6 +349,7 @@ CONTAINS
 
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
@@ -469,12 +470,13 @@ CONTAINS
     CHARACTER(LEN=2) :: MONOUT='01'
 
     ! Make a pointer to the tracer array
-    REAL*8, POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     INTEGER :: vbs_nbin(1)=0
     REAL :: p_atm,cairclmdum,gas(4),aer(14),aerh2o,XM,VRATIO
     REAL :: gasold(4),aerold(14)
     REAL :: t_k4,rh4,dtchem,aersize
+    REAL :: SO4_bin_sum, SEA_bin_sum, DST_bin_sum
 
     ! Array dimensions
     INTEGER, PARAMETER       :: NOTHERA  =  9
@@ -522,7 +524,7 @@ CONTAINS
     CALL GET_LOCAL_TIME( State_Grid )
 
     ! Point to Spc
-    Spc => State_Chm%Species
+    Spc => State_Chm%SpeciesVec
 
     ! Chemistry timestep [s]
     DT = GET_TS_CHEM()
@@ -699,17 +701,17 @@ CONTAINS
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       UPTAKE(I,J,L,1)=Spc(I,J,L,APMIDS%id_NH3)
+       UPTAKE(I,J,L,1)=Spc(APMIDS%id_NH3)%Conc(I,J,L)
        SPGF(I,J,L) = 1.d0
-       MASSISRP(I,J,L,1)=Spc(I,J,L,APMIDS%id_NH3)
-       MASSISRP(I,J,L,2)=Spc(I,J,L,APMIDS%id_NH4)
-       MASSISRP(I,J,L,3)=Spc(I,J,L,APMIDS%id_HNO3)
-       MASSISRP(I,J,L,4)=Spc(I,J,L,APMIDS%id_NIT)
+       MASSISRP(I,J,L,1)=Spc(APMIDS%id_NH3)%Conc(I,J,L)
+       MASSISRP(I,J,L,2)=Spc(APMIDS%id_NH4)%Conc(I,J,L)
+       MASSISRP(I,J,L,3)=Spc(APMIDS%id_HNO3)%Conc(I,J,L)
+       MASSISRP(I,J,L,4)=Spc(APMIDS%id_NIT)%Conc(I,J,L)
 
-       MASSMESA(I,J,L,1)=Spc(I,J,L,APMIDS%id_NH3)
-       MASSMESA(I,J,L,2)=Spc(I,J,L,APMIDS%id_NH4)
-       MASSMESA(I,J,L,3)=Spc(I,J,L,APMIDS%id_HNO3)
-       MASSMESA(I,J,L,4)=Spc(I,J,L,APMIDS%id_NIT)
+       MASSMESA(I,J,L,1)=Spc(APMIDS%id_NH3)%Conc(I,J,L)
+       MASSMESA(I,J,L,2)=Spc(APMIDS%id_NH4)%Conc(I,J,L)
+       MASSMESA(I,J,L,3)=Spc(APMIDS%id_HNO3)%Conc(I,J,L)
+       MASSMESA(I,J,L,4)=Spc(APMIDS%id_NIT)%Conc(I,J,L)
     ENDDO
     ENDDO
     ENDDO
@@ -725,6 +727,7 @@ CONTAINS
        !$OMP PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             ) &
        !$OMP PRIVATE( TSO4COAT ,DNH3MAX            )                          &
        !$OMP PRIVATE( TH2O, XM,VRATIO)                                        &
+       !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum)                               &
        !$OMP SCHEDULE( DYNAMIC )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
@@ -733,10 +736,10 @@ CONTAINS
           ! Temperature [K]
           TEMPI = MAX(235.D0,State_Met%T(I,J,L))
 
-          if((Spc(I,J,L,APMIDS%id_NH3)  + &
-              Spc(I,J,L,APMIDS%id_NH4)  + &
-              Spc(I,J,L,APMIDS%id_HNO3) + &
-              Spc(I,J,L,APMIDS%id_NIT)) > 1.d-12)then
+          if((Spc(APMIDS%id_NH3)%Conc(I,J,L)  + &
+              Spc(APMIDS%id_NH4)%Conc(I,J,L)  + &
+              Spc(APMIDS%id_HNO3)%Conc(I,J,L) + &
+              Spc(APMIDS%id_NIT)%Conc(I,J,L)) > 1.d-12)then
 
              ! Initialize WI, WT
              DO N = 1, NCOMPA
@@ -761,38 +764,45 @@ CONTAINS
 
              !GanLuo+ Deduce SULFLO form TSO4,
              ! Add those sulfate coated on primary particles
-             !GanLuo mv LVSOG         TSO4     = (SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))
-             !GanLuo mv LVSOG     &            ) * 1.e+3_fp / ( 96.e+0_fp * VOL )
-             TSO4 = (SUM( &
-                    Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1))) &
-                    - Spc(I,J,L,APMIDS%id_CTSO4))*1.e+3_fp / ( 96.e+0_fp * VOL )
+             SO4_bin_sum = 0.d8
+             DO M = APMIDS%id_SO4BIN1, APMIDS%id_SO4BIN1+NSO4-1
+                SO4_bin_sum = SO4_bin_sum + Spc(M)%Conc(I,J,L)
+             ENDDO
 
-             TSO4COAT = (Spc(I,J,L,APMIDS%id_CTBC) + &
-                         Spc(I,J,L,APMIDS%id_CTOC) + &
-                         Spc(I,J,L,APMIDS%id_CTDST)+ &
-                         Spc(I,J,L,APMIDS%id_CTSEA)) * &
+             !GanLuo mv LVSOG     TSO4 = SO4_bin_sum*1.e+3_fp/(96.e+0_fp*VOL)
+
+             TSO4 = ( SO4_bin_sum - Spc(APMIDS%id_CTSO4)%Conc(I,J,L) ) &
+                    * 1.e+3_fp / ( 96.e+0_fp * VOL )
+
+             TSO4COAT = (Spc(APMIDS%id_CTBC)%Conc(I,J,L) + &
+                         Spc(APMIDS%id_CTOC)%Conc(I,J,L) + &
+                         Spc(APMIDS%id_CTDST)%Conc(I,J,L)+ &
+                         Spc(APMIDS%id_CTSEA)%Conc(I,J,L)) * &
                          1.e+3_fp / ( 96.e+0_fp * VOL )
              TSO4 = TSO4 + TSO4COAT
 
              ! Total NH3 [mole/m3]
              IF(IFDOISRP==4)THEN
-                DNH3MAX = Spc(I,J,L,APMIDS%id_NH3)
+                DNH3MAX = Spc(APMIDS%id_NH3)%Conc(I,J,L)
              ELSE
-                DNH3MAX = Spc(I,J,L,APMIDS%id_NH3) * (1.-exp(-DT/TAONH3(I,J,L)))
+                DNH3MAX = Spc(APMIDS%id_NH3)%Conc(I,J,L) * (1.-exp(-DT/TAONH3(I,J,L)))
              ENDIF
 
-             TNH3 = Spc(I,J,L,APMIDS%id_NH4) * 1.e+3_fp / &
+             TNH3 = Spc(APMIDS%id_NH4)%Conc(I,J,L) * 1.e+3_fp / &
                     ( 18.e+0_fp * VOL ) + &
                     DNH3MAX * 1.e+3_fp / ( 17.e+0_fp * VOL )
-             MASSISRP(I,J,L,1) = Spc(I,J,L,APMIDS%id_NH3)-DNH3MAX !remaining NH3
+             MASSISRP(I,J,L,1) = Spc(APMIDS%id_NH3)%Conc(I,J,L)-DNH3MAX !remaining NH3
+
+             !sea_bin_sum=0.d8
+             !DO M = APMIDS%id_SEABIN1, APMIDS%id_SEABIN1+NSEA-1
+             !   sea_bin_sum = sea_bin_sum + Spc(M)%Conc(I,J,L)
+             !ENDDO
 
              ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-             !TNA = SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-             !      * 0.3061e+0_fp * 1.e+3_fp /( 22.99e+0_fp  * VOL  )
+             !TNA = SEA_BIN_SUM * 0.3061e+0_fp * 1.e+3_fp /( 22.99e+0_fp * VOL )
 
              ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-             !TCL = SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-             !      * 0.5504e+0_fp * 1.e+3_fp /( 22.99e+0_fp  * VOL  )
+             !TCL = SEA_BIN_SUM * 0.5504e+0_fp * 1.e+3_fp /( 22.99e+0_fp * VOL )
 
              !GLuo: Sea salt in ISORROPIA needs to be updated.
              TNA      = 0e+0_fp
@@ -807,11 +817,11 @@ CONTAINS
              !---------------------
 
              ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-             GNO3  = Spc(I,J,L,APMIDS%id_HNO3)
+             GNO3  = Spc(APMIDS%id_HNO3)%Conc(I,J,L)
              GNO3  = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
 
              ! Aerosol-phase NO3 [mole/m3]
-             ANO3  = Spc(I,J,L,APMIDS%id_NIT) * 1.e+3_fp / ( 62.e+0_fp * VOL )
+             ANO3  = Spc(APMIDS%id_NIT)%Conc(I,J,L) * 1.e+3_fp / ( 62.e+0_fp * VOL )
 
              ! Total NO3 [mole/m3]
              TNO3    = GNO3 + ANO3
@@ -864,7 +874,7 @@ CONTAINS
              ! Save tracers back into Spc array [kg]
              ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
              ! (hotp 11/7/07)
-             ! Spc(I,J,L,APMIDS%id_SO4) = TSO4
+             ! Spc(APMIDS%id_SO4)%Conc(I,J,L) = TSO4
              MASSISRP(I,J,L,1) = MASSISRP(I,J,L,1) + TNH3
              MASSISRP(I,J,L,2) = TNH4
              MASSISRP(I,J,L,3) = MAX( 63.e-3_fp * VOL * GAS1(2), CONMIN )
@@ -886,26 +896,33 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          if((Spc(I,J,L,APMIDS%id_NH3)  + &
-              Spc(I,J,L,APMIDS%id_NH4)  + &
-              Spc(I,J,L,APMIDS%id_HNO3) + &
-              Spc(I,J,L,APMIDS%id_NIT)) > 1.d-16)then
+          if( (   Spc(APMIDS%id_NH3 )%Conc(I,J,L)    &
+                + Spc(APMIDS%id_NH4 )%Conc(I,J,L)  &
+                + Spc(APMIDS%id_HNO3)%Conc(I,J,L)  &
+                + Spc(APMIDS%id_NIT )%Conc(I,J,L) ) > 1.d-16)then
 
              aersize=0.d0
-             IF((SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))+ &
-                 SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1)))) &
-                 > 1.d-30)THEN
+
+             SO4_bin_sum = 0.d0
+             DO M = APMIDS%id_SO4BIN1, APMIDS%id_SO4BIN1+NSO4-1
+                SO4_bin_sum = SO4_bin_sum + Spc(M)%Conc(I,J,L)
+             ENDDO
+
+             SEA_bin_sum = 0.d0
+             DO M = APMIDS%id_SEABIN1, APMIDS%id_SEABIN1+NSEA-1
+                SEA_bin_sum = SEA_bin_sum + Spc(M)%Conc(I,J,L)
+             ENDDO
+
+             IF( ( SO4_bin_sum + SEA_bin_sum ) > 1.d-30 )THEN
                 DO N=1,NSO4
                    SIZENUM=APMIDS%id_SO4BIN1+N-1
-                   aersize=aersize+Spc(I,J,L,SIZENUM)*RDRY(N)*GFTOT3D(I,J,L,1)
+                   aersize=aersize+Spc(SIZENUM)%Conc(I,J,L)*RDRY(N)*GFTOT3D(I,J,L,1)
                 ENDDO
                 DO N=1,NSEA
                    SIZENUM=APMIDS%id_SEABIN1+N-1
-                   aersize=aersize+Spc(I,J,L,SIZENUM)*RSALT(N)*GFTOT3D(I,J,L,2)
+                   aersize=aersize+Spc(SIZENUM)%Conc(I,J,L)*RSALT(N)*GFTOT3D(I,J,L,2)
                 ENDDO
-                aersize=aersize/ &
-                 (SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))+&
-                  SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))))
+                aersize=aersize / ( SO4_bin_sum + SEA_bin_sum )
              ELSE
                 aersize=50.D-9
              ENDIF
@@ -920,29 +937,24 @@ CONTAINS
              gas=0.
              aer=0.
 
-             gas(2) = real(Spc(I,J,L,APMIDS%id_NH3)*MAIR/ &
+             gas(2) = real(Spc(APMIDS%id_NH3)%Conc(I,J,L)*MAIR/ &
                           (State_Met%AD(I,J,L)*17.0e-3))!NH3 mol/mol air
-             gas(3) = real(Spc(I,J,L,APMIDS%id_HNO3)*MAIR/ &
+             gas(3) = real(Spc(APMIDS%id_HNO3)%Conc(I,J,L)*MAIR/ &
                           (State_Met%AD(I,J,L)*63.0e-3))!HNO3
-
-             aer(1) = real(((MAX(1.e-30, &
-               (SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1))) &
-                   -Spc(I,J,L,APMIDS%id_CTSO4)) )) &
-                   +Spc(I,J,L,(APMIDS%id_CTBC))    &
-                   +Spc(I,J,L,(APMIDS%id_CTOC))    &
-                   +Spc(I,J,L,APMIDS%id_CTDST)+Spc(I,J,L,APMIDS%id_CTSEA))*MAIR&
+              
+             aer(1) = real(((MAX(1.e-30, (SO4_bin_sum - Spc(APMIDS%id_CTSO4)%Conc(I,J,L)) )) &
+                   +Spc(APMIDS%id_CTBC)%Conc(I,J,L)    &
+                   +Spc(APMIDS%id_CTOC)%Conc(I,J,L)    &
+                   +Spc(APMIDS%id_CTDST)%Conc(I,J,L)   &
+                   +Spc(APMIDS%id_CTSEA)%Conc(I,J,L) )*MAIR&
                    /(State_Met%AD(I,J,L)*96.0e-3)) !SO4
-             aer(2) = real(Spc(I,J,L,APMIDS%id_NH4)*MAIR/ &
+             aer(2) = real(Spc(APMIDS%id_NH4)%Conc(I,J,L)*MAIR/ &
                           (State_Met%AD(I,J,L)*18.0e-3))!NH4
-             aer(3) = real(Spc(I,J,L,APMIDS%id_NIT)*MAIR/ &
+             aer(3) = real(Spc(APMIDS%id_NIT)%Conc(I,J,L)*MAIR/ &
                           (State_Met%AD(I,J,L)*62.0e-3))!NIT
 
-             aer(4) = real(SUM( &
-                      Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-                      *MAIR*0.3061/(State_Met%AD(I,J,L)*22.99e-3))!NA
-             aer(5) = real(SUM( &
-                      Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-                      *MAIR*0.5504/(State_Met%AD(I,J,L)*35.45e-3))!CL
+             aer(4) = real(sea_bin_sum*MAIR*0.3061/(State_Met%AD(I,J,L)*22.99e-3))!NA
+             aer(5) = real(sea_bin_sum*MAIR*0.5504/(State_Met%AD(I,J,L)*35.45e-3))!CL
 
              gasold=gas
              aerold=aer
@@ -956,16 +968,16 @@ CONTAINS
                           t_k4, p_atm, rh4, cairclmdum, &
                           gas, aer, aerh2o, aersize )
 
-             MASSMESA(I,J,L,1)=MIN((Spc(I,J,L,APMIDS%id_NH3)+ &
-                                    Spc(I,J,L,APMIDS%id_NH4)), &
+             MASSMESA(I,J,L,1)=MIN((Spc(APMIDS%id_NH3)%Conc(I,J,L)+ &
+                                    Spc(APMIDS%id_NH4)%Conc(I,J,L)), &
                                     (gas(2)*(State_Met%AD(I,J,L)*17.0d-3)/MAIR))
-             MASSMESA(I,J,L,2)=Spc(I,J,L,APMIDS%id_NH3)+ &
-                               Spc(I,J,L,APMIDS%id_NH4)-MASSMESA(I,J,L,1)
-             MASSMESA(I,J,L,3)=MIN((Spc(I,J,L,APMIDS%id_HNO3)+ &
-                                    Spc(I,J,L,APMIDS%id_NIT)), &
+             MASSMESA(I,J,L,2)=Spc(APMIDS%id_NH3)%Conc(I,J,L)+ &
+                               Spc(APMIDS%id_NH4)%Conc(I,J,L)-MASSMESA(I,J,L,1)
+             MASSMESA(I,J,L,3)=MIN((Spc(APMIDS%id_HNO3)%Conc(I,J,L)+ &
+                                    Spc(APMIDS%id_NIT)%Conc(I,J,L)), &
                                    (gas(3)*(State_Met%AD(I,J,L)*63.0d-3)/MAIR))
-             MASSMESA(I,J,L,4)=Spc(I,J,L,APMIDS%id_HNO3)+ &
-                               Spc(I,J,L,APMIDS%id_NIT)-MASSMESA(I,J,L,3)
+             MASSMESA(I,J,L,4)=Spc(APMIDS%id_HNO3)%Conc(I,J,L)+ &
+                               Spc(APMIDS%id_NIT)%Conc(I,J,L)-MASSMESA(I,J,L,3)
 
              !MASSMESA(I,J,L,1)=gas(2)*(State_Met%AD(I,J,L)*17.0e-3)/MAIR
              !MASSMESA(I,J,L,2)=aer(2)*(State_Met%AD(I,J,L)*18.0e-3)/MAIR
@@ -996,10 +1008,10 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          Spc(I,J,L,APMIDS%id_NH3) = MASSISRP(I,J,L,1)
-          Spc(I,J,L,APMIDS%id_NH4) = MASSISRP(I,J,L,2)
-          Spc(I,J,L,APMIDS%id_HNO3)= MASSISRP(I,J,L,3)
-          Spc(I,J,L,APMIDS%id_NIT) = MASSISRP(I,J,L,4)
+          Spc(APMIDS%id_NH3)%Conc(I,J,L) = MASSISRP(I,J,L,1)
+          Spc(APMIDS%id_NH4)%Conc(I,J,L) = MASSISRP(I,J,L,2)
+          Spc(APMIDS%id_HNO3)%Conc(I,J,L)= MASSISRP(I,J,L,3)
+          Spc(APMIDS%id_NIT)%Conc(I,J,L) = MASSISRP(I,J,L,4)
        ENDDO
        ENDDO
        ENDDO
@@ -1014,10 +1026,10 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          Spc(I,J,L,APMIDS%id_NH3) = MASSMESA(I,J,L,1)
-          Spc(I,J,L,APMIDS%id_NH4) = MASSMESA(I,J,L,2)
-          Spc(I,J,L,APMIDS%id_HNO3)= MASSMESA(I,J,L,3)
-          Spc(I,J,L,APMIDS%id_NIT) = MASSMESA(I,J,L,4)
+          Spc(APMIDS%id_NH3)%Conc(I,J,L) = MASSMESA(I,J,L,1)
+          Spc(APMIDS%id_NH4)%Conc(I,J,L) = MASSMESA(I,J,L,2)
+          Spc(APMIDS%id_HNO3)%Conc(I,J,L)= MASSMESA(I,J,L,3)
+          Spc(APMIDS%id_NIT)%Conc(I,J,L) = MASSMESA(I,J,L,4)
        ENDDO
        ENDDO
        ENDDO
@@ -1102,45 +1114,45 @@ CONTAINS
           PACID = XMACID/96.* PSO4GAS(I,J,L)/(VOL*M1ACID*DT)*1.d-6
 
           !kg/box to #/cm3
-          CACID = Spc(I,J,L,APMIDS%id_SO4G)/(VOL*M1ACID)*1.d-6
+          CACID = Spc(APMIDS%id_SO4G)%Conc(I,J,L)/(VOL*M1ACID)*1.d-6
 
           XN0 = 1.d-6*PRESS/(1.3807d-23*TK)   !#/cm3
-          CNH3=Spc(I,J,L,APMIDS%id_NH3) &
+          CNH3=Spc(APMIDS%id_NH3)%Conc(I,J,L) &
                /(VOL*State_Chm%SpcData(APMIDS%id_NH3)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CNH3=CNH3*1.d12/XN0   ! CNH3 now in ppt
-          CSO2=Spc(I,J,L,APMIDS%id_SO2) &
+          CSO2=Spc(APMIDS%id_SO2)%Conc(I,J,L) &
                /(VOL*State_Chm%SpcData(APMIDS%id_SO2)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CSO2=CSO2*1.d12/XN0   ! CSO2 now in ppt
 
-          CCO=Spc(I,J,L,APMIDS%id_CO) &
+          CCO=Spc(APMIDS%id_CO)%Conc(I,J,L) &
               /(VOL*State_Chm%SpcData(APMIDS%id_CO)%Info%MW_g &
               *1.d-3)*6.02d17   ! #/cm3
           CCO=CCO*1.d6/XN0   ! CCO now in ppm
 
-          CNO=Spc(I,J,L,APMIDS%id_NO) &
+          CNO=Spc(APMIDS%id_NO)%Conc(I,J,L) &
               /(VOL*State_Chm%SpcData(APMIDS%id_NO)%Info%MW_g &
               *1.d-3)*6.02d17   ! #/cm3
           CNO=CNO*1.d9/XN0   ! CNO now in ppb
-          CNO2=Spc(I,J,L,APMIDS%id_NO2) &
+          CNO2=Spc(APMIDS%id_NO2)%Conc(I,J,L) &
                /(VOL*State_Chm%SpcData(APMIDS%id_NO2)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CNO2=CNO2*1.d9/XN0   ! CNO2 now in ppb
-          CNO3=Spc(I,J,L,APMIDS%id_NO3) &
+          CNO3=Spc(APMIDS%id_NO3)%Conc(I,J,L) &
                /(VOL*State_Chm%SpcData(APMIDS%id_NO3)%Info%MW_g &
                *1.d-3)*6.02d17   ! #/cm3
           CNO3=CNO3*1.d9/XN0   ! CNO3 now in ppb
-          CHNO3=Spc(I,J,L,APMIDS%id_HNO3) &
+          CHNO3=Spc(APMIDS%id_HNO3)%Conc(I,J,L) &
                 /(VOL*State_Chm%SpcData(APMIDS%id_HNO3)%Info%MW_g &
                 *1.d-3)*6.02d17   ! #/cm3
           CHNO3=CHNO3*1.d9/XN0   ! CHNO3 now in ppb
 
-          CISOP=Spc(I,J,L,APMIDS%id_ISOP) &
+          CISOP=Spc(APMIDS%id_ISOP)%Conc(I,J,L) &
                 /(VOL*State_Chm%SpcData(APMIDS%id_ISOP)%Info%MW_g &
                 *1.d-3)*6.02d17   ! #/cm3
           CISOP=CISOP*1.d9/XN0   ! CISOP now in ppb
-          CMTPA=Spc(I,J,L,APMIDS%id_MTPA) &
+          CMTPA=Spc(APMIDS%id_MTPA)%Conc(I,J,L) &
                 /(VOL*State_Chm%SpcData(APMIDS%id_MTPA)%Info%MW_g &
                 *1.d-3)*6.02d17   ! #/cm3
           CMTPA=CMTPA*1.d9/XN0   ! CMTPA now in ppb
@@ -1152,7 +1164,7 @@ CONTAINS
 
           IF(IFATHN>0)THEN
              DO ITYP = 1, 3
-                CAMINE(ITYP)=Spc(I,J,L,APMIDS%id_AMINE-1+ITYP)/(VOL* &
+                CAMINE(ITYP)=Spc(APMIDS%id_AMINE-1+ITYP)%Conc(I,J,L)/(VOL* &
                    State_Chm%SpcData(APMIDS%id_NH3)%Info%MW_g*1.d-3* &
                    MWAMINE(ITYP)/17.)*6.02d17   ! #/cm3
                 CAMINE(ITYP)=CAMINE(ITYP)*1.d12/XN0   ! CAMINE now in ppt
@@ -1180,14 +1192,14 @@ CONTAINS
           IF(IFAG.EQ.1) THEN
              PLVSOG1 = sum(PLVSOG(I,J,L,1:5))/(M1LVSOG*1.d+15)  !#/cm3s, PLVSOG in ug/m3s, M1LVSOG in kg
              PLVSOG01 = PLVSOG(I,J,L,1)/(M1LVSOG*1.d+15)  !#/cm3s, PLVSOG in ug/m3s, M1LVSOG in kg
-             CLVSOG  = MAX(1.D-30,Spc(I,J,L,APMIDS%id_SO4G+1)/ &
+             CLVSOG  = MAX(1.D-30,Spc(APMIDS%id_SO4G+1)%Conc(I,J,L)/ &
                            (VOL*M1LVSOG)*1.d-6)
              ! coatd LV-SOA
-             MSULFLV = Spc(I,J,L,APMIDS%id_CTSO4  )/VOL !kg/m3
-             MBCLV   = Spc(I,J,L,APMIDS%id_CTBC +1)/VOL !kg/m3
-             MOCLV   = Spc(I,J,L,APMIDS%id_CTOC +1)/VOL !kg/m3
-             MDSTLV  = Spc(I,J,L,APMIDS%id_CTDST+1)/VOL !kg/m3
-             MSALTLV = Spc(I,J,L,APMIDS%id_CTSEA+1)/VOL !kg/m3
+             MSULFLV = Spc(APMIDS%id_CTSO4  )%Conc(I,J,L)/VOL !kg/m3
+             MBCLV   = Spc(APMIDS%id_CTBC +1)%Conc(I,J,L)/VOL !kg/m3
+             MOCLV   = Spc(APMIDS%id_CTOC +1)%Conc(I,J,L)/VOL !kg/m3
+             MDSTLV  = Spc(APMIDS%id_CTDST+1)%Conc(I,J,L)/VOL !kg/m3
+             MSALTLV = Spc(APMIDS%id_CTSEA+1)%Conc(I,J,L)/VOL !kg/m3
           ELSE
              PLVSOG1 = 0.
              PLVSOG01= 0.
@@ -1200,16 +1212,16 @@ CONTAINS
           ENDIF
 
           IF(IFAG.EQ.1) THEN
-             CSOG(1)=Spc(I,J,L,APMIDS%id_TSOG0)/ &
+             CSOG(1)=Spc(APMIDS%id_TSOG0)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOG0)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(2)=Spc(I,J,L,APMIDS%id_TSOG1)/ &
+             CSOG(2)=Spc(APMIDS%id_TSOG1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOG1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(3)=Spc(I,J,L,APMIDS%id_TSOG2)/ &
+             CSOG(3)=Spc(APMIDS%id_TSOG2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOG2)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(4)=Spc(I,J,L,APMIDS%id_TSOG3)/ &
+             CSOG(4)=Spc(APMIDS%id_TSOG3)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOG3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
@@ -1220,40 +1232,40 @@ CONTAINS
              CSOG(6) = 1.0e-30
              CSOG(7) = 1.0e-30
 
-             CSOG(8) =Spc(I,J,L,APMIDS%id_ASOG1)/ &
+             CSOG(8) =Spc(APMIDS%id_ASOG1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_ASOG1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(9) =Spc(I,J,L,APMIDS%id_ASOG2)/ &
+             CSOG(9) =Spc(APMIDS%id_ASOG2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_ASOG2)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(10)=Spc(I,J,L,APMIDS%id_ASOG3)/ &
+             CSOG(10)=Spc(APMIDS%id_ASOG3)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_ASOG3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
-             CSOG(11)=Spc(I,J,L,APMIDS%id_POG1)/ &
+             CSOG(11)=Spc(APMIDS%id_POG1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_POG1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(12)=Spc(I,J,L,APMIDS%id_POG2)/ &
+             CSOG(12)=Spc(APMIDS%id_POG2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_POG2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
-             CSOG(13)=Spc(I,J,L,APMIDS%id_OPOG1)/ &
+             CSOG(13)=Spc(APMIDS%id_OPOG1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_OPOG1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOG(14)=Spc(I,J,L,APMIDS%id_OPOG2)/ &
+             CSOG(14)=Spc(APMIDS%id_OPOG2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_OPOG2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
-             CSOA(1)=Spc(I,J,L,APMIDS%id_TSOA0)/ &
+             CSOA(1)=Spc(APMIDS%id_TSOA0)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOA0)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(2)=Spc(I,J,L,APMIDS%id_TSOA1)/ &
+             CSOA(2)=Spc(APMIDS%id_TSOA1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOA1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(3)=Spc(I,J,L,APMIDS%id_TSOA2)/ &
+             CSOA(3)=Spc(APMIDS%id_TSOA2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOA2)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(4)=Spc(I,J,L,APMIDS%id_TSOA3)/ &
+             CSOA(4)=Spc(APMIDS%id_TSOA3)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_TSOA3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
@@ -1264,37 +1276,37 @@ CONTAINS
              CSOA(6) = 1.0e-30
              CSOA(7) = 1.0e-30
 
-             CSOA(8) =Spc(I,J,L,APMIDS%id_ASOA1)/ &
+             CSOA(8) =Spc(APMIDS%id_ASOA1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_ASOA1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(9) =Spc(I,J,L,APMIDS%id_ASOA2)/ &
+             CSOA(9) =Spc(APMIDS%id_ASOA2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_ASOA2)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(10)=Spc(I,J,L,APMIDS%id_ASOA3)/ &
+             CSOA(10)=Spc(APMIDS%id_ASOA3)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_ASOA3)%Info%MW_g* &
                 1.d-3)*6.02d17
 
-             CSOA(11)=Spc(I,J,L,APMIDS%id_POA1)/ &
+             CSOA(11)=Spc(APMIDS%id_POA1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_POA1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(12)=Spc(I,J,L,APMIDS%id_POA2)/ &
+             CSOA(12)=Spc(APMIDS%id_POA2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_POA2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
-             CSOA(13)=Spc(I,J,L,APMIDS%id_OPOA1)/ &
+             CSOA(13)=Spc(APMIDS%id_OPOA1)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_OPOA1)%Info%MW_g* &
                 1.d-3)*6.02d17
-             CSOA(14)=Spc(I,J,L,APMIDS%id_OPOA2)/ &
+             CSOA(14)=Spc(APMIDS%id_OPOA2)%Conc(I,J,L)/ &
                 (VOL*State_Chm%SpcData(APMIDS%id_OPOA2)%Info%MW_g* &
                 1.d-3)*6.02d17
 
 
-             SOAT= (Spc(I,J,L,APMIDS%id_TSOA1)+Spc(I,J,L,APMIDS%id_TSOA2)+  &
-                    Spc(I,J,L,APMIDS%id_TSOA3)+Spc(I,J,L,APMIDS%id_TSOA0)+  &
-                    Spc(I,J,L,APMIDS%id_ASOA1)+                             &
-                    Spc(I,J,L,APMIDS%id_ASOA2)+Spc(I,J,L,APMIDS%id_ASOA3)+  &
-                    Spc(I,J,L,APMIDS%id_POA1) +Spc(I,J,L,APMIDS%id_POA2) +  &
-                    Spc(I,J,L,APMIDS%id_OPOA1)+Spc(I,J,L,APMIDS%id_OPOA2))/ &
+             SOAT= (Spc(APMIDS%id_TSOA1)%Conc(I,J,L)+Spc(APMIDS%id_TSOA2)%Conc(I,J,L)+  &
+                    Spc(APMIDS%id_TSOA3)%Conc(I,J,L)+Spc(APMIDS%id_TSOA0)%Conc(I,J,L)+  &
+                    Spc(APMIDS%id_ASOA1)%Conc(I,J,L)+                       &
+                    Spc(APMIDS%id_ASOA2)%Conc(I,J,L)+Spc(APMIDS%id_ASOA3)%Conc(I,J,L)+  &
+                    Spc(APMIDS%id_POA1)%Conc(I,J,L) +Spc(APMIDS%id_POA2)%Conc(I,J,L) +  &
+                    Spc(APMIDS%id_OPOA1)%Conc(I,J,L)+Spc(APMIDS%id_OPOA2)%Conc(I,J,L))/ &
                     VOL ! Total SV-&MV-SOA
           ELSE
              SOAT= 1.d-30
@@ -1303,43 +1315,43 @@ CONTAINS
           MSO4 = 0.d0
           DO N=1,NSO4
              SIZENUM=APMIDS%id_SO4BIN1+N-1
-             XM1D(N)=Spc(I,J,L,SIZENUM)/VOL  !kg/m3
+             XM1D(N)=Spc(SIZENUM)%Conc(I,J,L)/VOL  !kg/m3
              MSO4 = MSO4 + XM1D(N)   ! total bin sulfate mass
              XN1D(N)=XN4D(I,J,L,N)
           ENDDO
 
           DO N=1,NSEA        ! sea salt
              SIZENUM=APMIDS%id_SEABIN1+N-1
-             XM1D(NSO4+N)=Spc(I,J,L,SIZENUM)/VOL  !kg/m3
+             XM1D(NSO4+N)=Spc(SIZENUM)%Conc(I,J,L)/VOL  !kg/m3
           ENDDO
 
           DO N=1,NDSTB      ! dust
-             XMDST(N) = Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1))/VOL   !kg/m3
+             XMDST(N) = Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L)/VOL   !kg/m3
              IF(XMDST(N).LT.1.d-20) THEN   !debug force
                 XMDST(N) = 1.d-20
-                Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) = XMDST(N) * VOL
+                Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L) = XMDST(N) * VOL
              ENDIF
              MWSIZE3D(I,J,L,3)=MWSIZE3D(I,J,L,3)+ &
-                               Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1))*RDST(N)
+                               Spc(APMIDS%id_DSTBIN1+N-1)%Conc(I,J,L)*RDST(N)
           ENDDO
 
           DO N= 1, NBCOC
              SIZENUM=APMIDS%id_BCBIN1+N-1
-             MBC(N)=Spc(I,J,L,SIZENUM)/VOL  !kg/m3
+             MBC(N)=Spc(SIZENUM)%Conc(I,J,L)/VOL  !kg/m3
              SIZENUM=APMIDS%id_OCBIN1+N-1
-             MOC(N)=Spc(I,J,L,SIZENUM)/VOL  !kg/m3
+             MOC(N)=Spc(SIZENUM)%Conc(I,J,L)/VOL  !kg/m3
           ENDDO
 
-          MSO4BULK= Spc(I,J,L,APMIDS%id_SO4)/VOL   !kg/m3
-          MNIT    = Spc(I,J,L,APMIDS%id_NIT)/VOL   !kg/m3
-          MNH4    = Spc(I,J,L,APMIDS%id_NH4)/VOL   !kg/m3
-          MMSA    = Spc(I,J,L,APMIDS%id_MSA)/VOL   !kg/m3
+          MSO4BULK= Spc(APMIDS%id_SO4)%Conc(I,J,L)/VOL   !kg/m3
+          MNIT    = Spc(APMIDS%id_NIT)%Conc(I,J,L)/VOL   !kg/m3
+          MNH4    = Spc(APMIDS%id_NH4)%Conc(I,J,L)/VOL   !kg/m3
+          MMSA    = Spc(APMIDS%id_MSA)%Conc(I,J,L)/VOL   !kg/m3
 
           ! coated sulfate
-          MBCS   = Spc(I,J,L,(APMIDS%id_CTBC))/VOL ! SULF on BC kg/m3
-          MOCS   = Spc(I,J,L,(APMIDS%id_CTOC))/VOL ! SULF on OC kg/m3
-          MDSTS  = Spc(I,J,L,APMIDS%id_CTDST)/VOL ! SULF on DUST kg/m3
-          MSALTS = Spc(I,J,L,APMIDS%id_CTSEA)/VOL ! SULF on SEA-SALT kg/m3
+          MBCS   = Spc(APMIDS%id_CTBC)%Conc(I,J,L)/VOL ! SULF on BC kg/m3
+          MOCS   = Spc(APMIDS%id_CTOC)%Conc(I,J,L)/VOL ! SULF on OC kg/m3
+          MDSTS  = Spc(APMIDS%id_CTDST)%Conc(I,J,L)/VOL ! SULF on DUST kg/m3
+          MSALTS = Spc(APMIDS%id_CTSEA)%Conc(I,J,L)/VOL ! SULF on SEA-SALT kg/m3
 
           IF(IFCOATBC.EQ.0)  MBCS = 1.d-30
 
@@ -1369,15 +1381,15 @@ CONTAINS
                  ATOM4N)
 
           TEMPOUT1(56)=TEMPOUT1(56)+ &
-                       (Spc(I,J,L,APMIDS%id_TSOA1)+Spc(I,J,L,APMIDS%id_TSOA2)+ &
-                        Spc(I,J,L,APMIDS%id_TSOA3)+Spc(I,J,L,APMIDS%id_TSOA0)+ &
-                        +Spc(I,J,L,APMIDS%id_ASOA1)+ &
-                        Spc(I,J,L,APMIDS%id_ASOA2)+Spc(I,J,L,APMIDS%id_ASOA3)) &
+                       (Spc(APMIDS%id_TSOA1)%Conc(I,J,L)+Spc(APMIDS%id_TSOA2)%Conc(I,J,L)+ &
+                        Spc(APMIDS%id_TSOA3)%Conc(I,J,L)+Spc(APMIDS%id_TSOA0)%Conc(I,J,L)+ &
+                        +Spc(APMIDS%id_ASOA1)%Conc(I,J,L)+ &
+                        Spc(APMIDS%id_ASOA2)%Conc(I,J,L)+Spc(APMIDS%id_ASOA3)%Conc(I,J,L)) &
                        *60.d9/(92.d0*VOL)
           IF(IFAG.EQ.1) THEN
              TEMPOUT1(56)=TEMPOUT1(56)+ &
-               (Spc(I,J,L,APMIDS%id_POA1)+Spc(I,J,L,APMIDS%id_POA2)+ &
-                Spc(I,J,L,APMIDS%id_OPOA1)+Spc(I,J,L,APMIDS%id_OPOA2))*1.d9/VOL
+               (Spc(APMIDS%id_POA1)%Conc(I,J,L)+Spc(APMIDS%id_POA2)%Conc(I,J,L)+ &
+                Spc(APMIDS%id_OPOA1)%Conc(I,J,L)+Spc(APMIDS%id_OPOA2)%Conc(I,J,L))*1.d9/VOL
           ENDIF
 
           TEMPOUT1(59)=State_Met%PHIS(I,J)+SUM(State_Met%BXHEIGHT(I,J,1:L))
@@ -1413,18 +1425,18 @@ CONTAINS
                 XSINK =  ACS + XOH*OXRATE(ITYP)     ! oxid rate for DMA
 
                 IF(XSINK==0.D0)THEN
-                   Spc(I,J,L,APMIDS%id_AMINE+ITYP-1)= &
-                      Spc(I,J,L,APMIDS%id_AMINE+ITYP-1) &
+                   Spc(APMIDS%id_AMINE+ITYP-1)%Conc(I,J,L)= &
+                      Spc(APMIDS%id_AMINE+ITYP-1)%Conc(I,J,L) &
                      +YAMINEEMIT(ITYP)*DTAPM
                    UPTAKE(I,J,L,1+ITYP) = 0.
                    OXIDAT(I,J,L,1+ITYP) = 0.
                 ELSE
-                   XX0 = Spc(I,J,L,APMIDS%id_AMINE+ITYP-1)+YAMINEEMIT(ITYP)*DTAPM
-                   Spc(I,J,L,APMIDS%id_AMINE+ITYP-1)=YAMINEEMIT(ITYP)/XSINK- &
-                    (YAMINEEMIT(ITYP)-XSINK*Spc(I,J,L,APMIDS%id_AMINE+ITYP-1))*&
+                   XX0 = Spc(APMIDS%id_AMINE+ITYP-1)%Conc(I,J,L)+YAMINEEMIT(ITYP)*DTAPM
+                   Spc(APMIDS%id_AMINE+ITYP-1)%Conc(I,J,L)=YAMINEEMIT(ITYP)/XSINK- &
+                    (YAMINEEMIT(ITYP)-XSINK*Spc(APMIDS%id_AMINE+ITYP-1)%Conc(I,J,L))*&
                     EXP(-XSINK*DTAPM)/XSINK
 
-                   DXX = (Spc(I,J,L,APMIDS%id_AMINE+ITYP-1)-XX0)*14./ &
+                   DXX = (Spc(APMIDS%id_AMINE+ITYP-1)%Conc(I,J,L)-XX0)*14./ &
                          MWAMINE(ITYP)   !kgN/box-step
                    DXX = DXX*8.64d4/DTAPM   !kgN/box-day
                    UPTAKE(I,J,L,1+ITYP) = DXX * ACS/XSINK
@@ -1457,9 +1469,9 @@ CONTAINS
 
           ! NH3 oxidation
           XSINK =   XOH*1.6d-13     ! oxid rate for NH3 1.6d-13 (Atkinson, 1997)
-          XX0 = Spc(I,J,L,APMIDS%id_NH3)
-          Spc(I,J,L,APMIDS%id_NH3)=Spc(I,J,L,APMIDS%id_NH3)*EXP(-XSINK*DTAPM)
-          DXX = (Spc(I,J,L,APMIDS%id_NH3)-XX0)*14./17.   !kgN/box-step
+          XX0 = Spc(APMIDS%id_NH3)%Conc(I,J,L)
+          Spc(APMIDS%id_NH3)%Conc(I,J,L)=Spc(APMIDS%id_NH3)%Conc(I,J,L)*EXP(-XSINK*DTAPM)
+          DXX = (Spc(APMIDS%id_NH3)%Conc(I,J,L)-XX0)*14./17.   !kgN/box-step
           DXX = DXX*8.64d4/DTAPM   !kgN/box-day
           OXIDAT(I,J,L,1) = DXX
 
@@ -1513,33 +1525,33 @@ CONTAINS
           NCOAG3D(I,J,L,1)=NCOAG1 ! count step that coag is not call in the grid
           NCOAG3D(I,J,L,2)=NCOAG2 ! count step that coag is not call in the grid
 
-          Spc(I,J,L,APMIDS%id_SO4G)=  CACID*VOL*M1ACID*1.d6
+          Spc(APMIDS%id_SO4G)%Conc(I,J,L)=  CACID*VOL*M1ACID*1.d6
 
           DO N=1,NSO4
              SIZENUM=APMIDS%id_SO4BIN1+N-1
-             Spc(I,J,L,SIZENUM)=XM1D(N)*VOL
+             Spc(SIZENUM)%Conc(I,J,L)=XM1D(N)*VOL
              MWSIZE3D(I,J,L,1)=MWSIZE3D(I,J,L,1)+ &
-                               Spc(I,J,L,SIZENUM)*RDRY(N)*GFTOT1
+                               Spc(SIZENUM)%Conc(I,J,L)*RDRY(N)*GFTOT1
           ENDDO
-          Spc(I,J,L,APMIDS%id_CTBC) = MBCS * VOL
-          Spc(I,J,L,(APMIDS%id_CTOC)) = MOCS * VOL
-          Spc(I,J,L,APMIDS%id_CTDST) = MDSTS * VOL
-          Spc(I,J,L,APMIDS%id_CTSEA) = MSALTS * VOL
+          Spc(APMIDS%id_CTBC)%Conc(I,J,L) = MBCS * VOL
+          Spc(APMIDS%id_CTOC)%Conc(I,J,L) = MOCS * VOL
+          Spc(APMIDS%id_CTDST)%Conc(I,J,L) = MDSTS * VOL
+          Spc(APMIDS%id_CTSEA)%Conc(I,J,L) = MSALTS * VOL
 
           IF(IFAG.EQ.1) THEN
-             Spc(I,J,L,APMIDS%id_SO4G+1)=  CLVSOG*VOL*M1LVSOG*1.d6
-             Spc(I,J,L,APMIDS%id_CTSO4)= MSULFLV * VOL   !kg
-             Spc(I,J,L,APMIDS%id_CTBC+1) = MBCLV * VOL   !kg
-             Spc(I,J,L,APMIDS%id_CTOC+1) = MOCLV * VOL   !kg
-             Spc(I,J,L,APMIDS%id_CTDST+1) = MDSTLV * VOL   !kg
-             Spc(I,J,L,APMIDS%id_CTSEA+1) = MSALTLV * VOL   !kg
+             Spc(APMIDS%id_SO4G+1)%Conc(I,J,L)=  CLVSOG*VOL*M1LVSOG*1.d6
+             Spc(APMIDS%id_CTSO4)%Conc(I,J,L)= MSULFLV * VOL   !kg
+             Spc(APMIDS%id_CTBC+1)%Conc(I,J,L) = MBCLV * VOL   !kg
+             Spc(APMIDS%id_CTOC+1)%Conc(I,J,L) = MOCLV * VOL   !kg
+             Spc(APMIDS%id_CTDST+1)%Conc(I,J,L) = MDSTLV * VOL   !kg
+             Spc(APMIDS%id_CTSEA+1)%Conc(I,J,L) = MSALTLV * VOL   !kg
           ENDIF
 
           DO N=1,NSEA        ! sea salt
              SIZENUM=APMIDS%id_SEABIN1+N-1
-             Spc(I,J,L,SIZENUM)=XM1D(NSO4+N)*VOL  !kg
+             Spc(SIZENUM)%Conc(I,J,L)=XM1D(NSO4+N)*VOL  !kg
              MWSIZE3D(I,J,L,2)=MWSIZE3D(I,J,L,2)+ &
-                               Spc(I,J,L,SIZENUM)*RSALT(N)*GFTOT2
+                               Spc(SIZENUM)%Conc(I,J,L)*RSALT(N)*GFTOT2
           ENDDO
 
           ! no update for dust needed for now because of no coag yet (need update if coag)
@@ -1551,9 +1563,9 @@ CONTAINS
 
           DO N= 1, NBCOC
              SIZENUM=APMIDS%id_BCBIN1+N-1
-             Spc(I,J,L,SIZENUM)=MBC(N)*VOL  !kg/m3
+             Spc(SIZENUM)%Conc(I,J,L)=MBC(N)*VOL  !kg/m3
              SIZENUM=APMIDS%id_OCBIN1+N-1
-             Spc(I,J,L,SIZENUM)=MOC(N)*VOL  !kg/m3
+             Spc(SIZENUM)%Conc(I,J,L)=MOC(N)*VOL  !kg/m3
           ENDDO
 
           ! Yu++ aerosol-cloud interaction
@@ -2232,8 +2244,8 @@ CONTAINS
     YUV = 0.
 
     !DO N=APMIDS%id_SO4G,(APMIDS%id_AMINE+2)
-    !   WRITE(110,*)N,MAXVAL(Spc(:,:,:,N)), &
-    !               SUM(Spc(:,:,:,N))/SIZE(Spc(:,:,:,N))
+    !   WRITE(110,*)N,MAXVAL(Spc(N)%Conc(:,:,:)), &
+    !               SUM(Spc(N)%Conc(:,:,:))/SIZE(Spc(N)%Conc(:,:,:))
     !   FLUSH(110)
     !ENDDO
 
@@ -2275,13 +2287,13 @@ CONTAINS
                       REAL(State_Met%U(ATOMGRID(1,J),ATOMGRID(2,J),L)),       &
                       REAL(State_Met%V(ATOMGRID(1,J),ATOMGRID(2,J),L)),       &
                      (REAL(TEMPOUT(ATOMGRID(1,J),ATOMGRID(2,J),L,N)),N=1,77), &
-                     (REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,M)),             &
+                     (REAL(Spc(M)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)),       &
                            M=APMIDS%id_SO4G,(APMIDS%id_AMINE+2)),             &
-                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_SO2)), &
-                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NH3)), &
-                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NH4)), &
-                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_HNO3)),&
-                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NIT))
+                      REAL(Spc(APMIDS%id_SO2 )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%id_NH3 )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%id_NH4 )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%id_HNO3)%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L)), &
+                      REAL(Spc(APMIDS%ID_NIT )%Conc(ATOMGRID(1,J),ATOMGRID(2,J),L))
                       RECID=RECID+1
              ENDDO
           ENDDO
@@ -2289,33 +2301,43 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !$OMP PARALLEL DO         &
-    !$OMP DEFAULT( SHARED )   &
-    !$OMP PRIVATE( I, J, L )  &
+    !$OMP PARALLEL DO                                       &
+    !$OMP DEFAULT( SHARED )                                 &
+    !$OMP PRIVATE( I, J, L, M )                             &
+    !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum, DST_bin_sum )  &
     !$OMP SCHEDULE( DYNAMIC )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-       IF(SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1))) &
-          >1.d-30)THEN
-          MWSIZE3D(I,J,L,1)=MWSIZE3D(I,J,L,1)/ &
-             SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))
+    DO L = 1, STATE_GRID%NZ
+    DO J = 1, STATE_GRID%NY
+    DO I = 1, STATE_GRID%NX
+
+       SO4_bin_sum = 0.d0
+       DO M = 1, NSO4
+          SO4_bin_sum = SO4_bin_sum + Spc(APMIDS%id_SO4BIN1+M-1)%Conc(I,J,L)
+       ENDDO
+       IF( SO4_bin_sum > 1.d-30 )THEN
+          MWSIZE3D(I,J,L,1) = MWSIZE3D(I,J,L,1) / SO4_bin_sum
        ELSE
-          MWSIZE3D(I,J,L,1)=RDRY(39)*GFTOT3D(I,J,L,1)
+          MWSIZE3D(I,J,L,1) = RDRY(39) * GFTOT3D(I,J,L,1)
        ENDIF
-       IF(SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1))) &
-          >1.d-30)THEN
-          MWSIZE3D(I,J,L,2)=MWSIZE3D(I,J,L,2)/ &
-             SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSEA-1)))
+
+       SEA_bin_sum = 0.d0
+       DO M = 1, NSEA
+          SEA_bin_sum = SEA_bin_sum + Spc(APMIDS%id_SEABIN1+M-1)%Conc(I,J,L)
+       ENDDO
+       IF( SEA_bin_sum > 1.d-30 ) THEN
+          MWSIZE3D(I,J,L,2) = MWSIZE3D(I,J,L,2) / SEA_bin_sum
        ELSE
-          MWSIZE3D(I,J,L,2)=RSALT(19)*GFTOT3D(I,J,L,2)
+          MWSIZE3D(I,J,L,2) = RSALT(19) * GFTOT3D(I,J,L,2)
        ENDIF
-       IF(SUM(Spc(I,J,L,APMIDS%id_DSTBIN1:(APMIDS%id_DSTBIN1+NDSTB-1))) &
-          >1.d-30)THEN
-          MWSIZE3D(I,J,L,3)=MWSIZE3D(I,J,L,3)/ &
-             SUM(Spc(I,J,L,APMIDS%id_DSTBIN1:(APMIDS%id_DSTBIN1+NDSTB-1)))
+
+       DST_bin_sum = 0.d0
+       DO M = 1, NDSTB
+          DST_bin_sum = DST_bin_sum + Spc(APMIDS%id_DSTBIN1+M-1)%Conc(I,J,L)
+       ENDDO
+       IF( DST_bin_sum > 1.d-30 )THEN
+          MWSIZE3D(I,J,L,3) = MWSIZE3D(I,J,L,3) / DST_bin_sum
        ELSE
-          MWSIZE3D(I,J,L,3)=RDRY(14)
+          MWSIZE3D(I,J,L,3) = RDRY(14)
        ENDIF
     ENDDO
     ENDDO
@@ -2482,9 +2504,6 @@ CONTAINS
     REAL*8,  PARAMETER   :: YCH4  = 1.65d-6        ! mol/mol
     REAL*8,  PARAMETER   :: YO2   = 2.09d-1        ! mol/mol
 
-    ! Make a pointer to the tracer array
-    REAL*8, POINTER :: Spc(:,:,:,:)
-
     INTEGER :: IDO3                 !
     INTEGER :: id_O3                ! O3 in g.mol ??
     INTEGER :: id_CO                !
@@ -2492,9 +2511,6 @@ CONTAINS
     RC = GC_SUCCESS
 
     LEV = State_Grid%NZ+1
-
-    ! Point to Spc
-    Spc => State_Chm%Species
 
     WRITE(6,*)'    - APM RADF_DRIV  '
 
@@ -2769,12 +2785,12 @@ CONTAINS
 
           ! convert O3 and CO from kg/box to g/g and then to volume mixing ratio
           ! and then to #/cm2
-          WKL(3,L)= Spc(I,J,L,id_O3)/State_Met%AD(I,J,L) &
+          WKL(3,L)= State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)/State_Met%AD(I,J,L) &
                     *MAIR/48.0d-3 * AIRD(L)
 
           WKL(4,L)= YN2O * AIRD(L)
           ! CO
-          WKL(5,L)= Spc(I,J,L,id_CO)/State_Met%AD(I,J,L) &
+          WKL(5,L)= State_Chm%SpeciesVec(id_CO)%Conc(I,J,L)/State_Met%AD(I,J,L) &
                     *MAIR/28.0d-3 * AIRD(L)
 
           WKL(6,L)= YCH4 * AIRD(L)
@@ -3056,9 +3072,6 @@ CONTAINS
     FLUSH(890)
     FLUSH(891)
     FLUSH(1001)
-
-    ! Clear the pointer
-    Spc => NULL()
 
   END SUBROUTINE APM_RADFDRIV
 !EOC
@@ -3688,14 +3701,8 @@ CONTAINS
     INTEGER :: I,J,L,N,SIZENUM
     REAL*8  :: XMATEMP
 
-    ! Make a pointer to the tracer array
-    REAL*8, POINTER :: Spc(:,:,:,:)
-
     ! Initialize
     RC = GC_SUCCESS
-
-    ! Point to Spc
-    Spc => State_Chm%Species
 
     XN4D = 0.D0
 
@@ -3710,7 +3717,7 @@ CONTAINS
        ! Should we put the N loop on the outside?
        DO N = 1, NSO4
           SIZENUM =APMIDS%id_SO4BIN1+N-1 !Luodebug
-          XMATEMP=Spc(I,J,L,SIZENUM) / State_Met%AIRVOL(I,J,L)
+          XMATEMP=State_Chm%SpeciesVec(SIZENUM)%Conc(I,J,L) / State_Met%AIRVOL(I,J,L)
           XMATEMP= MAX( 1.d-40, XMATEMP)
           XN4D(I,J,L,N)=XMATEMP/(DENSULF*VDRY(N))*1.E-9 !XN4D in #/cm3, VDRY in m3
        ENDDO
@@ -3719,9 +3726,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Clear the pointer
-    Spc => NULL()
 
   END SUBROUTINE AERONUM
 !EOC
@@ -5195,8 +5199,8 @@ CONTAINS
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
-!  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%SpeciesVec%Conc
+!  (for coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !\\
 !\\
@@ -5242,10 +5246,10 @@ CONTAINS
        ! Coupled simulation
        !---------------------
 
-       ! Take OH from State_Chm%Species [molec/cm3]
+       ! Take OH from State_Chm%SpeciesVec%Conc [molec/cm3]
        ! OH is defined only in the chemistry grid
        IF ( State_Met%InChemGrid(I,J,L) ) THEN
-          OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH)
+          OH_MOLEC_CM3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L)
        ELSE
           OH_MOLEC_CM3 = 0e+0_fp
        ENDIF

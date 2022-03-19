@@ -59,6 +59,13 @@ MODULE Species_Mod
   END TYPE SpcPtr
 
   !=========================================================================
+  ! Type for single species concentrations
+  !=========================================================================
+  TYPE, PUBLIC :: SpcConc
+     REAL(fp), POINTER :: Conc(:,:,:)
+  END TYPE SpcConc
+
+  !=========================================================================
   ! Type for individual species information
   ! (i.e. this is a single entry in the Species Database)
   !=========================================================================

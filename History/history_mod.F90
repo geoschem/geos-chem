@@ -1631,7 +1631,7 @@ CONTAINS
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
 
-                   ! Create the a HISTORY ITEM object for this diagnostic
+                  ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
                    CALL History_AddItemToCollection(                         &
                             Input_Opt    = Input_Opt,                        &
@@ -2885,7 +2885,7 @@ CONTAINS
        !====================================================================
        IF ( DoClose ) THEN
 
-          ! Save the units of State_Chm%Species in the container,
+          ! Save the units of State_Chm%SpeciesVec(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
           TmpUnits            = Spc_Units

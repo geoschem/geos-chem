@@ -109,7 +109,7 @@ CONTAINS
   subroutine vdiff( lat,        ip,        uwnd,       vwnd,                 &
                     tadv,       pmid,      pint,       rpdel_arg,            &
                     rpdeli_arg, ztodt,     zm_arg,     shflx_arg,            &
-                    sflx,       thp_arg,   as2,        pblh_arg,             &
+                    sflx,       thp_arg,   pblh_arg,                         &
                     kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,            &
                     cgs_arg,    shp,       wvflx_arg,  plonl,                &
                     Input_Opt,  State_Met, State_Chm,  State_Diag,           &
@@ -150,7 +150,6 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     real(fp), intent(inout) :: &
-         as2(:,:,:,:),       &     ! moist, tracers after vert. diff
          shp(:,:,:),         &     ! specific humidity (kg/kg)
          thp_arg(:,:,:)            ! pot temp after vert. diffusion
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
@@ -276,7 +275,6 @@ CONTAINS
     real(fp) :: pblh(plonl)             ! boundary-layer height [m]
 
     real(fp) :: qp0(plonl,plev,nspcmix) ! To store initial concentration values
-                                        ! (as2)
 
     real(fp) :: sum_qp0, sum_qp1        ! Jintai Lin 20180809
 
@@ -307,8 +305,6 @@ CONTAINS
     shflx  = shflx_arg(:,lat)
     cflx   = sflx(:,lat,:)
     wvflx  = wvflx_arg(:,lat)
-    qp1    = as2(:,lat,:,:)
-    qp0    = as2(:,lat,:,:)
     shp1   = shp(:,lat,:)
     thp    = thp_arg(:,lat,:)
     kvh    = kvh_arg(:,lat,:)
@@ -321,6 +317,22 @@ CONTAINS
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
     IF (PRESENT(tauy_arg )) tauy  = tauy_arg(:,lat)
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
+
+    ! Set initial species concentrations
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED )  &
+!$OMP PRIVATE( M, I, L ) 
+    DO M = 1, nspcmix
+    DO I = 1, plonl
+    DO L = 1, plev
+       qp1(I,L,M) = State_Chm%SpeciesVec(M)%Conc(I,lat,plev-L+1)
+       qp0(I,L,M) = State_Chm%SpeciesVec(M)%Conc(I,lat,plev-L+1)
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+
+! resume...
 
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
@@ -674,7 +686,6 @@ CONTAINS
 	         termh, thp, plonl )
 
     !Output values from local variables to arguments.(ccc, 11/17/09)
-    as2(:,lat,:,:)   = qp1
     shp(:,lat,:)     = shp1
     thp_arg(:,lat,:) = thp
     kvh_arg(:,lat,:) = kvh
@@ -687,6 +698,19 @@ CONTAINS
     IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar
+
+    ! Set species concentrations
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED )  &
+!$OMP PRIVATE( M, I, L ) 
+    DO M = 1, nspcmix
+    DO I = 1, plonl
+    DO L = 1, plev
+       State_Chm%SpeciesVec(M)%Conc(I,lat,L) = qp1(I,plev-L+1,M)
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
 
   end subroutine vdiff
 !EOC
@@ -1806,7 +1830,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-    USE MERCURY_MOD,        ONLY : HG_EMIS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
@@ -1883,7 +1906,6 @@ CONTAINS
     REAL(fp), POINTER   :: p_cgs   (:,:,:  )
     REAL(fp), POINTER   :: p_shp   (:,:,:  )
     REAL(fp), POINTER   :: p_t1    (:,:,:  )
-    REAL(fp), POINTER   :: p_as2   (:,:,:,:)
 
     ! For error trapping
     CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -1984,11 +2006,11 @@ CONTAINS
     p_kvh    => kvh                (:, :, State_Grid%NZ+1:1:-1           )
     p_kvm    => kvm                (:, :, State_Grid%NZ+1:1:-1           )
     p_cgs    => cgs                (:, :, State_Grid%NZ+1:1:-1           )
-    p_as2    => State_Chm%Species  (:, :, State_Grid%NZ  :1:-1, 1:nAdvect)
-    
+
+
     ! Convert v/v -> m/m (i.e., kg/kg)
     DO NA = 1, nAdvect
-       p_as2(:,:,:,NA) = p_as2(:,:,:,NA)                                     &
+       State_Chm%SpeciesVec(NA)%Conc(:,:,:) = State_Chm%SpeciesVec(NA)%Conc(:,:,:)                                     &
                        / ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
     ENDDO
 
@@ -2005,7 +2027,7 @@ CONTAINS
        CALL Vdiff( J,                 1,         p_um1,     p_vm1,           &
                    p_tadv,            p_pmid,    p_pint,    p_rpdel,         &
                    p_rpdeli,          dtime,     p_zm,      p_hflux,         &
-                   p_sflx,            p_thp,     p_as2,     p_pblh,          &
+                   p_sflx,            p_thp,     p_pblh,                     &
                    p_kvh,             p_kvm,     tpert,     qpert,           &
                    p_cgs,             p_shp,     shflx,     State_Grid%NX,   &
                    Input_Opt,         State_Met, State_Chm, State_Diag,      &
@@ -2018,7 +2040,7 @@ CONTAINS
 
     ! Convert kg/kg -> v/v
     DO NA = 1, nAdvect
-       p_as2(:,:,:,NA) = p_as2(:,:,:,NA)                                     &
+       State_Chm%SpeciesVec(NA)%Conc(:,:,:) = State_Chm%SpeciesVec(NA)%Conc(:,:,:)                                     &
                        * ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
     ENDDO
 
@@ -2042,7 +2064,6 @@ CONTAINS
     p_kvh    => NULL()
     p_kvm    => NULL()
     p_cgs    => NULL()
-    p_as2    => NULL()
 
     !### Debug
     IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
@@ -2118,7 +2139,7 @@ CONTAINS
     CHARACTER(LEN=255) :: thisLoc
 
     !=======================================================================
-    ! DO_PBL_MIX_2 begins here!
+    ! DO_VDIFF begins here!
     !=======================================================================
 
     ! Initialize
@@ -2238,7 +2259,7 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
+       ErrMsg = 'Error encountred in "Convert_Spc_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

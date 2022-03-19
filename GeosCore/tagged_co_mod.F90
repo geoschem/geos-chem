@@ -96,6 +96,7 @@ CONTAINS
     USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AVO
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -167,10 +168,10 @@ CONTAINS
     REAL(fp) :: PCO_NMVOC  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
 
     ! Pointers
-    REAL(fp),        POINTER :: AD    (:,:,:  )
-    REAL(fp),        POINTER :: AIRVOL(:,:,:  )
-    REAL(fp),        POINTER :: Spc   (:,:,:,:)
-    REAL(fp),        POINTER :: T     (:,:,:  )
+    REAL(fp),        POINTER :: AD    (:,:,:)
+    REAL(fp),        POINTER :: AIRVOL(:,:,:)
+    REAL(fp),        POINTER :: T     (:,:,:)
+    TYPE(SpcConc),   POINTER :: Spc   (:    )
 
     ! SAVED scalars
     LOGICAL,   SAVE          :: FIRST = .TRUE.
@@ -223,7 +224,7 @@ CONTAINS
     ! Initialize pointers
     AD        => State_Met%AD
     AIRVOL    => State_Met%AIRVOL
-    Spc       => State_Chm%Species
+    Spc       => State_Chm%SpeciesVec
     T         => State_Met%T
 
     ! Get the molecular weight of CO [kg/mol] from the species database
@@ -464,7 +465,7 @@ CONTAINS
        STTCO = 1.0_fp  / AIRVOL(I,J,L) / 1e+6_fp / FMOL_CO * AVO
 
        ! GCO is CO concentration in [molec CO/cm3]
-       GCO   = Spc(I,J,L,1) * STTCO
+       GCO   = Spc(1)%Conc(I,J,L) * STTCO
 
        ! Number density of air [molec air/cm3]
        DENS  = State_Met%AIRNUMDEN(I,J,L)
@@ -811,18 +812,24 @@ CONTAINS
        !==============================================================
        IF ( LSPLIT ) THEN
           IF ( IDch4 >= 0 ) &
-               Spc(I,J,L,IDch4) = Spc(I,J,L,IDch4) + CO_CH4   / STTCO
+               Spc(IDch4)%Conc(I,J,L) = &
+                       Spc(IDch4)%Conc(I,J,L) + CO_CH4 / STTCO
           IF ( IDnmvoc >= 0 ) &
-               Spc(I,J,L,IDnmvoc) = Spc(I,J,L,IDnmvoc) + CO_NMVOC /STTCO
+               Spc(IDnmvoc)%Conc(I,J,L) = &
+                       Spc(IDnmvoc)%Conc(I,J,L) + CO_NMVOC /STTCO
           IF (.not. LPCO_NMVOC) THEN
              IF ( IDisop >= 0 ) &
-                  Spc(I,J,L,IDisop) = Spc(I,J,L,IDisop) + CO_ISOP /STTCO
+                  Spc(IDisop)%Conc(I,J,L) = &
+                       Spc(IDisop)%Conc(I,J,L) + CO_ISOP /STTCO
              IF ( IDmono >= 0 ) &
-                  Spc(I,J,L,IDmono) = Spc(I,J,L,IDmono) + CO_MONO /STTCO
+                  Spc(IDmono)%Conc(I,J,L) = &
+                       Spc(IDmono)%Conc(I,J,L) + CO_MONO /STTCO
              IF ( IDch3oh >= 0 ) &
-                  Spc(I,J,L,IDch3oh) = Spc(I,J,L,IDch3oh)+CO_CH3OH/STTCO
+                  Spc(IDch3oh)%Conc(I,J,L) = &
+                       Spc(IDch3oh)%Conc(I,J,L)+CO_CH3OH/STTCO
              IF ( IDacet >= 0 ) &
-                  Spc(I,J,L,IDacet) = Spc(I,J,L,IDacet) + CO_ACET /STTCO
+                  Spc(IDacet)%Conc(I,J,L) = &
+                       Spc(IDacet)%Conc(I,J,L) + CO_ACET /STTCO
           ENDIF
        ENDIF
 
@@ -880,22 +887,22 @@ CONTAINS
 
                 !Units: [kg/s]
                 IF ( State_Diag%Archive_Loss ) THEN
-                   State_Diag%Loss(I,J,L,N) = ( CORATE * Spc(I,J,L,N) )
+                   State_Diag%Loss(I,J,L,N) = ( CORATE * Spc(N)%Conc(I,J,L) )
                 ENDIF
 
                 ! Loss
-                Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
+                Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) * ( 1.0_fp - CO_OH )
 
                 ! Species shouldn't be less than zero
-                IF ( Spc(I,J,L,N) < 0.0_fp ) THEN
-                   Spc(I,J,L,N) = 0.0_fp
+                IF ( Spc(N)%Conc(I,J,L) < 0.0_fp ) THEN
+                   Spc(N)%Conc(I,J,L) = 0.0_fp
                 ENDIF
 
                 ! Error check
                 ERR_LOC = (/ I, J, L, N /)
-                ERR_VAR = 'Spc (points to State_Chm%Species)'
+                ERR_VAR = 'Spc(N)%Conc (points to State_Chm%SpeciesVec)'
                 ERR_MSG = 'STOP at tagged_co_mod:7'
-                CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC, ERR_VAR, ERR_MSG )
+                CALL CHECK_VALUE( Spc(N)%Conc(I,J,L), ERR_LOC, ERR_VAR, ERR_MSG )
 
              ENDDO
           ENDIF
@@ -1004,18 +1011,18 @@ CONTAINS
                 IF ( State_Diag%Archive_Loss ) THEN
                    State_Diag%Loss(I,J,L,N) = ( KRATE &
                                               *   OH_MOLEC_CM3 &
-                                              *   Spc(I,J,L,N) )
+                                              *   Spc(N)%Conc(I,J,L) )
                 ENDIF
 
                 ! Use tropospheric rate constant
-                Spc(I,J,L,N) = Spc(I,J,L,N) * &
+                Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) * &
                                ( 1e+0_fp - KRATE * OH_MOLEC_CM3 * DTCHEM )
 
                 ! Error check
                 ERR_LOC = (/ I, J, L, N /)
-                ERR_VAR = 'Spc (points to State_Chm%Species)'
+                ERR_VAR = 'Spc(N)%Conc (points to State_Chm%Species)'
                 ERR_MSG = 'STOP at tagged_co_mod:8'
-                CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC, ERR_VAR, ERR_MSG )
+                CALL CHECK_VALUE( Spc(N)%Conc(I,J,L), ERR_LOC, ERR_VAR, ERR_MSG )
              ENDDO
           ENDIF
 
@@ -1023,7 +1030,7 @@ CONTAINS
 
        !==============================================================
        ! Save the total chemical production from various sources
-       ! into the total CO species Spc(I,J,L,1)
+       ! into the total CO species Spc(1)%Conc(I,J,L)
        !==============================================================
 
        ! GCO is the total CO before chemistry was applied [molec CO/cm3]
@@ -1032,7 +1039,7 @@ CONTAINS
 
        ! Convert net CO from [molec CO/cm3] to [kg] and store in
        ! State_Chm%Species
-       Spc(I,J,L,1) = GCO / STTCO
+       Spc(1)%Conc(I,J,L) = GCO / STTCO
 
        !==============================================================
        ! HISTORY (aka netCDF diagnostics)

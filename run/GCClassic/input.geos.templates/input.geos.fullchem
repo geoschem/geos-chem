@@ -1,28 +1,28 @@
 ------------------------+------------------------------------------------------
 %%% SIMULATION MENU %%% :
-Start YYYYMMDD, hhmmss  : {DATE1} {TIME1}
-End   YYYYMMDD, hhmmss  : {DATE2} {TIME2}
+Start YYYYMMDD, hhmmss  : ${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}
+End   YYYYMMDD, hhmmss  : ${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}
 Run directory           : ./
-Root data directory     : {DATA_ROOT}
-Met field               : {MET}
-Simulation name         : {SIM}
+Root data directory     : ${RUNDIR_DATA_ROOT}
+Met field               : ${RUNDIR_MET}
+Simulation name         : ${RUNDIR_SIM_NAME}
 Species database file   : ./species_database.yml
 Turn on debug printout? : F
-Use GC classic timers?  : F
+Use GC classic timers?  : ${RUNDIR_USE_GCCLASSIC_TIMERS}
 ------------------------+------------------------------------------------------
 %%% GRID MENU %%%       :
-Grid resolution         : {RES}
-Longitude min/max       : {LON_RANGE}
- Center on 180E/W?      : {CENTER_180}
-Latitude  min/max       : {LAT_RANGE}
- Half-sized polar boxes?: {HALF_POLAR}
-Number of levels        : {NLEV}
-Nested grid simulation? : {NESTED_SIM}
- Buffer zone (N S E W ) :  {BUFFER_ZONE}
+Grid resolution         : ${RUNDIR_GRID_RES_LONG}
+Longitude min/max       : ${RUNDIR_GRID_LON_RANGE}
+ Center on 180E/W?      : ${RUNDIR_CENTER_LON_180}
+Latitude  min/max       : ${RUNDIR_GRID_LAT_RANGE}
+ Half-sized polar boxes?: ${RUNDIR_GRID_HALF_POLAR}
+Number of levels        : ${RUNDIR_GRID_NLEV}
+Nested grid simulation? : ${RUNDIR_GRID_NESTED_SIM}
+ Buffer zone (N S E W ) : ${RUNDIR_GRID_BUFFER_ZONE}
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
-Tran/conv timestep [sec]: 600
-Chem/emis timestep [sec]: 1200
+Tran/conv timestep [sec]: ${RUNDIR_TRANSPORT_TS}
+Chem/emis timestep [sec]: ${RUNDIR_CHEMISTRY_TS}
 ------------------------+------------------------------------------------------
 %%% ADVECTED SPECIES MENU %%%:
 Species name            : ACET
@@ -254,21 +254,21 @@ Turn on Transport       : T
 %%% CONVECTION MENU %%% :
 Turn on Cloud Conv?     : T
 Turn on PBL Mixing?     : T
- => Use non-local PBL?  : T
+ => Use non-local PBL?  : ${RUNDIR_USE_NLPBL}
 ------------------------+------------------------------------------------------
 %%% AEROSOL MENU %%%    :
 Online SULFATE AEROSOLS : T
  => Metal cat. SO2 ox.? : T
 Online CARBON  AEROSOLS : T
  => Use Brown Carbon?   : F
-Online COMPLEX SOA      : F
- => Semivolatile POA?   : F
+Online COMPLEX SOA      : ${RUNDIR_COMPLEX_SOA}
+ => Semivolatile POA?   : ${RUNDIR_SVPOA}
 Online DUST    AEROSOLS : T
- => Acidic uptake ?     : F
+ => Acidic uptake ?     : ${RUNDIR_ACID_UPTAKE}
 Online SEASALT AEROSOLS : T
  => SALA radius bin [um]: 0.01 0.5
  => SALC radius bin [um]: 0.5  8.0
- => MARINE ORG AEROSOLS : F
+ => MARINE ORG AEROSOLS : ${RUNDIR_MARINE_POA}
 Settle strat. aerosols  : T
 Online PSC AEROSOLS     : T
 Allow homogeneous NAT?  : F
@@ -300,21 +300,21 @@ Use linear. chem aloft? : T
 Use active strat. H2O?  : T
 Use static H2O BC?      : T
 Overhead O3 for FAST-JX :---
- => Online O3 from model: T
+ => Online O3 from model: ${RUNDIR_USE_ONLINE_O3}
  => O3 from met fields  : T
  => TOMS/SBUV O3        : F
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550
-Turn on RRTMG?          : F
-Calculate LW fluxes?    : F
-Calculate SW fluxes?    : F
-Clear-sky flux?         : F
-All-sky flux?           : F
+Turn on RRTMG?          : ${RUNDIR_RRTMG_OPTS}
+Calculate LW fluxes?    : ${RUNDIR_RRTMG_OPTS}
+Calculate SW fluxes?    : ${RUNDIR_RRTMG_OPTS}
+Clear-sky flux?         : ${RUNDIR_RRTMG_OPTS}
+All-sky flux?           : ${RUNDIR_RRTMG_OPTS}
 Radiation Timestep [sec]: 10800
 ------------------------+------------------------------------------------------
 %%% OBSPACK MENU %%%    :

@@ -1,0 +1,106 @@
+#INTEGRATOR rosenbrock
+#LANGUAGE Fortran90
+#DRIVER none
+#HESSIAN off
+#MEX off
+#STOICMAT off
+
+#INCLUDE Hg.eqn
+
+#INLINE F90_RATES
+  ! All rates are included in Hg_RateLawFuncs.F90, which
+  ! gets referenced directly from subroutine Update_Rconst.
+#ENDINLINE
+
+#INLINE F90_RCONST
+  ! Inline an include file containing rate law definitions, which
+  ! will be inserted directly into subroutine Update_Rconst().
+  ! This is necessary as a workaround for KPP not being able to
+  ! include very large files ( > 200000 chars) directly.
+  !  -- Bob Yantosca (09 Dec 2021)
+  USE Hg_RateLawFuncs
+#ENDINLINE
+
+#INLINE F90_GLOBAL
+
+  ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
+  ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
+  REAL(dp), PARAMETER :: CON_R = 0.083144598_dp
+
+  !--------------------------------------------------------------------------
+  ! Additional global variables -- will be added to gckpp_Global.F90
+  !--------------------------------------------------------------------------
+
+  ! Inverse of temperature [1/K]
+  REAL(dp) :: INV_TEMP
+  !$OMP THREADPRIVATE( INV_TEMP )
+
+  ! Array for photolysis species
+  REAL(dp) :: PHOTOL(27)
+  !$OMP THREADPRIVATE( PHOTOL )
+
+  ! Hetchem State object
+  TYPE, PUBLIC :: HetState
+     LOGICAL  :: cloudBox       ! Are we in a cloudy grid box?
+     LOGICAL  :: debugBox       ! Are we in a debugging box?
+     REAL(dp) :: aIce           ! Ice surface area [cm2/cm3]
+     REAL(dp) :: aLiq           ! Liquid surface area [cm2/cm3]
+     REAL(dp) :: cldFr          ! Cloud fraction
+     REAL(dp) :: clearFr        ! Clear sky fraction
+     REAL(dp) :: fracOrgAer     ! Hg2 fraction forming organic aerosol [1]
+     REAL(dp) :: fracInorgAer   ! Hg2 fraction forming inorganic aerosol [1]
+     REAL(dp) :: qIce           ! Ice mixing ratio [kg/kg]
+     REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
+     REAL(dp) :: rIce           ! Ice radius
+     REAL(dp) :: rLiq           ! Liquid radius
+     REAL(dp) :: vAir           ! Volume of air [cm3]
+     REAL(dp) :: vIce           ! Ice volume [cm3]
+     REAL(dp) :: vLiq           ! Liquid volume [cm3]
+  END TYPE HetState
+  TYPE(HetState), TARGET, PUBLIC :: State_Het
+  !$OMP THREADPRIVATE( State_Het )
+
+  !--------------------------------------------------------------------------
+  ! NOTE: These global variables are required in order to compile the
+  ! various fullchem mechanism interface files (such as fullchem_mod.F90),
+  ! but otherwise are not used by the Hg chemistry mechanism.
+  !   -- Bob Yantosca (13 Jan 2022)
+  !--------------------------------------------------------------------------
+
+  ! 8.0 * RSTARG * TEMP
+  REAL(dp) :: EIGHT_RSTARG_T
+  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
+
+  ! 4.0 * CON_R * TEMP
+  REAL(dp) :: FOUR_R_T
+  !$OMP THREADPRIVATE( FOUR_R_T )
+
+  ! 4.0 * RGASLATM * TEMP
+  REAL(dp) :: FOUR_RGASLATM_T
+  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
+
+  ! H2O concentration
+  REAL(dp) :: H2O
+  !$OMP THREADPRIVATE( H2O )
+
+  ! Henry's law constants (do not need to be THREADPRIVATE)
+  REAL(dp) :: HENRY_K0(NSPEC)
+  REAL(dp) :: HENRY_CR(NSPEC)
+
+  ! Array for aqueous sulfur chemistry rates (1/s)
+  REAL(dp) :: K_MT(6)
+  !$OMP THREADPRIVATE( K_MT )
+
+  ! Array for sulfur chemistry rates in cloud (1/s)
+  REAL(dp) :: K_CLD(6)
+  !$OMP THREADPRIVATE( K_CLD )
+
+  ! Pressure and relative humidity
+  REAL(dp) :: PRESS
+  REAL(dp) :: RELHUM
+  !$OMP THREADPRIVATE( PRESS, RELHUM )
+
+  ! Cosine of solar zenith angle
+  REAL(dp) :: SUNCOS
+  !$OMP THREADPRIVATE( SUNCOS )
+#ENDINLINE

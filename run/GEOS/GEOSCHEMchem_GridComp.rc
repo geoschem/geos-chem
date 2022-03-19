@@ -197,6 +197,7 @@ Use_GMI_O3_PL:        0
 # first time slice on file if file is found but the current time stamp is not on file.
 Use_ANA_O3: 0
 ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
+ANAO3INC: 0
 ANAO3VAR: O3
 ANAO3VARUNIT: kg/kg
 ANAO3FREQ: 3
@@ -211,6 +212,15 @@ ANAO3L4: 72
 ANAO3FR: 0.2
 Use_PCHEM_O3: 0
 ERROR_MODE: 1
+
+# For NO2 analysis
+Use_ANA_NO2: 0
+ANANO2TMPL: ana_no2.after_gsi.%y4%m2%d2_%h200z.nc4
+ANANO2FWD: 1
+ANANO2INC: 0
+Update_NO: 1
+Use_NO2_obshour: 1
+ANANO2_TROPONLY: 0
 
 #
 # NOx lightning met inputs
