@@ -216,18 +216,6 @@ EmisEOH_Ship       EOH    0      10  -1   2   kg/m2/s  EOH_emission_flux_from_sh
 EmisETNO3_Ocean    ETNO3  101    -1  -1   2   kg/m2/s  ETNO3_emission_flux_from_ocean
 
 ###############################################################################
-#####  HAC emissions                                                     #####
-###############################################################################
-EmisHAC_Total      HAC    -1     -1  -1   3   kg/m2/s  HAC_emission_flux_from_all_sectors
-EmisHAC_Anthro     HAC    0      1   -1   3   kg/m2/s  HAC_emission_flux_from_anthropogenic
-
-###############################################################################
-#####  HCl emissions                                                      #####
-###############################################################################
-EmisHCl_Total      HCl    -1     -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
-EmisHCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
-
-###############################################################################
 #####  GLYC emissions                                                     #####
 ###############################################################################
 EmisGLYC_Total     GLYC   -1     -1  -1   3   kg/m2/s  GLYC_emission_flux_from_all_sectors
@@ -239,6 +227,23 @@ EmisGLYC_Anthro    GLYC   0      1   -1   3   kg/m2/s  GLYC_emission_flux_from_a
 # Zero for now, so comment out
 #EmisGLYX_Total     GLYX   -1     -1  -1   3   kg/m2/s  GLYX_emission_flux_from_all_sectors
 #EmisGLYX_Anthro    GLYX   0      1   -1   3   kg/m2/s  GLYX_emission_flux_from_anthropogenic
+
+###############################################################################
+#####  H2O emissions                                                      #####
+###############################################################################
+EmisH2O_Aircraft   H2O    0      20  -1   3   kg/m2/s  H2O_emission_flux_from_aircraft
+
+###############################################################################
+#####  HAC emissions                                                      #####
+###############################################################################
+EmisHAC_Total      HAC    -1     -1  -1   3   kg/m2/s  HAC_emission_flux_from_all_sectors
+EmisHAC_Anthro     HAC    0      1   -1   3   kg/m2/s  HAC_emission_flux_from_anthropogenic
+
+###############################################################################
+#####  HCl emissions                                                      #####
+###############################################################################
+EmisHCl_Total      HCl    -1     -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
+EmisHCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
 
 ###############################################################################
 #####  HCOOH sources                                                      #####
@@ -256,6 +261,11 @@ EmisHNO2_Anthro    HNO2   0      1   -1   3   kg/m2/s  HNO2_emission_flux_from_a
 #####  HNO3 emissions                                                     #####
 ###############################################################################
 EmisHNO3_Ship      HNO3   102    -1  -1   2   kg/m2/s  HNO3_emission_flux_from_ships
+
+###############################################################################
+#####  HONO emissions                                                     #####
+###############################################################################
+EmisHONO_Aircraft  HONO   0      20  -1   3   kg/m2/s  HONO_emission_flux_from_aircraft
 
 ###############################################################################
 #####  ISOP emissions                                                     #####
@@ -358,7 +368,9 @@ EmisNO_Soil        NO     0      3   -1   2   kg/m2/s  NO_emission_flux_from_soi
 ###############################################################################
 #####  NO2 emissions                                                      #####
 ###############################################################################
+EmisNO2_Total      NO2    -1     -1  -1   3   kg/m2/s  NO2_emission_flux_from_all_sectors
 EmisNO2_Anthro     NO2    0      1   -1   3   kg/m2/s  NO2_emission_flux_from_anthropogenic
+EmisNO2_Aircraft   NO2    0      20  -1   3   kg/m2/s  NO2_emission_flux_from_aircraft
 EmisNO2_Ship       NO2    102    -1  -1   2   kg/m2/s  NO2_emission_flux_from_ships
 
 ###############################################################################
@@ -708,22 +720,24 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 # AEIC
 #=============================
-#InvAEIC_ACET         ACET   0    20  1   3   kg/m2/s  ACET_emission_flux_from_AEIC_inventory
-#InvAEIC_ALD2         ALD2   0    20  1   3   kg/m2/s  ALD2_emission_flux_from_AEIC_inventory
-#InvAEIC_ALK4         ALK4   0    20  1   3   kg/m2/s  ALK4_emission_flux_from_AEIC_inventory
-#InvAEIC_BCPI         BCPI   0    20  1   3   kg/m2/s  BCPI_emission_flux_from_AEIC_inventory
-#InvAEIC_C2H6         C2H6   0    20  1   3   kg/m2/s  C2H6_emission_flux_from_AEIC_inventory
-#InvAEIC_C3H8         C3H8   0    20  1   3   kg/m2/s  C3H8_emission_flux_from_AEIC_inventory
-#InvAEIC_CH2O         CH2O   0    20  1   3   kg/m2/s  CH2O_emission_flux_from_AEIC_inventory
-#InvAEIC_CO           CO     0    20  1   3   kg/m2/s  CO_emission_flux_from_AEIC_inventory
-#InvAEIC_MACR         MACR   0    20  1   3   kg/m2/s  MACR_emission_flux_from_AEIC_inventory
-#InvAEIC_NO           NO     0    20  1   3   kg/m2/s  NO_emission_flux_from_AEIC_inventory
-#InvAEIC_OCPI         OCPI   0    20  1   3   kg/m2/s  OCPI_emission_flux_from_AEIC_inventory
-#InvAEIC_PRPE         PRPE   0    20  1   3   kg/m2/s  PRPE_emission_flux_from_AEIC_inventory
-#InvAEIC_RCHO         RCHO   0    20  1   3   kg/m2/s  RCHO_emission_flux_from_AEIC_inventory
-#InvAEIC_SO2          SO2    0    20  1   3   kg/m2/s  SO2_emission_flux_from_AEIC_inventory
-#InvAEIC_SO4          SO4    0    20  1   3   kg/m2/s  SO4_emission_flux_from_AEIC_inventory
-#InvAEIC_SOAP         SOAP   0    20  1   3   kg/m2/s  SOAP_emission_flux_from_AEIC_inventory
+#InvAEIC2019_ACET         ACET   0    20  1   3   kg/m2/s  ACET_emission_flux_from_AEIC_inventory
+#InvAEIC2019_ALD2         ALD2   0    20  1   3   kg/m2/s  ALD2_emission_flux_from_AEIC_inventory
+#InvAEIC2019_ALK4         ALK4   0    20  1   3   kg/m2/s  ALK4_emission_flux_from_AEIC_inventory
+#InvAEIC2019_BCPI         BCPI   0    20  1   3   kg/m2/s  BCPI_emission_flux_from_AEIC_inventory
+#InvAEIC2019_C2H6         C2H6   0    20  1   3   kg/m2/s  C2H6_emission_flux_from_AEIC_inventory
+#InvAEIC2019_C3H8         C3H8   0    20  1   3   kg/m2/s  C3H8_emission_flux_from_AEIC_inventory
+#InvAEIC2019_CH2O         CH2O   0    20  1   3   kg/m2/s  CH2O_emission_flux_from_AEIC_inventory
+#InvAEIC2019_CO           CO     0    20  1   3   kg/m2/s  CO_emission_flux_from_AEIC_inventory
+#InvAEIC2019_HONO         HONO   0    20  1   3   kg/m2/s  HONO_emission_flux_from_AEIC_inventory
+#InvAEIC2019_MACR         MACR   0    20  1   3   kg/m2/s  MACR_emission_flux_from_AEIC_inventory
+#InvAEIC2019_NO           NO     0    20  1   3   kg/m2/s  NO_emission_flux_from_AEIC_inventory
+#InvAEIC2019_NO2          NO2    0    20  1   3   kg/m2/s  NO2_emission_flux_from_AEIC_inventory
+#InvAEIC2019_OCPI         OCPI   0    20  1   3   kg/m2/s  OCPI_emission_flux_from_AEIC_inventory
+#InvAEIC2019_PRPE         PRPE   0    20  1   3   kg/m2/s  PRPE_emission_flux_from_AEIC_inventory
+#InvAEIC2019_RCHO         RCHO   0    20  1   3   kg/m2/s  RCHO_emission_flux_from_AEIC_inventory
+#InvAEIC2019_SO2          SO2    0    20  1   3   kg/m2/s  SO2_emission_flux_from_AEIC_inventory
+#InvAEIC2019_SO4          SO4    0    20  1   3   kg/m2/s  SO4_emission_flux_from_AEIC_inventory
+#InvAEIC2019_SOAP         SOAP   0    20  1   3   kg/m2/s  SOAP_emission_flux_from_AEIC_inventory
 
 #=============================
 # Decaying plants

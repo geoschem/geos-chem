@@ -76,21 +76,38 @@ Warnings:                    1
     --> DECAYING_PLANTS        :       true     # 1985
     --> AFCID                  :       true     # 2015
 # ----- AIRCRAFT EMISSIONS ----------------------------------------------------
-# There are two switches: AEIC2019 and AEIC_SCALE_1990_2019. Users can
-# specify the AEIC2019 inventory alone (i.e. set AEIC_SCALE_1990_2019 to
-# false) if they want to use a “best estimate” of aviation emission. This
-# could be important because simply scaling aviation emissions up and down
-# is rather nonphysical. If AEIC_SCALE_1990_2019 is set to true, then
-# aviation emissions for 1990 to 2019 are estimated by:
+# There are 3 switches:
 #
-#  1. Scaling ALL aviation emissions based on the growth in fuelburn from
-#     1990 to 2019* estimated by Lee et al. (2021); and
+#  1. AEIC_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#     this is not recommended due to the amount of computational overhead
+#     that will be incurred in regridding.  But this may be useful for
+#     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
 #
-#  2. Scaling aviation NOx emissions by an additional factor to reflect
-#     the changes in the NOx emissions index over the same period as
-#     reported by Lee et al. (2021).
+#  2. AEIC_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#     incur much less computational overhaead.  This options should suffice
+#     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
+#
+#  3. AEIC_SCALE_1990_2019: If "false", the AEIC 2019 data from the year
+#     2019 alone will be used.  This will yield a "best estimate" of
+#     aviation emisssion. This could be important because simply scaling
+#     aviation emissions up and down is rather nonphysical.  But if
+#     AEIC_SCALE_1990_2019 is set to true, then aviation emissions for
+#     1990 to 2019 are estimated by:
+#
+#     a. Scaling ALL aviation emissions based on the growth in fuelburn
+#        from 1990 to 2019* estimated by Lee et al. (2021); and
+#
+#     b. Scaling aviation NOx emissions by an additional factor to reflect
+#        the changes in the NOx emissions index over the same period as
+#        reported by Lee et al. (2021).
+#
+#     Recommended setting: "AEIC_SCALE_1990_2019: true"
 #
 # See additional notes in the AEIC scale factor section below.
+#------------------------------------------------------------------------------
+    --> AEIC2019_DAILY         :       false    # 2019 (daily data)
+    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
 #------------------------------------------------------------------------------
     --> AEIC2019               :       true     # 2019
     --> AEIC_SCALE_1990_2019   :       true     # Scale 1990-2019
@@ -223,7 +240,7 @@ Warnings:                    1
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr	Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 
@@ -2478,27 +2495,48 @@ Warnings:                    1
 # in order to get year-specific emissions.  See the notes in the AEIC2019
 # scale factor section below for more information.
 #==============================================================================
-(((AEIC2019
-0 AEIC19_NO   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc NO       2019/1-12/1-31/0 C xyz kg/m2/s NO   241/240     20 1
-0 AEIC19_NO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc NO2      2019/1-12/1-31/0 C xyz kg/m2/s NO2  241/240     20 1
-0 AEIC19_HONO $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc HONO     2019/1-12/1-31/0 C xyz kg/m2/s HNO2 241/240     20 1
-0 AEIC19_CO   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s CO   241         20 1
-0 AEIC19_SOAP -                                                             -        -                - -   -       SOAP 241/280     20 1
-0 AEIC19_SO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
-0 AEIC19_SO4  -                                                             -        -                - -   -       SO4  241/112     20 1
-0 AEIC19_H2O  -                                                             -        -                - -   -       H2O  241/120     20 1
-0 AEIC19_BCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
-0 AEIC19_OCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
-0 AEIC19_ACET $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc HC       2019/1-12/1-31/0 C xyz kg/m2/s ACET 241/114/101 20 1
-0 AEIC19_ALD2 -                                                             -        -                - -   -       ALD2 241/114/102 20 1
-0 AEIC19_ALK4 -                                                             -        -                - -   -       ALK4 241/114/103 20 1
-0 AEIC19_C2H6 -                                                             -        -                - -   -       C2H6 241/114/104 20 1
-0 AEIC19_C3H8 -                                                             -        -                - -   -       C3H8 241/114/105 20 1
-0 AEIC19_CH2O -                                                             -        -                - -   -       CH2O 241/114/106 20 1
-0 AEIC19_PRPE -                                                             -        -                - -   -       PRPE 241/114/107 20 1
-0 AEIC19_MACR -                                                             -        -                - -   -       MACR 241/114/108 20 1
-0 AEIC19_RCHO -                                                             -        -                - -   -       RCHO 241/114/109 20 1
-)))AEIC2019
+(((AEIC2019_DAILY
+0 AEIC19_DAILY_NO   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc NO       2019/1-12/1-31/0 C xyz kg/m2/s NO   241/240     20 1
+0 AEIC19_DAILY_NO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc NO2      2019/1-12/1-31/0 C xyz kg/m2/s NO2  241/240     20 1
+0 AEIC19_DAILY_HONO $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc HONO     2019/1-12/1-31/0 C xyz kg/m2/s HNO2 241/240     20 1
+0 AEIC19_DAILY_CO   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s CO   241         20 1
+0 AEIC19_DAILY_SOAP -                                                             -        -                - -   -       SOAP 241/280     20 1
+0 AEIC19_DAILY_SO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
+0 AEIC19_DAILY_SO4  -                                                             -        -                - -   -       SO4  241/112     20 1
+0 AEIC19_DAILY_H2O  -                                                             -        -                - -   -       H2O  241/120     20 1
+0 AEIC19_DAILY_BCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
+0 AEIC19_DAILY_OCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_DAILY_ACET $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc HC       2019/1-12/1-31/0 C xyz kg/m2/s ACET 241/114/101 20 1
+0 AEIC19_DAILY_ALD2 -                                                             -        -                - -   -       ALD2 241/114/102 20 1
+0 AEIC19_DAILY_ALK4 -                                                             -        -                - -   -       ALK4 241/114/103 20 1
+0 AEIC19_DAILY_C2H6 -                                                             -        -                - -   -       C2H6 241/114/104 20 1
+0 AEIC19_DAILY_C3H8 -                                                             -        -                - -   -       C3H8 241/114/105 20 1
+0 AEIC19_DAILY_CH2O -                                                             -        -                - -   -       CH2O 241/114/106 20 1
+0 AEIC19_DAILY_PRPE -                                                             -        -                - -   -       PRPE 241/114/107 20 1
+0 AEIC19_DAILY_MACR -                                                             -        -                - -   -       MACR 241/114/108 20 1
+0 AEIC19_DAILY_RCHO -                                                             -        -                - -   -       RCHO 241/114/109 20 1
+)))AEIC2019_DAILY
+(((AEIC2019_MONMEAN
+0 AEIC19_MONMEAN_NO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc NO       2019/1-12/1/0 C xyz kg/m2/s NO   241/240     20 1
+0 AEIC19_MONMEAN_NO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc NO2      2019/1-12/1/0 C xyz kg/m2/s NO2  241/240     20 1
+0 AEIC19_MONMEAN_HONO $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HONO     2019/1-12/1/0 C xyz kg/m2/s HNO2 241/240     20 1
+0 AEIC19_MONMEAN_CO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc CO       2019/1-12/1/0 C xyz kg/m2/s CO   241         20 1
+0 AEIC19_MONMEAN_SOAP -                                                                          -        -             - -   -       SOAP 241/280     20 1
+0 AEIC19_MONMEAN_SO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc FUELBURN 2019/1-12/1/0 C xyz kg/m2/s SO2  241/111     20 1
+0 AEIC19_MONMEAN_SO4  -                                                                          -        -             - -   -       SO4  241/112     20 1
+0 AEIC19_MONMEAN_H2O  -                                                                          -        -             - -   -       H2O  241/120     20 1
+0 AEIC19_MONMEAN_BCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc BC       2019/1-12/1/0 C xyz kg/m2/s BCPI 241         20 1
+0 AEIC19_MONMEAN_OCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc OC       2019/1-12/1/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_MONMEAN_ACET $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HC       2019/1-12/1/0 C xyz kg/m2/s ACET 241/114/101 20 1
+0 AEIC19_MONMEAN_ALD2 -                                                                          -        -             - -   -       ALD2 241/114/102 20 1
+0 AEIC19_MONMEAN_ALK4 -                                                                          -        -             - -   -       ALK4 241/114/103 20 1
+0 AEIC19_MONMEAN_C2H6 -                                                                          -        -             - -   -       C2H6 241/114/104 20 1
+0 AEIC19_MONMEAN_C3H8 -                                                                          -        -             - -   -       C3H8 241/114/105 20 1
+0 AEIC19_MONMEAN_CH2O -                                                                          -        -             - -   -       CH2O 241/114/106 20 1
+0 AEIC19_MONMEAN_PRPE -                                                                          -        -             - -   -       PRPE 241/114/107 20 1
+0 AEIC19_MONMEAN_MACR -                                                                          -        -             - -   -       MACR 241/114/108 20 1
+0 AEIC19_MONMEAN_RCHO -                                                                          -        -             - -   -       RCHO 241/114/109 20 1
+)))AEIC2019_MONMEAN
 
 #==============================================================================
 # --- Emissions from decaying plants ---
@@ -3918,7 +3956,7 @@ ${RUNDIR_TES_CLIM_N2O}
 #
 # See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
 #==============================================================================
-(((AEIC2019
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
 # Conversions from AEIC2019 inventory quantities to individual species
 101 AEICACET 3.693477e-3 - - - xy unitless 1
 102 AEICALD2 4.271822e-2 - - - xy unitless 1
@@ -3972,7 +4010,7 @@ ${RUNDIR_TES_CLIM_N2O}
 240 AC_EINOX  1.000000e+0 - -  - xy 1 1
 241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
 ))).not.AEIC_SCALE_1990_2019
-)))AEIC2019
+)))AEIC2019_DAILY.or.AEIC2019_MONMEAN
 
 (((CMIP6_AIRCRAFT
 # Conversions for SO2 to HCs taken from AEIC
