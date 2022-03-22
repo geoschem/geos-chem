@@ -108,9 +108,6 @@ Warnings:                    1
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
     --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
     --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
-#------------------------------------------------------------------------------
-    --> AEIC2019               :       true     # 2019
-    --> AEIC_SCALE_1990_2019   :       true     # Scale 1990-2019
 # ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
     --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
@@ -120,7 +117,7 @@ Warnings:                    1
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
-# ----- RCP FUTURE EMISSIONS ----------------------------------
+# ----- RCP FUTURE EMISSIONS --------------------------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
     --> RCP_60                 :       false    # 2005-2100
