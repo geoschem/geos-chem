@@ -2753,22 +2753,28 @@ CONTAINS
 
        ! Isolate H2SO4 for reaction with dust    tdf 3/6/2K9
        IF ( LDSTUP ) THEN
-          ! Compute gas phase SO4 production again, as in offline case
-          ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
-          M    = State_Met%AIRDEN(I,J,L) * F
-          KK   = K0 * M / Ki
-          F1   = ( 1.e+0_fp + ( LOG10( KK ) )**2 )**( -1 )
-          RK1  = ( K0 * M / ( 1.e+0_fp + KK ) ) * 0.6e+0_fp**F1 * &
-                   GET_OH( I, J, L, Input_Opt, State_Chm, State_Met)
-          RKT  =  RK1 * DTCHEM  ! [unitless] (bmy, 6/1/00)
-          SO20 = SO2_cd
-          H2SO4_cd = SO20 * ( 1.e+0_fp - EXP( -RKT ) )
+          H2SO4_cd = 0.0_fp
 
+          ! Safety check: only proceed if the Prod diagnostic is archived,
+          ! or else this will result in a segmentation fault (bmy, 22 Mar 2022)
+          IF ( State_Diag%Archive_Prod ) THEN
+
+             ! Compute gas phase SO4 production again, as in offline case
+             ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
+             M    = State_Met%AIRDEN(I,J,L) * F
+
+             ! Convert State_Diag%Prod from [molec/cm3/s] to [v/v/timestep].
+             ! Update by Shixian Zhai added by Bob Yantosca (22 Mar 2022)
+             ! See https://github.com/geoschem/geos-chem/discussions/874
+             KK       = State_Diag%Prod(I, J, L, id_PSO4)
+             H2SO4_cd = KK / M * DTCHEM        
+          ENDIF
+          
           !tdf Reset these constants to zero to avoid any problems below
-          M   = 0.e+0_fp
-          KK  = 0.e+0_fp
-          F1  = 0.e+0_fp
-          RK1 = 0.e+0_fp
+          M   = 0.0_fp
+          KK  = 0.0_fp
+          F1  = 0.0_fp
+          RK1 = 0.0_fp
        ENDIF
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
