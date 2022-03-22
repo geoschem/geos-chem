@@ -78,12 +78,12 @@ Warnings:                    1
 # ----- AIRCRAFT EMISSIONS ----------------------------------------------------
 # There are 3 switches:
 #
-#  1. AEIC_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#  1. AEIC2019_DAILY selects daily AEIC 2019 emissions.  For most simulations,
 #     this is not recommended due to the amount of computational overhead
 #     that will be incurred in regridding.  But this may be useful for
 #     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
 #
-#  2. AEIC_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
 #     incur much less computational overhaead.  This options should suffice
 #     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
 #

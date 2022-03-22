@@ -75,12 +75,12 @@ Warnings:                    1
 # ----- AIRCRAFT EMISSIONS ----------------------------------------------------
 # There are 3 switches:
 #
-#  1. AEIC_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#  1. AEIC2019_DAILY selects daily AEIC 2019 emissions.  For most simulations,
 #     this is not recommended due to the amount of computational overhead
 #     that will be incurred in regridding.  But this may be useful for
 #     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
 #
-#  2. AEIC_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
 #     incur much less computational overhaead.  This option should suffice
 #     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
 #
@@ -2379,7 +2379,7 @@ ${RUNDIR_TES_CLIM_N2O}
 #
 # See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
 #==============================================================================
-(((AEIC2019_DAILY.or.AEIC_MONMEAN
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
 # Conversions from AEIC2019 inventory quantities to individual species
 111 AEICSO2  1.176000e-3 - - - xy unitless 1
 112 AEICSO4  3.600000e-5 - - - xy unitless 1
