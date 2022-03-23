@@ -272,7 +272,6 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
-     LOGICAL                    :: SIZE_RES
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -489,7 +488,6 @@ CONTAINS
     ! FALSE = use KPP computations
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
-    State_Chm%Size_Res              = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
 !EOC
