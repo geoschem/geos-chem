@@ -190,8 +190,8 @@ MODULE SULFATE_MOD
   INTEGER                :: id_SALAAL, id_SALCAL
   INTEGER                :: id_HOBr,   id_SO4H1,  id_SO4H2
   INTEGER                :: id_HOCl,   id_SO4H3,  id_SO4H4
-  INTEGER                :: id_HCOOH,  id_ACTA            !jmm 1/31/19
-  INTEGER                :: id_HMS,    id_CH2O   ! jmm 06/13/2018
+  INTEGER                :: id_HCOOH,  id_ACTA,   id_PSO4
+  INTEGER                :: id_HMS,    id_CH2O
 
 
   ! Species drydep ID flags
@@ -2757,7 +2757,7 @@ CONTAINS
 
           ! Safety check: only proceed if the Prod diagnostic is archived,
           ! or else this will result in a segmentation fault (bmy, 22 Mar 2022)
-          IF ( State_Diag%Archive_Prod ) THEN
+          IF ( State_Diag%Archive_Prod .and. id_PSO4 > 0 ) THEN
 
              ! Compute gas phase SO4 production again, as in offline case
              ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
@@ -2766,7 +2766,7 @@ CONTAINS
              ! Convert State_Diag%Prod from [molec/cm3/s] to [v/v/timestep].
              ! Update by Shixian Zhai added by Bob Yantosca (22 Mar 2022)
              ! See https://github.com/geoschem/geos-chem/discussions/874
-             KK       = State_Diag%Prod(I, J, L, id_PSO4)
+             KK       = State_Diag%Prod(I,J,L,id_PSO4)
              H2SO4_cd = KK / M * DTCHEM        
           ENDIF
           
@@ -9125,6 +9125,7 @@ CONTAINS
     id_O3    = Ind_('O3'       )
     id_OH    = Ind_('OH'       )
     id_pFe   = Ind_('pFe'      )
+    id_PSO4  = Ind_('PSO4'     )
     id_SALA  = Ind_('SALA'     )
     id_SALC  = Ind_('SALC'     )
     id_SF1   = Ind_('SF1'      )
