@@ -481,8 +481,6 @@ Warnings:                    1
 # --- Oxidant fields ---
 #==============================================================================
 (((OXIDANT_FIELDS
-${RUNDIR_Br_GC}
-${RUNDIR_BrO_GC}
 ${RUNDIR_GLOBAL_Cl}
 ${RUNDIR_GLOBAL_ClO}
 ${RUNDIR_GLOBAL_CH4}
