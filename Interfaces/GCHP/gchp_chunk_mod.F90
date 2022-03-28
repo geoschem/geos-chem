@@ -876,11 +876,6 @@ CONTAINS
     ! Zero out certain State_Diag arrays
     CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
 
-    ! Eventually initialize/reset wetdep
-    IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
-       CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-    ENDIF
-
     ! Pass time values obtained from the ESMF environment to GEOS-Chem
     CALL Accept_External_Date_Time( value_NYMD     = nymd,       &
                                     value_NHMS     = nhms,       &
@@ -940,6 +935,11 @@ CONTAINS
        CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
     ENDIF
 #endif
+
+    ! Initialize/reset wetdep
+    IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
+       CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+    ENDIF
 
     ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
     ! tropospheric chemistry from happening too high up (cf. J. Logan)
