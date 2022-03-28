@@ -354,10 +354,10 @@ AEIC_ACET      'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    H
 ###AEIC_SO2       'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    FUELBURN	       /discover/nobackup/cakelle2/data/AEIC.132L.gen.1x1.nc
 ###AEIC_ACET      'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    HC 	       /discover/nobackup/cakelle2/data/AEIC.132L.gen.1x1.nc
 # halogen emissions
-ORDONEZ_CH3I   'kg_m-2_s-1'     Y    Y 2012-%m2-01T00:00:00   none     none    CH3I            /home/cakelle2/data/ORDONEZ/CH3I_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-ORDONEZ_CH2I2   'kg_m-2_s-1'    Y    Y 2012-%m2-01T00:00:00   none     none    CH2I2           /home/cakelle2/data/ORDONEZ/CH2I2_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-ORDONEZ_CH2ICL   'kg_m-2_s-1'   Y    Y 2012-%m2-01T00:00:00   none     none    CH2ICl          /home/cakelle2/data/ORDONEZ/CH2ICl_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-ORDONEZ_CH2IBR   'kg_m-2_s-1'   Y    Y 2012-%m2-01T00:00:00   none     none    CH2IBr          /home/cakelle2/data/ORDONEZ/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH3I   'kg_m-2_s-1'     Y    Y 2012-%m2-01T00:00:00   none     none    CH3I            /home/cakelle2/data/ORDONEZ/newMAPL/CH3I_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH2I2   'kg_m-2_s-1'    Y    Y 2012-%m2-01T00:00:00   none     none    CH2I2           /home/cakelle2/data/ORDONEZ/newMAPL/CH2I2_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH2ICL   'kg_m-2_s-1'   Y    Y 2012-%m2-01T00:00:00   none     none    CH2ICl          /home/cakelle2/data/ORDONEZ/newMAPL/CH2ICl_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH2IBR   'kg_m-2_s-1'   Y    Y 2012-%m2-01T00:00:00   none     none    CH2IBr          /home/cakelle2/data/ORDONEZ/newMAPL/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
 # QFED emissions 
 # Boundary layer
 QFED_ACET_TF_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.61984 biomass_tf          /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.006.%y4%m2%d2.nc4
