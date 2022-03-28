@@ -6565,7 +6565,7 @@ CONTAINS
     INTEGER                    :: I, J, L, N, LR, IM, JM, LM 
     INTEGER                    :: STATUS
     INTEGER                    :: NNEG  
-    REAL                       :: O3new, O3ana, O3diff, O3MW, ifrac
+    REAL                       :: O3old, O3new, O3ana, O3diff, O3MW, ifrac
     REAL                       :: ITROPP
     INTEGER                    :: UnitFlag, idx
     INTEGER                    :: LB, L0, L1, L2, L3, L4
@@ -6737,10 +6737,11 @@ CONTAINS
                 IF ( UnitFlag == 4 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-9
 
                 ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
-                O3new  = State_Chm%Species(I,J,L,N)
+                O3old = State_Chm%SpeciesVec(N)%Conc(I,J,L)
+                O3new = O3old
                 IF ( ANAO3INC ) THEN
                    IF ( ABS(O3ana) > tiny(1.0) ) THEN
-                      O3new = State_Chm%Species(I,J,L,N) + O3ana
+                      O3new = O3old + O3ana
                       IF ( O3new <= tiny(1.0) ) THEN
                          O3new = tiny(1.0)
                          NNEG  = NNEG + 1
@@ -6748,14 +6749,13 @@ CONTAINS
                    ENDIF
                 ELSE
                    IF ( O3ana > 0.0 ) THEN
-                      O3new = ( (1.0-ifrac) * State_Chm%Species(I,J,L,N) ) &
-                            + (      ifrac  * O3ana )
+                      O3new = ( (1.0-ifrac) * O3old ) + ( ifrac * O3ana )
                    ENDIF
                 ENDIF
-                O3diff = O3new - State_Chm%Species(I,J,L,N)
+                O3diff = O3new - O3old 
                 IF ( ASSOCIATED(O3INC) )    O3INC(I,J,LR)     = O3diff
                 IF ( ASSOCIATED(O3INCPPMV)) O3INCPPMV(I,J,LR) = O3diff * ( MAPL_AIRMW / MAPL_O3MW ) * 1.0e6
-                State_Chm%Species(I,J,L,N) = O3new
+                State_Chm%SpeciesVec(N)%Conc(I,J,L) = O3new
              ENDDO ! L 
           ENDDO
           ENDDO
