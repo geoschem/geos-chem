@@ -91,7 +91,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,              ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
     USE DUST_MOD,                 ONLY : RDUST_ONLINE
     USE ErrCode_Mod
@@ -271,95 +270,6 @@ CONTAINS
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",     RC ) ! started in Do_Chemistry
-       CALL Timer_Start( "=> Aerosol chem", RC )
-    ENDIF
-
-    !========================================================================
-    ! Get concentrations of aerosols in [kg/m3]
-    ! for FAST-JX and optical depth diagnostics
-    !========================================================================
-    IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or.                        &
-         Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-
-       ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-       CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Debug output
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### Do_FullChem: after CALC_PSC' )
-       ENDIF
-
-       ! Compute aerosol concentrations
-       CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "AEROSOL_CONC"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-    !========================================================================
-    ! Call RDAER -- computes aerosol optical depths for FAST-JX
-    !========================================================================
-    WAVELENGTH = 0
-    CALL RDAER( Input_Opt,  State_Chm, State_Diag,                           &
-                State_Grid, State_Met, RC,                                   &
-                MONTH,      YEAR,      WAVELENGTH                           )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "RDAER"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FullChem: after RDAER' )
-    ENDIF
-
-    !========================================================================
-    ! If LDUST is turned on, then we have online dust aerosol in
-    ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
-    ! compute aerosol optical depth for FAST-JX, etc.
-    !
-    ! If LDUST is turned off, then we do not have online dust aerosol
-    ! in GEOS-CHEM...so read monthly-mean dust files from disk.
-    ! (rjp, tdf, bmy, 4/1/04)
-    !========================================================================
-    IF ( Input_Opt%LDUST ) THEN
-       CALL RDUST_ONLINE( Input_Opt,  State_Chm,  State_Diag,                &
-                          State_Grid, State_Met,  SOILDUST,                  &
-                          WAVELENGTH, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "RDUST_ONLINE"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FullChem: after RDUST' )
-    ENDIF
-
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Aerosol chem", RC )
        CALL Timer_Start( "=> FlexChem",     RC )
     ENDIF
 

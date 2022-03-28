@@ -102,6 +102,7 @@ CONTAINS
 #ifdef TOMAS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -244,6 +245,7 @@ CONTAINS
        RETURN
     ENDIF
 
+
     !=======================================================================
     ! If LCHEM=T then call the chemistry subroutines
     !=======================================================================
@@ -258,13 +260,76 @@ CONTAINS
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
           !----------------------------------------
+          ! Get concentrations of aerosols in [kg/m3]
+          !----------------------------------------
+          IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or.              &
+               Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+
+             ! Calculate stratospheric aerosol properties (SDE 04/18/13)
+             CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid,      &
+                                  State_Met, RC )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Compute aerosol concentrations
+             CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
+                                State_Grid, State_Met, RC )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "AEROSOL_CONC"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+          ENDIF
+
+          !----------------------------------------
+          ! Call RDAER
+          !----------------------------------------
+          WAVELENGTH = 0
+          CALL RDAER( Input_Opt,  State_Chm, State_Diag,               &
+                      State_Grid, State_Met, RC,                       &
+                      MONTH,      YEAR,      WAVELENGTH                           )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "RDAER"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          !========================================================================
+          ! If LDUST is turned on, then we have online dust aerosol in
+          ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
+          ! compute aerosol optical depth for FAST-JX, etc.
+          !
+          ! If LDUST is turned off, then we do not have online dust aerosol
+          ! in GEOS-CHEM...so read monthly-mean dust files from disk.
+          ! (rjp, tdf, bmy, 4/1/04)
+          !========================================================================
+          IF ( Input_Opt%LDUST ) THEN
+             CALL RDUST_ONLINE( Input_Opt,  State_Chm,  State_Diag,                &
+                                State_Grid, State_Met,  SOILDUST,                  &
+                                WAVELENGTH, RC )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "RDUST_ONLINE"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
+
+          !----------------------------------------
           ! Dry-run sulfate chem to get cloud pH
           !----------------------------------------
           IF ( LSULF ) THEN
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "=> Aerosol chem", RC )
-             ENDIF
 
              ! Dry run only
              CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
@@ -293,7 +358,7 @@ CONTAINS
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "ChemSulfate"!'
+             ErrMsg = 'Error encountered in "AERONUM"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
