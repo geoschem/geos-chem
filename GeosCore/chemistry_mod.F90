@@ -259,6 +259,10 @@ CONTAINS
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start  ( "=> Aerosol chem", RC )
+          ENDIF
+
           !----------------------------------------
           ! Get concentrations of aerosols in [kg/m3]
           !----------------------------------------
@@ -342,8 +346,37 @@ CONTAINS
                 RETURN
              ENDIF
 
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "=> Aerosol chem", RC )
+             !-----------------------------------------
+             ! Do aerosol thermodynamic equilibrium
+             !-----------------------------------------
+             IF ( LSSALT ) THEN
+
+#ifndef APM
+                ! ISORROPIA takes Na+, Cl- into account
+
+                CALL Do_IsorropiaII( Input_Opt,  State_Chm, State_Diag, &
+                                     State_Grid, State_Met, RC )
+
+                ! Trap potential errors
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
+#endif
+
+             ELSE
+
+#ifdef APM
+                ! Exit with error if RPMARES + APM is selected
+                ErrMsg = 'Warning: APM does not want to use DO_RPMARES'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+#endif
+
+                ! RPMARES does not take Na+, Cl- into account
+                CALL Do_RPMARES( Input_Opt, State_Chm, State_Grid, &
+                                 State_Met, RC )
              ENDIF
 
           ENDIF
@@ -363,6 +396,10 @@ CONTAINS
              RETURN
           ENDIF
 #endif
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Aerosol chem", RC )
+          ENDIF
 
           !---------------------------
           ! Call gas-phase chemistry
@@ -500,37 +537,6 @@ CONTAINS
                 RETURN
              ENDIF
 
-             !-----------------------------------------
-             ! Do aerosol thermodynamic equilibrium
-             !-----------------------------------------
-             IF ( LSSALT ) THEN
-
-#ifndef APM
-                ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( Input_Opt,  State_Chm, State_Diag, &
-                                     State_Grid, State_Met, RC )
-
-                ! Trap potential errors
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
-                   RETURN
-                ENDIF
-#endif
-
-             ELSE
-
-#ifdef APM
-                ! Exit with error if RPMARES + APM is selected
-                ErrMsg = 'Warning: APM does not want to use DO_RPMARES'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-#endif
-
-                ! RPMARES does not take Na+, Cl- into account
-                CALL Do_RPMARES( Input_Opt, State_Chm, State_Grid, &
-                                 State_Met, RC )
-             ENDIF
 
           ENDIF
 
