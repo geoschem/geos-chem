@@ -234,6 +234,8 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
      REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
 #endif
+     REAL(fp),          POINTER :: JOH        (:,:    ) ! OH J-value
+     REAL(fp),          POINTER :: JNO2       (:,:    ) ! NO2 J-value
 
      !-----------------------------------------------------------------------
      ! Fields for non-local PBL mixing
@@ -447,6 +449,8 @@ CONTAINS
     State_Chm%DryDepRa2m        => NULL()
     State_Chm%DryDepRa10m       => NULL()
 #endif
+    State_Chm%JOH               => NULL()
+    State_Chm%JNO2              => NULL()
 
     ! Non-local PBL mixing quantities
     State_Chm%SurfaceFlux       => NULL()
@@ -1892,6 +1896,39 @@ CONTAINS
        RETURN
     ENDIF
 #endif
+    !------------------------------------------------------------------------
+    ! J-values for paranox
+    !------------------------------------------------------------------------
+    ! Add a qualifier here?
+     chmId = 'JOH'
+     CALL Init_and_Register(                                              &
+         Input_Opt  = Input_Opt,                                          &
+         State_Chm  = State_Chm,                                          &
+         State_Grid = State_Grid,                                         &
+         chmId      = chmId,                                              &
+         Ptr2Data   = State_Chm%JOH,                                      &
+         RC         = RC                                                 )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    chmId = 'JNO2'
+    CALL Init_and_Register(                                              &
+        Input_Opt  = Input_Opt,                                          &
+        State_Chm  = State_Chm,                                          &
+        State_Grid = State_Grid,                                         &
+        chmId      = chmId,                                              &
+        Ptr2Data   = State_Chm%JNO2,                                      &
+        RC         = RC                                                 )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     !------------------------------------------------------------------
     ! Surface flux for non-local PBL mixing
@@ -3216,6 +3253,19 @@ CONTAINS
        State_Chm%DryDepRa10m => NULL()
     ENDIF
 #endif
+    IF ( ASSOCIATED( State_Chm%JOH ) ) THEN
+       DEALLOCATE( State_Chm%JOH, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%JOH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%JOH => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%JNO2 ) ) THEN
+       DEALLOCATE( State_Chm%JNO2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%JNO2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%JNO2 => NULL()
+    ENDIF
 
     IF ( ASSOCIATED( State_Chm%SurfaceFlux ) ) THEN
        DEALLOCATE( State_Chm%SurfaceFlux, STAT=RC )
@@ -4164,7 +4214,15 @@ CONTAINS
           IF ( isUnits   ) Units = 's cm-1'
           IF ( isRank    ) Rank  = 2
 #endif
+       CASE( 'JOH' )
+          IF ( isDesc    ) Desc  = 'J-value for OH'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 2
 
+       CASE( 'JNO2' )
+          IF ( isDesc    ) Desc  = 'J-value for NO2'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 2
        CASE( 'SURFACEFLUX' )
           IF ( isDesc  ) Desc   = 'Surface flux (E-D) for non-local PBL mixing'
           IF ( isUnits ) Units  = 'kg m-2 s-1'

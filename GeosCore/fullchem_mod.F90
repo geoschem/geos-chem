@@ -96,6 +96,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
+    USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
@@ -1501,6 +1502,15 @@ CONTAINS
     CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
+    ENDIF
+
+    ! Set State_Chm arrays for surface J-values used in HEMCO and
+    ! saved to restart file
+    IF ( RXN_O3_1 >= 0 ) THEN
+       State_Chm%JOH(:,:) = ZPJ(1,RXN_O3_1,:,:)
+    ENDIF
+    IF ( RXN_NO2 >= 0 ) THEN
+       State_Chm%JNO2(:,:) = ZPJ(1,RXN_NO2,:,:)
     ENDIF
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
