@@ -936,7 +936,7 @@ CONTAINS
     ENDIF
 #endif
 
-    ! Initialize/reset wetdep
+    ! Initialize/reset wetdep after air quantities computed
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
        CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
     ENDIF

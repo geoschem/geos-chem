@@ -153,6 +153,9 @@ Turn_on_Base_Emissions=true
 AutoUpdate_Diagnostics=ON
 
 # Monthly diagnostics: '0' for off; '1' for on
+# NOTE: fullchem "DefaultCollection" excludes monthly option
+# in HISTORY.rc by default to allow greater output frequency
+# when other collections are monthly.
 timeAvg_monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
 
 # Frequency and duration (ignored if monthly diagnostics on)
@@ -167,6 +170,7 @@ timeAvg_collections=(SpeciesConc    \
                      CloudConvFlux  \
                      ConcAfterChem  \
                      DryDep         \
+                     DefaultCollection \
                      Emissions      \
                      JValues        \
                      KppDiags       \

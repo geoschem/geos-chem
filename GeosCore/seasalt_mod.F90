@@ -5,37 +5,37 @@
 !
 ! !MODULE: seasalt_mod.F90
 !
-! !DESCRIPTION: Module SEASALT\_MOD contains arrays and routines for performing
-!  either a coupled chemistry/aerosol run or an offline seasalt aerosol
-!  simulation. Original code taken from Mian Chin's GOCART model and modified
-!  accordingly. (bec, rjp, bmy, 6/22/00, 11/23/09)
+! !DESCRIPTION: Contains arrays and routines for performing either a coupled
+!  chemistry/aerosol run or an offline seasalt aerosol simulation.
+!  Original code taken from Mian Chin's GOCART model and modified accordingly.
+!  (bec, rjp, bmy, 6/22/00, 11/23/09)
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE SEASALT_MOD
+MODULE SeaSalt_Mod
 !
 ! !USES:
 !
-  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-  USE PHYSCONSTANTS
+  USE Precision_Mod
+  USE PhysConstants
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: CHEMSEASALT
-  PUBLIC  :: CLEANUP_SEASALT
-  PUBLIC  :: INIT_SEASALT
+  PUBLIC  :: ChemSeaSalt
+  PUBLIC  :: Cleanup_SeaSalt
+  PUBLIC  :: Init_SeaSalt
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: WET_SETTLING
-  PRIVATE :: CHEM_MOPO
-  PRIVATE :: CHEM_MOPI
+  PRIVATE :: Wet_Settling
+  PRIVATE :: Chem_MOPO
+  PRIVATE :: Chem_MOPI
 #ifdef APM
-  PRIVATE :: WET_SETTLINGBIN
+  PRIVATE :: Wet_SettlingBin
 #endif
 !
 ! !PUBLIC DATA MEMBERS:
@@ -44,12 +44,6 @@ MODULE SEASALT_MOD
   PUBLIC  :: DMID
 !
 ! !REMARKS:
-!  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
-!                           (2) Coarse mode       (usually 0.5 - 10.0 um)
-!                                                                             .
-!  NOTE: You can change the bin sizes for accumulation mode and coarse
-!        mode seasalt in the "input.geos" file in v7-yy-zz and higher.
-!
 !  References:
 !  ============================================================================
 !  (1 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
@@ -89,36 +83,61 @@ MODULE SEASALT_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  INTEGER,  PARAMETER   :: NSALT    = 6
-  INTEGER,  PARAMETER   :: NR_MAX   = 200
-  REAL(fp), PARAMETER   :: SMALLNUM = 1e-20_fp
+  INTEGER,   PARAMETER  :: NSALT    = 6           ! # of seasalt species
+  INTEGER,   PARAMETER  :: NR_MAX   = 200         ! # of bins to use
+  REAL(fp),  PARAMETER  :: SMALLNUM = 1e-20_fp    ! Small number
 #ifdef APM
-  INTEGER,  PARAMETER   :: NSALTBIN = 20
+  INTEGER,   PARAMETER  :: NSALTBIN = 20          ! # of bins for APM
 #endif
+!
+! !DEFINED PARAMETERS:
+!
+!%%% Comment out unused code
+!%%%!  REAL(fp),  PARAMETER  :: C1      =  0.7674_fp
+!%%%!  REAL(fp),  PARAMETER  :: C2      =  3.079_fp
+!%%%!  REAL(fp),  PARAMETER  :: C3      =  2.573e-11_fp
+!%%%!  REAL(fp),  PARAMETER  :: C4      = -1.424_fp
+
+  ! Parameters for polynomial coefficients to derive seawater
+  ! density. From Tang et al. (1997) (jaegle 5/11/11)
+  REAL(fp),  PARAMETER  :: A1      =  7.93e-3_fp
+  REAL(fp),  PARAMETER  :: A2      = -4.28e-5_fp
+  REAL(fp),  PARAMETER  :: A3      =  2.52e-6_fp
+  REAL(fp),  PARAMETER  :: A4      = -2.35e-8_fp
+
+  ! increment of radius for integration of settling velocity (um)
+  REAL(fp),  PARAMETER  :: DR      =  5.0e-2_fp
+
+  ! parameter for convergence
+  REAL(f8),  PARAMETER  :: EPSI    =  1.0e-4_f8
+
+  ! parameters for assumed size distribution of acc and coarse mode
+  ! sea salt aerosols (jaegle 5/11/11)
+  ! geometric dry mean diameters (microns)
+  REAL(fp),  PARAMETER  :: RG_A    =  0.085_fp
+  REAL(fp),  PARAMETER  :: RG_C    =  0.4_fp
+
+  ! sigma of the size distribution
+  REAL(fp),  PARAMETER  :: SIG_A   = 1.5_fp
+  REAL(fp),  PARAMETER  :: SIG_C   = 1.8_fp
 !
 ! !PRIVATE TYPES:
 !
+  ! Scalars
+  INTEGER               :: NR
+  INTEGER               :: id_MOPO,     id_MOPI
+  INTEGER               :: id_NK1,      id_SALA
+  INTEGER               :: id_SALC,     id_SS1
+  INTEGER               :: id_SALACL,   id_SALCCL
+  INTEGER               :: id_SALAAL,   id_SALCAL
+  REAL(fp)              :: REFF_accum,  REFF_coarse
+
   ! Arrays
   INTEGER               :: IDDEP (NSALT)
   REAL(fp)              :: SS_DEN(NSALT)
-
-  ! Allocatable arrays
   REAL(fp), ALLOCATABLE :: SALT_V(:    )
   REAL(fp), ALLOCATABLE :: DMID  (:    )
   REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
-
-  ! Species ID flags (formerly in tracerid_mod.F)
-  INTEGER               :: id_MOPO
-  INTEGER               :: id_MOPI
-  INTEGER               :: id_NK1
-  INTEGER               :: id_SALA
-  INTEGER               :: id_SALC
-  INTEGER               :: id_SS1
-  INTEGER               :: id_SALACL
-  INTEGER               :: id_SALCCL
-  INTEGER               :: id_SALAAL
-  INTEGER               :: id_SALCAL
-
 
 CONTAINS
 !EOC
@@ -136,20 +155,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEMSEASALT( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+  SUBROUTINE ChemSeaSalt( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE Error_Mod,      ONLY : Debug_Msg
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 #ifdef APM
-    USE APM_INIT_MOD,       ONLY : APMIDS
+    USE APM_Init_Mod,   ONLY : APMIDS
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -180,116 +199,194 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL           :: prtDebug
+    LOGICAL            :: prtDebug
+
+    ! Strings
+    CHARACTER(LEN=255) :: thisLoc
+    CHARACTER(LEN=512) :: errMsg
 
 #if   defined( APM )
-    REAL(fp)          :: SEASALTS(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                  NSALTBIN)
+    REAL(fp) :: SEASALTS(State_Grid%NX,State_Grid%NY,State_Grid%NZ,NSALTBIN)
 #endif
-    ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
 
-    !=================================================================
+    !========================================================================
     ! CHEMSEASALT begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC       =  GC_SUCCESS
-    Spc      => State_Chm%Species
-
-    ! Do we have to print debug output?
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    !=================================================================
-    ! Maybe someday we should merge these two separate calculations
-    ! into one (rjp, 4/3/04)
-    !=================================================================
-
-    !=================================================================
-    ! Accumulation mode wet settling
-    !=================================================================
+    !========================================================================
+    ! Accumulation mode (SALA) wet settling
+    !========================================================================
     IF ( id_SALA > 0 ) THEN
-       CALL WET_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, Spc(:,:,:,id_SALA), 1,  RC )
+       CALL Wet_Settling(                                                    &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            TC         = State_Chm%Species(:,:,:,id_SALA),                   &
+            N          = 1,                                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Wet_Settling" for species SALA!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
        ENDIF
     ENDIF
 
-    !=================================================================
-    ! Accumulation mode Chloride wet settling
-    !=================================================================
-    IF ( id_SALACL > 0 ) THEN
-       
-       CALL WET_SETTLING( Input_Opt, State_Chm,              &
-                          State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALACL), 3, RC )
-       
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
-       ENDIF
-    ENDIF
-
-    !=================================================================
-    ! Accumulation mode Alkalinity wet settling
-    !=================================================================
-    IF ( id_SALAAL > 0 ) THEN
-       CALL WET_SETTLING(   Input_Opt, State_Chm,  &
-                          State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALAAL), 5, RC )
-       
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
-       ENDIF
-    ENDIF
-
-    !=================================================================
-    ! Coarse mode wet settling
-    !=================================================================
+    !========================================================================
+    ! Coarse mode (SALC) wet settling
+    !========================================================================
     IF ( id_SALC > 0 ) THEN
-       CALL WET_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, Spc(:,:,:,id_SALC), 2,  RC )
+       CALL Wet_Settling(                                                    &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            TC         = State_Chm%Species(:,:,:,id_SALC),                   &
+            N          = 2,                                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Wet_Settling" for species SALC!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
        ENDIF
     ENDIF
 
-    !=================================================================
-    ! Coarse mode Choloride wet settling
-    !=================================================================
+    !========================================================================
+    ! Accumulation mode chloride (SALACL) wet settling
+    !========================================================================
+    IF ( id_SALACL > 0 ) THEN
+       CALL Wet_Settling(                                                    &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            TC         = State_Chm%Species(:,:,:,id_SALACL),                 &
+            N          = 3,                                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Wet_Settling" for species SALACL!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Coarse mode chloride (SALCCL) wet settling
+    !========================================================================
     IF ( id_SALCCL > 0 ) THEN
-       CALL WET_SETTLING(   Input_Opt, State_Chm,  &
-                          State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALCCL), 4, RC )
-       
+       CALL Wet_Settling(                                                    &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            TC         = State_Chm%Species(:,:,:,id_SALCCL),                 &
+            N          = 4,                                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Wet_Settling" for species SALACL!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
        ENDIF
     ENDIF
-    
-    !=================================================================
-    ! Coarse mode Alkalinity wet settling
-    !=================================================================
+
+    !========================================================================
+    ! Accumulation mode alkalinity (SALAAL) wet settling
+    !========================================================================
+    IF ( id_SALAAL > 0 ) THEN
+       CALL Wet_Settling(                                                    &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            TC         = State_Chm%Species(:,:,:,id_SALAAL),                 &
+            N          = 5,                                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Wet_Settling" for species SALAAL!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Coarse mode Alkalinity (SALCAL) wet settling
+    !========================================================================
     IF ( id_SALCAL > 0 ) THEN
-       CALL WET_SETTLING(   Input_Opt, State_Chm,  &
-                          State_Diag, State_Grid, State_Met, &
-                          Spc(:,:,:,id_SALCAL), 6, RC )
-       
+       CALL Wet_Settling(                                                    &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            TC         = State_Chm%Species(:,:,:,id_SALCAL),                 &
+            N          = 6,                                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Wet_Settling" for species SALAAL!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
        ENDIF
     ENDIF
 
-    !=================================================================
+    !========================================================================
     ! Do chemistry for marine organic aerosol tracers
-    !=================================================================
+    !========================================================================
     IF ( Input_Opt%LMPOA ) THEN
 
        ! Chemistry for hydrophobic MOA
        IF ( id_MOPO > 0 ) THEN
-          CALL CHEM_MOPO( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+          CALL Chem_MOPO(                                                    &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Diag = State_Diag,                                      &
+               State_Grid = State_Grid,                                      &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Chem_MOPO"!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+
           IF ( prtDebug ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
           ENDIF
@@ -297,7 +394,19 @@ CONTAINS
 
        ! Chemistry for hydrophilic MOA
        IF ( id_MOPI > 0 ) THEN
-          CALL CHEM_MOPI( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
+          CALL Chem_MOPI(                                                    &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Diag = State_Diag,                                      &
+               State_Grid = State_Grid,                                      &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Chem_MOPO"!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+
           IF ( prtDebug ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
           ENDIF
@@ -309,24 +418,27 @@ CONTAINS
     !----------------------------------------
     ! Sea salt emissions for extra APM bins
     !----------------------------------------
-    SEASALTS =  Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
+    SEASALTS = &
+     State_Chm%Species(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
     CALL SRCSALTBIN( SEASALTS, State_Grid, State_Met )
-    Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) = SEASALTS
+    State_Chm%Species(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) &
+      = SEASALTS
 
     IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
 
     !----------------------------------------
     ! APM microphysics
     !----------------------------------------
-    CALL WET_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+    CALL Wet_SettlingBin( Input_Opt  = Input_Opt,                             &
+                          State_Chm  = State_Chm,                             &
+                          State_Diag = State_Diag,                            &
+                          State_Grid = State_Grid,                            &
+                          State_Met  = State_Met,                             &
+                          RC         = RC                                    )
 #endif
 
-    ! Free pointer
-    Spc => NULL()
-
-  END SUBROUTINE CHEMSEASALT
-!EOC
+  END SUBROUTINE ChemSeaSalt
+!EOP
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -340,29 +452,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WET_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                           State_Met, TC,        N,          RC )
+  SUBROUTINE Wet_Settling( Input_Opt, State_Chm, State_Diag, State_Grid,     &
+                           State_Met, TC,        N,          RC             )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Error_Mod,      ONLY : Debug_Msg
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod,       ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: N           ! 1=accum mode; ! 2=coarse mode
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    INTEGER,        INTENT(IN)    :: N           ! odd=accum; even=coarse
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -387,190 +498,122 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL                  :: PrtDebug
-    INTEGER                  :: I,      J,     L,        S
-    REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
-    REAL(fp)                 :: P,      DP,    PDP,      TEMP
-    REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
-    REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
-    ! replace RCM with RUM (radis in micron) jaegle 5/11/11
-    REAL(fp)                 :: RUM,    RWET,  RATIO_R
-    REAL(fp)                 :: TOT1,   TOT2,  DTCHEM
-    REAL(fp)                 :: VTS(State_Grid%NZ)
-    REAL(fp)                 :: TC0(State_Grid%NZ)
-    ! New variables (jaegle 5/11/11)
-    REAL(fp)                 :: SW
-    REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
-    REAL(fp)                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
-    REAL(f8)                 :: WTP
-    INTEGER                  :: ID
-    LOGICAL, SAVE            :: FIRST = .TRUE.
-    REAL(f8)                 :: RHO, RHO1
-    CHARACTER(LEN=255)       :: ErrMsg
-    CHARACTER(LEN=255)       :: ThisLoc
+    ! Scalars
+    LOGICAL            :: PrtDebug
+    INTEGER            :: I,           J,          L
+    INTEGER            :: S,           ID
+    REAL(fp)           :: DELZ,        DELZ1,      REFF
+    REAL(fp)           :: DEN,         P,          DP
+    REAL(fp)           :: PDP,         TEMP,       CONST
+    REAL(fp)           :: SLIP,        VISC,       FAC1
+    REAL(fp)           :: FAC2,        FLUX,       AREA_CM2
+    REAL(fp)           :: RHB,         SW,         R0
+    REAL(fp)           :: R1,          SALT_MASS,  SALT_MASS_TOTAL
+    REAL(fp)           :: VTS_WEIGHT,  DMIDW,      WTP
+    REAL(fp)           :: RHO,         RHO1,       RUM
+    REAL(fp)           :: RWET,        RATIO_R,    TOT1
+    REAL(fp)           :: TOT2,        DTCHEM
+
+    ! Arrays
+    REAL(fp)           :: VTS(State_Grid%NZ)
+    REAL(fp)           :: TC0(State_Grid%NZ)
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL(fp),  PARAMETER     :: C1 =  0.7674e+0_fp
-    REAL(fp),  PARAMETER     :: C2 =  3.079e+0_fp
-    REAL(fp),  PARAMETER     :: C3 =  2.573e-11_fp
-    REAL(fp),  PARAMETER     :: C4 = -1.424e+0_fp
-    ! Parameters for polynomial coefficients to derive seawater
-    ! density. From Tang et al. (1997) (jaegle 5/11/11)
-    REAL(fp),  PARAMETER     :: A1 =  7.93e-3_fp
-    REAL(fp),  PARAMETER     :: A2 = -4.28e-5_fp
-    REAL(fp),  PARAMETER     :: A3 =  2.52e-6_fp
-    REAL(fp),  PARAMETER     :: A4 = -2.35e-8_fp
-    ! increment of radius for integration of settling velocity (um)
-    REAL(fp), PARAMETER      :: DR    = 5.e-2_fp
-    ! parameter for convergence
-    REAL(f8),  PARAMETER     :: EPSI = 1.0e-4_f8
-    ! parameters for assumed size distribution of acc and coarse mode
-    ! sea salt aerosols (jaegle 5/11/11)
-    ! geometric dry mean diameters (microns)
-    REAL(fp),  PARAMETER     :: RG_A = 0.085e+0_fp
-    REAL(fp),  PARAMETER     :: RG_C = 0.4e+0_fp
-    ! sigma of the size distribution
-    REAL(fp),  PARAMETER     :: SIG_A = 1.5e+0_fp
-    REAL(fp),  PARAMETER     :: SIG_C = 1.8e+0_fp
+    REAL(fp)           :: FOUR_OVER_THREEptSEVEN = 4.0_fp / 3.7_fp
+    REAL(fp)           :: ONE_THIRD              = 1.0_fp / 3.0_fp
 
-    ! Local variables for Input_Opt quantities
-    REAL(fp)                 :: SALA_REDGE_um(2)
-    REAL(fp)                 :: SALC_REDGE_um(2)
-
-    !=================================================================
+    !========================================================================
     ! WET_SETTLING begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    DTCHEM   = GET_TS_CHEM()    ! Chemistry timestep [s]
+    DEN      = SS_DEN( N )      ! Sea salt density [kg/m3]
     ErrMsg   = ''
     ThisLoc  = ' -> at WET_SETTLING (in module GeosCore/seasalt_mod.F90)'
 
-    ! Copy fields from INPUT_OPT to local variables for use below
-    SALA_REDGE_um = Input_Opt%SALA_REDGE_um
-    SALC_REDGE_um = Input_Opt%SALC_REDGE_um
-
-    ! Chemistry timestep [s]
-    DTCHEM        = GET_TS_CHEM()
-
-    ! Sea salt density [kg/m3]
-    DEN            = SS_DEN( N )
-
-    ! Seasalt effective radius (i.e. midpt of radius bin) [m]
-    SELECT CASE ( N )
-
-    ! Accum mode
-    ! add R0 and R1 = edges if the sea salt size bins (jaegle 5/11/11)
-    CASE( 1,3,5 )
-       REFF = 0.5e-6_fp * ( SALA_REDGE_um(1) + SALA_REDGE_um(2) )
-       R0 = SALA_REDGE_um(1)
-       R1 = SALA_REDGE_um(2)
-
-    ! Coarse mode
-    CASE( 2,4,6 )
-       REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
-       R0 = SALC_REDGE_um(1)
-       R1 = SALC_REDGE_um(2)
-
-    END SELECT
-
-    ! Number of dry radius size bins between lowest radius (accumulation
-    ! mode) and largest radii (coarse mode) (jaegle 5/11/11)
-    NR = INT( ( ( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR ) + 0.5e+0_fp )
-
-    ! Trap potential errors
+    ! Make sure NR (computed in Init_SeaSalt) is not too large
     IF ( NR > NR_MAX ) THEN
        ErrMsg = 'Too many bins!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    !=================================================================
-    ! Define the volume size distribution of sea-salt. This only has
-    ! to be done once. We assume that sea-salt is the combination of a
-    ! coarse mode and accumulation model log-normal distribution
-    ! functions (jaegle 5/11/11)
-    !=================================================================
-    IF ( FIRST) THEN
-
-       ! Lower edge of 0th bin
-       DEDGE=SALA_REDGE_um(1) * 2e+0_fp
-
-       ! Loop over diameters
-       DO ID = 1, NR
-          ! Diameter of mid-point in microns
-          DMID(ID)  = DEDGE + ( DR )
-
-          ! Calculate the dry volume size distribution as the sum of two
-          ! log-normal size distributions. The parameters for the size
-          ! distribution are based on Reid et al. and Quinn et al.
-          ! The scaling factors 13. and 0.8 for acc and coarse mode
-          ! aerosols are chosen to obtain a realistic distribution
-          ! SALT_V (D) = dV/dln(D) [um3]
-          SALT_V(ID) = PI / 6e+0_fp* (DMID(ID)**3) * (                &
-               13e+0_fp*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2e+0_fp) )  &
-               **2e+0_fp/LOG(SIG_A)**2e+0_fp )                        &
-               /( sqrt(2e+0_fp * PI) * LOG(SIG_A) )  +                &
-               0.8e+0_fp*exp(-0.5*( LOG(DMID(ID))-LOG(RG_C*2e+0_fp) ) &
-               **2e+0_fp/LOG(SIG_C)**2e+0_fp)                         &
-               /( sqrt(2e+0_fp * PI) * LOG(SIG_C) )  )
-          ! update the next edge
-          DEDGE = DEDGE + DR*2e+0_fp
-       ENDDO
-
-       ! Reset after the first time
-       IF ( FIRST ) FIRST = .FALSE.
+    ! Pick the proper parameters for accum or coarse mode
+    IF ( MOD( N, 2 ) == 0 ) THEN
+       R0   = Input_Opt%SALC_REDGE_um(1)  ! Lower edge of coarse mode [um]
+       R1   = Input_Opt%SALC_REDGE_um(2)  ! Upper edge of coarse mode [um]
+       REFF = REFF_coarse                 ! Eff radius of coarse mode [m]
+    ELSE
+       R0   = Input_Opt%SALA_REDGE_um(1)  ! Lower edge of  accum mode [um]
+       R1   = Input_Opt%SALA_REDGE_um(2)  ! Upper edge of  accum mode [um]
+       REFF = REFF_accum                  ! Eff radius of accum mode  [m]
     ENDIF
 
     IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
 
-    ! Sea salt radius [cm]
-    !RCM  = REFF * 100e+0_fp
-    ! The radius used in the Gerber formulation for hygroscopic growth
-    ! of sea salt should be in microns (RUM) instead of cm (RCM). Replace RCM
-    ! with RUM (jaegle 5/11/11)
-    !RUM  = REFF * 1d6
+!%%% Comment out unused code (not sure who disabled this)
+!%%%    ! Sea salt radius [cm]
+!%%%    !RCM  = REFF * 100e+0_fp
+!%%%    ! The radius used in the Gerber formulation for hygroscopic growth
+!%%%    ! of sea salt should be in microns (RUM) instead of cm (RCM).
+!$$$    ! Replace RCM with RUM (jaegle 5/11/11)
+!%%%    !RUM  = REFF * 1d6
+!%%%
+!%%%    ! Exponential factors
+!%%%    !FAC1 = C1 * ( RCM**C2 )
+!%%%    !FAC2 = C3 * ( RCM**C4 )
+!%%%    ! Replace with RUM (jaegle 5/11/11)
+!%%%    !FAC1 = C1 * ( RUM**C2 )
+!%%%    !FAC2 = C3 * ( RUM**C4 )
 
-    ! Exponential factors
-    !FAC1 = C1 * ( RCM**C2 )
-    !FAC2 = C3 * ( RCM**C4 )
-    ! Replace with RUM (jaegle 5/11/11)
-    !FAC1 = C1 * ( RUM**C2 )
-    !FAC2 = C3 * ( RUM**C4 )
-
-    !$OMP PARALLEL DO                                                    &
-    !$OMP DEFAULT( SHARED                                              ) &
-    !$OMP PRIVATE( I,        J,     L,     VTS,             P          ) &
-    !$OMP PRIVATE( TEMP,     RHB,   RWET,  RATIO_R,         RHO        ) &
-    !$OMP PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       ) &
-    !$OMP PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       ) &
-    !$OMP PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT ) &
-    !$OMP PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       S          ) &
-    !$OMP SCHEDULE( DYNAMIC                                            )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,     L,     VTS,             P               )&
+    !$OMP PRIVATE( TEMP,     RHB,   RWET,  RATIO_R,         RHO             )&
+    !$OMP PRIVATE( DP,       PDP,   CONST, SLIP,            VISC            )&
+    !$OMP PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2            )&
+    !$OMP PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT      )&
+    !$OMP PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       S               )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 4                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Initialize
-       DO L = 1, State_Grid%NZ
-          VTS(L) = 0e+0_fp
-       ENDDO
+       ! Zero PRIVATE loop variables
+       ! (NOTE: Other variables are initialized within the L loop)
+       AREA_CM2        = 0.0_fp
+       FLUX            = 0.0_fp
+       RWET            = 0.0_fp
+       TOT1            = 0.0_fp
+       TOT2            = 0.0_fp
+       TC0             = 0.0_fp
+       VTS             = 0.0_fp
+       DMIDW           = 0.0_fp
+       SALT_MASS       = 0.0_fp
+       SALT_MASS_TOTAL = 0.0_fp
 
        ! Loop over levels
        DO L = 1, State_Grid%NZ
 
           ! Pressure at center of the level [kPa]
-          P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
+          P       = State_Met%PMID(I,J,L) * 0.1_fp
 
           ! Temperature [K]
           TEMP    = State_Met%T(I,J,L)
 
           ! Cap RH at 0.99
-          RHB     = MIN( 0.99e+0_fp, State_Met%RH(I,J,L) * 1e-2_fp )
+          RHB     = MIN( 0.99_fp, State_Met%RH(I,J,L) * 1.0e-2_fp )
 
           ! Safety check (phs, 5/1/08)
-          RHB     = MAX( TINY(RHB), RHB           )
+          RHB     = MAX( RHB, 1.0e-30_fp )
 
           ! Aerosol growth with relative humidity in radius [m]
           ! (Gerber, 1985)
@@ -583,50 +626,63 @@ CONTAINS
 
           ! Use equation 5 in Lewis and Schwartz (2006) for sea
           ! salt growth (bec, jaegle 5/11/11)
-          RWET = REFF * (4.e+0_fp / 3.7e+0_fp) * &
-                 ( (2.e+0_fp - RHB)/(1.e+0_fp - RHB) )**(1.e+0_fp/3.e+0_fp)
+          RWET = REFF * FOUR_OVER_THREEptSEVEN                                &
+               * ( ( 2.0_fp - RHB ) / ( 1.0_fp - RHB ) )**ONE_THIRD
 
           ! Ratio dry over wet radii at the cubic power
-          RATIO_R = ( REFF / RWET )**3.e+0_fp
+          RATIO_R = ( REFF / RWET )**3.0_fp
 
           ! Density of the wet aerosol (kg/m3)
-          RHO = RATIO_R * DEN + ( 1.e+0_fp - RATIO_R ) * 1000.e+0_fp
+          RHO = RATIO_R * DEN + ( 1.0_fp - RATIO_R ) * 1000.0_fp
 
           ! Above density calculation is chemically unsound because
           ! it ignores chemical solvation.   Iteratively solve Tang et al.,
           ! 1997 equation 5 to calculate density of wet aerosol (kg/m3)
           ! (bec, jaegle 5/11/11)
           RATIO_R = ( REFF / RWET )
+
           ! Assume an initial density of 1000 kg/m3
-          RHO  = 1000.e+0_f8
-          RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
-          DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
+          RHO  = 1000.0_f8
+          WTP  = 0.0_f8
+          RHO1 = 0.0_f8
+          DO WHILE ( ABS( RHO1 - RHO ) .gt. EPSI )
+
              ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet)
-             WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
+             WTP  = 100.0_f8 * DEN/RHO * ( RATIO_R * RATIO_R * RATIO_R )
+
              ! Then calculate density of wet aerosol using equation 5
              ! in Tang et al., 1997 [kg/m3]
-             RHO1 = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8) &
-                    + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) &
-                    * 1000.e+0_f8
+             ! NOTE: Can rewrite this polynomial more efficiently!!
+             RHO1 = ( 0.9971_f8                                              &
+                      + ( A1 * WTP                   )                       &
+                      + ( A2 * WTP * WTP             )                       &
+                      + ( A3 * WTP * WTP * WTP       )                       &
+                      + ( A4 * WTP * WTP * WTP * WTP )                       &
+                    ) * 1000.0_f8
+
              ! Now calculate new weight percent using above density
-             ! calculation
-             WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
+             WTP  = 100.0_f8 * DEN/RHO1 * ( RATIO_R * RATIO_R * RATIO_R )
+
              ! Now recalculate new wet density [kg/m3]
-             RHO = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8) &
-                   + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) &
-                   * 1000.e+0_f8
+             ! NOTE: can rewrite this polynomial more efficiently!!
+             RHO  = ( 0.9971_f8                                              &
+                      + ( A1 * WTP                   )                       &
+                      + ( A2 * WTP * WTP             )                       &
+                      + ( A3 * WTP * WTP * WTP       )                       &
+                      + ( A4 * WTP * WTP * WTP * WTP )                       &
+                    ) * 1000.0_f8
           ENDDO
 
           ! Dp = particle diameter [um]
-          DP      = 2.e+0_fp * RWET * 1.e+6_fp
+          DP      = 2.0_fp * RWET * 1.0e+6_fp
 
           ! PdP = P * dP [hPa * um]
           PDp     = P * Dp
 
           ! Constant
-          CONST   = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp
+          CONST   = 2.0_fp * RHO * ( RWET * RWET ) * g0 / 9.0_fp
 
-          !===========================================================
+          !==================================================================
           ! NOTE: Slip correction factor calculations following
           ! Seinfeld, pp464 which is thought to be more accurate
           ! but more computation required. (rjp, 1/24/02)
@@ -644,19 +700,18 @@ CONTAINS
           ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
           ! which produces slip correction factore with small error
           ! compared to the above with less computation.
-          !===========================================================
+          !==================================================================
 
           ! Slip correction factor (as function of P*dp)
-          Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp &
-                 * EXP(-0.059e+0_fp * PDp)) / PDp
+          Slip = 1.0_fp + (15.60_fp + 7.0_fp * EXP( -0.059_fp * PDp ) ) / PDp
 
           ! Viscosity [Pa*s] of air as a function of temperature
-          VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) &
-                 / ( Temp + 110.4e+0_fp )
+          VISC = 1.458e-6_fp * ( Temp**1.5_fp ) / ( Temp + 110.4_fp )
 
           ! Settling velocity [m/s]
           VTS(L) = CONST * Slip / VISC
 
+          !==================================================================
           ! This settling velocity is for the mid-point of the size bin.
           ! In the following we derive scaling factors to take into account
           ! the strong dependence on radius of the settling velocity and the
@@ -666,34 +721,46 @@ CONTAINS
           ! (see definition of CONST above)
           ! so VTS(k) = VTS * (RMID(k)/RWET)^2
           ! (jaegle 5/11/11)
+          !==================================================================
+          DMIDW           = 0.0_fp
+          SALT_MASS       = 0.0_fp
+          SALT_MASS_TOTAL = 0.0_fp
+          VTS_WEIGHT      = 0.0_fp
 
-          SALT_MASS_TOTAL = 0e+0_fp
-          VTS_WEIGHT      = 0e+0_fp
+          !------------------------------------------------------------------
+          ! Calculate mass of wet aerosol (Dw = wet diameter, D =
+          ! dry diameter): dM/dlnDw = dV/dlnDw * RHO, we assume that
+          ! the density of sea-salt doesn't change much over the size
+          ! range.  and  dV/dlnDw = dV/dlnD * dlnD/dlnDw =
+          ! dV/dlnD * Dw/D = dV/dlnD * Rwet/Rdry
+          ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw =
+          ! dM/dln(Dw)/Dw
+          ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
+          !------------------------------------------------------------------
           DO ID = 1, NR
-             ! Calculate mass of wet aerosol (Dw = wet diameter, D =
-             ! dry diameter): dM/dlnDw = dV/dlnDw * RHO, we assume that
-             ! the density of sea-salt doesn't change much over the size
-             ! range.  and  dV/dlnDw = dV/dlnD * dlnD/dlnDw =
-             ! dV/dlnD * Dw/D = dV/dlnD * Rwet/Rdry
-             ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw =
-             ! dM/dln(Dw)/Dw
-             ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
-             !
-             IF ( DMID(ID) .ge. R0*2e+0_fp   .and. &
-                  DMID(ID) .le. R1*2e+0_fp ) THEN
-                DMIDW = DMID(ID) * RWET/REFF  ! wet radius [um]
-                SALT_MASS = SALT_V(ID) * RWET/REFF * RHO / (DMIDW*0.5e+0_fp)
-                VTS_WEIGHT  = VTS_WEIGHT + &
-                    SALT_MASS * VTS(L) * (DMIDW/(RWET*1d6*2e+0_fp) ) &
-                    ** 2e+0_fp * (2e+0_fp * DR *  RWET/REFF)
-                SALT_MASS_TOTAL = SALT_MASS_TOTAL+SALT_MASS * &
-                                 (2e+0_fp * DR *  RWET/REFF)
+
+             IF ( DMID(ID) >= R0*2.0_fp .and. DMID(ID) <= R1*2.0_fp ) THEN
+                DMIDW           = DMID(ID)                                   &
+                                * RWET/REFF     ! wet radius [um]
+
+                SALT_MASS       = SALT_V(ID)                                 &
+                                * RWET/REFF                                  &
+                                * RHO                                        &
+                                / ( DMIDW * 0.5_fp                          )
+
+                VTS_WEIGHT      = VTS_WEIGHT                                 &
+                                + SALT_MASS * VTS(L)                         &
+                                * ( DMIDW / (RWET* 1.0e+6_fp * 2.0_fp) )**2  &
+                                * ( 2.0_fp * DR *  RWET/REFF                )
+
+                SALT_MASS_TOTAL = SALT_MASS_TOTAL                            &
+                                + SALT_MASS * ( 2.0_fp * DR *  RWET/REFF    )
              ENDIF
 
           ENDDO
 
           ! Calculate the weighted settling velocity:
-          VTS(L) = VTS_WEIGHT/SALT_MASS_TOTAL
+          VTS(L) = VTS_WEIGHT / SALT_MASS_TOTAL
 
        ENDDO
 
@@ -701,22 +768,18 @@ CONTAINS
        ! implicit and first order accurate in z (rjp, 1/24/02)
 
        ! Save initial tracer concentration in column
-       DO L = 1, State_Grid%NZ
-          TC0(L) = TC(I,J,L)
-       ENDDO
+       TC0  = TC(I,J,:)
 
        ! We know the boundary condition at the model top
-       L    = State_Grid%MaxChemLev
-       DELZ = State_Met%BXHEIGHT(I,J,L)
-
+       L         = State_Grid%MaxChemLev
+       DELZ      = State_Met%BXHEIGHT(I,J,L)
        TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
        DO L = State_Grid%MaxChemLev-1, 1, -1
-          DELZ  = State_Met%BXHEIGHT(I,J,L)
-          DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-          TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ ) &
-                      * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1 &
-                      *  TC(I,J,L+1) )
+          DELZ      = State_Met%BXHEIGHT(I,J,L)
+          DELZ1     = State_Met%BXHEIGHT(I,J,L+1)
+          TC(I,J,L) = 1.0_fp / ( 1.0_fp + DTCHEM * VTS(L) / DELZ  )          &
+                    * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1 * TC(I,J,L+1) )
        ENDDO
 
        !-----------------------------------------------------------
@@ -730,8 +793,8 @@ CONTAINS
             State_Diag%Archive_DryDep        ) THEN
 
           ! Initialize
-          TOT1 = 0e+0_fp
-          TOT2 = 0e+0_fp
+          TOT1 = 0.0_fp
+          TOT2 = 0.0_fp
 
           ! Compute column totals of TCO(:) and TC(I,J,:,N)
           DO L = 1, State_Grid%NZ
@@ -740,13 +803,13 @@ CONTAINS
           ENDDO
 
           ! Surface area [cm2]
-          AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
+          AREA_CM2 = State_Grid%Area_M2(I,J) * 1.0e+4_fp
 
           ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
-          FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-          FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW &
-                     / State_Chm%SpcData(id_SALA)%Info%MW_g ) &
-                     * 1.e-3_fp ) / AREA_CM2
+          FLUX  = ( TOT1 - TOT2 ) / DTCHEM
+          FLUX  = FLUX * AVO / ( AIRMW / ( AIRMW                             &
+                / State_Chm%SpcData(id_SALA)%Info%MW_g )                     &
+                * 1.e-3_fp ) / AREA_CM2
 
           ! Drydep flux in chemistry only
           S = State_Diag%Map_DryDepChm%id2slot(idDep(N))
@@ -761,7 +824,7 @@ CONTAINS
 
     IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
 
-  END SUBROUTINE WET_SETTLING
+  END SUBROUTINE Wet_Settling
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -777,16 +840,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_MOPO( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE Chem_MOPO( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE Time_Mod,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -887,7 +950,7 @@ CONTAINS
     ! Free pointer
     Spc => NULL()
 
-  END SUBROUTINE CHEM_MOPO
+  END SUBROUTINE Chem_MOPO
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -903,16 +966,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_MOPI( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE Chem_MOPI( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -994,7 +1057,7 @@ CONTAINS
     ! Free pointer
     Spc => NULL()
 
-  END SUBROUTINE CHEM_MOPI
+  END SUBROUTINE Chem_MOPI
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1009,12 +1072,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_SEASALT( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE Init_SeaSalt( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1041,16 +1103,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
+    ! SAVEd scalars
     LOGICAL, SAVE          :: IS_INIT = .FALSE.
-    INTEGER                :: AS, N
+
+    ! Scalars
+    INTEGER                :: ID,  N
+    REAL(fp)               :: dEdge
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
-    !=================================================================
+    !========================================================================
     ! INIT_SEASALT begins here!
-    !=================================================================
+    !========================================================================
 
     ! Assume success
     RC = GC_SUCCESS
@@ -1060,12 +1125,12 @@ CONTAINS
     IF ( IS_INIT .or. Input_Opt%DryRun ) RETURN
 
     ! Define species indices
-    id_MOPI = Ind_('MOPI')
-    id_MOPO = Ind_('MOPO')
-    id_SALA = Ind_('SALA')
-    id_SALC = Ind_('SALC')
-    id_NK1  = Ind_('NK1' )
-    id_SS1  = Ind_('SS1' )
+    id_MOPI   = Ind_('MOPI'  )
+    id_MOPO   = Ind_('MOPO'  )
+    id_SALA   = Ind_('SALA'  )
+    id_SALC   = Ind_('SALC'  )
+    id_NK1    = Ind_('NK1'   )
+    id_SS1    = Ind_('SS1'   )
     id_SALACL = Ind_('SALACL')
     id_SALCCL = Ind_('SALCCL')
     id_SALAAL = Ind_('SALAAL')
@@ -1074,20 +1139,25 @@ CONTAINS
     ! Initialize pointer
     SpcInfo => NULL()
 
-    ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
-    SALT_V = 0e+0_fp
+    ! Allocate SALT_V module array
+    ALLOCATE( SALT_V( NR_MAX ), STAT=RC )
+    CALL GC_CheckVar( 'seasalt_mod.F90:SALT_V', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    SALT_V = 0.0_fp
 
-    ALLOCATE( DMID( NR_MAX ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
-    DMID = 0e+0_fp
+    ! Allocate DMID module array
+    ALLOCATE( DMID( NR_MAX ), STAT=RC )
+    CALL GC_CheckVar( 'seasalt_mod.F90:DMID', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    DMID = 0.0_fp
 
     ! Allocate OCCONV only for marine-POA simulations (bmy, 10/13/16)
     IF ( Input_Opt%LMPOA ) THEN
        ALLOCATE( OCCONV( State_Grid%NX, State_Grid%NY, State_Grid%NZ), &
-                 STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
-       OCCONV = 0e+0_fp
+                 STAT=RC )
+       CALL GC_CheckVar( 'seasalt_mod.F90:OCCONV', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       OCCONV = 0.0_fp
     ENDIF
 
     ! Zero the IDDEP array
@@ -1105,26 +1175,26 @@ CONTAINS
 
           ! Assign parameters to each species
           SELECT CASE ( TRIM( SpcInfo%Name ) )
-          CASE ( 'SALA' )
-             IDDEP(1)  = SpcInfo%DryDepID
-             SS_DEN(1) = SpcInfo%Density
-          CASE ( 'SALC' )
-             IDDEP(2)  = SpcInfo%DryDepID
-             SS_DEN(2) = SpcInfo%Density
-          CASE ( 'SALACL' )
-             IDDEP(3)  = SpcInfo%DryDepID
-             SS_DEN(3) = SpcInfo%Density
-          CASE ( 'SALCCL' )
-             IDDEP(4)  = SpcInfo%DryDepID
-             SS_DEN(4) = SpcInfo%Density
-          CASE ( 'SALAAL' )
-             IDDEP(5)  = SpcInfo%DryDepID
-             SS_DEN(5) = SpcInfo%Density
-          CASE ( 'SALCAL' )
-             IDDEP(6)  = SpcInfo%DryDepID
-             SS_DEN(6) = SpcInfo%Density
-          CASE DEFAULT
-             ! Nothing
+             CASE ( 'SALA' )
+                IDDEP(1)  = SpcInfo%DryDepID
+                SS_DEN(1) = SpcInfo%Density
+             CASE ( 'SALC' )
+                IDDEP(2)  = SpcInfo%DryDepID
+                SS_DEN(2) = SpcInfo%Density
+             CASE ( 'SALACL' )
+                IDDEP(3)  = SpcInfo%DryDepID
+                SS_DEN(3) = SpcInfo%Density
+             CASE ( 'SALCCL' )
+                IDDEP(4)  = SpcInfo%DryDepID
+                SS_DEN(4) = SpcInfo%Density
+             CASE ( 'SALAAL' )
+                IDDEP(5)  = SpcInfo%DryDepID
+                SS_DEN(5) = SpcInfo%Density
+             CASE ( 'SALCAL' )
+                IDDEP(6)  = SpcInfo%DryDepID
+                SS_DEN(6) = SpcInfo%Density
+             CASE DEFAULT
+                ! Nothing
           END SELECT
 
           ! Free pointer
@@ -1132,10 +1202,72 @@ CONTAINS
        ENDDO
     ENDIF
 
-    ! Reset IS_INIT
-    IS_INIT = .TRUE.
+    !========================================================================
+    ! Compute # of bins and effective radius for accum & coarse modes
+    !========================================================================
 
-  END SUBROUTINE INIT_SEASALT
+    ! Effective radii; convert [um] -> [m]
+    REFF_accum  = 0.5e-6_fp * SUM( Input_Opt%SALA_REDGE_um )
+    REFF_coarse = 0.5e-6_fp * SUM( Input_Opt%SALC_REDGE_um )
+
+    ! Number of dry radius size bins between lowest radius (accumulation
+    ! mode) and largest radii (coarse mode) (jaegle 5/11/11)
+    NR = INT( ( ( Input_Opt%SALC_REDGE_um(2) -                               &
+                  Input_Opt%SALA_REDGE_um(1)   ) / DR ) + 0.5_fp )
+
+    !========================================================================
+    ! Define the volume size distribution of sea-salt. This only has
+    ! to be done once. We assume that sea-salt is the combination of a
+    ! coarse mode and accumulation model log-normal distribution
+    ! functions (jaegle 5/11/11)
+    !========================================================================
+
+    ! Lower edge of 0th bin
+    dEdge = Input_Opt%SALA_REDGE_um(1) * 2.0_fp
+
+    ! Loop over diameters
+    DO ID = 1, NR
+
+       ! Diameter of mid-point in microns
+       dMid(ID)  = dEdge + DR
+
+       ! Calculate the dry volume size distribution as the sum of two
+       ! log-normal size distributions. The parameters for the size
+       ! distribution are based on Reid et al. and Quinn et al.
+       ! The scaling factors 13. and 0.8 for acc and coarse mode
+       ! aerosols are chosen to obtain a realistic distribution
+       ! SALT_V (D) = dV/dln(D) [um3]
+       SALT_V(ID) =                                                          &
+          PI                                                                 &
+        / 6.0_fp                                                             &
+        * ( dMid(ID)**3 )                                                    &
+        * (                                                                  &
+            13.0_fp                                                          &
+            * EXP( -0.5_fp                                                   &
+                    * ( LOG( dMid(ID) ) - LOG( RG_A * 2.0_fp ) )**2          &
+                    /   LOG( SIG_A                             )**2          &
+              )                                                              &
+            / (                                                              &
+                 SQRT( 2.0_fp * PI ) * LOG( SIG_A ) )                        &
+                 + 0.8_fp                                                    &
+                 * EXP( -0.5_fp                                              &
+                         * ( LOG( dMid(ID) ) - LOG( RG_C * 2.0_fp ) )**2     &
+                         / LOG( SIG_C )**2                                   &
+                   )                                                         &
+                 / ( SQRT( 2.0_fp * PI ) * LOG( SIG_C ) )                    &
+          )
+
+       ! update the next edge
+       dEdge = dEdge + ( DR * 2.0_fp )
+    ENDDO
+
+    !========================================================================
+    ! Reset IS_INIT flag
+    !========================================================================
+    IS_INIT =  .TRUE.
+    SpcInfo => NULL()
+
+  END SUBROUTINE Init_SeaSalt
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1150,7 +1282,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CLEANUP_SEASALT
+  SUBROUTINE Cleanup_SeaSalt
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1161,7 +1293,7 @@ CONTAINS
     IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
     IF ( ALLOCATED( OCCONV   ) ) DEALLOCATE( OCCONV   )
 
-  END SUBROUTINE CLEANUP_SEASALT
+  END SUBROUTINE CleanUp_SeaSalt
 !EOC
 #ifdef TOMAS
 !------------------------------------------------------------------------------
@@ -1256,7 +1388,7 @@ CONTAINS
 #endif
          4607513.229,   9309031.200, 12961629.010, 13602132.943, &
          11441451.509,  9387934.311,  8559624.313,  7165322.549, &
-         4648135.263,   2447035.933,  3885009.997,  1006980.679/ 
+         4648135.263,   2447035.933,  3885009.997,  1006980.679/
          ! make same Nk as 30 bins.
 
 #else
@@ -1707,7 +1839,7 @@ CONTAINS
              Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = &
              Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) / &
                 ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
-             
+
              DO K = 1, NCTSEA
                 Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = &
                 Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) + &
@@ -1785,4 +1917,4 @@ CONTAINS
   END SUBROUTINE WET_SETTLINGBIN
 !EOC
 #endif
-END MODULE SEASALT_MOD
+END MODULE SeaSalt_Mod

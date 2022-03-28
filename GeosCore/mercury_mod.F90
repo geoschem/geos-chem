@@ -1012,11 +1012,12 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_STATE_GC_MOD,   ONLY : HcoState
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
+    USE HCO_ExtList_Mod,  ONLY : HCO_GetOpt
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Met_Mod,    ONLY : MetState
 
     IMPLICIT NONE
 !
@@ -1040,10 +1041,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    CHARACTER(LEN=16)   :: ThisName
-    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME, ThisLoc
-    CHARACTER(LEN=1024) :: ErrMsg
-    INTEGER             :: N, SpcID
+    LOGICAL             :: is_BrOx_GC
+    CHARACTER(LEN=16)   :: thisName,  thisOpt
+    CHARACTER(LEN=255)  :: fieldName, thisLoc
+    CHARACTER(LEN=1024) :: errMsg
+    INTEGER             :: N, spcID
 
     !=================================================================
     ! Set_HCOPointers begins here
@@ -1054,20 +1056,44 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at Set_HCOPointers (in module GeosCore/mercury_mod.F90)'
 
+    ! Check if the Br_Ox switch is set
+    thisOpt    = HCO_GetOpt( HcoState%Config%ExtList, 'BrOx_GC', ExtNr=0 )
+    is_BrOx_GC = ( INDEX( thisOpt, 'true' ) > 0 )
+
     ! Do for each fixed KPP species
     DO N = 1, State_Chm%nKppFix
 
        ! Get species ID
-       SpcID    = State_Chm%Map_KppFix(N)
+       spcID    = State_Chm%Map_KppFix(N)
 
        ! Get oxidant name
-       ThisName = State_Chm%SpcData(SpcID)%Info%Name
+       thisName = State_Chm%SpcData(SpcID)%Info%Name
 
        ! Construct field name using species name
-       FIELDNAME = 'GLOBAL_'//TRIM(ThisName)
+       ! Br/BrO use a different container name than the other oxidant fields
+       SELECT CASE( TRIM( thisName ) )
+
+          CASE( 'Br' )
+             IF ( is_BrOx_GC ) THEN
+                fieldName = 'Br_GC'
+             ELSE
+                fieldName = 'Br_TOMCAT'
+             ENDIF
+
+          CASE( 'BrO' )
+             IF ( is_BrOx_GC ) THEN
+                fieldName = 'BrO_GC'
+             ELSE
+                fieldName = 'BrO_TOMCAT'
+             ENDIF
+
+          CASE DEFAULT
+             fieldName = 'GLOBAL_' // TRIM( thisName )
+
+       END SELECT
 
        ! Get pointer to this field. These are the concentrations (molec cm-3).
-       CALL HCO_GetPtr( HcoState, FIELDNAME, FixSpcPtr(N)%Data, RC )
+       CALL HCO_GetPtr( HcoState, fieldName, FixSpcPtr(N)%Data, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

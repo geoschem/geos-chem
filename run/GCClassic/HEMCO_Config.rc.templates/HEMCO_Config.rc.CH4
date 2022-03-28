@@ -48,19 +48,19 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species   Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true      ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
-# ----- NESTED GRID FIELDS ------------------------------------
+# ----- NESTED GRID FIELDS ----------------------------------------------------
     --> GC_BCs                 :       ${RUNDIR_USE_BCs}
-# ----- REGIONAL INVENTORIES ----------------------------------
+# ----- REGIONAL INVENTORIES --------------------------------------------------
     --> GEPA                   :       true     # 2012
     --> Scarpelli_Canada       :       true     # 2018
     --> Scarpelli_Mexico       :       true     # 2015
-# ----- GLOBAL INVENTORIES ------------------------------------
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> GFEIv2                 :       true     # 2019
     --> EDGARv6                :       true     # 2000-2018
     --> QFED2                  :       false    # 2009-2015
@@ -71,17 +71,17 @@ Warnings:                    1
     --> FUNG_TERMITES          :       true     # 1985
     --> FUNG_SOIL_ABSORPTION   :       false    # 2009-2015
     --> MeMo_SOIL_ABSORPTION   :       true     # 1990-2009 or clim.
-# ----- FUTURE EMISSIONS --------------------------------------
+# ----- FUTURE EMISSIONS ------------------------------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
-# ----- CMIP6 ANTHRO EMISSIONS --------------------------------
+# ----- CMIP6 ANTHRO EMISSIONS ------------------------------------------------
 #   Set GCAP2SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
     --> CMIP6_SFC_LAND_ANTHRO  :       false    # 1850-2100
     --> CMIP6_SHIP             :       false    # 1850-2100
     --> BB4MIPS                :       false    # 1850-2100
-# ----- NON-EMISSIONS DATA ------------------------------------
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> GMI_CH4_LOSS           :       true     # 1985
     --> GLOBAL_OH              :       true     # 2010-2019
     --> GLOBAL_CL              :       true     # 2010-2019
@@ -90,7 +90,7 @@ Warnings:                    1
     --> AnalyticalInv          :       false
     --> Emis_ScaleFactor       :       false
     --> OH_ScaleFactor         :       false
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 111     GFED                   : off   CH4
     --> GFED4                  :       true
     --> GFED_daily             :       true

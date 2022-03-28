@@ -101,7 +101,6 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
-    USE fullchem_SulfurChemFuncs, ONLY : fullchem_UpdateHSO3mAndSO3mm
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
@@ -757,6 +756,7 @@ CONTAINS
        ENDIF
 
        ! Compute sulfur chemistry reaction rates [1/s]
+       ! If size_res = T, we'll call fullchem_HetDropChem below.
        CALL Set_Sulfur_Chem_Rates( I          = I,                           &
                                    J          = J,                           &
                                    L          = L,                           &
@@ -765,7 +765,7 @@ CONTAINS
                                    State_Diag = State_Diag,                  &
                                    State_Grid = State_Grid,                  &
                                    State_Met  = State_Met,                   &
-                                   SIZE_RES   = SIZE_RES,                    &
+                                   size_res   = size_res,                    &
                                    RC         = RC                          )
 
        ! Stop timer
@@ -805,16 +805,6 @@ CONTAINS
                                   State_Met = State_Met,                     &
                                   H         = State_Het,                     &
                                   RC        = RC                            )
-
-       !=====================================================================
-       ! CHEMISTRY MECHANISM INITIALIZATION (#4)
-       !
-       ! Update HSO3- and SO3-- concentrations [molec/cm3] and divide by
-       ! cloud fraction.  These are stored as C(ind_HSO3m) and C(ind_SO3mm)
-       ! in KPP module gckpp_Global.F90.
-       !=====================================================================
-       CALL fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,           &
-                                          State_Chm, State_Het, State_Met   )
 
        ! Stop timer
        IF ( Input_Opt%useTimers ) THEN
@@ -857,7 +847,7 @@ CONTAINS
 
           ! Eexecute fullchem_HetDropChem if criteria are satisfied
           ! NOTE: skip if LWC is very small, which will blow up equations!
-          IF ( ( SIZE_RES                                           )  .and. &
+          IF ( ( size_res                                           )  .and. &
                ( State_Met%IsWater(I,J)                             )  .and. &
                ( TEMP                    > 268.15_fp                )  .and. &
                ( LWC                     > 1.0e-20_fp               ) ) THEN
@@ -1608,7 +1598,8 @@ CONTAINS
 !
   SUBROUTINE Set_Sulfur_Chem_Rates( I,          J,          L,               &
                                     Input_Opt,  State_Chm,  State_Diag,      &
-                                    State_Grid, State_Met,  SIZE_RES,   RC   )
+                                    State_Grid, State_Met,  size_res,        &
+                                    RC                                      )
 !
 ! !USES:
 !
@@ -1638,7 +1629,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(OUT)   :: SIZE_RES     ! For HET_DROP_CHEM
+    LOGICAL,        INTENT(OUT)   :: size_res     ! Should we call HetDropChem?
     INTEGER,        INTENT(OUT)   :: RC           ! Success or failure!
 !
 ! !REMARKS:
@@ -1665,7 +1656,7 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    SIZE_RES = .FALSE.
+    size_res = .FALSE.
 
     !========================================================================
     ! Do this when KPP is handling aqueous sulfur chemistry
@@ -1706,18 +1697,12 @@ CONTAINS
                                      State_Diag = State_Diag,                &
                                      State_Grid = State_Grid,                &
                                      State_Met  = State_Met,                 &
+                                     size_res   = size_res,                  &
                                      RC         = RC                        )
 
        ! Update HSO3- and SO3-- concentrations [molec/cm3]
-       ! MOVED by MSL : C(ind_HSO3m)                 = State_Chm%HSO3_aq(I,J,L)*1d-3*AVO
-       ! MOVED by MSL : C(ind_SO3mm)                 = State_Chm%SO3_aq(I,J,L)
-
        State_Chm%fupdateHOBr(I,J,L) = 1.0_fp
        State_Chm%fupdateHOCl(I,J,L) = 1.0_fp
-
-       ! Set logical to indicate if the aerosol should be treated
-       ! as size-resolved in the Het_Drop_Chem routine
-       SIZE_RES                     = State_Chm%SIZE_RES
 
     ENDIF
 

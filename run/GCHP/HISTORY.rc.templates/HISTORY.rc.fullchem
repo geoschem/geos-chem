@@ -118,8 +118,18 @@ COLLECTIONS: @#'DefaultCollection',
 #           SpeciesConc.levels: 1 2 3
 #
 #==============================================================================
+
+#==============================================================================
+# %%%%% THE DefaultCollection COLLECTION %%%%%
+#
+# Reduced set of output including some species concentrations, met-fields,
+# and PM2.5
+#
+# Available for full-chemistry simulations
+#==============================================================================
   DefaultCollection.template:       '%y4%m2%d2_%h2%n2z.nc4',
   DefaultCollection.format:         'CFIO',
+  DefaultCollection.timestampStart: .true.
   DefaultCollection.frequency:      240000
   DefaultCollection.duration:       240000
   DefaultCollection.mode:           'time-averaged'
@@ -141,7 +151,17 @@ COLLECTIONS: @#'DefaultCollection',
                                     'Met_PS1DRY           ', 'GCHPchem',
                                     'Met_PS1WET           ', 'GCHPchem',
 ::
-# Emissions (see HEMCO_Diagn.rc for additional config settings)
+#==============================================================================
+# %%%%% THE Emissions COLLECTION %%%%%
+#
+# HEMCO emissions by species and category, and inventory emissions
+#
+# Please note that this collection is output with level definition flipped
+# relative to all other GCHP diagnostics. Level index 1 corresponds to
+# top-of-atmosphere.
+#
+# See HEMCO_Diagn.rc for additional config settings
+#==============================================================================
   Emissions.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Emissions.format:         'CFIO',
   Emissions.timestampStart: .true.
@@ -240,11 +260,13 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisGLYC_Anthro      ', 'GCHPchem',
                           ##'EmisGLYX_Total       ', 'GCHPchem',
                           ##'EmisGLYX_Anthro      ', 'GCHPchem',
+                          'EmisH2O_Aircraft     ', 'GCHPchem',
                           'EmisHCOOH_Total      ', 'GCHPchem',
                           'EmisHCOOH_Anthro     ', 'GCHPchem',
                           'EmisHCOOH_Ship       ', 'GCHPchem',
                           'EmisHNO2_Anthro      ', 'GCHPchem',
                           'EmisHNO3_Ship        ', 'GCHPchem',
+                          'EmisHONO_Aircraft    ', 'GCHPchem',
                           'EmisISOP_Total       ', 'GCHPchem',
                           'EmisISOP_Anthro      ', 'GCHPchem',
                           'EmisISOP_Biogenic    ', 'GCHPchem',
@@ -286,7 +308,9 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisNO_Lightning     ', 'GCHPchem',
                           'EmisNO_Ship          ', 'GCHPchem',
                           'EmisNO_Soil          ', 'GCHPchem',
+                          'EmisNO2_Total        ', 'GCHPchem',
                           'EmisNO2_Anthro       ', 'GCHPchem',
+                          'EmisNO2_Aircraft     ', 'GCHPchem',
                           'EmisNO2_Ship         ', 'GCHPchem',
                           'EmisO3_Ship          ', 'GCHPchem',
                           'EmisOCPI_Total       ', 'GCHPchem',
@@ -498,22 +522,24 @@ COLLECTIONS: @#'DefaultCollection',
                           #'InvCEDSship_SOAP     ', 'GCHPchem',
                           #'InvCEDSship_TOLU     ', 'GCHPchem',
                           #'InvCEDSship_XYLE     ', 'GCHPchem',
-                          #'InvAEIC_ACET         ', 'GCHPchem',
-                          #'InvAEIC_ALD2         ', 'GCHPchem',
-                          #'InvAEIC_ALK4         ', 'GCHPchem',
-                          #'InvAEIC_BCPI         ', 'GCHPchem',
-                          #'InvAEIC_C2H6         ', 'GCHPchem',
-                          #'InvAEIC_C3H8         ', 'GCHPchem',
-                          #'InvAEIC_CH2O         ', 'GCHPchem',
-                          #'InvAEIC_CO           ', 'GCHPchem',
-                          #'InvAEIC_MACR         ', 'GCHPchem',
-                          #'InvAEIC_NO           ', 'GCHPchem',
-                          #'InvAEIC_OCPI         ', 'GCHPchem',
-                          #'InvAEIC_PRPE         ', 'GCHPchem',
-                          #'InvAEIC_RCHO         ', 'GCHPchem',
-                          #'InvAEIC_SO2          ', 'GCHPchem',
-                          #'InvAEIC_SO4          ', 'GCHPchem',
-                          #'InvAEIC_SOAP         ', 'GCHPchem',
+                          #'InvAEIC2019_ACET     ', 'GCHPchem',
+                          #'InvAEIC2019_ALD2     ', 'GCHPchem',
+                          #'InvAEIC2019_ALK4     ', 'GCHPchem',       
+                          #'InvAEIC2019_BCPI     ', 'GCHPchem',      
+                          #'InvAEIC2019_C2H6     ', 'GCHPchem',
+                          #'InvAEIC2019_C3H8     ', 'GCHPchem',
+                          #'InvAEIC2019_CH2O     ', 'GCHPchem',
+                          #'InvAEIC2019_CO       ', 'GCHPchem',
+                          #'InvAEIC2019_HONO     ', 'GCHPchem',
+                          #'InvAEIC2019_MACR     ', 'GCHPchem',
+                          #'InvAEIC2019_NO       ', 'GCHPchem',
+                          #'InvAEIC2019_NO2      ', 'GCHPchem',
+                          #'InvAEIC2019_OCPI     ', 'GCHPchem',
+                          #'InvAEIC2019_PRPE     ', 'GCHPchem',
+                          #'InvAEIC2019_RCHO     ', 'GCHPchem',
+                          #'InvAEIC2019_SO2      ', 'GCHPchem',
+                          #'InvAEIC2019_SO4      ', 'GCHPchem',
+                          #'InvAEIC2019_SOAP     ', 'GCHPchem',
                           #'InvPLANTDECAY_ALD2   ', 'GCHPchem',
                           #'InvPLANTDECAY_EOH    ', 'GCHPchem',
                           #'InvAFCID_DST1        ', 'GCHPchem',
@@ -4335,7 +4361,7 @@ COLLECTIONS: @#'DefaultCollection',
                           #'DryDep_ASOA3         ', 'GCHPchem',
                           #'DryDep_ASOA2         ', 'GCHPchem',
                           #'DryDep_ASOA1         ', 'GCHPchem',
-			  'DryDepVel_SOAS       ', 'GCHPchem',
+                          'DryDepVel_SOAS       ', 'GCHPchem',
                           'DryDepVel_SOAIE      ', 'GCHPchem',
                           'DryDepVel_SOAGX      ', 'GCHPchem',
                           'DryDepVel_SO4s       ', 'GCHPchem',
@@ -5072,7 +5098,6 @@ COLLECTIONS: @#'DefaultCollection',
                           'SpeciesConc_SOAGX          ', 'GCHPchem',
                           'SpeciesConc_SO4s           ', 'GCHPchem',
                           'SpeciesConc_SO4            ', 'GCHPchem',
-                          'SpeciesConc_SO3mm          ', 'GCHPchem',
                           'SpeciesConc_SO2            ', 'GCHPchem',
                           'SpeciesConc_SALCCL         ', 'GCHPchem',
                           'SpeciesConc_SALCAL         ', 'GCHPchem',
@@ -5184,7 +5209,6 @@ COLLECTIONS: @#'DefaultCollection',
                           'SpeciesConc_I2O2           ', 'GCHPchem',
                           'SpeciesConc_I2             ', 'GCHPchem',
                           'SpeciesConc_I              ', 'GCHPchem',
-                          'SpeciesConc_HSO3m          ', 'GCHPchem',
                           'SpeciesConc_HPETHNL        ', 'GCHPchem',
                           'SpeciesConc_HPALD4         ', 'GCHPchem',
                           'SpeciesConc_HPALD3         ', 'GCHPchem',
@@ -5613,7 +5637,7 @@ COLLECTIONS: @#'DefaultCollection',
                           #'WetLossConv_ASOA3          ', 'GCHPchem',
                           #'WetLossConv_ASOA2          ', 'GCHPchem',
                           #'WetLossConv_ASOA1          ', 'GCHPchem',
-			  'WetLossConvFrac_SOAS       ', 'GCHPchem',
+                          'WetLossConvFrac_SOAS       ', 'GCHPchem',
                           'WetLossConvFrac_SOAIE      ', 'GCHPchem',
                           'WetLossConvFrac_SOAGX      ', 'GCHPchem',
                           'WetLossConvFrac_SO4s       ', 'GCHPchem',

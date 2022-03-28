@@ -28,7 +28,6 @@ MODULE fullchem_SulfurChemFuncs
   PUBLIC :: fullchem_InitSulfurChem
   PUBLIC :: fullchem_SulfurAqChem
   PUBLIC :: fullchem_SulfurCldChem
-  PUBLIC :: fullchem_UpdateHSO3mAndSO3mm
 !
 ! !PUBLIC TYPES:
 !
@@ -312,7 +311,8 @@ CONTAINS
 !
   SUBROUTINE fullchem_SulfurCldChem( I,         J,         L,                &
                                     Input_Opt,  State_Chm, State_Diag,       &
-                                    State_Grid, State_Met, RC               )
+                                    State_Grid, State_Met, size_res,         &
+                                    RC                                      )
 !
 ! !USES:
 !
@@ -338,6 +338,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
+    LOGICAL,        INTENT(OUT)   :: size_res    ! Should we call HetDropChem?
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -361,6 +362,7 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
+    size_res = .FALSE.
     ErrMsg   = ''
     ThisLoc  = &
   ' -> at fullchem_SulfurCldChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
@@ -371,9 +373,16 @@ CONTAINS
     !------------------------------------------------------------------------
     ! SO2 chemistry
     !------------------------------------------------------------------------
-    CALL SET_SO2( I,          J,         L,                                  &
-                  Input_Opt,  State_Chm, State_Diag,                         &
-                  State_Grid, State_Met, RC                                 )
+    CALL Set_SO2( I          = I,                                            &
+                  J          = J,                                            &
+                  L          = L,                                            &
+                  Input_Opt  = Input_Opt,                                    &
+                  State_Chm  = State_Chm,                                    &
+                  State_Diag = State_Diag,                                   &
+                  State_Grid = State_Grid,                                   &
+                  State_Met  = State_Met,                                    &
+                  size_res   = size_res,                                     &
+                  RC         = RC                                           )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -444,16 +453,16 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
     ! Dry sea-salt density [kg/m3]
-    REAL(dp), PARAMETER   :: SS_DEN        = 2200.0_dp
+    REAL(dp), PARAMETER :: SS_DEN        = 2200.0_dp
 
     ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
-    REAL(fp), PARAMETER   :: SIG_S         = 1.8e+0_dp
+    REAL(fp), PARAMETER :: SIG_S         = 1.8e+0_dp
 
     ! geometric dry mean diameters [m] for computing lognormal size distribution
-    REAL(dp), PARAMETER   :: RG_S          = 0.4e-6_dp !(Jaegle et a., 2011)
-    REAL(dp), PARAMETER   :: RG_D2         = 1.5e-6_dp !(Ginoux et al., 2001)
-    REAL(dp), PARAMETER   :: RG_D3         = 2.5e-6_dp
-    REAL(dp), PARAMETER   :: RG_D4         = 4.e-6_dp
+    REAL(dp), PARAMETER :: RG_S          = 0.4e-6_dp !(Jaegle et a., 2011)
+    REAL(dp), PARAMETER :: RG_D2         = 1.5e-6_dp !(Ginoux et al., 2001)
+    REAL(dp), PARAMETER :: RG_D3         = 2.5e-6_dp
+    REAL(dp), PARAMETER :: RG_D4         = 4.e-6_dp
 
     ! To prevent multiple divisions
     REAL(dp), PARAMETER   :: THREE_FOURTHS = 3.0_dp / 4.0_dp
@@ -462,19 +471,19 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp)              :: alpha_NH3, alpha_SO2, alpha_H2O2
-    REAL(dp)              :: alpha_HNO3, alpha_B, alpha_CN
-    REAL(dp)              :: alpha_W, alpha_SO4, sum_gas, H
-    REAL(dp)              :: NDss, NDd2, NDd3, NDd4, CN, DEN, REFF, W
-    REAL(dp)              :: DTCHEM, APV, DSVI
-    REAL(dp)              :: B, NH3, SO2, H2O2, HNO3, SO4
-    REAL(dp)              :: CNss, CNd2, CNd3, CNd4
-    REAL(dp)              :: MW_SO4, MW_SALC
-
-    REAL(dp)              :: CVF, R1, R2, XX, FC, LST, CVF_FC
-    REAL(dp)              :: XX1, XX2, XX3, XX4, XX5
-    REAL(dp)              :: SSCvv, aSO4, GNH3, SO2_sr, H2O20, GNO3
-    REAL(dp)              :: Arg,  K
+    REAL(dp)              :: alpha_NH3,  alpha_SO2, alpha_H2O2
+    REAL(dp)              :: alpha_HNO3, alpha_B,   alpha_CN
+    REAL(dp)              :: alpha_W,    alpha_SO4, sum_gas
+    REAL(dp)              :: H,          NDss,      CN
+    REAL(dp)              :: W,          K,         arg
+    REAL(dp)              :: DTCHEM,     APV,       DSVI
+    REAL(dp)              :: B,          NH3,       SO2
+    REAL(dp)              :: H2O2,       HNO3,      SO4
+    REAL(dp)              :: CNss,       MW_SO4,    MW_SALC
+    REAL(dp)              :: CVF,        R1,        R2
+    REAL(dp)              :: XX,         FC,        LST
+    REAL(dp)              :: XX1,        XX2,       XX3
+    REAL(dp)              :: XX4,        XX5,       GNH3
 
     ! Pointers
     REAL(fp), POINTER     :: AD(:,:,:)
@@ -496,9 +505,28 @@ CONTAINS
     U      => State_Met%U
     V      => State_Met%V
 
-    ! Convert mcl/cm3 back to v/v
-    CVF    =  1.0e3_fp * AIRMW / ( AIRDEN(I,J,L) * AVO )
-    DTCHEM =  GET_TS_CHEM()
+    ! Zero output argument for safety's sake
+    SR     =  0.0_dp
+
+    ! Zero/initialize local variables for safety's sake
+    arg    =  0.0_dp
+    B      =  0.0_dp
+    CN     =  0.0_dp
+    CVF    =  1.0e3_fp * AIRMW / ( AIRDEN(I,J,L) * AVO ) ! molec/cm3 -> v/v
+    DSVI   =  0.0_dp
+    DTCHEM =  GET_TS_CHEM()                              ! seconds
+    GNH3   =  0.0_dp
+    K      =  0.0_dp
+    LST    =  0.0_dp
+    R1     =  0.0_dp
+    R2     =  0.0_dp
+    W      =  0.0_dp
+    XX     =  0.0_dp
+    XX1    =  0.0_dp
+    XX2    =  0.0_dp
+    XX3    =  0.0_dp
+    XX4    =  0.0_dp
+    XX5    =  0.0_dp
 
     ! FC is guaranteed to be > 1e-4, because HET_DROP_CHEM
     ! is not called otherwise (bmy, 07 Oct 2021)
@@ -552,8 +580,8 @@ CONTAINS
        XX3 = R1 * ( 1.0_dp - XX )
     ENDIF
 
-    ! HSO3m + HOCl and SO3mm + HOCl
-    R1  = C(ind_HSO3m) * CVF
+    ! HSO3- + HOCl and SO3-- + HOCl
+    R1  = C(ind_SO2) * CVF * State_Chm%HSO3_aq(I,J,L)
     R2  = C(ind_HOCl)  * CVF
     K   = HOClUptkByHSO3m(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
@@ -564,8 +592,8 @@ CONTAINS
        XX4 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
 
-    ! SO3mm + HOCl (add to HSO3m + HOCl rate)
-    R1  = C(ind_SO3mm) * CVF
+    ! SO3-- + HOCl (add to HSO3- + HOCl rate)
+    R1  = C(ind_SO2) * CVF * State_Chm%SO3_aq(I,J,L)
     K   = HOClUptkBySO3mm(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
     IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
@@ -575,8 +603,8 @@ CONTAINS
        XX4 = XX4 + WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
 
-    ! HSO3m + HOBr
-    R1  = C(ind_HSO3m) * CVF
+    ! HSO3- + HOBr
+    R1  = C(ind_SO2) * CVF * State_Chm%HSO3_aq(I,J,L)
     R2  = C(ind_HOBr)  * CVF
     K   = HOBrUptkByHSO3m(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
@@ -587,8 +615,8 @@ CONTAINS
        XX5 = WhenExpCantBeDone( R1, R2, K, DTCHEM )
     ENDIF
 
-    ! SO3mm + HOBr (add to HSO3m + HOBr rate)
-    R1  = C(ind_SO3mm) * CVF
+    ! SO3-- + HOBr (add to HSO3- + HOBr rate)
+    R1  = C(ind_SO2) * CVF * State_Chm%SO3_aq(I,J,L)
     K   = HOBrUptkBySO3mm(State_Het) / CVF
     Arg = ( R1 - R2 ) * ( K * DTCHEM )
     IF ( IsSafeExp( Arg ) .and. ABS( Arg ) > 0.0_dp ) THEN
@@ -607,11 +635,11 @@ CONTAINS
     !ENDIF
 
     IF ( LST > R1 ) THEN
-       XX1 = R1 * XX1 / LST
-       XX2 = R1 * XX2 / LST
-       XX3 = R1 * XX3 / LST
-       XX4 = R1 * XX4 / LST
-       XX5 = R1 * XX5 / LST
+       XX1 = ( R1 * XX1 ) / LST
+       XX2 = ( R1 * XX2 ) / LST
+       XX3 = ( R1 * XX3 ) / LST
+       XX4 = ( R1 * XX4 ) / LST
+       XX5 = ( R1 * XX5 ) / LST
        LST = XX1 + XX2 + XX3 + XX4 + XX5
      ENDIF
 
@@ -642,9 +670,9 @@ CONTAINS
 
     ! Now convert from [kg/m3 air] to [#/cm3 air]
     ! Sea-salt
-    ARG  = NINE_HALVES * ( LOG( SIG_S ) )**2.0_dp
-    NDss = ( THREE_FOURTHS * CNss                                )           &
-         / ( PI * SS_DEN * RG_S**3.0_fp * SafeExp( Arg, 0.0_dp ) )           &
+    ARG  = NINE_HALVES * ( LOG( SIG_S ) )**2
+    NDss = ( THREE_FOURTHS * CNss                           )               &
+         / ( PI * SS_DEN * RG_S**3 * SafeExp( Arg, 0.0_dp ) )               &
          * 1.e-6_dp
 
     ! Total coarse mode number concentration [#/cm3]
@@ -678,7 +706,7 @@ CONTAINS
        alpha_W    =  7.22e-6_dp
        alpha_CN   =  2.44e-5_dp
        alpha_SO4  =  3.25e-5_dp
-    ELSE IF ( SO2 >= 1000.0_dp ) THEN
+    ELSE                          ! SO2 > 1000
        alpha_B    =  1.1795_dp
        alpha_NH3  =  2.57e-7_dp
        alpha_SO2  = -5.54e-7_dp
@@ -700,8 +728,7 @@ CONTAINS
     ! Compute air parcel velocity [m/s]
     !APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) )
     !(qjc, 04/10/16)
-    APV = SQRT( ( U(I,J,L) * U(I,J,L) ) + ( V(I,J,L) * V(I,J,L) ) +          &
-                 W * W * 1.0e-4_dp )
+    APV = SQRT( U(I,J,L)**2 + V(I,J,L)**2 ) + ( W**2 * 1.0e-4_dp )
 
     H   = DTCHEM * APV          ![m]
 
@@ -714,23 +741,24 @@ CONTAINS
 
     ! Only calculate SR when air parcel rises, in consistence with
     ! Yuen et al. (1996) (qjc, 04/10/16)
-    SR = 0.0_dp
     IF ( W > 0.0_dp .and. C(ind_SO2) > 0.0_dp ) THEN
 
-       ! additional sulfate production that can be attributed to
-       ! ozone [ug/m3/timestep]
-       SR = DSVI - B
-
-       ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-       SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_dp / AIRDEN(I,J,L)
-
+       ! additional sulfate production that can be
+       ! attributed to ozone [ug/m3/timestep]
        ! Don't allow SR to be negative
-       SR = MAX( SR, 0.e+0_fp )
+       SR = MAX( ( DSVI - B ), 0.0_dp )
 
-       ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
-       ! -- SR is dSO4/timestep (v/v) convert
-       !    to 1st order rate
-       SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
+       ! Skip further computation if SR = 0
+       IF ( SR > 0.0_dp ) THEN
+
+          ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
+          SR = SR * ( AIRMW / MW_SO4 ) * 1.e-9_dp / AIRDEN(I,J,L)
+
+          ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
+          ! -- SR is dSO4/timestep (v/v) continue onvert
+          !    to 1st order rate
+          SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
+       ENDIF
     ENDIF
 
     ! Free pointers
@@ -807,56 +835,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: fullchem_UpdateHSO3mAndSO3mm
-!
-! !DESCRIPTION: Divides HSO3- and SO3-- by cloud fraction, in the
-!  appropriate units.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,           &
-                                           State_Chm, State_Het, State_Met   )
-!
-! !USES:
-!
-    USE gckpp_Parameters, ONLY : ind_HSO3m, ind_SO3mm
-    USE gckpp_Global,     ONLY : C,         HetState
-    USE rateLawUtilFuncs, ONLY : SafeDiv
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Met_Mod,    ONLY : MetState
-
-   !
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN) :: I, J, L     ! Grid box indices
-    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-    TYPE(HetState), INTENT(IN) :: State_Het   ! Hetchem State object
-    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    C(ind_HSO3m) = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1d-3 *                &
-                            State_Het%AVO            *                       &
-                            State_Met%QL(I,J,L)      *                       &
-                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-                            State_Met%CLDF(I,J,L),                           &
-                            0.d0                                            )
-
-    C(ind_SO3mm) = SafeDiv( State_Chm%SO3_aq(I,J,L)  * 1d-3 *                &
-                            State_Het%AVO            *                       &
-                            State_Met%QL(I,J,L)      *                       &
-                            State_Met%AIRDEN(I,J,L)  * 1d-3,                 &
-                            State_Met%CLDF(I,J,L),                           &
-                            0.d0                                            )
-
-  END SUBROUTINE fullchem_UpdateHSO3mAndSO3mm
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: set_so2
 !
 ! !DESCRIPTION: Subroutine SET\_SO2 is the SO2 chemistry subroutine.
@@ -866,9 +844,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_SO2( I,          J,         L,                              &
-                      Input_Opt,  State_Chm, State_Diag,                     &
-                      State_Grid, State_Met, RC                             )
+  SUBROUTINE SET_SO2( I,         J,          L,          Input_Opt,          &
+                      State_Chm, State_Diag, State_Grid, State_Met,          &
+                      Size_Res,  RC                                         )
 !
 ! !USES:
 !
@@ -896,7 +874,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure?
+    LOGICAL,        INTENT(OUT)   :: Size_Res    ! Should we call HetDropChem?
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Reaction List (by Rokjin Park)
@@ -938,7 +917,7 @@ CONTAINS
     ! Scalars
     LOGICAL               :: IS_OFFLINE
     LOGICAL               :: IS_FULLCHEM
-    INTEGER               :: BULK,   SIZE_RES
+    INTEGER               :: BULK
     INTEGER               :: IBIN
     REAL(fp)              :: K0,     Ki,      KK,     M,    L1
     REAL(fp)              :: L2,     L3,      Ld,     F,    Fc
@@ -989,15 +968,17 @@ CONTAINS
     LOGICAL               :: Is_QQ3D
 #endif
 
-    !=================================================================
+    !========================================================================
     ! SET_SO2 begins here!
-    !=================================================================
+    !========================================================================
     IF ( id_H2O2 < 0 .or. id_SO2 < 0  ) RETURN
 
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at SET_SO2 (in module GeosCore/sulfate_mod.F90)'
+    ! Initialize
+    RC       = GC_SUCCESS
+    size_res = .FALSE.
+    ErrMsg   = ''
+    ThisLoc  = &
+      ' -> at SET_SO2 (in module KPP/fullchem/fullchem_SulfurChemFuncs.F90)'
 
     ! Initialize variables
     Spc                         => State_Chm%Species(I,J,L,:)
@@ -1393,132 +1374,132 @@ CONTAINS
        NH3 = Spc(id_NH3)*CNVFAC
 
        ! Initialize
-       State_Chm%SIZE_RES = .FALSE.
+       size_res= .FALSE.
 
        ! Fahey and Seinfeld decision algorithm
        ! NOTE: This is ugly, needs refactoring.  For now, just added
        ! whitespace to improve readability (bmy, 01 Oct 2021)
        IF ( H2O20 > SO2_afterss + 1e-9_fp ) THEN
-          State_Chm%SIZE_RES = .FALSE.
+          size_res = .FALSE.
 
        ELSE IF( LWC < 0.1e-6_fp ) THEN !10^-6 coversion from g/m3 --> m3/m3
-          State_Chm%SIZE_RES = .TRUE.
+          size_res = .TRUE.
 
        ELSE IF( gno3 > NH3 ) THEN
 
           IF ( So2_afterss >= 5.e-9_fp                                 .and. &
-               H2O20       >= SO20              ) State_Chm%SIZE_RES = .FALSE.
+               H2O20       >= SO20              ) size_res = .FALSE.
 
           IF ( LWC         >= 0.3e-6_fp                                .and. &
                So2_afterss >= 3.e-9_fp                                 .and. &
-               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+               H2O20       >= So2_afterss       ) size_res = .FALSE.
 
           IF ( ALKds       >= 5.e+0_fp                                 .and. &
                LWC         >= 0.5e-6_fp                                .and. &
-               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+               H2O20       >= So2_afterss       ) size_res = .FALSE.
 
           IF ( LWC         >= 0.1e-6_fp                                .and. &
-               gno3        <= (NH3 + 2.e-9_fp)  ) State_Chm%SIZE_RES = .FALSE.
+               gno3        <= (NH3 + 2.e-9_fp)  ) size_res = .FALSE.
 
        ELSE IF( LWC >= 0.5e-6_fp ) THEN
 
           IF ( H2O20       >=                                                &
-               ( 0.9_fp * So2_afterss )         ) State_Chm%SIZE_RES = .FALSE.
+               ( 0.9_fp * So2_afterss )         ) size_res = .FALSE.
 
           IF ( NH3         <= 1.e-9_fp                                 .and. &
                ALKds       >= 5.e+0_fp                                 .and. &
-               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 10.e-9_fp         ) size_res = .FALSE.
 
        ELSE IF( LWC >= 0.3e-6_fp ) THEN
 
           IF ( NH3         >= (gno3 + 5.e-9_fp)                        .and. &
-               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 10.e-9_fp         ) size_res = .FALSE.
 
           IF ( gno3        <= 1.e-9_fp                                 .and. &
-               NH3         >= (gno3 + 2.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+               NH3         >= (gno3 + 2.e-9_fp) ) size_res = .FALSE.
 
           IF ( gno3        <= 7.e-9_fp                                 .and. &
-               NH3         >= (gno3 + 3.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+               NH3         >= (gno3 + 3.e-9_fp) ) size_res = .FALSE.
 
           IF ( ALKds       >= 3.e+0_fp                                 .and. &
                NH3         <= 10e-9_fp                                 .and. &
-               So2_afterss <= 5e-9_fp           ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 5e-9_fp           ) size_res = .FALSE.
 
           IF ( ALKds       >= 5.e+0_fp                                 .and. &
                NH3         <= 10.e-9_fp                                .and. &
-               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 5.e-9_fp          ) size_res = .FALSE.
 
           IF ( So2_afterss >= 1.5e-9_fp                                .and. &
-               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+               H2O20       >= So2_afterss       ) size_res = .FALSE.
 
           IF ( NH3         <= 12.e-9_fp                                .and. &
-               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+               ALKds       >= 10.e+0_fp         ) size_res = .FALSE.
 
           IF ( NH3         <= 1.e-9_fp                                 .and. &
                ALKds       >= 4.e+0_fp                                 .and. &
-               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 10.e-9_fp         ) size_res = .FALSE.
 
           IF ( NH3         <= 5.e-9_fp                                 .and. &
                ALKds       >= 6.e+0_fp                                 .and. &
-               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 10.e-9_fp         ) size_res = .FALSE.
 
           IF ( NH3         <= 7.e-9_fp                                 .and. &
                ALKds       > -8.e+0_fp                                 .and. &
-               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 10.e-9_fp         ) size_res = .FALSE.
 
        ELSE IF( LWC >= 0.1e-6_fp ) THEN
 
           IF ( NH3         <= 1.e-9_fp                                 .and. &
-               ALKds       >= 5.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+               ALKds       >= 5.e+0_fp          ) size_res = .FALSE.
 
           IF ( NH3         <= 5.e-9_fp                                 .and. &
-               ALKds       >= 10.e+0_fp         ) State_Chm%SIZE_RES = .FALSE.
+               ALKds       >= 10.e+0_fp         ) size_res = .FALSE.
 
           IF ( gno3        <= 1.e-9_fp                                 .and. &
                NH3         >= (gno3 + 2.e-9_fp)                        .and. &
-               So2_afterss <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 7.e-9_fp          ) size_res = .FALSE.
 
           IF ( gno3        <= 1.e-9_fp                                 .and. &
                NH3         >= (gno3 + 2.e-9_fp)                        .and. &
-               ALKds       >= 2.e+0_fp          ) State_Chm%SIZE_RES = .FALSE.
+               ALKds       >= 2.e+0_fp          ) size_res = .FALSE.
 
           IF ( gno3        <= 3.e-9_fp                                 .and. &
-               NH3         >= (gno3 + 4.e-9_fp) ) State_Chm%SIZE_RES = .FALSE.
+               NH3         >= (gno3 + 4.e-9_fp) ) size_res = .FALSE.
 
           IF ( gno3        <= 7.e-9_fp                                 .and. &
                NH3         >= (gno3 + 3.e-9_fp)                        .and. &
-               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 5.e-9_fp          ) size_res = .FALSE.
 
           IF ( gno3        <= 7.e-9_fp                                 .and. &
                NH3         >= (gno3 + 3.e-9_fp)                        .and. &
                ALKds       >= 4.e+0_fp                                 .and. &
-               So2_afterss <= 9.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 9.e-9_fp          ) size_res = .FALSE.
 
           IF ( ALKds       >= 3.e+0_fp                                 .and. &
                NH3         <= 3.e-9_fp                                 .and. &
-               So2_afterss <= 4.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 4.e-9_fp          ) size_res = .FALSE.
 
           IF ( ALKds       >= 5.e+0_fp                                 .and. &
                So2_afterss <= 5.e-9_fp                                 .and. &
-               NH3         <= 7.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               NH3         <= 7.e-9_fp          ) size_res = .FALSE.
 
           IF ( NH3         >= (gno3 + 2.e-9_fp)                        .and. &
-               So2_afterss <= 5.e-9_fp          ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 5.e-9_fp          ) size_res = .FALSE.
 
           IF ( NH3         >= (gno3 + 4.e-9_fp)                        .and. &
-               So2_afterss <= 10.e-9_fp         ) State_Chm%SIZE_RES = .FALSE.
+               So2_afterss <= 10.e-9_fp         ) size_res = .FALSE.
 
           IF ( ALKds       >= 2.e+0_fp                                 .and. &
                NH3         <= 10.e-9_fp                                .and. &
-               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+               H2O20       >= So2_afterss       ) size_res = .FALSE.
 
           IF ( NH3         <= 1.e-9_fp                                 .and. &
                So2_afterss >= 3.e-9_fp                                 .and. &
-               H2O20       >= So2_afterss       ) State_Chm%SIZE_RES = .FALSE.
+               H2O20       >= So2_afterss       ) size_res = .FALSE.
 
        ELSE
 
-          State_Chm%SIZE_RES = .TRUE.
+          size_res = .TRUE.
 
        ENDIF
 
