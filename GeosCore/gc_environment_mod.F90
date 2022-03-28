@@ -721,7 +721,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Main mercury module
-       CALL Init_Mercury( Input_Opt, State_Chm, State_Grid, RC )
+       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

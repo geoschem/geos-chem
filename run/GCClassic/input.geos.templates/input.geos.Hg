@@ -111,7 +111,7 @@ Overhead O3 for FAST-JX :---
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+FAST-JX directory       : ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2022-04-Hg
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550
