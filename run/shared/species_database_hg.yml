@@ -1,5 +1,5 @@
 # GEOS-Chem Species Database (Hg simulation)
-# Core species only (neglecting microphysics)
+# Core species only
 # NOTE: Anchors must be defined before any variables that reference them.
 Br:
   Formula: Br
@@ -10,6 +10,7 @@ BrO:
   Formula: BrO
   FullName: Bromine monoxide
   Is_Gas: true
+  Is_Photolysis: true
   MW_g: 95.90
 CH4:
   Formula: CH4
@@ -25,6 +26,7 @@ ClO:
   Formula: ClO
   FullName: Chlorine monoxide
   Is_Gas: true
+  Is_Photolysis: true
   MW_g: 51.45
 CO:
   Fullname: Carbon monoxide
@@ -228,6 +230,7 @@ NO2:
   Formula: NO2
   FullName: Nitrogen dioxide
   Is_Gas: true
+  Is_Photolysis: true
   MW_g: 46.01
 O3:
   Background_VV: 2.0e-8
