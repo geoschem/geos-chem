@@ -647,43 +647,42 @@ CONTAINS
     ENDIF
 #endif
 
-    ! Add additional internal state fields if specified in the RC file
     DO II=1,11
      WRITE ( intStr, '(I2.2)' ) II
      myName = 'KHETI_SLA_'//TRIM(IntStr)
      CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
     ENDDO
+
     DO II=1,14
      WRITE ( intStr, '(I2.2)' ) II
      myName = 'AeroArea_'//TRIM(IntStr)
      CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
     ENDDO
+
     DO II=1,14
      WRITE ( intStr, '(I2.2)' ) II
      myName = 'AeroRadi_'//TRIM(IntStr)
      CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
     ENDDO
+
     DO II=1,14
      WRITE ( intStr, '(I2.2)' ) II
      myName = 'WetAeroArea_'//TRIM(IntStr)
      CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
     ENDDO
+
     DO II=1,14
      WRITE ( intStr, '(I2.2)' ) II
      myName = 'WetAeroRadi_'//TRIM(IntStr)
      CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
     ENDDO
+
     DO II=1,14
      WRITE ( intStr, '(I2.2)' ) II
      myName = 'AeroH2O_'//TRIM(IntStr)
      CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
     ENDDO
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_fine'    , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_coarse'  , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_fine'   , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_coarse' , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_fine'  , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_coarse', 3, __RC__ ) 
+
     CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_01'       , 3, __RC__ ) 
     CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_02'       , 3, __RC__ ) 
     CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_03'       , 3, __RC__ ) 
@@ -701,6 +700,8 @@ CONTAINS
     CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SO3_AQ'             , 3, __RC__ ) 
     CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOCl'        , 3, __RC__ ) 
     CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOBr'        , 3, __RC__ ) 
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JNO2'               , 2, __RC__ )
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JOH'                , 2, __RC__ )
 
     ! Open input.geos and read a lines until hit advected species menu
     IU_GEOS = findFreeLun()
@@ -931,51 +932,6 @@ CONTAINS
        PRECISION          = ESMF_KIND_R8, &
        FRIENDLYTO         = trim(COMP_NAME),    &
                                                       RC=STATUS  )
-    _VERIFY(STATUS)
-
-    ! Isorropia fields needed for heterogeneous chemistry
-    call MAPL_AddInternalSpec(GC, &
-       SHORT_NAME         = 'IsorropHplusFine', &
-       LONG_NAME          = 'Isorropia Hplus concentration fine mode',  &
-       UNITS              = 'M', &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationCenter,    &
-       PRECISION          = ESMF_KIND_R8, &
-       FRIENDLYTO         = trim(COMP_NAME),    &
-                                                   RC=STATUS  )
-    _VERIFY(STATUS)
-
-    call MAPL_AddInternalSpec(GC, &
-       SHORT_NAME         = 'IsorropSulfate',  &
-       LONG_NAME          = 'Isorropia sulfate concentration', &
-       UNITS              = 'M', &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationCenter,    &
-       PRECISION          = ESMF_KIND_R8, &
-       FRIENDLYTO         = trim(COMP_NAME),    &
-                                                   RC=STATUS  )
-    _VERIFY(STATUS)
-
-    call MAPL_AddInternalSpec(GC, &
-       SHORT_NAME         = 'IsorropNitrateFine',  &
-       LONG_NAME          = 'Isorropia Nitrate concentration fine mode', &
-       UNITS              = 'M', &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationCenter,    &
-       PRECISION          = ESMF_KIND_R8, &
-       FRIENDLYTO         = trim(COMP_NAME),    &
-                                                   RC=STATUS  )
-    _VERIFY(STATUS)
-
-    call MAPL_AddInternalSpec(GC, &
-       SHORT_NAME         = 'IsorropBisulfate',  &
-       LONG_NAME          = 'Isorropia bisulfate concentration',  &
-       UNITS              = 'M', &
-       DIMS               = MAPL_DimsHorzVert,    &
-       VLOCATION          = MAPL_VLocationCenter,    &
-       PRECISION          = ESMF_KIND_R8, &
-       FRIENDLYTO         = trim(COMP_NAME),    &
-                                                   RC=STATUS  )
     _VERIFY(STATUS)
 
     ! delta dry pressure used to conserve mass across consecutive runs
@@ -2989,7 +2945,6 @@ CONTAINS
     REAL(ESMF_KIND_r8), POINTER  :: CostFuncMask(:,:,:) => NULL()
 #endif
 
-
     __Iam__('Run_')
 
     !=======================================================================
@@ -3429,234 +3384,183 @@ CONTAINS
           ENDIF
           Ptr3d_R8 => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropHplusFine', &
-                                notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-               ASSOCIATED(State_Chm%IsorropHplus) ) THEN
-             State_Chm%IsorropHplus(:,:,1:State_Grid%NZ,1) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ! State_PSC
+          importName = 'STATE_PSC'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) ) THEN
+             State_Chm%STATE_PSC(:,:,:) = Ptr3D(:,:,LM:1:-1)
           ENDIF
-          Ptr3d_R8 => NULL()
+          Ptr3D => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropSulfate', &
-                                notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-               ASSOCIATED(State_Chm%IsorropSulfate) ) THEN
-             State_Chm%IsorropSulfate(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ! KHETI_SLA
+          DO I=1,11
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'KHETI_SLA_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%KHETI_SLA(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+
+          ! Aerosol properties
+          DO I=1,14
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'AeroArea_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%AeroArea(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+          DO I=1,14
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'AeroRadi_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%AeroRadi(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+          DO I=1,14
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'WetAeroArea_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%WetAeroArea(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+          DO I=1,14
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'WetAeroRadi_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%WetAeroRadi(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+          DO I=1,14
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'AeroH2O_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%AeroH2O(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+
+          ! Various other fields
+          DO I=1,3
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'GammaN2O5_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%GammaN2O5(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+
+          DO I=1,2
+             WRITE ( intStr, '(I2.2)' ) I
+             importName = 'SSAlk_'//TRIM(intStr)
+             CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+             IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+                State_Chm%SSAlk(:,:,:,I) = Ptr3D_R8(:,:,LM:1:-1)
+             ENDIF
+             Ptr3D_R8 => NULL()
+          ENDDO
+
+          importName = 'OMOC'
+          CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+             State_Chm%OMOC(:,:) = Ptr2D_R8(:,:)
           ENDIF
-          Ptr3d_R8 => NULL()
+          Ptr2D_R8 => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropNitrateFine', &
-                                notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-               ASSOCIATED(State_Chm%IsorropNitrate) ) THEN
-             State_Chm%IsorropNitrate(:,:,1:State_Grid%NZ,1) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          importName = 'OMOC_POA'
+          CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+             State_Chm%OMOC_POA(:,:) = Ptr2D_R8(:,:)
           ENDIF
-          Ptr3d_R8 => NULL()
+          Ptr2D_R8 => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropBisulfate', &
-                                notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-               ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
-             State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          importName = 'OMOC_OPOA'
+          CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+             State_Chm%OMOC_OPOA(:,:) = Ptr2D_R8(:,:)
           ENDIF
-          Ptr3d_R8 => NULL()
+          Ptr2D_R8 => NULL()
 
-! ewl: start new internal state vars (should put in includes before run!)
-!      need to check that no duplicates
-     importName = 'STATE_PSC'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%STATE_PSC(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
- ! Aerosol pH
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropAeropH(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropAeropH(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  ! Aerosol H2O
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropAeroH2O(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropAeroH2O(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  ! chloride
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropChloride(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropChloride(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
+          importName = 'ACLArea'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%ACLArea(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
 
-  ! KHETI_SLA
-  DO I=1,11
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'KHETI_SLA_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%KHETI_SLA(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
+          importName = 'ACLRadi'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%ACLRadi(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
 
-  ! Aerosol properties
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'AeroArea_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%AeroArea(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'AeroRadi_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%AeroRadi(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'WetAeroArea_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%WetAeroArea(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'WetAeroRadi_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%WetAeroRadi(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'AeroH2O_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%AeroH2O(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
+          importName = 'QLxpHCloud'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%QLxpHCloud(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
 
-  ! Various other fields
-  DO I=1,3
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'GammaN2O5_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%GammaN2O5(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,2
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'SSAlk_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%SSAlk(:,:,:,I) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-     importName = 'OMOC'
-     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr2D) ) THEN
-        State_Chm%OMOC(:,:) = Ptr2D(:,:)
-     ENDIF
-     Ptr2D => NULL()
-     importName = 'OMOC_POA'
-     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr2D) ) THEN
-        State_Chm%OMOC_POA(:,:) = Ptr2D(:,:)
-     ENDIF
-     Ptr2D => NULL()
-     importName = 'OMOC_OPOA'
-     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr2D) ) THEN
-        State_Chm%OMOC_OPOA(:,:) = Ptr2D(:,:)
-     ENDIF
-     Ptr2D => NULL()
-     importName = 'ACLArea'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%ACLArea(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'ACLRadi'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%ACLRadi(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'QLxpHCloud'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%QLxpHCloud(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'pHCloud'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%phCloud(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'isCloud'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%isCloud(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'HSO3_AQ'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%HSO3_AQ(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'SO3_AQ'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%SO3_AQ(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'fupdateHOCl'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%fupdateHOCl(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'fupdateHOBr'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        State_Chm%fupdateHOBr(:,:,:) = Ptr3D(:,:,LM:1:-1)
-     ENDIF
-     Ptr3D => NULL()
-! ewl: end new interanal state vars
+          importName = 'pHCloud'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%phCloud(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
+
+          importName = 'isCloud'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%isCloud(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
+
+          importName = 'HSO3_AQ'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%HSO3_AQ(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
+
+          importName = 'SO3_AQ'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%SO3_AQ(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
+
+          importName = 'fupdateHOCl'
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             State_Chm%fupdateHOCl(:,:,:) = Ptr3D_R8(:,:,LM:1:-1)
+          ENDIF
+          Ptr3D_R8 => NULL()
+
+          importName = 'JOH'
+          CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+             State_Chm%JOH(:,:) = Ptr2D_R8(:,:)
+          ENDIF
+          Ptr2D_R8 => NULL()
+
+          importName = 'JNO2'
+          CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+             State_Chm%JNO2(:,:) = Ptr2D_R8(:,:)
+          ENDIF
+          Ptr2D_R8 => NULL()
 
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                                 notFoundOK=.TRUE., __RC__ )
@@ -3908,6 +3812,7 @@ CONTAINS
                    isStartTime = .TRUE.
                 ENDIF
 #endif
+
              ! Run the GEOS-Chem column chemistry code for the given phase
              CALL GCHP_Chunk_Run( GC         = GC,         & ! Grid comp ref. 
                                   nymd       = nymd,       & ! Current YYYYMMDD
@@ -3998,6 +3903,233 @@ CONTAINS
        ENDIF
 #endif
 #endif
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem',  &
+                             notFoundOK=.TRUE., __RC__ ) 
+       IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+            ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%H2O2AfterChem
+       ENDIF
+       Ptr3d_R8 => NULL()
+       
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem',   &
+                             notFoundOK=.TRUE., __RC__ ) 
+       IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+            ASSOCIATED(State_Chm%SO2AfterChem) ) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%SO2AfterChem
+       ENDIF
+       Ptr3d_R8 => NULL()
+       
+       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', &
+                             notFoundOK=.TRUE., __RC__ ) 
+       IF ( ASSOCIATED(Ptr2d_R8) .AND. &
+            ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
+          Ptr2d_R8 = State_Chm%DryDepNitrogen
+       ENDIF
+       Ptr2d_R8 => NULL()
+       
+       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', &
+                             notFoundOK=.TRUE., __RC__ ) 
+       IF ( ASSOCIATED(Ptr2d_R8) .AND. &
+            ASSOCIATED(State_Chm%WetDepNitrogen) ) THEN
+          Ptr2d_R8 = State_Chm%WetDepNitrogen
+       ENDIF
+       Ptr2d_R8 => NULL()
+       
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', &
+                             notFoundOK=.TRUE., __RC__ ) 
+       IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+            ASSOCIATED(State_Chm%KPPHvalue) ) THEN
+          Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
+          Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
+             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       importName = 'STATE_PSC'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) THEN
+          Ptr3d(:,:,LM:1:-1) = State_Chm%STATE_PSC(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+       
+       DO I=1,11
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'KHETI_SLA_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3D_R8(:,:,LM:1:-1) = State_Chm%KHETI_SLA(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,14
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'AeroArea_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%AeroArea(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,14
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'AeroRadi_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%AeroRadi(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,14
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'WetAeroArea_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%WetAeroArea(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,14
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'WetAeroRadi_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%WetAeroRadi(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,14
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'AeroH2O_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%AeroH2O(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,3
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'GammaN2O5_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%GammaN2O5(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+
+       DO I=1,2
+          WRITE ( intStr, '(I2.2)' ) I
+          importName = 'SSAlk_'//TRIM(intStr)
+          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+             Ptr3d_R8(:,:,LM:1:-1) = State_Chm%SSAlk(:,:,:,I)
+          ENDIF
+          Ptr3D_R8 => NULL()
+       ENDDO
+       
+       importName = 'OMOC'
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+          Ptr2D_R8(:,:) = State_Chm%OMOC(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
+
+       importName = 'OMOC_POA'
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+          Ptr2D_R8(:,:) = State_Chm%OMOC_POA(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
+
+       importName = 'OMOC_OPOA'
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+          Ptr2D_R8(:,:) = State_Chm%OMOC_OPOA(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
+
+       importName = 'ACLArea'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%ACLArea(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'ACLRadi'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%ACLRadi(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'QLxpHCloud'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%QLxpHCloud(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'pHCloud'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%phCloud(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'isCloud'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%isCloud(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'HSO3_AQ'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%HSO3_AQ(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'SO3_AQ'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%SO3_AQ(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'fupdateHOCl'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%fupdateHOCl(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'fupdateHOBr'
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%fupdateHOBr(:,:,:)
+       ENDIF
+       Ptr3D_R8 => NULL()
+
+       importName = 'JNO2'
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+          Ptr2d_R8(:,:) = State_chm%JNO2(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
+
+       importName = 'JOH'
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+          Ptr2d_R8(:,:) = State_Chm%JOH(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
 
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
        
@@ -4376,6 +4508,7 @@ CONTAINS
 #ifdef ADJOINT
        endif
 #endif
+
     ENDDO
 
     CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem',  &
@@ -4420,256 +4553,190 @@ CONTAINS
     ENDIF
     Ptr3d_R8 => NULL()
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropHplusFine', &
-                          notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-         ASSOCIATED(State_Chm%IsorropHplus) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%IsorropHplus(:,:,1:State_Grid%NZ,1)
+    importName = 'STATE_PSC'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D) ) THEN
+       Ptr3d(:,:,LM:1:-1) = State_Chm%STATE_PSC(:,:,:)
     ENDIF
-    Ptr3d_R8 => NULL()
+    Ptr3D => NULL()
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropSulfate', &
-                          notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-         ASSOCIATED(State_Chm%IsorropSulfate) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%IsorropSulfate(:,:,1:State_Grid%NZ)
+    DO I=1,11
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'KHETI_SLA_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3D_R8(:,:,LM:1:-1) = State_Chm%KHETI_SLA(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,14
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'AeroArea_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%AeroArea(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,14
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'AeroRadi_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%AeroRadi(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,14
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'WetAeroArea_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%WetAeroArea(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,14
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'WetAeroRadi_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%WetAeroRadi(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,14
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'AeroH2O_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%AeroH2O(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,3
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'GammaN2O5_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%GammaN2O5(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    DO I=1,2
+       WRITE ( intStr, '(I2.2)' ) I
+       importName = 'SSAlk_'//TRIM(intStr)
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+          Ptr3d_R8(:,:,LM:1:-1) = State_Chm%SSAlk(:,:,:,I)
+       ENDIF
+       Ptr3D_R8 => NULL()
+    ENDDO
+
+    importName = 'OMOC'
+    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+       Ptr2D_R8(:,:) = State_Chm%OMOC(:,:)
     ENDIF
-    Ptr3d_R8 => NULL()
+    Ptr2D_R8 => NULL()
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropNitrateFine', &
-                          notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-         ASSOCIATED(State_Chm%IsorropNitrate) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%IsorropNitrate(:,:,1:State_Grid%NZ,1)
+    importName = 'OMOC_POA'
+    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+       Ptr2D_R8(:,:) = State_Chm%OMOC_POA(:,:)
     ENDIF
-    Ptr3d_R8 => NULL()
+    Ptr2D_R8 => NULL()
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'IsorropBisulfate', &
-                          notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
-         ASSOCIATED(State_Chm%IsorropBisulfate) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%IsorropBisulfate(:,:,1:State_Grid%NZ)
+    importName = 'OMOC_OPOA'
+    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+       Ptr2D_R8(:,:) = State_Chm%OMOC_OPOA(:,:)
     ENDIF
-    Ptr3d_R8 => NULL()
+    Ptr2D_R8 => NULL()
 
-! ewl: new internal state vars (should make Includes_After_Run to clean up!)
-!      some might be duplicates. Need to check...
-     importName = 'STATE_PSC'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%STATE_PSC(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropHplus(:,:,:,1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropHplus(:,:,:,2)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeropH(:,:,:,1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeropH_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeropH(:,:,:,2)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeroH2O(:,:,:,1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_AeroH2O_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-  Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropAeroH2O(:,:,:,2)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_sulfate', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropSulfate(:,:,:)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_bisulfate', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropBisulfate(:,:,:)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropNitrate(:,:,:,1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropNitrate(:,:,:,2)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropChloride(:,:,:,1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_chloride_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-    Ptr3D(:,:,LM:1:-1) = State_Chm%IsorropChloride(:,:,:,2)
-  ENDIF
-  Ptr3D => NULL()
+    importName = 'ACLArea'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%ACLArea(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
 
-  DO I=1,11
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'KHETI_SLA_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3D(:,:,LM:1:-1) = State_Chm%KHETI_SLA(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'AeroArea_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%AeroArea(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'AeroRadi_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%AeroRadi(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'WetAeroArea_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%WetAeroArea(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'WetAeroRadi_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%WetAeroRadi(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,14
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'AeroH2O_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%AeroH2O(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,3
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'GammaN2O5_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%GammaN2O5(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-  DO I=1,2
-     WRITE ( intStr, '(I2.2)' ) I
-     importName = 'SSAlk_'//TRIM(intStr)
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%SSAlk(:,:,:,I)
-     ENDIF
-     Ptr3D => NULL()
-  ENDDO
-     importName = 'OMOC'
-     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr2D) ) THEN
-        Ptr2d(:,:) = State_Chm%OMOC(:,:)
-     ENDIF
-     Ptr2D => NULL()
-     importName = 'OMOC_POA'
-     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr2D) ) THEN
-        Ptr2d(:,:) = State_Chm%OMOC_POA(:,:)
-     ENDIF
-     Ptr2D => NULL()
-     importName = 'OMOC_OPOA'
-     CALL MAPL_GetPointer( INTSTATE, Ptr2D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr2D) ) THEN
-        Ptr2d(:,:) = State_Chm%OMOC_OPOA(:,:)
-     ENDIF
-     Ptr2D => NULL()
-     importName = 'ACLArea'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%ACLArea(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'ACLRadi'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%ACLRadi(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'QLxpHCloud'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%QLxpHCloud(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'pHCloud'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%phCloud(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'isCloud'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%isCloud(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'HSO3_AQ'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%HSO3_AQ(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'SO3_AQ'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%SO3_AQ(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'fupdateHOCl'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%fupdateHOCl(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-     importName = 'fupdateHOBr'
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, TRIM(importName), notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        Ptr3d(:,:,LM:1:-1) = State_Chm%fupdateHOBr(:,:,:)
-     ENDIF
-     Ptr3D => NULL()
-! ewl: end new internal state vars
+    importName = 'ACLRadi'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%ACLRadi(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'QLxpHCloud'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%QLxpHCloud(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'pHCloud'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%phCloud(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'isCloud'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%isCloud(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'HSO3_AQ'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%HSO3_AQ(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'SO3_AQ'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%SO3_AQ(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'fupdateHOCl'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%fupdateHOCl(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'fupdateHOBr'
+    CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D_R8) ) THEN
+       Ptr3d_R8(:,:,LM:1:-1) = State_Chm%fupdateHOBr(:,:,:)
+    ENDIF
+    Ptr3D_R8 => NULL()
+
+    importName = 'JOH'
+    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+       Ptr2d_R8(:,:) = State_Chm%JOH(:,:)
+    ENDIF
+    Ptr2D_R8 => NULL()
+
+    importName = 'JNO2'
+    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, TRIM(importName), notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2D_R8) ) THEN
+       Ptr2d_R8(:,:) = State_Chm%JNO2(:,:)
+    ENDIF
+    Ptr2D_R8 => NULL()
 
     CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' , &
                           notFoundOK=.TRUE., __RC__ ) 
@@ -5399,6 +5466,7 @@ CONTAINS
                LONG_NAME          = TRIM(FieldName),      &
                UNITS              = Units_,               &
                DIMS               = DimsHorz,             &
+               PRECISION          = ESMF_KIND_R8, &
                VLOCATION          = VLocation,            &
                FRIENDLYTO         = 'GEOSCHEMCHEM',    __RC__ )
           if(am_I_Root) WRITE(*,*) 'Added to internal: '//TRIM(FieldName)
