@@ -481,23 +481,23 @@ Warnings:                    1
 # --- Oxidant fields ---
 #==============================================================================
 (((OXIDANT_FIELDS
-${RUNDIR_GLOBAL_Cl}
-${RUNDIR_GLOBAL_ClO}
-${RUNDIR_GLOBAL_CH4}
-${RUNDIR_GLOBAL_CO}
-${RUNDIR_GLOBAL_HNO3}
-${RUNDIR_GLOBAL_HO2}
-${RUNDIR_GLOBAL_HOCl}
-${RUNDIR_GLOBAL_NIT}
-${RUNDIR_GLOBAL_NO}
-${RUNDIR_GLOBAL_NO2}
-${RUNDIR_GLOBAL_O3}
-${RUNDIR_GLOBAL_OH}
-${RUNDIR_GLOBAL_OA}
-${RUNDIR_GLOBAL_PM25}
 
-# --- Aerosol fields ---
-# NOTE: These are for 2016, we should archive other years
+# --- 2016 oxidant fields [molec/cm3] ---
+# Consider supplying other years as necessary
+* GLOBAL_Br    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  Br           2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_BrO   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  BrO          2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_CH4   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  CH4          2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_Cl    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  Cl           2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_ClO   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  ClO          2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_CO    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  CO           2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_HO2   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  HO2          2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_NO    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  NO           2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_NO2   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  NO2          2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_O3    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  O3           2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_OH    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  OH           2016/1-12/1/0 C xyz 1  * - 1 1
+
+# --- 2016 aerosol optical depths [unitless] ---
+# Consider supplying other years as necessary
 * AOD_SO4      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_SO4      2016/1-12/1/0 C xyz 1  * - 1 1
 * AOD_BC       $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_BC       2016/1-12/1/0 C xyz 1  * - 1 1
 * AOD_OC       $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_OC       2016/1-12/1/0 C xyz 1  * - 1 1
@@ -512,6 +512,9 @@ ${RUNDIR_GLOBAL_PM25}
 * AOD_DST5     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST5     2016/1-12/1/0 C xyz 1  * - 1 1
 * AOD_DST6     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST6     2016/1-12/1/0 C xyz 1  * - 1 1
 * AOD_DST7     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST7     2016/1-12/1/0 C xyz 1  * - 1 1
+
+# --- 2016 aerosol areas [cm2/cm3] ---
+# Consider supplying other years as necessary
 * Area_SO4     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_SO4     2016/1-12/1/0 C xyz 1  * - 1 1
 * Area_BC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_BC      2016/1-12/1/0 C xyz 1  * - 1 1
 * Area_OC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_OC      2016/1-12/1/0 C xyz 1  * - 1 1
@@ -526,6 +529,9 @@ ${RUNDIR_GLOBAL_PM25}
 * Area_DST5    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST5    2016/1-12/1/0 C xyz 1  * - 1 1
 * Area_DST6    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST6    2016/1-12/1/0 C xyz 1  * - 1 1
 * Area_DST7    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST7    2016/1-12/1/0 C xyz 1  * - 1 1
+
+# --- 2016 aerosol radii [cm] ---
+# Consider supplying other years as necessary
 * Radi_SO4     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_SO4     2016/1-12/1/0 C xyz 1  * - 1 1
 * Radi_BC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_BC      2016/1-12/1/0 C xyz 1  * - 1 1
 * Radi_OC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_OC      2016/1-12/1/0 C xyz 1  * - 1 1
@@ -540,12 +546,14 @@ ${RUNDIR_GLOBAL_PM25}
 * Radi_DST5    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST5    2016/1-12/1/0 C xyz 1  * - 1 1
 * Radi_DST6    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST6    2016/1-12/1/0 C xyz 1  * - 1 1
 * Radi_DST7    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST7    2016/1-12/1/0 C xyz 1  * - 1 1
-* GLOBAL_fOA   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  fOA          2016/1-12/1/0 C xyz 1  * - 1 1
 
 # --- Other fields ---
-# NOTE: RH is for 2016, ocean is for 2007, should supply other years
-* GLOBAL_RH    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  RH           2016/1-12/1/0 C xyz 1  * - 1 1
+# fOA and RH (2016) and ocean_conc (2007) are unitless; PM25 (2016) is in [ug/m3]
+# Consider supplying other years as necessary
+* GLOBAL_fOA   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  fOA          2016/1-12/1/0 C xyz 1  * - 1 1
 * GLOBAL_OCEAN $ROOT/MERCURY/v2018-04/ocean_fixed.nc                ocean_conc   2007/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_PM25  $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  PM25         2016/1-12/1/0 C xyz 1  * - 1 1
+* GLOBAL_RH    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  RH           2016/1-12/1/0 C xyz 1  * - 1 1
 )))OXIDANT_FIELDS
 
 #==============================================================================

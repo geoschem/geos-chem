@@ -907,10 +907,13 @@ CONTAINS
 !
     ! Scalars
     LOGICAL             :: is_BrOx_GC
-    CHARACTER(LEN=16)   :: thisName,  thisOpt
-    CHARACTER(LEN=255)  :: fieldName, thisLoc
-    CHARACTER(LEN=1024) :: errMsg
     INTEGER             :: N, spcID
+
+    ! Strings
+    CHARACTER(LEN=16)   :: thisOpt
+    CHARACTER(LEN=255)  :: fieldName
+    CHARACTER(LEN=255)  :: thisLoc
+    CHARACTER(LEN=1024) :: errMsg
 
     !=================================================================
     ! Set_HCOPointers begins here
@@ -929,35 +932,12 @@ CONTAINS
     DO N = 1, State_Chm%nKppFix
 
        ! Get species ID
-       spcID    = State_Chm%Map_KppFix(N)
-
-       ! Get oxidant name
-       thisName = State_Chm%SpcData(SpcID)%Info%Name
+       spcID = State_Chm%Map_KppFix(N)
 
        ! Construct field name using species name
-       ! Br/BrO use a different container name than the other oxidant fields
-       SELECT CASE( TRIM( thisName ) )
+       fieldName = 'GLOBAL_' // TRIM( State_Chm%SpcData(SpcID)%Info%Name )
 
-          CASE( 'Br' )
-             IF ( is_BrOx_GC ) THEN
-                fieldName = 'Br_GC'
-             ELSE
-                fieldName = 'Br_TOMCAT'
-             ENDIF
-
-          CASE( 'BrO' )
-             IF ( is_BrOx_GC ) THEN
-                fieldName = 'BrO_GC'
-             ELSE
-                fieldName = 'BrO_TOMCAT'
-             ENDIF
-
-          CASE DEFAULT
-             fieldName = 'GLOBAL_' // TRIM( thisName )
-
-       END SELECT
-
-       ! Get pointer to this field. These are the concentrations (molec cm-3).
+       ! Get pointer to oxidant field [molec/cm3]
        CALL HCO_GetPtr( HcoState, fieldName, FixSpcPtr(N)%Data, RC )
 
        ! Trap potential errors
@@ -1010,15 +990,14 @@ CONTAINS
        !------------------------------
 
        ! Get aerosol species name
-       FIELDNAME = 'AOD_' // TRIM( AerSpcNames(N) )
+       fieldName = 'AOD_' // TRIM( AerSpcNames(N) )
 
        ! Get pointer to this field. These are AODs.
-       CALL HCO_GetPtr( HcoState, FIELDNAME, AeroPtr(N)%AOD, RC )
+       CALL HCO_GetPtr( HcoState, fieldName, AeroPtr(N)%AOD, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Cannot get pointer from HEMCO for ' //&
-                  TRIM( FieldName )
+          errMsg = 'Cannot get pointer from HEMCO for ' // TRIM( fieldName )
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
@@ -1028,15 +1007,15 @@ CONTAINS
        !------------------------------
 
        ! Get aerosol species name
-       FIELDNAME = 'Area_' // TRIM( AerSpcNames(N) )
+       fieldName = 'Area_' // TRIM( AerSpcNames(N) )
 
        ! Get pointer to this field. These are AODs.
-       CALL HCO_GetPtr( HcoState, FIELDNAME, AeroPtr(N)%Area, RC )
+       CALL HCO_GetPtr( HcoState, fieldName, AeroPtr(N)%Area, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Cannot get pointer from HEMCO for ' //&
-                  TRIM( FieldName )
+                  TRIM( fieldName )
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
@@ -1046,10 +1025,10 @@ CONTAINS
        !------------------------------
 
        ! Get aerosol species name
-       FIELDNAME = 'Radi_' // TRIM( AerSpcNames(N) )
+       fieldName = 'Radi_' // TRIM( AerSpcNames(N) )
 
        ! Get pointer to this field. These are AODs.
-       CALL HCO_GetPtr( HcoState, FIELDNAME, AeroPtr(N)%Radi, RC )
+       CALL HCO_GetPtr( HcoState, fieldName, AeroPtr(N)%Radi, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1086,7 +1065,7 @@ CONTAINS
 !
 ! !IROUTINE: Set_HgOxidConc
 !
-! !DESCRIPTION: Subroutine Set_HgOxidConc transfers oxidant concentration fields
+! !DESCRIPTION: Transfers oxidant concentration fields
 !               to State_Chm after applying diurnal variation.
 !\\
 !\\
