@@ -135,21 +135,21 @@ Warnings:                    1
 # --- AMAP/UNEP emissions ---
 #==============================================================================
 (((AMAP_COMB
-0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    - 1 1
-0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  - 1 1
-0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP - 1 1
+0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
 )))AMAP_COMB
 
 (((AMAP_INDS
-0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    - 1 1
-0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  - 1 1
-0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP - 1 1
+0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
 )))AMAP_INDS
 
 (((AMAP_INTW
-0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    - 1 1
-0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  - 1 1
-0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP - 1 1
+0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
 )))AMAP_INTW
 
 #==============================================================================
@@ -159,21 +159,21 @@ Warnings:                    1
 (((ZHAOZHANG
 
 (((AMAP_COMB
-0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    3/1006 1 3
-0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  4/1006 1 3
-0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP 5/1006 1 3
+0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    3/1006 1 3
+0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  4/1006 1 3
+0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 5/1006 1 3
 )))AMAP_COMB
 
 (((AMAP_INDS
-0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0   3/1006 1 3
-0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2 4/1006 1 3
-0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP 5/1006 1 3
+0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0   3/1006 1 3
+0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2 4/1006 1 3
+0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 5/1006 1 3
 )))AMAP_INDS
 
 (((AMAP_INTW
-0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    3/1006 1 3
-0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  4/1006 1 3
-0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP 5/1006 1 3
+0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    3/1006 1 3
+0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  4/1006 1 3
+0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 5/1006 1 3
 )))AMAP_INTW
 
 )))ZHAOZHANG
@@ -185,21 +185,21 @@ Warnings:                    1
 (((CHAKRABORTY
 
 (((AMAP_COMB
-0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    6/1007 1 3
-0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  7/1007 1 3
-0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP 8/1007 1 3
+0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    6/1007 1 3
+0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  7/1007 1 3
+0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 8/1007 1 3
 )))AMAP_COMB
 
 (((AMAP_INDS
-0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    6/1007 1 3
-0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  7/1007 1 3
-0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP 8/1007 1 3
+0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    6/1007 1 3
+0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  7/1007 1 3
+0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 8/1007 1 3
 )))AMAP_INDS
 
 (((AMAP_INTW
-0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy * Hg0    6/1007 1 3
-0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy * HgCl2  7/1007 1 3
-0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy * Hg2ClP 8/1007 1 3
+0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    6/1007 1 3
+0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  7/1007 1 3
+0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 8/1007 1 3
 )))AMAP_INTW
 
 )))CHAKRABORTY
@@ -209,9 +209,9 @@ Warnings:                    1
 #==============================================================================
 
 (((WHET
-0 WHET_HG0 $ROOT/MERCURY/v2018-04/WHET_Hg0.geos.1x1.2010_final.nc Hg0 2010/1/1/0 C xy * Hg0    - 1 1
-0 WHET_HG2 $ROOT/MERCURY/v2018-04/WHET_Hg2.geos.1x1.2010_final.nc Hg2 2010/1/1/0 C xy * HgCl2  - 1 1
-0 WHET_HGP $ROOT/MERCURY/v2018-04/WHET_HgP.geos.1x1.2010_final.nc HgP 2010/1/1/0 C xy * Hg2ClP - 1 1
+0 WHET_HG0 $ROOT/MERCURY/v2018-04/WHET_Hg0.geos.1x1.2010_final.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 WHET_HG2 $ROOT/MERCURY/v2018-04/WHET_Hg2.geos.1x1.2010_final.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 WHET_HGP $ROOT/MERCURY/v2018-04/WHET_HgP.geos.1x1.2010_final.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
 )))WHET
 
 #==============================================================================
@@ -219,9 +219,9 @@ Warnings:                    1
 #==============================================================================
 
 (((STREETS
-0 STREETS_HG0 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy * Hg0    - 1 1
-0 STREETS_HG2 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy * HgCl2  - 1 1
-0 STREETS_HGP $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc HgP 2015/1/1/0 C xy * Hg2ClP - 1 1
+0 STREETS_HG0 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 STREETS_HG2 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy *       HgCl2  - 1 1
+0 STREETS_HGP $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc HgP 2015/1/1/0 C xy *       Hg2ClP - 1 1
 )))STREETS
 
 #==============================================================================
@@ -230,32 +230,32 @@ Warnings:                    1
 #==============================================================================
 
 (((EDGAR_TOT
-0 EDGAR_TOT_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
-0 EDGAR_TOT_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
-0 EDGAR_TOT_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+0 EDGAR_TOT_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_TOT_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_TOT_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
 )))EDGAR_TOT
 
 (((EDGAR_CEM
-0 EDGAR_CEM_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
-0 EDGAR_CEM_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
-0 EDGAR_CEM_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+0 EDGAR_CEM_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_CEM_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_CEM_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
 )))EDGAR_CEM
 
 (((EDGAR_CHLOR
-0 EDGAR_CHLOR_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0   - 1 1
-0 EDGAR_CHLOR_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2 - 1 1
+0 EDGAR_CHLOR_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0   - 1 1
+0 EDGAR_CHLOR_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2 - 1 1
 )))EDGAR_CHLOR
 
 (((EDGAR_COMB_A
-0 EDGAR_COMB_A_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
-0 EDGAR_COMB_A_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
-0 EDGAR_COMB_A_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+0 EDGAR_COMB_A_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_COMB_A_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_COMB_A_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
 )))EDGAR_COMB_A
 
 (((EDGAR_COMB_B
-0 EDGAR_COMB_B_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
-0 EDGAR_COMB_B_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
-0 EDGAR_COMB_B_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+0 EDGAR_COMB_B_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_COMB_B_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_COMB_B_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
 )))EDGAR_COMB_B
 
 (((EDGAR_GLASS
@@ -313,44 +313,44 @@ Warnings:                    1
 #==============================================================================
 
 (((EMISS_CONTROLS
-0 NPRI2011_HG0 $ROOT/MERCURY/v2014-09/NPRI2011/Hg0.NPRI_2011_def_spec.025x03125.nc Hg0 2011/1/1/0 C xy * Hg0    10/1008 1 2
-0 NPRI2011_HG2 $ROOT/MERCURY/v2014-09/NPRI2011/Hg2.NPRI_2011_def_spec.025x03125.nc Hg2 2011/1/1/0 C xy * HgCl2  9/1008  1 2
-0 NPRI2011_HGP $ROOT/MERCURY/v2014-09/NPRI2011/HgP.NPRI_2011_def_spec.025x03125.nc HgP 2011/1/1/0 C xy * Hg2ClP 1008    1 2
-0 EU_CONT_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy * Hg0    11/1009 1 3
-0 EU_INDS_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy * Hg0    1009    1 3
-0 EU_INTW_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy * Hg0    1009    1 3
-0 EU_CONT_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy * HgCl2  9/1009  1 3
-0 EU_INDS_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy * HgCl2  1009    1 3
-0 EU_INTW_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy * HgCl2  1009    1 3
-0 EU_COMB_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy * Hg2ClP 1009    1 3
-0 EU_INTW_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy * Hg2ClP 1009    1 3
-0 EU_INDS_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy * Hg2ClP 1009    1 3
-0 CHN_CONT_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy * Hg0    12/1006 1 4
-0 CHN_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy * Hg0    1006    1 4
-0 CHN_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy * Hg0    1006    1 4
-0 CHN_CONT_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy * HgCl2  9/1006  1 4
-0 CHN_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy * HgCl2  1006    1 4
-0 CHN_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy * HgCl2  1006    1 4
-0 CHN_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy * Hg2ClP 1006    1 4
-0 CHN_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy * Hg2ClP 1006    1 4
-0 CHN_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy * Hg2ClP 1006    1 4
-0 NEI2011_HG0  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_Hg0.geos5.05x0666.nc      Hg0 2010/1/1/0 C xy * Hg0    1005    1 5
-0 NEI2011_HG2  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_Hg2.geos5.05x0666.nc      Hg2 2010/1/1/0 C xy * HgCl2  1005    1 5
-0 NEI2011_HGP  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_HgP.geos5.05x0666.nc      HgP 2010/1/1/0 C xy * Hg2ClP 1005    1 5
+0 NPRI2011_HG0 $ROOT/MERCURY/v2014-09/NPRI2011/Hg0.NPRI_2011_def_spec.025x03125.nc Hg0 2011/1/1/0 C xy kg/m2/s Hg0    10/1008 1 2
+0 NPRI2011_HG2 $ROOT/MERCURY/v2014-09/NPRI2011/Hg2.NPRI_2011_def_spec.025x03125.nc Hg2 2011/1/1/0 C xy *       HgCl2  9/1008  1 2
+0 NPRI2011_HGP $ROOT/MERCURY/v2014-09/NPRI2011/HgP.NPRI_2011_def_spec.025x03125.nc HgP 2011/1/1/0 C xy *       Hg2ClP 1008    1 2
+0 EU_CONT_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    11/1009 1 3
+0 EU_INDS_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1009    1 3
+0 EU_INTW_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1009    1 3
+0 EU_CONT_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  9/1009  1 3
+0 EU_INDS_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1009    1 3
+0 EU_INTW_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1009    1 3
+0 EU_COMB_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1009    1 3
+0 EU_INTW_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1009    1 3
+0 EU_INDS_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1009    1 3
+0 CHN_CONT_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    12/1006 1 4
+0 CHN_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1006    1 4
+0 CHN_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1006    1 4
+0 CHN_CONT_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  9/1006  1 4
+0 CHN_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1006    1 4
+0 CHN_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1006    1 4
+0 CHN_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1006    1 4
+0 CHN_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1006    1 4
+0 CHN_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1006    1 4
+0 NEI2011_HG0  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_Hg0.geos5.05x0666.nc      Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1005    1 5
+0 NEI2011_HG2  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_Hg2.geos5.05x0666.nc      Hg2 2010/1/1/0 C xy *       HgCl2  1005    1 5
+0 NEI2011_HGP  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_HgP.geos5.05x0666.nc      HgP 2010/1/1/0 C xy *       Hg2ClP 1005    1 5
 )))EMISS_CONTROLS
 
 #==============================================================================
 # --- Artisanal mining ---
 #==============================================================================
 (((ARTISANAL
-0 ARTISANAL_HG0 $ROOT/MERCURY/v2014-09/ARTISANAL/artisanal.geos.4x5.nc Hg0 1985/1/1/0 C xy * Hg0 1 8 1
+0 ARTISANAL_HG0 $ROOT/MERCURY/v2014-09/ARTISANAL/artisanal.geos.4x5.nc Hg0 1985/1/1/0 C xy kg/m2/s Hg0 1 8 1
 )))ARTISANAL
 
 #==============================================================================
 # --- Natural emissions ---
 #==============================================================================
 (((NATURAL
-0 NATURAL_HG0 $ROOT/MERCURY/v2014-09/NATURAL/newnatural.geos.4x5.nc Hg0 1985/1/1/0 C xy * Hg0 2 3 1
+0 NATURAL_HG0 $ROOT/MERCURY/v2014-09/NATURAL/newnatural.geos.4x5.nc Hg0 1985/1/1/0 C xy kg/m2/s Hg0 2 3 1
 )))NATURAL
 
 #==============================================================================
@@ -367,8 +367,8 @@ Warnings:                    1
 # --- QFED2 biomass burning ---
 #==============================================================================
 (((QFED2
-0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     * Hg0  54/75/311 5 2
-0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m * Hg0  54/75/312 5 2
+0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
+0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
 )))QFED2
 
 ###############################################################################
