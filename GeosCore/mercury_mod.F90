@@ -154,7 +154,7 @@ MODULE Mercury_Mod
   REAL(f4), POINTER :: ClO(:,:,:)        => NULL()
   REAL(f4), POINTER :: Cl(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
-  REAL(f4), POINTER :: Ocean_CONC(:,:,:) => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
   REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
@@ -366,7 +366,7 @@ CONTAINS
 
        !$OMP PARALLEL DO                                                    &
        !$OMP DEFAULT( SHARED                                               )&
-       !$OMP PRIVATE( I, J, L, N, REL_HUM, IRH                             )&
+       !$OMP PRIVATE( I, J, L, N, REL_HUM                                  )&
        !$OMP COLLAPSE( 3                                                   )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
@@ -410,6 +410,12 @@ CONTAINS
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_HgBrAfterChem  ) State_Diag%HgBrAfterChem  = 0.0_f4
+    IF (State_Diag%Archive_HgClAfterChem  ) State_Diag%HgClAfterChem  = 0.0_f4
+    IF (State_Diag%Archive_HgOHAfterChem  ) State_Diag%HgOHAfterChem  = 0.0_f4
+    IF (State_Diag%Archive_HgBrOAfterChem ) State_Diag%HgBrOAfterChem = 0.0_f4
+    IF (State_Diag%Archive_HgClOAfterChem ) State_Diag%HgClOAfterChem = 0.0_f4
+    IF (State_Diag%Archive_HgOHOAfterChem ) State_Diag%HgOHOAfterChem = 0.0_f4
     IF (State_Diag%Archive_KppDiags) THEN
        IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
        IF (State_Diag%Archive_KppJacCounts) State_Diag%KppJacCounts   = 0.0_f4
@@ -420,14 +426,6 @@ CONTAINS
        IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
     ENDIF
-!%%
-!%% These diagnostics are not used anymore (Bob Yantosca, 28 Mar 2022)
-!%%
-!%%    IF ( State_Diag%Archive_HgClAfterChem  ) State_Diag%HgClAfterChem  = 0.0_f4
-!%%    IF ( State_Diag%Archive_HgOHAfterChem  ) State_Diag%HgOHAfterChem  = 0.0_f4
-!%%    IF ( State_Diag%Archive_HgBrOAfterChem ) State_Diag%HgBrOAfterChem = 0.0_f4
-!%%    IF ( State_Diag%Archive_HgClOAfterChem ) State_Diag%HgClOAfterChem = 0.0_f4
-!%%    IF ( State_Diag%Archive_HgOHOAfterChem ) State_Diag%HgOHOAfterChem = 0.0_f4
 
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
@@ -534,11 +532,11 @@ CONTAINS
            'Hnew, last predicted step (not yet taken):', f11.4 )
 
     !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT  ( SHARED                                                 )&
-    !$OMP PRIVATE  ( I,        J,        L,       N                         )&
-    !$OMP PRIVATE  ( IERR,     RCNTRL,   START,   FINISH, ISTATUS           )&
-    !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,      P                 )&
-    !$OMP PRIVATE  ( Vloc,     Aout,     NN                                 )&
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,        L,       N                           )&
+    !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
+    !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN                                   )&
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -563,15 +561,6 @@ CONTAINS
        RCNTRL    = 0.0_fp    ! Rosenbrock input
        RSTATE    = 0.0_dp    ! Rosenbrock output
        P         = 0         ! GEOS-Chem photolyis species ID
-
-       ! Temperature [K]
-       TEMP      = State_Met%T(I,J,L)
-
-       ! Pressure [hPa]
-       PRESS     = GET_PCENTER( I, J, L )
-
-       ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
-       NUMDEN    = State_Met%AIRNUMDEN(I,J,L)
 
        !====================================================================
        ! Get photolysis rates (daytime only)
@@ -628,6 +617,8 @@ CONTAINS
        CALL Init_KPP()
 
        ! Copy values at each gridbox into variables in gckpp_Global.F90
+       ! This includes e.g. temperature, air density, and quantities
+       ! needed for heterogeneous chemistry
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
                                     J          = J,                          &
                                     L          = L,                          &
@@ -727,10 +718,10 @@ CONTAINS
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-       !====================================================================
+       !=====================================================================
        ! Check we have no negative values and copy the concentrations
        ! calculated from the C array back into State_Chm%Species
-       !====================================================================
+       !=====================================================================
        ! Loop over KPP species
        DO N = 1, NSPEC
 
@@ -748,7 +739,7 @@ CONTAINS
 
        ENDDO
 
-       !====================================================================
+       !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Prod and loss of families or species [molec/cm3/s]
@@ -756,7 +747,7 @@ CONTAINS
        ! NOTE: KppId is the KPP ID # for each of the prod and loss
        ! diagnostic species.  This is the value used to index the
        ! KPP "VAR" array (in module GcKpp_Global.F90).
-       !====================================================================
+       !=====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Loss ) THEN
@@ -773,11 +764,48 @@ CONTAINS
              State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
           ENDDO
        ENDIF
+
+       !=====================================================================
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Archive concetration of short-lived radicals [mol/mol]
+       !=====================================================================
+       IF ( State_Diag%Archive_HgBrAfterChem  ) THEN
+          State_Diag%HgBrAfterChem(I,J,L)  = Spc(I,J,L,id_HgBr)              &
+                                           / State_Met%AirNumDen(I,J,L)
+       ENDIF
+
+       IF ( State_Diag%Archive_HgClAfterChem  ) THEN
+          State_Diag%HgClAfterChem(I,J,L)  = Spc(I,J,L,id_HgCl)              &
+                                           / State_Met%AirNumDen(I,J,L)
+       ENDIF
+
+       IF ( State_Diag%Archive_HgOHAfterChem  ) THEN
+          State_Diag%HgOHAfterChem(I,J,L)  = Spc(I,J,L,id_HgOH)              &
+                                           / State_Met%AirNumDen(I,J,L)
+       ENDIF
+
+       IF ( State_Diag%Archive_HgBrOAfterChem ) THEN
+          State_Diag%HgBrOAfterChem(I,J,L) = Spc(I,J,L,id_HgBrO)             &
+                                           / State_Met%AirNumDen(I,J,L)
+       ENDIF
+
+       IF ( State_Diag%Archive_HgClOAfterChem ) THEN
+          State_Diag%HgClOAfterChem(I,J,L) = Spc(I,J,L,id_HgClO)             &
+                                           / State_Met%AirNumDen(I,J,L)
+       ENDIF
+
+       IF ( State_Diag%Archive_HgOHOAfterChem ) THEN
+          State_Diag%HgOHOAfterChem(I,J,L) = Spc(I,J,L,id_HgOHO)             &
+                                           / State_Met%AirNumDen(I,J,L)
+       ENDIF
+
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 
+! PROBLEM IS HERE!!
     !========================================================================
     ! Partition Hg2 between gas and aerosol phase
     !========================================================================
@@ -1825,7 +1853,7 @@ CONTAINS
 
              ! TCOSZ is the sum of SUNTMP at location (I,J)
              ! Do not include negative values of SUNTMP
-             TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
+             TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0.0_fp )
 
              ! COSZM is the peak value of SUMTMP during a day at (I,J)
              ! (rjp, bmy, 3/30/04)
@@ -2003,19 +2031,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I,       J,        L
-    INTEGER            :: N,       SpcID
-    REAL(fp)           :: GasConc, dGasConc
-    REAL(fp)           :: DT,      K_SALT,   F_PBL
+    INTEGER            :: I,       J,        L,  N,     S
+    REAL(fp)           :: gasConc, dGasConc, dt, f_PBL, k
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     ! Boolean
     LOGICAL            :: prtDebug
-
-    ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
 
     !========================================================================
     ! SeaSaltUptake begins here!
@@ -2028,11 +2051,8 @@ CONTAINS
     errMsg    = ''
     thisLoc   = ' -> at SeaSaltUptake (in GeosCore/mercury_mod.F90)'
 
-    ! Point to the chemical species array [molec cm-3]
-    Spc  => State_Chm%Species
-
-    ! Initialize diagnostic qtys.
-!>    IF ( State_Diag%Archive_Hg2GasToSSA    ) State_Diag%Hg2GasToSSA = 0.0_f4
+    ! Initialize diagnostic arrays
+    IF ( State_Diag%Archive_Hg2GasToSSA ) State_Diag%Hg2GasToSSA = 0.0_f4
 
     ! Calculate loss rate by seasalt uptake
     IF ( ITS_TIME_FOR_A3() ) THEN
@@ -2041,8 +2061,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,       J,        L,     N,     spcID                   )&
-    !$OMP PRIVATE( gasConc, dGasConc, f_PBL, k_SALT                         )&
+    !$OMP PRIVATE( I, J, L, N, S, k, f_PBL, gasConc, dGasConc               )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -2050,7 +2069,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Initialize loop variables
-       k_Salt   = 0.0_fp
+       k        = 0.0_fp
        f_PBL    = 0.0_fp
        gasConc  = 0.0_fp
        dGasConc = 0.0_fp
@@ -2061,45 +2080,44 @@ CONTAINS
        ! RGM uptake on sea-salt aerosol, 1/s
        ! (based on SSA production rate (wind speed)
        ! and salinity (RH)) already zero over land
-       k_Salt = Hg2_SeaSalt_LossRate(I,J)
+       k = Hg2_SeaSalt_LossRate(I,J)
 
        ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
        f_PBL = State_Met%F_Under_PblTop(I,J,L)
 
        ! Do seasalt uptake only for the fraction of the box in the PBL
-       IF ( f_PBL > 0.1_fp ) k_Salt = f_PBL * k_Salt
+       IF ( f_PBL > 0.1_fp ) k = f_PBL * k
 
-        ! Calculate loss of each Hg2(g) species
-        DO N = 1, nHg2gasSpc
+       ! Calculate loss of each Hg2(g) species
+       DO N = 1, nHg2gasSpc
 
-            ! Get species id
-            spcID = Map_Hg2gas(N)
+          ! Index for State_Chm%Species array
+          S = Map_Hg2gas(N)
 
-            ! Initial Hg(II) gas
-            gasConc = Spc(I,J,L,SpcID)
+          ! Initial Hg(II) gas concentration [molec/cm3]
+          gasConc = State_Chm%Species(I,J,L,S)
 
-            ! Hg2 lost in the time step
-            dGasConc = GasConc * ( 1.0_fp - EXP( -K_SALT * DT ) )
+          ! Remove Hg2 lost to sea salt aerosol from the gas phase [molec/cm3]
+          dGasConc = gasConc * ( 1.0_fp - EXP( -k * dt ) )
+          gasConc  = gasConc - dGasConc
 
-            ! New gas concentrations
-            gasConc = gasConc - dGasConc
+          ! Final Hg2 gas concentration [molec/cm3]
+          State_Chm%Species(I,J,L,S) = gasConc
 
-            ! Final Hg2 gas
-            Spc(I,J,L,SpcID) = gasConc
-
-            ! Archive diagnostic (molec cm-3 s-1)
-!>>            IF ( State_Diag%Archive_Hg2GasToSSA )                       &
-!>>                State_Diag%Hg2GasToSSA(I,J,L) =                         &
-!>>                    State_Diag%Hg2GasToSSA(I,J,L) + dGasConc / DT
-        ENDDO
-
+          !------------------------------------------------------------------
+          ! HISTORY (aka netCDF diagnostics)
+          !
+          ! Archive Hg2 lost from gas to sea salt aerosol [molec/cm3/s]
+          !------------------------------------------------------------------
+          IF ( State_Diag%Archive_Hg2GasToSSA ) THEN
+             State_Diag%Hg2GasToSSA(I,J,L) =                                 &
+             State_Diag%Hg2GasToSSA(I,J,L) + ( dGasConc / DT )
+          ENDIF
+       ENDDO
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE SeaSaltUptake
 !EOC
@@ -2122,15 +2140,15 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE gckpp_Global,      ONLY : NUMDEN, SR_TEMP, TEMP
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod,     ONLY : ChmState
-    USE State_Diag_Mod,    ONLY : DgnState
-    USE State_Grid_Mod,    ONLY : GrdState
-    USE State_Met_Mod,     ONLY : MetState
-    USE Species_Mod,       ONLY : Species
-    USE TIME_MOD,          ONLY : GET_TS_CHEM
-    USE rateLawUtilFuncs,  ONLY : Ars_L1K
+    USE gckpp_Global,     ONLY : NUMDEN, SR_TEMP, TEMP
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+    USE Species_Mod,      ONLY : Species
+    USE TIME_MOD,         ONLY : GET_TS_CHEM
+    USE rateLawUtilFuncs, ONLY : Ars_L1K
 !
 ! !INPUT PARAMETERS:
 !
@@ -2156,15 +2174,13 @@ CONTAINS
     ! !LOCAL VARIABLES:
     !
     ! Scalars
-    INTEGER             :: I, J, L, N, NN, S
-    REAL(fp)            :: Kp,       Fgas
-    REAL(fp)            :: GasTot,   GasTot_eq, GasAerTot, AerConc, AerConc_Eq
-    REAL(fp)            :: pm25,     dGasConc,  GasConc,   GasConc_eq
-    REAL(fp)            :: dGasConcInOrg,   AerConcInOrg, AerConcOrg
-    REAL(fp)            :: ADJRATE,  k
-    REAL(fp)            :: DT,    FracOA, Cl, DOC, AerVol
-    REAL(fp)            :: TEMPK, XTEMP, XDENA,  MW
-    REAL(fp)            :: K0,   K_star, Hg2CR, CLDF
+    INTEGER             :: I,         J,             L
+    INTEGER             :: N,         S
+    REAL(fp)            :: aerConc,   aerConcInorg,  aerConcOrg
+    REAL(fp)            :: dGasConc,  dt,            Fgas
+    REAL(fp)            :: fracOA,    gasConc
+    REAL(fp)            :: k,         Kp,            gasAerTot
+    REAL(fp)            :: gasTot,    gasTot_eq,     pm25
 
     ! Arrays
     REAL(fp)            :: xArea(N_Dust+N_Aer)
@@ -2172,7 +2188,8 @@ CONTAINS
     REAL(fp)            :: xVol (N_Dust+N_Aer)
 
     ! Strings
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)  :: errMsg
+    CHARACTER(LEN=255)  :: thisLoc
 
     ! Pointers
     REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -2191,7 +2208,7 @@ CONTAINS
     INTEGER,  PARAMETER :: SLA       = 13 ! Strat sulfate liq aer
 
     ! Hg(II) mass accommodation coefficient
-    REAL(fp), PARAMETER :: ALPHA_Hg2 = 0.1e+0_fp
+    REAL(fp), PARAMETER :: ALPHA_Hg2 = 0.1_fp
 
     !========================================================================
     ! PARTITIONHg2 begins here!
@@ -2201,8 +2218,8 @@ CONTAINS
     RC      =  GC_SUCCESS
     DT      =  Get_Ts_Chem()         ! Chemistry timestep [s]
     Spc     => State_Chm%Species     ! Point to species array [molec/cm3]
-    ErrMsg  =  ''
-    ThisLoc =  ' -> at PartitionHg2 (in module GeosCore/mercury_mod.F90)'
+    errMsg  =  ''
+    thisLoc =  ' -> at PartitionHg2 (in module GeosCore/mercury_mod.F90)'
 
     ! Initialize diagnostic arrays
     IF (State_Diag%Archive_Hg2GToHg2P     ) State_Diag%Hg2GToHg2P      = 0.0_f4
@@ -2213,9 +2230,10 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,         J,          L,             N                  )&
     !$OMP PRIVATE( S,         aerConc,    aerConcInorg,  aerConcOrg         )&
-    !$OMP PRIVATE( dGasConc,  Fgas,       fracOA,        k                  )&
-    !$OMP PRIVATE( Kp,        gasAerTot,  gasTot,        gasTot_eq          )&
-    !$OMP PRIVATE( pm25,      xArea,      xRadi,         xVol               )&
+    !$OMP PRIVATE( dGasConc,  Fgas,       fracOA,        gasAerTot          )&
+    !$OMP PRIVATE( gasConc,   gasTot,     gasTot_eq,     k                  )&
+    !$OMP PRIVATE( Kp,        pm25,       xArea,         xRadi              )&
+    !$OMP PRIVATE( xVol                                                     )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -2229,11 +2247,12 @@ CONTAINS
        dGasConc     = 0.0_fp
        Fgas         = 0.0_fp
        fracOA       = 0.0_fp
-       k            = 0.0_fp
-       Kp           = 0.0_fp
        gasAerTot    = 0.0_fp
+       gasConc      = 0.0_fp
        gasTot       = 0.0_fp
        gasTot_eq    = 0.0_fp
+       k            = 0.0_fp
+       Kp           = 0.0_fp
        pm25         = 0.0_fp
        xArea        = 0.0_fp
        xRadi        = 0.0_fp
@@ -2316,8 +2335,10 @@ CONTAINS
           ! Loop over all Hg2 gas spcies
           DO N = 1, nHg2gasSpc
 
+             ! Index for State_Chm%Species
+             S = Map_Hg2gas(N)
+
              ! Initial gas concentration [molec/cm3]
-             S   = Map_Hg2gas(N)
              gasConc = Spc(I,J,L,S)
 
              ! Mass transfer rate [1/s] onto dust, sulfate, BC/OC and fine SS
@@ -2366,7 +2387,7 @@ CONTAINS
 
           ! Amount of mass [molec/cm3] transferred from aerosol to gas
           ! Limit transferred mass to the amount of HgP present
-          dGasConc = gasTot_Eq * ( 1.0_fp - EXP( -k * DT ) )
+          dGasConc = gasTot_eq * ( 1.0_fp - EXP( -k * DT ) )
           dGasConc = MIN( dGasConc, aerConc )
 
           ! Remove transferred mass from aerosol HgCl2 and add to gaseous HgCl2
@@ -2416,20 +2437,21 @@ CONTAINS
           !------------------------------------------------------------------
           DO N = 1, nHg2gasSpc
 
+             ! Index for State_Chm%Species
+             S  = Map_Hg2gas(N)
+
              ! Mass transfer rate [s-1]
-             k = Ars_L1K( xArea(SLA), xRadi(SLA), alpha_Hg2, srMw(N) )
+             k = Ars_L1K( xArea(SLA), xRadi(SLA), ALPHA_Hg2, srMw(N) )
 
              ! Initial Hg(II) gas [molec/cm3]
-             S       = Map_Hg2gas(N)
              gasConc = Spc(I,J,L,S)
 
              ! Amount of mass [molec/cm3] transferred from gas to aerosol
-             ! NOTE: dGasConc is negative!!
-             dGasConc = ( - GasConc ) * ( 1.0_fp - EXP( -k * DT ) )
+             dGasConc = gasConc * ( 1.0_fp - EXP( -k * DT ) )
 
              ! Remove transferred mass from gas and add to aerosol
-             gasConc  = gasConc + dGasConc
-             aerConc  = aerConc - dGasConc
+             gasConc  = gasConc - dGasConc
+             aerConc  = aerConc + dGasConc
 
              ! Final Hg2 gas concentration [molec/cm3]
              Spc(I,J,L,S)  = gasConc
@@ -2441,7 +2463,7 @@ CONTAINS
              !---------------------------------------------------------------
              IF ( State_Diag%Archive_Hg2GasToHg2StrP ) THEN
                 State_Diag%Hg2GasToHg2StrP(I,J,L) =                         &
-                State_Diag%Hg2GasToHg2StrP(I,J,L) - ( dGasConc / DT )
+                State_Diag%Hg2GasToHg2StrP(I,J,L) + ( dGasConc / DT )
              ENDIF
           ENDDO
 
@@ -2761,13 +2783,11 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Grid box surface area [m2]
-       A_M2       = State_Grid%Area_M2( I, J )
-
-       ! Initialize values
-       Kw         = 0e0_fp
-       TK         = 0e0_fp
-       TC         = 0e0_fp
+       ! Zero/initialize loop varaibles
+       A_M2 = State_Grid%Area_M2( I, J )   ! Area [m2]
+       Kw   = 0.0_fp
+       TK   = 0.0_fp
+       TC   = 0.0_fp
 
        ! Get fractions of land and ocean in the grid box [unitless]
        ! Use fractional land type information in MERRA. Also make sure
@@ -2777,19 +2797,19 @@ CONTAINS
        ! be less than zero (jaf, 4/26/11)
        FRAC_L       = State_Met%FRLAND(I,J)
        FRAC_O       = MAX( State_Met%FROCEAN(I,J) - &
-                           State_Met%FRSEAICE(I,J), 0e0_fp )
-       IS_OCEAN_BOX = ( ( FRAC_O > 0e0_fp ) .and. &
-                        ( State_Met%SEAICE00(I,J)  > 0.5e0_fp ) )
+                           State_Met%FRSEAICE(I,J), 0.0_fp )
+       IS_OCEAN_BOX = ( ( FRAC_O > 0.0_fp ) .and. &
+                        ( State_Met%SEAICE00(I,J)  > 0.5_fp ) )
 
-       IF ( (IS_OCEAN_BOX) ) THEN
+       IF ( IS_OCEAN_BOX ) THEN
 
           !--------------------------------------------------------------
           ! Sea surface temperature in both [K] and [C]
           !--------------------------------------------------------------
           ! where TSKIN is the temperature (K) at the ground/sea surface
           ! (Use as surrogate for SST, cap at freezing point)
-          TK     = MAX( State_Met%TSKIN(I,J), 273.15e0_fp )
-          TC     = TK - 273.15e0_fp
+          TK     = MAX( State_Met%TSKIN(I,J), 273.15_fp )
+          TC     = TK - 273.15_fp
 
           !==============================================================
           ! Volatilisation of Hg0
@@ -2797,24 +2817,24 @@ CONTAINS
 
           ! Henry's law constant (gas->liquid) [unitless] [L water/L air]
           ! (ref: Andersson et al. 2008)
-          H      = EXP( ( -2404.3e0_fp / TK ) + 6.92e0_fp )
+          H      = EXP( ( -2404.3_fp / TK ) + 6.92_fp )
 
           ! Viscosity as a function of changing temperatures
           ! (ref: Loux 2001)
           ! The paper says the viscosity is given in cP but us really P
           ! and we therefor multiply with 100 to get cP.
-          vi    = ( 10**( ( 1301.0e0_fp / ( 998.333e0_fp + 8.1855e0_fp &
-                  * ( TC - 20.0e0_fp )+ 0.00585e0_fp &
-                  * ( TC - 20.0e0_fp )**2 ) ) - 3.30233e0_fp ) ) * 100.0e0_fp
+          vi    = ( 10**( ( 1301.0_fp / ( 998.333_fp + 8.1855_fp             &
+                  * ( TC - 20.0_fp )  + 0.00585_fp                           &
+                  * ( TC - 20.0_fp )**2 ) ) - 3.30233_fp ) ) * 100.0_fp
 
           ! Schmidt # for Hg [unitless]
           ! Sc = v/D = kinematic viscosity/diffusivity
           ! (ref: Poissant et al 2000; Wilke and Chang 1995)
           ! to correct for seawater D0 is decreased by 6% as suggested
           ! by Wanninkhof (1992)
-          D = 7.4e-8_fp * sqrt( 2.26e0_fp * 18.0e0_fp ) * TK / &
-              ( ( 14.8e0_fp**0.6e0_fp ) *vi )
-          Sc   = ( 0.017e0_fp * EXP( -0.025e0_fp * TC ) ) / D
+          D  = 7.4e-8_fp * SQRT( 2.26_fp * 18.0_fp   )                       &
+             * TK        / ( ( 14.8_fp**0.6_fp ) *vi )
+          Sc = ( 0.017_fp * EXP( -0.025_fp * TC ) ) / D
 
           ! Schmidt # of CO2 [unitless] for CO2 in seawater at 20 degrees C
           ! The value is set to a constant based on other ocean studies
@@ -2822,7 +2842,7 @@ CONTAINS
           !
           ! Correction of the Schmidt # with temperature based on Poissant
           ! et al. (2000) (for freshwatersystems).
-          ScCO2  = 644.7e0_fp + TC * ( -6.16e0_fp + TC * ( 0.11e0_fp))
+          ScCO2  = 644.7_fp + TC * ( -6.16_fp + TC * ( 0.11_fp ) )
 
           ! Square of surface (actually 10m) wind speed [m2/s2]
           Usq    = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
@@ -2832,7 +2852,7 @@ CONTAINS
           ! coefficient
           !------------------------------------------------------
           ! Mass transfer coefficient [cm/h], from Nightingale et al. 2000
-          Kw     = ( 0.25e0_fp * Usq ) / SQRT( Sc / ScCO2 )
+          Kw     = ( 0.25_fp * Usq ) / SQRT( Sc / ScCO2 )
 
           ! Loop over all Hg categories
           DO NN = 1, N_Hg_CATS
@@ -2846,7 +2866,7 @@ CONTAINS
 
              ! Concentration of Hg(0) in the ocean [ng/L]
              ! now converting from Hg0aq in mol/m3 to ng/L
-             CHg0aq = Hg0aq(I,J,NN) *200.59e0_fp * 1.0e9_fp / 1.0e3_fp
+             CHg0aq = Hg0aq(I,J,NN) * 200.59_fp * 1.0e9_fp / 1.0e3_fp
 
              ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
              MHg0_air = State_Chm%Species(I,J,1,N)
@@ -2932,9 +2952,9 @@ CONTAINS
        ELSE
 
           DO NN = 1, N_Hg_CATS
-             FLUX(I,J,NN)  = 0e0_fp
-             FUP(I,J,NN)   = 0e0_fp
-             FDOWN(I,J,NN) = 0e0_fp
+             FLUX(I,J,NN)  = 0.0_fp
+             FUP(I,J,NN)   = 0.0_fp
+             FDOWN(I,J,NN) = 0.0_fp
           ENDDO
 
        ENDIF
@@ -3705,11 +3725,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: F,       N,       NA,    KppId,    SpcId
+    INTEGER            :: N,       S
     REAL(f8)           :: CONSEXP, VPRESH2O
 
     ! Characters
-    CHARACTER(LEN=255) :: errMsg, thisLoc
+    CHARACTER(LEN=255) :: errMsg,  thisLoc
 
     !========================================================================
     ! Set_Kpp_GridBox_Values begins here!
@@ -3725,9 +3745,9 @@ CONTAINS
     ! Copy species concentrations into gckpp_Global variables
     !========================================================================
     DO N = 1, NSPEC
-       SpcID = State_Chm%Map_KppSpc(N)
-       IF ( SpcId > 0 ) THEN
-          C(N) = State_Chm%Species(I,J,L,SpcID)
+       S = State_Chm%Map_KppSpc(N)
+       IF ( S > 0 ) THEN
+          C(N) = State_Chm%Species(I,J,L,S)
        ELSE
           C(N) = 0.0_f8
        ENDIF
@@ -3744,7 +3764,7 @@ CONTAINS
 
     ! Temperature quantities
     TEMP            = State_Met%T(I,J,L)
-    INV_TEMP        = 1.0_dp / TEMP
+    INV_TEMP        = 1.0_dp   / TEMP
     TEMP_OVER_K300  = TEMP     / 300.0_dp
     K300_OVER_TEMP  = 300.0_dp / TEMP
     SR_TEMP         = SQRT( TEMP )
