@@ -821,7 +821,7 @@ CONTAINS
     ENDIF
 
 #if !defined( MODEL_GEOS )
-    ! Add other internal state variables as real8
+    ! Add other internal state variables as real8 for GCHP
 
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DryDepNitrogen',  &
@@ -878,7 +878,7 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! Sulfur-nitrogen-ammonia water content computed in Isorropia
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AeroH2O_SNA',  &
        LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
@@ -891,8 +891,8 @@ CONTAINS
     _VERIFY(STATUS)
 
     ! These still in testing
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JNO2'       , 2, __RC__ )
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JOH'        , 2, __RC__ )
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JNO2', 2, __RC__ )
+    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JOH' , 2, __RC__ )
 
     ! delta dry pressure used to conserve mass across consecutive runs
     call MAPL_AddInternalSpec(GC, &
@@ -941,7 +941,20 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
-!-- Add two extra advected species for use in family transport  (Manyin)
+! Add other internal state variables as real (not explicitly real8) for GEOS
+
+!-- Add Sulfur-nitrogen-ammonia water content computed in Isorropia after it is needed in RDAER
+          CALL MAPL_AddInternalSpec(GC,                                    &
+             SHORT_NAME         = 'AeroH2O_SNA',                           &
+             LONG_NAME          = 'Sulfur-nitrogen-ammonia water content', &
+             UNITS              = 'g/m3',                                  &
+             DIMS               = MAPL_DimsHorzVert,                       &
+             VLOCATION          = MAPL_VLocationCenter,                    &
+             FRIENDLYTO         = trim(COMP_NAME),                         &
+                                                  __RC__ )
+          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: AeroH2O_SNA'
+
+!-- Add two exra advected species for use in family transport  (Manyin)
 
           CALL MAPL_AddInternalSpec(GC,                                    &
              SHORT_NAME         = 'SPC_Bry',                               &
@@ -3394,6 +3407,16 @@ CONTAINS
                               PLE, GCCTROPP, IsFirst, __RC__ ) 
        ENDIF
 
+       ! Set State_Chm%AeroH2O for SNA from internal state if first timestep for use in RDAER
+       IF ( FIRST ) THEN
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
+             State_Chm%AeroH2O(:,:,1:State_Grid%NZ,NDUST+1) =       &
+                                  Ptr3d(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d => NULL()
+       ENDIF
+
        !=======================================================================
        ! Error trap: make sure that PBL height is defined.
        ! Some fields needed by GEOS-Chem are only filled after the first 
@@ -3695,6 +3718,7 @@ CONTAINS
        ENDIF
 #endif
 
+       ! Copy certain State_Chm and State_Met arrays to internal state for inclusion in checkpoints
        CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', notFoundOK=.TRUE., __RC__ )
        IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
           Ptr2d_R8 = State_Chm%DryDepNitrogen
@@ -3776,6 +3800,13 @@ CONTAINS
           Ptr2d_R8 = State_Met%TropLev
        ENDIF
        Ptr2d_R8 => NULL()
+#else
+       ! Copy a reduced set of arrays if using GEOS, and with different precision
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3d) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
+          Ptr3d(:,:,State_Grid%NZ:1:-1) = State_Chm%AeroH2O(:,:,:,NDUST+1)
+       ENDIF
+       Ptr3d => NULL()
 #endif
 
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
@@ -4241,6 +4272,14 @@ CONTAINS
        Ptr2d_R8 = State_Met%TropLev
     ENDIF
     Ptr2d_R8 => NULL()
+#else
+    ! Saved a reduced set of arrays for GEOS, and with different precision
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
+       Ptr3d(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%AeroH2O(:,:,1:State_Grid%NZ,NDUST+1)
+    ENDIF
+    Ptr3d => NULL()
 #endif
 
     ! Destroy the internal alarms
