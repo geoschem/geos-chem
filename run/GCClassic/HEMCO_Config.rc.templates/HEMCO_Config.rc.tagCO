@@ -49,26 +49,54 @@ Mask fractions:              false
 ### BEGIN SECTION EXTENSION SWITCHES
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
-0       Base                   : on    *           
-# ----- MAIN SWITCHES -----------------------------------------
+0       Base                   : on    *
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
     --> HEMCO_RESTART          :       true
-# ----- REGIONAL INVENTORIES ----------------------------------
+# ----- REGIONAL INVENTORIES --------------------------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
     --> DICE_Africa            :       false    # 2013
-# ----- GLOBAL INVENTORIES ------------------------------------
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> CEDSv2                 :       true     # 1750-2019
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
     --> EDGARv43               :       false    # 1970-2010
     --> HTAP                   :       false    # 2008-2010
-    --> AEIC                   :       true     # 2005
-# ----- SHIP EMISSIONS ----------------------------------------
+# ----- AIRCRAFT EMISSIONS ----------------------------------------------------
+# There are 3 switches:
+#
+#  1. AEIC2019_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#     this is not recommended due to the amount of computational overhead
+#     that will be incurred in regridding.  But this may be useful for
+#     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
+#
+#  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#     incur much less computational overhead.  This option should suffice
+#     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
+#
+#  3. AEIC_SCALE_1990_2019: If "false", the AEIC 2019 data from the year
+#     2019 alone will be used.  This will yield a "best estimate" of
+#     aviation emisssion. This could be important because simply scaling
+#     aviation emissions up and down is rather nonphysical.  But if
+#     AEIC_SCALE_1990_2019 is set to true, then aviation emissions for
+#     1990 to 2019 are estimated by:
+#
+#     a. Scaling ALL aviation emissions based on the growth in fuelburn
+#        from 1990 to 2019* estimated by Lee et al. (2021)
+#
+#     Recommended setting: "AEIC_SCALE_1990_2019: true"
+#
+# See additional notes in the AEIC scale factor section below.
+#------------------------------------------------------------------------------
+    --> AEIC2019_DAILY         :       false    # 2019 (daily data)
+    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
+# ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
     --> CEDSv2_SHIP            :       true     # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       true     # 1970-2017
@@ -112,7 +140,7 @@ Mask fractions:              false
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-    
+
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -413,7 +441,7 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CMIP6_SFC_LAND_ANTHRO ---
-# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
+# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -458,7 +486,7 @@ Mask fractions:              false
 )))CMIP6_SFC_LAND_ANTHRO
 
 #==============================================================================
-# CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft 
+# CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft
 # emissions, consistent with the CMIP6 simulation experimental design
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -633,7 +661,7 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CMIP6_SHIP ---
-# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
+# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -650,17 +678,26 @@ Mask fractions:              false
 )))SHIP
 
 #==============================================================================
-# --- AEIC aircraft emissions ---
+# --- AEIC 2019 aircraft emissions ---
 #
-# ==> Now emit aircraft BC and OC into hydrophilic tracers BCPI and OCPI.
+# Data files are for 2019, but scale factors from 1990-2019 can be applied
+# in order to get year-specific emissions.  See the notes in the AEIC2019
+# scale factor section below for more information.
 #==============================================================================
-(((AEIC
-0 AEIC_CO     $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc CO 2005/1-12/1/0 C xyz kg/m2/s CO     110       20 1
-0 AEIC_COus   -                                       -  -             - -   -       COus   110/1100  20 1
-0 AEIC_COeur  -                                       -  -             - -   -       COeur  110/1101  20 1
-0 AEIC_COasia -                                       -  -             - -   -       COasia 110/1102  20 1
-0 AEIC_COoth  -                                       -  -             - -   -       COoth  110/1103  20 1
-)))AEIC
+(((AEIC2019_DAILY
+0 AEIC19_DAILY_CO     $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO 2019/1-12/1-31/0 C xyz kg/m2/s CO     241       20 1
+0 AEIC19_DAILY_COus   -                                                             -  -                - -   -       COus   241/1100  20 1
+0 AEIC19_DAILY_COeur  -                                                             -  -                - -   -       COeur  241/1101  20 1
+0 AEIC19_DAILY_COasia -                                                             -  -                - -   -       COasia 241/1102  20 1
+0 AEIC19_DAILY_COoth  -                                                             -  -                - -   -       COoth  241/1103  20 1
+)))AEIC2019_DAILY
+(((AEIC2019_MONMEAN
+0 AEIC19_MONMEAN_CO     $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc CO 2019/1-12/1/0 C xyz kg/m2/s CO     241       20 1
+0 AEIC19_MONMEAN_COus   -                                                                          -  -             - -   -       COus   241/1100  20 1
+0 AEIC19_MONMEAN_COeur  -                                                                          -  -             - -   -       COeur  241/1101  20 1
+0 AEIC19_MONMEAN_COasia -                                                                          -  -             - -   -       COasia 241/1102  20 1
+0 AEIC19_MONMEAN_COoth  -                                                                          -  -             - -   -       COoth  241/1103  20 1
+)))AEIC2019_MONMEAN
 
 #==============================================================================
 # --- RCP future emissions scenarios ---
@@ -701,14 +738,14 @@ Mask fractions:              false
 # --- QFED2 biomass burning (v2.5r1) ---
 #==============================================================================
 (((QFED2
-0 QFED_CO_PBL      $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO      54/75/311       5 2
+0 QFED_CO_PBL      $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO      54/75/311       5 2
 0 QFED_CObbAm_PBL  -                                                               -       -                             -  -             -       CObbam  54/75/311/1104  5 2
 0 QFED_CObbAf_PBL  -                                                               -       -                             -  -             -       CObbaf  54/75/311/1105  5 2
 0 QFED_CObbAs_PBL  -                                                               -       -                             -  -             -       CObbas  54/75/311/1106  5 2
 0 QFED_CObbOc_PBL  -                                                               -       -                             -  -             -       CObboc  54/75/311/1107  5 2
 0 QFED_CObbEu_PBL  -                                                               -       -                             -  -             -       CObbeu  54/75/311/1108  5 2
 0 QFED_CObbOth_PBL -                                                               -       -                             -  -             -       CObboth 54/75/311/1109  5 2
-0 QFED_CO_FT       $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO      54/75/312       5 2
+0 QFED_CO_FT       $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO      54/75/312       5 2
 0 QFED_CObbAm_FT   -                                                               -       -                             -  -             -       CObbam  54/75/312/1104  5 2
 0 QFED_CObbAf_FT   -                                                               -       -                             -  -             -       CObbaf  54/75/312/1105  5 2
 0 QFED_CObbAs_FT   -                                                               -       -                             -  -             -       CObbas  54/75/312/1106  5 2
@@ -1138,24 +1175,39 @@ ${RUNDIR_GMI_PROD_CO}
 )))QFED2.or.GFAS.or.BB4MIPS
 
 #==============================================================================
-# --- AEIC aircraft emissions ---
+# --- AEIC2019 aircraft emissions scale factors ---
 #
-# Sulfur conversion factors are calculated as
-#     so4 = 3 * a * b and so2 = 2 * a * (1-b)
-#
-# where
-#     a = fraction by mass (6.0e-4) and
-#     b = conversion efficiency (2.0e-2).
-#
-# The factors 2 and 3 come from sulfur mass conversions (96/32 and 64/32).
-# All factors are taken from AEIC_mod.F, following Seb Estham's appraoch.
-# Note that all emissions become multiplied by a factor of 1e-3 (except for
-# the fuelburn emissions) in the original AEIC code. I'm not sure if this
-# is because the netCDF data is in g instead of kg?
+# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
 #==============================================================================
-(((AEIC
-110 AEICNOCO 1.000000e-3 - -  - xy 1 1
-)))AEIC
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
+#------------------------------------------------------------------------------
+# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Increase
+# from 2018 to 2019 is estimated based on the growth from 2017 to 2018.
+# Lee et al. (2021) only covers 1990 to 2018, so to get to 2019 it is
+# assumed that the growth from 2017 to 2018 is the same as that from 2018
+# to 2019. So the formula is something like:
+#
+# Emissions of CO  in 2009 = AEIC 2019 emissions of CO
+#                          * (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
+#
+# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
+# emissions to the “2018” values, and then scale directly using the Lee et al
+# fuel burn. This ensures that, when running with year 2019, you get an
+# unadjusted version of the AEIC2019 inventory, and all previous years are
+# scaled down.
+#
+# All scaling factors are included in here in HEMCO_Config.rc.
+#------------------------------------------------------------------------------
+(((AEIC_SCALE_1990_2019
+241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
+)))AEIC_SCALE_1990_2019
+
+# If not applying 1990-2019 scale factors, use 1.0
+(((.not.AEIC_SCALE_1990_2019
+241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
+))).not.AEIC_SCALE_1990_2019
+)))AEIC2019_DAILY.or.AEIC2019_MONMEAN
 
 (((NEI2016_MONMEAN
 #==============================================================================
@@ -1199,9 +1251,9 @@ ${RUNDIR_GMI_PROD_CO}
 # --- CEDS vertical partitioning ---
 #==============================================================================
 (((CEDSv2.or.CEDS_GBDMAPS
-315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1 
-316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1 
-317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1 
+315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1
+316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
+317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDSv2.or.CEDS_GBDMAPS
 
 #==============================================================================

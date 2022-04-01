@@ -136,7 +136,11 @@ function set_common_settings() {
     # Standard settings
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xnone" ]]; then
-	sed_ie 's/@//' HISTORY.rc
+
+        # Remove @ from HISTORY diagnostic fields & uncomment default collection
+        sed_ie 's|@||'                                 HISTORY.rc
+        sed_ie "s|#'Default|'Default|"                 HISTORY.rc
+
     fi
 
     #------------------------------------------------------------------------

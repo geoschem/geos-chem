@@ -113,6 +113,7 @@ Warnings:                    1
     --> OFFLINE_DUST           :       true     # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       false    # 1980-2021
     --> OFFLINE_SEASALT        :       false    # 1980-2021
+    -->  CalcBrSeasalt         :       false
     --> OFFLINE_SOILNOX        :       true     # 1980-2021
 # ----- NON-EMISSIONS DATA ------------------------------------
     --> UVALBEDO               :       true     # 1985
@@ -145,7 +146,7 @@ Warnings:                    1
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
-    --> Model sea salt Br-     :       true
+    --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : off   ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -2292,44 +2293,44 @@ Warnings:                    1
 # --- QFED2 biomass burning (v2.5r1) ---
 #==============================================================================
 (((QFED2
-0 QFED_ACET_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ACET   75/311        5 2
-0 QFED_ACET_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ACET   75/312        5 2
-0 QFED_ALD2_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALD2   75/311        5 2
-0 QFED_ALD2_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALD2   75/312        5 2
-0 QFED_ALK4_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALK4   75/311        5 2
-0 QFED_ALK4_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALK4   75/312        5 2
-0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s bc_a4  70/75/311/920 5 2
+0 QFED_ACET_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ACET   75/311        5 2
+0 QFED_ACET_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ACET   75/312        5 2
+0 QFED_ALD2_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALD2   75/311        5 2
+0 QFED_ALD2_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALD2   75/312        5 2
+0 QFED_ALK4_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALK4   75/311        5 2
+0 QFED_ALK4_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALK4   75/312        5 2
+0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s bc_a4  70/75/311/920 5 2
 0 QFED_BCPO_PBL  -                                                                 -       -                             -  -             -       bc_a4  71/75/311/920 5 2
-0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s bc_a4  70/75/312/920 5 2
+0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s bc_a4  70/75/312/920 5 2
 0 QFED_BCPO_FT   -                                                                 -       -                             -  -             -       bc_a4  71/75/312/920 5 2
-0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s pom_a4 72/75/311/930 5 2
+0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s pom_a4 72/75/311/930 5 2
 0 QFED_OCPO_PBL  -                                                                 -       -                             -  -             -       pom_a4 73/75/311/930 5 2
-0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s pom_a4 72/75/312/930 5 2
+0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s pom_a4 72/75/312/930 5 2
 0 QFED_OCPO_FT   -                                                                 -       -                             -  -             -       pom_a4 73/75/312/930 5 2
-0 QFED_C2H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C2H6   75/311        5 2
-0 QFED_C2H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C2H6   75/312        5 2
-0 QFED_C3H8_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C3H8   75/311        5 2
-0 QFED_C3H8_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C3H8   75/312        5 2
-0 QFED_CH2O_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH2O   75/311        5 2
-0 QFED_CH2O_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH2O   75/312        5 2
-0 QFED_CH4_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH4    75/311        5 2
-0 QFED_CH4_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH4    75/312        5 2
-0 QFED_CO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO     54/75/311     5 2
+0 QFED_C2H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C2H6   75/311        5 2
+0 QFED_C2H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C2H6   75/312        5 2
+0 QFED_C3H8_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C3H8   75/311        5 2
+0 QFED_C3H8_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C3H8   75/312        5 2
+0 QFED_CH2O_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH2O   75/311        5 2
+0 QFED_CH2O_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH2O   75/312        5 2
+0 QFED_CH4_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH4    75/311        5 2
+0 QFED_CH4_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH4    75/312        5 2
+0 QFED_CO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO     54/75/311     5 2
 0 QFED_SOAP_PBL  -                                                                 -       -                             -  -             -       SOAP   54/75/281/311 5 2
-0 QFED_CO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO     54/75/312     5 2
+0 QFED_CO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO     54/75/312     5 2
 0 QFED_SOAP_FT   -                                                                 -       -                             -  -             -       SOAP   54/75/281/312 5 2
-0 QFED_CO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO2    75/311        5 2
-0 QFED_CO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO2    75/312        5 2
-0 QFED_MEK_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s MEK    75/311        5 2
-0 QFED_MEK_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s MEK    75/312        5 2
-0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NH3    75/311        5 2
-0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NH3    75/312        5 2
-0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NO     75/311        5 2
-0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NO     75/312        5 2
-0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2    75/311        5 2
-0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2    75/312        5 2
-0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s PRPE   75/311        5 2
-0 QFED_C3H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s PRPE   75/312        5 2
+0 QFED_CO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO2    75/311        5 2
+0 QFED_CO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO2    75/312        5 2
+0 QFED_MEK_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s MEK    75/311        5 2
+0 QFED_MEK_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s MEK    75/312        5 2
+0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NH3    75/311        5 2
+0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NH3    75/312        5 2
+0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NO     75/311        5 2
+0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NO     75/312        5 2
+0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2    75/311        5 2
+0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2    75/312        5 2
+0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s PRPE   75/311        5 2
+0 QFED_C3H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s PRPE   75/312        5 2
 )))QFED2
 
 #==============================================================================
@@ -2419,11 +2420,15 @@ Warnings:                    1
 0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALA_TOTAL   1980-2017/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
 0 SEASALT_SALAAL  -                                                                                     -            -                     - -  -       SALAAL  615 3 2
 0 SEASALT_SALACL  -                                                                                     -            -                     - -  -       SALACL  616 3 2
+(((CalcBrSeasalt
 0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BRSALA  617 3 2
+)))CalcBrSeasalt
 0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALC_TOTAL   1980-2017/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
 0 SEASALT_SALCAL  -                                                                                     -            -                     - -  -       SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
+(((CalcBrSeasalt
 0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BRSALC  617 3 2
+)))CalcBrSeasalt
 ))).not.SeaSalt
 )))OFFLINE_SEASALT
 

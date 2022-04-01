@@ -72,21 +72,21 @@ MODULE PJC_PFIX_MOD
   REAL(fp), ALLOCATABLE :: SINE_FV(:)
 
   ! Scalar variables
-  LOGICAL             :: PR_DIAG
-  INTEGER             :: LOC_PROC
-  REAL(fp)            :: GEOFAC_PC
-  REAL(fp)            :: DLON_FV
+  LOGICAL               :: PR_DIAG
+  INTEGER               :: LOC_PROC
+  REAL(fp)              :: GEOFAC_PC
+  REAL(fp)              :: DLON_FV
 
   ! Dimensions for GMI code (from "imp_dims")
-  INTEGER             :: IMP_NBORDER
-  INTEGER             :: I1_GL,  I2_GL,   JU1_GL,  JV1_GL
-  INTEGER             :: J2_GL,  K1_GL,   K2_GL,   ILO_GL
-  INTEGER             :: IHI_GL, JULO_GL, JVLO_GL, JHI_GL
-  INTEGER             :: I1,     I2,      JU1,     JV1
-  INTEGER             :: J2,     K1,      K2,      ILO
-  INTEGER             :: IHI,    JULO,    JVLO,    JHI
-  INTEGER             :: ILAT,   ILONG,   IVERT,   J1P
-  INTEGER             :: J2P
+  INTEGER               :: IMP_NBORDER
+  INTEGER               :: I1_GL,  I2_GL,   JU1_GL,  JV1_GL
+  INTEGER               :: J2_GL,  K1_GL,   K2_GL,   ILO_GL
+  INTEGER               :: IHI_GL, JULO_GL, JVLO_GL, JHI_GL
+  INTEGER               :: I1,     I2,      JU1,     JV1
+  INTEGER               :: J2,     K1,      K2,      ILO
+  INTEGER               :: IHI,    JULO,    JVLO,    JHI
+  INTEGER               :: ILAT,   ILONG,   IVERT,   J1P
+  INTEGER               :: J2P
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -180,31 +180,47 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Initialize/allocate module variables
-       CALL INIT_PJC_PFIX( State_Grid )
+       CALL Init_PJC_Pfix( State_Grid )
 
        ! Calculate advection surface-area factors
-       CALL CALC_ADVECTION_FACTORS( MCOR, REL_AREA, GEOFAC, GEOFAC_PC)
+       CALL Calc_Advection_Factors( MCOR, REL_AREA, GEOFAC, GEOFAC_PC)
 
        ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
+
+    ! Zero output arguments for safety's sake
+    xmass = 0.0_fp
+    ymass = 0.0_fp
 
     ! Copy P2 into P2_TMP (yxw, bmy, 3/5/07)
     P2_TMP = P2
 
     ! Call PJC pressure fixer w/ the proper arguments
     ! NOTE: P1 and P2 are now "true" surface pressure, not PS-PTOP!!!
-    CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  &
-                       .TRUE.,             MET_GRID_TYPE, &
-                       ADVEC_CONSRV_OPT,   PMET2_OPT,     &
-                       PRESS_FIX_OPT,      D_DYN,         &
-                       GEOFAC_PC,          GEOFAC,        &
-                       COSE_FV,            COSP_FV,       &
-                       REL_AREA,           DAP,           &
-                       DBK,                P1,            &
-                       P2_TMP,             P2_TMP,        &
-                       UWND,               VWND,          &
-                       XMASS,              YMASS )
+    CALL Adjust_Press(                                                       &
+         metdata_name_org   = 'GEOS-Chem',                                   &
+         do_timinterp_winds = INTERP_WINDS,                                  &
+         new_met_rec        = .TRUE.,                                        &
+         met_grid_type      = MET_GRID_TYPE,                                 &
+         advec_consrv_opt   = ADVEC_CONSRV_OPT,                              &
+         pmet2_opt          = PMET2_OPT,                                     &
+         press_fix_opt      = PRESS_FIX_OPT,                                 &
+         tdt                = D_DYN,                                         &
+         geofac_pc          = GEOFAC_PC,                                     &
+         geofac             = GEOFAC,                                        &
+         cose               = COSE_FV,                                       &
+         cosp               = COSP_FV,                                       &
+         rel_area           = REL_AREA,                                      &
+         dap                = DAP,                                           &
+         dbk                = DBK,                                           &
+         pctm1              = P1,                                            &
+         pctm2              = P2_TMP,                                        &
+         pmet2              = P2_TMP,                                        &
+         uu                 = UWND,                                          &
+         vv                 = VWND,                                          &
+         xmass              = XMASS,                                         &
+         ymass              = YMASS                                         )
 
   END SUBROUTINE Do_Pjc_Pfix
 !EOC
@@ -232,7 +248,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid             ! Grid State object
     REAL(fp),       INTENT(IN)  :: XMASS(State_Grid%NX, & ! E-W mass flux from
                                          State_Grid%NY, & !  pressure fixer
                                          State_Grid%NZ)
@@ -268,6 +284,16 @@ CONTAINS
     !=================================================================
     ! CALC_PRESSURE begins here!
     !=================================================================
+
+    ! Zero output arguments for safety's sake
+    ps_after = 0.0_fp
+
+    ! Zero local variables for safety's sake
+    delp     = 0.0_fp
+    delp1    = 0.0_fp
+    pe       = 0.0_fp
+
+    ! Compute DELP1
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -379,17 +405,25 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: ij
-    REAL(fp)  :: dp           ! spacing in latitude (rad)
-    REAL(fp)  :: ri2_gl
-    REAL(fp)  :: rj2m1
-    REAL(fp)  :: total_area
+    INTEGER  :: ij
+    REAL(fp) :: dp           ! spacing in latitude (rad)
+    REAL(fp) :: ri2_gl
+    REAL(fp) :: rj2m1
+    REAL(fp) :: total_area
 
     !----------------
     !Begin execution.
     !----------------
 
-    ri2_gl = i2_gl
+    ! Zero ouptut arguments for safety's sake
+    geofac     = 0.0_fp
+    geofac_pc  = 0.0_fp
+
+    ! Zero/initialize local variables for safety's sake
+    dp         = 0.0_fp
+    ri2_gl     = i2_gl
+    rj2m1      = 0.0_fp
+    total_area = 0.0_fp
 
     !---------------------------------
     !Set the relative area (rel_area).
@@ -529,13 +563,13 @@ CONTAINS
     !press_dev : RMS difference between pmet2 and pctm2
     !            (weighted by relative area)
     !--------------------------------------------------
-    real(fp)  :: dgpress
-    real(fp)  :: press_dev
+    real(fp) :: dgpress
+    real(fp) :: press_dev
 
     !-------------------------------------------------------------
     !dps : change of surface pressure from met field pressure [hPa]
     !-------------------------------------------------------------
-    real(fp)  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
+    real(fp) :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
 
     !--------------------------------------------
     !dps_ctm : CTM surface pressure tendency [hPa]
@@ -546,8 +580,8 @@ CONTAINS
     !xmass_fixed : horizontal mass flux in E-W direction after fixing [hPa]
     !ymass_fixed : horizontal mass flux in N-S direction after fixing [hPa]
     !---------------------------------------------------------------------
-    real(fp)  :: xmass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
-    real(fp)  :: ymass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
+    real(fp) :: xmass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
+    real(fp) :: ymass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
 
     !-------------
     !Dummy indexes
@@ -562,7 +596,12 @@ CONTAINS
        Write (6, *) 'Adjust_Press called by ', loc_proc
     end if
 
-    dps_ctm(:,:) = 0.0e+0_fp
+    ! Zero local variables for safety's sake
+    dps         = 0.0_fp
+    dps_ctm     = 0.0_fp
+    press_dev   = 0.0_fp
+    xmass_fixed = 0.0_fp
+    ymass_fixed = 0.0_fp
 
     dgpress =  Sum ( (pmet2(i1_gl:i2_gl, ju1_gl:j2_gl) - &
                       pctm1(i1_gl:i2_gl, ju1_gl:j2_gl)   ) &
@@ -593,8 +632,8 @@ CONTAINS
             (geofac_pc, geofac, dbk, dps, dps_ctm, rel_area, &
             xmass, ymass, xmass_fixed, ymass_fixed )
 
-       xmass(:,:,:) = xmass_fixed(:,:,:)
-       ymass(:,:,:) = ymass_fixed(:,:,:)
+       xmass = xmass_fixed
+       ymass = ymass_fixed
 
     end if
 
@@ -752,6 +791,20 @@ CONTAINS
        Write (6,*) 'Init_Press_Fix called by ', loc_proc
     end if
 
+    ! Zero output arguments for safety's sake
+    xmass   = 0.0_fp
+    ymass   = 0.0_fp
+    dps     = 0.0_fp
+    dps_ctm = 0.0_fp
+
+    ! Zero local variables for safety's sake
+    dpi     = 0.0_fp
+    crx     = 0.0_fp
+    cry     = 0.0_fp
+    delp1   = 0.0_fp
+    delpm   = 0.0_fp
+    pu      = 0.0_fp
+
     !========================
     call Average_Press_Poles &
     !========================
@@ -884,20 +937,24 @@ CONTAINS
        Write (6,*) 'Do_Press_Fix_Llnl called by ', loc_proc
     end if
 
-    ri2 = i2_gl
+    ! Zero/initialize output arguments for safety's sake
+    dps_ctm      = 0.0_fp
+    xmass_fixed  = xmass
+    ymass_fixed  = ymass
 
-    mmfd(:) = 0.0e+0_fp
-
-    xcolmass_fix(:,:)   = 0.0e+0_fp
-
-    xmass_fixed (:,:,:) = xmass(:,:,:)
-    ymass_fixed (:,:,:) = ymass(:,:,:)
+    ! Zero/initialize local variables for safety's sake
+    fxmean       = 0.0_fp
+    fxintegral   = 0.0_fp
+    mmf          = 0.0_fp
+    mmfd         = 0.0_fp
+    ri2          = i2_gl
+    xcolmass_fix = 0.0_fp
 
     !------------------------------------------------------------
     !Calculate difference between GCM and LR predicted pressures.
     !------------------------------------------------------------
 
-    ddps(:,:) = dps(:,:) - dps_ctm(:,:)
+    ddps = dps - dps_ctm
 
     !--------------------------------------
     ! Calculate global-pressure discrepancy.
@@ -948,7 +1005,7 @@ CONTAINS
     !------------------------------------------------------------
     do ij = j1p, j2p
 
-       fxintegral(:) = 0.0e+0_fp
+       fxintegral = 0.0e+0_fp
 
        do il = i1, i2
           fxintegral(il+1) = fxintegral(il) - &
@@ -1079,23 +1136,23 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! A or C grid
-    INTEGER, INTENT(IN)  :: igd
+    INTEGER,  INTENT(IN)  :: igd
 
     ! Model time step [s]
-    REAL(fp),  INTENT(IN)  :: tdt
+    REAL(fp), INTENT(IN)  :: tdt
 
     ! Cosine of grid box centers
-    REAL(fp),  INTENT(IN)  :: cosp(ju1_gl:j2_gl)
+    REAL(fp), INTENT(IN)  :: cosp(ju1_gl:j2_gl)
 
     ! Wind velocity in E-W (UU) and N-S (VV) directions at t1+tdt/2 [m/s]
-    REAL(fp),  INTENT(IN)  :: uu  (ilo:ihi, julo:jhi, k1:k2)
-    REAL(fp),  INTENT(IN)  :: vv  (ilo:ihi, julo:jhi, k1:k2)
+    REAL(fp), INTENT(IN)  :: uu  (ilo:ihi, julo:jhi, k1:k2)
+    REAL(fp), INTENT(IN)  :: vv  (ilo:ihi, julo:jhi, k1:k2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Courant number in E-W (CRX) and N-S (CRY) directions
-    REAL(fp),  INTENT(OUT) :: crx (ilo:ihi, julo:jhi, k1:k2)
-    REAL(fp),  INTENT(OUT) :: cry (ilo:ihi, julo:jhi, k1:k2)
+    REAL(fp), INTENT(OUT) :: crx (ilo:ihi, julo:jhi, k1:k2)
+    REAL(fp), INTENT(OUT) :: cry (ilo:ihi, julo:jhi, k1:k2)
 !
 ! !AUTHOR:
 !  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
@@ -1152,11 +1209,14 @@ CONTAINS
     if (first) then
     !==========
 
+       ! NOTE: Consider moving these variables into the module
+       ! so that they can be initialized in INIT_PJC_PFIX
        first = .false.
 
        Allocate (dtdx (ju1_gl:j2_gl))
        Allocate (dtdx5(ju1_gl:j2_gl))
-       dtdx = 0.0e+0_fp; dtdx5 = 0.0e+0_fp
+       dtdx  = 0.0_fp
+       dtdx5 = 0.0_fp
 
        ri2   = i2_gl
        rj2m1 = j2_gl - 1
@@ -1168,8 +1228,8 @@ CONTAINS
        dtdy5 = 0.5e+0_fp * dtdy
 
 
-       dtdx (ju1_gl) = 0.0e+0_fp
-       dtdx5(ju1_gl) = 0.0e+0_fp
+       dtdx (ju1_gl) = 0.0_fp
+       dtdx5(ju1_gl) = 0.0_fp
 
        do ij = ju1_gl + 1, j2_gl - 1
 
@@ -1178,8 +1238,8 @@ CONTAINS
 
        end do
 
-       dtdx (j2_gl)  = 0.0e+0_fp
-       dtdx5(j2_gl)  = 0.0e+0_fp
+       dtdx (j2_gl)  = 0.0_fp
+       dtdx5(j2_gl)  = 0.0_fp
 
     end if
 
@@ -1283,7 +1343,6 @@ CONTAINS
 !
     INTEGER   :: ij
     INTEGER   :: il
-    INTEGER   :: jst, jend
     REAL(fp)  :: dl
     REAL(fp)  :: dp
 
@@ -1300,13 +1359,17 @@ CONTAINS
        Write (6,*) 'Calc_Horiz_Mass_Flux called by ', loc_proc
     end if
 
+    ! Zero output arguments for safety's sake
+    xmass = 0.0_fp
+    ymass = 0.0_fp
+
+    ! Zero/initialize local variables for safety's sake
+    factx = 0.0_fp
     ri2   = i2_gl
-    rj2m1 = j2_gl - 1
-
-    dl    = 2.0e+0_fp * PI / ri2
-    dp    = PI / rj2m1
-
-    facty  = 0.5e+0_fp * tdt / (Re * dp)
+    rj2m1 = j2_gl  - 1
+    dl    = 2.0_fp * PI    / ri2
+    dp    = PI     / rj2m1
+    facty = 0.5_fp * tdt   / (Re * dp)
 
     !-----------------------------------
     !Calculate E-W horizontal mass flux.
@@ -1396,7 +1459,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     integer :: il, ij
-    integer :: jst, jend
 
     !----------------
     !Begin execution.
@@ -1509,7 +1571,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     integer :: il, ij, ik
-    integer :: jst, jend
 
     !----------------
     !Begin execution.
@@ -1518,6 +1579,11 @@ CONTAINS
     if (pr_diag) then
        Write (6,*) 'Set_Press_Terms called by ', loc_proc
     end if
+
+    ! Zero output arguments for safety's sake
+    delp1 = 0.0_fp
+    delpm = 0.0_fp
+    pu    = 0.0_fp
 
     do ik = k1, k2
 
@@ -1560,15 +1626,15 @@ CONTAINS
     LOGICAL :: do_reduction
 
     ! Special geometrical factor (geofac) for Polar cap
-    REAL(fp)  :: geofac_pc
+    REAL(fp) :: geofac_pc
 
     ! horizontal mass flux in N-S direction [hPa]
-    REAL(fp)  :: ymass(ilo:ihi, julo:jhi, k1:k2)
+    REAL(fp) :: ymass(ilo:ihi, julo:jhi, k1:k2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL(fp)  :: dpi  ( i1:i2,   ju1:j2,  k1:k2)
+    REAL(fp) :: dpi  ( i1:i2,   ju1:j2,  k1:k2)
 !
 ! !AUTHOR:
 !  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
@@ -1585,20 +1651,26 @@ CONTAINS
     !Variable declarations.
     !----------------------
 
-    integer :: il, ik
-
-    real(fp)  :: ri2
-
-    real(fp)  :: mean_np(k1:k2)
-    real(fp)  :: mean_sp(k1:k2)
-    real(fp)  :: sumnp  (k1:k2)
-    real(fp)  :: sumsp  (k1:k2)
+    integer  :: il, ik
+    real(fp) :: ri2
+    real(fp) :: mean_np(k1:k2)
+    real(fp) :: mean_sp(k1:k2)
+    real(fp) :: sumnp  (k1:k2)
+    real(fp) :: sumsp  (k1:k2)
 
     !----------------
     !Begin execution.
     !----------------
 
-    ri2 = i2_gl
+    ! Zero output arguments for safety's sake
+    dpi     = 0.0_fp
+
+    ! Zero/initialize local variables for safety's sake
+    ri2     = i2_gl
+    mean_np = 0.0_fp
+    mean_sp = 0.0_fp
+    sumnp   = 0.0_fp
+    sumsp   = 0.0_fp
 
     !==================
     if (ju1 == ju1_gl) then
@@ -1706,7 +1778,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)                 :: AVG
+    REAL(fp) :: AVG
 
     !=================================================================
     ! XPAVG begins here!
@@ -1915,19 +1987,19 @@ CONTAINS
 
     ! Latitude edges [radians] (w/ SIN & COS) at intermediate latitudes
     DO J = JU1_GL+1, J2_GL  !2, State_Grid%NY
-       ELAT_FV(J) = 0.5e+0_fp * ( CLAT_FV(J-1) + CLAT_FV(J) )
+       ELAT_FV(J) = 0.5_fp * ( CLAT_FV(J-1) + CLAT_FV(J) )
        SINE_FV(J) = SIN( ELAT_FV(J) )
        COSE_FV(J) = COS( ELAT_FV(J) )
     ENDDO
 
     ! Latitude edge at North Pole [radians]
-    ELAT_FV(J2_GL+1) = 0.5e+0_fp * PI
+    ELAT_FV(J2_GL+1) = 0.5_fp * PI
 
     ! SIN of lat edge at North Pole
-    SINE_FV(J2_GL+1) = 1.e+0_fp
+    SINE_FV(J2_GL+1) = 1.0_fp
 
     ! Latitude extent of South polar box [radians]
-    DLAT_FV(1) = 2.e+0_fp * ( ELAT_FV(2) - ELAT_FV(1) )
+    DLAT_FV(1) = 2.0_fp * ( ELAT_FV(2) - ELAT_FV(1) )
 
     ! Latitude extent of boxes at intermediate latitudes [radians]
     DO J = JU1_GL+1, J2_GL-1  ! 2, State_Grid%NY-1
@@ -1935,13 +2007,13 @@ CONTAINS
     ENDDO
 
     ! Latitude extent of North polar box [radians]
-    DLAT_FV(J2_GL) = 2.e+0_fp * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) )
+    DLAT_FV(J2_GL) = 2.0_fp * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) )
 
     ! Other stuff
     DO J = JU1_GL, J2_GL
        GW_FV(J)   = SINE_FV(J+1) - SINE_FV(J)
        COSP_FV(J) = GW_FV(J)     / DLAT_FV(J)
-       RGW_FV(J)  = 1.e+0_fp         / GW_FV(J)
+       RGW_FV(J)  = 1.0_fp       / GW_FV(J)
     ENDDO
 
   END SUBROUTINE Init_Pjc_Pfix

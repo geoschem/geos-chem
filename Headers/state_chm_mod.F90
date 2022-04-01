@@ -214,8 +214,8 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! For HOBr + S(IV) heterogeneous chemistry
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: HSO3_AQ    (:,:,:  ) ! Cloud bisulfite[mol/l]
-     REAL(fp),          POINTER :: SO3_AQ     (:,:,:  ) ! Cloud sulfite  [mol/l]
+     REAL(fp),          POINTER :: HSO3_AQ    (:,:,:  ) ! Cloud bisulfite/SO2 ratio
+     REAL(fp),          POINTER :: SO3_AQ     (:,:,:  ) ! Cloud sulfite/SO2 ratio
      REAL(fp),          POINTER :: fupdateHOBr(:,:,:  ) ! Correction factor for
                                                         ! HOBr removal by SO2
                                                         ! [unitless]
@@ -272,7 +272,6 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
-     LOGICAL                    :: SIZE_RES
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -428,7 +427,7 @@ CONTAINS
     State_Chm%KHETI_SLA         => NULL()
     State_Chm%ACLArea           => NULL()
     State_Chm%ACLRadi           => NULL()
-    State_Chm%HSO3_AQ           => NULL()
+    State_Chm%HSO3_AQ          => NULL()
     State_Chm%SO3_AQ            => NULL()
     State_Chm%fupdateHOBr       => NULL()
     State_Chm%fupdateHOCl       => NULL()
@@ -489,7 +488,6 @@ CONTAINS
     ! FALSE = use KPP computations
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
-    State_Chm%Size_Res              = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
 !EOC

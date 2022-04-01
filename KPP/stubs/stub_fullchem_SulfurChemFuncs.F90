@@ -70,7 +70,8 @@ CONTAINS
   !
   SUBROUTINE fullchem_SulfurCldChem( I,         J,         L,                &
                                      Input_Opt,  State_Chm, State_Diag,      &
-                                     State_Grid, State_Met, RC              )
+                                     State_Grid, State_Met, size_res,        &
+                                     RC                                     )
     !
     ! Stub for GeosCore/fullchem_mod.F90:fullchem_SulfurCldChem
     !
@@ -80,15 +81,18 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     !
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
     INTEGER,        INTENT(IN)    :: I, J, L
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt
-    TYPE(GrdState), INTENT(IN)    :: State_Grid
-    TYPE(MetState), INTENT(IN)    :: State_Met
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag
-    INTEGER,        INTENT(OUT)   :: RC
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    LOGICAL,        INTENT(OUT)   :: size_res    ! Should we call HetDropChem?
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
     !
-    RC = 0
+    !
+    RC       = 0
+    size_res = .FALSE.
   END SUBROUTINE fullchem_SulfurCldChem
   !
   SUBROUTINE fullchem_UpdateHSO3mAndSO3mm( I,         J,         L,          &

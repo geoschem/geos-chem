@@ -962,7 +962,9 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
     fi
 
-    if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
+    if [[ "x${sim_name}" == "xfullchem"     ||
+          "x${sim_name}" == "xaerosol"      ||
+          "x${sim_name}" == "xtagO3"    ]]; then
 
         # NOTE: We need to read the fullchem restart files from the v2021-09/
         # folder and TOMAS restart files from the v2021-12/ folder.  These
@@ -975,6 +977,11 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
         #
         # Aerosol-only simulations can use the fullchem restart since all
         # of the aerosol species are included.
+	#
+	# For TagO3, we now use the same restart file as the fullchem
+	# to ensure that we start with the same initial conditions.
+	#  -- Bob Yantosca (02 Mar 2022)
+	#
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
@@ -1064,13 +1071,13 @@ fi
 # Sample restarts for several simulations do not contain all species. For those
 # simulations, print a warning and change the time cycle option in HEMCO config
 # so that we do not force an error if not found (i.e. EFYO --> EY)
-if [[ "x${sim_extra_option}" == "xaciduptake"        ||
-      "x${sim_extra_option}" == "xmarinePOA"         ||
-      "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
-      "x${sim_extra_option}" == "xAPM"               ||
-      "x${sim_name}"         == "xPOPs"              ||
-      "x${sim_name}"         == "xtagCH4"            ||
-      "x${sim_name}"         == "xtagO3"             ]]; then
+if [[ "x${sim_extra_option}" == "xaciduptake"       ||
+      "x${sim_extra_option}" == "xmarinePOA"        ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
+      "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xPOPs"             ||
+      "x${sim_name}"         == "xtagCH4"           ||
+      "x${sim_name}"         == "xtagO3"        ]]; then
     old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFYO"
     new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY  "
     sed_ie "s|${old}|${new}|" HEMCO_Config.rc
