@@ -242,8 +242,23 @@ CONTAINS
     ENDIF
 
     !========================================================================
+    ! Get settings for specialty simulations from the YAML Config object
+    !========================================================================
+
+    ! CH4 simulation settings
+    CALL Config_CH4( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_CH4"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
+    !========================================================================
     ! Get settings for extra diagnostics from the YAML Config object
     !========================================================================
+
     ! Obspack diagnostic settings
     CALL Config_ObsPack( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -310,14 +325,6 @@ CONTAINS
 !          CALL READ_MERCURY_MENU( Input_Opt, RC  )
 !          IF ( RC /= GC_SUCCESS ) THEN
 !             errMsg = 'Error in "Read_Mercury_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
-!
-!       ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN
-!          CALL READ_CH4_MENU( Input_Opt, RC )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_CH4_Menu"!'
 !             CALL GC_Error( errMsg, RC, thisLoc )
 !             RETURN
 !          ENDIF
@@ -3918,9 +3925,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_obspack_menu
+! !IROUTINE: config_obspack
 !
-! !DESCRIPTION: Copies Obspack diagnostic  information from the Config
+! !DESCRIPTION: Copies Obspack diagnostic information from the Config
 !  object to Input_Opt, and does necessary checks.
 !\\
 !\\
@@ -4832,153 +4839,200 @@ CONTAINS
 !120 FORMAT( A, A   )
 !
 !  END SUBROUTINE READ_MERCURY_MENU
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_ch4_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_CH4\_MENU reads the CH4 MENU section of
-!!  the GEOS-Chem input file; this defines options for CH4 simulations.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_CH4_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!!
-!! !REVISION HISTORY:
-!!  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: N
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg, thisLoc
+! !IROUTINE: config_ch4
 !
-!    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+! !DESCRIPTION: Copies CH4 simulation information from the Config
+!  object to Input_Opt, and does necessary checks.
+!\\
+!\\
+! !INTERFACE:
 !
-!    !=================================================================
-!    ! READ_CH4_MENU begins here!
-!    !=================================================================
+  SUBROUTINE Config_CH4( Config, Input_Opt, RC )
 !
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_CH4_Menu (in module GeosCore/input_mod.F90)'
+! !USES:
 !
-!    ! Use GOSAT CH4 observation operator?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GOSAT_CH4_OBS', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
 !
-!    ! Use AIRS CH4 observation operator?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'AIRS_CH4_OBS', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%AIRS_CH4_OBS
+! !INPUT/OUTPUT PARAMETERS:
 !
-!    ! Use TCCON CH4 observation operator?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TCCON_CH4_OBS', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%TCCON_CH4_OBS
+    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
 
-!=======
-!    ! Do analytical inversion?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'AnalyticalInv', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%AnalyticalInv
-!
-!    ! Emission perturbation
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'PerturbEmis', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%PerturbEmis
-!
-!    ! Current state vector element number
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'StateVectorElement', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%StateVectorElement
-!
-!    ! Use emission scale factors?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'UseEmisSF', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%UseEmisSF
-!
-!    ! Use OH scale factors?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'UseOHSF', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%UseOHSF
-!
-!    ! Separator line
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    !=================================================================
-!    ! Print to screen
-!    !=================================================================
-!    IF ( Input_Opt%amIRoot ) THEN
-!       WRITE( 6, '(/,a)' ) 'CH4 MENU'
-!       WRITE( 6, '(  a)' ) '-----------'
-!       WRITE( 6, 100     ) 'Use GOSAT obs operator: ', &
-!                            Input_Opt%GOSAT_CH4_OBS
-!       WRITE( 6, 100     ) 'Use TCCON obs operator: ', &
-!            Input_Opt%TCCON_CH4_OBS
-!    ENDIF
-!
-!    ! FORMAT statements
-!100 FORMAT( A, L5  )
-!
-!    ! Return success
-!    RC = GC_SUCCESS
-!
-!  END SUBROUTINE READ_CH4_MENU
+    ! Scalars
+    INTEGER                      :: N
+    INTEGER                      :: v_int
+    LOGICAL                      :: v_bool
+
+    ! Strings
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=255)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
+
+    !========================================================================
+    ! READ_CH4_MENU begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = 'Error reading the "input.geos" file!'
+    thisLoc = ' -> at Read_CH4_Menu (in module GeosCore/input_mod.F90)'
+      
+    !------------------------------------------------------------------------
+    ! Use AIRS observational operator?
+    !------------------------------------------------------------------------
+    key    = "ch4_simulation_options%use_observational_operators%AIRS"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AIRS_CH4_OBS = Input_Opt%GOSAT_CH4_OBS
+
+    !------------------------------------------------------------------------
+    ! Use GOSAT observational operator?
+    !------------------------------------------------------------------------
+    key    = "ch4_simulation_options%use_observational_operators%GOSAT"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%GOSAT_CH4_OBS =  v_bool
+
+    !------------------------------------------------------------------------
+    ! Use TCCON observational operator?
+    !------------------------------------------------------------------------
+    key    = "ch4_simulation_options%use_observational_operators%TCCON"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%TCCON_CH4_OBS = v_bool
+
+    !------------------------------------------------------------------------
+    ! Do an analytical inversion?
+    !------------------------------------------------------------------------
+    key    = "analytical_inversion%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AnalyticalInv = v_bool
+
+    !------------------------------------------------------------------------
+    ! Emission perturbation
+    !------------------------------------------------------------------------
+    key   = "analytical_inversion%emission_perturbation"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%PerturbEmis = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Current state vector element number
+    !------------------------------------------------------------------------
+    key   = "analytical_inversion%state_vector_element_number"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%StateVectorElement = v_int
+
+    !------------------------------------------------------------------------
+    ! Use emission scale factor?
+    !------------------------------------------------------------------------
+    key    = "analytical_inversion%use_emission_scale_factor"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%UseEmisSF = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use OH scale factors?
+    !------------------------------------------------------------------------
+    key    = "analytical_inversion%use_OH_scale_factors"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%UseOHSF = v_bool
+
+    !=================================================================
+    ! Print to screen
+    !=================================================================
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'CH4 MENU'
+       WRITE( 6, '(  a)' ) '-----------'
+       WRITE( 6, 100     ) 'Use GOSAT obs operator   : ', &
+                            Input_Opt%GOSAT_CH4_OBS
+       WRITE( 6, 100     ) 'Use AIRS obs operator    : ', &
+                            Input_Opt%AIRS_CH4_OBS
+       WRITE( 6, 100     ) 'Use TCCON obs operator   : ', &
+                            Input_Opt%TCCON_CH4_OBS
+       WRITE( 6, 100     ) 'Do analytical inversion  : ', &
+                            Input_Opt%AnalyticalInv
+       WRITE( 6, 110     ) 'Emission perturbation    : ', &
+                            Input_Opt%PerturbEmis
+       WRITE( 6, 120     ) 'Current state vector elem: ', &
+                            Input_Opt%StateVectorElement
+       WRITE( 6, 100     ) 'Use emis scale factors   : ', &
+                            Input_Opt%UseEmisSF
+       WRITE( 6, 100     ) 'Use OH scale factors     : ', &
+                            Input_Opt%UseOHSF 
+    ENDIF
+
+    ! FORMAT statements
+100 FORMAT( A, L5   )
+110 FORMAT( A, f6.2 )
+120 FORMAT( A, I5   )
+
+  END SUBROUTINE Config_CH4
 !!EOC
 !!------------------------------------------------------------------------------
 !!                  GEOS-Chem Global Chemical Transport Model                  !
