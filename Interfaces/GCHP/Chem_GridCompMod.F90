@@ -890,9 +890,26 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! These still in testing
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JNO2', 2, __RC__ )
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'JOH' , 2, __RC__ )
+    ! Surface J-values for HEMCO
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'JOH',  &
+       LONG_NAME          = 'Surface J-values for reaction O3 + hv --> O2 + O',  &
+       UNITS              = '1', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'JNO2',  &
+       LONG_NAME          = 'Surface J-values for reaction NO2 + hv --> NO + O',  &
+       UNITS              = '1', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
 
     ! delta dry pressure used to conserve mass across consecutive runs
     call MAPL_AddInternalSpec(GC, &

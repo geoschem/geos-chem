@@ -4211,16 +4211,18 @@ CONTAINS
           IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
           IF ( isUnits   ) Units = 's cm-1'
           IF ( isRank    ) Rank  = 2
+
 #endif
        CASE( 'JOH' )
-          IF ( isDesc    ) Desc  = 'J-value for OH'
+          IF ( isDesc    ) Desc  = 'Surface J-values for reaction O3 + hv --> O2 + O'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 2
 
        CASE( 'JNO2' )
-          IF ( isDesc    ) Desc  = 'J-value for NO2'
+          IF ( isDesc    ) Desc  = 'Surface J-values for reaction NO2 + hv --> NO + O'
           IF ( isUnits   ) Units = '1'
           IF ( isRank    ) Rank  = 2
+
        CASE( 'SURFACEFLUX' )
           IF ( isDesc  ) Desc   = 'Surface flux (E-D) for non-local PBL mixing'
           IF ( isUnits ) Units  = 'kg m-2 s-1'
