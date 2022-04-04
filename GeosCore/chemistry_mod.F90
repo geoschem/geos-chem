@@ -302,7 +302,7 @@ CONTAINS
           !----------------------------------------
           ! Dry-run sulfate chem to get cloud pH
           !----------------------------------------
-          IF ( LSULF ) THEN
+          IF ( Input_Opt%LSULF ) THEN
 
              ! Dry run only
              CALL ChemSulfate( Input_Opt  = Input_Opt,                       &
