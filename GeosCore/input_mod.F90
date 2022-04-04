@@ -255,6 +255,16 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! CH4 simulation settings
+    CALL Config_Hg( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_Hg"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
     !========================================================================
     ! Get settings for extra diagnostics from the YAML Config object
     !========================================================================
@@ -317,14 +327,6 @@ CONTAINS
 !          CALL READ_POPS_MENU( Input_Opt, RC )
 !          IF ( RC /= GC_SUCCESS ) THEN
 !             errMsg = 'Error in "Read_POPS_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
-!
-!       ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN
-!          CALL READ_MERCURY_MENU( Input_Opt, RC  )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_Mercury_Menu"!'
 !             CALL GC_Error( errMsg, RC, thisLoc )
 !             RETURN
 !          ENDIF
@@ -3370,7 +3372,6 @@ CONTAINS
 !    USE CMN_DIAG_MOD        ! Needed for timeseries diags (binary only)
 !    USE CMN_SIZE_MOD,  ONLY : NDSTBIN
 !    USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
-!    USE DIAG03_MOD,    ONLY : ND03,      PD03,      PD03_PL
 !    USE DIAG53_MOD,    ONLY : ND53,      PD53
 !    USE DRYDEP_MOD,    ONLY : NUMDEP
 !    USE ErrCode_Mod
@@ -4681,164 +4682,176 @@ CONTAINS
 !#endif
 !#endif
 !#endif
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_mercury_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU
-!!  section of the GEOS-Chem input file.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_MERCURY_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!!
-!! !REVISION HISTORY:
-!!  24 Feb 2006 - R. Yantosca - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    LOGICAL            :: LDYNOCEAN,      LPREINDHG
-!    LOGICAL            :: LGTMM,          USE_CHECKS
-!    LOGICAL            :: LARCTICRIV,     LKRedUV
-!    INTEGER            :: N
-!    CHARACTER(LEN=255) :: GTMM_RST_FILE
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg,         thisLoc
+! !IROUTINE: read_mercury_menu
 !
-!    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
 !
-!    !=================================================================
-!    ! READ_MERCURY_MENU begins here!
-!    !=================================================================
+  SUBROUTINE Config_Hg( Config, Input_Opt, RC )
 !
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_Mercury_Menu (in module GeosCore/input_mod.F90)'
+! !USES:
 !
-!    ! Use error check for tag/tot Hg?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'USE_CHECKS', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%USE_CHECKS
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
 !
-!    ! Use dynamic ocean model?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDYNOCEAN', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LDYNOCEAN
+! !INPUT/OUTPUT PARAMETERS:
 !
-!    ! Use preindustrial simulation?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPREINDHG', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LPREINDHG
+    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
-!    ! Use GTMM ?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LGTMM', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LGTMM
+! !OUTPUT PARAMETERS:
 !
-!    ! Name of GTMM restart file
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GTMM_RST_FILE', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%GTMM_RST_FILE
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!    ! Use Arctic river Hg?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LARCTICRIV', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LARCTICRIV
+! !LOCAL VARIABLES:
 !
-!    ! Tie reducible HgII(aq) to UV-B?
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LKREDUV', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%LKRedUV
-!
-!    ! Separator line
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    ! Check on logical
-!    IF (.NOT.( Input_Opt%ITS_A_MERCURY_SIM ) ) THEN
-!       Input_Opt%LGTMM      = .FALSE.
-!       Input_Opt%LDYNOCEAN  = .FALSE.
-!       Input_Opt%LARCTICRIV = .FALSE.
-!       Input_Opt%LKRedUV    = .FALSE.
-!    ENDIF
-!
-!    !=================================================================
-!    ! Print to screen
-!    !=================================================================
-!    IF ( Input_Opt%amIRoot ) THEN
-!       WRITE( 6, '(/,a)' ) 'MERCURY MENU'
-!       WRITE( 6, '(  a)' ) '------------'
-!       WRITE( 6, 110 ) 'Error check tag & total Hg? : ', &
-!                        Input_Opt%USE_CHECKS
-!       WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', &
-!                        Input_Opt%LDYNOCEAN
-!       WRITE( 6, 110 ) 'Preindustrial simulation?   : ', &
-!                        Input_Opt%LPREINDHG
-!       WRITE( 6, 110 ) 'Use GTMM ?                  : ', &
-!                        Input_Opt%LGTMM
-!       WRITE( 6, 120 ) '=> GTMM restart file        : ', &
-!                        TRIM( Input_Opt%GTMM_RST_FILE )
-!       WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', &
-!                        Input_Opt%LARCTICRIV
-!       WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', &
-!                        Input_Opt%LKRedUV
-!    ENDIF
-!
-!    ! FORMAT statements
-!100 FORMAT( A, I4  )
-!110 FORMAT( A, L5  )
-!120 FORMAT( A, A   )
-!
-!  END SUBROUTINE READ_MERCURY_MENU
+    ! Scalars
+    INTEGER                      :: N
+    LOGICAL                      :: v_bool
+
+    ! Strings
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=255)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
+
+    !=================================================================
+    ! Config_Hg begins here!
+    !=================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Config_Hg (in module GeosCore/input_mod.F90)'
+
+    !------------------------------------------------------------------------
+    ! Use dynamic ocean Hg?
+    !------------------------------------------------------------------------
+    key    = "Hg_simulation_options%sources%use_dynamic_ocean_Hg"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LDYNOCEAN = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use preindustrial Hg?
+    !------------------------------------------------------------------------
+    key    = "Hg_simulation_options%sources%use_preindustrial_Hg"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LPREINDHG = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use arctic river Hg?
+    !------------------------------------------------------------------------
+    key    = "Hg_simulation_options%sources%use_arctic_river_Hg"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LARCTICRIV = v_bool
+
+    !------------------------------------------------------------------------
+    ! Tie Hg2(aq) reduction to UV-B radiation?
+    !------------------------------------------------------------------------
+    key    = "Hg_simulation_options%chemistry%tie_HgIIaq_reduction_to_UVB"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LKRedUV = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use GTMM soil model
+    !
+    ! NOTE: As of April 2022, GTMM is broken.  We look to the community
+    ! to take the lead in restoring it.  Until that happens, these options
+    ! will have no effect. -- Bob Yantosca (04 Apr 2022)
+    !------------------------------------------------------------------------
+    key    = "Hg_simulation_options%GTMM_soil_model%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LGTMM = v_bool
+
+    !------------------------------------------------------------------------
+    ! GTMM restart file name
+    !
+    ! NOTE: As of April 2022, GTMM is broken.  We look to the community
+    ! to take the lead in restoring it.  Until that happens, these options
+    ! will have no effect. -- Bob Yantosca (04 Apr 2022)
+    !------------------------------------------------------------------------
+    key   = "Hg_simulation_options%GTMM_soil_model%restart_file"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%GTMM_RST_FILE = TRIM( v_str )
+
+    !------------------------------------------------------------------------
+    ! Sanity checks
+    !------------------------------------------------------------------------
+    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       Input_Opt%LGTMM      = .FALSE.
+       Input_Opt%LDYNOCEAN  = .FALSE.
+       Input_Opt%LARCTICRIV = .FALSE.
+       Input_Opt%LKRedUV    = .FALSE.
+    ENDIF
+
+    !========================================================================
+    ! Print to screen
+    !========================================================================
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'MERCURY MENU'
+       WRITE( 6, '(  a)' ) '------------'
+       WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', Input_Opt%LDYNOCEAN
+       WRITE( 6, 110 ) 'Preindustrial simulation?   : ', Input_Opt%LPREINDHG
+       WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', Input_Opt%LARCTICRIV
+       WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', Input_Opt%LKRedUV
+       WRITE( 6, 110 ) 'Use GTMM ?                  : ', Input_Opt%LGTMM
+       WRITE( 6, 120 ) '=> GTMM restart file        : ',                      &
+                       TRIM( Input_Opt%GTMM_RST_FILE )
+    ENDIF
+
+    ! FORMAT statements
+100 FORMAT( A, I4  )
+110 FORMAT( A, L5  )
+120 FORMAT( A, A   )
+
+  END SUBROUTINE Config_Hg
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4869,10 +4882,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
