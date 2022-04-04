@@ -436,7 +436,6 @@ CONTAINS
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
-    USE Diag03_Mod,         ONLY : Init_Diag03
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
     USE Diag53_Mod,         ONLY : Init_Diag53

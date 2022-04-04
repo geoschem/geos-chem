@@ -244,9 +244,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE DIAG03_MOD,         ONLY : AD03, ND03
-#endif
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
@@ -343,13 +340,6 @@ CONTAINS
                                    ( 1e+0_fp - FRAC_O ) * &
                                    FRAC_SNOW_OR_ICE &
                                    * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
-
-#ifdef BPCH_DIAG
-       ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
-       IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   + &
-                                        FRAC_SNOW_OR_ICE * &
-                                        MAX(DEP_HG2, 0e+0_fp)
-#endif
 
        !--------------------------------------------------------------
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%

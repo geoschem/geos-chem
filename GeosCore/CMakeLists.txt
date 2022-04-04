@@ -48,8 +48,6 @@ add_library(GeosCore
   co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
-  diag03_mod.F90
-  diag1.F90
   diag3.F90
   diag51b_mod.F90
   diag51_mod.F90

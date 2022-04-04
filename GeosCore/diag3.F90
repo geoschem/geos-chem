@@ -316,13 +316,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      CALL ERROR_STOP ( 'HcoState not defined!', LOC )
   ENDIF
 
-  !****************************************************************************
-  !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
-  !****************************************************************************
-  IF ( ND03 > 0 ) THEN
-     CALL WRITE_DIAG03( Input_Opt, State_Chm, State_Grid, RC )
-  ENDIF
-
 #ifdef TOMAS
 
   !****************************************************************************
