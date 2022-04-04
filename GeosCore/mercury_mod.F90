@@ -556,11 +556,32 @@ CONTAINS
        ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
        IERR      = 0         ! Success or failure flag
+       P         = 0         ! GEOS-Chem photolyis species ID
        ISTATUS   = 0.0_dp    ! Rosenbrock output
        PHOTOL    = 0.0_dp    ! Photolysis array
        RCNTRL    = 0.0_fp    ! Rosenbrock input
        RSTATE    = 0.0_dp    ! Rosenbrock output
-       P         = 0         ! GEOS-Chem photolyis species ID
+       C         = 0.0_dp    ! KPP species conc's
+       VAR       = 0.0_dp    ! KPP variable species conc's
+       FIX       = 0.0_dp    ! KPP fixed species conc's
+       RCONST    = 0.0_dp    ! KPP rate constants
+
+       !====================================================================
+       ! Test if we need to do the chemistry for box (I,J,L),
+       ! otherwise move onto the next box.
+       !====================================================================
+
+       ! If we are not below the stratopause don't do the chemistry!
+       !IF ( L > State_Grid%MaxStratLev ) CYCLE
+       IF ( .not. State_Met%InChemGrid( I, J, L ) ) CYCLE
+
+       ! Skipping buffer zone (lzh, 08/10/2014)
+       IF ( State_Grid%NestedGrid ) THEN
+          IF ( J <=                 State_Grid%SouthBuffer ) CYCLE
+          IF ( J >  State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
+          IF ( I <=                 State_Grid%EastBuffer  ) CYCLE
+          IF ( I >  State_Grid%NX - State_Grid%WestBuffer  ) CYCLE
+       ENDIF
 
        !====================================================================
        ! Get photolysis rates (daytime only)
@@ -594,22 +615,7 @@ CONTAINS
           ENDDO
        ENDIF
 
-       !====================================================================
-       ! Test if we need to do the chemistry for box (I,J,L),
-       ! otherwise move onto the next box.
-       !====================================================================
 
-       ! If we are not below the stratopause don't do the chemistry!
-       !IF ( L > State_Grid%MaxStratLev ) CYCLE
-       IF ( .not. State_Met%InChemGrid( I, J, L ) ) CYCLE
-
-       ! Skipping buffer zone (lzh, 08/10/2014)
-       IF ( State_Grid%NestedGrid ) THEN
-          IF ( J <=                 State_Grid%SouthBuffer ) CYCLE
-          IF ( J >  State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
-          IF ( I <=                 State_Grid%EastBuffer  ) CYCLE
-          IF ( I >  State_Grid%NX - State_Grid%WestBuffer  ) CYCLE
-       ENDIF
 
        !====================================================================
        ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
