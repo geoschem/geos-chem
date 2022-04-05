@@ -1,6 +1,6 @@
- ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "Hg" mechanism.
+### Customized for simulations using the POPs mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -58,14 +58,7 @@ operations:
 
   pbl_mixing:
      activate: true
-     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
-
-  photolysis:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2022-04-Hg/
-    overhead_O3:
-      use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
-      use_column_O3_from_met: true
-      use_TOMS_SBUV_O3: false
+     use_non_local_pbl: false
 
   transport:
     gcclassic_tpcore:                 # GEOS-Chem Classic only
@@ -73,54 +66,31 @@ operations:
       fill_negative_values: true      # GEOS-Chem Classic only
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
-      -  Hg0
-      -  HgBr
-      -  HgBrNO2
-      -  HgBrHO2
-      -  HgBrBrO
-      -  HgBrClO
-      -  HgBrOH
-      -  HgBr2
-      -  HgCl
-      -  HgClNO2
-      -  HgClHO2
-      -  HgClClO
-      -  HgClBrO
-      -  HgClBr
-      -  HgClOH
-      -  HgOH
-      -  HgOHNO2
-      -  HgOHHO2
-      -  HgOHClO
-      -  HgOHBrO
-      -  HgOHOH
-      -  HgCl2
-      -  Hg2ClP
-      -  Hg2ORGP
-      -  Hg2STRP
+      - POPG_${RUNDIR_POP_SPC}
+      - POPPOCPO_${RUNDIR_POP_SPC}
+      - POPPOCPI_${RUNDIR_POP_SPC}
+      - POPPBCPO_${RUNDIR_POP_SPC}
+      - POPPBCPI_${RUNDIR_POP_SPC}
 
   wet_deposition:
     activate: true
-    
+
 #============================================================================
-# Settings specific to the Hg simulation
+# Settings specific to the POPs simulation
 #============================================================================
-Hg_simulation_options:
-
-  sources:
-    use_dynamic_ocean_Hg: false
-    use_preindustrial_Hg: false
-    use_arctic_river_Hg: true
-
-  chemistry:
-    tie_HgIIaq_reduction_to_UVB: true
-
-  # NOTE: GTMM is currently, we look to the Hg & POPs community
-  # to take the lead in restoring it. (bmy, 04 Apr 2022)
-  GTMM_soil_model:
-    activate: false
-    restart_file: N/A
-
+POPs_simulation_options:
+  POP_type: ${RUNDIR_POP_SPC}
+  chemistry_processing: true
+  POP_XMW: ${RUNDIR_POP_XMW}
+  POP_KOA: ${RUNDIR_POP_KOA}
+  POP_KBC: ${RUNDIR_POP_KBC}
+  POP_K_POPG_OH: ${RUNDIR_POP_K_POPG_OH}
+  POP_K_POPP_O3A: ${RUNDIR_POP_K_POPP_O3A}
+  POP_K_POPP_O3B: ${RUNDIR_POP_K_POPP_O3B}
+  POP_HSTAR: ${RUNDIR_POP_HSTAR}
+  POP_DEL_H: ${RUNDIR_POP_DEL_H}
+  POP_DEL_Hw: ${RUNDIR_POP_DEL_Hw}
+  
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
 #============================================================================
@@ -132,7 +102,7 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
-      - Hg0
+      - POPG_${RUNDIR_POP_SPC}
 
   planeflight:
     activate: false

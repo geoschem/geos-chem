@@ -1,6 +1,6 @@
 ---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "fullchem" mechanism.
+### Customized for simulations using the CH4 mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -40,7 +40,6 @@ grid:
 timesteps:
   transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
   chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
-  radiation_timestep_in_s: 10800
 
 #============================================================================
 # Settings for GEOS-Chem operations
@@ -93,9 +92,7 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
-      - CO
-      - 'NO'
-      - O3
+      - CH4
 
   planeflight:
     activate: false
@@ -116,30 +113,38 @@ extra_diagnostics:
        schedule_output_for_OCT: 3000000000000000000000000000000
        schedule_output_for_NOV: 300000000000000000000000000000
        schedule_output_for_DEC: 3000000000000000000000000000000
+
     gamap:
       diaginfo_dat_file: ./diaginfo.dat
       tracerinfo_dat_file: ./tracerinfo.dat
+
     bpch_diagnostics:
       TOMAS_aerosol_emissions: "0 all"
       TOMAS_rate: "0 all"
       TOMAS_3D_rate: "0 all"
-# NOTE: These might be obsolete in 14.0.0, so comment out
-#    ND51_satellite:
-#      activate: false
-#      output_file: ts_satellite.YYYYMMDD.bpch
-#      tracers: [1, 2, 501]
-#      UTC_hour_for_write: 1
-#      averaging_period_in_LT: [13, 15]
-#      IMIN_and_IMAX_of_region: [1, 72]
-#      JMIN_and_JMAX_of_region: [1, 46]
-#      LMIN_and_LMAX_of_region: [1, 1]
-#
-#    ND51b_satellite:
-#      activate: false
-#      output_file: ts_satellite.YYYYMMDD.bpch
-#      tracers: [1, 2, 501]
-#      UTC_hour_for_write: 1
-#      averaging_period_in_LT: [13, 15]
-#      IMIN_and_IMAX_of_region: [1, 72]
-#      JMIN_and_JMAX_of_region: [1, 46]
-#      LMIN_and_LMAX_of_region: [1, 1]
+
+    ND51_satellite:
+      activate: false
+      output_file: ts_satellite.YYYYMMDD.bpch
+      tracers:
+        - 1
+        - 2
+        - 501
+      UTC_hour_for_write: 0
+      averaging_period_in_LT: [9, 11]
+      IMIN_and_IMAX_of_region: [1, 72]
+      JMIN_and_JMAX_of_region: [1, 46]
+      LMIN_and_LMAX_of_region: [1, 1]
+
+    ND51b_satellite:
+      activate: false
+      output_file: ts_13_15_NA..YYYYMMDD.bpch
+      tracers:
+        - 1
+        - 2
+        - 501
+      UTC_hour_for_write: 1
+      averaging_period_in_LT: [13, 15]
+      IMIN_and_IMAX_of_region: [1, 72]
+      JMIN_and_JMAX_of_region: [1, 46]
+      LMIN_and_LMAX_of_region: [1, 1]

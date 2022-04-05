@@ -1,6 +1,6 @@
- ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "Hg" mechanism.
+### Customized for simulations using the metals mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -46,9 +46,6 @@ timesteps:
 #============================================================================
 operations:
 
-  chemistry:
-    activate: true
-
   convection:
     activate: true
 
@@ -60,66 +57,45 @@ operations:
      activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
-  photolysis:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2022-04-Hg/
-    overhead_O3:
-      use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
-      use_column_O3_from_met: true
-      use_TOMS_SBUV_O3: false
-
   transport:
     gcclassic_tpcore:                 # GEOS-Chem Classic only
       activate: true                  # GEOS-Chem Classic only
       fill_negative_values: true      # GEOS-Chem Classic only
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
-      -  Hg0
-      -  HgBr
-      -  HgBrNO2
-      -  HgBrHO2
-      -  HgBrBrO
-      -  HgBrClO
-      -  HgBrOH
-      -  HgBr2
-      -  HgCl
-      -  HgClNO2
-      -  HgClHO2
-      -  HgClClO
-      -  HgClBrO
-      -  HgClBr
-      -  HgClOH
-      -  HgOH
-      -  HgOHNO2
-      -  HgOHHO2
-      -  HgOHClO
-      -  HgOHBrO
-      -  HgOHOH
-      -  HgCl2
-      -  Hg2ClP
-      -  Hg2ORGP
-      -  Hg2STRP
+      - AlF1
+      - AlF2
+      - AsF1
+      - AsF2
+      - CaF1
+      - CaF2
+      - CaC3
+      - CaC4
+      - CdF1
+      - CdF2
+      - FeF1
+      - FeF2
+      - KF1
+      - KF2
+      - KC3
+      - KC4
+      - MgF1
+      - MgF2
+      - MgC3
+      - MgC4
+      - MnF1
+      - MnF2
+      - NiF1
+      - NiF2
+      - PbF1
+      - PbF2
+      - SiF1
+      - SiF2
+      - TiF1
+      - TiF2
 
   wet_deposition:
     activate: true
-    
-#============================================================================
-# Settings specific to the Hg simulation
-#============================================================================
-Hg_simulation_options:
-
-  sources:
-    use_dynamic_ocean_Hg: false
-    use_preindustrial_Hg: false
-    use_arctic_river_Hg: true
-
-  chemistry:
-    tie_HgIIaq_reduction_to_UVB: true
-
-  # NOTE: GTMM is currently, we look to the Hg & POPs community
-  # to take the lead in restoring it. (bmy, 04 Apr 2022)
-  GTMM_soil_model:
-    activate: false
-    restart_file: N/A
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
@@ -132,7 +108,7 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
-      - Hg0
+      - AlF1
 
   planeflight:
     activate: false

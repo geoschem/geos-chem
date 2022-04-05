@@ -1,6 +1,6 @@
- ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "Hg" mechanism.
+### Customized for simulations using the tagged CO mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -60,66 +60,33 @@ operations:
      activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
-  photolysis:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2022-04-Hg/
-    overhead_O3:
-      use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
-      use_column_O3_from_met: true
-      use_TOMS_SBUV_O3: false
-
   transport:
     gcclassic_tpcore:                 # GEOS-Chem Classic only
       activate: true                  # GEOS-Chem Classic only
       fill_negative_values: true      # GEOS-Chem Classic only
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
-      -  Hg0
-      -  HgBr
-      -  HgBrNO2
-      -  HgBrHO2
-      -  HgBrBrO
-      -  HgBrClO
-      -  HgBrOH
-      -  HgBr2
-      -  HgCl
-      -  HgClNO2
-      -  HgClHO2
-      -  HgClClO
-      -  HgClBrO
-      -  HgClBr
-      -  HgClOH
-      -  HgOH
-      -  HgOHNO2
-      -  HgOHHO2
-      -  HgOHClO
-      -  HgOHBrO
-      -  HgOHOH
-      -  HgCl2
-      -  Hg2ClP
-      -  Hg2ORGP
-      -  Hg2STRP
+      - CO
+      - COus
+      - COeur
+      - COasia
+      - COoth
+      - CObbam
+      - CObbaf
+      - CObbas
+      - CObboc
+      - CObbeu
+      - CObboth
+      - COch4
+      - COnmvoc
 
-  wet_deposition:
-    activate: true
-    
 #============================================================================
-# Settings specific to the Hg simulation
+# Settings specific to the tagged CO simulation
 #============================================================================
-Hg_simulation_options:
 
-  sources:
-    use_dynamic_ocean_Hg: false
-    use_preindustrial_Hg: false
-    use_arctic_river_Hg: true
-
-  chemistry:
-    tie_HgIIaq_reduction_to_UVB: true
-
-  # NOTE: GTMM is currently, we look to the Hg & POPs community
-  # to take the lead in restoring it. (bmy, 04 Apr 2022)
-  GTMM_soil_model:
-    activate: false
-    restart_file: N/A
+tagged_CO_simulation_options:
+  use_fullchem_PCO_from_CH4: true
+  use_fullchem_PCO_from_NMVOC: true
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
@@ -132,7 +99,9 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
-      - Hg0
+      - CO
+      - 'NO'
+      - O3
 
   planeflight:
     activate: false

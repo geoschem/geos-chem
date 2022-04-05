@@ -1,6 +1,6 @@
- ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "Hg" mechanism.
+### Customized for simulations using the aerosols-only mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -61,9 +61,9 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   photolysis:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2022-04-Hg/
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
     overhead_O3:
-      use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
+      use_online_O3_from_model: false
       use_column_O3_from_met: true
       use_TOMS_SBUV_O3: false
 
@@ -73,53 +73,61 @@ operations:
       fill_negative_values: true      # GEOS-Chem Classic only
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
-      -  Hg0
-      -  HgBr
-      -  HgBrNO2
-      -  HgBrHO2
-      -  HgBrBrO
-      -  HgBrClO
-      -  HgBrOH
-      -  HgBr2
-      -  HgCl
-      -  HgClNO2
-      -  HgClHO2
-      -  HgClClO
-      -  HgClBrO
-      -  HgClBr
-      -  HgClOH
-      -  HgOH
-      -  HgOHNO2
-      -  HgOHHO2
-      -  HgOHClO
-      -  HgOHBrO
-      -  HgOHOH
-      -  HgCl2
-      -  Hg2ClP
-      -  Hg2ORGP
-      -  Hg2STRP
+      - BCPI
+      - BCPO
+      - DMS
+      - DST1
+      - DST2
+      - DST3
+      - DST4
+      - H2O2
+      - MSA
+      - NH3
+      - NH4
+      - NIT
+      - NITs
+      - OCPI
+      - OCPO
+      - pFe
+      - SALA
+      - SALAAL
+      - SALACL
+      - SALC
+      - SALCAL
+      - SALCCL
+      - SO2
+      - SO4
+      - SO4s
+      - SOAP
+      - SOAS
 
   wet_deposition:
     activate: true
-    
+
 #============================================================================
-# Settings specific to the Hg simulation
+# Settings for GEOS-Chem aerosols
 #============================================================================
-Hg_simulation_options:
+aerosols:
 
-  sources:
-    use_dynamic_ocean_Hg: false
-    use_preindustrial_Hg: false
-    use_arctic_river_Hg: true
+  carbon:
+    activate: true
+    brown_carbon: false
+    enhance_black_carbon_absorption:
+      activate: true
+      hydrophilic: 1.5
+      hydrophobic: 1.0
 
-  chemistry:
-    tie_HgIIaq_reduction_to_UVB: true
+  dust:
+    activate: true
 
-  # NOTE: GTMM is currently, we look to the Hg & POPs community
-  # to take the lead in restoring it. (bmy, 04 Apr 2022)
-  GTMM_soil_model:
-    activate: false
-    restart_file: N/A
+  sea_salt:
+    activate: true
+    SALA_radius_bin_in_um: [0.01, 0.5]
+    SALC_radius_bin_in_um: [0.5,  8.0]
+
+  sulfate:
+    activate: true
+    metal_cat_SO2_oxidation: true
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
@@ -132,8 +140,8 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
-      - Hg0
-
+      - BCPI
+      
   planeflight:
     activate: false
     flight_track_file: Planeflight.dat.YYYYMMDD

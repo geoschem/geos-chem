@@ -1,6 +1,6 @@
- ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "Hg" mechanism.
+### Customized for simulations using the tagged CH4 mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -52,20 +52,9 @@ operations:
   convection:
     activate: true
 
-  dry_deposition:
-    activate: true
-    diag_alt_above_sfc_in_m: 10
-
   pbl_mixing:
      activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
-
-  photolysis:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2022-04-Hg/
-    overhead_O3:
-      use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
-      use_column_O3_from_met: true
-      use_TOMS_SBUV_O3: false
 
   transport:
     gcclassic_tpcore:                 # GEOS-Chem Classic only
@@ -73,54 +62,39 @@ operations:
       fill_negative_values: true      # GEOS-Chem Classic only
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
-      -  Hg0
-      -  HgBr
-      -  HgBrNO2
-      -  HgBrHO2
-      -  HgBrBrO
-      -  HgBrClO
-      -  HgBrOH
-      -  HgBr2
-      -  HgCl
-      -  HgClNO2
-      -  HgClHO2
-      -  HgClClO
-      -  HgClBrO
-      -  HgClBr
-      -  HgClOH
-      -  HgOH
-      -  HgOHNO2
-      -  HgOHHO2
-      -  HgOHClO
-      -  HgOHBrO
-      -  HgOHOH
-      -  HgCl2
-      -  Hg2ClP
-      -  Hg2ORGP
-      -  Hg2STRP
+      - CH4
+      - CH4_OIL
+      - CH4_GAS
+      - CH4_COL
+      - CH4_LIV
+      - CH4_LDF
+      - CH4_WST
+      - CH4_RIC
+      - CH4_OTA
+      - CH4_BBN
+      - CH4_WTL
+      - CH4_SEE
+      - CH4_LAK
+      - CH4_TER
+      - CH4_SAB
 
-  wet_deposition:
+#============================================================================
+# Settings specific to the CH4 simulation / Integrated Methane Inversion
+#============================================================================
+ch4_simulation_options:
+
+  use_observational_operators:
+    AIRS: false
+    GOSAT: false
+    TCCON: false
+
+  analytical_inversion:
     activate: true
-    
-#============================================================================
-# Settings specific to the Hg simulation
-#============================================================================
-Hg_simulation_options:
-
-  sources:
-    use_dynamic_ocean_Hg: false
-    use_preindustrial_Hg: false
-    use_arctic_river_Hg: true
-
-  chemistry:
-    tie_HgIIaq_reduction_to_UVB: true
-
-  # NOTE: GTMM is currently, we look to the Hg & POPs community
-  # to take the lead in restoring it. (bmy, 04 Apr 2022)
-  GTMM_soil_model:
-    activate: false
-    restart_file: N/A
-
+    emission_perturbation: 1.0
+    state_vector_element_number: 0
+    use_emission_scale_factor: false
+    use_OH_scale_factors: false
+      
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
 #============================================================================
@@ -132,7 +106,7 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
-      - Hg0
+      - CH4
 
   planeflight:
     activate: false
