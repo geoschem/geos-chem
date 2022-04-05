@@ -2001,8 +2001,8 @@ PROGRAM GEOS_Chem
 
              IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
 
-             ! Accumulate several diagnostic quantities
-             CALL Diag1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+             !! Accumulate several diagnostic quantities
+             !CALL Diag1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN

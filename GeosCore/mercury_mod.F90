@@ -2656,9 +2656,6 @@ CONTAINS
     USE ErrCode_Mod
     USE TIME_MOD,          ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS
     USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH, GET_MONTH
-#ifdef BPCH_DIAG
-    USE DIAG03_MOD,        ONLY : AD03, ND03
-#endif
     USE State_Chm_Mod,     ONLY : ChmState
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
@@ -2921,18 +2918,6 @@ CONTAINS
              ! debug 2x2.5 diagnostic?
              FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
              FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
-
-#ifdef BPCH_DIAG
-             !--------------------------------------------------------
-             ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
-             !
-             ! Fluxes of Hg0 from air to ocean and ocean to air [kg]
-             !--------------------------------------------------------
-             IF ( ND03 > 0 ) THEN
-                AD03(I,J,16,NN) = AD03(I,J,16,NN) + FUP(I,J,NN) * DTSRCE
-                AD03(I,J,17,NN) = AD03(I,J,17,NN) + FDOWN(I,J,NN) *DTSRCE
-             ENDIF
-#endif
 
              !--------------------------------------------------------
              ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%

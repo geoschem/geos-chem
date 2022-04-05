@@ -671,18 +671,6 @@ CONTAINS
           ! Add all snow Hg to aqueous Hg2 reservoir
           SNOW_Hg2aq(NN) = ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
 
-#ifdef BPCH_DIAG
-          !===========================================================
-          ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
-          !
-          ! Store diagnostic of meltwater delivery to ocean [kg]
-          !===========================================================
-          IF ( ND03 > 0 ) THEN
-             AD03(I,J,19,1) = AD03(I,J,19,1) + &
-                             ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
-          ENDIF
-#endif
-
           !===========================================================
           ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
           !
@@ -1722,18 +1710,6 @@ CONTAINS
              IF ( (LArcticRiv) .AND. (Y >= 70) ) THEN
                 Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG * &
                                 A_M2 * DTSRCE * FRAC_O
-
-#ifdef BPCH_DIAG
-                !-----------------------------------------------------
-                ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
-                !
-                ! Flux of Hg(II) from rivers to ocean in Arctic [kg/s]
-                ! NOTE: RIVER_HG is kg/m2/s, convert to kg/s
-                !-----------------------------------------------------
-                IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) ) &
-                     AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG * &
-                                     A_M2 * DTSRCE * FRAC_O
-#endif
 
                 !-----------------------------------------------------
                 ! %%%%% HISTORY DIAGNOSTIC %%%%%

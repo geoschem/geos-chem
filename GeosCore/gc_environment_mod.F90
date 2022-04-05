@@ -777,11 +777,6 @@ CONTAINS
     ! Allocate and initialize variables
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
-    ! Initialize the Hg diagnostics (bpch)
-    IF ( .not. Input_Opt%DryRun ) THEN
-       CALL Init_Diag03( State_Chm, State_Grid )
-    ENDIF
-
     ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) THEN
        CALL Init_Diag51 ( Input_Opt, State_Grid, RC )
