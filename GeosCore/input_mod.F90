@@ -834,7 +834,7 @@ CONTAINS
     USE CharPak_Mod,    ONLY : StrSplit
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE RoundOff_Mod,   ONLY : RoundOff
+    USE RoundOff_Mod,   ONLY : Cast_and_RoundOff
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -913,8 +913,8 @@ CONTAINS
     ENDIF
 
     ! Save the delta X and Y values
-    READ( SubStrs(1), '(f10.4)' ) State_Grid%DY
-    READ( SubStrs(2), '(f10.4)' ) State_Grid%DX
+    State_Grid%DY = Cast_and_RoundOff( subStrs(1), places=4 )
+    State_Grid%DX = Cast_and_RoundOff( subStrs(2), places=4 )
 
     !------------------------------------------------------------------------
     ! Level range
@@ -940,10 +940,8 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( a_str(1), * ) State_Grid%XMin
-    READ( a_str(2), * ) State_Grid%XMax
-    State_Grid%XMin = Roundoff( State_Grid%XMin, 4 )
-    State_Grid%XMax = Roundoff( State_Grid%XMax, 4 )
+    State_Grid%XMin = Cast_and_RoundOff( a_str(1), places=4 )
+    State_Grid%XMax = Cast_and_RoundOff( a_str(2), places=4 )
 
     ! Make sure values are in valid rangre
     IF ( State_Grid%XMin >= State_Grid%XMax ) THEN
@@ -979,10 +977,8 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( a_str(1), * ) State_Grid%YMin
-    READ( a_str(2), * ) State_Grid%YMax
-    State_Grid%YMin = Roundoff( State_Grid%YMin, 4 )
-    State_Grid%YMax = Roundoff( State_Grid%YMax, 4 )
+    State_Grid%YMin = Cast_and_RoundOff( a_str(1), places=4 )
+    State_Grid%YMax = Cast_and_RoundOff( a_str(2), places=4 )
 
     ! Make sure values are in valid range
     IF ( State_Grid%YMin >= State_Grid%YMax ) THEN
@@ -1047,7 +1043,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Nested grid transport offsets
     !------------------------------------------------------------------------
-    key   = "grid%nested_grid_simulations%buffer_zone_NSEW"
+    key   = "grid%nested_grid_simulation%buffer_zone_NSEW"
     a_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
