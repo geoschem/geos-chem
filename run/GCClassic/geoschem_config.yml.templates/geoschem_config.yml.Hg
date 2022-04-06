@@ -1,4 +1,4 @@
- ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
 ### Customized for simulations using the KPP "Hg" mechanism.
 ###
