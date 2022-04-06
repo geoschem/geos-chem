@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -247,53 +246,64 @@ CONTAINS
     !========================================================================
 
     ! CH4 simulation settings
-    CALL Config_CH4( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_CH4"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
+    IF ( Input_Opt%Its_A_CH4_Sim ) THEN
+       CALL Config_CH4( Config, Input_Opt, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error in "Config_CH4"!'
+          CALL GC_Error( errMsg, RC, thisLoc  )
+          CALL QFYAML_CleanUp( Config         )
+          CALL QFYAML_CleanUp( ConfigAnchored )
+          RETURN
+       ENDIF
     ENDIF
 
     ! CO simulation settings
-    CALL Config_CO( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_CO"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
+    IF ( Input_Opt%Its_A_TagCO_Sim ) THEN
+       CALL Config_CO( Config, Input_Opt, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error in "Config_CO"!'
+          CALL GC_Error( errMsg, RC, thisLoc  )
+          CALL QFYAML_CleanUp( Config         )
+          CALL QFYAML_CleanUp( ConfigAnchored )
+          RETURN
+       ENDIF
     ENDIF
 
+
     ! CO2 simulation settings
-    CALL Config_CO2( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_CO2"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
+    IF ( Input_Opt%Its_A_CO2_Sim ) THEN
+       CALL Config_CO2( Config, Input_Opt, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error in "Config_CO2"!'
+          CALL GC_Error( errMsg, RC, thisLoc  )
+          CALL QFYAML_CleanUp( Config         )
+          CALL QFYAML_CleanUp( ConfigAnchored )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Hg simulation settings
-    CALL Config_Hg( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Hg"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
+    IF ( Input_Opt%Its_A_Mercury_Sim ) THEN
+       CALL Config_Hg( Config, Input_Opt, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error in "Config_Hg"!'
+          CALL GC_Error( errMsg, RC, thisLoc  )
+          CALL QFYAML_CleanUp( Config         )
+          CALL QFYAML_CleanUp( ConfigAnchored )
+          RETURN
+       ENDIF
     ENDIF
 
     ! POPs simulation settings
-    CALL Config_POPs( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_POPs"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
+    IF ( Input_Opt%Its_A_POPs_Sim ) THEN
+       CALL Config_POPs( Config, Input_Opt, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error in "Config_POPs"!'
+          CALL GC_Error( errMsg, RC, thisLoc  )
+          CALL QFYAML_CleanUp( Config         )
+          CALL QFYAML_CleanUp( ConfigAnchored )
+          RETURN
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -4109,9 +4119,9 @@ CONTAINS
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
-    ! String arrays 
+    ! String arrays
     CHARACTER(LEN=QFYAML_StrLen) :: a_str(QFYAML_MaxArr)
-   
+
 
     !========================================================================
     ! Config_ND51 begins here!
@@ -4164,7 +4174,7 @@ CONTAINS
        Input_Opt%ND51_TRACERS(N) = a_int(N)
     ENDDO
     Input_Opt%N_ND51 = N - 1
-    
+
     !------------------------------------------------------------------------
     ! NHMS_WRITE
     !------------------------------------------------------------------------
@@ -4372,7 +4382,7 @@ CONTAINS
        Input_Opt%ND51b_TRACERS(N) = a_int(N)
     ENDDO
     Input_Opt%N_ND51b = N - 1
-    
+
     !------------------------------------------------------------------------
     ! NHMS_WRITE
     !------------------------------------------------------------------------
@@ -4475,7 +4485,7 @@ CONTAINS
 120 FORMAT( A, 100I4 )
 130 FORMAT( A, 2I5   )
 140 FORMAT( A, 2F5.1 )
-    
+
   END SUBROUTINE Config_Nd51b
 #endif
 #endif
@@ -5099,6 +5109,8 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
+
+    ! Continue initializing
     errMsg  = ''
     thisLoc = ' -> at Config_POPs (in module GeosCore/input_mod.F90)'
 
@@ -5139,7 +5151,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_XMW
+    Input_Opt%POP_XMW = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! KOA
@@ -5152,7 +5164,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_KOA
+    Input_Opt%POP_KOA = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! KBC
@@ -5165,7 +5177,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_KBC
+    Input_Opt%POP_KBC = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! OH oxidation
@@ -5178,7 +5190,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_K_POPG_OH
+    Input_Opt%POP_K_POPG_OH = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! O3 oxidation 1
@@ -5191,7 +5203,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_K_POPP_O3A
+    Input_Opt%POP_K_POPP_O3A = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! O3 oxidation 2
@@ -5204,7 +5216,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_K_POPP_O3B
+    Input_Opt%POP_K_POPP_O3B = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! H*
@@ -5217,7 +5229,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_HSTAR
+    Input_Opt%POP_HSTAR = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! DEL_H
@@ -5230,7 +5242,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_DEL_H
+    Input_Opt%POP_DEL_H = Cast_and_RoundOff( v_str, places=0 )
 
     !------------------------------------------------------------------------
     ! DEL_Hw
@@ -5243,7 +5255,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    READ( v_str, * ) Input_Opt%POP_DEL_Hw
+    Input_Opt%POP_DEL_Hw = Cast_and_RoundOff( v_str, places=0 )
 
     !=================================================================
     ! Print to screen
