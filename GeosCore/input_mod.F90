@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2772,11 +2773,6 @@ CONTAINS
     ENDIF
 #endif
 
-    ! Initialize overhead O3 flags
-    Input_Opt%USE_ONLINE_O3   = .FALSE.
-    Input_Opt%USE_O3_FROM_MET = .FALSE.
-    Input_Opt%USE_TOMS_O3     = .FALSE.
-
     ! FAST-JX is only used for fullchem and mercury
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.                                 &
          Input_Opt%ITS_AN_AEROSOL_SIM   .or.                                 &
@@ -2807,6 +2803,14 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
+
+    ELSE
+
+       ! If not a simulation that uses photolysis, set options to FALSE
+       Input_Opt%USE_ONLINE_O3   = .FALSE.
+       Input_Opt%USE_O3_FROM_MET = .FALSE.
+       Input_Opt%USE_TOMS_O3     = .FALSE.
+
     ENDIF
 
     ! Turn off switches for simulations that don't use aerosols
