@@ -2435,7 +2435,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Read_Radiation_Menu (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_RRTMG (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Turn on RRTMG?
@@ -2528,9 +2528,8 @@ CONTAINS
     !========================================================================
     ! Error check settings
     !========================================================================
-
+#ifndef RRTMG
     ! Use of RRTMG necessitates recompilation
-#if !defined( RRTMG )
     IF ( Input_Opt%LRAD ) THEN
        errMsg = 'LRAD=T but RRTMG is not defined at compile time!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2539,24 +2538,30 @@ CONTAINS
 #endif
 
     ! Make sure radiation switches are turned off if RRTMG is off
-    IF ( ( .not. Input_Opt%LRAD ) .and. Input_Opt%LLWRAD ) THEN
-       errMsg = 'Cannot have LW fluxes turned on without RRTMG'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    IF ( ( .not. Input_Opt%LRAD ) .and. Input_Opt%LSWRAD ) THEN
-       errMsg = 'Cannot have SW fluxes turned on without RRTMG'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    IF ( ( .not. Input_Opt%LRAD ) .and. Input_Opt%LSKYRAD(1) ) THEN
-       errMsg = 'Cannot have clear-sky flux turned on without RRTMG'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    IF ( ( .not. Input_Opt%LRAD ) .and. Input_Opt%LSKYRAD(2) ) THEN
-       errMsg = 'Cannot have all-sky flux turned on without RRTMG'
-       CALL GC_Error( errMsg, RC, thisLoc )
+    IF ( .not. Input_Opt%LRAD ) THEN
+
+       IF ( Input_Opt%LLWRAD ) THEN
+          errMsg = 'Cannot have LW fluxes turned on without RRTMG!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( Input_Opt%LSWRAD ) THEN
+          errMsg = 'Cannot have SW fluxes turned on without RRTMG!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( Input_Opt%LSKYRAD(1) ) THEN
+          errMsg = 'Cannot have clear-sky flux turned on without RRTMG!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( Input_Opt%LSKYRAD(2) ) THEN
+          errMsg = 'Cannot have all-sky flux turned on without RRTMG!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -2569,23 +2574,20 @@ CONTAINS
           WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ',              &
                                Input_Opt%WVSELECT(N)
        ENDDO
-       WRITE( 6, 100 ) 'Turn on radiation?          : ',Input_Opt%LRAD
-       WRITE( 6, 100 ) 'Consider LW                 : ',Input_Opt%LLWRAD
-       WRITE( 6, 100 ) 'Consider SW                 : ',Input_Opt%LSWRAD
-       WRITE( 6, 125 ) 'Clear-sky/All-sky           : ',Input_Opt%LSKYRAD(1),&
-                                                        '/',                 &
-                                                        Input_Opt%LSKYRAD(2)
+       WRITE( 6, 100 ) 'Turn on radiation?          : ', Input_Opt%LRAD
+       WRITE( 6, 100 ) 'Consider longwave?          : ', Input_Opt%LLWRAD
+       WRITE( 6, 100 ) 'Consider shortwave?         : ', Input_Opt%LSWRAD
+       WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
+       WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
     ENDIF
 
     ! FORMAT statements
-90  FORMAT( /, A            )
-95  FORMAT( A               )
-100 FORMAT( A, L5           )
-110 FORMAT( A, I5           )
-115 FORMAT( A, F7.1         )
-120 FORMAT( A, 11I1         )
-125 FORMAT( A, L5, A, L5    )
-130 FORMAT( A, 12( A2, 1x ) )
+90  FORMAT( /, A    )
+95  FORMAT( A       )
+100 FORMAT( A, L5   )
+110 FORMAT( A, I5   )
+115 FORMAT( A, F7.1 )
+120 FORMAT( A, 11I1 )
 
   END SUBROUTINE Config_RRTMG
 !EOC

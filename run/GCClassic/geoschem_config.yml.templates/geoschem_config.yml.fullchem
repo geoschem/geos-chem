@@ -86,7 +86,7 @@ operations:
       percent_channel_B_NO2: 33.333
 
   rrtmg_rad_transfer_model:
-    activate: false
+    activate: ${RUNDIR_USE_RRTMG}
     aod_wavelengths_in_nm:
       - 550
     longwave_fluxes: ${RUNDIR_RRTMG_OPTS}
