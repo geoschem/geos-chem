@@ -123,7 +123,7 @@ Warnings:                    1
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 
@@ -259,49 +259,49 @@ Warnings:                    1
 )))EDGAR_COMB_B
 
 (((EDGAR_GLASS
-0 EDGAR_GLASS_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_GLASS_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_GLASS_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_GLASS_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_GLASS_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_GLASS_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_GLASS
 
 (((EDGAR_GOLDA
-0 EDGAR_GOLDA_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_A_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0 - 1 1
+0 EDGAR_GOLDA_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_A_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0 - 1 1
 )))EDGAR_GOLDA
 
 (((EDGAR_GOLDB
-0 EDGAR_GOLDB_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_GOLDB_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_GOLDB_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_GOLDB_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_GOLDB_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_GOLDB_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_GOLDB
 
 (((EDGAR_IRO
-0 EDGAR_IRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_IRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_IRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_IRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_IRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_IRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_IRO
 
 (((EDGAR_NFEOTH
-0 EDGAR_NFEOTH_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_NFEOTH_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_NFEOTH_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_NFEOTH_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_NFEOTH_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_NFEOTH_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_NFEOTH
 
 (((EDGAR_SHIP
-0 EDGAR_SHIP_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_SHIP_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_SHIP_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_SHIP_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_SHIP_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_SHIP_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_SHIP
 
 (((EDGAR_TRO
-0 EDGAR_TRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_TRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_TRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_TRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_TRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_TRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_TRO
 
 (((EDGAR_WASTE
-0 EDGAR_WASTE_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
-0 EDGAR_WASTE_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
-0 EDGAR_WASTE_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+0 EDGAR_WASTE_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_WASTE_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_WASTE_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
 )))EDGAR_WASTE
 
 #==============================================================================
@@ -481,21 +481,79 @@ Warnings:                    1
 # --- Oxidant fields ---
 #==============================================================================
 (((OXIDANT_FIELDS
-${RUNDIR_GLOBAL_Cl}
-${RUNDIR_GLOBAL_ClO}
-${RUNDIR_GLOBAL_CH4}
-${RUNDIR_GLOBAL_CO}
-${RUNDIR_GLOBAL_HNO3}
-${RUNDIR_GLOBAL_HO2}
-${RUNDIR_GLOBAL_HOCl}
-${RUNDIR_GLOBAL_NIT}
-${RUNDIR_GLOBAL_NO}
-${RUNDIR_GLOBAL_NO2}
-${RUNDIR_GLOBAL_O3}
-${RUNDIR_GLOBAL_OH}
-${RUNDIR_GLOBAL_OA}
-${RUNDIR_GLOBAL_PM25}
-* GLOBAL_OCEAN $ROOT/MERCURY/v2018-04/ocean_fixed.nc ocean_conc 2007/1-12/1/0 C xyz 1 * - 1 1
+
+# --- 2016 oxidant fields [molec/cm3] ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_Br}
+${RUNDIR_Hg_GLOBAL_BrO}
+${RUNDIR_Hg_GLOBAL_CH4}
+${RUNDIR_Hg_GLOBAL_Cl}
+${RUNDIR_Hg_GLOBAL_ClO}
+${RUNDIR_Hg_GLOBAL_CO}
+${RUNDIR_Hg_GLOBAL_HO2}
+${RUNDIR_Hg_GLOBAL_NO}
+${RUNDIR_Hg_GLOBAL_NO2}
+${RUNDIR_Hg_GLOBAL_O3}
+${RUNDIR_Hg_GLOBAL_OH}
+
+# --- 2016 aerosol optical depths [unitless] ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_AOD_BC}     
+${RUNDIR_Hg_GLOBAL_AOD_BGSULF} 
+${RUNDIR_Hg_GLOBAL_AOD_DST1}   
+${RUNDIR_Hg_GLOBAL_AOD_DST2}   
+${RUNDIR_Hg_GLOBAL_AOD_DST3}   
+${RUNDIR_Hg_GLOBAL_AOD_DST4}   
+${RUNDIR_Hg_GLOBAL_AOD_DST5}   
+${RUNDIR_Hg_GLOBAL_AOD_DST6}   
+${RUNDIR_Hg_GLOBAL_AOD_DST7}  
+${RUNDIR_Hg_GLOBAL_AOD_ICEI}   
+${RUNDIR_Hg_GLOBAL_AOD_OC}     
+${RUNDIR_Hg_GLOBAL_AOD_SO4}
+${RUNDIR_Hg_GLOBAL_AOD_SSA}    
+${RUNDIR_Hg_GLOBAL_AOD_SSC}    
+
+# --- 2016 aerosol areas [cm2/cm3] ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_AREA_BC}     
+${RUNDIR_Hg_GLOBAL_AREA_BGSULF} 
+${RUNDIR_Hg_GLOBAL_AREA_DST1}   
+${RUNDIR_Hg_GLOBAL_AREA_DST2}   
+${RUNDIR_Hg_GLOBAL_AREA_DST3}   
+${RUNDIR_Hg_GLOBAL_AREA_DST4}   
+${RUNDIR_Hg_GLOBAL_AREA_DST5}   
+${RUNDIR_Hg_GLOBAL_AREA_DST6}   
+${RUNDIR_Hg_GLOBAL_AREA_DST7}  
+${RUNDIR_Hg_GLOBAL_AREA_ICEI}   
+${RUNDIR_Hg_GLOBAL_AREA_OC}     
+${RUNDIR_Hg_GLOBAL_AREA_SO4}
+${RUNDIR_Hg_GLOBAL_AREA_SSA}    
+${RUNDIR_Hg_GLOBAL_AREA_SSC}   
+
+# --- 2016 aerosol radii [cm] ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_RADI_BC}     
+${RUNDIR_Hg_GLOBAL_RADI_BGSULF} 
+${RUNDIR_Hg_GLOBAL_RADI_DST1}   
+${RUNDIR_Hg_GLOBAL_RADI_DST2}   
+${RUNDIR_Hg_GLOBAL_RADI_DST3}   
+${RUNDIR_Hg_GLOBAL_RADI_DST4}   
+${RUNDIR_Hg_GLOBAL_RADI_DST5}   
+${RUNDIR_Hg_GLOBAL_RADI_DST6}   
+${RUNDIR_Hg_GLOBAL_RADI_DST7}  
+${RUNDIR_Hg_GLOBAL_RADI_ICEI}   
+${RUNDIR_Hg_GLOBAL_RADI_OC}     
+${RUNDIR_Hg_GLOBAL_RADI_SO4}
+${RUNDIR_Hg_GLOBAL_RADI_SSA}    
+${RUNDIR_Hg_GLOBAL_RADI_SSC}
+
+# --- Other fields ---
+# fOA and RH (2016) and ocean_conc (2007) are unitless; PM25 (2016) is in [ug/m3]
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_fOA}
+${RUNDIR_Hg_GLOBAL_OCEAN}
+${RUNDIR_Hg_GLOBAL_PM25}
+${RUNDIR_Hg_GLOBAL_RH}
 )))OXIDANT_FIELDS
 
 #==============================================================================
