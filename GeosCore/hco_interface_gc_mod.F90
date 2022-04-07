@@ -3031,13 +3031,13 @@ CONTAINS
           ELSE
              IF ( ExtState%JNO2%DoUse ) THEN
                 ! RXN_NO2: NO2 + hv --> NO  + O
-!                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
-                JNO2(I,J) = State_Chm%JNO2(I,J)
+                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
+!ewl                JNO2(I,J) = State_Chm%JNO2(I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
                 ! RXN_O3_1: O3  + hv --> O2  + O
-!                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-                JOH(I,J) = State_Chm%JOH(I,J)
+                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
+!ewl                JOH(I,J) = State_Chm%JOH(I,J)
              ENDIF
           ENDIF
 
