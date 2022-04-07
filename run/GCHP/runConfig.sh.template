@@ -135,14 +135,14 @@ Checkpoint_Ref_Time=START
 #------------------------------------------------------------
 # WARNING: these settings will override manual updates you make to config files!
 #
-# input.geos:
-Turn_on_Chemistry=T
-Turn_on_Dry_Deposition=T
-Turn_on_Wet_Deposition=T
-Turn_on_Transport=T
-Turn_on_Cloud_Conv=T
-Turn_on_PBL_Mixing=T
-Turn_on_Non_Local_Mixing=T
+# geoschem_config.yml
+Turn_on_Chemistry=true      
+Turn_on_Transport=true      
+Turn_on_Cloud_Conv=true       
+Turn_on_PBL_Mixing=true      
+Turn_on_Non_Local_Mixing=true 
+Turn_on_Dry_Deposition=true   
+Turn_on_Wet_Deposition=true  
 #
 # HEMCO_Config.rc:
 Turn_on_Base_Emissions=true
@@ -211,7 +211,7 @@ inst_collections=(ConcAboveSfc      \
 #-----------------------------------------------------
 # Run-time debug options in config files are no longer set from this file.
 # Do the following manually instead to enable debug prints:
-#   (1) GEOS-Chem core: Set "Turn on debug printout?" to T in input.geos
+#   (1) GEOS-Chem core: Set "Turn on debug printout?" to T in geoschem_config.yml
 #   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
 #   (3) MAPL ExtData (handles GCHP inputs):
 #         - For root thread prints: 
@@ -241,7 +241,7 @@ fi
 #------------------------------------------------
 #    Timesteps
 #------------------------------------------------
-# WARNING: these settings will override settings in input.geos!
+# WARNING: these settings will override settings in geoschem_config.yml!
 if [[ $CS_RES_EFFECTIVE -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
@@ -627,7 +627,7 @@ replace_val GCHPchem_INTERNAL_RESTART_FILE "+${INITIAL_RESTART}" GCHP.rc
 ### adjoint model phase
 replace_val MODEL_PHASE "FORWARD" GCHP.rc
 
-#### Set simulation start and end datetimes based on input.geos
+#### Set simulation start and end datetimes based on geoschem_config.yml
 print_msg " "
 print_msg "Simulation start, end, duration:"
 print_msg "--------------------------------"
@@ -636,18 +636,18 @@ replace_val END_DATE  "${End_Time}"   CAP.rc
 replace_val JOB_SGMT  "${Duration}"   CAP.rc
 replace_val REVERSE_TIME "0"          CAP.rc
 
-##### Set commonly changed settings in input.geos
+##### Set commonly changed settings in geoschem_config.yml
 print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
-replace_val "Turn on Chemistry?"        ${Turn_on_Chemistry}        input.geos
-replace_val "Turn on Transport"	        ${Turn_on_Transport}        input.geos
-replace_val "Turn on Cloud Conv?"	${Turn_on_Cloud_Conv}       input.geos
-replace_val "Turn on PBL Mixing?"	${Turn_on_PBL_Mixing}       input.geos
-replace_val " => Use non-local PBL?"	${Turn_on_Non_Local_Mixing} input.geos
-replace_val "Turn on Dry Deposition?"   ${Turn_on_Dry_Deposition}   input.geos
-replace_val "Turn on Wet Deposition?"   ${Turn_on_Wet_Deposition}   input.geos
-replace_val AdvCore_Advection           ${ADVCORE_ADVECTION}        GCHP.rc
+replace_val "${RUNDIR_ACTIVATE_CHEMISTRY}"     ${Turn_on_Chemistry}        geoschem_config.yml
+replace_val "${RUNDIR_ACTIVATE_TRANSPORT}"     ${Turn_on_Transport}        geoschem_config.yml
+replace_val "${RUNDIR_ACTIVATE_CLOUD_CONV}"    ${Turn_on_Cloud_Conv}       geoschem_config.yml
+replace_val "${RUNDIR_ACTIVATE_PBL_MIXING}"    ${Turn_on_PBL_Mixing}       geoschem_config.yml
+replace_val "${RUNDIR_ACTIVATE_NON_LOCAL_PBL}" ${Turn_on_Non_Local_Mixing} geoschem_config.yml
+replace_val "${RUNDIR_ACTIVATE_DRY_DEP}"       ${Turn_on_Dry_Deposition}   geoschem_config.yml
+replace_val "${RUNDIR_ACTIVATE_WET_DEP}"       ${Turn_on_Wet_Deposition}   geoschem_config.yml
+replace_val AdvCore_Advection                  ${ADVCORE_ADVECTION}        GCHP.rc
 
 #### Set options in HEMCO_Config.rc
 print_msg ""
@@ -664,9 +664,9 @@ fi
 print_msg " "
 print_msg "Timesteps:"
 print_msg "----------"
-replace_val "Tran\/conv timestep \[sec\]"  ${TransConv_Timestep_sec} input.geos
-replace_val "Chem\/emis timestep \[sec\]"  ${ChemEmiss_Timestep_sec} input.geos
-replace_val "Radiation Timestep \[sec\]"   ${RRTMG_Timestep_sec}     input.geos
+replace_val "Tran\/conv timestep \[sec\]"  ${TransConv_Timestep_sec} geoschem_config.yml
+replace_val "Chem\/emis timestep \[sec\]"  ${ChemEmiss_Timestep_sec} geoschem_config.yml
+replace_val "Radiation Timestep \[sec\]"   ${RRTMG_Timestep_sec}     geoschem_config.yml
 replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  GCHP.rc
 replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
 replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc

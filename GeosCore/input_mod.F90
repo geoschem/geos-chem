@@ -1360,7 +1360,20 @@ CONTAINS
     thisLoc = ' -> at Config_Transport (in GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Turn on transport?
+    ! Turn on transport? (GCHP)?
+    !------------------------------------------------------------------------
+    key    = "operations%transport%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LTRAN = v_bool
+
+    !------------------------------------------------------------------------
+    ! Turn on transport? (GCClassic)
     !------------------------------------------------------------------------
     key    = "operations%transport%gcclassic_tpcore%activate"
     v_bool = MISSING_BOOL

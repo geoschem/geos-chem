@@ -534,8 +534,8 @@ printf "\n  -- The default frequency and duration of diagnostics is set to month
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
 
 # Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP. This script mainly now adds species to input.geos
-# and modifies diagnostic output based on simulation type.
+# GEOS-Chem Classic and GCHP. This script mainly now adds species to 
+# geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
@@ -584,7 +584,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
+	git add *.rc *.sh *.yml *.run *.py geoschem_config.yml input.nml
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
