@@ -170,6 +170,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	fi
     done
 
+
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
@@ -181,45 +182,45 @@ RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
 if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='true'\n"
     if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
-	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='true'\n"
     else
-	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
     fi
 else
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
-    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='false'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "aciduptake" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='true'\n"
 else
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='true'\n"
 else
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='true'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
 else
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='false'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
 fi
 
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true'\n"
 fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
@@ -472,9 +473,9 @@ fi
 
 # Turn on GEOS-Chem timers for benchmark simulations
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='true'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
@@ -584,7 +585,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run *.py geoschem_config.yml input.nml
+	git add *.rc *.sh *.yml input.nml
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}

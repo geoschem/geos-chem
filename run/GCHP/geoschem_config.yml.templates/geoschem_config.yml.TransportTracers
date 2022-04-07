@@ -26,20 +26,20 @@ timesteps:
 operations:
 
   chemistry:
-    activate: ${RUNDIR_ACTIVATE_CHEMISTRY}
+    activate: true
 
   convection:
-    activate: ${RUNDIR_ACTIVATE_CLOUD_CONV}
+    activate: true
 
   dry_deposition:
-    activate: ${RUNDIR_ACTIVATE_DRY_DEP}
+    activate: true
 
   pbl_mixing:
-     activate: ${RUNDIR_ACTIVATE_PBL_MIXING}
-     use_non_local_pbl: ${RUNDIR_USE_NON_LOCAL_PBL}
+     activate: true
+     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   transport:
-    activate: ${RUNDIR_ACTIVATE_TRANSPORT}
+    activate: true
     transported_species:
       -  Rn222
       -  Pb210
@@ -106,4 +106,4 @@ operations:
         default_bkg_conc_in_vv: 1.0e-20
 
   wet_deposition:
-    activate: ${RUNDIR_ACTIVATE_WET_DEP}
+    activate: true

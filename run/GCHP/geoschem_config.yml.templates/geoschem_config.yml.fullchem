@@ -27,7 +27,7 @@ timesteps:
 operations:
 
   chemistry:
-    activate: ${RUNDIR_ACTIVATE_CHEMISTRY}
+    activate: true
     linear_chemistry_aloft:
       activate: true
       use_linoz_for_O3: true
@@ -37,10 +37,10 @@ operations:
     gamma_HO2: 0.2
 
   convection:
-    activate: ${RUNDIR_ACTIVATE_CLOUD_CONV}
+    activate: true
 
   dry_deposition:
-    activate: ${RUNDIR_ACTIVATE_DRY_DEP}
+    activate: true
     CO2_effect:
       activate: false
       CO2_level: 600.0
@@ -48,7 +48,7 @@ operations:
     diag_alt_above_sfc_in_m: 10
 
   pbl_mixing:
-     activate: ${RUNDIR_ACTIVATE_PBL_MIXING}
+     activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   photolysis:
@@ -65,7 +65,7 @@ operations:
       percent_channel_B_NO2: 33.333
 
   rrtmg_rad_transfer_model:
-    activate: false
+    activate: ${RUNDIR_USE_RRTMG}
     aod_wavelengths_in_nm:
       - 550
     longwave_fluxes: ${RUNDIR_RRTMG_OPTS}
@@ -74,7 +74,7 @@ operations:
     all_sky_flux: ${RUNDIR_RRTMG_OPTS}
 
   transport:
-    activate: ${RUNDIR_ACTIVATE_TRANSPORT}
+    activate: true
     transported_species:
       - ACET
       - ACTA
@@ -298,7 +298,7 @@ operations:
       - XYLE
 
   wet_deposition:
-    activate: ${RUNDIR_ACTIVATE_WET_DEP}
+    activate: true
 
 #============================================================================
 # Settings for GEOS-Chem aerosols
