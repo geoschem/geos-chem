@@ -366,6 +366,17 @@ CONTAINS
        CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
+
+    ! GAMAP metadata files
+    ! (Skip if we are connecting to an external model)
+    CALL Config_Bpch_Output( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_Gamap"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
 #endif
 
 #endif
@@ -375,13 +386,6 @@ CONTAINS
 !       ! Skip BPCH-related menus unless compiled with BPCH_DIAG=y
 !       ! Always skip BPCH-related menus for external ESMs
 !       !=====================================================================
-!       ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-!          CALL READ_OUTPUT_MENU( Input_Opt, RC )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_Output_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
 !
 !       ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
 !          CALL READ_DIAGNOSTIC_MENU( Input_Opt, RC )
@@ -3271,102 +3275,145 @@ CONTAINS
 
   END SUBROUTINE Config_Gamap
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_output_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_OUTPUT\_MENU reads the OUTPUT MENU section of
-!!  the GEOS-Chem input file.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_OUTPUT_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod,  ONLY : OptInput
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!!
-!! !REVISION HISTORY:
-!!  20 Jul 2004 - R. Yantosca - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: IOS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg, thisLoc
+! !IROUTINE: read_output_menu
 !
-!    !=================================================================
-!    ! READ_OUTPUT_MENU begins here!
-!    !=================================================================
+! !DESCRIPTION: Subroutine READ\_OUTPUT\_MENU reads the OUTPUT MENU section of
+!  the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
 !
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_Output_Menu (in module GeosCore/input_mod.F90)'
+  SUBROUTINE Config_Bpch_Output( Config, Input_Opt, RC )
 !
-!    ! Read info
-!    READ( IU_GEOS, 100, IOSTAT=IOS ) Input_Opt%NJDAY
-!100 FORMAT( 26x, 31i1, /  26x, 29i1, /, 26x, 31i1, /, 26x, 30i1, /, &
-!            26x, 31i1, /, 26x, 30i1, /, 26x, 31i1, /, 26x, 31i1, /, &
-!            26x, 30i1, /  26x, 31i1, /, 26x, 30i1, /, 26x, 31i1 )
+! !USES:
 !
-!    ! Trap potential errors
-!    IF ( IOS /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE QFYAML_Mod,     ONLY : QFYAML_t
 !
-!    !=================================================================
-!    ! Print to screen
-!    !=================================================================
-!    IF( Input_Opt%amIRoot ) THEN
-!       WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
-!       WRITE( 6, '(  a)' ) '-----------'
-!       WRITE( 6, 110     )
-!       WRITE( 6, 120     )
-!       WRITE( 6, 130     )
-!       WRITE( 6, 140     ) Input_Opt%NJDAY
-!    ENDIF
+! !INPUT/OUTPUT PARAMETERS:
 !
-!    ! FORMAT statements
-!110 FORMAT( '              1111111111222222222233' )
-!120 FORMAT( '     1234567890123456789012345678901' )
-!130 FORMAT( '     -------------------------------' )
-!140 FORMAT( 'JAN--', 31i1, /, 'FEB--', 29i1, /, 'MAR--', 31i1, /, &
-!            'APR--', 30i1, /, 'MAY--', 31i1, /, 'JUN--', 30i1, /, &
-!            'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /, &
-!            'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
+    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
 !
-!    ! Make sure we have output at end of run
-!    CALL IS_LAST_DAY_GOOD( Input_Opt, RC )
+! !OUTPUT PARAMETERS:
 !
-!    ! Trap potential errors
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-!  END SUBROUTINE READ_OUTPUT_MENU
-!!EOC
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                      :: N
+    INTEGER                      :: v_int
+
+    ! Strings
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
+
+    ! String arrays
+    CHARACTER(LEN=3)             :: mon(12)=  (/'JAN', 'FEB', 'MAR', 'APR',  &
+                                                'MAY', 'JUN', 'JUL', 'AUG',  &
+                                                'SEP', 'OCT', 'NOV', 'DEC'/) 
+
+    !========================================================================
+    ! Config_Bpch_Output begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Read_Output_Menu (in module GeosCore/input_mod.F90)'
+
+    !========================================================================
+    ! Read data into the Input_Opt%NJDAY array
+    !========================================================================
+    DO N = 1, 12
+
+       key = "extra_diagnostics%legacy_bpch%output_menu%" // &
+             "schedule_output_for_"                       // mon(N) 
+       v_str = MISSING_STR
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       
+       ! Parse string into NJDAY array by month
+       SELECT CASE( N )
+          CASE( 1 )
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(1:31)
+          CASE( 2  )
+             READ( v_str, '(29i1)' ) Input_Opt%NJDAY(32:60)
+          CASE( 3 ) 
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(61:91)
+          CASE( 4  )
+             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(92:121)
+          CASE( 5  )
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(122:152)
+          CASE( 6  )
+             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(153:182)
+          CASE( 7  )
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(183:213)
+          CASE( 8  )
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(214:244)
+          CASE( 9  ) 
+             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(245:274)
+          CASE( 10 )
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(275:305)
+          CASE( 11 )
+             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(306:335)
+          CASE( 12 )
+             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(336:366)
+       END SELECT
+    ENDDO
+
+    !=================================================================
+    ! Print to screen
+    !=================================================================
+    IF( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
+       WRITE( 6, '(  a)' ) '-----------'
+       WRITE( 6, 110     )
+       WRITE( 6, 120     )
+       WRITE( 6, 130     )
+       WRITE( 6, 140     ) Input_Opt%NJDAY
+    ENDIF
+
+    ! FORMAT statements
+110 FORMAT( '              1111111111222222222233' )
+120 FORMAT( '     1234567890123456789012345678901' )
+130 FORMAT( '     -------------------------------' )
+140 FORMAT( 'JAN--', 31i1, /, 'FEB--', 29i1, /, 'MAR--', 31i1, /, &
+            'APR--', 30i1, /, 'MAY--', 31i1, /, 'JUN--', 30i1, /, &
+            'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /, &
+            'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
+
+    ! Make sure we have output at end of run
+    CALL IS_LAST_DAY_GOOD( Input_Opt, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Config_Bpch_Output
+!EOC
 !!------------------------------------------------------------------------------
 !!                  GEOS-Chem Global Chemical Transport Model                  !
 !!------------------------------------------------------------------------------
@@ -3452,20 +3499,6 @@ CONTAINS
 !       CALL GC_Error( errMsg, RC, thisLoc )
 !       RETURN
 !    ENDIF
-!
-!    !--------------------------
-!    ! ND06: Dust emissions
-!    !--------------------------
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND06', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!#ifdef TOMAS
-!    READ( SUBSTRS(1), * ) ND06
-!    IF ( .not. Input_Opt%LDUST ) ND06 = 0
-!    CALL SET_TINDEX( Input_Opt, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN)
-!#endif
 !
 !    !--------------------------
 !    ! ND44 drydep vel & flux

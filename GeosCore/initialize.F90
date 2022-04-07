@@ -23,7 +23,6 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
 !
   USE CMN_DIAG_MOD
   USE DIAG_MOD
-  USE DIAG53_MOD
   USE ErrCode_Mod
   USE ERROR_MOD
   USE Input_Opt_Mod,  ONLY : OptInput
@@ -108,11 +107,6 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
 
      IF ( ND61 > 0 ) AD61 = 0e0
 #endif
-
-     ! For ND53: POPS simulations (eck, 9/20/10)
-     IF ( ND53 > 0 ) THEN
-        CALL ZERO_DIAG53
-     ENDIF
 
      ! Echo output
      IF ( Input_Opt%amIRoot ) THEN

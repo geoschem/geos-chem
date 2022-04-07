@@ -23,7 +23,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE CMN_SIZE_MOD,   ONLY : NDSTBIN
   USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
   USE DIAG_MOD                           ! For diagnostic arrays
-  USE DIAG53_MOD                         ! For POPs diag
   USE DRYDEP_MOD                         ! For dry deposition
   USE ErrCode_Mod
   USE ERROR_MOD,      ONLY : ERROR_STOP

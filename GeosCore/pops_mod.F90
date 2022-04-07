@@ -429,10 +429,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG53_MOD
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : DEBUG_MSG
     USE ERROR_MOD,      ONLY : SAFE_DIV
@@ -996,29 +992,6 @@ CONTAINS
        ! Sum of differences should equal zero
        SUM_DIFF = MAX(DIFF_G + DIFF_OC + DIFF_BC, SMALLNUM)
 
-#ifdef BPCH_DIAG
-       !==============================================================
-       ! %%%%% ND53 (bpch) DIAGNOSTIC %%%%%
-       ! ND53 diagnostic: Differences in distribution of gas and
-       ! particle phases between time steps [kg/s]
-       !==============================================================
-       IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
-
-          IF (DIFF_OC .lt. 0) THEN
-             AD53_PG_OC_NEG(I,J,L) = AD53_PG_OC_NEG(I,J,L)  + DIFF_OC / DTCHEM
-          ELSE IF (DIFF_OC .eq. 0 .or. DIFF_OC .gt. 0) THEN
-             AD53_PG_OC_POS(I,J,L) = AD53_PG_OC_POS(I,J,L)  + DIFF_OC / DTCHEM
-          ENDIF
-
-          IF (DIFF_BC .lt. 0) THEN
-             AD53_PG_BC_NEG(I,J,L) = AD53_PG_BC_NEG(I,J,L)  + DIFF_BC / DTCHEM
-          ELSE IF (DIFF_BC .eq. 0 .or. DIFF_BC .gt. 0) THEN
-             AD53_PG_BC_POS(I,J,L) = AD53_PG_BC_POS(I,J,L)  + DIFF_BC / DTCHEM
-          ENDIF
-
-       ENDIF
-#endif
-
        !==============================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
@@ -1404,40 +1377,6 @@ CONTAINS
        ELSE
           DEP_POPP_BCPI_DRY  = DEP_POPP_BCPI
        ENDIF
-
-#ifdef BPCH_DIAG
-       !==============================================================
-       ! %%%% ND53 (bpch) DIAGNOSTIC %%%%
-       ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg/s]
-       !==============================================================
-       IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
-
-          ! OH:
-          AD53_POPG_OH(I,J,L) = AD53_POPG_OH(I,J,L) + &
-                                GROSS_OX_OH / DTCHEM
-
-          ! O3:
-          AD53_POPP_OCPO_O3(I,J,L) = AD53_POPP_OCPO_O3(I,J,L) + &
-                                     GROSS_OX_O3_OCPO / DTCHEM
-          AD53_POPP_OCPI_O3(I,J,L) = AD53_POPP_OCPI_O3(I,J,L) + &
-                                     GROSS_OX_O3_OCPI / DTCHEM
-          AD53_POPP_BCPO_O3(I,J,L) = AD53_POPP_BCPO_O3(I,J,L) + &
-                                     GROSS_OX_O3_BCPO / DTCHEM
-          AD53_POPP_BCPI_O3(I,J,L) = AD53_POPP_BCPI_O3(I,J,L) + &
-                                     GROSS_OX_O3_BCPI / DTCHEM
-
-          ! NO3:
-          AD53_POPP_OCPO_NO3(I,J,L) = AD53_POPP_OCPO_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_OCPO / DTCHEM
-          AD53_POPP_OCPI_NO3(I,J,L) = AD53_POPP_OCPI_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_OCPI / DTCHEM
-          AD53_POPP_BCPO_NO3(I,J,L) = AD53_POPP_BCPO_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_BCPO / DTCHEM
-          AD53_POPP_BCPI_NO3(I,J,L) = AD53_POPP_BCPI_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_BCPI / DTCHEM
-
-       ENDIF
-#endif
 
        !==============================================================
        ! %%%%% HISTORY (netCDF DIAGNOSTICS) %%%%%

@@ -438,7 +438,6 @@ CONTAINS
 #ifdef BPCH_DIAG
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
-    USE Diag53_Mod,         ONLY : Init_Diag53
     USE Gamap_Mod,          ONLY : Do_Gamap
 #endif
 !
@@ -783,11 +782,6 @@ CONTAINS
     ENDIF
     IF ( Input_Opt%DO_ND51b ) THEN
        CALL Init_Diag51b( Input_Opt, State_Grid, RC )
-    ENDIF
-
-    ! POPs (bpch)
-    IF ( .not. Input_Opt%DryRun ) THEN
-       CALL Init_Diag53( State_Grid )
     ENDIF
 
 #if defined( MODEL_CLASSIC )
