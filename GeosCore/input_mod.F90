@@ -367,18 +367,30 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! GAMAP metadata files
+    ! Bpch diagnostic output menu
     ! (Skip if we are connecting to an external model)
     CALL Config_Bpch_Output( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Gamap"!'
+       errMsg = 'Error in "Config_Bpch_Output"!'
+       CALL GC_Error( errMsg, RC, thisLoc  )
+       CALL QFYAML_CleanUp( Config         )
+       CALL QFYAML_CleanUp( ConfigAnchored )
+       RETURN
+    ENDIF
+
+#ifdef TOMAS
+    ! Bpch prod & loss menu -- only needed for TOMAS
+    ! (Skip if we are connecting to an external model)
+    CALL Config_Bpch_ProdLoss( Config, Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Config_Bpch_ProdLoss"!'
        CALL GC_Error( errMsg, RC, thisLoc  )
        CALL QFYAML_CleanUp( Config         )
        CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
 #endif
-
+#endif
 #endif
 
 !#ifdef BPCH_DIAG
@@ -395,15 +407,6 @@ CONTAINS
 !             RETURN
 !          ENDIF
 !
-!#if defined TOMAS
-!       ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-!          CALL READ_PROD_LOSS_MENU( Input_Opt, RC )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_Prod_Loss_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
-!#endif
 !#endif
 !#endif
 
@@ -3280,10 +3283,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_output_menu
-!
-! !DESCRIPTION: Subroutine READ\_OUTPUT\_MENU reads the OUTPUT MENU section of
-!  the GEOS-Chem input file.
+! !IROUTINE: config_bpch_output
+
+! !DESCRIPTION: Copies bpch output menu information from the Config object
+!  to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -4490,8 +4493,8 @@ CONTAINS
     ! Print to screen
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6,90  ) 'ND51b MORNING OR AFTERNOON TIMESERIES MENU'
-       WRITE( 6,95  ) '-----------------------------------------'
+       WRITE( 6,90  ) 'ND51b TIMESERIES SETTINGS (when -DBPCH_DIAG=y)'
+       WRITE( 6,95  ) '----------------------------------------------'
        WRITE( 6,100 ) 'Turn on ND51b timeseries?   : ', Input_Opt%DO_ND51b
        WRITE( 6,110 ) 'ND51b timeseries file name  : ',                      &
                         TRIM( Input_Opt%ND51b_FILE )
@@ -4518,232 +4521,237 @@ CONTAINS
 140 FORMAT( A, 2F5.1 )
 
   END SUBROUTINE Config_Nd51b
-#endif
-#endif
-!#ifdef TOMAS
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_prod_loss_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD AND LOSS MENU
-!!  section of the GEOS-Chem input file
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_PROD_LOSS_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE CMN_DIAG_MOD
-!    USE ErrCode_Mod
-!    USE gckpp_Parameters,   ONLY : NFAM
-!    USE gckpp_Monitor,      ONLY : FAM_NAMES
-!    USE Input_Opt_Mod,      ONLY : OptInput
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!!
-!! !REVISION HISTORY:
-!!  20 Jul 2004 - R. Yantosca - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    INTEGER            :: F, N, N_ADVECT
-!
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg, thisLoc
-!
-!    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-!
-!    !=================================================================
-!    ! READ_PROD_LOSS_MENU begins here!
-!    !=================================================================
-!
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_Prod_Loss_Menu (in module GeosCore/input_mod.F90)'
-!
-!    ! Error check
-!    IF ( CT1 /= 2 ) THEN
-!       errMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' // &
-!                'must be read in first!'
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    !=================================================================
-!    ! Read info about prod & loss families
-!    !=================================================================
-!
-!    ! Turn on production & loss diagnostic (e.g. ND65 diagnostic)
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'DO_SAVE_PL', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_PL
-!
-!    ! Read number of levels for ND65 diagnostic
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ND65', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), * ) Input_Opt%ND65
-!
-!    ! Copy field to variable in CMN_DIAG
-!    ND65 = Input_Opt%ND65
-!
-!    !=================================================================
-!    ! Error check families for certain types of simulations
-!    !=================================================================
-!
-!    ! Offline aerosol -- turn off DO_SAVE_PL, since we use ND05,
-!    ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
-!    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-!       Input_Opt%DO_SAVE_PL    = .FALSE.
-!       Input_Opt%ND65          = 0
-!    ENDIF
-!
-!    !=================================================================
-!    ! Set fields of Input Options object
-!    !=================================================================
-!
-!    ! Number of advected species
-!    N_ADVECT = Input_Opt%N_ADVECT
-!
-!    IF ( Input_Opt%DO_SAVE_PL ) THEN
-!       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-!          ! Fullchem - Obtain NFAM from KPP
-!          Input_Opt%NFAM = NFAM
-!       ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-!          ! Tagged O3
-!          Input_Opt%NFAM = 2*N_ADVECT
-!       ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-!          ! Tagged CO
-!          IF ( Input_Opt%LPCO_NMVOC ) THEN
-!             Input_Opt%NFAM = N_ADVECT+2
-!          ELSE
-!             Input_Opt%NFAM = N_ADVECT+6
-!          ENDIF
-!       ENDIF
-!    ENDIF
-!
-!    ! Return if there are no prod/loss families
-!    ! or if we have turned off this diagnostic
-!    IF ( .not. ( Input_Opt%DO_SAVE_PL .and. Input_Opt%NFAM > 0 )) THEN
-!       Input_Opt%DO_SAVE_PL = .FALSE.
-!       Input_Opt%ND65       = 0
-!    ENDIF
-!
-!    ! Loop over families
-!    DO F = 1, Input_Opt%NFAM
-!
-!       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-!
-!          ! Fullchem - Obtain FAM_NAME from KPP
-!          Input_Opt%FAM_NAME(F) = FAM_NAMES(F)
-!
-!       ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-!
-!          ! Tagged O3
-!          IF ( F <= N_ADVECT ) THEN
-!             Input_Opt%FAM_NAME(F) = &
-!                  'P' // TRIM(Input_Opt%AdvectSpc_Name(F))
-!          ELSE
-!             Input_Opt%FAM_NAME(F) = &
-!                  'L' // TRIM(Input_Opt%AdvectSpc_Name(F-N_ADVECT))
-!          ENDIF
-!
-!       ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-!
-!          ! Tagged CO
-!          IF ( F <= N_ADVECT ) THEN
-!             Input_Opt%FAM_NAME(F) = 'L'//Input_Opt%AdvectSpc_Name(F)
-!          ELSEIF ( F == N_ADVECT+1 ) THEN
-!             Input_Opt%FAM_NAME(F) = 'PCO_CH4'
-!          ELSEIF ( F == N_ADVECT+2 ) THEN
-!             Input_Opt%FAM_NAME(F) = 'PCO_NMVOC'
-!          ELSEIF ( F == N_ADVECT+3 ) THEN
-!             Input_Opt%FAM_NAME(F) = 'PCO_ISOP'
-!          ELSEIF ( F == N_ADVECT+4 ) THEN
-!             Input_Opt%FAM_NAME(F) = 'PCO_CH3OH'
-!          ELSEIF ( F == N_ADVECT+5 ) THEN
-!             Input_Opt%FAM_NAME(F) = 'PCO_MONO'
-!          ELSEIF ( F == N_ADVECT+6 ) THEN
-!             Input_Opt%FAM_NAME(F) = 'PCO_ACET'
-!          ENDIF
-!
-!       ENDIF
-!
-!       ! Get family type as prod or loss
-!       IF ( Input_Opt%FAM_NAME(F)(1:1) == 'P'   .or. &
-!            Input_Opt%FAM_NAME(F)(1:1) == 'p' ) THEN
-!          Input_Opt%FAM_TYPE(F) = 'prod'
-!       ELSE
-!          Input_Opt%FAM_TYPE(F) = 'loss'
-!       ENDIF
-!
-!    ENDDO
-!
-!    !=================================================================
-!    ! Print to screen
-!    !=================================================================
-!    IF ( Input_Opt%amIRoot ) THEN
-!       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
-!       WRITE( 6, '(  a)' ) '---------------------------'
-!       WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', &
-!                        Input_Opt%DO_SAVE_PL
-!       WRITE( 6, 110 ) '# of levels for P/L diag    : ', &
-!                        Input_Opt%ND65
-!
-!       ! Loop over families
-!       DO F = 1, Input_Opt%NFAM
-!
-!          ! Write family name and type
-!          WRITE( 6, 120 ) TRIM(Input_Opt%FAM_NAME(F)), &
-!                          TRIM(Input_Opt%FAM_TYPE(F))
-!
-!       ENDDO
-!
-!    ENDIF
-!
-!    ! FORMAT statements
-!100 FORMAT( A, L5 )
-!110 FORMAT( A, I5 )
-!120 FORMAT( /, 'Family=', A10, '  Type=', A4 )
-!
-!  END SUBROUTINE READ_PROD_LOSS_MENU
-!!EOC
-!#endif
-!#endif
-!#endif
+#ifdef TOMAS
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_mercury_menu
+! !IROUTINE: config_bpch_output
+
+! !DESCRIPTION: Copies bpch output menu information from the Config object
+!  to Input_Opt, and does necessary checks.
+!\\
+!\\
+! !INTERFACE:
 !
-! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU
-!  section of the GEOS-Chem input file.
+  SUBROUTINE Config_Bpch_ProdLoss( Config, Input_Opt, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE CMN_DIAG_MOD,     ONLY : ND65
+    USE gckpp_Monitor,    ONLY : Fam_Names
+    USE gckpp_Parameters, ONLY : nFam
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE QFYAML_Mod,       ONLY : QFYAML_t
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                      :: v_bool
+    INTEGER                      :: v_int, F, N, n_Advect
+
+    ! Strings
+    CHARACTER(LEN=255)           :: thisLoc
+    CHARACTER(LEN=512)           :: errMsg
+    CHARACTER(LEN=QFYAML_NamLen) :: key
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
+
+    ! Arrays
+!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+    !=========================================================================
+    ! Config_Bpch_ProdLoss begins here!
+    !=========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = 'Error reading the "input.geos" file!'
+    thisLoc = ' -> at Read_Prod_Loss_Menu (in module GeosCore/input_mod.F90)'
+
+    !------------------------------------------------------------------------
+    ! Activate bpch ND65 diagnostic?
+    !------------------------------------------------------------------------
+    key    = "extra_diagnostics%legacy_bpch%bpch_diagnostics%"            // &
+             "ND65_prodloss%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%DO_SAVE_PL = v_bool
+
+    !------------------------------------------------------------------------
+    ! Number of levels for ND65 bpch diagnostic
+    !------------------------------------------------------------------------
+    key    = "extra_diagnostics%legacy_bpch%bpch_diagnostics%"            // &
+             "ND65_prodloss%number_of_levels"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%ND65 = v_int
+
+    ! Copy field to variable in CMN_DIAG
+    ND65 = Input_Opt%ND65
+
+    !=================================================================
+    ! Error check families for certain types of simulations
+    !=================================================================
+
+    ! Offline aerosol -- turn off DO_SAVE_PL
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+       Input_Opt%DO_SAVE_PL    = .FALSE.
+       Input_Opt%ND65          = 0
+    ENDIF
+
+    !=================================================================
+    ! Set fields of Input Options object
+    !=================================================================
+
+    ! Number of advected species
+    N_ADVECT = Input_Opt%N_ADVECT
+
+    IF ( Input_Opt%DO_SAVE_PL ) THEN
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          ! Fullchem - Obtain NFAM from KPP
+          Input_Opt%NFAM = NFAM
+       ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+          ! Tagged O3
+          Input_Opt%NFAM = 2*N_ADVECT
+       ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+          ! Tagged CO
+          IF ( Input_Opt%LPCO_NMVOC ) THEN
+             Input_Opt%NFAM = N_ADVECT+2
+          ELSE
+             Input_Opt%NFAM = N_ADVECT+6
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Return if there are no prod/loss families
+    ! or if we have turned off this diagnostic
+    IF ( .not. ( Input_Opt%DO_SAVE_PL .and. Input_Opt%NFAM > 0 )) THEN
+       Input_Opt%DO_SAVE_PL = .FALSE.
+       Input_Opt%ND65       = 0
+    ENDIF
+
+    ! Loop over families
+    DO F = 1, Input_Opt%NFAM
+
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+          ! Fullchem - Obtain FAM_NAME from KPP
+          Input_Opt%FAM_NAME(F) = FAM_NAMES(F)
+
+       ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+
+          ! Tagged O3
+          IF ( F <= N_ADVECT ) THEN
+             Input_Opt%FAM_NAME(F) = &
+                  'P' // TRIM(Input_Opt%AdvectSpc_Name(F))
+          ELSE
+             Input_Opt%FAM_NAME(F) = &
+                  'L' // TRIM(Input_Opt%AdvectSpc_Name(F-N_ADVECT))
+          ENDIF
+
+       ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+          ! Tagged CO
+          IF ( F <= N_ADVECT ) THEN
+             Input_Opt%FAM_NAME(F) = 'L'//Input_Opt%AdvectSpc_Name(F)
+          ELSEIF ( F == N_ADVECT+1 ) THEN
+             Input_Opt%FAM_NAME(F) = 'PCO_CH4'
+          ELSEIF ( F == N_ADVECT+2 ) THEN
+             Input_Opt%FAM_NAME(F) = 'PCO_NMVOC'
+          ELSEIF ( F == N_ADVECT+3 ) THEN
+             Input_Opt%FAM_NAME(F) = 'PCO_ISOP'
+          ELSEIF ( F == N_ADVECT+4 ) THEN
+             Input_Opt%FAM_NAME(F) = 'PCO_CH3OH'
+          ELSEIF ( F == N_ADVECT+5 ) THEN
+             Input_Opt%FAM_NAME(F) = 'PCO_MONO'
+          ELSEIF ( F == N_ADVECT+6 ) THEN
+             Input_Opt%FAM_NAME(F) = 'PCO_ACET'
+          ENDIF
+
+       ENDIF
+
+       ! Get family type as prod or loss
+       IF ( Input_Opt%FAM_NAME(F)(1:1) == 'P'   .or. &
+            Input_Opt%FAM_NAME(F)(1:1) == 'p' ) THEN
+          Input_Opt%FAM_TYPE(F) = 'prod'
+       ELSE
+          Input_Opt%FAM_TYPE(F) = 'loss'
+       ENDIF
+
+    ENDDO
+
+    !=================================================================
+    ! Print to screen
+    !=================================================================
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
+       WRITE( 6, '(  a)' ) '---------------------------'
+       WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', &
+                        Input_Opt%DO_SAVE_PL
+       WRITE( 6, 110 ) '# of levels for P/L diag    : ', &
+                        Input_Opt%ND65
+
+       ! Loop over families
+       DO F = 1, Input_Opt%NFAM
+
+          ! Write family name and type
+          WRITE( 6, 120 ) TRIM(Input_Opt%FAM_NAME(F)), &
+                          TRIM(Input_Opt%FAM_TYPE(F))
+
+       ENDDO
+
+    ENDIF
+
+    ! FORMAT statements
+90  FORMAT( /, A                             )
+95  FORMAT( A                                )
+100 FORMAT( A, L5                            )
+110 FORMAT( A, I5                            )
+120 FORMAT( /, 'Family=', A10, '  Type=', A4 )
+
+  END SUBROUTINE Config_Bpch_ProdLoss
+!EOC
+#endif
+#endif
+#endif
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: config_Hg
+!
+! !DESCRIPTION: Copies Hg simulation information from the Config object
+!  to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:

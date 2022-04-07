@@ -170,6 +170,9 @@ extra_diagnostics:
       TOMAS_aerosol_emissions: "0 all"
       TOMAS_rate: "0 all"
       TOMAS_3D_rate: "0 all"
+      ND65_prodloss:
+        activate: true
+        number_of_levels: 72
 
     ND51_satellite:
       activate: false
