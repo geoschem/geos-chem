@@ -70,6 +70,7 @@ COLLECTIONS: 'Restart',
   Restart.duration:           ${RUNDIR_HIST_INST_DUR}
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Chem_AeroH2OSNA                ',
                               'Chem_H2O2AfterChem             ',
                               'Chem_SO2AfterChem              ',
                               'Chem_DryDepNitrogen            ',

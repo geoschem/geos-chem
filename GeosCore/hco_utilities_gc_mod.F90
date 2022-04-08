@@ -1536,6 +1536,7 @@ CONTAINS
 !
 ! !USES:
 !
+   USE CMN_SIZE_Mod,     ONLY  : NDUST
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_State_GC_Mod,  ONLY : HcoState
@@ -1576,15 +1577,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
-   LOGICAL              :: FOUND              ! Found in restart file?
-   CHARACTER(LEN=60)    :: Prefix             ! utility string
-   CHARACTER(LEN=255)   :: LOC                ! routine location
-   CHARACTER(LEN=255)   :: MSG                ! message
-   CHARACTER(LEN=255)   :: v_name             ! variable name
-   REAL(fp)             :: MW_g               ! species molecular weight
-   REAL(fp)             :: SMALL_NUM          ! small number threshold
-   CHARACTER(LEN=63)    :: OrigUnit
+   INTEGER                   :: I, J, L, M, N      ! lon, lat, lev, indexes
+   LOGICAL                   :: FOUND              ! Found in restart file?
+   CHARACTER(LEN=60)         :: Prefix             ! utility string
+   CHARACTER(LEN=255)        :: LOC                ! routine location
+   CHARACTER(LEN=255)        :: MSG                ! message
+   CHARACTER(LEN=255)        :: v_name             ! variable name
+   REAL(fp)                  :: MW_g               ! species molecular weight
+   REAL(fp)                  :: SMALL_NUM          ! small number threshold
+   CHARACTER(LEN=63)         :: OrigUnit
 
    ! Temporary arrays and pointers
    REAL*4,  TARGET           :: Temp2D(State_Grid%NX,State_Grid%NY)
@@ -2010,17 +2011,20 @@ CONTAINS
 
    ENDIF
 
-   !=================================================================
+   !=========================================================================
    ! Read variables for sulfate chemistry
-   !=================================================================
+   !=========================================================================
    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-      ! Define variable name
+      !----------------------------------------------------------------------
+      ! H2O2_AFTERCHEM
+      !----------------------------------------------------------------------
       v_name = 'H2O2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
+                          Ptr3D,     RC,         FOUND=FOUND                )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
@@ -2029,7 +2033,7 @@ CONTAINS
             WRITE(6,*) 'Initialize H2O2 from restart file'
             WRITE(6,190) MINVAL( State_Chm%H2O2AfterChem(:,:,:) ), &
                          MAXVAL( State_Chm%H2O2AfterChem(:,:,:) )
-190         FORMAT( 12x, 'H2O2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
+190         FORMAT( 12x, 'H2O2_AChem  : Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
          State_Chm%H2O2AfterChem = 0e+0_fp
@@ -2041,25 +2045,56 @@ CONTAINS
       ! Nullify pointer
       Ptr3D => NULL()
 
-      ! Define variable name
+      !----------------------------------------------------------------------
+      ! SO2_AFTERCHEM
+      !----------------------------------------------------------------------
       v_name = 'SO2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
+                          Ptr3D,     RC,         FOUND=FOUND                )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%SO2AfterChem = Ptr3D
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
+            WRITE(6,*) 'Initialize SO2 from restart file'
             WRITE(6,200) MINVAL( State_Chm%SO2AfterChem(:,:,:) ), &
                          MAXVAL( State_Chm%SO2AfterChem(:,:,:) )
-200         FORMAT( 12x, ' SO2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
+200         FORMAT( 12x, ' SO2_AChem  : Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
          State_Chm%SO2AfterChem = 0e+0_fp
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'SO2_AFTERCHEM  not found in restart, set to zero'
+            WRITE(6,*) 'SO2_AFTERCHEM not found in restart, set to zero'
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+
+      !----------------------------------------------------------------------
+      ! AeroH2O_SNA
+      !----------------------------------------------------------------------
+      v_name = 'AEROH2O_SNA'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
+                          Ptr3D,     RC,         FOUND=FOUND                )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr3D
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'Initialize SNA aerosol water from restart file'
+            WRITE(6,205) MINVAL( State_Chm%AeroH2O(:,:,:,NDUST+1) ),         &
+                         MAXVAL( State_Chm%AeroH2O(:,:,:,NDUST+1) )
+205         FORMAT( 12x, ' AEROH2O_SNA: Min = ', es15.9, ', Max = ', es15.9 )
+         ENDIF
+      ELSE
+         State_Chm%SO2AfterChem = 0e+0_fp
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE(6,*) 'AEROH2O_SNA not found in restart, set to zero'
          ENDIF
       ENDIF
 

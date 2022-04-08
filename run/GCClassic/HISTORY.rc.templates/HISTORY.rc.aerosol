@@ -61,6 +61,7 @@ COLLECTIONS: 'Restart',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Chem_AeroH2OSNA                ',
                               'Chem_H2O2AfterChem             ',
                               'Chem_SO2AfterChem              ',
                               'Chem_DryDepNitrogen            ',

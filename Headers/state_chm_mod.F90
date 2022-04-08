@@ -979,7 +979,7 @@ CONTAINS
        fieldId = (/ 'AeroH2OMDUST1    ', 'AeroH2OMDUST2    ',                &
                     'AeroH2OMDUST3    ', 'AeroH2OMDUST4    ',                &
                     'AeroH2OMDUST5    ', 'AeroH2OMDUST6    ',                &
-                    'AeroH2OMDUST7    ', 'AeroH2OSULF      ',                &
+                    'AeroH2OMDUST7    ', 'AeroH2OSNA       ',                &
                     'AeroH2OBC        ', 'AeroH2OOC        ',                &
                     'AeroH2OSSA       ', 'AeroH2OSSC       ',                &
                     'AeroH2OBGSULF    ', 'AeroH2OICEI      '               /)
@@ -3859,8 +3859,8 @@ CONTAINS
           IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROH2OSULF' )
-          IF ( isDesc  ) Desc  = 'Aerosol H2O content for tropospheric sulfate'
+       CASE ( 'AEROH2OSNA' )
+          IF ( isDesc  ) Desc  = 'Sulfur-nitrogen-ammonia aerosol water content'
           IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
