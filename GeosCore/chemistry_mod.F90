@@ -57,8 +57,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
-                           State_Grid, State_Met, RC )
+  SUBROUTINE Do_Chemistry( Input_Opt,  State_Chm, State_Diag,                &
+                           State_Grid, State_Met, RC                        )
 !
 ! !USES:
 !
@@ -232,15 +232,17 @@ CONTAINS
              CALL Timer_Start  ( "=> Aerosol chem", RC )
           ENDIF
 
-
           !------------------------------------------------------------------
           ! Dry-run sulfate chem to get cloud pH
           !------------------------------------------------------------------
           IF ( Input_Opt%LSULF ) THEN
 
-             ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-             CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid,      &
-                                  State_Met, RC )
+             ! Calculate stratospheric aerosol properties
+             CALL Calc_Strat_Aer( Input_Opt  = Input_Opt,                    &
+                                  State_Chm  = State_Chm,                    &
+                                  State_Grid = State_Grid,                   &
+                                  State_Met  = State_Met,                    &
+                                  RC         = RC                           )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -249,9 +251,13 @@ CONTAINS
                 RETURN
              ENDIF
 
-             ! Compute aerosol concentrations
-             CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, RC )
+             ! Compute aerosol concentrations (needed for AOD computations)
+             CALL Aerosol_Conc( Input_Opt  = Input_Opt,                      &
+                                State_Chm  = State_Chm,                      &
+                                State_Diag = State_Diag,                     &
+                                State_Grid = State_Grid,                     &
+                                State_Met  = State_Met,                      &
+                                RC         = RC                             )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -262,13 +268,19 @@ CONTAINS
 
           ENDIF
 
-          !----------------------------------------
+          !------------------------------------------------------------------
           ! Call RDAER
-          !----------------------------------------
-          WAVELENGTH = 0
-          CALL RDAER( Input_Opt,  State_Chm, State_Diag,               &
-                      State_Grid, State_Met, RC,                       &
-                      MONTH,      YEAR,      WAVELENGTH                           )
+          !------------------------------------------------------------------
+          waveLength = 0
+          CALL RdAer( Input_Opt  = Input_Opt,                                &
+                      State_Chm  = State_Chm,                                &
+                      State_Diag = State_Diag,                               &
+                      State_Grid = State_Grid,                               &
+                      State_Met  = State_Met,                                &
+                      month      = month,                                    &
+                      year       = year,                                     &
+                      odSwitch   = waveLength,                               &
+                      RC         = RC                                       )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -277,7 +289,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          !========================================================================
+          !==================================================================
           ! If LDUST is turned on, then we have online dust aerosol in
           ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
           ! compute aerosol optical depth for FAST-JX, etc.
@@ -285,11 +297,16 @@ CONTAINS
           ! If LDUST is turned off, then we do not have online dust aerosol
           ! in GEOS-CHEM...so read monthly-mean dust files from disk.
           ! (rjp, tdf, bmy, 4/1/04)
-          !========================================================================
+          !==================================================================
           IF ( Input_Opt%LDUST ) THEN
-             CALL RDUST_ONLINE( Input_Opt,  State_Chm,  State_Diag,                &
-                                State_Grid, State_Met,  SOILDUST,                  &
-                                WAVELENGTH, RC )
+             CALL RDust_Online( Input_Opt  = Input_Opt,                      &
+                                State_Chm  = State_Chm,                      &
+                                State_Diag = State_Diag,                     &
+                                State_Grid = State_Grid,                     &
+                                State_Met  = State_Met,                      &
+                                dust       = soilDust,                       &
+                                odSwitch   = waveLength,                     &
+                                RC         = RC                             )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -299,9 +316,9 @@ CONTAINS
              ENDIF
           ENDIF
 
-          !----------------------------------------
+          !------------------------------------------------------------------
           ! Dry-run sulfate chem to get cloud pH
-          !----------------------------------------
+          !------------------------------------------------------------------
           IF ( Input_Opt%LSULF ) THEN
 
              ! Dry run only
@@ -1082,7 +1099,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE DO_CHEMISTRY
+  END SUBROUTINE Do_Chemistry
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
