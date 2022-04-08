@@ -1894,38 +1894,45 @@ CONTAINS
        RETURN
     ENDIF
 #endif
-    !------------------------------------------------------------------------
-    ! J-values for paranox
-    !------------------------------------------------------------------------
-    ! Add a qualifier here?
-     chmId = 'JOH'
-     CALL Init_and_Register(                                              &
-         Input_Opt  = Input_Opt,                                          &
-         State_Chm  = State_Chm,                                          &
-         State_Grid = State_Grid,                                         &
-         chmId      = chmId,                                              &
-         Ptr2Data   = State_Chm%JOH,                                      &
-         RC         = RC                                                 )
 
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! J(OH) and J(NO2) are only used in fullchem simulations
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-    chmId = 'JNO2'
-    CALL Init_and_Register(                                              &
-        Input_Opt  = Input_Opt,                                          &
-        State_Chm  = State_Chm,                                          &
-        State_Grid = State_Grid,                                         &
-        chmId      = chmId,                                              &
-        Ptr2Data   = State_Chm%JNO2,                                      &
-        RC         = RC                                                 )
+       !---------------------------------------------------------------------
+       ! J(OH); needed for restart file input to HEMCO PARANOx extension
+       !---------------------------------------------------------------------
+       chmId = 'JOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%JOH,                                      &
+            RC         = RC                                                 )
 
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! J(NO2); needed for restart file input to HEMCO PARANOx extension
+       !---------------------------------------------------------------------
+       chmId = 'JNO2'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%JNO2,                                     &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !------------------------------------------------------------------
@@ -2686,13 +2693,13 @@ CONTAINS
          Ptr2Data   = State_Chm%TO3_DAILY,                                &
          noRegister = .TRUE.,                                             &
          RC         = RC                                                 )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    
+
     chmId = 'TOMS1'
     CALL Init_and_Register(                                               &
          Input_Opt  = Input_Opt,                                          &
@@ -2702,13 +2709,13 @@ CONTAINS
          Ptr2Data   = State_Chm%TOMS1,                                    &
          noRegister = .TRUE.,                                             &
          RC         = RC                                                 )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    
+
     chmId = 'TOMS2'
     CALL Init_and_Register(                                               &
          Input_Opt  = Input_Opt,                                          &
@@ -2718,13 +2725,13 @@ CONTAINS
          Ptr2Data   = State_Chm%TOMS2,                                    &
          noRegister = .TRUE.,                                             &
          RC         = RC                                                 )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3251,6 +3258,7 @@ CONTAINS
        State_Chm%DryDepRa10m => NULL()
     ENDIF
 #endif
+
     IF ( ASSOCIATED( State_Chm%JOH ) ) THEN
        DEALLOCATE( State_Chm%JOH, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%JOH', 2, RC )
@@ -5016,7 +5024,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Hg simulation quantities
        !---------------------------------------------------------------------
- 
+
 !>>       ! Append the category name to the diagnostic name
 !>>       diagName = TRIM( name ) // TRIM( State_Chm%Hg_Cat_Name(N) )
 !>>
