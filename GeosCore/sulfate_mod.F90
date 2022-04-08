@@ -1532,9 +1532,6 @@ CONTAINS
        IF ( id_SO4d1 < 0 .and. id_NITd1 < 0 ) RETURN ! tdf
     ENDIF
 
-    ! Return if it's the start of the run
-    IF ( GET_ELAPSED_SEC() == 0 ) RETURN
-
     ! Copy fields from INPUT_OPT to local variables for use below
     SALA_REDGE_um =  Input_Opt%SALA_REDGE_um
     SALC_REDGE_um =  Input_Opt%SALC_REDGE_um

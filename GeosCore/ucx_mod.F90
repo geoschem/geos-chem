@@ -891,9 +891,6 @@ CONTAINS
     ! Return if gravitational settling disabled
     IF (.not. LGRAVSTRAT) RETURN
 
-    ! Return if it's the start of the run
-    IF ( GET_ELAPSED_SEC() == 0 ) RETURN
-
     ! Chemistry timestep [s]
     DTCHEM = GET_TS_CHEM()
 

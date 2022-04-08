@@ -648,8 +648,8 @@ CONTAINS
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Set_SpecMask
 #endif
 
-#if defined( MODEL_GEOS )
     USE Calc_Met_Mod,           ONLY : GET_COSINE_SZA
+#if defined( MODEL_GEOS )
     USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_WriteDiagn
 #endif
     USE Species_Mod,   ONLY : Species
@@ -994,8 +994,6 @@ CONTAINS
        IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
     ENDIF
 
-#if defined( MODEL_GEOS )
-    ! GEOS-5 only: needed in GCHP?
     ! Compute the cosine of the solar zenith angle array:
     !    State_Met%SUNCOS     => COS(SZA) at the current time
     !    State_Met%SUNCOSmid  => COS(SZA) at the midpt of the chem timestep
@@ -1003,7 +1001,7 @@ CONTAINS
     !    calculated elsewhere, in the HEMCO PARANOx extension
     CALL GET_COSINE_SZA( Input_Opt, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GET_COSINE_SZA')
-#endif
+
 #ifdef ADJOINT
     if (.not. first) &
          CALL Print_Global_Species_Kg( I_DBG, J_DBG, L_DBG,           &
