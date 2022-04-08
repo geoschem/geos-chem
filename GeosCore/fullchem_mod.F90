@@ -214,6 +214,7 @@ CONTAINS
 
     !========================================================================
     ! Do_FullChem begins here!
+    ! NOTE: FlexChem timer is started in DO_CHEMISTRY (the calling routine)
     !========================================================================
 
     ! Initialize
@@ -267,10 +268,6 @@ CONTAINS
        ELSEWHERE
           State_Diag%JNoonFrac = 0.0_f4
        ENDWHERE
-    ENDIF
-
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "=> FlexChem",     RC )
     ENDIF
 
     !========================================================================
