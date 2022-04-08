@@ -496,6 +496,8 @@ CONTAINS
     thisLoc = &
      ' -> at Read_Simulation_Menu (in module GeosCore/input_mod.F90)'
 
+#ifdef MODEL_CLASSIC
+
     !------------------------------------------------------------------------
     ! Simulation start date
     !------------------------------------------------------------------------
@@ -624,6 +626,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     END SELECT
+#endif
 
     !------------------------------------------------------------------------
     ! Simulation type
@@ -694,6 +697,7 @@ CONTAINS
     ENDIF
     Input_Opt%LPRT = v_bool
 
+#ifdef MODEL_CLASSIC
     !------------------------------------------------------------------------
     ! Turn on GEOS-Chem timers
     !------------------------------------------------------------------------
@@ -737,6 +741,7 @@ CONTAINS
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ',                     &
                         Input_Opt%useTimers
     ENDIF
+#endif
 
     ! Format statements
 90  FORMAT( /, A              )

@@ -341,10 +341,14 @@ while [ "${valid_rundir}" -eq 0 ]; do
     fi
 done
 
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/rundirConfig
+
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
 mkdir -p ${rundir}
+mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
@@ -520,11 +524,12 @@ RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 #--------------------------------------------------------------------
 
 # Save RUNDIR variables to file
-echo -e "$RUNDIR_VARS" > rundir_vars.txt
-sort -o rundir_vars.txt rundir_vars.txt
+rundir_config_log=${rundir_config}/rundir_vars.txt
+echo -e "$RUNDIR_VARS" > ${rundir_config_log}
+sort -o ${rundir_config_log} ${rundir_config_log}
 
 # Call init_rd.sh
-${srcrundir}/init_rd.sh rundir_vars.txt
+${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen

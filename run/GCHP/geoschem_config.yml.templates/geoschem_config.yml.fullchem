@@ -14,14 +14,6 @@ simulation:
   debug_printout: false
 
 #============================================================================
-# Timesteps settings
-#============================================================================
-timesteps:
-  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
-  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
-  radiation_timestep_in_s: 10800
-
-#============================================================================
 # Settings for GEOS-Chem operations
 #============================================================================
 operations:
