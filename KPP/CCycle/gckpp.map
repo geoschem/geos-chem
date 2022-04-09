@@ -30,30 +30,31 @@ REORDER  - ON
 ### Parameters ----------------------------------------
 
 ! NSPEC - Number of chemical species
-  INTEGER, PARAMETER :: NSPEC = 10 
+  INTEGER, PARAMETER :: NSPEC = 13 
 ! NVAR - Number of Variable species
-  INTEGER, PARAMETER :: NVAR = 7 
+  INTEGER, PARAMETER :: NVAR = 9 
 ! NVARACT - Number of Active species
   INTEGER, PARAMETER :: NVARACT = 2 
 ! NFIX - Number of Fixed species
-  INTEGER, PARAMETER :: NFIX = 3 
+  INTEGER, PARAMETER :: NFIX = 4 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 6 
+  INTEGER, PARAMETER :: NREACT = 7 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
-  INTEGER, PARAMETER :: NFIXST = 8 
+  INTEGER, PARAMETER :: NFIXST = 10 
 
 ### Species -------------------------------------------
 
 Variable species
-  1 = CH4 (r)     4 = DUMMY (n)   7 = LCH4 (n)  
-  2 = CO (r)      5 = PCO (n)   
-  3 = CO2 (n)     6 = LCO (n)   
+  1 = CH4 (r)     5 = CO2 (n)     9 = LCH4 (n)  
+  2 = CO (r)      6 = DUMMY (n) 
+  3 = CO_CH4 (n)  7 = PCO (n)   
+  4 = CO_NMVOC (n)  8 = LCO (n)   
 
 Fixed species
-  1 = OH_E (r)    3 = NMVOC_E (r)
-  2 = Cl_E (r)  
+  1 = OH_E (r)    3 = CH4_E (r) 
+  2 = Cl_E (r)    4 = NMVOC_E (r)
 
 ### Subroutines ---------------------------------------
 

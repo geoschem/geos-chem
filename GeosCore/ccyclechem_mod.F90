@@ -857,20 +857,8 @@ CH4
       !     and in CH4_OHSAVE (kjw, 6/12/09)
       !=================================================================
 
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Grid box volume [cm3]
-         BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-         ! Air density [molec/cm3]
-         BAIRDENS(I,J,L) = State_Met%AD(I,J,L) * 1000e+0_fp   /
-     &                     BOXVL               * AVO / AIRMW
-
-      ENDDO
-      ENDDO
-      ENDDO
+      ! -- BOXVL is not not used. -- MSL
+      ! -- BAIRDENS is now provided by State_Met -- MSL
 
       !================================================================
       ! (1) Get CH4 loss rates from HEMCO. the target is automatically 
@@ -1017,15 +1005,14 @@ CH4
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
-      CALL CH4_DECAY_CH4COCO2( am_I_Root, Input_Opt,  State_Met, 
-     &                State_Chm, State_Diag, RC         )
-
+      
+      ! -- Now in KPP -- MSL
 
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
-      CALL CH4_STRAT_CH4COCO2( am_I_Root, Input_Opt,  State_Met, 
-     &                State_Chm, State_Diag, RC         )
+
+      ! -- Now in KPP -- MSL
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
@@ -1273,10 +1260,7 @@ C
       DO I = 1, IIPAR
 
          ! Latitude of grid box
-         YMID     = GET_YMID( I, J, L )
-
-         ! Grid box volume [cm3]
-         BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+!>>>>         YMID     = GET_YMID( I, J, L )
 
          !==============================================================
          ! (0) Define useful quantities
@@ -1288,449 +1272,59 @@ C
          STTCO = 1.0_fp  / AIRVOL(I,J,L) / 1e+6_fp /
      &           FMOL_CO * AVO
 
-         ! GCO is CO concentration in [molec CO/cm3]
-         GCO   = Spc(I,J,L,16) * STTCO
-
-         ! DENS is the number density of air [molec air/cm3]
-         DENS  = AD(I,J,L) * 1000.e+0_fp   /
-     &           BOXVL     * AVO  / AIRMW
-
-         ! Cosine of the solar zenith angle [unitless]
-         SUNCOS = State_Met%SUNCOSmid(I,J)
-
-         ! Scaling factor for diurnal cycles - zero at night
-         IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
-            FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                    ( 86400.0_fp / GET_TS_CHEM() )
-         ELSE
-            FAC_DIURNAL = 0.0_fp
-         ENDIF
-
-         ! Now impose a diurnal cycle on OH.
-         ! This is done in other offline simulations but was
-         ! missing from tagged CO (jaf, 3/12/14)
-         !
-         ! NOTE: HEMCO brings in OH in kg/m3, so we need to also
-         ! apply a conversion to molec/cm3 here. (bmy, 10/12/16)
-         OH_MOLEC_CM3 = ( OH(I,J,L) * kgm3_to_mcm3OH ) * FAC_DIURNAL
-
-         ! Make sure OH is not negative
-         OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
-
-         ! Also impose diurnal cycle on P(CO) from CH4, NMVOC
-         IF ( LPCO_CH4 ) THEN
-
-            ! OLD: HEMCO brings in PCO in kg/m3, so we need to also
-            ! apply a conversion to molec/cm3/s 
-            ! NEW: Now use the online claculated CH4 from OH
-            ! Units in kg CH4, so convert first to kg CO
-            ! use AIRVOL to get kg/m3
-            ! Remove the FAC_DIURNAL since it is now applied
-            ! to the OH used for CH4 directly , (bb 2019)
-            PCO_CH4_MCM3S = CH4_OH_TROP(I,J,L) 
-     &                      * XNUMOL_CH4 / XNUMOL_CO
-     &                      / AIRVOL(I,J,L)
-     &                      * kgm3_to_mcm3sCO
-
-            ! Make sure PCO_CH4 is not negative
-            PCO_CH4_MCM3S = MAX( PCO_CH4_MCM3S, 0e+0_fp )
-
-
-         ENDIF
-
-         IF ( LPCO_NMVOC ) THEN
-
-            ! HEMCO brings in PCO in kg/m3/s, so we need to also
-            ! apply a conversion to molec/cm3/s 
-            PCO_NMVOC_MCM3S = PCO_NMVOC(I,J,L) * kgm3_to_mcm3sCO *
-     &                            FAC_DIURNAL
-
-            ! Make sure PCO_NMVOC is not negative
-            PCO_NMVOC_MCM3S = MAX( PCO_NMVOC_MCM3S, 0e+0_fp )
-
-         ENDIF
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
          !==============================================================
 
+         ! -- Now in KPP -- MSL
          ! Initialize
-         CO_CH4 = 0e+0_fp
 
-         ! Test level for stratosphere or troposphere
-         IF ( State_Met%InStratosphere(I,J,L) ) THEN
+!>>>>            ! Use rates saved from full chemistry
+!>>>>            IF ( LPCO_CH4 ) THEN
+!>>>>
+!>>>>               ! Diurnal cycle & unit conversion applied above
+!>>>>               ! Multiply by DTCHEM to convert to [molec CO/cm3]
+!>>>>               CO_CH4 = PCO_CH4_MCM3S * DTCHEM
+!>>>>
+!>>>>            ! Original behaviour based on latitude bands
+!>>>>            ELSE
+!>>>>
+!>>>>               ! CH4 concentration [ppbv] for the given latitude band 
+!>>>>                ! (bmy, 1/2/01)
+!>>>>               CH4 = A3090S
+!>>>>               IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
+!>>>>               IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
+!>>>>               IF ( YMID >=  30.0                   ) CH4 = A3090N
+!>>>>
+!>>>>               ! Convert CH4 from [ppbv] to [molec CH4/cm3]
+!>>>>               CH4 = CH4 * 1e-9_fp * DENS
+!>>>>
+!>>>>               ! Calculate updated rate constant [s-1] (bnd, bmy,
+!>>>>               ! 1/2/01)
+!>>>>               KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) )
+!>>>>
+!>>>>               ! Production of CO from CH4 = alpha * k * [CH4] * [OH] *
+!>>>>               ! dt 
+!>>>>               ! Units are [molec CO/cm3]
+!>>>>               CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM
+!>>>>
+!>>>>            ENDIF
 
-            !===========================================================
-            ! (1a-1) Production of CO from CH4 in the stratosphere 
-
-            ! Call GET_PCO_LCO_STRAT to get the P(CO) rate from CH4
-            CH4RATE = GMI_PROD_CO(I,J,L)
-           
-            ! Convert units of CH4RATE from [v/v/s] to [molec CO/cm3]
-            CO_CH4  = CH4RATE * DTCHEM * DENS
-
-         ELSE
-
-            !===========================================================
-            ! (1a-2) Production of CO from CH4 in the troposphere 
-            !===========================================================
-
-            ! CH4 concentration from HEMCO [ppbv]
-            CH4 = SFC_CH4(I,J)
-
-            ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-            CH4 = CH4 * 1e-9_fp * DENS
-
-            ! Use rates saved from full chemistry
-            IF ( LPCO_CH4 ) THEN
-
-               ! Diurnal cycle & unit conversion applied above
-               ! Multiply by DTCHEM to convert to [molec CO/cm3]
-               CO_CH4 = PCO_CH4_MCM3S * DTCHEM
-
-            ! Original behaviour based on latitude bands
-            ELSE
-
-               ! CH4 concentration [ppbv] for the given latitude band 
-                ! (bmy, 1/2/01)
-               CH4 = A3090S
-               IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-               IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-               IF ( YMID >=  30.0                   ) CH4 = A3090N
-
-               ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-               CH4 = CH4 * 1e-9_fp * DENS
-
-               ! Calculate updated rate constant [s-1] (bnd, bmy,
-               ! 1/2/01)
-               KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) )
-
-               ! Production of CO from CH4 = alpha * k * [CH4] * [OH] *
-               ! dt 
-               ! Units are [molec CO/cm3]
-               CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM
-
-            ENDIF
-
-         ENDIF
-
-         ! Check CO_CH4 for NaN or Infinity
-         ERR_LOC = (/ I, J, L, 0 /)
-         ERR_VAR = 'CO_CH4'
-         ERR_MSG = 'STOP at tagged_co_mod:1'
-         CALL CHECK_VALUE( CO_CH4, ERR_LOC, ERR_VAR, ERR_MSG )
-
-         ! Use rates saved from full chemistry
-         IF ( LPCO_NMVOC) THEN
             !===========================================================
             ! (1b) Production of CO from NMVOCs (all but CH4)
             !===========================================================
 
-            ! Initialize
-            CO_NMVOC = 0e+0_fp
-
-            ! CO production only happens in the troposphere. However,
-            ! this is already taken into account in the input files,
-            ! which are filled with zeros above the flexchem levels.
-
-            ! Diurnal cycle & unit conversion applied above
-            ! Multiply by DTCHEM to convert to [molec CO/cm3]
-            CO_NMVOC = PCO_NMVOC_MCM3S * DTCHEM
-
-            ! Make sure it is not negative
-            CO_NMVOC = MAX( CO_NMVOC, 0e+0_fp )
-
-            ! Check CO_NMVOC for NaN or Infinity
-            ERR_LOC = (/ I, J, L, 0 /)
-            ERR_VAR = 'CO_NMVOC'
-            ERR_MSG = 'STOP at tagged_co_mod:1'
-            CALL CHECK_VALUE( CO_NMVOC, ERR_LOC, ERR_VAR, ERR_MSG )
-
-           ! Set individual VOC contributions to zero to avoid
-           ! diagnostic problems
-           CO_ISOP  = 0e+0_fp
-           CO_CH3OH = 0e+0_fp
-           CO_ACET  = 0e+0_fp
-           CO_MONO  = 0e+0_fp
+            ! -- Now in KPP. -- MSL
 
          ! Otherwise use original behaviour
-         ELSE
-            !===========================================================
-            ! (1b) Production of CO from ISOPRENE and METHANOL (CH3OH)
-            !===========================================================
-
-            ! Initialize
-            CO_ISOP  = 0e+0_fp
-            CO_CH3OH = 0e+0_fp
-
-            ! Isoprene is emitted only into the surface layer 
-            IF ( L == 1 ) THEN
-
-               !========================================================
-               ! Yield of CO from ISOP: 30%, from Miyoshi et al., 1994.
-               ! They estimate globally 105 Tg C/yr of CO is produced 
-               ! from isoprene oxidation. 
-               !--------------------------------------------------------
-               ! We need to scale the Isoprene flux to get the CH3OH 
-               ! (methanol) flux.  Currently, the annual isoprene flux
-               ! in 
-               ! GEOS-CHEM is ~ 397 Tg C.
-               !
-               ! Daniel Jacob recommends a flux of 100 Tg/yr CO from
-               ! CH3OH 
-               ! oxidation based on Singh et al. 2000 [JGR 105,
-               ! 3795-3805] 
-               ! who estimate a global methanol source of 122 Tg yr-1,
-               ! of 
-               ! which most (75 Tg yr-1) is "primary biogenic".  He also 
-               ! recommends for now that the CO flux from CH3OH
-               ! oxidation 
-               ! be scaled to monthly mean isoprene flux.
-               !
-               ! To get CO from METHANOL oxidation, we must therefore 
-               ! multiply the ISOPRENE flux by the following scale
-               ! factor:
-               !  ( 100 Tg CO / 397 Tg C ) * ( 12 g C/mole / 28 g
-               !  CO/mole )
-               !-----------------------------------------------------------
-               ! We now call GET_ALPHA_ISOP to get the yield factor of
-               ! CO produced from isoprene, as a function of NOx, or
-               ! as a constant. (bnd, bmy, 6/14/01)
-               !=======================================================
-
-               !--------------------------------------------------------
-               ! Prior to 10/11/18:
-               ! Disable this routine for now, to avoid a call
-               ! to ERROR_STOP within a parallel loop.  We currently
-               ! set ALPHA_ISOP to a constant value anyway.
-               ! (bmy, 10/11/18)
-               !! Get CO yield from isoprene
-               !ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-               !--------------------------------------------------------
-
-               ! Get CO yield from ISOPRENE
-               ! Use a 30% yield from Miyoshi et al., 1994.
-               ! They estimate globally 105 Tg C/yr of CO is produced
-               ! from isoprene oxidation.
-               ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec
-               ! ISOP)
-               ALPHA_ISOP = 1.5e+0_fp
-
-               ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
-               ! Convert from [molec ISOP/box] to [molec CO/cm3]
-               !
-               ! Units of SUMISOPCO are [atoms C/box/time step]. 
-               ! Division by 5 is necessary to convert to 
-               ! [molec ISOP/box/timestep].
-               !
-               ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
-               ! Units of CO_ISOP are [molec CO/cm3]
-               CO_ISOP  = SUMISOPCO(I,J)   / BOXVL
-     &                  / 5.0_fp           * ALPHA_ISOP
-
-               ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
-               ! Units are [molec CO/cm3]
-               CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL    )
-     &                  * ( 100.0_fp       / 397.0_fp )
-     &                  * ( 12.0_fp        / 28.0_fp  )
-
-               ! Zero SUMISOPCO and SUMCH3OHCO for the next emission
-               ! step
-               SUMISOPCO(I,J)  = 0e+0_fp
-               SUMCH3OHCO(I,J) = 0e+0_fp
-
-               ! Check CO_ISOP for NaN or Infinity
-               ERR_LOC = (/ I, J, L, 0 /)
-               ERR_VAR = 'CO_ISOP'
-               ERR_MSG = 'STOP at tagged_co_mod:2'
-               CALL CHECK_VALUE( CO_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
-
-               ! Check CO_CH3OH for NaN or Infinity
-               ERR_VAR = 'CO_CH3OH'
-               ERR_MSG = 'STOP at tagged_co_mod:3'
-               CALL CHECK_VALUE( CO_CH3OH, ERR_LOC, ERR_VAR, ERR_MSG )
-            ENDIF
-
-            !===========================================================
-            ! (1c) Production of CO from MONOTERPENE oxidation
-            !===========================================================
-
-            ! Initialize
-            CO_MONO = 0.e+0_fp
-
-            ! Monoterpenes are emitted only into the surface layer
-            IF ( L == 1 ) THEN
-
-               !=======================================================
-               ! Assume the production of CO from monoterpenes is 
-               ! instantaneous even though the lifetime of intermediate 
-               ! species may be on the order of hours or days.  This 
-               ! assumption will likely cause CO from monoterpene 
-               ! oxidation to be too high in the box in which the 
-               ! monoterpene is emitted.
-               !-------------------------------------------------------
-               ! The CO yield here is taken from:
-               !   Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
-               !   Vinckier et al. Fresenius Env. Bull., Vol. 7,
-               !   p.361-368 
-               !     (1998)
-               !
-               ! Hatakeyama:  "The ultimate yield of CO from the 
-               !   tropospheric oxidation of terpenes (including both O3 
-               !   and OH reactions) was estimated to be 20% on the
-               !   carbon 
-               !   number basis."  They studied ALPHA- & BETA-pinene.
-               !
-               ! Vinckier  :  "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
-               !--------------------------------------------------------
-               ! Calculate source of CO per time step from monoterpene 
-               ! flux (assume lifetime very short) using the C number
-               ! basis:
-               !
-               !   CO [molec CO/cm3] = Flux [atoms C from MONO/box] /
-               !                       Grid Box Volume [cm^-3]       *
-               !                       ALPHA_MONO 
-               !
-               ! where ALPHA_MONO = 0.2 as explained above.
-               !========================================================
-
-               ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
-               ! Units are [molec CO/cm3]
-               CO_MONO = ( SUMMONOCO(I,J) / BOXVL ) * ALPHA_MONO
-
-               ! Zero SUMMONOCO for the next emission step
-               SUMMONOCO(I,J) = 0e+0_fp
-
-               ! Check CO_MONO for NaN or Infinity
-               ERR_LOC = (/ I, J, L, 0 /)
-               ERR_VAR = 'CO_MONO'
-               ERR_MSG = 'STOP at tagged_co_mod:4'
-               CALL CHECK_VALUE( CO_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
-            ENDIF
-
-            !===========================================================
-            ! (1d) Production of CO from oxidation of ACETONE 
-            !
-            ! ALPHA_ACET = 2/3 to get a yield for CO.  This accounts 
-            ! for acetone loss from reaction with OH And photolysis.  
-            ! The acetone sources taken into account are:
-            ! 
-            ! (a) Primary emissions of acetone from biogenic sources
-            ! (b) Secondary production of acetone from monoterpene 
-            !      oxidation
-            ! (c) Secondary production of acetone from ALK4 and 
-            !      propane oxidation
-            ! (d) Direct emissions of acetone from biomass burning and 
-            !      fossil fuels
-            ! (e) direct emissions from ocean
-            !
-            ! Calculate source of CO per time step from biogenic acetone 
-            ! # molec CO/cc = ALPHA * ACET Emission Rate * dt
-            !===========================================================
-
-            ! Initialize
-            CO_ACET = 0.e+0_fp
-
-            ! Biogenic acetone sources are emitted only into the surface
-            ! layer
-            IF ( L == 1 ) THEN
-
-               ! Units are [molec CO/cc]
-               CO_ACET = SUMACETCO(I,J) / BOXVL * ALPHA_ACET
-
-               ! Zero SUMACETCO for the next emission step
-               SUMACETCO(I,J) = 0e+0_fp
-
-               ! Check CO_ACET for NaN or Infinity
-               ERR_LOC = (/ I, J, L, 0 /)
-               ERR_VAR = 'CO_ACET'
-               ERR_MSG = 'STOP at tagged_co_mod:5'
-               CALL CHECK_VALUE( CO_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
-            ENDIF
-
-            ! Add individual NMVOC contributions together to get total
-            ! NMVOC contribution
-            CO_NMVOC = CO_ISOP + CO_CH3OH + CO_MONO + CO_ACET
-
-         ENDIF !Saved rates vs surface fluxes
-
-         !==============================================================
-         ! (1e) Add production of CO into the following tagged species:
-         !
-         ! (a) Species #12: CO produced from CH4
-         ! (a) Species #13: CO produced from NMVOC
-         ! (b) Species #14: CO produced from ISOPRENE - old only
-         ! (c) Species #15: CO produced from MONOTERPENES - old only
-         ! (d) Species #16: CO produced from METHANOL (CH3OH) - old only
-         ! (e) Species #17: CO produced from ACETONE - old only
-         !
-         ! %%% NOTE: If you are modifying the tagged CO simulation, 
-         ! %%% and your simulation has less than 12 species, then 
-         ! %%% then comment out this section.  If you don't you can
-         ! %%% get an array-out-of-bounds error (bmy, 6/11/08)
-         !==============================================================
-         IF ( LSPLIT ) THEN
-            IF ( IDch4 >= 0 )
-     &         Spc(I,J,L,IDch4) = Spc(I,J,L,IDch4) + CO_CH4   / STTCO
-            IF ( IDnmvoc >= 0 )
-     &         Spc(I,J,L,IDnmvoc) = Spc(I,J,L,IDnmvoc) + CO_NMVOC /STTCO
-            IF (.not. LPCO_NMVOC) THEN
-               IF ( IDisop >= 0 )
-     &            Spc(I,J,L,IDisop) = Spc(I,J,L,IDisop) + CO_ISOP /STTCO
-               IF ( IDmono >= 0 )
-     &            Spc(I,J,L,IDmono) = Spc(I,J,L,IDmono) + CO_MONO /STTCO
-               IF ( IDch3oh >= 0 )
-     &            Spc(I,J,L,IDch3oh) = Spc(I,J,L,IDch3oh)+CO_CH3OH/STTCO
-               IF ( IDacet >= 0 )
-     &            Spc(I,J,L,IDacet) = Spc(I,J,L,IDacet) + CO_ACET /STTCO
-            ENDIF
-         ENDIF
+         ! NOT IN KPP -- MSL
 
          !==============================================================
          ! (2a) Loss of CO due to chemical reaction w/ OH
          !==============================================================
-         ! Select out tropospheric or stratospheric boxes
-         IF ( State_Met%InStratosphere(I,J,L) ) THEN
 
-            !===========================================================
-            ! (2a-1) Stratospheric loss of CO due to chemical rxn w/ OH
-            !===========================================================
-
-            ! Get the L(CO) rate in the stratosphere in [s-1]
-            CORATE  = GMI_LOSS_CO(I,J,L)
-
-            ! CO_OH is the fraction of CO lost to OH [unitless]
-            CO_OH   = CORATE * DTCHEM
-
-            ! Check CO_OH for NaN or Infinity
-            ERR_LOC = (/ I, J, L, 0 /)
-
-            ERR_VAR = 'CO_OH'
-            ERR_MSG = 'STOP at tagged_co_mod:6'
-            CALL CHECK_VALUE( CO_OH, ERR_LOC, ERR_VAR, ERR_MSG )
-
-            ! Handle strat loss by OH for regional CO species
-            IF ( LSPLIT ) THEN
-
-               ! Loop over regional CO species, but exclude CO2
-               DO NA = 16, nAdvect-11
-
-                  ! Advected species ID
-                  N            = State_Chm%Map_Advect(NA)
-
-                  !------------------------------------------------------
-                  ! NOTE: The proper order should be:
-                  !   (1) Calculate CO loss rate
-                  !   (2) Update AD65 array
-                  !   (3) Update the SPC array using the loss rate
-                  ! 
-                  ! Therefore, we have now moved the computation of the
-                  ! ND65 diagnostic before we apply the loss to the 
-                  ! tagged CO concentrations stored in the SPC array.
-                  !
-                  !    -- Jenny Fisher (27 Mar 2017)
-                  !
-                  !------------------------------------------------------
+         ! -- Now in KPP. -- MSL
 
 #if defined( BPCH_DIAG )
                   !-----------------------------------------------------
@@ -1759,32 +1353,6 @@ C
                   ENDIF
 #endif
 
-                  ! Loss
-                  Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
-
-                  ! Species shouldn't be less than zero
-                  IF ( Spc(I,J,L,N) < 0.0_fp ) THEN
-                     Spc(I,J,L,N) = 0.0_fp
-                  ENDIF
-
-                  ! Error check
-                  ERR_LOC = (/ I, J, L, N /)
-                  ERR_VAR = 'Spc (points to State_Chm%Species)'
-                  ERR_MSG = 'STOP at tagged_co_mod:7'
-                  CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
-     &                              ERR_VAR,      ERR_MSG )
-
-               ENDDO
-            ENDIF
-
-            ! CO_OH above is just the fraction of CO lost by OH.  Here
-            ! we multiply it by GCO (the initial value of Spc in
-            ! molec/cm3)
-            ! to convert it to an amount of CO lost by OH [molec/cm3]
-            ! (bmy, 2/19/02)
-            CO_OH = GCO * CO_OH
-
-         ELSE
 
             !===========================================================
             ! (2a-2) Tropospheric loss of CO due to chemical rxn w/ OH
@@ -1820,35 +1388,7 @@ C
             !     A2 = 1.5e-13, B2 = 0.,     A3 = 2.1e09,  B3 = -6.1e0 )
             !===========================================================
 
-            ! Decay rate
-            ! NOTE: This code is nearly identical to function GC_OHCO
-            !  found in KPP/Standard/gckpp_Rates.F90)
-            ! new JPL 2006 version (jaf, 3/4/09)
-            ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1   = 5.9e-33_fp * ( 300 / T(I,J,L) )**(1.e+0_fp)
-            ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1   = 1.1e-12_fp * ( 300 / T(I,J,L) )**(-1.3e+0_fp)
-            XYRAT1 = KLO1 * DENS / KHI1
-            BLOG1  = LOG10(XYRAT1)
-            FEXP1  = 1.e+0_fp / ( 1.e+0_fp + BLOG1 * BLOG1 )
-            ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
-            KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.e+0_fp + XYRAT1 )
-            ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2   = 1.5e-13_fp * ( 300 / T(I,J,L) )**(0.e+0_fp)
-            ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2   = 2.1e+09_fp * ( 300 / T(I,J,L) )**(-6.1e+0_fp)
-            XYRAT2 = KLO2 * DENS / KHI2
-            BLOG2  = LOG10(XYRAT2)
-            FEXP2  = 1.e+0_fp / ( 1.e+0_fp + BLOG2 * BLOG2 )
-            ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
-            KCO2   = KLO2 * 0.6**FEXP2 / ( 1.e+0_fp + XYRAT2 )
-
-            ! KRATE is the sum of the two.
-            KRATE  = KCO1 + KCO2
-
-            ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
-            ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.
-            CO_OH = KRATE * GCO * OH_MOLEC_CM3 * DTCHEM
+            ! -- Now in KPP -- MSL
 
             ! Handle trop loss by OH for regional CO species
             IF ( LSPLIT ) THEN
@@ -1901,46 +1441,17 @@ C
                   ENDIF
 #endif
 
-                  ! Use tropospheric rate constant 
-                  Spc(I,J,L,N) = Spc(I,J,L,N) *
-     &                 ( 1e+0_fp - KRATE * OH_MOLEC_CM3 * DTCHEM )
-
-                  ! Error check
-                  ERR_LOC = (/ I, J, L, N /)
-                  ERR_VAR = 'Spc (points to State_Chm%Species)'
-                  ERR_MSG = 'STOP at tagged_co_mod:8'
-                  CALL CHECK_VALUE( Spc(I,J,L,N), ERR_LOC,
-     &                              ERR_VAR,      ERR_MSG )
                ENDDO
             ENDIF
-
-         ENDIF
-
-         !==============================================================
-         ! Save the total chemical production from various sources
-         ! into the total CO species Spc(I,J,L,1)
-         !==============================================================
-
-         ! GCO is the total CO before chemistry was applied [molec
-         ! CO/cm3]
-         ! Add to GCO the sources and sinks listed above
-         GCO = GCO + CO_CH4 + CO_NMVOC - CO_OH
-         ! Convert net CO from [molec CO/cm3] to [kg] and store in
-         ! State_Chm%Species
-         Spc(I,J,L,16) = GCO / STTCO
 
          !==============================================================
          ! Calculate the chemical production of CO2
          ! based on the CO loss by OH
          !==============================================================
 
-         IF ( Input_Opt%LCHEMCO2 ) THEN
+         ! -- Now in KPP -- MSL
 
-            ! Production is in [molec CO/cm3], convert to [molec/cm2/s]
-            ! 1 molec CO = 1 molec CO2 (bb 2019)
-            E_CO2 = CO_OH    !molecCO/cm3
-     &            / DTCHEM   !=>molec/cm3/s
-     &            *State_Met%BXHEIGHT(I,J,L) * 100   !=>molec/cm2/s
+         IF ( Input_Opt%LCHEMCO2 ) THEN
 
 #if defined( BPCH_DIAG )
             !==========================================================
@@ -1967,26 +1478,6 @@ C
             ENDIF
 #endif
 
-            ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
-            ! (ewl, 9/11/15)
-            E_CO2  =  E_CO2 * DTCHEM * CM2PERM2 /
-     &                ( XNUMOL_CO2 * State_Met%DELP(I,J,L)
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )
-
-
-            ! Spc array has been converted to kg for all species, inc.                                                        
-            ! CO2 when joint simulation is used. So convert E_CO2 from                                                        
-            ! kg/kg dry air to kg (jaf, bb 2019)
-            E_CO2 = E_CO2 * AD(I,J,L)
-
-            ! Add to Species #1: Total CO2 [kg/kg]
-            Spc(I,J,L,29) = Spc(I,J,L,29) + E_CO2
-
-            ! Add to Species #10: Chemical Source of CO2 [kg/kg]
-            !IF ( nAdvect > 22 ) THEN
-            Spc(I,J,L,38) = Spc(I,J,L,38) + E_CO2
-            !ENDIF
          ENDIF
 #if defined( BPCH_DIAG )
          !==============================================================
@@ -2072,251 +1563,6 @@ C
       FIRSTCHEM = .FALSE.
 
       END SUBROUTINE CHEM_CH4COCO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ch4_decay
-!
-! !DESCRIPTION: Subroutine CH4\_DECAY calculates the decay rate of CH4 by OH.
-!  OH is the only sink for CH4 considered here. (jsw, bnd, bmy, 1/16/01,
-!  7/20/04)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CH4_DECAY_CH4COCO2( am_I_Root, Input_Opt,  State_Met, 
-     &                      State_Chm, State_Diag, RC         )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD19   	      
-#endif
-      USE ErrCode_Mod
-      USE Input_Opt_Mod,  ONLY : OptInput
-      USE State_Chm_Mod,  ONLY : ChmState
-      USE State_Diag_Mod, ONLY : DgnState
-      USE State_Met_Mod,  ONLY : MetState
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TIME_MOD,       ONLY : GET_MONTH
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REMARKS:
-!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
-!  if box (I,J,L) is in the troposphere or stratosphere.
-!                                                                             .
-!  Monthly loss of CH4 is summed in TCH4(3)
-!     TCH4(3)  = CH4 sink by OH
-! 
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_DECAY is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
-!                              code out with #ifdef blocks so it can be used)
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  16 Jun 2017 - M. Sulprizio- Add loss of CH4 by Cl
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER           :: I,  J,    L
-      REAL(fp)          :: DT, GCH4, Spc2GCH4
-      REAL(fp)          :: KRATE, C_OH, FAC_DIURNAL, SUNCOS
-      REAL(fp)          :: KRATE_Cl, C_Cl
-
-      ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
-
-      !=================================================================
-      ! CH4_DECAY begins here!
-      !=================================================================
-      ! Assume success
-      RC = GC_SUCCESS
-
-      ! Chemistry timestep in seconds
-      DT = GET_TS_CHEM()
-
-      ! Point to the chemical species array
-      Spc => State_Chm%Species
-
-#if defined( NC_DIAG )
-      !=================================================================
-      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-      !
-      ! Zero the relevant diagnostic fields of State_Diag because the 
-      ! position of the tropopause changes from one timestep to the next
-      !=================================================================
-      IF ( State_Diag%Archive_LossCH4byClinTrop ) THEN
-         State_Diag%LossCH4byClinTrop = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_LossCH4byOHinTrop ) THEN
-         State_Diag%LossCH4byOHinTrop = 0.0_f4
-      ENDIF
-#endif
-
-      !=================================================================
-      ! Compute decay of CH4 by OH and Cl in the troposphere
-      !
-      ! The decay for CH4 is calculated by:
-      !    OH + CH4 -> CH3 + H2O 
-      !    k = 2.45E-12 exp(-1775/T)
-      !
-      !    This is from JPL '97.
-      !    JPL '00, '06, & '11 do not revise '97 value. (jsw, kjw, ajt)
-      !
-      ! The decay for CH4 by Cl is calculated by:
-      !    Cl + CH4 -> HCl + CH3
-      !    k = 9.6E-12 exp(-1360/T)
-      !
-      !    This is from Kirschke et al., Nat. Geosci., 2013.
-      !=================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, C_OH )
-!$OMP+PRIVATE( C_Cl, KRATE_Cl,FAC_DIURNAL, SUNCOS )
-!$OMP+REDUCTION( +:TROPOCH4 )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Only consider tropospheric boxes
-         IF ( State_Met%InChemGrid(I,J,L) ) THEN
-
-            ! Calculate rate coefficients
-            KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp /
-     &                                    State_Met%T(I,J,L))
-            KRATE_Cl = 9.60e-12_fp * EXP( -1360e+0_fp /
-     &                                    State_Met%T(I,J,L))
-
-            ! Conversion from [kg/box] --> [molec/cm3]
-            ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-            Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp 
-     &                 * XNUMOL_CH4 
-
-            ! CH4 in [molec/cm3]
-            GCH4 = Spc(I,J,L,1) * Spc2GCH4
-
-            ! Cosine of the solar zenith angle [unitless]
-            SUNCOS = State_Met%SUNCOSmid(I,J)
-
-            ! Scaling factor for diurnal cycles - zero at night
-            IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
-               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                       ( 86400.0_fp / DT )
-            ELSE
-               FAC_DIURNAL = 0.0_fp
-            ENDIF
-
-            ! OH in [molec/cm3]
-            ! BOH is imported from HEMCO in units of kg/m3, convert
-            !  here to molec/cm3 (ckeller, 9/16/2014)
-            C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
-
-            ! Cl in [molec/cm3]
-            ! BCl is imported from HEMCO in units of ppbv, convert
-            !  here to molec/cm3 (mps, 6/16/2017)
-            C_Cl = BCl(I,J,L) * BAIRDENS(I,J,L) * 1e-9_fp
-
-            TROPOCH4=TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4
-     &                        + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
-
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! %%%%% ND19 (bpch) diagnostic %%%%%
-            !
-            ! (1) How much CH4 (kg) is lost by reaction with OH
-            ! (3) How much CH4 (kg) is lost by reaction with Cl
-            !-----------------------------------------------------------
-            IF ( ND19 > 0 ) THEN
-               IF ( L <= LD19 ) THEN
-                  AD19(I,J,L,1) = AD19(I,J,L,1) + 
-     &                 ( GCH4 * KRATE    * C_OH * DT ) / Spc2GCH4
-
-                  AD19(I,J,L,3) = AD19(I,J,L,3) + 
-     &                 ( GCH4 * KRATE_Cl * C_Cl * DT ) / Spc2GCH4
-
-               ENDIF
-            ENDIF
-#endif
-
-#if defined( NC_DIAG )
-            !-----------------------------------------------------------
-            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-            !
-            ! Archive Loss of CH4 (kg/s) reactions with OH and Cl
-            !-----------------------------------------------------------       
-
-            ! Loss CH4 by reaction with Cl [kg/s]
-            IF ( State_Diag%Archive_LossCH4byClinTrop ) THEN
-               State_Diag%LossCH4byClinTrop(I,J,L) = 
-     &            ( GCH4 * KRATE_Cl * C_Cl ) / Spc2GCH4
-            ENDIF
-
-            IF ( State_Diag%Archive_LossCH4byOHinTrop ) THEN
-               State_Diag%LossCH4byOHinTrop(I,J,L) = 
-     &            ( GCH4 * KRATE * C_OH ) / Spc2GCH4
-            ENDIF
-#endif
-
-            ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
-            GCH4 = GCH4 * ( 1e+0_fp - KRATE    * C_OH * DT )
-            GCH4 = GCH4 * ( 1e+0_fp - KRATE_Cl * C_Cl * DT )
-
-            ! Convert back from [molec/cm3] --> [kg/box]
-            Spc(I,J,L,1) = GCH4 / Spc2GCH4
-
-            !Write the loss into  an array, need for the CO chmistry 
-            !Unit kg CH4 (bb 2019)
-            CH4_OH_TROP(I,J,L)=( GCH4 * KRATE * C_OH * DT ) / Spc2GCH4
-
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-!      print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
-!      print*,'Trop decay should be over 1Tg per day globally'
-!      print*,'    ~ 500Tg/365d ~ 1.37/d'
-
-      ! Free pointers
-      Spc => NULL()
-
-      END SUBROUTINE CH4_DECAY_CH4COCO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2428,10 +1674,10 @@ C
             C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
 
             ! Calculate OH mass [molec / box]
-            OHMASS = C_OH * BAIRDENS(I,J,L) * BOXVL
+            OHMASS = C_OH * State_Met%AIRNUMDEN(I,J,L) * BOXVL
 
             ! Calculate total air mass [molec / box]
-            MASST  = BAIRDENS(I,J,L) * BOXVL
+            MASST  = State_Met%AIRNUMDEN(I,J,L) * BOXVL
 
             ! Calculate CH3CCl3 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
@@ -2439,7 +1685,7 @@ C
 
             ! Calculate Loss term [molec / box / s]
             LOSS   = KCLO            * C_OH  *
-     &               BAIRDENS(I,J,L) * BOXVL
+     &               State_Met%AIRNUMDEN(I,J,L) * BOXVL
 
 
             ! Calculate CH4 + OH rate constant from JPL '06
@@ -2452,7 +1698,7 @@ C
 
             ! Calculate loss term  [molec /box / s]
             CH4LOSE = KCH4            * C_OH  *
-     &                BAIRDENS(I,J,L) * BOXVL
+     &                State_Met%AIRNUMDEN(I,J,L) * BOXVL
 
             ! Calculate CH4 emissions [molec / box / s]
             !   Only for surface level
@@ -2496,191 +1742,6 @@ C
       Spc => NULL()
 
       END SUBROUTINE CH4_OHSAVE_CH4COCO2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ch4_strat
-!
-! !DESCRIPTION: Subroutine CH4\_STRAT calculates uses production rates for CH4
-!  to  calculate loss of CH4 in above the tropopause. (jsw, bnd, bmy, 1/16/01,
-!  7/20/04)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CH4_STRAT_CH4COCO2( am_I_Root, Input_Opt,  State_Met, 
-     &                      State_Chm, State_Diag, RC         )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD19
-#endif
-      USE ErrCode_Mod
-      USE Input_Opt_Mod,  ONLY : OptInput
-      USE State_Chm_Mod,  ONLY : ChmState
-      USE State_Diag_Mod, ONLY : DgnState
-      USE State_Met_Mod,  ONLY : MetState
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  Production (mixing ratio/sec) rate provided by Dylan Jones.  
-!  Only production by CH4 + OH is considered.
-!                                                                             .
-!  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
-!  if box (I,J,L) is in the troposphere or stratosphere.
-!
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_STRAT is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Removed LMN from the arg list and made it a local variable.  Now use 
-!        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  14 Dec 2017 - M. Sulprizio- Parallelize DO loop
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER           :: I,  J,    L
-      REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
-
-      ! Local variables for quantities from Input_Opt
-      LOGICAL           :: LUCX
-
-      ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
-
-      !=================================================================
-      ! CH4_STRAT begins here!
-      !=================================================================
-      ! Assume success
-      RC                  =  GC_SUCCESS
-
-      ! Copy fields from INPUT_OPT
-      LUCX                =  Input_Opt%LUCX
-
-      ! Point to chemical species
-      Spc                 => State_Chm%Species
-
-      ! If unified chemistry is active, ignore all of this
-      IF ( .not. LUCX ) THEN
-
-#if defined( NC_DIAG )
-         !==============================================================
-         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-         !
-         ! Zero the relevant diagnostic fields of State_Diag because 
-         ! the position of the tropopause changes from one timestep 
-         ! to the next
-         !==============================================================
-         IF ( State_Diag%Archive_LossCH4inStrat ) THEN
-            State_Diag%LossCH4inStrat = 0.0_f4
-         ENDIF
-#endif
-
-         ! Chemistry timestep [s]
-         DT  = GET_TS_CHEM()
-
-         !=================================================================
-         ! Loop over stratospheric boxes only
-         !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, Spc2GCH4, GCH4, LRATE )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Only proceed if we are outside of the chemistry grid
-            IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
-
-               ! Conversion factor [kg/box] --> [molec/cm3]
-               ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
-               Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp *
-     &                    XNUMOL_CH4
-
-               ! CH4 in [molec/cm3]
-               GCH4 = Spc(I,J,L,1) * Spc2GCH4
-
-               ! Loss rate [molec/cm3/s]
-               LRATE = GCH4 * CH4LOSS( I,J,L )
-
-               ! Update Methane concentration in this grid box [molec/cm3]
-               GCH4 = GCH4 - ( LRATE * DT )
-
-               ! Convert back from [molec CH4/cm3] --> [kg/box] 
-               Spc(I,J,L,1) = GCH4 / Spc2GCH4
-
-#if defined( BPCH_DIAG )
-               !------------------------------------------------------------
-               ! %%%%% ND19 (bpch) diagnostic %%%%%
-               !
-               ! Loss of CH4 by OH above tropopause [kg]
-               !------------------------------------------------------------
-               IF ( ND19 > 0 ) THEN ! --> [kg/box]
-                  AD19(I,J,L,2) = AD19(I,J,L,2) +
-     &	                          ( LRATE * DT ) / Spc2GCH4
-               ENDIF
-#endif
-
-#if defined( NC_DIAG )
-               !------------------------------------------------------------
-               ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
-               !
-               ! Loss of CH4 by OH above tropopause [kg/s]
-               !------------------------------------------------------------
-               IF ( State_Diag%Archive_LossCH4inStrat ) THEN
-                  State_Diag%LossCH4inStrat(I,J,L) = LRATE / Spc2GCH4
-               ENDIF
-#endif
-
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-      ENDIF ! not LUCX (SDE 03/25/13)
-
-      ! Free pointer
-      Spc => NULL()
-
-      END SUBROUTINE CH4_STRAT_CH4COCO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2776,7 +1837,7 @@ C
 !
 ! !IROUTINE: calc_diurnal
 !
-! !DESCRIPTION: Subroutine CALC\_DIRUNAL computes the sume of the cosine
+! !DESCRIPTION: Subroutine CALC\_DIRUNAL computes the sum of the cosine
 !  of the solar zenith angle over a 24 hour day as well as the total
 !  length of daylight to scale the offline OH concentrations.
 !\\
@@ -3239,24 +2300,31 @@ C
 
 ! Species
         ! molec/cm3
-        C(ind_CH4)     = State_Chm%Species(I,J,L,1) &
+        C(ind_CH4)      = State_Chm%Species(I,J,L,1) &
              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
-        C(ind_CO)      = State_Chm%Species(I,J,L,Ind('CO')) &
+        C(ind_CO)       = State_Chm%Species(I,J,L,Ind('CO')) &
              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
-        C(ind_CH4_E)   = 1.E0 ! Dummy quantity.
-        C(ind_NMVOC_E) = 1.E0 ! Dummy quantity.
+        C(ind_CO_CH4)   = State_Chm%Species(I,J,L,Ind('COch4')) &
+             / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
+        C(ind_CO_NMVOC) = State_Chm%Species(I,J,L,Ind('COnmvoc')) &
+             / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
+        C(ind_CH4_E)    = 1.E0 ! Dummy quantity. "_E" is "external"
+        C(ind_NMVOC_E)  = 1.E0 ! Dummy quantity. "_E" is "external"
            
         IF ( State_Met%InStratosphere(I,J,L) ) THEN
-           TROPK = 0.d0
-           TROP  = 0.d0 ! Toggle
+           K_TROP = 0.d0
+           TROP   = 0.d0 ! Toggle
 
+           ! Strat Rates
+           K_STRAT(1) = CH4LOSS(I,J,L) ! 1/s
+           K_STRAT(2) = GMI_PROD_CO(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
+           K_STRAT(3) = GMI_LOSS_CO(I,J,L) ! 1/s
         ELSE ! In the trop
            ! Temperature (K)
            TEMP            = State_Met%T(I,J,L)
 
            ! Cosine of the solar zenith angle [unitless]
            SUNCOS = State_Met%SUNCOSmid(I,J)
-           
            ! Scaling factor for diurnal cycles - zero at night
            IF ( State_Met%SUNCOSmid(I,J) > 0.0_fp .and. &
                 TCOSZ(I,J) > 0.0_fp ) THEN
@@ -3266,19 +2334,50 @@ C
               FAC_DIURNAL = 0.0_fp
            ENDIF
 
+! Species
            C(ind_OH_E)    = BOH * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
-           C(ind_Cl_E)    = BCl * BAIRDENS(I,J,L) * 1e-9_fp
+           C(ind_Cl_E)    = BCl * BAIRDENS(I,J,L) * 1e-9_fp ! Should this also be scaled diurnally?
         
 ! Rates
-           STRATK = 0.d0
            ! Troposphere
-           ! CH4 + OH: This rate > 0 if in trop. Otherwise. 0
-           TROP            = 1.e0
-           TROP_NMVOC_RATE = PCO_NMVOC_MCM3S(I,J,L)
-           TOGGLE ! LPCO_CH4 TRUE = 1, FALSE = 0
-           ! Stratosphere
-           STRAT_CH4_RATE  = CH4LOSS(I,J,L)
+           K_STRAT = 0.d0
+           TROP    = 1.e0 ! Toggle
+
+           ! Trop Rates
+           K_TROP(1) = GC_OHCO()
+           K_TROP(2) = PCO_NMVOC(I,J,L) * kgm3_to_mcm3sCO * FAC_DIURNAL
         ENDIF ! In the strat/trop
+
+        CONTAINS
+
+          FUNCTION GC_OHCO() RESULT( k )
+            ! Reaction rate for:
+            !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
+            !
+            ! For this reaction, these Arrhenius law terms evaluate to 1:
+            !    (300/T)**b0 * EXP(c0/T)
+            ! because b0 = c0 = 0.  Therefore we can skip computing these
+            ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
+            !
+            REAL(dp)             :: klo1,   klo2,  khi1,    khi2
+            REAL(dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
+            REAL(dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
+            !
+            klo1   = 5.9E-33_dp * K300_OVER_TEMP
+            khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
+            xyrat1 = klo1 * NUMDEN / khi1
+            blog1  = LOG10( xyrat1 )
+            fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
+            kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
+            klo2   = 1.5E-13_dp
+            khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
+            xyrat2 = klo2 * NUMDEN / khi2
+            blog2  = LOG10( xyrat2 )
+            fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
+            kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
+            k      = kco1 + kco2
+          END FUNCTION GC_OHCO
 
       END SUBROUTINE SETKPPVALS___
     END MODULE CCYCLECHEM_MOD
+    

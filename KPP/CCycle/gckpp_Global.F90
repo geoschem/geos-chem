@@ -37,7 +37,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(8),FIX(1) )
+!      EQUIVALENCE( C(10),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -66,6 +66,13 @@ MODULE gckpp_Global
   REAL(kind=dp) :: CFACTOR
 
 ! INLINED global variable declarations
+
+  ! Array for strat CH4/CO/CO2 rates
+  REAL(dp) :: K_STRAT(5)
+  !$OMP THREADPRIVATE( K_STRAT )
+  ! Array for trop CH4/CO/CO2 rates
+  REAL(dp) :: K_TROP(5)
+  !$OMP THREADPRIVATE( K_TROP )
 
 ! INLINED global variable declarations
 
