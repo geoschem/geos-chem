@@ -1,0 +1,13 @@
+#INTEGRATOR rosenbrock
+#LANGUAGE Fortran90
+#DRIVER none
+#HESSIAN off
+#MEX off
+#STOICMAT off
+
+#INCLUDE ccycle.eqn
+
+#FAMILIES
+PCO : CO;
+LCO : CO;
+LCH4 : CH4;
