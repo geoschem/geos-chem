@@ -12,9 +12,9 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Integrator.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Integrator.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -47,10 +47,10 @@
 !    This implementation is part of KPP - the Kinetic PreProcessor        !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 
-MODULE gckpp_Integrator
+MODULE ccycle_Integrator
 
-  USE gckpp_Parameters, ONLY: NVAR, NFIX, NSPEC, LU_NONZERO
-  USE gckpp_Global
+  USE ccycle_Parameters, ONLY: NVAR, NFIX, NSPEC, LU_NONZERO
+  USE ccycle_Global
   IMPLICIT NONE
   PUBLIC
   SAVE
@@ -235,8 +235,8 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
 !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_LinearAlgebra
+  USE ccycle_Parameters
+  USE ccycle_LinearAlgebra
   IMPLICIT NONE
 
 !~~~>  Arguments
@@ -1287,9 +1287,9 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
 !  Template for the ODE function call.
 !  Updates the rate coefficients (and possibly the fixed species) at each call
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
- USE gckpp_Global, ONLY: FIX, RCONST, TIME
- USE gckpp_Function, ONLY: Fun
+ USE ccycle_Parameters, ONLY: NVAR, LU_NONZERO
+ USE ccycle_Global, ONLY: FIX, RCONST, TIME
+ USE ccycle_Function, ONLY: Fun
 !~~~> Input variables
    REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1311,10 +1311,10 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 !  Template for the ODE Jacobian call.
 !  Updates the rate coefficients (and possibly the fixed species) at each call
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
- USE gckpp_Global, ONLY: FIX, RCONST, TIME
- USE gckpp_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
- USE gckpp_LinearAlgebra
+ USE ccycle_Parameters, ONLY: NVAR, LU_NONZERO
+ USE ccycle_Global, ONLY: FIX, RCONST, TIME
+ USE ccycle_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
+ USE ccycle_LinearAlgebra
 !~~~> Input variables
     REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1348,7 +1348,7 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 
 END SUBROUTINE JacTemplate
 
-END MODULE gckpp_Integrator
+END MODULE ccycle_Integrator
 
 
 

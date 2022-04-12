@@ -12,18 +12,18 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_LinearAlgebra.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_LinearAlgebra.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_LinearAlgebra
+MODULE ccycle_LinearAlgebra
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
   IMPLICIT NONE
 
@@ -44,8 +44,8 @@ SUBROUTINE KppDecomp( JVS, IER )
 !        Sparse LU factorization
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER  :: IER
       REAL(kind=dp) :: JVS(LU_NONZERO), W(NVAR), a
@@ -85,8 +85,8 @@ SUBROUTINE KppDecompCmplx( JVS, IER )
 !        Sparse LU factorization, complex
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER        :: IER
       DOUBLE COMPLEX :: JVS(LU_NONZERO), W(NVAR), a
@@ -125,8 +125,8 @@ SUBROUTINE KppDecompCmplxR( JVSR, JVSI, IER )
 !   (Real and Imaginary parts are used instead of complex data type)     
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER       :: IER
       REAL(kind=dp) :: JVSR(LU_NONZERO), JVSI(LU_NONZERO) 
@@ -172,8 +172,8 @@ SUBROUTINE KppSolveIndirect( JVS, X )
 !        Sparse solve subroutine using indirect addressing
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER  :: i, j
       REAL(kind=dp) :: JVS(LU_NONZERO), X(NVAR), sum
@@ -201,8 +201,8 @@ SUBROUTINE KppSolveTRIndirect( JVS, X )
 !        Complex sparse solve transpose subroutine using indirect addressing
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER       :: i, j
       REAL(kind=dp) :: JVS(LU_NONZERO), X(NVAR)
@@ -231,8 +231,8 @@ SUBROUTINE KppSolveCmplx( JVS, X )
 !        Complex sparse solve subroutine using indirect addressing
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER        :: i, j
       DOUBLE COMPLEX :: JVS(LU_NONZERO), X(NVAR), sum
@@ -260,8 +260,8 @@ SUBROUTINE KppSolveCmplxR( JVSR, JVSI, XR, XI )
 !   (Real and Imaginary parts are used instead of complex data type)     
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER       ::  i, j
       REAL(kind=dp) ::  JVSR(LU_NONZERO), JVSI(LU_NONZERO), XR(NVAR), XI(NVAR), sumr, sumi, den
@@ -293,8 +293,8 @@ SUBROUTINE KppSolveTRCmplx( JVS, X )
 !        Complex sparse solve transpose subroutine using indirect addressing
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER        :: i, j
       DOUBLE COMPLEX :: JVS(LU_NONZERO), X(NVAR)
@@ -324,8 +324,8 @@ SUBROUTINE KppSolveTRCmplxR( JVSR, JVSI, XR, XI )
 !   (Real and Imaginary parts are used instead of complex data type)     
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  USE gckpp_Parameters
-  USE gckpp_JacobianSP
+  USE ccycle_Parameters
+  USE ccycle_JacobianSP
 
       INTEGER       ::  i, j
       REAL(kind=dp) ::  JVSR(LU_NONZERO), JVSI(LU_NONZERO), XR(NVAR), XI(NVAR), den
@@ -362,8 +362,8 @@ END SUBROUTINE KppSolveTRCmplxR
 !!        for the Runge Kutta (3n)x(3n) linear system
 !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
-!  USE gckpp_Parameters
-!  USE gckpp_JacobianSP
+!  USE ccycle_Parameters
+!  USE ccycle_JacobianSP
 !
 !      INTEGER  :: IP3(3), IER, IP(3,NVAR)
 !      REAL(kind=dp) :: JVS(3,3,LU_NONZERO), W(3,3,NVAR), a(3,3), E(3,3)
@@ -415,8 +415,8 @@ END SUBROUTINE KppSolveTRCmplxR
 !!        for the Runge Kutta (3n)x(3n) linear system
 !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
-!  USE gckpp_Parameters
-!  USE gckpp_JacobianSP
+!  USE ccycle_Parameters
+!  USE ccycle_JacobianSP
 !
 !      INTEGER  :: i, j, k, m, IP3(3), IP(3,NVAR), IER
 !      REAL(kind=dp) :: JVS(3,3,LU_NONZERO), X(3,NVAR), sum(3)
@@ -458,8 +458,8 @@ END SUBROUTINE KppSolveTRCmplxR
 !!        Big sparse transpose solve using indirect addressing
 !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
-!  USE gckpp_Parameters
-!  USE gckpp_JacobianSP
+!  USE ccycle_Parameters
+!  USE ccycle_JacobianSP
 !
 !      INTEGER       :: i, j, k, m, IP(3,NVAR)
 !      REAL(kind=dp) :: JVS(3,3,LU_NONZERO), X(3,NVAR)
@@ -738,7 +738,7 @@ END SUBROUTINE KppSolveTR
 !     replace this by the function from the optimized BLAS implementation:
 !         CALL  SCOPY(N,X,1,Y,1)   or   CALL  DCOPY(N,X,1,Y,1)
 !--------------------------------------------------------------
-!     USE gckpp_Precision
+!     USE ccycle_Precision
       
       INTEGER  :: i,incX,incY,M,MP1,N
       REAL(kind=dp) :: X(N),Y(N)
@@ -874,7 +874,7 @@ END SUBROUTINE KppSolveTR
 !     replace this by the function from the optimized LAPACK implementation:
 !          CALL SLAMCH('E') or CALL DLAMCH('E')
 !--------------------------------------------------------------
-!      USE gckpp_Precision
+!      USE ccycle_Precision
 
       CHARACTER ::  C
       INTEGER    :: i
@@ -904,7 +904,7 @@ END SUBROUTINE KppSolveTR
       END FUNCTION WLAMCH
      
       SUBROUTINE WLAMCH_ADD( A, B, Suma )
-!      USE gckpp_Precision
+!      USE ccycle_Precision
       
       REAL(kind=dp) A, B, Suma
       Suma = A + B
@@ -1015,7 +1015,7 @@ END SUBROUTINE KppSolveTR
 !     adds two vectors: z <- x + y
 !     BLAS - like
 !--------------------------------------------------------------
-!     USE gckpp_Precision
+!     USE ccycle_Precision
       
       INTEGER :: i, M, MP1, N
       REAL(kind=dp) :: X(N),Y(N),Z(N)
@@ -1172,5 +1172,5 @@ col:  DO k = 1, n-1
 
 
 
-END MODULE gckpp_LinearAlgebra
+END MODULE ccycle_LinearAlgebra
 

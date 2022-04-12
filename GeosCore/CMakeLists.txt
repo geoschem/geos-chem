@@ -41,6 +41,7 @@ add_library(GeosCore
   aero_drydep.F90
   aerosol_mod.F90
   carbon_mod.F90
+  ccyclechem_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
   cleanup.F90
@@ -119,7 +120,7 @@ endif()
 
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
-  Transport ObsPack History Isorropia KPP
+  Transport ObsPack History Isorropia KPP CCYCLE
   
   $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
 

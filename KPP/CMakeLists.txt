@@ -10,6 +10,12 @@ endif()
 #  add_subdirectory(aciduptake)
 #endif()
 
+# Build the ccycle mechanism if configured with -DMECH=ccycle
+if("${MECH}" STREQUAL ccycle)
+  add_subdirectory(CCycle)
+  add_subdirectory(fullchem)
+endif()
+
 # Build the custom mechanism if configured with -DMECH=custom
 if("${MECH}" STREQUAL custom)
   add_subdirectory(custom)

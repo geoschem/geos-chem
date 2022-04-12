@@ -12,18 +12,18 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Rates.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Rates.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_Rates
+MODULE ccycle_Rates
 
-  USE gckpp_Parameters
-  USE gckpp_Global
+  USE ccycle_Parameters
+  USE ccycle_Global
   IMPLICIT NONE
 
 CONTAINS
@@ -138,8 +138,8 @@ CONTAINS
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   SUBROUTINE Update_SUN()
-      !USE gckpp_Parameters
-      !USE gckpp_Global
+      !USE ccycle_Parameters
+      !USE ccycle_Global
 
     IMPLICIT NONE
 
@@ -212,7 +212,7 @@ END SUBROUTINE Update_RCONST
 SUBROUTINE Update_PHOTO ( )
 
 
-   USE gckpp_Global
+   USE ccycle_Global
 
       
 END SUBROUTINE Update_PHOTO
@@ -222,5 +222,5 @@ END SUBROUTINE Update_PHOTO
 
 
 
-END MODULE gckpp_Rates
+END MODULE ccycle_Rates
 

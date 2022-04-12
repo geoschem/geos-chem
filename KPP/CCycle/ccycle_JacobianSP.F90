@@ -12,15 +12,15 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_JacobianSP.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_JacobianSP.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_JacobianSP
+MODULE ccycle_JacobianSP
 
   PUBLIC
   SAVE
@@ -44,5 +44,5 @@ MODULE gckpp_JacobianSP
        1,  3,  5,  6,  8, 10, 12, 14, 16, 17 /)
 
 
-END MODULE gckpp_JacobianSP
+END MODULE ccycle_JacobianSP
 

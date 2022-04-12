@@ -12,15 +12,15 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Monitor.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Monitor.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_Monitor
+MODULE ccycle_Monitor
 
 
   CHARACTER(LEN=15), PARAMETER, DIMENSION(13) :: SPC_NAMES = (/ &
@@ -50,4 +50,4 @@ MODULE gckpp_Monitor
 ! End INLINED global variables
 
 
-END MODULE gckpp_Monitor
+END MODULE ccycle_Monitor

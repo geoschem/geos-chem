@@ -16,6 +16,8 @@ v13.4 (Mar. 31, 2022)
  (1) Initial version (MSL)
 }
 
+#include atoms
+
 #DEFVAR
 CO	 = IGNORE;
 CO_CH4   = IGNORE;

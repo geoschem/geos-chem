@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Parameters.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Parameters.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_Parameters
+MODULE ccycle_Parameters
 
-  USE gckpp_Precision
+  USE ccycle_Precision
   PUBLIC
   SAVE
 
@@ -85,5 +85,5 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: indf_CH4_E = 3 
   INTEGER, PARAMETER :: indf_NMVOC_E = 4 
 
-END MODULE gckpp_Parameters
+END MODULE ccycle_Parameters
 

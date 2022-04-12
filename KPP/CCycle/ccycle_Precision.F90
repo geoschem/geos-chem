@@ -1,5 +1,5 @@
 
-MODULE gckpp_Precision
+MODULE ccycle_Precision
 
 !
 ! Definition of different levels of accuracy
@@ -12,6 +12,6 @@ MODULE gckpp_Precision
 ! KPP QP - Quadruple precision kind
   INTEGER, PARAMETER :: qp = SELECTED_REAL_KIND(18,400)
 
-END MODULE gckpp_Precision
+END MODULE ccycle_Precision
 
 

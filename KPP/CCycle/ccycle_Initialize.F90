@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Initialize.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Initialize.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_Initialize
+MODULE ccycle_Initialize
 
-  USE gckpp_Parameters, ONLY: dp, NVAR, NFIX
+  USE ccycle_Parameters, ONLY: dp, NVAR, NFIX
   IMPLICIT NONE
 
 CONTAINS
@@ -38,7 +38,7 @@ CONTAINS
 SUBROUTINE Initialize ( )
 
 
-  USE gckpp_Global
+  USE ccycle_Global
 
   INTEGER :: i
   REAL(kind=dp) :: x
@@ -70,5 +70,5 @@ END SUBROUTINE Initialize
 
 
 
-END MODULE gckpp_Initialize
+END MODULE ccycle_Initialize
 

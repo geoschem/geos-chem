@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Global.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Global.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_Global
+MODULE ccycle_Global
 
-  USE gckpp_Parameters, ONLY: dp, NSPEC, NVAR, NFIX, NREACT, LU_NONZERO
+  USE ccycle_Parameters, ONLY: dp, NSPEC, NVAR, NFIX, NREACT, LU_NONZERO
   PUBLIC
   SAVE
 
@@ -73,9 +73,11 @@ MODULE gckpp_Global
   ! Array for trop CH4/CO/CO2 rates
   REAL(dp) :: K_TROP(5)
   !$OMP THREADPRIVATE( K_TROP )
+  REAL(dp) :: TROP
+  !$OMP THREADPRIVATE( TROP )
 
 ! INLINED global variable declarations
 
 
-END MODULE gckpp_Global
+END MODULE ccycle_Global
 

@@ -30,7 +30,6 @@
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: CALC_DIURNAL_CH4COCO2
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -116,7 +115,7 @@
       REAL(f4), POINTER     :: PCO_CH4    (:,:,:) => NULL() ! CH4 P(CO)
       REAL(f4), POINTER     :: PCO_NMVOC  (:,:,:) => NULL() ! NMVOC P(CO)
       REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc
-CH4
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -151,22 +150,25 @@ CH4
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_CH4COCO2( am_I_Root, Input_Opt,
-     &                     State_Met, RC )
+      SUBROUTINE EMISS_CH4COCO2( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
+      USE HCO_State_Mod,      ONLY : Hco_GetHcoId
+      USE HCO_State_GC_Mod,   ONLY : HcoState
+      USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -296,7 +298,7 @@ CH4
       ! Oil
       !-------------------
       DgnName = 'CH4_OIL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -318,7 +320,7 @@ CH4
       ! Gas
       !-------------------
       DgnName = 'CH4_GAS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -341,7 +343,7 @@ CH4
       ! Coal 
       !-------------------
       DgnName = 'CH4_COAL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -363,7 +365,7 @@ CH4
       ! Livestock
       !-------------------
       DgnName = 'CH4_LIVESTOCK'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -385,7 +387,7 @@ CH4
       ! Landfills
       !-------------------
       DgnName = 'CH4_LANDFILLS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -407,7 +409,7 @@ CH4
       ! Wastewater
       !-------------------
       DgnName = 'CH4_WASTEWATER'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -429,7 +431,7 @@ CH4
       ! Rice 
       !-------------------
       DgnName = 'CH4_RICE'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -451,7 +453,7 @@ CH4
       ! Other anthropogenic 
       !-------------------
       DgnName = 'CH4_ANTHROTHER'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -474,7 +476,7 @@ CH4
       !-------------------
 !      DgnName = 'BIOMASS_CH4'
       DgnName = 'CH4_BIOMASS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -496,7 +498,7 @@ CH4
       ! Wetland 
       !-------------------
       DgnName = 'CH4_WETLAND'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -518,7 +520,7 @@ CH4
       ! Global seeps
       !-------------------
       DgnName = 'CH4_SEEPS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -540,7 +542,7 @@ CH4
       ! Lakes
       !-------------------
       DgnName = 'CH4_LAKES'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -562,7 +564,7 @@ CH4
       ! Termites
       !-------------------
       DgnName = 'CH4_TERMITES'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -584,7 +586,7 @@ CH4
       ! Soil absorption (those are negative!) 
       !-------------------
       DgnName = 'CH4_SOILABSORB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -647,8 +649,8 @@ CH4
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_CH4COCO2( am_I_Root, Input_Opt,  State_Met,
-     &                    State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_CH4COCO2( Input_Opt,  State_Chm, State_Diag, State_Grid, &
+                                State_Met, RC )
 !
 ! !USES:
 !
@@ -661,23 +663,24 @@ CH4
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE GC_GRID_MOD,        ONLY : GET_YMID
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoID
+      USE HCO_State_Mod,      ONLY : Hco_GetHcoId
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE HCO_Error_Mod
-      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
+      USE Tagged_CO_Mod,      ONLY : CALC_DIURNAL
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -751,13 +754,12 @@ CH4
 !
       LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
       INTEGER            :: I, J, L
-
-      REAL(fp)           :: PREVCH4(IIPAR, JJPAR, LLPAR)
+      REAL(fp)           :: PREVCH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
       ! Number of days per month
-      INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30, 
-     &                                      31, 30, 31, 31, 
-     &                                      30, 31, 30, 31 /)
+      INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30,   &
+                                            31, 30, 31, 31,   &
+                                            30, 31, 30, 31 /)
 
       ! For fields from Input_Opt
       LOGICAL            :: LSPLIT
@@ -868,7 +870,7 @@ CH4
 
          ! Import CH4 loss frequencies from HEMCO. The target will be 
          ! updated automatically by HEMCO (ckeller, 9/16/2014)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LOSS', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_LOSS', CH4LOSS, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -885,7 +887,7 @@ CH4
       IF ( FIRSTCHEM ) THEN
 
          ! Get pointer to GLOBAL_OH
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_CH4', BOH, RC)
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CH4', CH4LOSS, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -895,7 +897,7 @@ CH4
          ENDIF 
 
          ! Get pointer to GLOBAL_Cl
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_Cl', BCl, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', CH4LOSS, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -907,7 +909,7 @@ CH4
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
-      CALL CALC_DIURNAL_CH4COCO2()
+      CALL CALC_DIURNAL( State_Grid )
 
       ! Check HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -929,9 +931,9 @@ CH4
          ENDIF
 
          ! NOTE: Can parallelize this loop later
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Same as for CO add a dirunal OH cycle (bb 2019)
             ! Cosine of the solar zenith angle [unitless]
@@ -939,8 +941,8 @@ CH4
 
             ! Scaling factor for OH diurnal cycles - zero at night
             IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
-               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                       ( 86400.0_fp / GET_TS_CHEM() )
+               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) * &
+                             ( 86400.0_fp / GET_TS_CHEM() )
             ELSE
                FAC_DIURNAL = 0.0_fp
             ENDIF
@@ -953,8 +955,8 @@ CH4
                ! OH concentration in [molec/cm3] after chemistry
                !--------------------------------------------------------
                IF ( Do_ND43 .and. L <= LD43 ) THEN
-                  AD43(I,J,L,1) = AD43(I,J,L,1) +
-     &            ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
+                  AD43(I,J,L,1) = AD43(I,J,L,1) + &
+                  ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
                ENDIF
 #endif
 
@@ -965,8 +967,8 @@ CH4
                ! OH concentration in [molec/cm3] after chemistry
                !--------------------------------------------------------
                IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-                  State_Diag%OHconcAfterChem(I,J,L) =
-     &             ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
+                  State_Diag%OHconcAfterChem(I,J,L) = &
+                   ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
                ENDIF
 #endif
 
@@ -980,7 +982,7 @@ CH4
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      CALL CH4_OHSAVE_CH4COCO2( State_Met, State_Chm )
+      CALL CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid )
 
       !=================================================================
       ! (5) If multi-CH4 species, we store the CH4 total conc. to
@@ -988,17 +990,17 @@ CH4
       !================================================================= 
       IF ( LSPLIT ) THEN
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         !$OMP PARALLEL DO &
+         !$OMP DEFAULT( SHARED ) &
+         !$OMP PRIVATE( I, J, L )
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             PREVCH4(I,J,L) = Spc(I,J,L,1)
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
 
       ENDIF
 
@@ -1019,7 +1021,7 @@ CH4
       !     species. (ccc, 2/10/09)
       !=================================================================
       IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm )
+         CALL CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
       ENDIF
 
       !=================================================================
@@ -1100,7 +1102,7 @@ CH4
 
          ! Get a pointer to the OH field from the HEMCO list (bmy,
          ! 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_CO', OH, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CO', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OH_CO!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1108,8 +1110,7 @@ CH4
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
-         CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                   'GMI_PROD_CO', GMI_PROD_CO, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_PROD_CO', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1117,8 +1118,7 @@ CH4
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
-         CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                   'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_LOSS_CO', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1127,8 +1127,7 @@ CH4
 
          ! Get pointer to trop P(CO) from CH4 if needed
          IF ( LPCO_CH4 ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                      'PCO_CH4', PCO_CH4, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', CH4LOSS, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to PCO_CH4!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1137,8 +1136,7 @@ CH4
          ENDIF
 
          IF ( LPCO_NMVOC ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                      'PCO_NMVOC', PCO_NMVOC, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', CH4LOSS, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1147,8 +1145,7 @@ CH4
          ENDIF
 
          ! Get pointer to surface CH4 data
-         CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                    'NOAA_GMD_CH4', SFC_CH4, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', CH4LOSS, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1172,20 +1169,20 @@ CH4
       ! Also note, skip this section if emissions are turned off,
       ! which will keep the SUM*CO arrays zeroed out. (bmy, 10/11/16)
       !=================================================================
-      IF ( Input_Opt%LEMIS ) THEN
+      IF ( Input_Opt%DoEmissions ) THEN
 
          ! Conversion factor from [kg/s] --> [atoms C]
          ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
          kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
 
          ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
-         HcoId = GetHcoId( 'ACET' )
+         HcoId = HCO_GetHcoId( 'ACET', HcoState )
          IF ( HcoId > 0 ) THEN
             SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
 !kgC/m2/s
             SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     !kgC/s
             SUMACETCO = SUMACETCO * kgs_to_atomsC                 !atoms
-C
+
          ELSE
             ErrMsg = 'ACET not turned on in the MEGAN!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1193,13 +1190,13 @@ C
          ENDIF
 
          ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
-         HcoId = GetHcoId( 'ISOP' )
+         HcoId = HCO_GetHcoID( 'ISOP', HcoState )
          IF ( HcoId > 0 ) THEN
             SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
 !kgC/m2/s
             SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     !kgC/s
             SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 !atoms
-C
+
          ELSE
             ErrMsg = 'ISOP not turned on in MEGAN!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1207,7 +1204,7 @@ C
          ENDIF
 
          ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
-         HcoId = GetHcoId( 'MTPA' )
+         HcoId = HCO_GetHcoId( 'MTPA', HcoState )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
@@ -1216,7 +1213,7 @@ C
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-         HcoId = GetHcoId( 'LIMO' )
+         HcoId = HCO_GetHcoId( 'LIMO', HcoState )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
@@ -1225,7 +1222,7 @@ C
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-         HcoId = GetHcoId( 'MTPO' )
+         HcoId = HCO_GetHcoId( 'MTPO', HcoState )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
@@ -1244,20 +1241,20 @@ C
       ! Do tagged CO chemistry -- Put everything within a large 
       ! DO-loop over all grid boxes to facilitate parallelization
       !=================================================================
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED                                                  ) 
-!$OMP+PRIVATE( I,       J,            L,           N,          STTCO   )
-!$OMP+PRIVATE( GCO,     DENS,         CH4RATE,     CO_CH4,     CH4     )
-!$OMP+PRIVATE( KRATE,   CO_ISOP,      CO_CH3OH,    CO_MONO,    CO_ACET )
-!$OMP+PRIVATE( CORATE,  CO_OH,        YMID,        ALPHA_ISOP, KHI1    )
-!$OMP+PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )
-!$OMP+PRIVATE( KLO2,    XYRAT2,       BLOG2,       FEXP2,      KCO1    )
-!$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
-!$OMP+PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)
-!$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL, E_CO2                     )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      !$OMP PARALLEL DO                                                       & 
+      !$OMP DEFAULT( SHARED                                                  )&
+      !$OMP PRIVATE( I,       J,            L,           N,          STTCO   )&
+      !$OMP PRIVATE( GCO,     DENS,         CH4RATE,     CO_CH4,     CH4     )&
+      !$OMP PRIVATE( KRATE,   CO_ISOP,      CO_CH3OH,    CO_MONO,    CO_ACET )&
+      !$OMP PRIVATE( CORATE,  CO_OH,        YMID,        ALPHA_ISOP, KHI1    )&
+      !$OMP PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )&
+      !$OMP PRIVATE( KLO2,    XYRAT2,       BLOG2,       FEXP2,      KCO1    )&
+      !$OMP PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC )&
+      !$OMP PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)&
+      !$OMP PRIVATE( ERR_VAR, ERR_MSG,      BOXVL, E_CO2                     )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Latitude of grid box
 !>>>>         YMID     = GET_YMID( I, J, L )
@@ -1269,8 +1266,7 @@ C
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec
          ! CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1.0_fp  / AIRVOL(I,J,L) / 1e+6_fp /
-     &           FMOL_CO * AVO
+         STTCO = 1.0_fp  / AIRVOL(I,J,L) / 1e+6_fp / FMOL_CO * AVO
 
 
          !==============================================================
@@ -1335,8 +1331,8 @@ C
 
                   ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) +
-     &                               ( CORATE * Spc(I,J,L,N) * STTCO)
+                     AD65(I,J,L,N) = AD65(I,J,L,N) + &
+                                     ( CORATE * Spc(I,J,L,N) * STTCO)
                   ENDIF
 #endif
 
@@ -1348,8 +1344,8 @@ C
                   !-----------------------------------------------------
                   !Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) = ( CORATE
-     &                                        *   Spc(I,J,L,N) )
+                     State_Diag%Loss(I,J,L,N) = ( CORATE &
+                                              *   Spc(I,J,L,N) )
                   ENDIF
 #endif
 
@@ -1421,8 +1417,8 @@ C
 
                   ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) +
-     &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
+                     AD65(I,J,L,N) = AD65(I,J,L,N) + &
+                         ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
                   ENDIF
 #endif
 
@@ -1435,9 +1431,9 @@ C
 
                   ! Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) = ( KRATE
-     &                                        *   OH_MOLEC_CM3
-     &                                        *   Spc(I,J,L,N) )
+                     State_Diag%Loss(I,J,L,N) = ( KRATE        &
+                                              *   OH_MOLEC_CM3 &
+                                              *   Spc(I,J,L,N) )
                   ENDIF
 #endif
 
@@ -1471,9 +1467,9 @@ C
             ! Save production of CO2 from CO oxidation [kg/m2/s]
             !==========================================================
             IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-               State_Diag%ProdCO2fromCO(I,J,L) = E_CO2      !molec/cm2/s 
-     &                                         / XNUMOL_CO2  !=>kg/cm2/s
-     &                                         * 1e4_fp      ! =>kg/m2/s
+               State_Diag%ProdCO2fromCO(I,J,L) = E_CO2       & !molec/cm2/s 
+                                               / XNUMOL_CO2  & !=>kg/cm2/s
+                                               * 1e4_fp      ! =>kg/m2/s
 
             ENDIF
 #endif
@@ -1527,14 +1523,14 @@ C
 
          ! Units: [kg/s] Production of CO from CH4
          IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
-            State_Diag%ProdCOfromCH4(I,J,L) = CO_CH4
-     &                                     / STTCO / DTCHEM
+            State_Diag%ProdCOfromCH4(I,J,L) = CO_CH4 &
+                                           / STTCO / DTCHEM
          ENDIF
 
          ! Units: [kg/s] Production of CO from NMVOCs
          IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-            State_Diag%ProdCOfromNMVOC(I,J,L) = CO_NMVOC
-     &                                     / STTCO / DTCHEM
+            State_Diag%ProdCOfromNMVOC(I,J,L) = CO_NMVOC &
+                                           / STTCO / DTCHEM
          ENDIF
 
          !==============================================================
@@ -1577,15 +1573,16 @@ C
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE_CH4COCO2( State_Met, State_Chm )
+      SUBROUTINE CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
+!      USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
+!      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 
 !
@@ -1593,6 +1590,7 @@ C
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 ! 
 ! !REMARKS:
 !  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
@@ -1643,14 +1641,14 @@ C
       Spc => State_Chm%Species
 
       ! Calculate OH mass and total air mass
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, BOXVL, C_OH, OHMASS, MASST, KCLO, LOSS, KCH4 )
-!$OMP+PRIVATE( CH4TROPMASS, CH4MASS, CH4LOSE, CH4EMIS, AREA_M2 )
-!$OMP+PRIVATE( FAC_DIURNAL, SUNCOS )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR 
-      DO I = 1, IIPAR 
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, BOXVL, C_OH, OHMASS, MASST, KCLO, LOSS, KCH4 )&
+!$OMP PRIVATE( CH4TROPMASS, CH4MASS, CH4LOSE, CH4EMIS, AREA_M2 )&
+!$OMP PRIVATE( FAC_DIURNAL, SUNCOS )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY 
+      DO I = 1, State_Grid%NX 
 
          ! Only process tropospheric boxes (bmy, 4/17/00)
          IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1663,8 +1661,8 @@ C
 
             ! Scaling factor for diurnal cycles - zero at night
             IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
-               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                       ( 86400.0_fp / DT )
+               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) * &
+                             ( 86400.0_fp / DT )
             ELSE
                FAC_DIURNAL = 0.0_fp
             ENDIF
@@ -1684,8 +1682,8 @@ C
             KCLO = 1.64e-12_fp * EXP( -1520.e+0_fp / State_Met%T(I,J,L))
 
             ! Calculate Loss term [molec / box / s]
-            LOSS   = KCLO            * C_OH  *
-     &               State_Met%AIRNUMDEN(I,J,L) * BOXVL
+            LOSS   = KCLO            * C_OH  * &
+                     State_Met%AIRNUMDEN(I,J,L) * BOXVL
 
 
             ! Calculate CH4 + OH rate constant from JPL '06
@@ -1697,8 +1695,8 @@ C
             CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4 
 
             ! Calculate loss term  [molec /box / s]
-            CH4LOSE = KCH4            * C_OH  *
-     &                State_Met%AIRNUMDEN(I,J,L) * BOXVL
+            CH4LOSE = KCH4            * C_OH  * &
+                      State_Met%AIRNUMDEN(I,J,L) * BOXVL
 
             ! Calculate CH4 emissions [molec / box / s]
             !   Only for surface level
@@ -1707,7 +1705,7 @@ C
             IF ( L .GT. 1 ) THEN 
                CH4EMIS = 0e+0_fp
             ELSE
-               AREA_M2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp
+!               AREA_M2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp
 
                ! [kg/m2/s]  --> [molec/box/s]
                CH4EMIS  = CH4_EMIS_J(I,J,1)
@@ -1730,8 +1728,8 @@ C
          ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
          ! which calculates mass-weighted mean [OH] and CH3CCl3
          ! lifetime.
-         CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, 
-     &        CH4LOSE, CH4TROPMASS, CH4EMIS, CH4MASS )
+!         CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, &
+!              CH4LOSE, CH4TROPMASS, CH4EMIS, CH4MASS )
 
       ENDDO
       ENDDO
@@ -1756,7 +1754,7 @@ C
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm )
+      SUBROUTINE CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
 !
 ! !USES:
 !
@@ -1764,13 +1762,15 @@ C
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
    
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp)                      :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      REAL(fp)                      :: PREVCH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)! CH4 bef chem
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1809,14 +1809,14 @@ C
          ! Advected species ID
          N = State_Chm%Map_Advect(NA)
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-           Spc(I,J,L,N) = SAFE_DIV(Spc(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp)
-     &                     * Spc(I,J,L,1)
+!$OMP PARALLEL DO      &
+!$OMP DEFAULT( SHARED )&
+!$OMP PRIVATE( I, J, L )
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+           Spc(I,J,L,N) = SAFE_DIV(Spc(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp) &
+                           * Spc(I,J,L,1)
          ENDDO
          ENDDO
          ENDDO
@@ -1835,151 +1835,6 @@ C
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: calc_diurnal
-!
-! !DESCRIPTION: Subroutine CALC\_DIRUNAL computes the sum of the cosine
-!  of the solar zenith angle over a 24 hour day as well as the total
-!  length of daylight to scale the offline OH concentrations.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CALC_DIURNAL_CH4COCO2
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_YMID_R
-      USE TIME_MOD, ONLY : ITS_A_NEW_DAY
-      USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
-      USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
-! 
-! !REVISION HISTORY: 
-!  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
-!                              COSSZA in dao_mod
-!  12 Feb 2018 - E. Lundgren - Updates for new timestep units (sec not
-!  min)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: I, J, N, NDYSTEP
-      INTEGER             :: SECOND,  MINUTE, TS_SUN
-      REAL*8              :: GMT_MID, TIMLOC, FACTOR
-      REAL*8              :: R,       AHR,    DEC
-      REAL*8              :: YMID_R,  SUNTMP_MID
-!
-! !DEFINED PARAMETERS:
-!
-      ! Coefficients for solar declination angle
-      REAL*8,  PARAMETER :: A0 = 0.006918d0
-      REAL*8,  PARAMETER :: A1 = 0.399912d0
-      REAL*8,  PARAMETER :: A2 = 0.006758d0
-      REAL*8,  PARAMETER :: A3 = 0.002697d0
-      REAL*8,  PARAMETER :: B1 = 0.070257d0
-      REAL*8,  PARAMETER :: B2 = 0.000907d0
-      REAL*8,  PARAMETER :: B3 = 0.000148d0
-
-      !=================================================================
-      ! CALC_DIURNAL begins here!
-      !=================================================================
-      ! Only do at the start of a new day
-      IF ( FIRST .or. ITS_A_NEW_DAY() ) THEN
-
-         ! Zero array
-         TCOSZ = 0d0
-
-         ! Get time for central chemistry timestep
-         TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
-         SECOND = GET_SECOND()                      ! Current seconds
-         MINUTE = GET_MINUTE()                      ! Current minutes
-         FACTOR = ( MINUTE * 60 + SECOND ) / TS_SUN ! Multiplying factor
-
-         ! GMT at the midpoint of the chemistry time interval for first
-         ! timestep of the day
-         GMT_MID  = ( DBLE( GET_HOUR()        )      )
-     &            + ( DBLE( TS_SUN * FACTOR ) / 3600d0 )
-     &            + ( DBLE( TS_SUN / 2      ) / 3600d0 )
-
-         ! Solar declination angle (low precision formula):
-         ! Path length of earth's orbit traversed since Jan 1 [radians]
-         R = ( 2d0 * PI / 365d0 ) * FLOAT( GET_DAY_OF_YEAR() - 1 )
-         DEC = A0 - A1*COS(    R) + B1*SIN(    R)
-     &            - A2*COS(2d0*R) + B2*SIN(2d0*R)
-     &            - A3*COS(3d0*R) + B3*SIN(3d0*R)
-
-         ! NDYSTEP is # of chemistry time steps
-         NDYSTEP = INT( 24d0 * 3600d0 / GET_TS_CHEM() )
-
-         ! Loop forward through NDYSTEP "fake" timesteps for this day
-         DO N = 1, NDYSTEP
-
-            ! Increment GMT (hours) to midpoint of next timestep
-            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 3600d0
-
-            ! Loop over surface grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-
-               ! Zero SUNTMP_MID
-               SUNTMP_MID = 0d0
-
-               ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
-
-               ! Local time at box (I,J) [hours]
-               TIMLOC = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
-
-               ! Hour angle at box (I,J) [radians]
-               AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
-
-               !===========================================================
-               ! The cosine of the solar zenith angle (SZA) is given by:
-               !
-               !  cos(SZA) = sin(LAT)*sin(DEC) +
-               !  cos(LAT)*cos(DEC)*cos(AHR)
-               !
-               ! where LAT = the latitude angle,
-               !       DEC = the solar declination angle,
-               !       AHR = the hour angle, all in radians.
-               !
-               ! If SUNCOS < 0, then the sun is below the horizon, and
-               ! therefore does not contribute to any solar heating.
-               !===========================================================
-
-               ! Compute Cos(SZA)
-               SUNTMP_MID = sin(YMID_R) * sin(DEC) +
-     &                      cos(YMID_R) * cos(DEC) * cos(AHR)
-
-               ! TCOSZ is the sum of SUNTMP_MID at location (I,J)
-               ! Do not include negative values of SUNTMP_MID
-
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP_MID, 0d0 )
-
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDDO
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Return to calling program
-      END SUBROUTINE CALC_DIURNAL_CH4COCO2
-
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_global_ch4
 !
 ! !DESCRIPTION: Subroutine INIT\_GLOBAL\_CH4 allocates and zeroes module 
@@ -1988,8 +1843,7 @@ C
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CH4COCO2( am_I_Root, Input_Opt,
-     &  State_Diag, RC )
+      SUBROUTINE INIT_CH4COCO2( Input_Opt, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -2001,14 +1855,15 @@ C
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE ERROR_MOD,          ONLY : ALLOC_ERR
 
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2070,12 +1925,12 @@ C
          RETURN
       ENDIF
 
-      ALLOCATE( BAIRDENS( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BAIRDENS( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
       CALL GC_CheckVar( 'ch4coco2_mod.F:BAIRDENS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BAIRDENS = 0e+0_fp
 
-      ALLOCATE( CH4_EMIS_J( IIPAR, JJPAR, 15 ), STAT=RC )
+      ALLOCATE( CH4_EMIS_J( State_Grid%NX, State_Grid%NY, 15 ), STAT=RC )
       CALL GC_CheckVar( 'ch4coco2_mod.F:CH4_EMIS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       CH4_EMIS_J = 0e+0_fp
@@ -2095,43 +1950,43 @@ C
       !=================================================================
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMISOPCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMISOPCO = 0.0_fp
 
       ! Allocate SUMMONOCO -- array for CO from monoterpenes
-      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMMONOCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMMONOCO = 0.0_fp
 
       ! Allocate SUMCH3OH -- array for CO from CH3OH
-      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMCH3OHCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMCH3OHCO = 0.0_fp
 
       ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMACETCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMACETCO = 0.0_fp
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0.0_fp
 
       ! Allocate CH4_OH_TROP -- array for CH4 loss by OH in tropo
-      ALLOCATE( CH4_OH_TROP( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( CH4_OH_TROP( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:CH4OHTROP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       CH4_OH_TROP = 0.0_fp
 
       ! Allocate CH4_OH_STRAT -- array for CH4 loss by OH in strat
-      ALLOCATE( CH4_OH_STRAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( CH4_OH_STRAT( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:CH4OHSTRAT', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       CH4_OH_STRAT = 0.0_fp
@@ -2276,12 +2131,13 @@ C
 !EOC
       SUBROUTINE SETKPPVALS___( State_Chm, State_Met, I, J, L, &
            BAIRDENS, BOH, BCl )
-        USE State_Chm_Mod,      ONLY : ChmState
+        USE PhysConstants,      ONLY : AVO
+        USE State_Chm_Mod,      ONLY : ChmState, Ind_
         USE State_Met_Mod,      ONLY : MetState
-        USE TIME_MOD,           ONLY : GET_TS_CHEM
+        USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_TS_EMIS
 
-        USE GCKPP_GLOBAL
-        USE GCKPP_PARAMETERS
+        USE CCYCLE_GLOBAL
+        USE CCYCLE_PARAMETERS
 
 !
 ! !INPUT PARAMETERS:
@@ -2293,20 +2149,22 @@ C
         REAL(fp),       INTENT(IN)  :: BCl ! Cl
         REAL(fp),       INTENT(IN)  :: BAIRDENS
 
-        REAL(fp) :: DT, FAC_DIURNAL
+        REAL(fp) :: DTCHEM, DTEMIS, FAC_DIURNAL, SUNCOS
+        REAL(fp) :: kgm3_to_mcm3sCO, FMOL_CO
         
         ! Chemistry timestep in seconds
-        DT = GET_TS_CHEM()
+        DTCHEM = GET_TS_CHEM()
+        DTEMIS = GET_TS_EMIS()
 
 ! Species
         ! molec/cm3
         C(ind_CH4)      = State_Chm%Species(I,J,L,1) &
              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
-        C(ind_CO)       = State_Chm%Species(I,J,L,Ind('CO')) &
+        C(ind_CO)       = State_Chm%Species(I,J,L,Ind_('CO')) &
              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
-        C(ind_CO_CH4)   = State_Chm%Species(I,J,L,Ind('COch4')) &
+        C(ind_CO_CH4)   = State_Chm%Species(I,J,L,Ind_('COch4')) &
              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
-        C(ind_CO_NMVOC) = State_Chm%Species(I,J,L,Ind('COnmvoc')) &
+        C(ind_CO_NMVOC) = State_Chm%Species(I,J,L,Ind_('COnmvoc')) &
              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
         C(ind_CH4_E)    = 1.E0 ! Dummy quantity. "_E" is "external"
         C(ind_NMVOC_E)  = 1.E0 ! Dummy quantity. "_E" is "external"
@@ -2328,15 +2186,15 @@ C
            ! Scaling factor for diurnal cycles - zero at night
            IF ( State_Met%SUNCOSmid(I,J) > 0.0_fp .and. &
                 TCOSZ(I,J) > 0.0_fp ) THEN
-              FAC_DIURNAL = ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) *
-              &                       ( 86400.0_fp / DT )
+              FAC_DIURNAL = ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) * &
+                                      ( 86400.0_fp / DTCHEM )
            ELSE
               FAC_DIURNAL = 0.0_fp
            ENDIF
 
 ! Species
            C(ind_OH_E)    = BOH * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
-           C(ind_Cl_E)    = BCl * BAIRDENS(I,J,L) * 1e-9_fp ! Should this also be scaled diurnally?
+           C(ind_Cl_E)    = BCl * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp ! Should this also be scaled diurnally?
         
 ! Rates
            ! Troposphere
@@ -2344,13 +2202,15 @@ C
            TROP    = 1.e0 ! Toggle
 
            ! Trop Rates
-           K_TROP(1) = GC_OHCO()
+           FMOL_CO         =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp
+           kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
+           K_TROP(1) = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
            K_TROP(2) = PCO_NMVOC(I,J,L) * kgm3_to_mcm3sCO * FAC_DIURNAL
         ENDIF ! In the strat/trop
 
         CONTAINS
 
-          FUNCTION GC_OHCO() RESULT( k )
+          FUNCTION GC_OHCO( NUMDEN, K300_OVER_TEMP ) RESULT( k )
             ! Reaction rate for:
             !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
             !
@@ -2359,6 +2219,8 @@ C
             ! because b0 = c0 = 0.  Therefore we can skip computing these
             ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
             !
+            REAL(dp), INTENT(IN) :: NUMDEN, K300_OVER_TEMP
+
             REAL(dp)             :: klo1,   klo2,  khi1,    khi2
             REAL(dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
             REAL(dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
@@ -2380,4 +2242,3 @@ C
 
       END SUBROUTINE SETKPPVALS___
     END MODULE CCYCLECHEM_MOD
-    

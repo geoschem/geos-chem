@@ -12,17 +12,17 @@
 !        M. Damian, Villanova University, USA
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
-! File                 : gckpp_Util.F90
-! Equation file        : gckpp.kpp
-! Output root filename : gckpp
+! File                 : ccycle_Util.F90
+! Equation file        : ccycle.kpp
+! Output root filename : ccycle
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-MODULE gckpp_Util
+MODULE ccycle_Util
 
-  USE gckpp_Parameters
+  USE ccycle_Parameters
   IMPLICIT NONE
 
 CONTAINS
@@ -50,9 +50,9 @@ CONTAINS
 
       SUBROUTINE InitSaveData ()
 
-      USE gckpp_Parameters
+      USE ccycle_Parameters
 
-      open(10, file='gckpp.dat')
+      open(10, file='ccycle.dat')
 
       END SUBROUTINE InitSaveData
 
@@ -68,8 +68,8 @@ CONTAINS
 
       SUBROUTINE SaveData ()
 
-      USE gckpp_Global
-      USE gckpp_Monitor
+      USE ccycle_Global
+      USE ccycle_Monitor
 
       INTEGER i
 
@@ -91,7 +91,7 @@ CONTAINS
 
       SUBROUTINE CloseSaveData ()
 
-      USE gckpp_Parameters
+      USE ccycle_Parameters
 
       CLOSE(10)
 
@@ -111,19 +111,19 @@ CONTAINS
 
       SUBROUTINE GenerateMatlab ( PREFIX )
 
-      USE gckpp_Parameters
-      USE gckpp_Global
-      USE gckpp_Monitor
+      USE ccycle_Parameters
+      USE ccycle_Global
+      USE ccycle_Monitor
 
       
       CHARACTER(LEN=8) PREFIX 
       INTEGER i
 
-      open(20, file='gckpp.m')
-      write(20,*) 'load gckpp.dat;'
+      open(20, file='ccycle.m')
+      write(20,*) 'load ccycle.dat;'
       write(20,990) PREFIX
-990   FORMAT(A1,'c = gckpp;')
-      write(20,*) 'clear gckpp;'
+990   FORMAT(A1,'c = ccycle;')
+      write(20,*) 'clear ccycle;'
       write(20,991) PREFIX, PREFIX
 991   FORMAT(A1,'t=',A1,'c(:,1);')
       write(20,992) PREFIX
@@ -233,5 +233,5 @@ END SUBROUTINE GetMass
 
 
 
-END MODULE gckpp_Util
+END MODULE ccycle_Util
 
