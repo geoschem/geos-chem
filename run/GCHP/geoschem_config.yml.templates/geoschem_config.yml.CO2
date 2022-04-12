@@ -1,0 +1,39 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for simulations using the CO2 mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: ${RUNDIR_SIM_NAME}
+  species_database_file: ./species_database.yml
+  debug_printout: false
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  convection:
+    activate: true
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
+
+  transport:
+    activate: true
+    transported_species:
+      - CO2
+      - PassiveTracer
+    passive_species:
+      PassiveTracer:
+        long_name: Passive_tracer_for_mass_conservation_evaluation
+        mol_wt_in_g: 1.0
+        lifetime_in_s: -1
+        default_bkg_conc_in_vv: 1.0e-7
+
