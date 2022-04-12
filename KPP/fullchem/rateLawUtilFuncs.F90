@@ -264,6 +264,10 @@ CONTAINS
          SQRT( 1.0_dp    + ff*ff     + kk*kk                   +             &
                2.0_dp*ff + 2.0_dp*kk - 2.0_dp*ff*kk ) / 2.0_dp
 
+    ! Do not let xx go negative, as this can cause numerical instability.
+    ! See https://github.com/geoschem/geos-chem/issues/1205
+    xx = MAX( xx, 0.0_dp )
+
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )
     !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
