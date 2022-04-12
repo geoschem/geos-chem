@@ -422,6 +422,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                    :: isGlobal
+    LOGICAL                    :: isNorthHem
+    LOGICAL                    :: isSouthHem
     INTEGER                    :: I, J, L, N, nAdvect
     REAL(fp)                   :: Total_Spc
     REAL(fp)                   :: Total_Area
@@ -450,9 +453,10 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC          = GC_SUCCESS
-    ErrMsg      = ''
-    ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
+    ThisLoc    = &
+      ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
 
     ! Point to chemical species array [kg/kg dry air]
     Spc        => State_Chm%Species
@@ -471,9 +475,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Compute the surface flux needed to restore the total burden
-    !=======================================================================
+    !========================================================================
 
     ! Loop over species
     DO N = 1, nAdvect
@@ -481,52 +485,84 @@ CONTAINS
        ! Point to the Species Database entry for species N
        SpcInfo => State_Chm%SpcData(N)%Info
 
+       ! Test for global, NH, or SH passive species
+       ! Save into logical variables to reduce the number of string tests
+       isGlobal   = ( TRIM( SpcInfo%Name ) == 'GlobEmis90dayTracer' )
+       isNorthHem = ( TRIM( SpcInfo%Name ) == 'NHEmis90dayTracer'   )      
+       isSouthHem = ( TRIM( SpcInfo%Name ) == 'SHEmis90dayTracer'   )
+
        ! Only do calculation if this is an MMR tracer
-       IF ( TRIM(SpcInfo%Name) == 'GlobEmis90dayTracer' .OR. &
-            TRIM(SpcInfo%Name) == 'NHEmis90dayTracer'   .OR. &
-            TRIM(SpcInfo%Name) == 'SHEmis90dayTracer'   ) THEN
+       IF ( isGlobal .or. isNorthHem .or. isSouthHem ) THEN
 
           ! Initialize
-          Total_Spc   = 0.0e+0_fp
-          Total_Area  = 0.0e+0_fp
-          Mask        = 1.0e+0_fp
+          Total_Spc   = 0.0_fp
+          Total_Area  = 0.0_fp
+          Mask        = 1.0_fp
+          Flux        = 0.0_fp
 
-          ! Loop over grid boxes
-          DO L = 1, State_Grid%NZ
+          !------------------------------------------------------------------
+          ! Compute total area [m2] of relevance for the species
+          ! (either entire globe, N. Hemisphere, or S. Hemisphere)
+          !------------------------------------------------------------------
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-             ! Compute mol of Tracer needed to achieve the desired value
-             Total_Spc = Total_Spc + &
-                ( GlobalBurden - State_Chm%Species(I,J,L,N)) * &
-                (State_Met%AIRNUMDEN(I,J,L)/ AVO) * State_Met%AIRVOL(I,J,1)
+             IF ( isNorthHem ) THEN
 
-             ! To distribute it uniformly on the surface, compute the total
-             ! area [m2]
-             IF ( L == 1 ) THEN
+                ! Northern Hemisphere passive species:
+                ! Set mask to pick up only the N. Hemisphere boxes
+                IF ( State_Grid%YMid(I,J) <  0.0_fp ) Mask(I,J) = 0.0_fp
 
-                ! Latitude of grid box
-                YMID = State_Grid%YMid(I,J)
+             ELSE IF ( isSouthHem ) THEN
 
-                ! Define mask if needed
-                IF (TRIM(SpcInfo%Name)=='NHEmis90dayTracer') THEN
-                   IF ( YMID <  0.0 ) MASK(I,J) = 0.0e+0_fp
-                ELSE IF (TRIM(SpcInfo%Name)=='SHEmis90dayTracer') THEN
-                   IF ( YMID >= 0.0 ) MASK(I,J) = 0.0e+0_fp
-                ENDIF
-                Total_Area = Total_Area + State_Grid%Area_M2(I,J) * MASK(I,J)
+                ! Southern Hemisphere passive species:
+                ! Set mask to pick up only the S. Hemisphere boxes
+                IF ( State_Grid%YMid(I,J) >= 0.0_fp ) Mask(I,J) = 0.0_fp
+
              ENDIF
 
+             ! Accumulate the total area of relevance [m2]
+             Total_Area = Total_Area + ( State_Grid%Area_M2(I,J) * Mask(I,J) )
           ENDDO
           ENDDO
-          ENDDO
+ 
+          !------------------------------------------------------------------
+          ! We only need to update concentrations when Total_Area > 0.
+          ! If Total_Area == 0, then we need to skip the computation of
+          ! Flux, or else we will incur a div-by-zero condition.
+          !
+          ! NOTE: Recall that one cube-sphere face resides entirely within
+          ! the N. Hemisphere and another resides entirely within the S. 
+          ! Hemisphere (assuming no stretching/rotation of the grid.)
+          ! Therefore, we could potentially have a case where MASK=0 and
+          ! Total_Area=0 for all of the grid boxes on a given computational
+          ! core, thus causing a div-by-zero condition.
+          !
+          !   -- Bob Yantosca (12 Apr 2022)
+          !------------------------------------------------------------------
+          IF ( Total_Area > 0.0_fp ) THEN 
 
-          ! Compute flux [mol/m2]
-          Flux(:,:) = ( Total_Spc / Total_Area ) * MASK(:,:)
+             ! Compute mol of Tracer needed to achieve the desired value
+             DO L = 1, State_Grid%NZ
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
+                Total_Spc = Total_Spc                                        &
+                          + ( GlobalBurden - State_Chm%Species(I,J,L,N)  )   &
+                          * ( State_Met%AIRNUMDEN(I,J,L) / AVO           )   &
+                          * State_Met%AIRVOL(I,J,1)
+             ENDDO
+             ENDDO
+             ENDDO 
 
-          ! Update species concentrations [mol/mol]
-          Spc(:,:,1,N) = Spc(:,:,1,N) + Flux(:,:) * &
-             AVO / ( State_Met%BXHEIGHT(:,:,1) * State_Met%AIRNUMDEN(:,:,1) )
+             ! Compute flux [mol/m2]
+             Flux(:,:)    = ( Total_Spc / Total_Area ) * Mask(:,:)
+
+             ! Update species concentrations [mol/mol]
+             Spc(:,:,1,N) = Spc(:,:,1,N)                                     &
+                          + ( Flux(:,:) * AVO            )                   &
+                          / ( State_Met%BXHEIGHT(:,:,1)                      &
+                          *   State_Met%AIRNUMDEN(:,:,1) )
+          ENDIF
 
        ENDIF ! MMR tracer
 
