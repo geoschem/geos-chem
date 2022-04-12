@@ -379,6 +379,8 @@ CONTAINS
     ENDIF
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
+    ! Compute the grid centers & edges
+    ! (skip if using an external model like GCHP or NASA/GEOS)
     CALL Compute_Grid( Input_Opt, State_Grid, RC)
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Compute_Grid"!'

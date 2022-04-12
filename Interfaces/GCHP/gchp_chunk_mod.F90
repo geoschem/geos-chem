@@ -190,7 +190,18 @@ CONTAINS
     _VERIFY(STATUS)
 #endif
 
-    ! Read input.geos at very beginning of simulation on every thread
+    ! Update Input_Opt with timing fields
+    ! We will skip defining these in READ_INPUT_FILE
+    Input_Opt%NYMDb   = nymdB           ! YYYYMMDD @ start of simulation
+    Input_Opt%NHMSb   = nhmsB           ! hhmmss   @ end   of simulation
+    Input_Opt%NYMDe   = nymdE           ! YYYYMMDD @ start of simulation
+    Input_Opt%NHMSe   = nhmsE           ! hhmmss   @ end   of simulation
+    Input_Opt%TS_CHEM = INT( tsChem )   ! Chemistry timestep [sec]
+    Input_Opt%TS_EMIS = INT( tsChem )   ! Chemistry timestep [sec]
+    Input_Opt%TS_DYN  = INT( tsDyn  )   ! Dynamic   timestep [sec]
+    Input_Opt%TS_CONV = INT( tsDyn  )   ! Dynamic   timestep [sec]
+
+    ! Read geoschem_config.yml at very beginning of simulation on every CPU
     CALL Read_Input_File( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Read_Input_File')
 
@@ -217,34 +228,25 @@ CONTAINS
 
     ! Set grid based on passed mid-points
     CALL SetGridFromCtr( Input_Opt, State_Grid, lonCtr, latCtr, RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error caling')
-
-    ! Update Input_Opt with timing fields
-    Input_Opt%NYMDb   = nymdB
-    Input_Opt%NHMSb   = nhmsB
-    Input_Opt%NYMDe   = nymdE
-    Input_Opt%NHMSe   = nhmsE
-    Input_Opt%TS_CHEM = INT( tsChem )   ! Chemistry timestep [sec]
-    Input_Opt%TS_EMIS = INT( tsChem )   ! Chemistry timestep [sec]
-    Input_Opt%TS_DYN  = INT( tsDyn  )   ! Dynamic   timestep [sec]
-    Input_Opt%TS_CONV = INT( tsDyn  )   ! Dynamic   timestep [sec]
+    _ASSERT(RC==GC_SUCCESS, 'Error calling "SetGridFromCtr"')
 
     ! Set GEOS-Chem timesteps on all CPUs
-    CALL SET_TIMESTEPS( Input_Opt,                                       &
-                        Chemistry  = Input_Opt%TS_CHEM,                  &
-                        Convection = Input_Opt%TS_CONV,                  &
-                        Dynamics   = Input_Opt%TS_DYN,                   &
-                        Emission   = Input_Opt%TS_EMIS,                  &
-                        Radiation  = Input_Opt%TS_RAD,                   &
-                        Unit_Conv  = MAX( Input_Opt%TS_DYN,              &
-                                          Input_Opt%TS_CONV ),           &
+    CALL Set_Timesteps( Input_Opt  = Input_Opt,                              &
+                        Chemistry  = Input_Opt%TS_CHEM,                      &
+                        Convection = Input_Opt%TS_CONV,                      &
+                        Dynamics   = Input_Opt%TS_DYN,                       &
+                        Emission   = Input_Opt%TS_EMIS,                      &
+                        Radiation  = Input_Opt%TS_RAD,                       &
+                        Unit_Conv  = MAX( Input_Opt%TS_DYN,                  &
+                                          Input_Opt%TS_CONV ),               &
                         Diagnos    = Input_Opt%TS_DIAG         )
 
     ! Initialize derived-type objects for met, chem, and diag
-    CALL GC_Init_StateObj( HistoryConfig%DiagList,                       &
-                           HistoryConfig%TaggedDiagList, Input_Opt,      &
+    CALL GC_Init_StateObj( HistoryConfig%DiagList,                           &
+                           HistoryConfig%TaggedDiagList, Input_Opt,          &
                            State_Chm, State_Diag, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_StateObj')
+
 
 #ifdef ADJOINT
     ! Are we running the adjoint?

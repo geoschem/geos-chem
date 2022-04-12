@@ -173,7 +173,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Transport settings
+    ! Passive Species settigns (if any)
     CALL Config_PassiveSpecies( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error in "Config_PassiveSpecies"!'
@@ -391,6 +391,17 @@ CONTAINS
     ENDIF
 #endif
 #endif
+
+    !========================================================================
+    ! Check GEOS-CHEM timesteps
+    ! NOTE: Skip for GCHP/GEOS, as this is called from GCHP_Chunk_Run
+    !========================================================================
+    CALL Check_Time_Steps( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error in "Check_Time_Steps"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 #endif
 
 !#ifdef BPCH_DIAG
@@ -409,16 +420,6 @@ CONTAINS
 !
 !#endif
 !#endif
-
-    !========================================================================
-    ! Check GEOS-CHEM timesteps
-    !========================================================================
-    CALL Check_Time_Steps( Input_Opt, State_Grid, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Check_Time_Steps"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     ! Further error-checking and initialization
@@ -487,7 +488,7 @@ CONTAINS
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
-    ! Parse_Simulation begins here!
+    ! Config_Simulation begins here!
     !========================================================================
 
     ! Initialize
@@ -495,138 +496,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at Read_Simulation_Menu (in module GeosCore/input_mod.F90)'
-
-#ifdef MODEL_CLASSIC
-
-    !------------------------------------------------------------------------
-    ! Simulation start date
-    !------------------------------------------------------------------------
-    key   = "simulation%start_date"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%NYMDb = a_int(1)
-    Input_Opt%NHMSb = a_int(2)
-
-    ! Make sure the starting date NYMDb is valid
-    IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
-       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
-       errMsg = 'Input%Opt%NYMDb = ' // DateStr        // &
-                ' is not a valid calendar date!'       // &
-                ' Please check your "input.geos" file.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    ! Make sure the starting time NHMSb is valid
-    IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
-       WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
-       errMsg = 'Input%Opt%NHMSb = ' // TimeStr        // &
-                ' is not a valid clock time!'          // &
-                ' Please check your "input.geos" file.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Simulation end date
-    !------------------------------------------------------------------------
-    key   = "simulation%end_date"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%NYMDe = a_int(1)
-    Input_Opt%NHMSe = a_int(2)
-
-    ! Make sure the starting date NYMDb is valid
-    IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
-       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
-       errMsg = 'Input%Opt%NYMDe = ' // DateStr        // &
-                ' is not a valid calendar date!'       // &
-                ' Please check your "input.geos" file.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    ! Make sure the ending time NHMSe is valid
-    IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
-       WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
-       errMsg = 'Input%Opt%NHMSe = ' // TimeStr        // &
-                ' is not a valid clock time!'          // &
-                ' Please check your "input.geos" file.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    ! Compute the length of the simulation, in elapsed seconds
-    JulianDateStart = GET_JD( Input_Opt%NymdB, Input_Opt%NhmsB )
-    JulianDateEnd   = GET_JD( Input_Opt%NymdE, Input_Opt%NhmsE )
-    Input_Opt%SimLengthSec = NINT( ( JulianDateEnd - JulianDateStart ) &
-                             * 86400_f8)
-
-    !------------------------------------------------------------------------
-    ! Root data directory
-    !------------------------------------------------------------------------
-    key   = "simulation%root_data_dir"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%Data_Dir = TRIM( v_str )
-
-    ! Make sure DATA-DIR ends with a "/" character
-    C = LEN_TRIM( Input_Opt%DATA_DIR )
-    IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
-       Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
-    ENDIF
-
-    ! Create CHEM_INPUTS directory
-    Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // &
-                                'CHEM_INPUTS/'
-
-    !------------------------------------------------------------------------
-    ! Meteorology field
-    !------------------------------------------------------------------------
-    key   = "simulation%met_field"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%MetField = TRIM( v_str )
-
-    ! Make sure a valid met field is specified
-    Met = To_UpperCase( TRIM( Input_Opt%MetField ) )
-    SELECT CASE( TRIM( Met ) )
-    CASE( 'GEOS-FP', 'GEOSFP' )
-       Input_Opt%MetField = 'GEOSFP'
-    CASE( 'MERRA-2', 'MERRA2' )
-       Input_Opt%MetField = 'MERRA2'
-    CASE( 'MODELE2.1' )
-       Input_Opt%MetField = 'MODELE2.1'
-    CASE( 'MODELE2.2' )
-       Input_Opt%MetField = 'MODELE2.2'
-    CASE DEFAULT
-       errMsg = Trim( Input_Opt%MetField) // ' is not a valid '  // &
-                ' met field. Supported met fields are GEOS-FP, '   // &
-                ' MERRA-2 and ModelE2.1. Please check your "input.geos" file.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    END SELECT
-#endif
 
     !------------------------------------------------------------------------
     ! Simulation type
@@ -697,9 +566,219 @@ CONTAINS
     ENDIF
     Input_Opt%LPRT = v_bool
 
-#ifdef MODEL_CLASSIC
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !========================================================================
+    !          %%%%%%% GCHP and NASA/GEOS (with ESMF & MPI) %%%%%%%
+    !
+    ! Because GCHP and NASA/GEOS use ESMF, we need to take the start & end
+    ! dates from the ESMF resource file (GEOSCHEMchem_GridComp_mod.rc)
+    ! instead of those in geoschem_config.yml.  Therefore, the following
+    ! fields have already been defined in the GCHP_Chunk_Init routine
+    ! (located in module Interfaces/GCHP/Chem_GridCompMod.F90):
+    !
+    ! (1) Input_Opt%NYMDb
+    ! (2) Input_Opt%NHMSb
+    ! (3) Input_Opt%NYMDe
+    ! (4) Input_Opt%NYMDe
+    !
+    ! Pass these fields of Input_Opt to routine Accept_External_Date_Time,
+    ! as well as the starting UTC value in hours.
+    !========================================================================
+
+    ! Make sure the starting date NYMDb is valid
+    IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
+       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
+       errMsg = 'Input%Opt%NYMDb = ' // DateStr // ' is not a valid '     // &
+                'calendar date!  Please check your "CAP.rc" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure the starting time NHMSb is valid
+    IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
+       WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
+       errMsg = 'Input%Opt%NHMSb = ' // TimeStr // ' is not a valid '     // &
+                'clock time!  Please check your "CAP.rc" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure the starting date NYMDe is valid
+    IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
+       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
+       errMsg = 'Input%Opt%NYMDe = ' // DateStr // ' is not a valid '     // &
+                'calendar date!  Please check your "CAP.rc" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure the starting time NHMSe is valid
+    IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
+       WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
+       errMsg = 'Input%Opt%NHMSe = ' // TimeStr // ' is not a valid '     // &
+                'clock time!  Please check your "CAP.rc" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Get the starting UTC time from Input_Opt%NHMSb for use below
+    CALL YMD_Extract( Input_Opt%NHMSb, H, M, S )
+    init_UTC = ( H + ( M / 60 ) + ( S / 3600 ) )
+
+    ! Pass the values for the start & end times of the simulation directly
+    ! to GeosUtil/time_mod.F90 via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+    ! (bmy, 12/6/12)
+    CALL Accept_External_Date_Time( value_NYMDb = Input_Opt%NYMDb,           &
+                                    value_NHMSb = Input_Opt%NHMSb,           &
+                                    value_NYMDe = Input_Opt%NYMDe,           &
+                                    value_NHMSe = Input_Opt%NHMSe,           &
+                                    value_NYMD  = Input_Opt%NYMDb,           &
+                                    value_NHMS  = Input_Opt%NHMSb,           &
+                                    value_UTC   = init_UTC,                  &
+                                    RC          = RC                        )
+
     !------------------------------------------------------------------------
-    ! Turn on GEOS-Chem timers
+    ! GCHP and NASA/GEOS use symbolic links from the run directories
+    ! to the various data directories.  Here, we only need to set the
+    ! Input_Opt%CHEM_INPUTS_DIR field to point to "./ChemDir/".  All of the
+    ! other data directories are used in ExtData.rc
+    !------------------------------------------------------------------------
+    Input_Opt%DATA_DIR        = 'N/A'
+    Input_Opt%CHEM_INPUTS_DIR = './ChemDir/'
+
+#else
+    !========================================================================
+    !             %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+    !
+    ! If we aren't using ESMF, read extra settings from geoschem_config.yml
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! Simulation start date
+    !------------------------------------------------------------------------
+    key   = "simulation%start_date"
+    a_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%NYMDb = a_int(1)
+    Input_Opt%NHMSb = a_int(2)
+
+    ! Make sure the starting date NYMDb is valid
+    IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
+       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
+       errMsg = 'Input%Opt%NYMDb = ' // DateStr        // &
+                ' is not a valid calendar date!'       // &
+                ' Please check your "input.geos" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure the starting time NHMSb is valid
+    IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
+       WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
+       errMsg = 'Input%Opt%NHMSb = ' // TimeStr        // &
+                ' is not a valid clock time!'          // &
+                ' Please check your "input.geos" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Simulation end date
+    !------------------------------------------------------------------------
+    key   = "simulation%end_date"
+    a_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%NYMDe = a_int(1)
+    Input_Opt%NHMSe = a_int(2)
+
+    ! Make sure the starting date NYMDb is valid
+    IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
+       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
+       errMsg = 'Input%Opt%NYMDe = ' // DateStr        // &
+                ' is not a valid calendar date!'       // &
+                ' Please check your "input.geos" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Make sure the ending time NHMSe is valid
+    IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
+       WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
+       errMsg = 'Input%Opt%NHMSe = ' // TimeStr        // &
+                ' is not a valid clock time!'          // &
+                ' Please check your "input.geos" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Root data directory
+    !------------------------------------------------------------------------
+    key   = "simulation%root_data_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Data_Dir = TRIM( v_str )
+
+    ! Make sure DATA-DIR ends with a "/" character
+    C = LEN_TRIM( Input_Opt%DATA_DIR )
+    IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
+       Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
+    ENDIF
+
+    ! Create CHEM_INPUTS directory
+    Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // &
+                                'CHEM_INPUTS/'
+
+    !------------------------------------------------------------------------
+    ! Meteorology field
+    !------------------------------------------------------------------------
+    key   = "simulation%met_field"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%MetField = TRIM( v_str )
+
+    ! Make sure a valid met field is specified
+    Met = To_UpperCase( TRIM( Input_Opt%MetField ) )
+    SELECT CASE( TRIM( Met ) )
+       CASE( 'GEOS-FP', 'GEOSFP' )
+          Input_Opt%MetField = 'GEOSFP'
+       CASE( 'MERRA-2', 'MERRA2' )
+          Input_Opt%MetField = 'MERRA2'
+       CASE( 'MODELE2.1' )
+          Input_Opt%MetField = 'MODELE2.1'
+       CASE( 'MODELE2.2' )
+          Input_Opt%MetField = 'MODELE2.2'
+       CASE DEFAULT
+          errMsg = Trim( Input_Opt%MetField ) // ' is not a valid '       // &
+                ' met field. Supported met fields are GEOS-FP, '          // &
+                ' MERRA-2 and ModelE2.1. Please check your '              // &
+                '"geoschem_config.ymls" file.'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    END SELECT
+
+    !------------------------------------------------------------------------
+    ! Turn on timers
     !------------------------------------------------------------------------
     key    = "simulation%use_gcclassic_timers"
     v_bool = MISSING_BOOL
@@ -710,6 +789,48 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%UseTimers = v_bool
+
+
+    !------------------------------------------------------------------------
+    ! Set start time of run in "time_mod.F90"
+    !------------------------------------------------------------------------
+    CALL Set_Begin_Time( Input_Opt%NYMDb, Input_Opt%NHMSb, RC  )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Set_Begin_Time"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Set end time of run in "time_mod.F90"
+    !------------------------------------------------------------------------
+    errMsg = 'Error encountered in "Set_Begin_Time"!'
+    CALL Set_End_Time( Input_Opt%NYMDe, Input_Opt%NHMSe, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Set the current time
+    CALL Set_Current_Time()
+
+#ifdef BPCH_DIAG
+    !------------------------------------------------------------------------
+    ! Set the start of the 1st diagnostic interval
+    ! Only applies when GEOS-Chem is configured with -DBPCH_DIAG=y
+    !------------------------------------------------------------------------
+    CALL Set_DiagB( GET_TAU() )
+#endif
+
+#endif
+
+    !========================================================================
+    ! Compute the length of the simulation, in elapsed seconds
+    !========================================================================
+    JulianDateStart        = GET_JD( Input_Opt%NymdB, Input_Opt%NhmsB )
+    JulianDateEnd          = GET_JD( Input_Opt%NymdE, Input_Opt%NhmsE )
+    Input_Opt%SimLengthSec = NINT( ( JulianDateEnd - JulianDateStart  )      &
+                           * 86400_f8)
 
     ! Return success
     RC = GC_SUCCESS
@@ -724,8 +845,6 @@ CONTAINS
                         Input_Opt%NYMDb, Input_Opt%NHMSb
        WRITE( 6, 100 ) 'End time of run             : ',                     &
                         Input_Opt%NYMDe, Input_Opt%NHMSe
-       WRITE( 6, 110 ) 'Run directory               : ',                     &
-                        TRIM( Input_Opt%RUN_DIR )
        WRITE( 6, 110 ) 'Data Directory              : ',                     &
                         TRIM( Input_Opt%DATA_DIR )
        WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',                     &
@@ -741,7 +860,6 @@ CONTAINS
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ',                     &
                         Input_Opt%useTimers
     ENDIF
-#endif
 
     ! Format statements
 90  FORMAT( /, A              )
@@ -749,79 +867,6 @@ CONTAINS
 100 FORMAT( A, I8.8, 1X, I6.6 )
 110 FORMAT( A, A              )
 120 FORMAT( A, L5             )
-
-    !========================================================================
-    ! Call setup routines from other GEOS-CHEM modules
-    !========================================================================
-
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    !-----------------------------------------------------------------
-    !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-    !
-    ! If we are connecting to the ESMF interface, we need to take
-    ! the start & end dates as defined in the ESMF resource file.
-    ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in
-    ! input.geos.  This is because the ESMF Clock object needs to be
-    ! defined at the highest level (in the driver routine), before
-    ! input.geos is ever read.
-    !
-    ! Therefore, we will assign the start & end date fields (i.e.
-    ! Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, and
-    ! Input_Opt%NHMSe) in the Gridded Component module file
-    ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
-    ! in the code).  We don'need to define those fields here, so
-    ! we have bracketed this with an #ifdef.
-    !-----------------------------------------------------------------
-
-    ! Get the starting UTC time from Input_Opt%NHMSb for use below
-    CALL YMD_Extract( Input_Opt%NHMSb, H, M, S )
-    init_UTC = ( H + ( M / 60 ) + ( S / 3600 ) )
-
-    ! Pass the values for the start & end times of the simulation directly
-    ! to GeosUtil/time_mod.F90 via subroutine ACCEPT_EXTERNAL_DATE_TIME.
-    ! (bmy, 12/6/12)
-    CALL Accept_External_Date_Time( value_NYMDb = Input_Opt%NYMDb,   &
-                                    value_NHMSb = Input_Opt%NHMSb,   &
-                                    value_NYMDe = Input_Opt%NYMDe,   &
-                                    value_NHMSe = Input_Opt%NHMSe,   &
-                                    value_NYMD  = Input_Opt%NYMDb,   &
-                                    value_NHMS  = Input_Opt%NHMSb,   &
-                                    value_UTC   = init_UTC,          &
-                                    RC          = RC                 )
-#else
-    !------------------------------------------------------------------------
-    !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-    !
-    ! If we are not using ESMF, then call the traditional GEOS-Chem
-    ! timing routines (from GeosUtil/time_mod.F90) to set the start &
-    ! end times of the simulation, as well as the current time.
-    ! (bmy, 12/6/12)
-    !------------------------------------------------------------------------
-
-    ! Set start time of run in "time_mod.F90"
-    CALL Set_Begin_Time( Input_Opt%NYMDb, Input_Opt%NHMSb, RC  )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in "Set_Begin_Time"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    ! Set end time of run in "time_mod.F90"
-    errMsg = 'Error encountered in "Set_Begin_Time"!'
-    CALL Set_End_Time( Input_Opt%NYMDe, Input_Opt%NHMSe, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    ! Set the current time
-    CALL Set_Current_Time()
-#endif
-
-#ifdef BPCH_DIAG
-    ! Set the start of the 1st diagnostic interval
-    CALL Set_DiagB( GET_TAU() )
-#endif
 
   END SUBROUTINE Config_Simulation
 !EOC
@@ -1189,6 +1234,7 @@ CONTAINS
     errMsg  = 'Error reading the "input.geos" file!'
     thisLoc = ' -> at Read_Timestep_Menu (in module GeosCore/input_mod.F90)'
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     !------------------------------------------------------------------------
     ! Transport/convection timestep
     !------------------------------------------------------------------------
@@ -1229,6 +1275,7 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%TS_RAD = v_int
+#endif
 
     !========================================================================
     ! Error checks
@@ -1252,6 +1299,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef MODEL_CLASSIC
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
        IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM )     THEN
@@ -1280,6 +1328,7 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+#endif
 
     ! Return success
     RC = GC_SUCCESS
@@ -1288,8 +1337,8 @@ CONTAINS
     ! Print to screen
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 90  ) 'TIMESTEP MENU'
-       WRITE( 6, 95  ) '-------------'
+       WRITE( 6, 90  ) 'TIMESTEP SETTINGS'
+       WRITE( 6, 95  ) '-----------------'
        WRITE( 6, 100 ) 'Transport/Convection [sec]  : ', Input_Opt%TS_DYN
        WRITE( 6, 100 ) 'Chemistry/Emissions  [sec]  : ', Input_Opt%TS_CHEM
        WRITE( 6, 100 ) 'RRTMG rad transfer   [sec]  : ', Input_Opt%TS_RAD
@@ -1364,21 +1413,13 @@ CONTAINS
     errMsg  = 'Error reading the "input.geos" file!'
     thisLoc = ' -> at Config_Transport (in GeosCore/input_mod.F90)'
 
-    !------------------------------------------------------------------------
-    ! Turn on transport? (GCHP)?
-    !------------------------------------------------------------------------
-    key    = "operations%transport%activate"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LTRAN = v_bool
+#ifdef MODEL_CLASSIC
+    !========================================================================
+    !             %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
+    !========================================================================
 
     !------------------------------------------------------------------------
-    ! Turn on transport? (GCClassic)
+    ! Turn on TPCORE transport?
     !------------------------------------------------------------------------
     key    = "operations%transport%gcclassic_tpcore%activate"
     v_bool = MISSING_BOOL
@@ -1418,6 +1459,27 @@ CONTAINS
     Input_Opt%TPCORE_JORD = a_int(2)
     Input_Opt%TPCORE_KORD = a_int(3)
 
+#else
+
+    !========================================================================
+    !             %%%%%%% OTHER INSTANCES OF GEOS-Chem %%%%%%%
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! Turn on transport?
+    !------------------------------------------------------------------------
+    key    = "operations%transport%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LTRAN = v_bool
+
+#endif
+
     !------------------------------------------------------------------------
     ! Transported (advected) species list
     !------------------------------------------------------------------------
@@ -1453,10 +1515,12 @@ CONTAINS
        WRITE( 6,90  ) 'TRANSPORT SETTINGS'
        WRITE( 6,95  ) '------------------'
        WRITE( 6,100 ) 'Turn on transport?          : ',Input_Opt%LTRAN
+#ifdef MODEL_CLASSIC
        WRITE( 6,100 ) 'Let TPCORE Fill negatives?  : ',Input_Opt%LFILL
        WRITE( 6,110 ) 'IORD, JORD, KORD for TPCORE?: ',Input_Opt%TPCORE_IORD,&
                                                        Input_Opt%TPCORE_JORD,&
                                                        Input_Opt%TPCORE_KORD
+#endif
     ENDIF
 
     ! FORMAT statements
@@ -3348,7 +3412,7 @@ CONTAINS
     ! String arrays
     CHARACTER(LEN=3)             :: mon(12)=  (/'JAN', 'FEB', 'MAR', 'APR',  &
                                                 'MAY', 'JUN', 'JUL', 'AUG',  &
-                                                'SEP', 'OCT', 'NOV', 'DEC'/) 
+                                                'SEP', 'OCT', 'NOV', 'DEC'/)
 
     !========================================================================
     ! Config_Bpch_Output begins here!
@@ -3365,7 +3429,7 @@ CONTAINS
     DO N = 1, 12
 
        key = "extra_diagnostics%legacy_bpch%output_menu%" // &
-             "schedule_output_for_"                       // mon(N) 
+             "schedule_output_for_"                       // mon(N)
        v_str = MISSING_STR
        CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -3373,14 +3437,14 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-       
+
        ! Parse string into NJDAY array by month
        SELECT CASE( N )
           CASE( 1 )
              READ( v_str, '(31i1)' ) Input_Opt%NJDAY(1:31)
           CASE( 2  )
              READ( v_str, '(29i1)' ) Input_Opt%NJDAY(32:60)
-          CASE( 3 ) 
+          CASE( 3 )
              READ( v_str, '(31i1)' ) Input_Opt%NJDAY(61:91)
           CASE( 4  )
              READ( v_str, '(30i1)' ) Input_Opt%NJDAY(92:121)
@@ -3392,7 +3456,7 @@ CONTAINS
              READ( v_str, '(31i1)' ) Input_Opt%NJDAY(183:213)
           CASE( 8  )
              READ( v_str, '(31i1)' ) Input_Opt%NJDAY(214:244)
-          CASE( 9  ) 
+          CASE( 9  )
              READ( v_str, '(30i1)' ) Input_Opt%NJDAY(245:274)
           CASE( 10 )
              READ( v_str, '(31i1)' ) Input_Opt%NJDAY(275:305)
