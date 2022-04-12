@@ -48,9 +48,6 @@ operations:
       -  COAnthroEmis25dayTracer
       -  COAnthroEmis50dayTracer
       -  COUniformEmis25dayTracer
-      -  GlobEmis90dayTracer
-      -  NHEmis90dayTracer
-      -  SHEmis90dayTracer
     passive_species:
       PassiveTracer:
         long_name: Passive_tracer_for_mass_conservation_evaluation
@@ -81,21 +78,6 @@ operations:
         long_name: CO_with_uniform_emission_and_25day_lifetime
         mol_wt_in_g: 28.0
         lifetime_in_s: 2.16e6
-        default_bkg_conc_in_vv: 1.0e-20
-      GlobEmis90dayTracer:
-        long_name: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
-        mol_wt_in_g: 1.0
-        lifetime_in_s: 7.776e6
-        default_bkg_conc_in_vv: 1.0e-20
-      NHEmis90dayTracer:
-        long_name: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
-        mol_wt_in_g: 1.0
-        lifetime_in_s: 7.776e6
-        default_bkg_conc_in_vv: 1.0e-20
-      SHEmis90dayTracer:
-        long_name: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
-        mol_wt_in_g: 1.0
-        lifetime_in_s: 7.776e6
         default_bkg_conc_in_vv: 1.0e-20
 
   wet_deposition:
