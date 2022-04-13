@@ -484,6 +484,11 @@ function replace_val_yaml() {
     VALUE=${3}   # subcategory value
     FILE=${4}    # YAML file
 
+    # verbose print
+    if [[ ${verbose} = "1" ]]; then
+	printf '%-30s : %-20s %-20s\n' "${CAT//\\}:${KEY}" "${VALUE}" "${FILE}"
+    fi
+
     # Switch the "activate" tag (always the first tag)
     sed -i -e "/${CAT}:/{n;s/${KEY}:.*/${KEY}: ${VALUE}/;}" ${FILE}
 
