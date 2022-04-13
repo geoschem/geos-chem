@@ -664,6 +664,14 @@ CONTAINS
        IF ( INDEX( LINE, '-' ) > 0 ) THEN
           substrs(1) = ADJUSTL( ADJUSTR( substrs(1) ) )
 
+          ! Remove quotes (i.e. 'NO' -> NO)
+          J = INDEX( substrs(1), "'" )
+          IF ( J > 0 ) THEN
+             substrs(1) = substrs(1)(J+1:)
+             J = INDEX( substrs(1), "'" )
+             IF ( J > 0 ) substrs(1) = substrs(1)(1:J-1)
+          ENDIF
+
 #if defined( MODEL_GEOS )
           ! %%% GEOS-Chem in GEOS %%%
           ! Define friendliness to dynamics / turbulence

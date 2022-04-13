@@ -638,13 +638,25 @@ CONTAINS
                                     RC          = RC                        )
 
     !------------------------------------------------------------------------
-    ! GCHP and NASA/GEOS use symbolic links from the run directories
-    ! to the various data directories.  Here, we only need to set the
-    ! Input_Opt%CHEM_INPUTS_DIR field to point to "./ChemDir/".  All of the
-    ! other data directories are used in ExtData.rc
+    ! Chemistry inputs folder (GCHP/NASA-GEOS only)
     !------------------------------------------------------------------------
+
+    key   = "simulation%chem_inputs_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
+
+    !------------------------------------------------------------------------
+    ! Set other fields of Input_Opt accordingly
+    !------------------------------------------------------------------------
+    Input_Opt%MetField        = 'See ExtData.rc'
     Input_Opt%DATA_DIR        = 'N/A'
-    Input_Opt%CHEM_INPUTS_DIR = './ChemDir/'
+    Input_Opt%RUN_DIR         = 'N/A'
 
 #else
     !========================================================================
@@ -1392,6 +1404,7 @@ CONTAINS
     ! Scalars
     LOGICAL                      :: v_bool
     INTEGER                      :: N
+    INTEGER                      :: C
 
     ! Arrays
     INTEGER                      :: a_int(3)
@@ -1496,7 +1509,17 @@ CONTAINS
     ! Find the number of valid species (not equal to MISSING_STR)
     Input_Opt%N_Advect = Get_Number_of_Species( a_str )
 
-    ! Throw an error if
+    ! Remove single quotes from species (i.e. 'NO' -> NO)
+    DO N = 1, Input_Opt%N_Advect
+       C = INDEX( a_str(N), "'" )
+       IF ( C > 0 ) THEN
+          a_str(N) = a_str(N)(C+1:)
+          C = INDEX( a_str(N), "'" )
+          IF ( C > 0 ) a_str(N) = a_str(N)(1:C-1)
+       ENDIF
+    ENDDO
+
+    ! Throw an error if there are more species than the array length
     IF ( Input_Opt%N_Advect > Input_Opt%Max_AdvectSpc ) THEN
        errMsg = 'Number of advected species exceeds maximum. ' // &
             'This value can be modified in input_opt_mod.F90.'
