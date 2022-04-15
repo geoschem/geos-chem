@@ -153,6 +153,9 @@ Turn_on_Base_Emissions=true
 AutoUpdate_Diagnostics=ON
 
 # Monthly diagnostics: '0' for off; '1' for on
+# NOTE: fullchem "DefaultCollection" excludes monthly option
+# in HISTORY.rc by default to allow greater output frequency
+# when other collections are monthly.
 timeAvg_monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
 
 # Frequency and duration (ignored if monthly diagnostics on)
@@ -167,6 +170,7 @@ timeAvg_collections=(SpeciesConc    \
                      CloudConvFlux  \
                      ConcAfterChem  \
                      DryDep         \
+                     DefaultCollection \
                      Emissions      \
                      JValues        \
                      KppDiags       \
@@ -229,11 +233,16 @@ inst_collections=(ConcAboveSfc      \
 #    LESS FREQUENTLY CHANGED SETTINGS
 ########################################################
 
+CS_RES_EFFECTIVE=${CS_RES}
+if [[ ${STRETCH_GRID} == 'ON' ]]; then
+    CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
+fi
+
 #------------------------------------------------
 #    Timesteps
 #------------------------------------------------
 # WARNING: these settings will override settings in input.geos!
-if [[ $CS_RES -lt 180 ]]; then
+if [[ $CS_RES_EFFECTIVE -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
     TransConv_Timestep_HHMMSS=001000
@@ -260,6 +269,10 @@ RRTMG_Timestep_sec=10800
 dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc)
 dustSetting=(${dustEntry// / })
 if [[ ${dustSetting[3]} = "on" ]]; then
+    if [[ ${STRETCH_GRID} == 'ON' ]]; then
+        echo "WARNING: Online dust (DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
+    fi 
+
     if [[ $CS_RES -eq 24 ]]; then
         Dust_SF=6.0e-4
     elif [[ $CS_RES -eq 48 ]]; then
@@ -729,5 +742,3 @@ else
     print_msg "ERROR: unknown setting for AutoUpdate_Diagnostics. Must be ON or OFF."
     exit 1
 fi
-
-

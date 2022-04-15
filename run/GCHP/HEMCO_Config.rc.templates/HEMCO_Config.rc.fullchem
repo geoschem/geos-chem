@@ -47,21 +47,21 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       false    # 1980-2021
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       false
     --> HEMCO_RESTART          :       false
-# ----- NESTED GRID FIELDS ------------------------------------
-    --> GC_BCs                 :       false    # 1980-2021
-# ----- REGIONAL INVENTORIES ----------------------------------
+# ----- NESTED GRID FIELDS ----------------------------------------------------
+    --> GC_BCs                 :       false
+# ----- REGIONAL INVENTORIES --------------------------------------------------
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
     --> DICE_Africa            :       false    # 2013
-# ----- GLOBAL INVENTORIES ------------------------------------
-    --> CEDSv2                 :       true     # 1750-2019
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
+    --> CEDSv2                 :       ${RUNDIR_USE_CEDS}    # 1750-2019
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
     --> EDGARv43               :       false    # 1970-2010
@@ -69,38 +69,70 @@ Warnings:                    1
     --> GEIA_NH3               :       true     # 1990
     --> SEABIRD_NH3            :       true     # 1990
     --> POET_EOH               :       false    # 1985
-    --> TZOMPASOSA_C2H6        :       true     # 2010
-    --> XIAO_C3H8              :       true     # 1985
+    --> TZOMPASOSA_C2H6        :       ${RUNDIR_USE_TSC2H6}    # 2010
+    --> XIAO_C3H8              :       ${RUNDIR_USE_XIAOC3H8}    # 1985
     --> LIANG_BROMOCARB        :       true     # 2000
     --> ORDONEZ_IODOCARB       :       true     # 2000
-    --> AEIC                   :       true     # 2005
     --> DECAYING_PLANTS        :       true     # 1985
     --> AFCID                  :       true     # 2015
-# ----- SHIP EMISSIONS ----------------------------------------
+# ----- AIRCRAFT EMISSIONS ----------------------------------------------------
+# There are 3 switches:
+#
+#  1. AEIC2019_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#     this is not recommended due to the amount of computational overhead
+#     that will be incurred in regridding.  But this may be useful for
+#     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
+#
+#  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#     incur much less computational overhaead.  This options should suffice
+#     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
+#
+#  3. AEIC_SCALE_1990_2019: If "false", the AEIC 2019 data from the year
+#     2019 alone will be used.  This will yield a "best estimate" of
+#     aviation emisssion. This could be important because simply scaling
+#     aviation emissions up and down is rather nonphysical.  But if
+#     AEIC_SCALE_1990_2019 is set to true, then aviation emissions for
+#     1990 to 2019 are estimated by:
+#
+#     a. Scaling ALL aviation emissions based on the growth in fuelburn
+#        from 1990 to 2019* estimated by Lee et al. (2021); and
+#
+#     b. Scaling aviation NOx emissions by an additional factor to reflect
+#        the changes in the NOx emissions index over the same period as
+#        reported by Lee et al. (2021).
+#
+#     Recommended setting: "AEIC_SCALE_1990_2019: true"
+#
+# See additional notes in the AEIC scale factor section below.
+#------------------------------------------------------------------------------
+    --> AEIC2019_DAILY         :       false    # 2019 (daily data)
+    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
+# ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
-    --> CEDSv2_SHIP            :       true     # 1750-2017
+    --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
     --> HTAP_SHIP              :       false    # 2008-2010
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
-# ----- RCP FUTURE EMISSIONS ----------------------------------
+# ----- RCP FUTURE EMISSIONS --------------------------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
-# ----- CMIP6 ANTHRO EMISSIONS / BOUNDARY CONDITIONS ----------
+# ----- CMIP6 ANTHRO EMISSIONS / BOUNDARY CONDITIONS --------------------------
 #   Set GCAP2SCENARIO (e.g., HIST, SSP585) above in SECTION SETTINGS
-    --> CMIP6_SFC_BC           :       false    # 1750-2100
-    --> CMIP6_SFC_LAND_ANTHRO  :       false    # 1850-2100
-    --> CMIP6_AIRCRAFT         :       false    # 1850-2100
-    --> CMIP6_SHIP             :       false    # 1850-2100
-# ----- BIOMASS BURNING EMISSIONS -----------------------------
+    --> CMIP6_SFC_BC           :       ${RUNDIR_CMIP6_FIELDS}    # 1750-2100
+    --> CMIP6_SFC_LAND_ANTHRO  :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+    --> CMIP6_AIRCRAFT         :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+    --> CMIP6_SHIP             :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+# ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
-    --> BB4MIPS                :       false    # 1850-2100
-# ----- OFFLINE EMISSIONS -------------------------------------
+    --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+# ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
@@ -112,23 +144,24 @@ Warnings:                    1
 # NOTE: When switching between offline and online emissions, make sure to also
 # update ExtNr and Cat in HEMCO_Diagn.rc to properly save out emissions for
 # any affected species.
-#--------------------------------------------------------------
-    --> OFFLINE_DUST           :       true     # 1980-2021
-    --> OFFLINE_BIOGENICVOC    :       true     # 1980-2021
-    --> OFFLINE_SEASALT        :       true     # 1980-2021
-    --> OFFLINE_SOILNOX        :       true     # 1980-2021
-# ----- NON-EMISSIONS DATA ------------------------------------
+#------------------------------------------------------------------------------
+    --> OFFLINE_DUST           :       ${RUNDIR_OFFLINE_DUST}    # 1980-2021
+    --> OFFLINE_BIOGENICVOC    :       ${RUNDIR_OFFLINE_BIOVOC}    # 1980-2021
+    --> OFFLINE_SEASALT        :       ${RUNDIR_OFFLINE_SEASALT}    # 1980-2021
+    -->  CalcBrSeasalt         :       false
+    --> OFFLINE_SOILNOX        :       ${RUNDIR_OFFLINE_SOILNOX}    # 1980-2021
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> UVALBEDO               :       true     # 1985
     --> CCM_STRAT_Bry          :       true     # 2007
     --> GMI_OH                 :       true     # 2005
     --> GMI_PROD_LOSS          :       true     # 2005
     --> OMOC_RATIO             :       false    # 2010
-    --> GMD_SFC_CH4            :       true     # 1979-2020
+    --> GMD_SFC_CH4            :       ${RUNDIR_USE_GMDCH4}    # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
     --> OLSON_LANDMAP          :       false    # 1985
     --> YUAN_MODIS_LAI         :       false    # 2000-2020
     --> RRTMG                  :       ${RUNDIR_USE_RRTMG}    # 2002
-    --> SfcVMR                 :       true     # 1750-2014
+    --> SfcVMR                 :       ${RUNDIR_USE_SFCVMR}    # 1750-2014
     --> OCEAN_O3_DRYDEP        :       true     # 1985
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
@@ -138,12 +171,12 @@ Warnings:                    1
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
 103     LightNOx               : on    NO
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
-104     SoilNOx                : off   NO
+104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : off    DST1/DST2/DST3/DST4
-    --> Mass tuning factor     :       -999.0e0
+105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
+    --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : off   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
+107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
@@ -157,7 +190,7 @@ Warnings:                    1
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       true
+    --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -169,7 +202,7 @@ Warnings:                    1
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -188,7 +221,7 @@ Warnings:                    1
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
     --> FINN_subgrid_coag      :       false
-115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
+115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}
@@ -196,16 +229,16 @@ Warnings:                    1
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
-130     TOMAS_Jeagle           : off   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
-131     TOMAS_DustDead         : off   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
-    --> Mass tuning factor     : -999.0e0
+130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
+131     TOMAS_DustDead         : ${RUNDIR_TOMAS_DUSTDEAD}   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
+    --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr	Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 
@@ -1545,7 +1578,7 @@ Warnings:                    1
 
 #==============================================================================
 # --- CMIP6_SFC_LAND_ANTHRO ---
-# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
+# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -1559,7 +1592,7 @@ Warnings:                    1
 0 CMIP6_NO_RCO     $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NO_rco            1750-2100/1-12/1/0 C xy kg/m2/s    NO    25        1 5
 0 CMIP6_NO_SLV     $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NO_slv            1750-2100/1-12/1/0 C xy kg/m2/s    NO    25        1 5
 0 CMIP6_NO_WST     $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NO_wst            1750-2100/1-12/1/0 C xy kg/m2/s    NO    25        1 5
-                                                                              
+
 0 CMIP6_CO_AGR     $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_agr            1750-2100/1-12/1/0 C xy kg/m2/s    CO    26        1 5
 0 CMIP6_SOAP_AGR   -                                                          -                 -                  - -  -          SOAP  26/280    1 5
 0 CMIP6_CO_ENE     $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_ene            1750-2100/1-12/1/0 C xy kg/m2/s    CO    26        1 5
@@ -1574,7 +1607,7 @@ Warnings:                    1
 0 CMIP6_SOAP_SLV   -                                                          -                 -                  - -  -          SOAP  26/280    1 5
 0 CMIP6_CO_WST     $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO_wst            1750-2100/1-12/1/0 C xy kg/m2/s    CO    26        1 5
 0 CMIP6_SOAP_WST   -                                                          -                 -                  - -  -          SOAP  26/280    1 5
-                                                                              
+
 0 CMIP6_SO2_AGR    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   SO2_agr           1750-2100/1-12/1/0 C xy kg/m2/s    SO2   -         1 5
 0 CMIP6_SO4_AGR    -                                                          -                 -                  - -  -          SO4   63        1 5
 0 CMIP6_pFe_AGR    -                                                          -                 -                  - -  -          pFe   66        1 5
@@ -1596,7 +1629,7 @@ Warnings:                    1
 0 CMIP6_SO2_WST    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   SO2_wst           1750-2100/1-12/1/0 C xy kg/m2/s    SO2   -         1 5
 0 CMIP6_SO4_WST    -                                                          -                 -                  - -  -          SO4   63        1 5
 0 CMIP6_pFe_WST    -                                                          -                 -                  - -  -          pFe   66        1 5
-                                                                                 
+
 0 CMIP6_NH3_AGR    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_agr           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_ENE    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_ene           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_IND    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_ind           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
@@ -1604,7 +1637,7 @@ Warnings:                    1
 0 CMIP6_NH3_RCO    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_rco           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_SLV    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_slv           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
 0 CMIP6_NH3_WST    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   NH3_wst           1750-2100/1-12/1/0 C xy kg/m2/s    NH3   -         1 5
-                                                                              
+
 0 CMIP6_BCPI_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BC_agr            1750-2100/1-12/1/0 C xy kg/m2/s    BCPI  70        1 5
 0 CMIP6_BCPO_AGR   -                                                          -                 -                  - -  -          BCPO  71        1 5
 0 CMIP6_BCPI_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BC_ene            1750-2100/1-12/1/0 C xy kg/m2/s    BCPI  70        1 5
@@ -1619,7 +1652,7 @@ Warnings:                    1
 0 CMIP6_BCPO_SLV   -                                                          -                 -                  - -  -          BCPO  71        1 5
 0 CMIP6_BCPI_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BC_wst            1750-2100/1-12/1/0 C xy kg/m2/s    BCPI  70        1 5
 0 CMIP6_BCPO_WST   -                                                          -                 -                  - -  -          BCPO  71        1 5
-                                                                              
+
 0 CMIP6_OCPI_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   OC_agr            1750-2100/1-12/1/0 C xy kg/m2/s    OCPI  72        1 5
 0 CMIP6_OCPO_AGR   -                                                          -                 -                  - -  -          OCPO  73        1 5
 0 CMIP6_POG1_AGR   -                                                          -                 -                  - -  -          POG1  73/74/76  1 5
@@ -1648,8 +1681,8 @@ Warnings:                    1
 0 CMIP6_OCPO_WST   -                                                          -                 -                  - -  -          OCPO  73        1 5
 0 CMIP6_POG1_WST   -                                                          -                 -                  - -  -          POG1  73/74/76  1 5
 0 CMIP6_POG2_WST   -                                                          -                 -                  - -  -          POG2  73/74/77  1 5
-                                                                              
-# Comment out CO2 for fullchem simulations: CO2 not advected                  
+
+# Comment out CO2 for fullchem simulations: CO2 not advected
 #0 CMIP6_CO2_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO2_agr           1750-2100/1-12/1/0 C xy kg/m2/s    CO2   -         1 5
 #0 CMIP6_CO2_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO2_ene           1750-2100/1-12/1/0 C xy kg/m2/s    CO2   -         1 5
 #0 CMIP6_CO2_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO2_ind           1750-2100/1-12/1/0 C xy kg/m2/s    CO2   -         1 5
@@ -1657,9 +1690,9 @@ Warnings:                    1
 #0 CMIP6_CO2_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO2_rco           1750-2100/1-12/1/0 C xy kg/m2/s    CO2   -         1 5
 #0 CMIP6_CO2_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO2_slv           1750-2100/1-12/1/0 C xy kg/m2/s    CO2   -         1 5
 #0 CMIP6_CO2_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CO2_wst           1750-2100/1-12/1/0 C xy kg/m2/s    CO2   -         1 5
-                                                                                 
-# Comment out CH4 for fullchem simulations: do not use CH4 emissions             
-# CMIP6 CH4 emissions are only available for 1970-2014                             
+
+# Comment out CH4 for fullchem simulations: do not use CH4 emissions
+# CMIP6 CH4 emissions are only available for 1970-2014
 #0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_agr           1970-2014/1-12/1/0 C xy kg/m2/s    CH4   -         1 5
 #0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_ene           1970-2014/1-12/1/0 C xy kg/m2/s    CH4   -         1 5
 #0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_ind           1970-2014/1-12/1/0 C xy kg/m2/s    CH4   -         1 5
@@ -1690,7 +1723,7 @@ Warnings:                    1
 0 CMIP6_MOH_WST    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   EOH_wst           1750-2100/1-12/1/0 C xy kg/m2/s    MOH   26/90     1 5
 0 CMIP6_EOH_WST    -                                                          -                 -                  - -  -          EOH   26/91     1 5
 0 CMIP6_ROH_WST    -                                                          -                 -                  - -  -          ROH   26/92     1 5
-                                                                              
+
 0 CMIP6_C2H6_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H6_agr          1750-2100/1-12/1/0 C xy kg/m2/s    C2H6  26        1 5
 0 CMIP6_C2H6_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H6_ene          1750-2100/1-12/1/0 C xy kg/m2/s    C2H6  26        1 5
 0 CMIP6_C2H6_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H6_ind          1750-2100/1-12/1/0 C xy kg/m2/s    C2H6  26        1 5
@@ -1698,7 +1731,7 @@ Warnings:                    1
 0 CMIP6_C2H6_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H6_rco          1750-2100/1-12/1/0 C xy kg/m2/s    C2H6  26        1 5
 0 CMIP6_C2H6_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H6_slv          1750-2100/1-12/1/0 C xy kg/m2/s    C2H6  26        1 5
 0 CMIP6_C2H6_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H6_wst          1750-2100/1-12/1/0 C xy kg/m2/s    C2H6  26        1 5
-                                                                                                                                   
+
 0 CMIP6_C3H8_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C3H8_agr          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        1 5
 0 CMIP6_C3H8_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C3H8_ene          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        1 5
 0 CMIP6_C3H8_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C3H8_ind          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        1 5
@@ -1706,7 +1739,7 @@ Warnings:                    1
 0 CMIP6_C3H8_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C3H8_rco          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        1 5
 0 CMIP6_C3H8_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C3H8_slv          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        1 5
 0 CMIP6_C3H8_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C3H8_wst          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        1 5
-                                                                                                                                   
+
 0 CMIP6_C4H10_AGR  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_butanes_agr  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C4H10_ENE  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_butanes_ene  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C4H10_IND  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_butanes_ind  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
@@ -1714,7 +1747,7 @@ Warnings:                    1
 0 CMIP6_C4H10_RCO  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_butanes_rco  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C4H10_SLV  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_butanes_slv  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C4H10_WST  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_butanes_wst  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-                                                                                                                                   
+
 0 CMIP6_C5H12_AGR  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_pentanes_agr 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C5H12_ENE  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_pentanes_ene 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C5H12_IND  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_pentanes_ind 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
@@ -1722,7 +1755,7 @@ Warnings:                    1
 0 CMIP6_C5H12_RCO  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_pentanes_rco 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C5H12_SLV  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_pentanes_slv 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C5H12_WST  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_pentanes_wst 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-                                                                                                                                   
+
 0 CMIP6_C6H14_AGR  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_hexanes_agr  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C6H14_ENE  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_hexanes_ene  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C6H14_IND  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_hexanes_ind  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
@@ -1730,7 +1763,7 @@ Warnings:                    1
 0 CMIP6_C6H14_RCO  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_hexanes_rco  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C6H14_SLV  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_hexanes_slv  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C6H14_WST  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALK4_hexanes_wst  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-                                                                                                                                   
+
 0 CMIP6_C2H4_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H4_agr          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
 0 CMIP6_C2H4_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H4_ene          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
 0 CMIP6_C2H4_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H4_ind          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
@@ -1738,7 +1771,7 @@ Warnings:                    1
 0 CMIP6_C2H4_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H4_rco          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
 0 CMIP6_C2H4_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H4_slv          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
 0 CMIP6_C2H4_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H4_wst          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
-                                                                                                                                   
+
 0 CMIP6_PRPE_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   PRPE_agr          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        1 5
 0 CMIP6_PRPE_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   PRPE_ene          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        1 5
 0 CMIP6_PRPE_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   PRPE_ind          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        1 5
@@ -1746,7 +1779,7 @@ Warnings:                    1
 0 CMIP6_PRPE_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   PRPE_rco          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        1 5
 0 CMIP6_PRPE_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   PRPE_slv          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        1 5
 0 CMIP6_PRPE_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   PRPE_wst          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        1 5
-                                                                                                                                   
+
 0 CMIP6_C2H2_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H2_agr          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        1 5
 0 CMIP6_C2H2_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H2_ene          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        1 5
 0 CMIP6_C2H2_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H2_ind          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        1 5
@@ -1754,7 +1787,7 @@ Warnings:                    1
 0 CMIP6_C2H2_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H2_rco          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        1 5
 0 CMIP6_C2H2_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H2_slv          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        1 5
 0 CMIP6_C2H2_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   C2H2_wst          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        1 5
-                                                                                                                                   
+
 0 CMIP6_BENZ_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BENZ_agr          1750-2100/1-12/1/0 C xy kg/m2/s    BENZ  26        1 5
 0 CMIP6_BENZ_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BENZ_ene          1750-2100/1-12/1/0 C xy kg/m2/s    BENZ  26        1 5
 0 CMIP6_BENZ_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BENZ_ind          1750-2100/1-12/1/0 C xy kg/m2/s    BENZ  26        1 5
@@ -1762,7 +1795,7 @@ Warnings:                    1
 0 CMIP6_BENZ_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BENZ_rco          1750-2100/1-12/1/0 C xy kg/m2/s    BENZ  26        1 5
 0 CMIP6_BENZ_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BENZ_slv          1750-2100/1-12/1/0 C xy kg/m2/s    BENZ  26        1 5
 0 CMIP6_BENZ_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   BENZ_wst          1750-2100/1-12/1/0 C xy kg/m2/s    BENZ  26        1 5
-                                                                                                                                   
+
 0 CMIP6_TOLU_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   TOLU_agr          1750-2100/1-12/1/0 C xy kg/m2/s    TOLU  26        1 5
 0 CMIP6_TOLU_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   TOLU_ene          1750-2100/1-12/1/0 C xy kg/m2/s    TOLU  26        1 5
 0 CMIP6_TOLU_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   TOLU_ind          1750-2100/1-12/1/0 C xy kg/m2/s    TOLU  26        1 5
@@ -1770,7 +1803,7 @@ Warnings:                    1
 0 CMIP6_TOLU_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   TOLU_rco          1750-2100/1-12/1/0 C xy kg/m2/s    TOLU  26        1 5
 0 CMIP6_TOLU_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   TOLU_slv          1750-2100/1-12/1/0 C xy kg/m2/s    TOLU  26        1 5
 0 CMIP6_TOLU_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   TOLU_wst          1750-2100/1-12/1/0 C xy kg/m2/s    TOLU  26        1 5
-                                                                                                                                   
+
 0 CMIP6_XYLE_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   XYLE_agr          1750-2100/1-12/1/0 C xy kg/m2/s    XYLE  26        1 5
 0 CMIP6_XYLE_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   XYLE_ene          1750-2100/1-12/1/0 C xy kg/m2/s    XYLE  26        1 5
 0 CMIP6_XYLE_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   XYLE_ind          1750-2100/1-12/1/0 C xy kg/m2/s    XYLE  26        1 5
@@ -1778,7 +1811,7 @@ Warnings:                    1
 0 CMIP6_XYLE_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   XYLE_rco          1750-2100/1-12/1/0 C xy kg/m2/s    XYLE  26        1 5
 0 CMIP6_XYLE_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   XYLE_slv          1750-2100/1-12/1/0 C xy kg/m2/s    XYLE  26        1 5
 0 CMIP6_XYLE_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   XYLE_wst          1750-2100/1-12/1/0 C xy kg/m2/s    XYLE  26        1 5
-                                                                                                                                   
+
 0 CMIP6_CH2O_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH2O_agr          1750-2100/1-12/1/0 C xy kg/m2/s    CH2O  26        1 5
 0 CMIP6_CH2O_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH2O_ene          1750-2100/1-12/1/0 C xy kg/m2/s    CH2O  26        1 5
 0 CMIP6_CH2O_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH2O_ind          1750-2100/1-12/1/0 C xy kg/m2/s    CH2O  26        1 5
@@ -1786,7 +1819,7 @@ Warnings:                    1
 0 CMIP6_CH2O_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH2O_rco          1750-2100/1-12/1/0 C xy kg/m2/s    CH2O  26        1 5
 0 CMIP6_CH2O_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH2O_slv          1750-2100/1-12/1/0 C xy kg/m2/s    CH2O  26        1 5
 0 CMIP6_CH2O_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH2O_wst          1750-2100/1-12/1/0 C xy kg/m2/s    CH2O  26        1 5
-                                                                                                                                   
+
 0 CMIP6_ALD2_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALD2_agr          1750-2100/1-12/1/0 C xy kg/m2/s    ALD2  26        1 5
 0 CMIP6_ALD2_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALD2_ene          1750-2100/1-12/1/0 C xy kg/m2/s    ALD2  26        1 5
 0 CMIP6_ALD2_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALD2_ind          1750-2100/1-12/1/0 C xy kg/m2/s    ALD2  26        1 5
@@ -1794,7 +1827,7 @@ Warnings:                    1
 0 CMIP6_ALD2_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALD2_rco          1750-2100/1-12/1/0 C xy kg/m2/s    ALD2  26        1 5
 0 CMIP6_ALD2_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALD2_slv          1750-2100/1-12/1/0 C xy kg/m2/s    ALD2  26        1 5
 0 CMIP6_ALD2_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   ALD2_wst          1750-2100/1-12/1/0 C xy kg/m2/s    ALD2  26        1 5
-                                                                                                                                   
+
 0 CMIP6_MEK_AGR    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   MEK_agr           1750-2100/1-12/1/0 C xy kg/m2/s    MEK   26        1 5
 0 CMIP6_MEK_ENE    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   MEK_ene           1750-2100/1-12/1/0 C xy kg/m2/s    MEK   26        1 5
 0 CMIP6_MEK_IND    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   MEK_ind           1750-2100/1-12/1/0 C xy kg/m2/s    MEK   26        1 5
@@ -1802,7 +1835,7 @@ Warnings:                    1
 0 CMIP6_MEK_RCO    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   MEK_rco           1750-2100/1-12/1/0 C xy kg/m2/s    MEK   26        1 5
 0 CMIP6_MEK_SLV    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   MEK_slv           1750-2100/1-12/1/0 C xy kg/m2/s    MEK   26        1 5
 0 CMIP6_MEK_WST    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   MEK_wst           1750-2100/1-12/1/0 C xy kg/m2/s    MEK   26        1 5
-                                                                                                                                   
+
 0 CMIP6_HCOOH_AGR  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   HCOOH_agr         1750-2100/1-12/1/0 C xy kg/m2/s    HCOOH 26        1 5
 0 CMIP6_HCOOH_ENE  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   HCOOH_ene         1750-2100/1-12/1/0 C xy kg/m2/s    HCOOH 26        1 5
 0 CMIP6_HCOOH_IND  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   HCOOH_ind         1750-2100/1-12/1/0 C xy kg/m2/s    HCOOH 26        1 5
@@ -1813,7 +1846,7 @@ Warnings:                    1
 )))CMIP6_SFC_LAND_ANTHRO
 
 #==============================================================================
-# CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft 
+# CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft
 # emissions, consistent with the CMIP6 simulation experimental design
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -2355,7 +2388,7 @@ Warnings:                    1
 
 #==============================================================================
 # --- CMIP6_SHIP ---
-# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with 
+# CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
 # Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
@@ -2372,7 +2405,7 @@ Warnings:                    1
 0 CMIP6_BCPO_SHP   -                                                   -                 -                  - -  -          BCPO  71        10 5
 0 CMIP6_OCPI_SHP   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4            OC_shp            1750-2100/1-12/1/0 C xy kg/m2/s    OCPI  72        10 5
 0 CMIP6_OCPO_SHP   -                                                   -                 -                  - -  -          OCPO  73        10 5
-# NOTE: EOH files in CMIP6/v2021-01 are actually VOC1 (total alchohols) and are split into MOH, EOH, ROH here                                 
+# NOTE: EOH files in CMIP6/v2021-01 are actually VOC1 (total alchohols) and are split into MOH, EOH, ROH here
 0 CMIP6_MOH_SHP    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4            EOH_shp           1750-2100/1-12/1/0 C xy kg/m2/s    MOH   26/90     10 5
 0 CMIP6_EOH_SHP    -                                                   -                 -                  - -  -          EOH   26/91     10 5
 0 CMIP6_ROH_SHP    -                                                   -                 -                  - -  -          ROH   26/92     10 5
@@ -2412,7 +2445,7 @@ Warnings:                    1
 )))HTAP_SHIP
 
 (((CEDSv2_SHIP
-102 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc NO_shp 1750-2010/1-12/1/0 C xy kg/m2/s NO 25 10 5
+102 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc NO_shp 1750-2019/1-12/1/0 C xy kg/m2/s NO 25 10 5
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
@@ -2430,15 +2463,15 @@ Warnings:                    1
 (((.not.ParaNOx
 
 (((ICOADS_SHIP
-0 ICOADS_SHIP_NO $ROOT/ICOADS_SHIP/v2014-07/ICOADS.generic.1x1.nc NO 2002/1-12/1/0 C xy kg/m2/s NO 1/5 10 1
+0 ICOADS_SHIP_NO $ROOT/ICOADS_SHIP/v2014-07/ICOADS.generic.1x1.nc             NO     2002/1-12/1/0      C xy kg/m2/s NO 1/5  10 1
 )))ICOADS_SHIP
 
 (((HTAP_SHIP
-0 HTAP_SHIP_NO $ROOT/HTAP/v2015-03/EDGAR_HTAP_NO_SHIPS.generic.01x01.nc emi_no 2008-2010/1/1/0 C xy kg/m2/s NO 1/27 10 2
+0 HTAP_SHIP_NO $ROOT/HTAP/v2015-03/EDGAR_HTAP_NO_SHIPS.generic.01x01.nc       emi_no 2008-2010/1/1/0    C xy kg/m2/s NO 1/27 10 2
 )))HTAP_SHIP
 
 (((CEDSv2_SHIP
-0 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc NO_shp 1750-2010/1-12/1/0 C xy kg/m2/s NO 25 10 5
+0 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc       NO_shp 1750-2019/1-12/1/0 C xy kg/m2/s NO 25   10 5
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
@@ -2446,7 +2479,7 @@ Warnings:                    1
 )))CEDS_GBDMAPS_SHIP
 
 (((CMIP6_SHIP
-102 CMIP6_NO_SHP $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4            NO_shp            1750-2100/1-12/1/0 C xy kg/m2/s    NO    25        10 5
+102 CMIP6_NO_SHP $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 NO_shp 1750-2100/1-12/1/0 C xy kg/m2/s NO 25   10 5
 )))CMIP6_SHIP
 
 ))).not.ParaNOx
@@ -2454,38 +2487,54 @@ Warnings:                    1
 )))SHIP
 
 #==============================================================================
-# --- AEIC aircraft emissions ---
+# --- AEIC 2019 aircraft emissions ---
 #
-# ==> Now emit aircraft BC and OC into hydrophilic tracers BCPI and OCPI.
+# Data files are for 2019, but scale factors from 1990-2019 can be applied
+# in order to get year-specific emissions.  See the notes in the AEIC2019
+# scale factor section below for more information.
 #==============================================================================
-(((AEIC
-0 AEIC_NO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  NO2      2005/1-12/1/0 C xyz kg/m2/s NO   110/115 20 1
-0 AEIC_CO   $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110     20 1
-0 AEIC_SOAP -                                        -        -             - -   -       SOAP 110/280 20 1
-0 AEIC_SO2  $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111     20 1
-0 AEIC_SO4  -                                        -        -             - -   -       SO4  112     20 1
-0 AEIC_BCPI -                                        -        -             - -   -       BCPI 113     20 1
-0 AEIC_OCPI -                                        -        -             - -   -       OCPI 113     20 1
-0 AEIC_ACET $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc  HC       2005/1-12/1/0 C xyz kg/m2/s ACET 114/101 20 1
-0 AEIC_ALD2 -                                        -        -             - -   -       ALD2 114/102 20 1
-0 AEIC_ALK4 -                                        -        -             - -   -       ALK4 114/103 20 1
-0 AEIC_BENZ -                                        -        -             - -   -       BENZ 114/116 20 1
-0 AEIC_C2H2 -                                        -        -             - -   -       C2H2 114/117 20 1
-0 AEIC_C2H4 -                                        -        -             - -   -       C2H4 114/118 20 1
-0 AEIC_C2H6 -                                        -        -             - -   -       C2H6 114/104 20 1
-0 AEIC_C3H8 -                                        -        -             - -   -       C3H8 114/105 20 1
-0 AEIC_CH2O -                                        -        -             - -   -       CH2O 114/106 20 1
-0 AEIC_GLYX -                                        -        -             - -   -       GLYX 114/119 20 1
-0 AEIC_MGLY -                                        -        -             - -   -       MGLY 114/120 20 1
-0 AEIC_MOH  -                                        -        -             - -   -       MOH  114/121 20 1
-0 AEIC_NAP  -                                        -        -             - -   -       NAP  114/122 20 1
-0 AEIC_PHEN -                                        -        -             - -   -       PHEN 114/123 20 1
-0 AEIC_PRPE -                                        -        -             - -   -       PRPE 114/107 20 1
-0 AEIC_MACR -                                        -        -             - -   -       MACR 114/108 20 1
-0 AEIC_RCHO -                                        -        -             - -   -       RCHO 114/109 20 1
-0 AEIC_TOLU -                                        -        -             - -   -       TOLU 114/124 20 1
-0 AEIC_XYLE -                                        -        -             - -   -       XYLE 114/125 20 1
-)))AEIC
+(((AEIC2019_DAILY
+0 AEIC19_DAILY_NO   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc NO       2019/1-12/1-31/0 C xyz kg/m2/s NO   241/240     20 1
+0 AEIC19_DAILY_NO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc NO2      2019/1-12/1-31/0 C xyz kg/m2/s NO2  241/240     20 1
+0 AEIC19_DAILY_HONO $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc HONO     2019/1-12/1-31/0 C xyz kg/m2/s HNO2 241/240     20 1
+0 AEIC19_DAILY_CO   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s CO   241         20 1
+0 AEIC19_DAILY_SOAP -                                                             -        -                - -   -       SOAP 241/280     20 1
+0 AEIC19_DAILY_SO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
+0 AEIC19_DAILY_SO4  -                                                             -        -                - -   -       SO4  241/112     20 1
+0 AEIC19_DAILY_H2O  -                                                             -        -                - -   -       H2O  241/120     20 1
+0 AEIC19_DAILY_BCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
+0 AEIC19_DAILY_OCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_DAILY_ACET $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc HC       2019/1-12/1-31/0 C xyz kg/m2/s ACET 241/114/101 20 1
+0 AEIC19_DAILY_ALD2 -                                                             -        -                - -   -       ALD2 241/114/102 20 1
+0 AEIC19_DAILY_ALK4 -                                                             -        -                - -   -       ALK4 241/114/103 20 1
+0 AEIC19_DAILY_C2H6 -                                                             -        -                - -   -       C2H6 241/114/104 20 1
+0 AEIC19_DAILY_C3H8 -                                                             -        -                - -   -       C3H8 241/114/105 20 1
+0 AEIC19_DAILY_CH2O -                                                             -        -                - -   -       CH2O 241/114/106 20 1
+0 AEIC19_DAILY_PRPE -                                                             -        -                - -   -       PRPE 241/114/107 20 1
+0 AEIC19_DAILY_MACR -                                                             -        -                - -   -       MACR 241/114/108 20 1
+0 AEIC19_DAILY_RCHO -                                                             -        -                - -   -       RCHO 241/114/109 20 1
+)))AEIC2019_DAILY
+(((AEIC2019_MONMEAN
+0 AEIC19_MONMEAN_NO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc NO       2019/1-12/1/0 C xyz kg/m2/s NO   241/240     20 1
+0 AEIC19_MONMEAN_NO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc NO2      2019/1-12/1/0 C xyz kg/m2/s NO2  241/240     20 1
+0 AEIC19_MONMEAN_HONO $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HONO     2019/1-12/1/0 C xyz kg/m2/s HNO2 241/240     20 1
+0 AEIC19_MONMEAN_CO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc CO       2019/1-12/1/0 C xyz kg/m2/s CO   241         20 1
+0 AEIC19_MONMEAN_SOAP -                                                                          -        -             - -   -       SOAP 241/280     20 1
+0 AEIC19_MONMEAN_SO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc FUELBURN 2019/1-12/1/0 C xyz kg/m2/s SO2  241/111     20 1
+0 AEIC19_MONMEAN_SO4  -                                                                          -        -             - -   -       SO4  241/112     20 1
+0 AEIC19_MONMEAN_H2O  -                                                                          -        -             - -   -       H2O  241/120     20 1
+0 AEIC19_MONMEAN_BCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc BC       2019/1-12/1/0 C xyz kg/m2/s BCPI 241         20 1
+0 AEIC19_MONMEAN_OCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc OC       2019/1-12/1/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_MONMEAN_ACET $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HC       2019/1-12/1/0 C xyz kg/m2/s ACET 241/114/101 20 1
+0 AEIC19_MONMEAN_ALD2 -                                                                          -        -             - -   -       ALD2 241/114/102 20 1
+0 AEIC19_MONMEAN_ALK4 -                                                                          -        -             - -   -       ALK4 241/114/103 20 1
+0 AEIC19_MONMEAN_C2H6 -                                                                          -        -             - -   -       C2H6 241/114/104 20 1
+0 AEIC19_MONMEAN_C3H8 -                                                                          -        -             - -   -       C3H8 241/114/105 20 1
+0 AEIC19_MONMEAN_CH2O -                                                                          -        -             - -   -       CH2O 241/114/106 20 1
+0 AEIC19_MONMEAN_PRPE -                                                                          -        -             - -   -       PRPE 241/114/107 20 1
+0 AEIC19_MONMEAN_MACR -                                                                          -        -             - -   -       MACR 241/114/108 20 1
+0 AEIC19_MONMEAN_RCHO -                                                                          -        -             - -   -       RCHO 241/114/109 20 1
+)))AEIC2019_MONMEAN
 
 #==============================================================================
 # --- Emissions from decaying plants ---
@@ -2610,44 +2659,44 @@ Warnings:                    1
 # --- QFED2 biomass burning (v2.5r1) ---
 #==============================================================================
 (((QFED2
-0 QFED_ACET_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ACET 75/311        5 2
-0 QFED_ACET_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ACET 75/312        5 2
-0 QFED_ALD2_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALD2 75/311        5 2
-0 QFED_ALD2_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALD2 75/312        5 2
-0 QFED_ALK4_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALK4 75/311        5 2
-0 QFED_ALK4_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALK4 75/312        5 2
-0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
+0 QFED_ACET_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ACET 75/311        5 2
+0 QFED_ACET_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_acet.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ACET 75/312        5 2
+0 QFED_ALD2_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALD2 75/311        5 2
+0 QFED_ALD2_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ald2.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALD2 75/312        5 2
+0 QFED_ALK4_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s ALK4 75/311        5 2
+0 QFED_ALK4_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_alk4.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s ALK4 75/312        5 2
+0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
 0 QFED_BCPO_PBL  -                                                                 -       -                             -  -             -       BCPO 71/75/311     5 2
-0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
+0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
 0 QFED_BCPO_FT   -                                                                 -       -                             -  -             -       BCPO 71/75/312     5 2
-0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
+0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
 0 QFED_OCPO_PBL  -                                                                 -       -                             -  -             -       OCPO 73/75/311     5 2
-0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
+0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
 0 QFED_OCPO_FT   -                                                                 -       -                             -  -             -       OCPO 73/75/312     5 2
-0 QFED_C2H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C2H6 75/311        5 2
-0 QFED_C2H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C2H6 75/312        5 2
-0 QFED_C3H8_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C3H8 75/311        5 2
-0 QFED_C3H8_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C3H8 75/312        5 2
-0 QFED_CH2O_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH2O 75/311        5 2
-0 QFED_CH2O_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH2O 75/312        5 2
-0 QFED_CH4_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH4  75/311        5 2
-0 QFED_CH4_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH4  75/312        5 2
-0 QFED_CO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO   54/75/311     5 2
+0 QFED_C2H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C2H6 75/311        5 2
+0 QFED_C2H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c2h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C2H6 75/312        5 2
+0 QFED_C3H8_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s C3H8 75/311        5 2
+0 QFED_C3H8_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h8.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s C3H8 75/312        5 2
+0 QFED_CH2O_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH2O 75/311        5 2
+0 QFED_CH2O_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch2o.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH2O 75/312        5 2
+0 QFED_CH4_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CH4  75/311        5 2
+0 QFED_CH4_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_ch4.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CH4  75/312        5 2
+0 QFED_CO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO   54/75/311     5 2
 0 QFED_SOAP_PBL  -                                                                 -       -                             -  -             -       SOAP 54/75/281/311 5 2
-0 QFED_CO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO   54/75/312     5 2
+0 QFED_CO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO   54/75/312     5 2
 0 QFED_SOAP_FT   -                                                                 -       -                             -  -             -       SOAP 54/75/281/312 5 2
-0 QFED_CO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO2  75/311        5 2
-0 QFED_CO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO2  75/312        5 2
-0 QFED_MEK_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s MEK  75/311        5 2
-0 QFED_MEK_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s MEK  75/312        5 2
-0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NH3  75/311        5 2
-0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
-0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NO   75/311        5 2
-0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NO   75/312        5 2
-0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2  75/311        5 2
-0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
-0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s PRPE 75/311        5 2
-0 QFED_C3H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2020/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s PRPE 75/312        5 2
+0 QFED_CO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s CO2  75/311        5 2
+0 QFED_CO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO2  75/312        5 2
+0 QFED_MEK_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s MEK  75/311        5 2
+0 QFED_MEK_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_mek.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s MEK  75/312        5 2
+0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NH3  75/311        5 2
+0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
+0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NO   75/311        5 2
+0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NO   75/312        5 2
+0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2  75/311        5 2
+0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
+0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s PRPE 75/311        5 2
+0 QFED_C3H6_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s PRPE 75/312        5 2
 )))QFED2
 
 #==============================================================================
@@ -2777,11 +2826,15 @@ Warnings:                    1
 0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
 0 SEASALT_SALAAL  -                                                                                     -            -                     - -  -       SALAAL  615 3 2
 0 SEASALT_SALACL  -                                                                                     -            -                     - -  -       SALACL  616 3 2
+(((CalcBrSeasalt
 0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BrSALA  617 3 2
+)))CalcBrSeasalt
 0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
 0 SEASALT_SALCAL  -                                                                                     -            -                     - -  -       SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
+(((CalcBrSeasalt
 0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BrSALC  617 3 2
+)))CalcBrSeasalt
 ))).not.SeaSalt
 )))OFFLINE_SEASALT
 
@@ -2897,7 +2950,7 @@ Warnings:                    1
 #==============================================================================
 (((SeaSalt
 107 MODIS_CHLR  $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS    2005-2014/1-12/1/0 C    xy 1 * - 1 1
-107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
+107 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1980-2020/1-12/1-31/0 C xy 1 * - 1 1
 
 # Climatology CHLR
 #107 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1
@@ -3062,25 +3115,25 @@ Warnings:                    1
 # --- Stratospheric Bry data from the CCM model  ---
 #==============================================================================
 (((CCM_STRAT_Bry
-* GEOSCCM_Br_DAY      $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.day.nc   BR     2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_Br2_DAY     $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.day.nc   BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrO_DAY     $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.day.nc   BRO    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrNO3_DAY   $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.day.nc   BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HBr_DAY     $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.day.nc   HBR    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HOBr_DAY    $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.day.nc   HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_Br_NIGHT    $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.night.nc BR     2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_Br2_NIGHT   $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.night.nc BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrO_NIGHT   $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.night.nc BRO    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_BrNO3_NIGHT $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.night.nc BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HBr_NIGHT   $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.night.nc HBR    2007/1-12/1/0 C xyz pptv * - 60 1
-* GEOSCCM_HOBr_NIGHT  $ROOT/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007$MM.night.nc HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br_DAY      $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BR     2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br2_DAY     $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrO_DAY     $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRO    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrNO3_DAY   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HBr_DAY     $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   HBR    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HOBr_DAY    $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.day.nc   HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br_NIGHT    $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BR     2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_Br2_NIGHT   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRCL   2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrO_NIGHT   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRO    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_BrNO3_NIGHT $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc BRONO2 2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HBr_NIGHT   $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc HBR    2007/1-12/1/0 C xyz pptv * - 60 1
+* GEOSCCM_HOBr_NIGHT  $ROOT/${RUNDIR_Bry_DIR}/GEOSCCM_Bry.2007$MM.night.nc HOBR   2007/1-12/1/0 C xyz pptv * - 60 1
 )))CCM_STRAT_Bry
 
 #==============================================================================
 #--- Archived GMI OH concentrations ---
 #==============================================================================
 (((GMI_OH
-* GMI_OH            $ROOT/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc             species 2005/1-12/1/0 C xyz v/v   *        - 1  1
+* GMI_OH            $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             species 2005/1-12/1/0 C xyz v/v   *        - 1  1
 )))GMI_OH
 
 #==============================================================================
@@ -3089,250 +3142,250 @@ Warnings:                    1
 # Used for linearized mesospheric chemistry
 #==============================================================================
 (((GMI_PROD_LOSS
-* GMI_LOSS_A3O2       $ROOT/GMI/v2015-02/gmi.clim.A3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   A3O2     - 1  1
-* GMI_PROD_A3O2       $ROOT/GMI/v2015-02/gmi.clim.A3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s A3O2     - 1  1
-* GMI_LOSS_ACET       $ROOT/GMI/v2015-02/gmi.clim.ACET.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACET     - 1  1
-* GMI_PROD_ACET       $ROOT/GMI/v2015-02/gmi.clim.ACET.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACET     - 1  1
-* GMI_LOSS_ACTA       $ROOT/GMI/v2015-02/gmi.clim.ACTA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACTA     - 1  1
-* GMI_PROD_ACTA       $ROOT/GMI/v2015-02/gmi.clim.ACTA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACTA     - 1  1
-* GMI_LOSS_ALD2       $ROOT/GMI/v2015-02/gmi.clim.ALD2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALD2     - 1  1
-* GMI_PROD_ALD2       $ROOT/GMI/v2015-02/gmi.clim.ALD2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALD2     - 1  1
-* GMI_LOSS_ALK4       $ROOT/GMI/v2015-02/gmi.clim.ALK4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALK4     - 1  1
-* GMI_PROD_ALK4       $ROOT/GMI/v2015-02/gmi.clim.ALK4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALK4     - 1  1
-* GMI_LOSS_ATO2       $ROOT/GMI/v2015-02/gmi.clim.ATO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ATO2     - 1  1
-* GMI_PROD_ATO2       $ROOT/GMI/v2015-02/gmi.clim.ATO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ATO2     - 1  1
-* GMI_LOSS_B3O2       $ROOT/GMI/v2015-02/gmi.clim.B3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   B3O2     - 1  1
-* GMI_PROD_B3O2       $ROOT/GMI/v2015-02/gmi.clim.B3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s B3O2     - 1  1
-#* GMI_LOSS_Br        $ROOT/GMI/v2015-02/gmi.clim.Br.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Br       - 1  1
-#* GMI_PROD_Br        $ROOT/GMI/v2015-02/gmi.clim.Br.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Br       - 1  1
-#* GMI_LOSS_BrCl      $ROOT/GMI/v2015-02/gmi.clim.BrCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   BrCl     - 1  1
-#* GMI_PROD_BrCl      $ROOT/GMI/v2015-02/gmi.clim.BrCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s BrCl     - 1  1
-#* GMI_LOSS_BrO       $ROOT/GMI/v2015-02/gmi.clim.BrO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   BrO      - 1  1
-#* GMI_PROD_BrO       $ROOT/GMI/v2015-02/gmi.clim.BrO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s BrO      - 1  1
-#* GMI_LOSS_BrNO3     $ROOT/GMI/v2015-02/gmi.clim.BrONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   BrNO3    - 1  1
-#* GMI_PROD_BrNO3     $ROOT/GMI/v2015-02/gmi.clim.BrONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s BrNO3    - 1  1
-* GMI_LOSS_C2H6       $ROOT/GMI/v2015-02/gmi.clim.C2H6.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C2H6     - 1  1
-* GMI_PROD_C2H6       $ROOT/GMI/v2015-02/gmi.clim.C2H6.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C2H6     - 1  1
-* GMI_LOSS_C3H8       $ROOT/GMI/v2015-02/gmi.clim.C3H8.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C3H8     - 1  1
-* GMI_PROD_C3H8       $ROOT/GMI/v2015-02/gmi.clim.C3H8.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C3H8     - 1  1
-* GMI_LOSS_CCl4       $ROOT/GMI/v2015-02/gmi.clim.CCl4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CCl4     - 1  1
-* GMI_PROD_CCl4       $ROOT/GMI/v2015-02/gmi.clim.CCl4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CCl4     - 1  1
-#* GMI_LOSS_H1202     $ROOT/GMI/v2015-02/gmi.clim.CF2Br2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   H1202    - 1  1
-#* GMI_PROD_H1202     $ROOT/GMI/v2015-02/gmi.clim.CF2Br2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s H1202    - 1  1
-* GMI_LOSS_CFC12      $ROOT/GMI/v2015-02/gmi.clim.CF2Cl2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC12    - 1  1
-* GMI_PROD_CFC12      $ROOT/GMI/v2015-02/gmi.clim.CF2Cl2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC12    - 1  1
-* GMI_LOSS_H1211      $ROOT/GMI/v2015-02/gmi.clim.CF2ClBr.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   H1211    - 1  1
-* GMI_PROD_H1211      $ROOT/GMI/v2015-02/gmi.clim.CF2ClBr.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s H1211    - 1  1
-#* GMI_LOSS_H1311     $ROOT/GMI/v2015-02/gmi.clim.CF3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H1311    - 1  1
-#* GMI_PROD_H1311     $ROOT/GMI/v2015-02/gmi.clim.CF3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H1311    - 1  1
-* GMI_LOSS_CFC113     $ROOT/GMI/v2015-02/gmi.clim.CFC113.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC113   - 1  1
-* GMI_PROD_CFC113     $ROOT/GMI/v2015-02/gmi.clim.CFC113.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC113   - 1  1
-* GMI_LOSS_CFC114     $ROOT/GMI/v2015-02/gmi.clim.CFC114.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC114   - 1  1
-* GMI_PROD_CFC114     $ROOT/GMI/v2015-02/gmi.clim.CFC114.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC114   - 1  1
-* GMI_LOSS_CFC115     $ROOT/GMI/v2015-02/gmi.clim.CFC115.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC115   - 1  1
-* GMI_PROD_CFC115     $ROOT/GMI/v2015-02/gmi.clim.CFC115.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC115   - 1  1
-* GMI_LOSS_CFC11      $ROOT/GMI/v2015-02/gmi.clim.CFCl3.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CFC11    - 1  1
-* GMI_PROD_CFC11      $ROOT/GMI/v2015-02/gmi.clim.CFCl3.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CFC11    - 1  1
-* GMI_LOSS_CH2O       $ROOT/GMI/v2015-02/gmi.clim.CH2O.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CH2O     - 1  1
-* GMI_PROD_CH2O       $ROOT/GMI/v2015-02/gmi.clim.CH2O.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CH2O     - 1  1
-#* GMI_LOSS_CH3Br     $ROOT/GMI/v2015-02/gmi.clim.CH3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Br    - 1  1
-#* GMI_PROD_CH3Br     $ROOT/GMI/v2015-02/gmi.clim.CH3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Br    - 1  1
-* GMI_LOSS_CH3CCl3    $ROOT/GMI/v2015-02/gmi.clim.CH3CCl3.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   CH3CCl3  - 1  1
-* GMI_PROD_CH3CCl3    $ROOT/GMI/v2015-02/gmi.clim.CH3CCl3.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s CH3CCl3  - 1  1
-* GMI_LOSS_CH3Cl      $ROOT/GMI/v2015-02/gmi.clim.CH3Cl.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Cl    - 1  1
-* GMI_PROD_CH3Cl      $ROOT/GMI/v2015-02/gmi.clim.CH3Cl.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Cl    - 1  1
-* GMI_LOSS_CH4        $ROOT/GMI/v2015-02/gmi.clim.CH4.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   CH4      - 1  1
-* GMI_PROD_CH4        $ROOT/GMI/v2015-02/gmi.clim.CH4.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s CH4      - 1  1
-* GMI_LOSS_CO         $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   CO       - 1  1
-* GMI_PROD_CO         $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s CO       - 1  1
-* GMI_LOSS_Cl         $ROOT/GMI/v2015-02/gmi.clim.Cl.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Cl       - 1  1
-* GMI_PROD_Cl         $ROOT/GMI/v2015-02/gmi.clim.Cl.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Cl       - 1  1
-* GMI_LOSS_Cl2        $ROOT/GMI/v2015-02/gmi.clim.Cl2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   Cl2      - 1  1
-* GMI_PROD_Cl2        $ROOT/GMI/v2015-02/gmi.clim.Cl2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s Cl2      - 1  1
-* GMI_LOSS_Cl2O2      $ROOT/GMI/v2015-02/gmi.clim.Cl2O2.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   Cl2O2    - 1  1
-* GMI_PROD_Cl2O2      $ROOT/GMI/v2015-02/gmi.clim.Cl2O2.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s Cl2O2    - 1  1
-* GMI_LOSS_ClO        $ROOT/GMI/v2015-02/gmi.clim.ClO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ClO      - 1  1
-* GMI_PROD_ClO        $ROOT/GMI/v2015-02/gmi.clim.ClO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ClO      - 1  1
-* GMI_LOSS_ClONO2     $ROOT/GMI/v2015-02/gmi.clim.ClONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   ClONO2   - 1  1
-* GMI_PROD_ClONO2     $ROOT/GMI/v2015-02/gmi.clim.ClONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s ClONO2   - 1  1
-* GMI_LOSS_EOH        $ROOT/GMI/v2015-02/gmi.clim.EOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   EOH      - 1  1
-* GMI_PROD_EOH        $ROOT/GMI/v2015-02/gmi.clim.EOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s EOH      - 1  1
-* GMI_LOSS_ETO2       $ROOT/GMI/v2015-02/gmi.clim.ETO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ETO2     - 1  1
-* GMI_PROD_ETO2       $ROOT/GMI/v2015-02/gmi.clim.ETO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ETO2     - 1  1
-* GMI_LOSS_ETP        $ROOT/GMI/v2015-02/gmi.clim.ETP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ETP      - 1  1
-* GMI_PROD_ETP        $ROOT/GMI/v2015-02/gmi.clim.ETP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ETP      - 1  1
-* GMI_LOSS_GCO3       $ROOT/GMI/v2015-02/gmi.clim.GCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GCO3     - 1  1
-* GMI_PROD_GCO3       $ROOT/GMI/v2015-02/gmi.clim.GCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GCO3     - 1  1
-* GMI_LOSS_GLYC       $ROOT/GMI/v2015-02/gmi.clim.GLYC.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYC     - 1  1
-* GMI_PROD_GLYC       $ROOT/GMI/v2015-02/gmi.clim.GLYC.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYC     - 1  1
-* GMI_LOSS_GLYX       $ROOT/GMI/v2015-02/gmi.clim.GLYX.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYX     - 1  1
-* GMI_PROD_GLYX       $ROOT/GMI/v2015-02/gmi.clim.GLYX.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYX     - 1  1
-* GMI_LOSS_GP         $ROOT/GMI/v2015-02/gmi.clim.GP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   GP       - 1  1
-* GMI_PROD_GP         $ROOT/GMI/v2015-02/gmi.clim.GP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s GP       - 1  1
-* GMI_LOSS_GPAN       $ROOT/GMI/v2015-02/gmi.clim.GPAN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GPAN     - 1  1
-* GMI_PROD_GPAN       $ROOT/GMI/v2015-02/gmi.clim.GPAN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GPAN     - 1  1
-* GMI_LOSS_H          $ROOT/GMI/v2015-02/gmi.clim.H.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   H        - 1  1
-* GMI_PROD_H          $ROOT/GMI/v2015-02/gmi.clim.H.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s H        - 1  1
-* GMI_LOSS_H2         $ROOT/GMI/v2015-02/gmi.clim.H2.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   H2       - 1  1
-* GMI_PROD_H2         $ROOT/GMI/v2015-02/gmi.clim.H2.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s H2       - 1  1
-* GMI_LOSS_H2402      $ROOT/GMI/v2015-02/gmi.clim.H2402.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H2402    - 1  1
-* GMI_PROD_H2402      $ROOT/GMI/v2015-02/gmi.clim.H2402.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H2402    - 1  1
-* GMI_LOSS_H2O        $ROOT/GMI/v2015-02/gmi.clim.H2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   H2O      - 1  1
-* GMI_PROD_H2O        $ROOT/GMI/v2015-02/gmi.clim.H2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s H2O      - 1  1
-* GMI_LOSS_H2O2       $ROOT/GMI/v2015-02/gmi.clim.H2O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   H2O2     - 1  1
-* GMI_PROD_H2O2       $ROOT/GMI/v2015-02/gmi.clim.H2O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s H2O2     - 1  1
-* GMI_LOSS_HAC        $ROOT/GMI/v2015-02/gmi.clim.HAC.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HAC      - 1  1
-* GMI_PROD_HAC        $ROOT/GMI/v2015-02/gmi.clim.HAC.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HAC      - 1  1
-#* GMI_LOSS_HBr       $ROOT/GMI/v2015-02/gmi.clim.HBr.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HBr      - 1  1
-#* GMI_PROD_HBr       $ROOT/GMI/v2015-02/gmi.clim.HBr.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HBr      - 1  1
-* GMI_LOSS_HCFC141b   $ROOT/GMI/v2015-02/gmi.clim.HCFC141b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC141b - 1  1
-* GMI_PROD_HCFC141b   $ROOT/GMI/v2015-02/gmi.clim.HCFC141b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC141b - 1  1
-* GMI_LOSS_HCFC142b   $ROOT/GMI/v2015-02/gmi.clim.HCFC142b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC142b - 1  1
-* GMI_PROD_HCFC142b   $ROOT/GMI/v2015-02/gmi.clim.HCFC142b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC142b - 1  1
-* GMI_LOSS_HCFC22     $ROOT/GMI/v2015-02/gmi.clim.HCFC22.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   HCFC22   - 1  1
-* GMI_PROD_HCFC22     $ROOT/GMI/v2015-02/gmi.clim.HCFC22.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s HCFC22   - 1  1
-* GMI_LOSS_HCOOH      $ROOT/GMI/v2015-02/gmi.clim.HCOOH.geos5.2x25.20170108.nc loss    2005/1-12/1/0 C xyz s-1   HCOOH    - 1  1
-* GMI_PROD_HCOOH      $ROOT/GMI/v2015-02/gmi.clim.HCOOH.geos5.2x25.20170108.nc prod    2005/1-12/1/0 C xyz v/v/s HCOOH    - 1  1
-* GMI_LOSS_HCl        $ROOT/GMI/v2015-02/gmi.clim.HCl.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HCl      - 1  1
-* GMI_PROD_HCl        $ROOT/GMI/v2015-02/gmi.clim.HCl.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HCl      - 1  1
-* GMI_LOSS_HNO2       $ROOT/GMI/v2015-02/gmi.clim.HNO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO2     - 1  1
-* GMI_PROD_HNO2       $ROOT/GMI/v2015-02/gmi.clim.HNO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO2     - 1  1
-* GMI_LOSS_HNO3       $ROOT/GMI/v2015-02/gmi.clim.HNO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO3     - 1  1
-* GMI_PROD_HNO3       $ROOT/GMI/v2015-02/gmi.clim.HNO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO3     - 1  1
-* GMI_LOSS_HNO4       $ROOT/GMI/v2015-02/gmi.clim.HNO4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO4     - 1  1
-* GMI_PROD_HNO4       $ROOT/GMI/v2015-02/gmi.clim.HNO4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO4     - 1  1
-* GMI_LOSS_HO2        $ROOT/GMI/v2015-02/gmi.clim.HO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HO2      - 1  1
-* GMI_PROD_HO2        $ROOT/GMI/v2015-02/gmi.clim.HO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HO2      - 1  1
-#* GMI_LOSS_HOBr      $ROOT/GMI/v2015-02/gmi.clim.HOBr.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOBr     - 1  1
-#* GMI_PROD_HOBr      $ROOT/GMI/v2015-02/gmi.clim.HOBr.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOBr     - 1  1
-* GMI_LOSS_HOCl       $ROOT/GMI/v2015-02/gmi.clim.HOCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOCl     - 1  1
-* GMI_PROD_HOCl       $ROOT/GMI/v2015-02/gmi.clim.HOCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOCl     - 1  1
-* GMI_LOSS_IALD       $ROOT/GMI/v2015-02/gmi.clim.IALD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IALD     - 1  1
-* GMI_PROD_IALD       $ROOT/GMI/v2015-02/gmi.clim.IALD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IALD     - 1  1
-* GMI_LOSS_IAO2       $ROOT/GMI/v2015-02/gmi.clim.IAO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IAO2     - 1  1
-* GMI_PROD_IAO2       $ROOT/GMI/v2015-02/gmi.clim.IAO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IAO2     - 1  1
-* GMI_LOSS_IAP        $ROOT/GMI/v2015-02/gmi.clim.IAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   IAP      - 1  1
-* GMI_PROD_IAP        $ROOT/GMI/v2015-02/gmi.clim.IAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s IAP      - 1  1
-* GMI_LOSS_INO2       $ROOT/GMI/v2015-02/gmi.clim.INO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INO2     - 1  1
-* GMI_PROD_INO2       $ROOT/GMI/v2015-02/gmi.clim.INO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INO2     - 1  1
-* GMI_LOSS_INPN       $ROOT/GMI/v2015-02/gmi.clim.INPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INPN     - 1  1
-* GMI_PROD_INPN       $ROOT/GMI/v2015-02/gmi.clim.INPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INPN     - 1  1
-* GMI_LOSS_ISN1       $ROOT/GMI/v2015-02/gmi.clim.ISN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISN1     - 1  1
-* GMI_PROD_ISN1       $ROOT/GMI/v2015-02/gmi.clim.ISN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISN1     - 1  1
-* GMI_LOSS_ISNP       $ROOT/GMI/v2015-02/gmi.clim.ISNP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISNP     - 1  1
-* GMI_PROD_ISNP       $ROOT/GMI/v2015-02/gmi.clim.ISNP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISNP     - 1  1
-* GMI_LOSS_ISOP       $ROOT/GMI/v2015-02/gmi.clim.ISOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISOP     - 1  1
-* GMI_PROD_ISOP       $ROOT/GMI/v2015-02/gmi.clim.ISOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISOP     - 1  1
-* GMI_LOSS_KO2        $ROOT/GMI/v2015-02/gmi.clim.KO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   KO2      - 1  1
-* GMI_PROD_KO2        $ROOT/GMI/v2015-02/gmi.clim.KO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s KO2      - 1  1
-* GMI_LOSS_MACR       $ROOT/GMI/v2015-02/gmi.clim.MACR.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MACR     - 1  1
-* GMI_PROD_MACR       $ROOT/GMI/v2015-02/gmi.clim.MACR.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MACR     - 1  1
-* GMI_LOSS_MAN2       $ROOT/GMI/v2015-02/gmi.clim.MAN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAN2     - 1  1
-* GMI_PROD_MAN2       $ROOT/GMI/v2015-02/gmi.clim.MAN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAN2     - 1  1
-* GMI_LOSS_MAO3       $ROOT/GMI/v2015-02/gmi.clim.MAO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAO3     - 1  1
-* GMI_PROD_MAO3       $ROOT/GMI/v2015-02/gmi.clim.MAO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAO3     - 1  1
-* GMI_LOSS_MAOP       $ROOT/GMI/v2015-02/gmi.clim.MAOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAOP     - 1  1
-* GMI_PROD_MAOP       $ROOT/GMI/v2015-02/gmi.clim.MAOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAOP     - 1  1
-* GMI_LOSS_MAP        $ROOT/GMI/v2015-02/gmi.clim.MAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MAP      - 1  1
-* GMI_PROD_MAP        $ROOT/GMI/v2015-02/gmi.clim.MAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MAP      - 1  1
-* GMI_LOSS_MCO3       $ROOT/GMI/v2015-02/gmi.clim.MCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MCO3     - 1  1
-* GMI_PROD_MCO3       $ROOT/GMI/v2015-02/gmi.clim.MCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MCO3     - 1  1
-* GMI_LOSS_MEK        $ROOT/GMI/v2015-02/gmi.clim.MEK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MEK      - 1  1
-* GMI_PROD_MEK        $ROOT/GMI/v2015-02/gmi.clim.MEK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MEK      - 1  1
-* GMI_LOSS_MGLY       $ROOT/GMI/v2015-02/gmi.clim.MGLY.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MGLY     - 1  1
-* GMI_PROD_MGLY       $ROOT/GMI/v2015-02/gmi.clim.MGLY.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MGLY     - 1  1
-* GMI_LOSS_MO2        $ROOT/GMI/v2015-02/gmi.clim.MO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MO2      - 1  1
-* GMI_PROD_MO2        $ROOT/GMI/v2015-02/gmi.clim.MO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MO2      - 1  1
-* GMI_LOSS_MOH        $ROOT/GMI/v2015-02/gmi.clim.MOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MOH      - 1  1
-* GMI_PROD_MOH        $ROOT/GMI/v2015-02/gmi.clim.MOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MOH      - 1  1
-* GMI_LOSS_MP         $ROOT/GMI/v2015-02/gmi.clim.MP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   MP       - 1  1
-* GMI_PROD_MP         $ROOT/GMI/v2015-02/gmi.clim.MP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s MP       - 1  1
-* GMI_LOSS_MRO2       $ROOT/GMI/v2015-02/gmi.clim.MRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MRO2     - 1  1
-* GMI_PROD_MRO2       $ROOT/GMI/v2015-02/gmi.clim.MRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MRO2     - 1  1
-* GMI_LOSS_MRP        $ROOT/GMI/v2015-02/gmi.clim.MRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MRP      - 1  1
-* GMI_PROD_MRP        $ROOT/GMI/v2015-02/gmi.clim.MRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MRP      - 1  1
-* GMI_LOSS_MVK        $ROOT/GMI/v2015-02/gmi.clim.MVK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MVK      - 1  1
-* GMI_PROD_MVK        $ROOT/GMI/v2015-02/gmi.clim.MVK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MVK      - 1  1
-* GMI_LOSS_MVN2       $ROOT/GMI/v2015-02/gmi.clim.MVN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MVN2     - 1  1
-* GMI_PROD_MVN2       $ROOT/GMI/v2015-02/gmi.clim.MVN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MVN2     - 1  1
-* GMI_LOSS_N          $ROOT/GMI/v2015-02/gmi.clim.N.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   N        - 1  1
-* GMI_PROD_N          $ROOT/GMI/v2015-02/gmi.clim.N.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s N        - 1  1
-* GMI_LOSS_N2O        $ROOT/GMI/v2015-02/gmi.clim.N2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   N2O      - 1  1
-* GMI_PROD_N2O        $ROOT/GMI/v2015-02/gmi.clim.N2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s N2O      - 1  1
-* GMI_LOSS_N2O5       $ROOT/GMI/v2015-02/gmi.clim.N2O5.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   N2O5     - 1  1
-* GMI_PROD_N2O5       $ROOT/GMI/v2015-02/gmi.clim.N2O5.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s N2O5     - 1  1
-* GMI_LOSS_NO         $ROOT/GMI/v2015-02/gmi.clim.NO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   NO       - 1  1
-* GMI_PROD_NO         $ROOT/GMI/v2015-02/gmi.clim.NO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s NO       - 1  1
-* GMI_LOSS_NO2        $ROOT/GMI/v2015-02/gmi.clim.NO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO2      - 1  1
-* GMI_PROD_NO2        $ROOT/GMI/v2015-02/gmi.clim.NO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO2      - 1  1
-* GMI_LOSS_NO3        $ROOT/GMI/v2015-02/gmi.clim.NO3.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO3      - 1  1
-* GMI_PROD_NO3        $ROOT/GMI/v2015-02/gmi.clim.NO3.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO3      - 1  1
-* GMI_LOSS_NOx        $ROOT/GMI/v2015-02/gmi.clim.NOx.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NOx      - 1  1
-* GMI_PROD_NOx        $ROOT/GMI/v2015-02/gmi.clim.NOx.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NOx      - 1  1
-* GMI_LOSS_O          $ROOT/GMI/v2015-02/gmi.clim.O.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   O        - 1  1
-* GMI_PROD_O          $ROOT/GMI/v2015-02/gmi.clim.O.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s O        - 1  1
-* GMI_LOSS_O1D        $ROOT/GMI/v2015-02/gmi.clim.O1D.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   O1D      - 1  1
-* GMI_PROD_O1D        $ROOT/GMI/v2015-02/gmi.clim.O1D.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s O1D      - 1  1
-* GMI_LOSS_O3         $ROOT/GMI/v2015-02/gmi.clim.O3.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   O3       - 1  1
-* GMI_PROD_O3         $ROOT/GMI/v2015-02/gmi.clim.O3.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s O3       - 1  1
-* GMI_LOSS_OClO       $ROOT/GMI/v2015-02/gmi.clim.OClO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   OClO     - 1  1
-* GMI_PROD_OClO       $ROOT/GMI/v2015-02/gmi.clim.OClO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s OClO     - 1  1
-* GMI_LOSS_OH         $ROOT/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   OH       - 1  1
-* GMI_PROD_OH         $ROOT/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s OH       - 1  1
-* GMI_LOSS_Ox         $ROOT/GMI/v2015-02/gmi.clim.Ox.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Ox       - 1  1
-* GMI_PROD_Ox         $ROOT/GMI/v2015-02/gmi.clim.Ox.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Ox       - 1  1
-* GMI_LOSS_PAN        $ROOT/GMI/v2015-02/gmi.clim.PAN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PAN      - 1  1
-* GMI_PROD_PAN        $ROOT/GMI/v2015-02/gmi.clim.PAN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PAN      - 1  1
-* GMI_LOSS_NPMN       $ROOT/GMI/v2015-02/gmi.clim.NPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   NPMN     - 1  1
-* GMI_PROD_NPMN       $ROOT/GMI/v2015-02/gmi.clim.NPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s NPMN     - 1  1
-* GMI_LOSS_IPMN       $ROOT/GMI/v2015-02/gmi.clim.IPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IPMN     - 1  1
-* GMI_PROD_IPMN       $ROOT/GMI/v2015-02/gmi.clim.IPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IPMN     - 1  1
-* GMI_LOSS_PO2        $ROOT/GMI/v2015-02/gmi.clim.PO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PO2      - 1  1
-* GMI_PROD_PO2        $ROOT/GMI/v2015-02/gmi.clim.PO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PO2      - 1  1
-* GMI_LOSS_PP         $ROOT/GMI/v2015-02/gmi.clim.PP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   PP       - 1  1
-* GMI_PROD_PP         $ROOT/GMI/v2015-02/gmi.clim.PP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s PP       - 1  1
-* GMI_LOSS_PPN        $ROOT/GMI/v2015-02/gmi.clim.PPN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PPN      - 1  1
-* GMI_PROD_PPN        $ROOT/GMI/v2015-02/gmi.clim.PPN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PPN      - 1  1
-* GMI_LOSS_PRN1       $ROOT/GMI/v2015-02/gmi.clim.PRN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRN1     - 1  1
-* GMI_PROD_PRN1       $ROOT/GMI/v2015-02/gmi.clim.PRN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRN1     - 1  1
-* GMI_LOSS_PRPE       $ROOT/GMI/v2015-02/gmi.clim.PRPE.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPE     - 1  1
-* GMI_PROD_PRPE       $ROOT/GMI/v2015-02/gmi.clim.PRPE.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPE     - 1  1
-* GMI_LOSS_PRPN       $ROOT/GMI/v2015-02/gmi.clim.PRPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPN     - 1  1
-* GMI_PROD_PRPN       $ROOT/GMI/v2015-02/gmi.clim.PRPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPN     - 1  1
-* GMI_LOSS_R4N1       $ROOT/GMI/v2015-02/gmi.clim.R4N1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N1     - 1  1
-* GMI_PROD_R4N1       $ROOT/GMI/v2015-02/gmi.clim.R4N1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N1     - 1  1
-* GMI_LOSS_R4N2       $ROOT/GMI/v2015-02/gmi.clim.R4N2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N2     - 1  1
-* GMI_PROD_R4N2       $ROOT/GMI/v2015-02/gmi.clim.R4N2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N2     - 1  1
-* GMI_LOSS_R4O2       $ROOT/GMI/v2015-02/gmi.clim.R4O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4O2     - 1  1
-* GMI_PROD_R4O2       $ROOT/GMI/v2015-02/gmi.clim.R4O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4O2     - 1  1
-* GMI_LOSS_R4P        $ROOT/GMI/v2015-02/gmi.clim.R4P.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   R4P      - 1  1
-* GMI_PROD_R4P        $ROOT/GMI/v2015-02/gmi.clim.R4P.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s R4P      - 1  1
-* GMI_LOSS_RA3P       $ROOT/GMI/v2015-02/gmi.clim.RA3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RA3P     - 1  1
-* GMI_PROD_RA3P       $ROOT/GMI/v2015-02/gmi.clim.RA3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RA3P     - 1  1
-* GMI_LOSS_RB3P       $ROOT/GMI/v2015-02/gmi.clim.RB3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RB3P     - 1  1
-* GMI_PROD_RB3P       $ROOT/GMI/v2015-02/gmi.clim.RB3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RB3P     - 1  1
-* GMI_LOSS_RCHO       $ROOT/GMI/v2015-02/gmi.clim.RCHO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCHO     - 1  1
-* GMI_PROD_RCHO       $ROOT/GMI/v2015-02/gmi.clim.RCHO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCHO     - 1  1
-* GMI_LOSS_RCO3       $ROOT/GMI/v2015-02/gmi.clim.RCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCO3     - 1  1
-* GMI_PROD_RCO3       $ROOT/GMI/v2015-02/gmi.clim.RCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCO3     - 1  1
-* GMI_LOSS_RCOOH      $ROOT/GMI/v2015-02/gmi.clim.RCOOH.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   RCOOH    - 1  1
-* GMI_PROD_RCOOH      $ROOT/GMI/v2015-02/gmi.clim.RCOOH.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s RCOOH    - 1  1
-* GMI_LOSS_RIO1       $ROOT/GMI/v2015-02/gmi.clim.RIO1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIO1     - 1  1
-* GMI_PROD_RIO1       $ROOT/GMI/v2015-02/gmi.clim.RIO1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIO1     - 1  1
-* GMI_LOSS_RIPA       $ROOT/GMI/v2015-02/gmi.clim.RIPA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPA     - 1  1
-* GMI_PROD_RIPA       $ROOT/GMI/v2015-02/gmi.clim.RIPA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPA     - 1  1
-* GMI_LOSS_RIPB       $ROOT/GMI/v2015-02/gmi.clim.RIPB.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPB     - 1  1
-* GMI_PROD_RIPB       $ROOT/GMI/v2015-02/gmi.clim.RIPB.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPB     - 1  1
-* GMI_LOSS_RIPD       $ROOT/GMI/v2015-02/gmi.clim.RIPD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPD     - 1  1
-* GMI_PROD_RIPD       $ROOT/GMI/v2015-02/gmi.clim.RIPD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPD     - 1  1
-* GMI_LOSS_ROH        $ROOT/GMI/v2015-02/gmi.clim.ROH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ROH      - 1  1
-* GMI_PROD_ROH        $ROOT/GMI/v2015-02/gmi.clim.ROH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ROH      - 1  1
-* GMI_LOSS_RP         $ROOT/GMI/v2015-02/gmi.clim.RP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   RP       - 1  1
-* GMI_PROD_RP         $ROOT/GMI/v2015-02/gmi.clim.RP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s RP       - 1  1
-* GMI_LOSS_VRO2       $ROOT/GMI/v2015-02/gmi.clim.VRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   VRO2     - 1  1
-* GMI_PROD_VRO2       $ROOT/GMI/v2015-02/gmi.clim.VRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s VRO2     - 1  1
-* GMI_LOSS_VRP        $ROOT/GMI/v2015-02/gmi.clim.VRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   VRP      - 1  1
-* GMI_PROD_VRP        $ROOT/GMI/v2015-02/gmi.clim.VRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s VRP      - 1  1
+* GMI_LOSS_A3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.A3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   A3O2     - 1  1
+* GMI_PROD_A3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.A3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s A3O2     - 1  1
+* GMI_LOSS_ACET       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACET.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACET     - 1  1
+* GMI_PROD_ACET       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACET.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACET     - 1  1
+* GMI_LOSS_ACTA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACTA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ACTA     - 1  1
+* GMI_PROD_ACTA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ACTA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ACTA     - 1  1
+* GMI_LOSS_ALD2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALD2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALD2     - 1  1
+* GMI_PROD_ALD2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALD2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALD2     - 1  1
+* GMI_LOSS_ALK4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALK4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ALK4     - 1  1
+* GMI_PROD_ALK4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ALK4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ALK4     - 1  1
+* GMI_LOSS_ATO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ATO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ATO2     - 1  1
+* GMI_PROD_ATO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ATO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ATO2     - 1  1
+* GMI_LOSS_B3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.B3O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   B3O2     - 1  1
+* GMI_PROD_B3O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.B3O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s B3O2     - 1  1
+#* GMI_LOSS_Br        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Br.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Br       - 1  1
+#* GMI_PROD_Br        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Br.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Br       - 1  1
+#* GMI_LOSS_BrCl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   BrCl     - 1  1
+#* GMI_PROD_BrCl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s BrCl     - 1  1
+#* GMI_LOSS_BrO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   BrO      - 1  1
+#* GMI_PROD_BrO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s BrO      - 1  1
+#* GMI_LOSS_BrNO3     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   BrNO3    - 1  1
+#* GMI_PROD_BrNO3     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.BrONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s BrNO3    - 1  1
+* GMI_LOSS_C2H6       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C2H6.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C2H6     - 1  1
+* GMI_PROD_C2H6       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C2H6.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C2H6     - 1  1
+* GMI_LOSS_C3H8       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C3H8.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   C3H8     - 1  1
+* GMI_PROD_C3H8       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.C3H8.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s C3H8     - 1  1
+* GMI_LOSS_CCl4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CCl4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CCl4     - 1  1
+* GMI_PROD_CCl4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CCl4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CCl4     - 1  1
+#* GMI_LOSS_H1202     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Br2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   H1202    - 1  1
+#* GMI_PROD_H1202     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Br2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s H1202    - 1  1
+* GMI_LOSS_CFC12      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Cl2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC12    - 1  1
+* GMI_PROD_CFC12      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2Cl2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC12    - 1  1
+* GMI_LOSS_H1211      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2ClBr.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   H1211    - 1  1
+* GMI_PROD_H1211      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF2ClBr.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s H1211    - 1  1
+#* GMI_LOSS_H1311     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H1311    - 1  1
+#* GMI_PROD_H1311     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CF3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H1311    - 1  1
+* GMI_LOSS_CFC113     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC113.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC113   - 1  1
+* GMI_PROD_CFC113     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC113.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC113   - 1  1
+* GMI_LOSS_CFC114     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC114.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC114   - 1  1
+* GMI_PROD_CFC114     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC114.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC114   - 1  1
+* GMI_LOSS_CFC115     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC115.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   CFC115   - 1  1
+* GMI_PROD_CFC115     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFC115.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s CFC115   - 1  1
+* GMI_LOSS_CFC11      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFCl3.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CFC11    - 1  1
+* GMI_PROD_CFC11      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CFCl3.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CFC11    - 1  1
+* GMI_LOSS_CH2O       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH2O.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   CH2O     - 1  1
+* GMI_PROD_CH2O       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH2O.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s CH2O     - 1  1
+#* GMI_LOSS_CH3Br     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Br.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Br    - 1  1
+#* GMI_PROD_CH3Br     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Br.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Br    - 1  1
+* GMI_LOSS_CH3CCl3    $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3CCl3.geos5.2x25.nc        loss    2005/1-12/1/0 C xyz s-1   CH3CCl3  - 1  1
+* GMI_PROD_CH3CCl3    $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3CCl3.geos5.2x25.nc        prod    2005/1-12/1/0 C xyz v/v/s CH3CCl3  - 1  1
+* GMI_LOSS_CH3Cl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Cl.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   CH3Cl    - 1  1
+* GMI_PROD_CH3Cl      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH3Cl.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s CH3Cl    - 1  1
+* GMI_LOSS_CH4        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH4.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   CH4      - 1  1
+* GMI_PROD_CH4        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CH4.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s CH4      - 1  1
+* GMI_LOSS_CO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   CO       - 1  1
+* GMI_PROD_CO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.CO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s CO       - 1  1
+* GMI_LOSS_Cl         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Cl       - 1  1
+* GMI_PROD_Cl         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Cl       - 1  1
+* GMI_LOSS_Cl2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   Cl2      - 1  1
+* GMI_PROD_Cl2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s Cl2      - 1  1
+* GMI_LOSS_Cl2O2      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2O2.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   Cl2O2    - 1  1
+* GMI_PROD_Cl2O2      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Cl2O2.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s Cl2O2    - 1  1
+* GMI_LOSS_ClO        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClO.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ClO      - 1  1
+* GMI_PROD_ClO        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClO.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ClO      - 1  1
+* GMI_LOSS_ClONO2     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClONO2.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   ClONO2   - 1  1
+* GMI_PROD_ClONO2     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ClONO2.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s ClONO2   - 1  1
+* GMI_LOSS_EOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.EOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   EOH      - 1  1
+* GMI_PROD_EOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.EOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s EOH      - 1  1
+* GMI_LOSS_ETO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ETO2     - 1  1
+* GMI_PROD_ETO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ETO2     - 1  1
+* GMI_LOSS_ETP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ETP      - 1  1
+* GMI_PROD_ETP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ETP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ETP      - 1  1
+* GMI_LOSS_GCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GCO3     - 1  1
+* GMI_PROD_GCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GCO3     - 1  1
+* GMI_LOSS_GLYC       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYC.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYC     - 1  1
+* GMI_PROD_GLYC       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYC.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYC     - 1  1
+* GMI_LOSS_GLYX       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYX.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GLYX     - 1  1
+* GMI_PROD_GLYX       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GLYX.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GLYX     - 1  1
+* GMI_LOSS_GP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   GP       - 1  1
+* GMI_PROD_GP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s GP       - 1  1
+* GMI_LOSS_GPAN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GPAN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   GPAN     - 1  1
+* GMI_PROD_GPAN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.GPAN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s GPAN     - 1  1
+* GMI_LOSS_H          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   H        - 1  1
+* GMI_PROD_H          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s H        - 1  1
+* GMI_LOSS_H2         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   H2       - 1  1
+* GMI_PROD_H2         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s H2       - 1  1
+* GMI_LOSS_H2402      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2402.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   H2402    - 1  1
+* GMI_PROD_H2402      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2402.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s H2402    - 1  1
+* GMI_LOSS_H2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   H2O      - 1  1
+* GMI_PROD_H2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s H2O      - 1  1
+* GMI_LOSS_H2O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   H2O2     - 1  1
+* GMI_PROD_H2O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.H2O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s H2O2     - 1  1
+* GMI_LOSS_HAC        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HAC.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HAC      - 1  1
+* GMI_PROD_HAC        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HAC.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HAC      - 1  1
+#* GMI_LOSS_HBr       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HBr.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HBr      - 1  1
+#* GMI_PROD_HBr       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HBr.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HBr      - 1  1
+* GMI_LOSS_HCFC141b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC141b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC141b - 1  1
+* GMI_PROD_HCFC141b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC141b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC141b - 1  1
+* GMI_LOSS_HCFC142b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC142b.geos5.2x25.nc       loss    2005/1-12/1/0 C xyz s-1   HCFC142b - 1  1
+* GMI_PROD_HCFC142b   $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC142b.geos5.2x25.nc       prod    2005/1-12/1/0 C xyz v/v/s HCFC142b - 1  1
+* GMI_LOSS_HCFC22     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC22.geos5.2x25.nc         loss    2005/1-12/1/0 C xyz s-1   HCFC22   - 1  1
+* GMI_PROD_HCFC22     $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCFC22.geos5.2x25.nc         prod    2005/1-12/1/0 C xyz v/v/s HCFC22   - 1  1
+* GMI_LOSS_HCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCOOH.geos5.2x25.20170108.nc loss    2005/1-12/1/0 C xyz s-1   HCOOH    - 1  1
+* GMI_PROD_HCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCOOH.geos5.2x25.20170108.nc prod    2005/1-12/1/0 C xyz v/v/s HCOOH    - 1  1
+* GMI_LOSS_HCl        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCl.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HCl      - 1  1
+* GMI_PROD_HCl        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HCl.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HCl      - 1  1
+* GMI_LOSS_HNO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO2     - 1  1
+* GMI_PROD_HNO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO2     - 1  1
+* GMI_LOSS_HNO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO3     - 1  1
+* GMI_PROD_HNO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO3     - 1  1
+* GMI_LOSS_HNO4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO4.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HNO4     - 1  1
+* GMI_PROD_HNO4       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HNO4.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HNO4     - 1  1
+* GMI_LOSS_HO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   HO2      - 1  1
+* GMI_PROD_HO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s HO2      - 1  1
+#* GMI_LOSS_HOBr      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOBr.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOBr     - 1  1
+#* GMI_PROD_HOBr      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOBr.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOBr     - 1  1
+* GMI_LOSS_HOCl       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOCl.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   HOCl     - 1  1
+* GMI_PROD_HOCl       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.HOCl.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s HOCl     - 1  1
+* GMI_LOSS_IALD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IALD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IALD     - 1  1
+* GMI_PROD_IALD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IALD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IALD     - 1  1
+* GMI_LOSS_IAO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IAO2     - 1  1
+* GMI_PROD_IAO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IAO2     - 1  1
+* GMI_LOSS_IAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   IAP      - 1  1
+* GMI_PROD_IAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s IAP      - 1  1
+* GMI_LOSS_INO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INO2     - 1  1
+* GMI_PROD_INO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INO2     - 1  1
+* GMI_LOSS_INPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   INPN     - 1  1
+* GMI_PROD_INPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.INPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s INPN     - 1  1
+* GMI_LOSS_ISN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISN1     - 1  1
+* GMI_PROD_ISN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISN1     - 1  1
+* GMI_LOSS_ISNP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISNP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISNP     - 1  1
+* GMI_PROD_ISNP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISNP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISNP     - 1  1
+* GMI_LOSS_ISOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   ISOP     - 1  1
+* GMI_PROD_ISOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ISOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s ISOP     - 1  1
+* GMI_LOSS_KO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.KO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   KO2      - 1  1
+* GMI_PROD_KO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.KO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s KO2      - 1  1
+* GMI_LOSS_MACR       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MACR.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MACR     - 1  1
+* GMI_PROD_MACR       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MACR.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MACR     - 1  1
+* GMI_LOSS_MAN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAN2     - 1  1
+* GMI_PROD_MAN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAN2     - 1  1
+* GMI_LOSS_MAO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAO3     - 1  1
+* GMI_PROD_MAO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAO3     - 1  1
+* GMI_LOSS_MAOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAOP.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MAOP     - 1  1
+* GMI_PROD_MAOP       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAOP.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MAOP     - 1  1
+* GMI_LOSS_MAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MAP      - 1  1
+* GMI_PROD_MAP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MAP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MAP      - 1  1
+* GMI_LOSS_MCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MCO3     - 1  1
+* GMI_PROD_MCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MCO3     - 1  1
+* GMI_LOSS_MEK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MEK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MEK      - 1  1
+* GMI_PROD_MEK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MEK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MEK      - 1  1
+* GMI_LOSS_MGLY       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MGLY.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MGLY     - 1  1
+* GMI_PROD_MGLY       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MGLY.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MGLY     - 1  1
+* GMI_LOSS_MO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MO2      - 1  1
+* GMI_PROD_MO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MO2      - 1  1
+* GMI_LOSS_MOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MOH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MOH      - 1  1
+* GMI_PROD_MOH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MOH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MOH      - 1  1
+* GMI_LOSS_MP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   MP       - 1  1
+* GMI_PROD_MP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s MP       - 1  1
+* GMI_LOSS_MRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MRO2     - 1  1
+* GMI_PROD_MRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MRO2     - 1  1
+* GMI_LOSS_MRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MRP      - 1  1
+* GMI_PROD_MRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MRP      - 1  1
+* GMI_LOSS_MVK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVK.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   MVK      - 1  1
+* GMI_PROD_MVK        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVK.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s MVK      - 1  1
+* GMI_LOSS_MVN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVN2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   MVN2     - 1  1
+* GMI_PROD_MVN2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.MVN2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s MVN2     - 1  1
+* GMI_LOSS_N          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   N        - 1  1
+* GMI_PROD_N          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s N        - 1  1
+* GMI_LOSS_N2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   N2O      - 1  1
+* GMI_PROD_N2O        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s N2O      - 1  1
+* GMI_LOSS_N2O5       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O5.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   N2O5     - 1  1
+* GMI_PROD_N2O5       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.N2O5.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s N2O5     - 1  1
+* GMI_LOSS_NO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   NO       - 1  1
+* GMI_PROD_NO         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s NO       - 1  1
+* GMI_LOSS_NO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO2      - 1  1
+* GMI_PROD_NO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO2      - 1  1
+* GMI_LOSS_NO3        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO3.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NO3      - 1  1
+* GMI_PROD_NO3        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NO3.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NO3      - 1  1
+* GMI_LOSS_NOx        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NOx.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   NOx      - 1  1
+* GMI_PROD_NOx        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NOx.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s NOx      - 1  1
+* GMI_LOSS_O          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O.geos5.2x25.nc              loss    2005/1-12/1/0 C xyz s-1   O        - 1  1
+* GMI_PROD_O          $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O.geos5.2x25.nc              prod    2005/1-12/1/0 C xyz v/v/s O        - 1  1
+* GMI_LOSS_O1D        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O1D.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   O1D      - 1  1
+* GMI_PROD_O1D        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O1D.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s O1D      - 1  1
+* GMI_LOSS_O3         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O3.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   O3       - 1  1
+* GMI_PROD_O3         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.O3.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s O3       - 1  1
+* GMI_LOSS_OClO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OClO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   OClO     - 1  1
+* GMI_PROD_OClO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OClO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s OClO     - 1  1
+* GMI_LOSS_OH         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   OH       - 1  1
+* GMI_PROD_OH         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.OH.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s OH       - 1  1
+* GMI_LOSS_Ox         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Ox.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   Ox       - 1  1
+* GMI_PROD_Ox         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.Ox.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s Ox       - 1  1
+* GMI_LOSS_PAN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PAN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PAN      - 1  1
+* GMI_PROD_PAN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PAN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PAN      - 1  1
+* GMI_LOSS_NPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   NPMN     - 1  1
+* GMI_PROD_NPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.NPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s NPMN     - 1  1
+* GMI_LOSS_IPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IPMN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   IPMN     - 1  1
+* GMI_PROD_IPMN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.IPMN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s IPMN     - 1  1
+* GMI_LOSS_PO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PO2.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PO2      - 1  1
+* GMI_PROD_PO2        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PO2.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PO2      - 1  1
+* GMI_LOSS_PP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   PP       - 1  1
+* GMI_PROD_PP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s PP       - 1  1
+* GMI_LOSS_PPN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PPN.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   PPN      - 1  1
+* GMI_PROD_PPN        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PPN.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s PPN      - 1  1
+* GMI_LOSS_PRN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRN1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRN1     - 1  1
+* GMI_PROD_PRN1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRN1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRN1     - 1  1
+* GMI_LOSS_PRPE       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPE.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPE     - 1  1
+* GMI_PROD_PRPE       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPE.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPE     - 1  1
+* GMI_LOSS_PRPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPN.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   PRPN     - 1  1
+* GMI_PROD_PRPN       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.PRPN.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s PRPN     - 1  1
+* GMI_LOSS_R4N1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N1     - 1  1
+* GMI_PROD_R4N1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N1     - 1  1
+* GMI_LOSS_R4N2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4N2     - 1  1
+* GMI_PROD_R4N2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4N2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4N2     - 1  1
+* GMI_LOSS_R4O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4O2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   R4O2     - 1  1
+* GMI_PROD_R4O2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4O2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s R4O2     - 1  1
+* GMI_LOSS_R4P        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4P.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   R4P      - 1  1
+* GMI_PROD_R4P        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.R4P.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s R4P      - 1  1
+* GMI_LOSS_RA3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RA3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RA3P     - 1  1
+* GMI_PROD_RA3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RA3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RA3P     - 1  1
+* GMI_LOSS_RB3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RB3P.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RB3P     - 1  1
+* GMI_PROD_RB3P       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RB3P.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RB3P     - 1  1
+* GMI_LOSS_RCHO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCHO.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCHO     - 1  1
+* GMI_PROD_RCHO       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCHO.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCHO     - 1  1
+* GMI_LOSS_RCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCO3.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RCO3     - 1  1
+* GMI_PROD_RCO3       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCO3.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RCO3     - 1  1
+* GMI_LOSS_RCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCOOH.geos5.2x25.nc          loss    2005/1-12/1/0 C xyz s-1   RCOOH    - 1  1
+* GMI_PROD_RCOOH      $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RCOOH.geos5.2x25.nc          prod    2005/1-12/1/0 C xyz v/v/s RCOOH    - 1  1
+* GMI_LOSS_RIO1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIO1.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIO1     - 1  1
+* GMI_PROD_RIO1       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIO1.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIO1     - 1  1
+* GMI_LOSS_RIPA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPA.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPA     - 1  1
+* GMI_PROD_RIPA       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPA.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPA     - 1  1
+* GMI_LOSS_RIPB       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPB.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPB     - 1  1
+* GMI_PROD_RIPB       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPB.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPB     - 1  1
+* GMI_LOSS_RIPD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPD.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   RIPD     - 1  1
+* GMI_PROD_RIPD       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RIPD.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s RIPD     - 1  1
+* GMI_LOSS_ROH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ROH.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   ROH      - 1  1
+* GMI_PROD_ROH        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.ROH.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s ROH      - 1  1
+* GMI_LOSS_RP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RP.geos5.2x25.nc             loss    2005/1-12/1/0 C xyz s-1   RP       - 1  1
+* GMI_PROD_RP         $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.RP.geos5.2x25.nc             prod    2005/1-12/1/0 C xyz v/v/s RP       - 1  1
+* GMI_LOSS_VRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRO2.geos5.2x25.nc           loss    2005/1-12/1/0 C xyz s-1   VRO2     - 1  1
+* GMI_PROD_VRO2       $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRO2.geos5.2x25.nc           prod    2005/1-12/1/0 C xyz v/v/s VRO2     - 1  1
+* GMI_LOSS_VRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRP.geos5.2x25.nc            loss    2005/1-12/1/0 C xyz s-1   VRP      - 1  1
+* GMI_PROD_VRP        $ROOT/${RUNDIR_GMI_DIR}/gmi.clim.VRP.geos5.2x25.nc            prod    2005/1-12/1/0 C xyz v/v/s VRP      - 1  1
 )))GMI_PROD_LOSS
 
 #==============================================================================
@@ -3568,12 +3621,12 @@ Warnings:                    1
 * MODIS_EMISSIVITY_14 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band14  2002/1-12/1-31/0 C xy  1    * - 1 1
 * MODIS_EMISSIVITY_15 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band15  2002/1-12/1-31/0 C xy  1    * - 1 1
 * MODIS_EMISSIVITY_16 $ROOT/RRTMG/v2018-11/modis_emissivity.2x25.nc      RTEMISS_band16  2002/1-12/1-31/0 C xy  1    * - 1 1
-* TES_CLIM_CCL4       $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CCl4            2000/1/1/0       C xyz ppbv * - 1 1
-* TES_CLIM_CFC11      $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CFC11           2000/1/1/0       C xyz ppbv * - 1 1
-* TES_CLIM_CFC12      $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CFC12           2000/1/1/0       C xyz ppbv * - 1 1
-* TES_CLIM_CFC22      $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CFC22           2000/1/1/0       C xyz ppbv * - 1 1
-* TES_CLIM_CH4        $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc CH4             2000/1/1/0       C xyz ppbv * - 1 1
-* TES_CLIM_N2O        $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc N2O             2000/1/1/0       C xyz ppbv * - 1 1
+${RUNDIR_TES_CLIM_CCL4}
+${RUNDIR_TES_CLIM_CFC11}
+${RUNDIR_TES_CLIM_CFC12}
+${RUNDIR_TES_CLIM_CFC22}
+${RUNDIR_TES_CLIM_CH4}
+${RUNDIR_TES_CLIM_N2O}
 )))RRTMG
 
 (((SfcVMR
@@ -3620,7 +3673,7 @@ Warnings:                    1
 #==============================================================================
 # --- CMIP6 surface boundary conditions for 1750-2100                       ---
 #==============================================================================
-                                                                               
+
 # Commented-out tracers do not exist in GEOS-Chem yet
 # * SfcVMR_C2F6       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   C2F6          1750-2100/1-12/1/0 RY xy v/v *        802 1 1
 # * SfcVMR_C3F8       $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   C3F8          1750-2100/1-12/1/0 RY xy v/v *        802 1 1
@@ -3643,7 +3696,7 @@ Warnings:                    1
 *   SfcVMR_CH3Cl      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   CH3Cl         1750-2100/1-12/1/0 RY xy v/v CH3Cl    802 1 1
 *   SfcVMR_CH4        $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   CH4           1750-2100/1-12/1/0 RY xy v/v CH4      802 1 1
 *   SfcVMR_CHCl3      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   CHCl3         1750-2100/1-12/1/0 RY xy v/v CHCl3    802 1 1
-# * SfcVMR_CO2        $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   CO2           1750-2100/1-12/1/0 RY xy v/v *        802 1 1 
+# * SfcVMR_CO2        $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   CO2           1750-2100/1-12/1/0 RY xy v/v *        802 1 1
 *   SfcVMR_H1211      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   H1211         1750-2100/1-12/1/0 RY xy v/v H1211    802 1 1
 *   SfcVMR_H1301      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   H1301         1750-2100/1-12/1/0 RY xy v/v H1301    802 1 1
 *   SfcVMR_H2402      $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_BC_$YYYY.nc4   H2402         1750-2100/1-12/1/0 RY xy v/v H2402    802 1 1
@@ -3901,48 +3954,65 @@ Warnings:                    1
 )))DECAYING_PLANTS
 
 #==============================================================================
-# --- AEIC aircraft emissions ---
+# --- AEIC2019 aircraft emissions scale factors ---
 #
-# Sulfur conversion factors are calculated as
-#     so4 = 3 * a * b and so2 = 2 * a * (1-b)
-#
-# where
-#     a = fraction by mass (6.0e-4) and
-#     b = conversion efficiency (2.0e-2).
-#
-# The factors 2 and 3 come from sulfur mass conversions (96/32 and 64/32).
-# All factors are taken from AEIC_mod.F, following Seb Estham's appraoch.
-# Note that all emissions become multiplied by a factor of 1e-3 (except for
-# the fuelburn emissions) in the original AEIC code. I'm not sure if this
-# is because the netCDF data is in g instead of kg?
+# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
 #==============================================================================
-(((AEIC
-101 AEICACET 3.693477e-3 - -  - xy unitless 1
-102 AEICALD2 4.271822e-2 - -  - xy unitless 1
-103 AEICALK4 1.832228e-1 - -  - xy unitless 1
-104 AEICC2H6 5.214505e-3 - -  - xy unitless 1
-105 AEICC3H8 7.808710e-4 - -  - xy unitless 1
-106 AEICCH2O 1.230811e-1 - -  - xy unitless 1
-107 AEICPRPE 1.620150e-1 - -  - xy unitless 1
-108 AEICMACR 4.290087e-3 - -  - xy unitless 1
-109 AEICRCHO 1.439509e-1 - -  - xy unitless 1
-110 AEICNOCO 1.000000e-3 - -  - xy unitless 1
-111 AEICSO2  1.176000e-3 - -  - xy unitless 1
-112 AEICSO4  3.600000e-5 - -  - xy unitless 1
-113 AEICBC   3.000000e-5 - -  - xy unitless 1
-114 AEICHC   1.160000e-3 - -  - xy unitless 1
-116 AEICBENZ 1.681482e-2 - -  - xy unitless 1
-117 AEICC2H2 3.938595e-2 - -  - xy unitless 1
-118 AEICC2H4 1.545899e-1 - -  - xy unitless 1
-119 AEICGLYX 1.816464e-2 - -  - xy unitless 1
-120 AEICMGLY 1.503281e-2 - -  - xy unitless 1
-121 AEICMOH  1.805189e-2 - -  - xy unitless 1
-122 AEICNAP  5.411810e-3 - -  - xy unitless 1
-123 AEICPHEN 7.261785e-3 - -  - xy unitless 1
-124 AEICTOLU 6.421156e-3 - -  - xy unitless 1
-125 AEICXYLE 6.224521e-3 - -  - xy unitless 1
-)))AEIC
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
+# Conversions from AEIC2019 inventory quantities to individual species
+101 AEICACET 3.693477e-3 - - - xy unitless 1
+102 AEICALD2 4.271822e-2 - - - xy unitless 1
+103 AEICALK4 2.137911e-1 - - - xy unitless 1
+104 AEICC2H6 5.214505e-3 - - - xy unitless 1
+105 AEICC3H8 7.808710e-4 - - - xy unitless 1
+106 AEICCH2O 1.230811e-1 - - - xy unitless 1
+107 AEICPRPE 1.780418e-1 - - - xy unitless 1
+108 AEICMACR 5.362609e-2 - - - xy unitless 1
+109 AEICRCHO 3.676944e-2 - - - xy unitless 1
+111 AEICSO2  1.176000e-3 - - - xy unitless 1
+112 AEICSO4  3.600000e-5 - - - xy unitless 1
+113 AEICBC   3.000000e-5 - - - xy unitless 1
+114 AEICHC   1.160000e+0 - - - xy unitless 1
+120 FB2H2O   1.231000e+0 - - - xy unitless 1
 
+#------------------------------------------------------------------------------
+# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Increase
+# from 2018 to 2019 is estimated based on the growth from 2017 to 2018.
+# Lee et al. (2021) only covers 1990 to 2018, so to get to 2019 it is
+# assumed that the growth from 2017 to 2018 is the same as that from 2018
+# to 2019. So the formula is something like:
+#
+# Emissions of CO  in 2009 = AEIC 2019 emissions of CO
+#                          * (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
+#
+# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
+# emissions to the “2018” values, and then scale directly using the Lee et al
+# fuel burn. This ensures that, when running with year 2019, you get an
+# unadjusted version of the AEIC2019 inventory, and all previous years are
+# scaled down. For NOx, the same procedure is applied but with an additional
+# factor to account for changes in NOx EI:
+#
+# Emissions of NOx in 2009 = [ AEIC 2019 emissions of NOx
+#                          *   (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          *   (Lee 2009 fuel burn / Lee 2018 fuel burn) ]
+#                          * [ (Lee 2017 NOx EI    / Lee 2018 NOx EI)
+#                          *   (Lee 2009 NOx EI    / Lee 2018 NOx EI)    ]
+#
+# In this case though the Lee et al 2018 and 2017 NOx EIs are identical.
+# All scaling factors are included in here in HEMCO_Config.rc.
+#------------------------------------------------------------------------------
+(((AEIC_SCALE_1990_2019
+240 AC_EINOX   0.852/0.852/0.852/0.859/0.866/0.873/0.881/0.888/0.896/0.903/0.911/0.916/0.922/0.927/0.932/0.937/0.950/0.962/0.974/0.987/1.000/1.000/1.000/1.000/1.000/1.000/1.000/1.000/1.000/1.000 - 1990-2019/1/1/0 C xy 1 1
+241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
+)))AEIC_SCALE_1990_2019
+
+# If not applying 1990-2019 scale factors, use 1.0
+(((.not.AEIC_SCALE_1990_2019
+240 AC_EINOX  1.000000e+0 - -  - xy 1 1
+241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
+))).not.AEIC_SCALE_1990_2019
+)))AEIC2019_DAILY.or.AEIC2019_MONMEAN
 
 (((CMIP6_AIRCRAFT
 # Conversions for SO2 to HCs taken from AEIC
@@ -3961,19 +4031,19 @@ Warnings:                    1
 # --- EPA NEI day-of-week scale factors ---
 #==============================================================================
 (((NEI2016_MONMEAN
-210 NEI99_DOW_NOX     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           NOX          1999/1-12/WD/0 C xy 1 1
-211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           CO           1999/1-12/WD/0 C xy 1 1
-212 NEI99_DOW_ALK4    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           ALK4         1999/1-12/WD/0 C xy 1 1
-213 NEI99_DOW_ACET    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           ACET         1999/1-12/WD/0 C xy 1 1
-214 NEI99_DOW_MEK     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           MEK          1999/1-12/WD/0 C xy 1 1
-215 NEI99_DOW_PRPE    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           PRPE         1999/1-12/WD/0 C xy 1 1
-216 NEI99_DOW_C3H8    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           C3H8         1999/1-12/WD/0 C xy 1 1
-217 NEI99_DOW_C2H6    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           C2H6         1999/1-12/WD/0 C xy 1 1
-218 NEI99_DOW_SO2     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           SO2          1999/1-12/WD/0 C xy 1 1
-219 NEI99_DOW_SO4     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           SO4          1999/1-12/WD/0 C xy 1 1
-220 NEI99_DOW_MSA     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           MSA          1999/1-12/WD/0 C xy 1 1
-221 NEI99_DOW_BCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           BCPI         1999/1-12/WD/0 C xy 1 1
-222 NEI99_DOW_OCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           OCPI         1999/1-12/WD/0 C xy 1 1
+210 NEI99_DOW_NOX     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc NOX  1999/1-12/WD/0 C xy 1 1
+211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc CO   1999/1-12/WD/0 C xy 1 1
+212 NEI99_DOW_ALK4    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc ALK4 1999/1-12/WD/0 C xy 1 1
+213 NEI99_DOW_ACET    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc ACET 1999/1-12/WD/0 C xy 1 1
+214 NEI99_DOW_MEK     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc MEK  1999/1-12/WD/0 C xy 1 1
+215 NEI99_DOW_PRPE    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc PRPE 1999/1-12/WD/0 C xy 1 1
+216 NEI99_DOW_C3H8    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc C3H8 1999/1-12/WD/0 C xy 1 1
+217 NEI99_DOW_C2H6    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc C2H6 1999/1-12/WD/0 C xy 1 1
+218 NEI99_DOW_SO2     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc SO2  1999/1-12/WD/0 C xy 1 1
+219 NEI99_DOW_SO4     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc SO4  1999/1-12/WD/0 C xy 1 1
+220 NEI99_DOW_MSA     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc MSA  1999/1-12/WD/0 C xy 1 1
+221 NEI99_DOW_BCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc BCPI 1999/1-12/WD/0 C xy 1 1
+222 NEI99_DOW_OCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc OCPI 1999/1-12/WD/0 C xy 1 1
 )))NEI2016_MONMEAN
 
 #==============================================================================
@@ -4016,9 +4086,9 @@ Warnings:                    1
 # --- CEDS vertical partitioning ---
 #==============================================================================
 (((CEDSv2.or.CEDS_GBDMAPS
-315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1 
-316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1 
-317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1 
+315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1
+316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
+317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDSv2.or.CEDS_GBDMAPS
 
 #==============================================================================

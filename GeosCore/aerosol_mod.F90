@@ -141,10 +141,11 @@ MODULE AEROSOL_MOD
   ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F90 (e.g. if there is
   ! a new hygroscopic species) requires manual update of this mapping
   ! (ewl, 1/23/17)
-  INTEGER :: Map_NRHAER(5)
+  INTEGER  :: Map_NRHAER(5)
 
   ! Diagnostic switches
-  LOGICAL :: Is_POA
+  LOGICAL  :: Is_POA
+  LOGICAL  :: Is_OPOA
 
   ! Conversionf factors to ugC/m3 for Total Organic Carbon diagnostic
   REAL(fp) :: Fac_INDIOL
@@ -2673,9 +2674,12 @@ CONTAINS
        id_LVOCOA  = Ind_( 'LVOCOA' )
        id_POA1    = Ind_( 'POA1'   )
        id_POA2    = Ind_( 'POA2'   )
+       id_OPOA1   = Ind_( 'OPOA1'  )
+       id_OPOA2   = Ind_( 'OPOA2'  )
        id_SOAGX   = Ind_( 'SOAGX'  )
        id_SOAIE   = Ind_( 'SOAIE'  )
-       Is_POA     = ( id_POA1 > 0 .and. id_POA2 > 0 )
+       Is_POA     = ( id_POA1  > 0 .and. id_POA2  > 0 )
+       Is_OPOA    = ( id_OPOA1 > 0 .and. id_OPOA2 > 0 )
 
        ! Initialize conversion factors for total OC diagnostic
        Fac_INDIOL = 0.0_fp
@@ -2916,7 +2920,7 @@ CONTAINS
                     + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
 
-          ELSE
+          ELSE IF ( IS_OPOA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
                     + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) ) &
