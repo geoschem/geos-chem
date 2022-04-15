@@ -217,7 +217,7 @@ CONTAINS
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
     USE PRESSURE_MOD
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE Time_Mod,           ONLY : Get_Ts_Chem
     USE Time_Mod,           ONLY : Get_Day
     USE Time_Mod,           ONLY : Get_Month
@@ -1187,6 +1187,7 @@ CONTAINS
 ! !USES:
 !
     USE Time_Mod,       ONLY : Get_Ts_Chem
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
@@ -2100,7 +2101,7 @@ CONTAINS
           S = Map_Hg2gas(N)
 
           ! Initial Hg(II) gas concentration [molec/cm3]
-          gasConc = State_Chm%Species(I,J,L,S)
+          gasConc = State_Chm%Species(S)%Conc(I,J,L)
 
           ! Remove Hg2 lost to sea salt aerosol from the gas phase [molec/cm3]
           dGasConc = gasConc * ( 1.0_fp - EXP( -k * dt ) )
@@ -2151,7 +2152,7 @@ CONTAINS
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
-    USE Species_Mod,      ONLY : Species
+    USE Species_Mod,      ONLY : Species, SpcConc
     USE TIME_MOD,         ONLY : GET_TS_CHEM
     USE rateLawUtilFuncs, ONLY : Ars_L1K
 !
@@ -2313,16 +2314,16 @@ CONTAINS
           ! NOTE: gasTot is zeroed at the top of the loop
           DO N = 1, nHg2gasSpc
              S      = Map_Hg2gas(N)
-             gasTot = gasTot + Spc(I,J,L,S)
+             gasTot = gasTot + Spc(S)%Conc(I,J,L)
           ENDDO
 
           ! Concentration of Hg2 on aerosols (inorganic + organic),
           ! include any Hg2+ transported from stratosphere
-          aerConcInorg = Spc(I,J,L,id_Hg2ClP) + Spc(I,J,L,id_Hg2STRP)
-          aerConcOrg   = Spc(I,J,L,id_Hg2ORGP)
+          aerConcInorg = Spc(id_Hg2ClP)%Conc(I,J,L) + Spc(id_Hg2STRP)%Conc(I,J,L)
+          aerConcOrg   = Spc(id_Hg2ORGP)%Conc(I,J,L)
 
           ! Zero stratospheic Hg2
-          Spc(I,J,L,id_Hg2STRP) = 0.0_fp
+          Spc(id_Hg2STRP)%Conc(I,J,L) = 0.0_fp
 
           ! Total HgP concentration [molec/cm3]
           aerConc  =  aerConcInorg + aerConcOrg
@@ -2344,7 +2345,7 @@ CONTAINS
              S = Map_Hg2gas(N)
 
              ! Initial gas concentration [molec/cm3]
-             gasConc = Spc(I,J,L,S)
+             gasConc = Spc(S)%Conc(I,J,L)
 
              ! Mass transfer rate [1/s] onto dust, sulfate, BC/OC and fine SS
              k = 0.0_fp
@@ -2361,8 +2362,8 @@ CONTAINS
              dGasConc = gasConc * ( 1.0_fp - EXP( -k * DT ) )
 
              ! Remove transferred mass from gas and add to aerosol
-             Spc(I,J,L,S) = gasConc - dGasConc
-             aerConc      = aerConc + dGasConc
+             Spc(S)%Conc(I,J,L) = gasConc - dGasConc
+             aerConc            = aerConc + dGasConc
 
              !---------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
@@ -2396,8 +2397,8 @@ CONTAINS
           dGasConc = MIN( dGasConc, aerConc )
 
           ! Remove transferred mass from aerosol HgCl2 and add to gaseous HgCl2
-          aerConc             = aerConc             - dGasConc
-          Spc(I,J,L,id_HgCl2) = Spc(I,J,L,id_HgCl2) + dGasConc
+          aerConc                   = aerConc - dGasConc
+          Spc(id_HgCl2)%Conc(I,J,L) = Spc(id_HgCl2)%Conc(I,J,L) + dGasConc
 
           !------------------------------------------------------------------
           ! Partition aerosol concentration between org and inorg
@@ -2407,8 +2408,8 @@ CONTAINS
           fracOA = MIN( GLOB_fOA(I,J,L), 1.0_fp )
 
           ! Organic and inorganic HgIIP [molec/cm3]
-          Spc(I,J,L,id_Hg2OrgP) = aerConc * fracOA                ! Org
-          Spc(I,J,L,id_Hg2ClP)  = aerConc * ( 1.0_fp - fracOA )   ! Inorg
+          Spc(id_Hg2OrgP)%Conc(I,J,L) = aerConc * fracOA                ! Org
+          Spc(id_Hg2ClP)%Conc(I,J,L)  = aerConc * ( 1.0_fp - fracOA )   ! Inorg
 
           !------------------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
@@ -2429,13 +2430,13 @@ CONTAINS
           !==================================================================
 
           ! Concentration of Hg2 on aerosols [molec/cm3]
-          aerConc = Spc(I,J,L,id_Hg2STRP)                                    &
-                  + Spc(I,J,L,id_Hg2ORGP)                                    &
-                  + Spc(I,J,L,id_Hg2ClP)
+          aerConc = Spc(id_Hg2STRP)%Conc(I,J,L)                                    &
+                  + Spc(id_Hg2ORGP)%Conc(I,J,L)                                    &
+                  + Spc(id_Hg2ClP)%Conc(I,J,L)
 
           ! Zero organic Hg2 aerosol and Hg2Cl aerosol in stratosphere
-          Spc(I,J,L,id_Hg2ORGP) = 0.0_fp
-          Spc(I,J,L,id_Hg2ClP)  = 0.0_fp
+          Spc(id_Hg2ORGP)%Conc(I,J,L) = 0.0_fp
+          Spc(id_Hg2ClP)%Conc(I,J,L)  = 0.0_fp
 
           !------------------------------------------------------------------
           ! Perform mass transfer between gas and stratopsheric aerosol
@@ -2449,7 +2450,7 @@ CONTAINS
              k = Ars_L1K( xArea(SLA), xRadi(SLA), ALPHA_Hg2, srMw(N) )
 
              ! Initial Hg(II) gas [molec/cm3]
-             gasConc = Spc(I,J,L,S)
+             gasConc = Spc(S)%Conc(I,J,L)
 
              ! Amount of mass [molec/cm3] transferred from gas to aerosol
              dGasConc = gasConc * ( 1.0_fp - EXP( -k * DT ) )
@@ -2459,7 +2460,7 @@ CONTAINS
              aerConc  = aerConc + dGasConc
 
              ! Final Hg2 gas concentration [molec/cm3]
-             Spc(I,J,L,S)  = gasConc
+             Spc(S)%Conc(I,J,L)  = gasConc
 
              !---------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)

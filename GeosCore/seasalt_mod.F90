@@ -328,7 +328,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(:,:,:,id_SALAAL),                 &
+            TC         = State_Chm%Species(id_SALAAL)%Conc,                  &
             N          = 5,                                                  &
             RC         = RC                                                 )
 
