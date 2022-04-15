@@ -56,6 +56,10 @@ NUM_WRITERS: 1
 # ----------------------------
 BKG_FREQUENCY: 0
 
+# Enable bootstrapping restart file fields missing from restart
+#-----------------------------------------------------------------
+MAPL_ENABLE_BOOTSTRAP: YES
+
 # Settings for production of restart files
 #---------------------------------------------------------------
 # Record frequency (HHMMSS) : Frequency of restart file write
