@@ -139,6 +139,7 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
 
 #=============================================================================
 # Standard run directories
@@ -161,6 +162,7 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
 
 #=============================================================================
 # Cleanup and quit
