@@ -2733,9 +2733,14 @@ CONTAINS
     ! consistent with the legacy ND42 bpch diagnostics
     !=======================================================================
 
-    ! Point to fielss of State_Chm and State_Met
+    ! Point to fields of State_Chm and State_Met
     Spc    => State_Chm%Species
     AirDen => State_Met%AIRDEN
+
+    ! Zero out the totalOC diagnostic
+    IF ( State_Diag%Archive_TotalOC ) THEN
+       State_Diag%TotalOC = 0.0_fp
+    ENDIF
 
     !$OMP PARALLEL DO         &
     !$OMP DEFAULT( SHARED   ) &
