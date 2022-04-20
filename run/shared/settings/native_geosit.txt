@@ -1,0 +1,106 @@
+RUNDIR_MET='MERRA2'
+RUNDIR_MET_LOWERCASE='merra2'
+RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/MERRA2"
+RUNDIR_MET_DIR_NATIVE="${RUNDIR_DATA_ROOT}/GEOS_0.5x0.625/MERRA2"
+
+RUNDIR_MET_RES='05x0625'
+RUNDIR_MET_NATIVE_RES='0.5x0.625'
+RUNDIR_MET_LAT_RES='05'
+RUNDIR_MET_LON_RES='0625'
+RUNDIR_MET_EXT='nc4'
+
+RUNDIR_MET_CN_YR=2015
+RUNDIR_MET_PRES_UNIT='Pa '
+RUNDIR_MET_PRES_SCALE='0.01'
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+MFXC    'kg s-1'       N Y F0;003000 none 0.6666666 MFXC  ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_tavg_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:30:00P01:00
+MFYC    'kg s-1'       N Y F0;003000 none 0.6666666 MFYC  ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_tavg_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:30:00P01:00
+CXC     '-'            N Y F0;003000 none none       CX  ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_tavg_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:30:00P01:00
+CYC     '-'            N Y F0;003000 none none       CY  ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_tavg_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:30:00P01:00
+PS1      Pa          N Y 0         none 0.01         PS   ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_inst_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:00:00P01:00
+PS2      Pa          N Y 0;000500  none 0.01         PS   ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_inst_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:00:00P01:00
+SPHU1    'kg kg-1'   N Y 0         none none         QV   ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_inst_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:00:00P01:00
+SPHU2    'kg kg-1'   N Y 0;000500  none none         QV   ./MetData/Y%y4/M%m2/GEOS.it.asm.ctm_inst_1hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4  2018-01-01T00:00:00P01:00
+UA;VA m_s-1 N Y F0;013000 none none                  U;V  ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4 2018-01-01T01:30:00P03:00
+TMPU1   K N Y 0        none none T          ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:00:00P03:00
+TMPU2   K N Y 0;001000 none none T          ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:00:00P03:00
+#PS1     Pa  N Y 0        none 0.01 PS       ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:00:00P03:00
+#PS2     Pa  N Y 0;001000 none 0.01 PS       ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:00:00P03:00
+#SPHU1   kg_kg-1 N Y 0        none none QV   ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:00:00P03:00
+#SPHU2   kg_kg-1 N Y 0;001000 none none QV   ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:00:00P03:00
+LWI     1 N Y F0;003000 none none LWI       ./MetData/Y%y4/M%m2/GEOS.it.asm.chm_tavg_3hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+Z0 1 N Y F0;003000 none none Z0M            ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+EVAP     1 N Y F0;003000 none none EVAP     ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PBLH     1 N Y F0;003000 none none PBLH     ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+EFLUX    1 N Y F0;003000 none none EFLUX    ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+HFLUX    1 N Y F0;003000 none none HFLUX    ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+USTAR    1 N Y F0;003000 none none USTAR    ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PRECANV  1 N Y F0;003000 none none PRECANV  ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PRECCON  1 N Y F0;003000 none none PRECCON  ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+FRSEAICE 1 N Y F0;003000 none none FRSEAICE ./MetData/Y%y4/M%m2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+GRN      1 N Y F0;003000 none none GRN      ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+LAI      1 N Y F0;003000 none none LAI      ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+FRSNO    1 N Y F0;003000 none none FRSNO    ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+SNODP    1 N Y F0;003000 none none SNODP    ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+SNOMAS   1 N Y F0;003000 none none SNOMAS   ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetData/Y%y4/M%m2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PARDF    1 N Y F0;003000 none none PARDF    ./MetData/Y%y4/M%m2/GEOS.it.asm.lfo_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+PARDR    1 N Y F0;003000 none none PARDR    ./MetData/Y%y4/M%m2/GEOS.it.asm.lfo_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+RADLWG   1 N Y F0;003000 none none LWGNT    ./MetData/Y%y4/M%m2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+RADSWG 1 N Y F0;003000 none none SWGDN      ./MetData/Y%y4/M%m2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+ALBD     1 N Y F0;003000 none none ALBEDO   ./MetData/Y%y4/M%m2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetData/Y%y4/M%m2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+TSKIN 1 N Y F0;003000 none none TS          ./MetData/Y%y4/M%m2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+TS    1 N Y F0;003000 none none T2M         ./MetData/Y%y4/M%m2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+TO3 dobson N Y F0;003000 none none TO3      ./MetData/Y%y4/M%m2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+U10M m_s-1 N Y F0;003000 none none U10M     ./MetData/Y%y4/M%m2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+V10M m_s-1 N Y F0;003000 none none V10M     ./MetData/Y%y4/M%m2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+TROPP Pa  N Y F0;003000 none 0.01 TROPPT    ./MetData/Y%y4/M%m2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T00:30:00P01:00
+UA;VA  m_s-1 N Y F0;013000 none none U;V    ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+QI     1 N Y F0;013000 none none QI         ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+QL     1 N Y F0;013000 none none QL         ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+RH     - N Y F0;013000 none none RH         ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+SLP    Pa N Y F0;013000 none 0.01 SLP       ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+OMEGA Pa_s-1 N Y F0;013000 none none OMEGA  ./MetData/Y%y4/M%m2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+CLDF   1 N Y F0;013000 none none CLOUD      ./MetData/Y%y4/M%m2/GEOS.it.asm.rad_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+TAUCLI 1 N Y F0;013000 none none TAUCLI     ./MetData/Y%y4/M%m2/GEOS.it.asm.cld_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+TAUCLW 1 N Y F0;013000 none none TAUCLW     ./MetData/Y%y4/M%m2/GEOS.it.asm.cld_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+DTRAIN 1 N Y F0;013000 none none DTRAIN     ./MetData/Y%y4/M%m2/GEOS.it.asm.cld_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+CMFMC    1 N Y F0;013000 none none CMFMC    ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+PFICU    1 N Y F0;013000 none none PFICU    ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+PFLCU    1 N Y F0;013000 none none PFLCU    ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+DQRCU    1 N Y F0;013000 none none DQRCU    ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4      2018-01-01T01:30:00P03:00
+REEVAPLS 1 N Y F0;013000 none none REEVAPLSAN ./MetData/Y%y4/M%m2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5271.%y4-%m2-%d2T%h2%n2.V01.nc4    2018-01-01T01:30:00P03:00
+SEAICE00 1 N Y F0;003000 none none SEAICE00 /dev/null
+SEAICE10 1 N Y F0;003000 none none SEAICE10 /dev/null
+SEAICE20 1 N Y F0;003000 none none SEAICE20 /dev/null
+SEAICE30 1 N Y F0;003000 none none SEAICE30 /dev/null
+SEAICE40 1 N Y F0;003000 none none SEAICE40 /dev/null
+SEAICE50 1 N Y F0;003000 none none SEAICE50 /dev/null
+SEAICE60 1 N Y F0;003000 none none SEAICE60 /dev/null
+SEAICE70 1 N Y F0;003000 none none SEAICE70 /dev/null
+SEAICE80 1 N Y F0;003000 none none SEAICE80 /dev/null
+SEAICE90 1 N Y F0;003000 none none SEAICE90 /dev/nulla
+
+#
+# --- Fixed variables, from constants file ---
+FRLAKE   1 N Y - none none FRLAKE   ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FRLAND   1 N Y - none none FRLAND   ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FROCEAN  1 N Y - none none FROCEAN  ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+#
+PHIS m2_s-2 N Y - none none PHIS ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+"""
+
+RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""
+OPTDEP      TAUCLI+TAUCLW 0
+"""

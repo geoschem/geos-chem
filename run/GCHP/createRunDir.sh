@@ -239,7 +239,9 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
-printf "  3. Native GEOS-FP files \n"
+printf "  3. Native GEOS-FP data\n"
+printf "  4. Native GEOS-IT data\n"
+printf "  5. Native MERRA2 data\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -254,6 +256,12 @@ while [ "${valid_met}" -eq 0 ]; do
     elif [[ ${met_num} = "3" ]]; then
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp.txt)\n"
+    elif [[ ${met_num} = "4" ]]; then
+	met="geosit"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosit.txt)\n"
+    elif [[ ${met_num} = "5" ]]; then
+	met="merra2"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_merra2.txt)\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"

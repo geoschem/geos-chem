@@ -1,0 +1,109 @@
+RUNDIR_MET='MERRA2'
+RUNDIR_MET_LOWERCASE='merra2'
+RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/MERRA2"
+RUNDIR_MET_DIR_NATIVE="${RUNDIR_DATA_ROOT}/GEOS_0.5x0.625/MERRA2"
+
+RUNDIR_MET_RES='05x0625'
+RUNDIR_MET_NATIVE_RES='0.5x0.625'
+RUNDIR_MET_LAT_RES='05'
+RUNDIR_MET_LON_RES='0625'
+RUNDIR_MET_EXT='nc4'
+
+RUNDIR_MET_CN_YR=2015
+RUNDIR_MET_PRES_UNIT='Pa '
+RUNDIR_MET_PRES_SCALE='0.01'
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+TMPU1   K N Y 0        none none T          ./MetData/%y4/%m2/MERRA2_400.inst3_3d_asm_Nv.%y4%m2%d2.nc4
+TMPU2   K N Y 0;001000 none none T          ./MetData/%y4/%m2/MERRA2_400.inst3_3d_asm_Nv.%y4%m2%d2.nc4
+PS1     Pa  N Y 0        none 0.01 PS       ./MetData/%y4/%m2/MERRA2_400.inst3_3d_asm_Nv.%y4%m2%d2.nc4
+PS2     Pa  N Y 0;001000 none 0.01 PS       ./MetData/%y4/%m2/MERRA2_400.inst3_3d_asm_Nv.%y4%m2%d2.nc4
+SPHU1   kg_kg-1 N Y 0        none none QV   ./MetData/%y4/%m2/MERRA2_400.inst3_3d_asm_Nv.%y4%m2%d2.nc4
+SPHU2   kg_kg-1 N Y 0;001000 none none QV   ./MetData/%y4/%m2/MERRA2_400.inst3_3d_asm_Nv.%y4%m2%d2.nc4
+
+LWI     1 N Y F0;003000 none none LWI       ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_chm_Nx.%y4%m2%d2.nc4
+
+Z0 1 N Y F0;003000 none none Z0M            ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+EVAP     1 N Y F0;003000 none none EVAP     ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+PBLH     1 N Y F0;003000 none none PBLH     ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+EFLUX    1 N Y F0;003000 none none EFLUX    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+HFLUX    1 N Y F0;003000 none none HFLUX    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+USTAR    1 N Y F0;003000 none none USTAR    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+PRECANV  1 N Y F0;003000 none none PRECANV  ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+PRECCON  1 N Y F0;003000 none none PRECCON  ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+FRSEAICE 1 N Y F0;003000 none none FRSEAICE ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_flx_Nx.%y4%m2%d2.nc4
+
+
+GRN      1 N Y F0;003000 none none GRN      ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+LAI      1 N Y F0;003000 none none LAI      ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+FRSNO    1 N Y F0;003000 none none FRSNO    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+SNODP    1 N Y F0;003000 none none SNODP    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+SNOMAS   1 N Y F0;003000 none none SNOMAS   ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+PARDF    1 N Y F0;003000 none none PARDFLAND ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+PARDR    1 N Y F0;003000 none none PARDRLAND ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_lnd_Nx.%y4%m2%d2.nc4
+
+RADLWG   1 N Y F0;003000 none none LWGNT    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_rad_Nx.%y4%m2%d2.nc4
+RADSWG 1 N Y F0;003000 none none SWGDN      ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_rad_Nx.%y4%m2%d2.nc4
+#ALBD     1 N Y F0;003000 none none ALBEDO   ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_rad_Nx.%y4%m2%d2.nc4
+ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDataAlbedo/%y4/%m2/ALBEDO.%y4%m2%d2.nc4
+CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_rad_Nx.%y4%m2%d2.nc4
+
+TSKIN 1 N Y F0;003000 none none TS          ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_slv_Nx.%y4%m2%d2.nc4
+TS    1 N Y F0;003000 none none T2M         ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_slv_Nx.%y4%m2%d2.nc4
+TO3 dobson N Y F0;003000 none none TO3      ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_slv_Nx.%y4%m2%d2.nc4
+U10M m_s-1 N Y F0;003000 none none U10M     ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_slv_Nx.%y4%m2%d2.nc4
+V10M m_s-1 N Y F0;003000 none none V10M     ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_slv_Nx.%y4%m2%d2.nc4
+TROPP Pa  N Y F0;003000 none 0.01 TROPPT    ./MetData/%y4/%m2/MERRA2_400.tavg1_2d_slv_Nx.%y4%m2%d2.nc4
+
+UA;VA m_s-1 N Y F0;013000 none none U;V     ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_asm_Nv.%y4%m2%d2.nc4
+QI     1 N Y F0;013000 none none QI         ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_asm_Nv.%y4%m2%d2.nc4
+QL     1 N Y F0;013000 none none QL         ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_asm_Nv.%y4%m2%d2.nc4
+RH - N Y F0;013000 none none RH             ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_asm_Nv.%y4%m2%d2.nc4
+SLP Pa  N Y F0;003000 none 0.01 SLP         ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_asm_Nv.%y4%m2%d2.nc4
+OMEGA Pa_s-1 N Y F0;013000 none none OMEGA  ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_asm_Nv.%y4%m2%d2.nc4
+
+CLDF   1 N Y F0;013000 none none CLOUD      ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_cld_Nv.%y4%m2%d2.nc4
+TAUCLI 1 N Y F0;013000 none none TAUCLI     ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_cld_Nv.%y4%m2%d2.nc4
+TAUCLW 1 N Y F0;013000 none none TAUCLW     ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_cld_Nv.%y4%m2%d2.nc4
+DTRAIN 1 N Y F0;013000 none none DTRAIN     ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_cld_Nv.%y4%m2%d2.nc4
+
+CMFMC    1 N Y F0;013000 none none CMFMC    ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Ne.%y4%m2%d2.nc4
+PFICU    1 N Y F0;013000 none none PFICU    ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Ne.%y4%m2%d2.nc4
+PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Ne.%y4%m2%d2.nc4
+PFLCU    1 N Y F0;013000 none none PFLCU    ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Ne.%y4%m2%d2.nc4
+PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Ne.%y4%m2%d2.nc4
+
+DQRCU    1 N Y F0;013000 none none DQRCU    ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Nv.%y4%m2%d2.nc4
+DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Nv.%y4%m2%d2.nc4
+REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Nv.%y4%m2%d2.nc4
+REEVAPLS 1 N Y F0;013000 none none REEVAPLSAN ./MetData/%y4/%m2/MERRA2_400.tavg3_3d_mst_Nv.%y4%m2%d2.nc4
+
+SEAICE00 1 N Y F0;003000 none none SEAICE00 /dev/null
+SEAICE10 1 N Y F0;003000 none none SEAICE10 /dev/null
+SEAICE20 1 N Y F0;003000 none none SEAICE20 /dev/null
+SEAICE30 1 N Y F0;003000 none none SEAICE30 /dev/null
+SEAICE40 1 N Y F0;003000 none none SEAICE40 /dev/null
+SEAICE50 1 N Y F0;003000 none none SEAICE50 /dev/null
+SEAICE60 1 N Y F0;003000 none none SEAICE60 /dev/null
+SEAICE70 1 N Y F0;003000 none none SEAICE70 /dev/null
+SEAICE80 1 N Y F0;003000 none none SEAICE80 /dev/null
+SEAICE90 1 N Y F0;003000 none none SEAICE90 /dev/null
+
+#
+# --- Fixed variables, from constants file ---
+FRLAKE   1 N Y - none none FRLAKE   ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FRLAND   1 N Y - none none FRLAND   ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FROCEAN  1 N Y - none none FROCEAN  ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+#
+PHIS m2_s-2 N Y - none none PHIS ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+"""
+
+RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""
+OPTDEP      TAUCLI+TAUCLW 0
+"""
