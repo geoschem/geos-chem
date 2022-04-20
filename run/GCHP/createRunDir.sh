@@ -239,6 +239,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
+printf "  3. Native GEOS-FP files \n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -250,6 +251,9 @@ while [ "${valid_met}" -eq 0 ]; do
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+    elif [[ ${met_num} = "3" ]]; then
+	met="geosfp"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp.txt)\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -520,7 +524,7 @@ RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 
 # Save RUNDIR variables to file
 echo -e "$RUNDIR_VARS" > rundir_vars.txt
-sort -o rundir_vars.txt rundir_vars.txt
+#sort -o rundir_vars.txt rundir_vars.txt
 
 # Call init_rd.sh
 ${srcrundir}/init_rd.sh rundir_vars.txt
