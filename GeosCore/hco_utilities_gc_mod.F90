@@ -2097,7 +2097,7 @@ CONTAINS
                             SUM(     State_Chm%AeroH2O(:,:,:,NDUST+1) )
          ENDIF
       ELSE
-         State_Chm%SO2AfterChem = 0.0_fp
+         State_Chm%AeroH2O(:,:,:,NDUST+1) = 0.0_fp
          IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
       ENDIF
 
@@ -2172,7 +2172,7 @@ CONTAINS
                             SUM(     State_Chm%JOH )
          ENDIF
       ELSE
-         State_Chm%SO2AfterChem = 0.0_fp
+         State_Chm%JOH = 0.0_fp
          IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
       ENDIF
 
@@ -2198,7 +2198,7 @@ CONTAINS
                             SUM(     State_Chm%JNO2 )
          ENDIF
       ELSE
-         State_Chm%SO2AfterChem = 0.0_fp
+         State_Chm%JNO2 = 0.0_fp
          IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
       ENDIF
       ! Nullify pointer
