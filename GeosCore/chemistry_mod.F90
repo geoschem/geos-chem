@@ -135,6 +135,7 @@ CONTAINS
     INTEGER            :: YEAR
     INTEGER            :: WAVELENGTH
     LOGICAL            :: IT_IS_A_CH4_SIM
+    LOGICAL            :: IT_IS_A_CH4COCO2_SIM
     LOGICAL            :: IT_IS_A_FULLCHEM_SIM
     LOGICAL            :: IT_IS_A_MERCURY_SIM
     LOGICAL            :: IT_IS_A_RnPbBe_SIM
@@ -187,6 +188,7 @@ CONTAINS
     LSOA                     = Input_Opt%LSOA
     LNLPBL                   = Input_Opt%LNLPBL
     IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM
+    IT_IS_A_CH4COCO2_SIM     = Input_Opt%ITS_A_CH4COCO2_SIM 
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
     IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_RnPbBe_SIM
@@ -798,6 +800,21 @@ CONTAINS
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "ChemCh4"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       !====================================================================
+       ! CH4-CO-CO2 Joint
+       !====================================================================
+       ELSE IF ( IT_IS_A_CH4COCO2_SIM ) THEN
+
+          CALL Chem_CH4COCO2( Input_Opt, State_Met, State_Chm, &
+                              State_Grid, State_Diag, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Chem_CH4COCO2OCS"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF

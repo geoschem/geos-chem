@@ -79,10 +79,11 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
   Vdot(3) = A(1)
   Vdot(4) = A(4)
   Vdot(5) = A(3)+A(7)
-  Vdot(6) = A(2)+A(5)
-  Vdot(7) = A(1)+A(4)+A(6)
-  Vdot(8) = A(3)+A(7)
-  Vdot(9) = A(1)+A(2)+A(5)
+  Vdot(6) = A(3)+A(7)
+  Vdot(7) = A(2)+A(5)
+  Vdot(8) = A(1)+A(4)+A(6)
+  Vdot(9) = A(3)+A(7)
+  Vdot(10) = A(1)+A(2)+A(5)
       
 END SUBROUTINE Fun
 

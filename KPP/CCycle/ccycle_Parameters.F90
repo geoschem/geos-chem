@@ -28,9 +28,9 @@ MODULE ccycle_Parameters
 
 
 ! NSPEC - Number of chemical species
-  INTEGER, PARAMETER :: NSPEC = 13 
+  INTEGER, PARAMETER :: NSPEC = 14 
 ! NVAR - Number of Variable species
-  INTEGER, PARAMETER :: NVAR = 9 
+  INTEGER, PARAMETER :: NVAR = 10 
 ! NFAM - Number of Prod/Loss Families
   INTEGER, PARAMETER :: NFAM = 3 
 ! NVARACT - Number of Active species
@@ -42,13 +42,13 @@ MODULE ccycle_Parameters
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
-  INTEGER, PARAMETER :: NFIXST = 10 
+  INTEGER, PARAMETER :: NFIXST = 11 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 16 
+  INTEGER, PARAMETER :: NONZERO = 18 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 16 
+  INTEGER, PARAMETER :: LU_NONZERO = 18 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
-  INTEGER, PARAMETER :: CNVAR = 10 
+  INTEGER, PARAMETER :: CNVAR = 11 
 ! NLOOKAT - Number of species to look at
   INTEGER, PARAMETER :: NLOOKAT = 0 
 ! NMONITOR - Number of species to monitor
@@ -64,18 +64,19 @@ MODULE ccycle_Parameters
   INTEGER, PARAMETER :: ind_CO_CH4 = 3 
   INTEGER, PARAMETER :: ind_CO_NMVOC = 4 
   INTEGER, PARAMETER :: ind_CO2 = 5 
-  INTEGER, PARAMETER :: ind_DUMMY = 6 
-  INTEGER, PARAMETER :: ind_PCO = 7 
-  INTEGER, PARAMETER :: ind_LCO = 8 
-  INTEGER, PARAMETER :: ind_LCH4 = 9 
+  INTEGER, PARAMETER :: ind_CO2_OH = 6 
+  INTEGER, PARAMETER :: ind_DUMMY = 7 
+  INTEGER, PARAMETER :: ind_PCO = 8 
+  INTEGER, PARAMETER :: ind_LCO = 9 
+  INTEGER, PARAMETER :: ind_LCH4 = 10 
 
 ! Index declaration for fixed species in C
 !   C(ind_spc)
 
-  INTEGER, PARAMETER :: ind_OH_E = 10 
-  INTEGER, PARAMETER :: ind_Cl_E = 11 
-  INTEGER, PARAMETER :: ind_CH4_E = 12 
-  INTEGER, PARAMETER :: ind_NMVOC_E = 13 
+  INTEGER, PARAMETER :: ind_OH_E = 11 
+  INTEGER, PARAMETER :: ind_Cl_E = 12 
+  INTEGER, PARAMETER :: ind_CH4_E = 13 
+  INTEGER, PARAMETER :: ind_NMVOC_E = 14 
 
 ! Index declaration for fixed species in FIX
 !    FIX(indf_spc) = C(ind_spc) = C(NVAR+indf_spc)

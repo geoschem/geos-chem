@@ -709,6 +709,7 @@ CONTAINS
          TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
          TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
          TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
+         TRIM(Sim) /= 'CH4COCO2'.and. &
          TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
        ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
@@ -731,6 +732,7 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
+    Input_Opt%ITS_A_CH4COCO2_SIM   = ( TRIM(SIM) == 'CH4COCO2'              )
 
     !-----------------------------------------------------------------
     ! Species database file

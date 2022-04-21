@@ -1,0 +1,24 @@
+#INTEGRATOR rosenbrock
+#LANGUAGE Fortran90
+#DRIVER none
+#HESSIAN off
+#MEX off
+#STOICMAT off
+
+#INCLUDE ccycle.eqn
+
+#FAMILIES
+PCO : CO;
+LCO : CO;
+LCH4 : CH4;
+
+#INLINE F90_GLOBAL
+  ! Array for strat CH4/CO/CO2 rates
+  REAL(dp) :: K_STRAT(5)
+  !$OMP THREADPRIVATE( K_STRAT )
+  ! Array for trop CH4/CO/CO2 rates
+  REAL(dp) :: K_TROP(5)
+  !$OMP THREADPRIVATE( K_TROP )
+  REAL(dp) :: TROP
+  !$OMP THREADPRIVATE( TROP )
+#ENDINLINE

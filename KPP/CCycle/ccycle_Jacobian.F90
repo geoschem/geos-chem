@@ -85,22 +85,26 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
   JVS(7) = B(5)+B(10)
 ! JVS(8) = Jac_FULL(5,5)
   JVS(8) = 0
-! JVS(9) = Jac_FULL(6,1)
-  JVS(9) = B(3)+B(8)
+! JVS(9) = Jac_FULL(6,2)
+  JVS(9) = B(5)+B(10)
 ! JVS(10) = Jac_FULL(6,6)
   JVS(10) = 0
 ! JVS(11) = Jac_FULL(7,1)
-  JVS(11) = B(1)
+  JVS(11) = B(3)+B(8)
 ! JVS(12) = Jac_FULL(7,7)
   JVS(12) = 0
-! JVS(13) = Jac_FULL(8,2)
-  JVS(13) = B(5)+B(10)
+! JVS(13) = Jac_FULL(8,1)
+  JVS(13) = B(1)
 ! JVS(14) = Jac_FULL(8,8)
   JVS(14) = 0
-! JVS(15) = Jac_FULL(9,1)
-  JVS(15) = B(1)+B(3)+B(8)
+! JVS(15) = Jac_FULL(9,2)
+  JVS(15) = B(5)+B(10)
 ! JVS(16) = Jac_FULL(9,9)
   JVS(16) = 0
+! JVS(17) = Jac_FULL(10,1)
+  JVS(17) = B(1)+B(3)+B(8)
+! JVS(18) = Jac_FULL(10,10)
+  JVS(18) = 0
       
 END SUBROUTINE Jac_SP
 
@@ -132,10 +136,11 @@ SUBROUTINE Jac_SP_Vec ( JVS, UV, JUV )
   JUV(3) = JVS(4)*UV(1)+JVS(5)*UV(3)
   JUV(4) = JVS(6)*UV(4)
   JUV(5) = JVS(7)*UV(2)+JVS(8)*UV(5)
-  JUV(6) = JVS(9)*UV(1)+JVS(10)*UV(6)
+  JUV(6) = JVS(9)*UV(2)+JVS(10)*UV(6)
   JUV(7) = JVS(11)*UV(1)+JVS(12)*UV(7)
-  JUV(8) = JVS(13)*UV(2)+JVS(14)*UV(8)
-  JUV(9) = JVS(15)*UV(1)+JVS(16)*UV(9)
+  JUV(8) = JVS(13)*UV(1)+JVS(14)*UV(8)
+  JUV(9) = JVS(15)*UV(2)+JVS(16)*UV(9)
+  JUV(10) = JVS(17)*UV(1)+JVS(18)*UV(10)
       
 END SUBROUTINE Jac_SP_Vec
 
@@ -162,8 +167,8 @@ SUBROUTINE JacTR_SP_Vec ( JVS, UV, JTUV )
 ! JTUV - Jacobian transposed times user vector
   REAL(kind=dp) :: JTUV(NVAR)
 
-  JTUV(1) = JVS(1)*UV(1)+JVS(2)*UV(2)+JVS(4)*UV(3)+JVS(9)*UV(6)+JVS(11)*UV(7)+JVS(15)*UV(9)
-  JTUV(2) = JVS(3)*UV(2)+JVS(7)*UV(5)+JVS(13)*UV(8)
+  JTUV(1) = JVS(1)*UV(1)+JVS(2)*UV(2)+JVS(4)*UV(3)+JVS(11)*UV(7)+JVS(13)*UV(8)+JVS(17)*UV(10)
+  JTUV(2) = JVS(3)*UV(2)+JVS(7)*UV(5)+JVS(9)*UV(6)+JVS(15)*UV(9)
   JTUV(3) = JVS(5)*UV(3)
   JTUV(4) = JVS(6)*UV(4)
   JTUV(5) = JVS(8)*UV(5)
@@ -171,6 +176,7 @@ SUBROUTINE JacTR_SP_Vec ( JVS, UV, JTUV )
   JTUV(7) = JVS(12)*UV(7)
   JTUV(8) = JVS(14)*UV(8)
   JTUV(9) = JVS(16)*UV(9)
+  JTUV(10) = JVS(18)*UV(10)
       
 END SUBROUTINE JacTR_SP_Vec
 

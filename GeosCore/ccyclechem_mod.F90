@@ -19,7 +19,7 @@
 !
 ! !USES:
 !
-      USE HCO_ERROR_MOD       ! For HEMCO error reporting
+      USE HCO_ERROR_MOD, ONLY : HCO_SUCCESS, HCO_FAIL, HCO_WARNING, hp       ! For HEMCO error reporting
       USE PhysConstants
       USE PRECISION_MOD       ! For GEOS-Chem Precision (fp, f4, f8)
       USE inquireMod,    ONLY : findFreeLUN
@@ -89,9 +89,6 @@
       ! These need to be declared as REAL(f4), aka REAL*4.
       ! NOTE: These are globally SAVEd variables so we can
       ! nullify these in the declaration statement (bmy, 4/29/16)
-      REAL(f4), POINTER     :: BOH    (:,:,:) => NULL()
-      REAL(f4), POINTER     :: BCl    (:,:,:) => NULL()
-      REAL(f4), POINTER     :: CH4LOSS(:,:,:) => NULL()
       REAL(f4), POINTER     :: CLUSTERS(:,:)  => NULL()
 
       REAL(fp)              :: TROPOCH4
@@ -106,15 +103,6 @@
       REAL(fp), ALLOCATABLE :: TCOSZ      (:,:  )   ! Daily sum COS(SZA)
       REAL(fp), ALLOCATABLE :: CH4_OH_TROP(:,:,:)   ! CH4 loss in trop
       REAL(fp), ALLOCATABLE :: CH4_OH_STRAT(:,:,:)   ! CH4 loss in strat 
-
-      ! Pointers to fields in the HEMCO data structure.
-      ! These need to be declared REAL(f4), aka REAL*4.
-      REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
-      REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
-      REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
-      REAL(f4), POINTER     :: PCO_CH4    (:,:,:) => NULL() ! CH4 P(CO)
-      REAL(f4), POINTER     :: PCO_NMVOC  (:,:,:) => NULL() ! NMVOC P(CO)
-      REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc
 
 !
 ! !DEFINED PARAMETERS:
@@ -649,12 +637,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_CH4COCO2( Input_Opt,  State_Chm, State_Diag, State_Grid, &
-                                State_Met, RC )
+      SUBROUTINE CHEM_CH4COCO2( Input_Opt,  State_Met, State_Chm, State_Grid, &
+                                State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+!      USE CCYCLE_PRECISION
+!      USE CMN_SIZE_MOD
+      USE CCYCLE_GLOBAL
+      USE CCYCLE_Initialize,  ONLY : Init_KPP => Initialize
+      USE CCYCLE_INTEGRATOR,  ONLY : INTEGRATE, NHnew
+      USE CCYCLE_PARAMETERS
+      USE CCYCLE_PRECISION
+      USE CCYCLE_RATES,       ONLY : UPDATE_RCONST
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD43, AD65
@@ -665,14 +660,15 @@
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE HCO_State_Mod,      ONLY : Hco_GetHcoId
       USE HCO_State_GC_Mod,   ONLY : HcoState
-      USE HCO_Error_Mod
+!      USE HCO_Error_Mod
+      USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-      USE Tagged_CO_Mod,      ONLY : CALC_DIURNAL
+!      USE Tagged_CO_Mod,      ONLY : CALC_DIURNAL
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -773,6 +769,7 @@
       LOGICAL                  :: LPCO_CH4,      LPCO_NMVOC
       INTEGER                  :: nAdvect,       HcoID,       NA
       INTEGER                  :: N,             MONTH,       YEAR
+      INTEGER                  :: IERR
       REAL(fp)                 :: ALPHA_ISOP,    DTCHEM,      GCO
       REAL(fp)                 :: STTCO,         KRATE,       CH4
       REAL(fp)                 :: CO_CH4,        CO_ISOP,     CO_MONO
@@ -788,6 +785,8 @@
       REAL(fp)                 :: PCO_CH4_MCM3S, PCO_NMVOC_MCM3S
       REAL(fp)                 :: kgs_to_atomsC, Emis,        DTEMIS
       REAL(fp)                 :: kgm3_to_mcm3OH,kgm3_to_mcm3sCO
+      REAL(fp)                 :: TOUT,          TIN
+!      REAL(fp)                 :: DT
 
       ! Strings
       CHARACTER(LEN=255)       :: ERR_VAR
@@ -798,6 +797,22 @@
 
       ! Arrays
       INTEGER                  :: ERR_LOC(4)
+      INTEGER                  :: ICNTRL (20)
+      INTEGER                  :: ISTATUS(20)
+      REAL(dp)                 :: RCNTRL (20)
+      REAL(dp)                 :: RSTATE (20)
+
+      ! Fields in the HEMCO data structure.
+      ! These need to be declared REAL(f4), aka REAL*4.
+      REAL(fp)  :: OH         (State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! Global OH
+      REAL(fp)  :: GMI_PROD_CO(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! Global P(CO)
+      REAL(fp)  :: GMI_LOSS_CO(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! Global L(CO)
+      REAL(fp)  :: PCO_CH4    (State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! CH4 P(CO)
+      REAL(fp)  :: PCO_NMVOC  (State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! NMVOC P(CO)
+      REAL(fp)  :: SFC_CH4    (State_Grid%NX,State_Grid%NY) ! Global sfc
+      REAL(fp)  :: CH4LOSS(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+      REAL(fp)  :: BOH(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+      REAL(fp)  :: BCl(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
       ! Pointers
       REAL(fp),        POINTER :: AD    (:,:,:  )
@@ -887,7 +902,7 @@
       IF ( FIRSTCHEM ) THEN
 
          ! Get pointer to GLOBAL_OH
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CH4', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', BOH, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -897,7 +912,7 @@
          ENDIF 
 
          ! Get pointer to GLOBAL_Cl
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', BCl, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -982,7 +997,7 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      CALL CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid )
+      CALL CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid, BOH )
 
       !=================================================================
       ! (5) If multi-CH4 species, we store the CH4 total conc. to
@@ -1004,33 +1019,9 @@
 
       ENDIF
 
-      !=================================================================
-      ! (6) calculate rate of decay of CH4 by OH oxidation.
-      !=================================================================
-      
-      ! -- Now in KPP -- MSL
-
-      !=================================================================
-      ! (7) calculate CH4 chemistry in layers above tropopause.
-      !=================================================================
-
-      ! -- Now in KPP -- MSL
-
-      !=================================================================
-      ! (8) distribute the chemistry sink from total CH4 to other CH4 
-      !     species. (ccc, 2/10/09)
-      !=================================================================
       IF ( LSPLIT ) THEN
          CALL CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
       ENDIF
-
-      !=================================================================
-      ! CHEM_TAGGED_CO begins here!
-      !=================================================================
-      ! Assume success
-      !RC        = GC_SUCCESS
-      !ErrMsg    = ''
-      !ThisLoc   = ' -> at CHEM_TAGGED_CO (in GeosCore/tagged_co_mod.F)'
 
       ! Number of advected species
       nAdvect   = State_Chm%nAdvect
@@ -1039,33 +1030,6 @@
       !LSPLIT     = Input_Opt%LSPLIT
       LPCO_CH4   = Input_Opt%LPCO_CH4
       LPCO_NMVOC = Input_Opt%LPCO_NMVOC
-
-      ! DTCHEM is the number of seconds per chemistry timestep
-      !DTCHEM    = GET_TS_CHEM()
-
-      ! DTEMIS is the number of seconds per emission timestep
-      ! used here for conversion from HEMCO
-      DTEMIS    = GET_TS_EMIS()
-
-      ! Initialize pointers
-      AD        => State_Met%AD
-      AIRVOL    => State_Met%AIRVOL
-      Spc       => State_Chm%Species
-      T         => State_Met%T
-
-      ! Get the molecular weight of CO [kg/mol] from the species
-      ! database
-      ! (All tagged species are CO, so we can use the value for species
-      ! #1)
-      FMOL_CO   =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp
-
-      ! Factor to convert OH from kg/m3 (from HEMCO) to molec/cm3 
-      kgm3_to_mcm3OH = ( AVO / 17.0e-3_fp ) * 1.0e-6_fp
-
-      ! Factor to convert P(CO) from kg/m3 (from HEMCO) to molec/cm3/s
-      ! HEMCO uses emission timestep to convert from kg/m3/s to kg/m3;
-      ! apply that here.
-      kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
 
       ! Zero diagnostic archival arrays to make sure that we don't have
       ! any
@@ -1102,7 +1066,7 @@
 
          ! Get a pointer to the OH field from the HEMCO list (bmy,
          ! 3/11/15)
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CO', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CO', OH, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OH_CO!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1110,7 +1074,7 @@
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_PROD_CO', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_PROD_CO', GMI_PROD_CO, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1118,7 +1082,7 @@
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_LOSS_CO', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1127,7 +1091,7 @@
 
          ! Get pointer to trop P(CO) from CH4 if needed
          IF ( LPCO_CH4 ) THEN
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', PCO_CH4, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to PCO_CH4!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1136,7 +1100,7 @@
          ENDIF
 
          IF ( LPCO_NMVOC ) THEN
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', PCO_NMVOC, RC )
             IF ( RC /= HCO_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1145,7 +1109,7 @@
          ENDIF
 
          ! Get pointer to surface CH4 data
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', CH4LOSS, RC )
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1169,7 +1133,7 @@
       ! Also note, skip this section if emissions are turned off,
       ! which will keep the SUM*CO arrays zeroed out. (bmy, 10/11/16)
       !=================================================================
-      IF ( Input_Opt%DoEmissions ) THEN
+      IF ( Input_Opt%DoEmissions .and. 1.eq.0) THEN
 
          ! Conversion factor from [kg/s] --> [atoms C]
          ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
@@ -1237,6 +1201,45 @@
 
       ENDIF
 
+      !%%%%% TIMESTEPS %%%%%
+!      DT        = GET_TS_CHEM() ! [s]
+!      T         = 0d0
+      TIN       = 0
+      TOUT      = DTCHEM
+      
+      !%%%%% CONVERGENCE CRITERIA %%%%%
+      
+      ! Absolute tolerance
+      ATOL      = 1e-2_dp
+      
+      ! Relative tolerance
+      RTOL      = 0.5e-2_dp
+      
+      !%%%%% SOLVER OPTIONS %%%%%
+      
+      ! Zero all slots of ICNTRL
+      ICNTRL    = 0
+      
+      ! 0 - non-autonomous, 1 - autonomous
+      ICNTRL(1) = 1
+      
+      ! 0 - vector tolerances, 1 - scalars
+      ICNTRL(2) = 0
+      
+      ! Select Integrator
+      ! ICNTRL(3)  -> selection of a particular method.
+      ! For Rosenbrock, options are:
+      ! = 0 :  default method is Rodas3
+      ! = 1 :  method is  Ros2
+      ! = 2 :  method is  Ros3
+      ! = 3 :  method is  Ros4
+      ! = 4 :  method is  Rodas3
+      ! = 5:   method is  Rodas4
+      ICNTRL(3) = 4
+      
+      ! 0 - adjoint, 1 - no adjoint
+      ICNTRL(7) = 1
+      
       !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 
       ! DO-loop over all grid boxes to facilitate parallelization
@@ -1256,25 +1259,87 @@
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
-         ! Latitude of grid box
-!>>>>         YMID     = GET_YMID( I, J, L )
+         ! Initialize KPP for this grid box
+         CALL Init_KPP()
 
-         !==============================================================
-         ! (0) Define useful quantities
-         !==============================================================
+         ! Species
+         ! From kg to molec/cm3
+         C(ind_CH4)      = Spc(I,J,L,1) &
+              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
+         C(ind_CO)       = Spc(I,J,L,Ind_('CO')) &
+              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
+         C(ind_CO_CH4)   = Spc(I,J,L,Ind_('COch4')) &
+              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
+         C(ind_CO_NMVOC) = Spc(I,J,L,Ind_('COnmvoc')) &
+              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
 
-         ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec
-         ! CO/cm3]
-         ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1.0_fp  / AIRVOL(I,J,L) / 1e+6_fp / FMOL_CO * AVO
+         C(ind_CH4_E)    = 1.E0 ! Dummy quantity. "_E" is "external"
+         C(ind_NMVOC_E)  = 1.E0 ! Dummy quantity. "_E" is "external"
+           
+         CALL SETKPPVALS( State_Chm, State_Met, I, J, L, &
+              State_Met%AIRNUMDEN(I,J,L),                &
+              CH4LOSS(I,J,L), GMI_PROD_CO(I,J,L),        &
+              GMI_LOSS_CO(I,J,L), PCO_NMVOC(I,J,L),      &
+              FAC_DIURNAL )
 
+         C(ind_OH_E)    = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
+         C(ind_Cl_E)    = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
-         !==============================================================
-         ! (1a) Production of CO by reaction with CH4
-         !==============================================================
+!         IF (I .eq. 20 .and. J .eq. 20 .and. L .eq. 1) then
+!         IF ( FAC_DIURNAL .gt. 0.d0 ) then
+!            write(*,*) '<<>>X: ', BOH(I,J,L), BCl(I,J,L), FAC_DIURNAL
+!            read(*,*)
+!         endif
 
-         ! -- Now in KPP -- MSL
-         ! Initialize
+         ! Do KPP
+
+         k_strat = 0.
+
+         ! Set VAR and FIX arrays
+         VAR(1:NVAR) = C(1:NVAR)
+         FIX         = C(NVAR+1:NSPEC)
+         
+         !====================================================================
+         ! Update reaction rates
+         !=====================================================================
+         
+         ! Update the array of rate constants
+         CALL Update_RCONST( )
+
+         !=====================================================================
+         ! Set options for the KPP Integrator (M. J. Evans)
+         !
+         ! NOTE: Because RCNTRL(3) is set to an array value that
+         ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
+         ! within the OpenMP parallel loop and define it just
+         ! before the call to to Integrate. (bmy, 3/24/16)
+         !=====================================================================
+         
+         ! Zero all slots of RCNTRL
+         RCNTRL    = 0.0_fp
+         
+         ! Starting value for integration time step
+!         RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
+
+         ! Call the KPP integrator
+         CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
+                         RCNTRL, ISTATUS, RSTATE, IERR                        )
+         
+         ! Done with KPP
+
+         ! Copy VAR and FIX back into C (mps, 2/24/16)
+         C(1:NVAR)       = VAR(:)
+         C(NVAR+1:NSPEC) = FIX(:)
+
+         ! Send species from molec/cm3 to kg
+         Spc(I,J,L,1)               = C(ind_CH4) * State_Met%AIRVOL(I,J,L)  &
+             * 1e+6_fp / XNUMOL_CH4
+         Spc(I,J,L,Ind_('CO'))      = C(ind_CO) * State_Met%AIRVOL(I,J,L)  &
+             * 1e+6_fp / XNUMOL_CO
+         Spc(I,J,L,Ind_('COch4'))   = C(ind_CO_CH4) * State_Met%AIRVOL(I,J,L)  &
+             * 1e+6_fp / XNUMOL_CO
+         Spc(I,J,L,Ind_('COnmvoc')) = C(ind_CO_NMVOC) * State_Met%AIRVOL(I,J,L)  &
+             * 1e+6_fp / XNUMOL_CO
 
 !>>>>            ! Use rates saved from full chemistry
 !>>>>            IF ( LPCO_CH4 ) THEN
@@ -1306,86 +1371,34 @@
 !>>>>               CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM
 !>>>>
 !>>>>            ENDIF
-
-            !===========================================================
-            ! (1b) Production of CO from NMVOCs (all but CH4)
-            !===========================================================
-
-            ! -- Now in KPP. -- MSL
-
-         ! Otherwise use original behaviour
-         ! NOT IN KPP -- MSL
-
-         !==============================================================
-         ! (2a) Loss of CO due to chemical reaction w/ OH
-         !==============================================================
-
-         ! -- Now in KPP. -- MSL
-
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-
-                  ! Units: [molec CO/cm3/s]
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) + &
-                                     ( CORATE * Spc(I,J,L,N) * STTCO)
-                  ENDIF
-#endif
-
-#if defined( NC_DIAG )
-                  !-----------------------------------------------------
-                  ! HISTORY (aka netCDF diagnostics)
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-                  !Units: [kg/s]
-                  IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) = ( CORATE &
-                                              *   Spc(I,J,L,N) )
-                  ENDIF
-#endif
-
-
-            !===========================================================
-            ! (2a-2) Tropospheric loss of CO due to chemical rxn w/ OH
-            !
-            !  DECAY RATE
-            !  The decay rate (KRATE) is calculated by:
-            !
-            !     No change from JPL '97 to JPL '03 (jaf, 2/27/09)
-            !     OH + CO -> products (JPL '03)
-            !     k = (1 + 0.6Patm) * 1.5E-13
-            !
-            !  KRATE has units of [ molec^2 CO / cm6 / s ]^-1, 
-            !  since this is a 2-body reaction.
-            !
-            ! Updated rate constant from JPL 2006; now more complicated.
-            ! From JPL 2006: "The  reaction between HO and CO to yield
-            ! H + CO2 akes place on a potential energy surface that 
-            ! contains the radical HOCO.  The yield of H and CO2 is 
-            ! diminished as the pressure rises.  The loss of reactants 
-            ! is thus the sum of two processes, an association to yield 
-            ! HOCO and the chemical activation process yielding H and
-            ! CO2." So we now need two complicated reactions. The code
-            ! is more or less copied from calcrate.f as implemented by
-            ! jmao (jaf, 3/4/09)
-            !
-            ! Update rate constant for JPL 15-10 (mps, 4/24/17):
-            ! GY( A0 = 5.9e-33, B0 = 1.4e0,  A1 = 1.1e-12, B1 = -1.3e0,
-            !     A2 = 1.5e-13, B2 = -0.6e0, A3 = 2.1e09,  B3 = -6.1e0 )
-            !
-            ! is now
-            !
-            ! GY( A0 = 5.9e-33, B0 = 1.,     A1 = 1.1e-12, B1 = -1.3e0,
-            !     A2 = 1.5e-13, B2 = 0.,     A3 = 2.1e09,  B3 = -6.1e0 )
-            !===========================================================
-
-            ! -- Now in KPP -- MSL
-
+!>>>>
+!>>>>#if defined( BPCH_DIAG )
+!>>>>                  !-----------------------------------------------------
+!>>>>                  ! ND65 (bpch) diagnostic
+!>>>>                  !
+!>>>>                  ! Loss of CO by OH for "tagged" species
+!>>>>                  !-----------------------------------------------------
+!>>>>
+!>>>>                  ! Units: [molec CO/cm3/s]
+!>>>>                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
+!>>>>                     AD65(I,J,L,N) = AD65(I,J,L,N) + &
+!>>>>                                     ( CORATE * Spc(I,J,L,N) * STTCO)
+!>>>>                  ENDIF
+!>>>>#endif
+!>>>>
+!>>>>#if defined( NC_DIAG )
+!>>>>                  !-----------------------------------------------------
+!>>>>                  ! HISTORY (aka netCDF diagnostics)
+!>>>>                  !
+!>>>>                  ! Loss of CO by OH for "tagged" species
+!>>>>                  !-----------------------------------------------------
+!>>>>                  !Units: [kg/s]
+!>>>>                  IF ( State_Diag%Archive_Loss ) THEN
+!>>>>                     State_Diag%Loss(I,J,L,N) = ( CORATE &
+!>>>>                                              *   Spc(I,J,L,N) )
+!>>>>                  ENDIF
+!>>>>#endif
+!>>>>
             ! Handle trop loss by OH for regional CO species
             IF ( LSPLIT ) THEN
 
@@ -1409,33 +1422,41 @@
                   !-----------------------------------------------------
 
 #if defined( BPCH_DIAG )
+
                   !-----------------------------------------------------
                   ! ND65 (bpch) diagnostic
                   !
-                  ! Loss of CO by OH for "tagged" species
+                  ! Loss of CO by OH for "tagged" species via 
                   !-----------------------------------------------------
 
                   ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + &
-                         ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
+                          C(ind_CO2_OH)/DTCHEM
                   ENDIF
+
 #endif
 
-#if defined( NC_DIAG )
+!#if defined( NC_DIAG )
+
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
+                  
+!                  IF (I .eq. 20 .and. J .eq. 20 .and. L .eq. 1) then
+!                     write(*,*) '<<>> CO2_OH: ', C(ind_CO2_OH), C(ind_CO), C(ind_OH_E), K_TROP(1), K_STRAT(3)
+!                     read(*,*)
+!                  endif
 
                   ! Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) = ( KRATE        &
-                                              *   OH_MOLEC_CM3 &
-                                              *   Spc(I,J,L,N) )
+                     State_Diag%Loss(I,J,L,N) = K_TROP(1)!( C(ind_CO2_OH) )!/DTCHEM ) &
+!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
                   ENDIF
-#endif
+
+!#endif
 
                ENDDO
             ENDIF
@@ -1540,20 +1561,14 @@
          !==============================================================
 
          ! Units: [kg/s] 
-         IF ( State_Diag%Archive_Loss ) THEN
-            State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
-         ENDIF
+!         IF ( State_Diag%Archive_Loss ) THEN
+!            State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
+!         ENDIF
 #endif
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointers
-      AD       => NULL()
-      AIRVOL   => NULL()
-      Spc      => NULL()
-      T        => NULL()
 
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
@@ -1573,7 +1588,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid )
+      SUBROUTINE CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid, BOH )
 !
 ! !USES:
 !
@@ -1591,6 +1606,7 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+      REAL(fp),       INTENT(IN)  :: BOH(:,:,:)
 ! 
 ! !REMARKS:
 !  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
@@ -1709,7 +1725,7 @@
 
                ! [kg/m2/s]  --> [molec/box/s]
                CH4EMIS  = CH4_EMIS_J(I,J,1)
-               CH4EMIS  = CH4EMIS * AREA_M2 * XNUMOL_CH4
+               CH4EMIS  = CH4EMIS * State_Grid%Area_M2(I,J) * XNUMOL_CH4
 
             ENDIF
 
@@ -1836,7 +1852,7 @@
 !BOP
 !
 ! !IROUTINE: init_global_ch4
-!
+!<
 ! !DESCRIPTION: Subroutine INIT\_GLOBAL\_CH4 allocates and zeroes module 
 !  arrays.
 !\\
@@ -2116,67 +2132,61 @@
       ENDIF
 
       ! Free pointers
-      IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
-      IF ( ASSOCIATED( BCl      ) ) BCl     => NULL()
-      IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
+!      IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
+!      IF ( ASSOCIATED( BCl      ) ) BCl     => NULL()
+!      IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
 
       ! Free pointers
-      GMI_PROD_CO => NULL()
-      GMI_LOSS_CO => NULL()
-      OH          => NULL()
-      SFC_CH4     => NULL()
+!      GMI_PROD_CO => NULL()
+!      GMI_LOSS_CO => NULL()
+!      OH          => NULL()
+!      SFC_CH4     => NULL()
 
 
       END SUBROUTINE CLEANUP_CH4COCO2
 !EOC
-      SUBROUTINE SETKPPVALS___( State_Chm, State_Met, I, J, L, &
-           BAIRDENS, BOH, BCl )
+      SUBROUTINE SETKPPVALS( State_Chm, State_Met, I, J, L, &
+           BAIRDENS, CH4LOSS, GMI_PROD_CO, GMI_LOSS_CO, &
+           PCO_NMVOC, FAC_DIURNAL )
+        
+        USE CCYCLE_GLOBAL
+        USE CCYCLE_PARAMETERS
+        USE CCYCLE_PRECISION
         USE PhysConstants,      ONLY : AVO
         USE State_Chm_Mod,      ONLY : ChmState, Ind_
         USE State_Met_Mod,      ONLY : MetState
         USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_TS_EMIS
-
-        USE CCYCLE_GLOBAL
-        USE CCYCLE_PARAMETERS
-
+        
 !
 ! !INPUT PARAMETERS:
 !
         TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
         TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
         INTEGER,        INTENT(IN)  :: I, J, L
-        REAL(fp),       INTENT(IN)  :: BOH ! OH
-        REAL(fp),       INTENT(IN)  :: BCl ! Cl
+!        REAL(fp),       INTENT(IN)  :: BOH ! OH
+!        REAL(fp),       INTENT(IN)  :: BCl ! Cl
+        REAL(fp),       INTENT(IN)  :: CH4LOSS
+        REAL(fp),       INTENT(IN)  :: GMI_PROD_CO
+        REAL(fp),       INTENT(IN)  :: GMI_LOSS_CO
+        REAL(fp),       INTENT(IN)  :: PCO_NMVOC
         REAL(fp),       INTENT(IN)  :: BAIRDENS
+        REAL(fp),       INTENT(OUT) :: FAC_DIURNAL
 
-        REAL(fp) :: DTCHEM, DTEMIS, FAC_DIURNAL, SUNCOS
+        REAL(fp) :: DTCHEM, DTEMIS, SUNCOS
         REAL(fp) :: kgm3_to_mcm3sCO, FMOL_CO
         
         ! Chemistry timestep in seconds
         DTCHEM = GET_TS_CHEM()
         DTEMIS = GET_TS_EMIS()
 
-! Species
-        ! molec/cm3
-        C(ind_CH4)      = State_Chm%Species(I,J,L,1) &
-             / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
-        C(ind_CO)       = State_Chm%Species(I,J,L,Ind_('CO')) &
-             / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
-        C(ind_CO_CH4)   = State_Chm%Species(I,J,L,Ind_('COch4')) &
-             / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
-        C(ind_CO_NMVOC) = State_Chm%Species(I,J,L,Ind_('COnmvoc')) &
-             / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
-        C(ind_CH4_E)    = 1.E0 ! Dummy quantity. "_E" is "external"
-        C(ind_NMVOC_E)  = 1.E0 ! Dummy quantity. "_E" is "external"
-           
         IF ( State_Met%InStratosphere(I,J,L) ) THEN
            K_TROP = 0.d0
            TROP   = 0.d0 ! Toggle
 
            ! Strat Rates
-           K_STRAT(1) = CH4LOSS(I,J,L) ! 1/s
-           K_STRAT(2) = GMI_PROD_CO(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
-           K_STRAT(3) = GMI_LOSS_CO(I,J,L) ! 1/s
+           K_STRAT(1) = CH4LOSS ! 1/s
+           K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
+           K_STRAT(3) = GMI_LOSS_CO ! 1/s
         ELSE ! In the trop
            ! Temperature (K)
            TEMP            = State_Met%T(I,J,L)
@@ -2191,10 +2201,6 @@
            ELSE
               FAC_DIURNAL = 0.0_fp
            ENDIF
-
-! Species
-           C(ind_OH_E)    = BOH * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
-           C(ind_Cl_E)    = BCl * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp ! Should this also be scaled diurnally?
         
 ! Rates
            ! Troposphere
@@ -2205,11 +2211,11 @@
            FMOL_CO         =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp
            kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
            K_TROP(1) = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
-           K_TROP(2) = PCO_NMVOC(I,J,L) * kgm3_to_mcm3sCO * FAC_DIURNAL
+           K_TROP(2) = PCO_NMVOC * kgm3_to_mcm3sCO * FAC_DIURNAL
         ENDIF ! In the strat/trop
 
         CONTAINS
-
+          
           FUNCTION GC_OHCO( NUMDEN, K300_OVER_TEMP ) RESULT( k )
             ! Reaction rate for:
             !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
@@ -2240,5 +2246,150 @@
             k      = kco1 + kco2
           END FUNCTION GC_OHCO
 
-      END SUBROUTINE SETKPPVALS___
+        END SUBROUTINE SETKPPVALS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_diurnal
+!
+! !DESCRIPTION: Subroutine CALC\_DIRUNAL computes the sume of the cosine
+!  of the solar zenith angle over a 24 hour day as well as the total
+!  length of daylight to scale the offline OH concentrations.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CALC_DIURNAL( State_Grid )
+!
+! !USES:
+!
+    USE State_Grid_Mod, ONLY : GrdState
+    USE TIME_MOD, ONLY : ITS_A_NEW_DAY
+    USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
+    USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+!
+! !REVISION HISTORY:
+!  12 Mar 2014 - J. Fisher - Initial version, Copied from OHNO3TIME in
+!                            carbon_mod and COSSZA in dao_mod
+!  See https://github.com/geoschem/geos-chem for complete history
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL, SAVE       :: FIRST = .TRUE.
+    INTEGER             :: I, J, N, NDYSTEP
+    INTEGER             :: SECOND,  MINUTE, TS_SUN
+    REAL*8              :: GMT_MID, TIMLOC, FACTOR
+    REAL*8              :: R,       AHR,    DEC
+    REAL*8              :: YMID_R,  SUNTMP_MID
+!
+! !DEFINED PARAMETERS:
+!
+    ! Coefficients for solar declination angle
+    REAL*8,  PARAMETER :: A0 = 0.006918d0
+    REAL*8,  PARAMETER :: A1 = 0.399912d0
+    REAL*8,  PARAMETER :: A2 = 0.006758d0
+    REAL*8,  PARAMETER :: A3 = 0.002697d0
+    REAL*8,  PARAMETER :: B1 = 0.070257d0
+    REAL*8,  PARAMETER :: B2 = 0.000907d0
+    REAL*8,  PARAMETER :: B3 = 0.000148d0
+
+    !=================================================================
+    ! CALC_DIURNAL begins here!
+    !=================================================================
+
+    ! Only do at the start of a new day
+    IF ( FIRST .or. ITS_A_NEW_DAY() ) THEN
+
+       ! Zero array
+       TCOSZ = 0d0
+
+       ! Get time for central chemistry timestep
+       TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
+       SECOND = GET_SECOND()                      ! Current seconds
+       MINUTE = GET_MINUTE()                      ! Current minutes
+       FACTOR = ( MINUTE * 60 + SECOND ) / TS_SUN ! Multiplying factor
+
+       ! GMT at the midpoint of the chemistry time interval for first
+       ! timestep of the day
+       GMT_MID  = ( DBLE( GET_HOUR()        )        ) &
+                + ( DBLE( TS_SUN * FACTOR ) / 3600d0 ) &
+                + ( DBLE( TS_SUN / 2      ) / 3600d0 )
+
+       ! Solar declination angle (low precision formula):
+       ! Path length of earth's orbit traversed since Jan 1 [radians]
+       R = ( 2d0 * PI / 365d0 ) * FLOAT( GET_DAY_OF_YEAR() - 1 )
+       DEC = A0 - A1*COS(    R) + B1*SIN(    R) &
+                - A2*COS(2d0*R) + B2*SIN(2d0*R) &
+                - A3*COS(3d0*R) + B3*SIN(3d0*R)
+
+       ! NDYSTEP is # of chemistry time steps
+       NDYSTEP = INT( 24d0 * 3600d0 / GET_TS_CHEM() )
+
+       ! Loop forward through NDYSTEP "fake" timesteps for this day
+       DO N = 1, NDYSTEP
+
+          ! Increment GMT (hours) to midpoint of next timestep
+          IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 3600d0
+
+          ! Loop over surface grid boxes
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Zero SUNTMP_MID
+             SUNTMP_MID = 0d0
+
+             ! Grid box latitude center [radians]
+             YMID_R = State_Grid%YMid_R(I,J)
+
+             ! Local time at box (I,J) [hours]
+             TIMLOC = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_MID)
+
+             ! Hour angle at box (I,J) [radians]
+             AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
+
+             !===========================================================
+             ! The cosine of the solar zenith angle (SZA) is given by:
+             !
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+             !
+             ! where LAT = the latitude angle,
+             !       DEC = the solar declination angle,
+             !       AHR = the hour angle, all in radians.
+             !
+             ! If SUNCOS < 0, then the sun is below the horizon, and
+             ! therefore does not contribute to any solar heating.
+             !===========================================================
+
+             ! Compute Cos(SZA)
+             SUNTMP_MID = sin(YMID_R) * sin(DEC) + &
+                          cos(YMID_R) * cos(DEC) * cos(AHR)
+
+             ! TCOSZ is the sum of SUNTMP_MID at location (I,J)
+             ! Do not include negative values of SUNTMP_MID
+             TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP_MID, 0d0 )
+
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+       ENDDO
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
+    ENDIF
+
+  END SUBROUTINE CALC_DIURNAL
+!EOC
     END MODULE CCYCLECHEM_MOD

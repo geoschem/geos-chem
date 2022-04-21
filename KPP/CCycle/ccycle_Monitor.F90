@@ -23,12 +23,12 @@
 MODULE ccycle_Monitor
 
 
-  CHARACTER(LEN=15), PARAMETER, DIMENSION(13) :: SPC_NAMES = (/ &
+  CHARACTER(LEN=15), PARAMETER, DIMENSION(14) :: SPC_NAMES = (/ &
      'CH4            ','CO             ','CO_CH4         ', & ! index 1 - 3
-     'CO_NMVOC       ','CO2            ','DUMMY          ', & ! index 4 - 6
-     'PCO            ','LCO            ','LCH4           ', & ! index 7 - 9
-     'OH_E           ','Cl_E           ','CH4_E          ', & ! index 10 - 12
-     'NMVOC_E        ' /)
+     'CO_NMVOC       ','CO2            ','CO2_OH         ', & ! index 4 - 6
+     'DUMMY          ','PCO            ','LCO            ', & ! index 7 - 9
+     'LCH4           ','OH_E           ','Cl_E           ', & ! index 10 - 12
+     'CH4_E          ','NMVOC_E        ' /)
 
   INTEGER, DIMENSION(1) :: LOOKAT
   INTEGER, DIMENSION(1) :: MONITOR
@@ -36,11 +36,11 @@ MODULE ccycle_Monitor
   CHARACTER(LEN=100), PARAMETER, DIMENSION(7) :: EQN_NAMES = (/ &
      'CH4 + OH_E --> CO + CO_CH4 + PCO + LCH4                                                             ', & ! index 1
      'CH4 + Cl_E --> DUMMY + LCH4                                                                         ', & ! index 2
-     ' CO + OH_E --> CO2 + LCO                                                                            ', & ! index 3
+     ' CO + OH_E --> CO2 + CO2_OH + LCO                                                                   ', & ! index 3
      '   NMVOC_E --> CO + CO_NMVOC + PCO                                                                  ', & ! index 4
      '       CH4 --> DUMMY + LCH4                                                                         ', & ! index 5
      '     CH4_E --> CO + PCO                                                                             ', & ! index 6
-     '        CO --> CO2 + LCO                                                                            ' /)
+     '        CO --> CO2 + CO2_OH + LCO                                                                   ' /)
 
   CHARACTER(LEN=15), PARAMETER, DIMENSION(3) :: FAM_NAMES = (/ &
      'PCO            ','LCO            ','LCH4           ' /)

@@ -29,19 +29,19 @@ MODULE ccycle_JacobianSP
 ! Sparse Jacobian Data
 
 
-  INTEGER, PARAMETER, DIMENSION(16) :: LU_IROW = (/ &
+  INTEGER, PARAMETER, DIMENSION(18) :: LU_IROW = (/ &
        1,  2,  2,  3,  3,  4,  5,  5,  6,  6,  7,  7, & ! index 1 - 12
-       8,  8,  9,  9 /)
+       8,  8,  9,  9, 10, 10 /)
 
-  INTEGER, PARAMETER, DIMENSION(16) :: LU_ICOL = (/ &
-       1,  1,  2,  1,  3,  4,  2,  5,  1,  6,  1,  7, & ! index 1 - 12
-       2,  8,  1,  9 /)
+  INTEGER, PARAMETER, DIMENSION(18) :: LU_ICOL = (/ &
+       1,  1,  2,  1,  3,  4,  2,  5,  2,  6,  1,  7, & ! index 1 - 12
+       1,  8,  2,  9,  1, 10 /)
 
-  INTEGER, PARAMETER, DIMENSION(10) :: LU_CROW = (/ &
-       1,  2,  4,  6,  7,  9, 11, 13, 15, 17 /)
+  INTEGER, PARAMETER, DIMENSION(11) :: LU_CROW = (/ &
+       1,  2,  4,  6,  7,  9, 11, 13, 15, 17, 19 /)
 
-  INTEGER, PARAMETER, DIMENSION(10) :: LU_DIAG = (/ &
-       1,  3,  5,  6,  8, 10, 12, 14, 16, 17 /)
+  INTEGER, PARAMETER, DIMENSION(11) :: LU_DIAG = (/ &
+       1,  3,  5,  6,  8, 10, 12, 14, 16, 18, 19 /)
 
 
 END MODULE ccycle_JacobianSP

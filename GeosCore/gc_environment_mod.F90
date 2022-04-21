@@ -410,6 +410,7 @@ CONTAINS
 !
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
+    USE CCycleChem_Mod,     ONLY : INIT_CH4COCO2
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE DiagList_Mod,       ONLY : DgnList
@@ -689,6 +690,18 @@ CONTAINS
        CALL Init_Tagged_CO( Input_Opt, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Tagged_CO"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! CH4COCO2
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
+       CALL Init_CH4COCO2( Input_Opt, State_Diag, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "CH4COCO2"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
