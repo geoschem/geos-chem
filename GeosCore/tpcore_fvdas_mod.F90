@@ -635,7 +635,7 @@ CONTAINS
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( IK, IQ  )
+!$OMP PRIVATE( IK, IQ, q_ptr )
     do ik=1,km
 
   ! ====================
@@ -659,7 +659,7 @@ CONTAINS
 
        do iq = 1, nq
 
-       q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
+          q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
 
        !  ========================
           call Average_Const_Poles  &
@@ -667,6 +667,8 @@ CONTAINS
                (dap(ik), dbk(ik), area_m2, ps1, q_ptr(:,:,ik), &
                1, jm, im, &
                1, im, 1, jm, 1, im, 1, jm)
+
+          q_ptr => NULL()
 
       end do
 
@@ -946,7 +948,7 @@ CONTAINS
           q_ptr = 1.0e-26_fp
        ENDWHERE
 
-       NULLIFY( q_ptr )
+       q_ptr => NULL()
 
     ENDDO
 !$OMP END PARALLEL DO
