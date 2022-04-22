@@ -153,6 +153,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
      REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
      REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
+     REAL(fp),          POINTER :: ORVCsesq     (:,:,:) ! Sesquiterpenes mass [kg/box]
 
      !-----------------------------------------------------------------------
      ! Fields for nitrogen deposition
@@ -424,6 +425,7 @@ CONTAINS
     State_Chm%pHCloud           => NULL()
     State_Chm%isCloud           => NULL()
     State_Chm%QLxpHCloud        => NULL()
+    State_Chm%ORVCsesq          => NULL()
     State_Chm%KPPHvalue         => NULL()
     State_Chm%STATE_PSC         => NULL()
     State_Chm%KHETI_SLA         => NULL()
@@ -1286,6 +1288,24 @@ CONTAINS
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%QLxpHCloud,                               &
             RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! ORVCsesq
+       !---------------------------------------------------------------------
+       chmId = 'ORVCsesq'
+       CALL Init_and_Register(                                            &
+            Input_Opt  = Input_Opt,                                       &
+            State_Chm  = State_Chm,                                       &
+            State_Grid = State_Grid,                                      &
+            chmId      = chmId,                                           &
+            Ptr2Data   = State_Chm%ORVCsesq,                              &
+            RC         = RC                                              )
 
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
@@ -3085,6 +3105,13 @@ CONTAINS
        State_Chm%QLxpHCloud => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%ORVCsesq ) ) THEN
+       DEALLOCATE( State_Chm%ORVCsesq, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ORVCsesq', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%ORVCsesq => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%isCloud ) ) THEN
        DEALLOCATE( State_Chm%isCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%isCloud', 2, RC )
@@ -4078,6 +4105,11 @@ CONTAINS
        CASE( 'QLXPHCLOUD' )
           IF ( isDesc  ) Desc  = 'Cloud pH * Met_QL'
           IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE( 'ORVCSESQ' )
+          IF ( isDesc  ) Desc  = 'Sesquiterpenes mass'
+          IF ( isUnits ) Units = 'kg'
           IF ( isRank  ) Rank  =  3
 
        CASE( 'ISCLOUD' )

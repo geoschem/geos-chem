@@ -890,6 +890,18 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    ! Sesquiterpene mass per grid box
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'ORVCSESQ',  &
+       LONG_NAME          = 'Sesquiterpenes mass',  &
+       UNITS              = 'kg', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
     ! Surface J-values for HEMCO
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'JOH',  &
@@ -954,23 +966,9 @@ CONTAINS
        FRIENDLYTO         = trim(COMP_NAME),    &
                                                       RC=STATUS  )
     _VERIFY(STATUS)
-
 #endif
 
 #if defined( MODEL_GEOS )
-! Add other internal state variables as real (not explicitly real8) for GEOS
-
-!-- Add Sulfur-nitrogen-ammonia water content computed in Isorropia after it is needed in RDAER
-          CALL MAPL_AddInternalSpec(GC,                                    &
-             SHORT_NAME         = 'AeroH2O_SNA',                           &
-             LONG_NAME          = 'Sulfur-nitrogen-ammonia water content', &
-             UNITS              = 'g/m3',                                  &
-             DIMS               = MAPL_DimsHorzVert,                       &
-             VLOCATION          = MAPL_VLocationCenter,                    &
-             FRIENDLYTO         = trim(COMP_NAME),                         &
-                                                  __RC__ )
-          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: AeroH2O_SNA'
-
 !-- Add two exra advected species for use in family transport  (Manyin)
 
           CALL MAPL_AddInternalSpec(GC,                                    &
@@ -2777,9 +2775,6 @@ CONTAINS
     USE Precision_Mod
 
 #if defined( MODEL_GEOS )
-    ! To store archived variables in internal state (ckeller, 9/16/15)
-    USE CARBON_MOD,              ONLY : ORVC_SESQ
-
     ! To archive selected reaction rates
     USE GCKPP_Parameters
     USE GCKPP_Monitor
@@ -3378,6 +3373,13 @@ CONTAINS
           ENDIF
           Ptr3d_R8 => NULL()
 
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'ORVCSESQ', notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%ORVCsesq) ) THEN
+             State_Chm%ORVCsesq(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
           CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JOH', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JOH) ) THEN
              State_Chm%JOH(:,:) = Ptr2D_R8(:,:)
@@ -3422,16 +3424,6 @@ CONTAINS
           CALL InitFromFile_( GC, Import, INTSTATE, Export, Clock, &
                               Input_Opt, State_Met, State_Chm, Q,  &
                               PLE, GCCTROPP, IsFirst, __RC__ ) 
-       ENDIF
-
-       ! Set State_Chm%AeroH2O for SNA from internal state if first timestep for use in RDAER
-       IF ( FIRST ) THEN
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
-             State_Chm%AeroH2O(:,:,1:State_Grid%NZ,NDUST+1) =       &
-                                  Ptr3d(:,:,State_Grid%NZ:1:-1)
-          ENDIF
-          Ptr3d => NULL()
        ENDIF
 
        !=======================================================================
@@ -3774,6 +3766,12 @@ CONTAINS
        ENDIF
        Ptr3d_R8 => NULL()
 
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'ORVCSESQ', notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%ORVCsesq) ) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%ORVCsesq(:,:,:)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
        CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'STATE_PSC', notFoundOK=.TRUE., __RC__ )
        IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(STate_Chm%State_PSC)) THEN
           Ptr3d(:,:,LM:1:-1) = State_Chm%State_PSC(:,:,:)
@@ -3817,13 +3815,6 @@ CONTAINS
           Ptr2d_R8 = State_Met%TropLev
        ENDIF
        Ptr2d_R8 => NULL()
-#else
-       ! Copy a reduced set of arrays if using GEOS, and with different precision
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
-          Ptr3d(:,:,State_Grid%NZ:1:-1) = State_Chm%AeroH2O(:,:,:,NDUST+1)
-       ENDIF
-       Ptr3d => NULL()
 #endif
 
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
@@ -4246,6 +4237,13 @@ CONTAINS
     ENDIF
     Ptr3d_R8 => NULL()
 
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'ORVCSESQ', notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%ORVCsesq) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Chm%ORVCsesq(:,:,1:State_Grid%NZ)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
     CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JOH', notFoundOK=.TRUE., __RC__ )
     IF ( ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JOH) ) THEN
        Ptr2d_R8(:,:) = State_Chm%JOH(:,:)
@@ -4289,14 +4287,6 @@ CONTAINS
        Ptr2d_R8 = State_Met%TropLev
     ENDIF
     Ptr2d_R8 => NULL()
-#else
-    ! Saved a reduced set of arrays for GEOS, and with different precision
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
-       Ptr3d(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%AeroH2O(:,:,1:State_Grid%NZ,NDUST+1)
-    ENDIF
-    Ptr3d => NULL()
 #endif
 
     ! Destroy the internal alarms

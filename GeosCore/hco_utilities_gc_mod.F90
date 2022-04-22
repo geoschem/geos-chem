@@ -2021,7 +2021,7 @@ CONTAINS
    ENDIF
 
    !=========================================================================
-   ! Read variables for sulfate chemistry
+   ! Read variables for sulfate chemistry and aerosols
    !=========================================================================
    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -2103,6 +2103,36 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+
+      !----------------------------------------------------------------------
+      ! ORVCsesq
+      !----------------------------------------------------------------------
+      IF ( Input_Opt%LCARB .AND. Input_Opt%LSOA ) THEN
+
+         v_name = 'ORVCSESQ'
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
+                             Ptr3D,     RC,         FOUND=FOUND                )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+            State_Chm%ORVCsesq(:,:,:) = Ptr3D
+            IF ( Input_Opt%amIRoot ) THEN
+               WRITE( 6, 510 ) ADJUSTL( v_name                           ),     &
+                               MINVAL(  State_Chm%ORVCsesq(:,:,:) ),     &
+                               MAXVAL(  State_Chm%ORVCsesq(:,:,:) ),     &
+                               SUM(     State_Chm%ORVCsesq(:,:,:) )
+            ENDIF
+         ELSE
+            State_Chm%ORVCsesq(:,:,:) = 0.0_fp
+            IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         ENDIF
+
+         ! Nullify pointer
+         Ptr3D => NULL()
+
+      ENDIF
 
    ENDIF
 
