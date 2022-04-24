@@ -881,45 +881,41 @@
       ! (1) Get CH4 loss rates from HEMCO. the target is automatically 
       ! updated by HEMCO (ckeller, 9/16/2014)
       !================================================================
-      IF ( FIRSTCHEM ) THEN
 
-         ! Import CH4 loss frequencies from HEMCO. The target will be 
-         ! updated automatically by HEMCO (ckeller, 9/16/2014)
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_LOSS', CH4LOSS, RC )
-
-         ! Trap potential errors
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to HEMCO field CH4_LOSS!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF 
+      ! Import CH4 loss frequencies from HEMCO. The target will be 
+      ! updated automatically by HEMCO (ckeller, 9/16/2014)
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_LOSS', CH4LOSS, RC )
+      
+      ! Trap potential errors
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to HEMCO field CH4_LOSS!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       !================================================================
       ! (2) Get OH and Cl fields from HEMCO. The targets will be
       ! updated automatically by HEMCO (ckeller, 9/16/2014)
       !================================================================
-      IF ( FIRSTCHEM ) THEN
 
-         ! Get pointer to GLOBAL_OH
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', BOH, RC )
-
-         ! Trap potential errors
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_OH_CH4!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF 
-
-         ! Get pointer to GLOBAL_Cl
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', BCl, RC )
-
-         ! Trap potential errors
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_Cl!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF 
+      ! Get pointer to GLOBAL_OH
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', BOH, RC )
+      
+      ! Trap potential errors
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_OH_CH4!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
+      ! Get pointer to GLOBAL_Cl
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', BCl, RC )
+      
+      ! Trap potential errors
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_Cl!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Compute diurnal cycle for OH every day (check for new day inside
@@ -1054,72 +1050,67 @@
       !      INIT_TAGGED_CO.  This is because when INIT_TAGGED_CO is
       !      called, the HEMCO_Config file has not yet been read in.
       !=================================================================
-      IF ( FIRST ) THEN
 
-         ! Get species IDs
-         IDch4    = Ind_( 'COch4'   )
-         IDnmvoc  = Ind_( 'COnmvoc' )
-         IDisop   = Ind_( 'COisop'  )
-         IDch3oh  = Ind_( 'COch3oh' )
-         IDmono   = Ind_( 'COmono'  )
-         IDacet   = Ind_( 'COacet'  )
-
-         ! Get a pointer to the OH field from the HEMCO list (bmy,
-         ! 3/11/15)
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CO', OH, RC )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to GLOBAL_OH_CO!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Get pointer to strat P(CO) from GMI
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_PROD_CO', GMI_PROD_CO, RC )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Get pointer to strat L(CO) from GMI
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Get pointer to trop P(CO) from CH4 if needed
-         IF ( LPCO_CH4 ) THEN
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', PCO_CH4, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               ErrMsg = 'Cannot get pointer to PCO_CH4!'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
-            ENDIF
-         ENDIF
-
-         IF ( LPCO_NMVOC ) THEN
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', PCO_NMVOC, RC )
-            IF ( RC /= HCO_SUCCESS ) THEN
-               ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
-            ENDIF
-         ENDIF
-
-         ! Get pointer to surface CH4 data
-         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, RC )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
+      ! Get species IDs
+      IDch4    = Ind_( 'COch4'   )
+      IDnmvoc  = Ind_( 'COnmvoc' )
+      IDisop   = Ind_( 'COisop'  )
+      IDch3oh  = Ind_( 'COch3oh' )
+      IDmono   = Ind_( 'COmono'  )
+      IDacet   = Ind_( 'COacet'  )
+      
+      ! Get a pointer to the OH field from the HEMCO list (bmy,
+      ! 3/11/15)
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH_CO', OH, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to GLOBAL_OH_CO!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
-
+      
+      ! Get pointer to strat P(CO) from GMI
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_PROD_CO', GMI_PROD_CO, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
+      ! Get pointer to strat L(CO) from GMI
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GMI_LOSS_CO', GMI_LOSS_CO, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
+      ! Get pointer to trop P(CO) from CH4 if needed
+      IF ( LPCO_CH4 ) THEN
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', PCO_CH4, RC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to PCO_CH4!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+      
+      IF ( LPCO_NMVOC ) THEN
+         CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', PCO_NMVOC, RC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+      
+      ! Get pointer to surface CH4 data
+      CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
       !=================================================================
       ! Read emissions from HEMCO into SUMACETCO, SUMISOPCO, SUMMONOCO
       ! arrays.  These are needed to update the chemically-produced
@@ -1259,6 +1250,8 @@
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
+         C(:) = 0.d0 !
+
          ! Initialize KPP for this grid box
          CALL Init_KPP()
 
@@ -1273,8 +1266,8 @@
          C(ind_CO_NMVOC) = Spc(I,J,L,Ind_('COnmvoc')) &
               / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
 
-         C(ind_CH4_E)    = 1.E0 ! Dummy quantity. "_E" is "external"
-         C(ind_NMVOC_E)  = 1.E0 ! Dummy quantity. "_E" is "external"
+         C(ind_CH4_E)    = 1.E0 ! Factor. "_E" is "external"
+         C(ind_NMVOC_E)  = 1.E0 ! Factor. "_E" is "external"
            
          CALL SETKPPVALS( State_Chm, State_Met, I, J, L, &
               State_Met%AIRNUMDEN(I,J,L),                &
@@ -1282,7 +1275,8 @@
               GMI_LOSS_CO(I,J,L), PCO_NMVOC(I,J,L),      &
               FAC_DIURNAL )
 
-         C(ind_OH_E)    = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
+!         C(ind_OH_E)    = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
+         C(ind_OH_E)    = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * FAC_DIURNAL
          C(ind_Cl_E)    = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
 !         IF (I .eq. 20 .and. J .eq. 20 .and. L .eq. 1) then
@@ -1340,6 +1334,8 @@
              * 1e+6_fp / XNUMOL_CO
          Spc(I,J,L,Ind_('COnmvoc')) = C(ind_CO_NMVOC) * State_Met%AIRVOL(I,J,L)  &
              * 1e+6_fp / XNUMOL_CO
+         Spc(I,J,L,Ind_('CO2'))     = C(ind_CO2) * State_Met%AIRVOL(I,J,L)  &
+             * 1e+6_fp / XNUMOL_CO2
 
 !>>>>            ! Use rates saved from full chemistry
 !>>>>            IF ( LPCO_CH4 ) THEN
@@ -1452,7 +1448,7 @@
 
                   ! Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) = K_TROP(1)!( C(ind_CO2_OH) )!/DTCHEM ) &
+                     State_Diag%Loss(I,J,L,N) =  C(ind_CO2_OH) / DTCHEM !  &
 !                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
                   ENDIF
 
@@ -1569,9 +1565,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Set FIRSTCHEM to FALSE
-      FIRSTCHEM = .FALSE.
 
       END SUBROUTINE CHEM_CH4COCO2
 !EOC
