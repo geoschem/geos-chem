@@ -1448,8 +1448,8 @@
 
                   ! Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) =  C(ind_CO2_OH) / DTCHEM !  &
-!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+                     State_Diag%Loss(I,J,L,N) =  C(ind_CO2_OH) / DTCHEM  &
+                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
                   ENDIF
 
 !#endif
@@ -1484,7 +1484,7 @@
             ! Save production of CO2 from CO oxidation [kg/m2/s]
             !==========================================================
             IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-               State_Diag%ProdCO2fromCO(I,J,L) = E_CO2       & !molec/cm2/s 
+               State_Diag%ProdCO2fromCO(I,J,L) = C(ind_CO2_OH) / DTCHEM & !molec/cm2/s 
                                                / XNUMOL_CO2  & !=>kg/cm2/s
                                                * 1e4_fp      ! =>kg/m2/s
 
@@ -1540,14 +1540,14 @@
 
          ! Units: [kg/s] Production of CO from CH4
          IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
-            State_Diag%ProdCOfromCH4(I,J,L) = CO_CH4 &
-                                           / STTCO / DTCHEM
+            State_Diag%ProdCOfromCH4(I,J,L) = C(ind_CO_CH4) / DTCHEM  &
+                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
          ENDIF
 
          ! Units: [kg/s] Production of CO from NMVOCs
          IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-            State_Diag%ProdCOfromNMVOC(I,J,L) = CO_NMVOC &
-                                           / STTCO / DTCHEM
+            State_Diag%ProdCOfromNMVOC(I,J,L) = C(ind_CO_NMVOC) / DTCHEM  &
+                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
          ENDIF
 
          !==============================================================
