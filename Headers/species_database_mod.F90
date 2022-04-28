@@ -508,7 +508,7 @@ CONTAINS
           ELSE IF ( INDEX( key, "%Is_DryDep" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( v_bool ) THEN
+             IF ( v_bool .AND. ThisSpc%Is_Advected) THEN
                 SpcCount%nDryDep  = SpcCount%nDryDep + 1
                 ThisSpc%DryDepId  = SpcCount%nDryDep
                 ThisSpc%Is_DryDep = v_bool
