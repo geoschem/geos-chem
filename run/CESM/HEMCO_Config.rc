@@ -151,6 +151,15 @@ Warnings:                    1
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
+    --> Reduce SS cold water   :       true
+    --> Blowing Snow SS        :       true
+    --> NH FYI snow salinity   :       0.1
+    --> NH MYI snow salinity   :       0.05
+    --> SH FYI snow salinity   :       0.03
+    --> SH MYI snow salinity   :       0.015
+    --> NH snow age            :       3.0
+    --> SH snow age            :       1.5
+    --> N per snowflake        :       5.0
     --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : off   ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
