@@ -751,7 +751,6 @@
       LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
       INTEGER            :: I, J, L
       REAL(fp)           :: PREVCH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-      REAL(fp)           :: PREVCO(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
       ! Number of days per month
       INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30,   &
@@ -1009,7 +1008,6 @@
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
             PREVCH4(I,J,L) = Spc(I,J,L,1 )
-            PREVCO( I,J,L) = Spc(I,J,L,16)
          ENDDO
          ENDDO
          ENDDO
@@ -1335,127 +1333,66 @@
          Spc(I,J,L,Ind_('CO2'))     = C(ind_CO2) * State_Met%AIRVOL(I,J,L)  &
              * 1e+6_fp / XNUMOL_CO2
 
-!>>>>            ! Use rates saved from full chemistry
-!>>>>            IF ( LPCO_CH4 ) THEN
-!>>>>
-!>>>>               ! Diurnal cycle & unit conversion applied above
-!>>>>               ! Multiply by DTCHEM to convert to [molec CO/cm3]
-!>>>>               CO_CH4 = PCO_CH4_MCM3S * DTCHEM
-!>>>>
-!>>>>            ! Original behaviour based on latitude bands
-!>>>>            ELSE
-!>>>>
-!>>>>               ! CH4 concentration [ppbv] for the given latitude band 
-!>>>>                ! (bmy, 1/2/01)
-!>>>>               CH4 = A3090S
-!>>>>               IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-!>>>>               IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-!>>>>               IF ( YMID >=  30.0                   ) CH4 = A3090N
-!>>>>
-!>>>>               ! Convert CH4 from [ppbv] to [molec CH4/cm3]
-!>>>>               CH4 = CH4 * 1e-9_fp * DENS
-!>>>>
-!>>>>               ! Calculate updated rate constant [s-1] (bnd, bmy,
-!>>>>               ! 1/2/01)
-!>>>>               KRATE = 2.45e-12_fp * EXP( -1775.e+0_fp / T(I,J,L) )
-!>>>>
-!>>>>               ! Production of CO from CH4 = alpha * k * [CH4] * [OH] *
-!>>>>               ! dt 
-!>>>>               ! Units are [molec CO/cm3]
-!>>>>               CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH_MOLEC_CM3 * DTCHEM
-!>>>>
-!>>>>            ENDIF
-!>>>>
-!>>>>#if defined( BPCH_DIAG )
-!>>>>                  !-----------------------------------------------------
-!>>>>                  ! ND65 (bpch) diagnostic
-!>>>>                  !
-!>>>>                  ! Loss of CO by OH for "tagged" species
-!>>>>                  !-----------------------------------------------------
-!>>>>
-!>>>>                  ! Units: [molec CO/cm3/s]
-!>>>>                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-!>>>>                     AD65(I,J,L,N) = AD65(I,J,L,N) + &
-!>>>>                                     ( CORATE * Spc(I,J,L,N) * STTCO)
-!>>>>                  ENDIF
-!>>>>#endif
-!>>>>
-!>>>>#if defined( NC_DIAG )
-!>>>>                  !-----------------------------------------------------
-!>>>>                  ! HISTORY (aka netCDF diagnostics)
-!>>>>                  !
-!>>>>                  ! Loss of CO by OH for "tagged" species
-!>>>>                  !-----------------------------------------------------
-!>>>>                  !Units: [kg/s]
-!>>>>                  IF ( State_Diag%Archive_Loss ) THEN
-!>>>>                     State_Diag%Loss(I,J,L,N) = ( CORATE &
-!>>>>                                              *   Spc(I,J,L,N) )
-!>>>>                  ENDIF
-!>>>>#endif
-!>>>>
             ! Handle trop loss by OH for regional CO species
-            IF ( LSPLIT ) THEN
-
-               ! Loop over regional CO species
-               DO NA = 16, nAdvect-11
-
-                  ! Advected species ID
-                  N            = State_Chm%Map_Advect(NA)
-
-                  !-----------------------------------------------------
-                  ! NOTE: The proper order should be:
-                  !   (1) Calculate CO loss rate
-                  !   (2) Update AD65 array
-                  !   (3) Update the SPC array using the loss rate
-                  ! 
-                  ! Therefore, we have now moved the computation of the
-                  ! ND65 diagnostic before we apply the loss to the 
-                  ! tagged CO concentrations stored in the SPC array.
-                  !
-                  !    -- Jenny Fisher (27 Mar 2017)
-                  !-----------------------------------------------------
-
+         IF ( LSPLIT ) THEN
+               
+            ! Loop over regional CO species
+            DO NA = 16, nAdvect-11
+               
+               ! Advected species ID
+               N            = State_Chm%Map_Advect(NA)
+               
+               !-----------------------------------------------------
+               ! NOTE: The proper order should be:
+               !   (1) Calculate CO loss rate
+               !   (2) Update AD65 array
+               !   (3) Update the SPC array using the loss rate
+               ! 
+               ! Therefore, we have now moved the computation of the
+               ! ND65 diagnostic before we apply the loss to the 
+               ! tagged CO concentrations stored in the SPC array.
+               !
+               !    -- Jenny Fisher (27 Mar 2017)
+               !-----------------------------------------------------
+               
 #if defined( BPCH_DIAG )
-
-                  !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
-                  !
-                  ! Loss of CO by OH for "tagged" species via 
-                  !-----------------------------------------------------
-
-                  ! Units: [molec CO/cm3/s]
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) + &
-                          C(ind_CO2_OH)/DTCHEM
-                  ENDIF
-
+               
+               !-----------------------------------------------------
+               ! ND65 (bpch) diagnostic
+               !
+               ! Loss of CO by OH for "tagged" species via 
+               !-----------------------------------------------------
+               
+               ! Units: [molec CO/cm3/s]
+               IF ( ND65 > 0 .and. L <= LD65 ) THEN
+                  AD65(I,J,L,N) = AD65(I,J,L,N) + &
+                       C(ind_CO2_OH)/DTCHEM
+               ENDIF
+               
 #endif
-
-                  ! Update regional species 
-                  !<<THIS DOESN'T WORK - MSL>>
-!                  IF (NA .ne. 16) &
-!                  Spc(I,J,L,N) = Spc(I,J,L,N) - ( Spc(I,J,L,N)/PREVCO(I,J,L) ) * &
-!                      ( C(ind_CO2_OH) * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO )
-                  IF (NA .ne. 16)                                     &
-                       Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
-                       ( 1e+0_fp - K_TROP(1) * C(ind_OH_E) * DTCHEM )
-
-                  !-----------------------------------------------------
-                  ! HISTORY (aka netCDF diagnostics)
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-                  
-                  ! Units: [kg/s]
-                  IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(1) &
-                          * C(ind_OH_E) * DTCHEM   
-!                     C(ind_CO2_OH) / DTCHEM  &
-!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-                  ENDIF
-
-               ENDDO
-            ENDIF
+               
+               ! Update regional species 
+               !<<Not sure if this is correct - MSL>>
+               IF (NA .ne. 16)                                     &
+                    Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
+                    ( 1e+0_fp - K_TROP(1) * C(ind_OH_E) * DTCHEM )
+               
+               !-----------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               !
+               ! Loss of CO by OH for "tagged" species
+               !-----------------------------------------------------
+               
+               ! Units: [kg/s]
+               IF ( State_Diag%Archive_Loss ) THEN
+                  State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(1) &
+                       * C(ind_OH_E) * DTCHEM   
+                  !                     C(ind_CO2_OH) / DTCHEM  &
+                  !                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+               ENDIF
+               
+            ENDDO
+         ENDIF
 
          !==============================================================
          ! Calculate the chemical production of CO2
@@ -1718,7 +1655,6 @@
             IF ( L .GT. 1 ) THEN 
                CH4EMIS = 0e+0_fp
             ELSE
-!               AREA_M2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp
 
                ! [kg/m2/s]  --> [molec/box/s]
                CH4EMIS  = CH4_EMIS_J(I,J,1)
@@ -2128,18 +2064,6 @@
          RETURN
       ENDIF
 
-      ! Free pointers
-!      IF ( ASSOCIATED( BOH      ) ) BOH     => NULL()
-!      IF ( ASSOCIATED( BCl      ) ) BCl     => NULL()
-!      IF ( ASSOCIATED( CH4LOSS  ) ) CH4LOSS => NULL()
-
-      ! Free pointers
-!      GMI_PROD_CO => NULL()
-!      GMI_LOSS_CO => NULL()
-!      OH          => NULL()
-!      SFC_CH4     => NULL()
-
-
       END SUBROUTINE CLEANUP_CH4COCO2
 !EOC
       SUBROUTINE SETKPPVALS( State_Chm, State_Met, I, J, L, &
@@ -2185,7 +2109,11 @@
            K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
            K_STRAT(3) = GMI_LOSS_CO ! 1/s
         ELSE ! In the trop
-           ! Temperature (K)
+
+           K_STRAT = 0.d0
+           TROP    = 1.e0 ! Toggle
+
+            ! Temperature (K)
            TEMP            = State_Met%T(I,J,L)
 
            ! Cosine of the solar zenith angle [unitless]
@@ -2199,11 +2127,7 @@
               FAC_DIURNAL = 0.0_fp
            ENDIF
         
-! Rates
-           ! Troposphere
-           K_STRAT = 0.d0
-           TROP    = 1.e0 ! Toggle
-
+           ! Rates
            ! Trop Rates
            FMOL_CO         =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp
            kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
