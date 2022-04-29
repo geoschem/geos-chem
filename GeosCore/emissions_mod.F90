@@ -144,6 +144,7 @@ CONTAINS
 ! !USES:
 !
     USE CARBON_MOD,         ONLY : EMISSCARBON
+    USE CCycleChem_Mod,     ONLY : EMISS_CH4COCO2
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
@@ -278,6 +279,17 @@ CONTAINS
     ! (mps, 2/12/21)
     IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
        CALL EmissCh4( Input_Opt, State_Grid, State_Met, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissCH4"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
+       CALL EMISS_CH4COCO2( Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

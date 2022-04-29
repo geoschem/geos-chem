@@ -138,7 +138,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_CH4COCO2( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
+      SUBROUTINE EMISS_CH4COCO2( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -153,7 +153,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
@@ -244,7 +244,7 @@
       LPRT           = Input_Opt%LPRT
 
       ! Do we have to print debug output?
-      prtDebug       = ( LPRT .and. am_I_Root )
+      prtDebug       = ( LPRT .and. Input_Opt%amIRoot )
 
       ! Exit with error if we can't find the HEMCO state object
       IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
@@ -751,6 +751,7 @@
       LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
       INTEGER            :: I, J, L
       REAL(fp)           :: PREVCH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+      REAL(fp)           :: PREVCO(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
       ! Number of days per month
       INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30,   &
@@ -972,7 +973,7 @@
 #endif
 
 
-#if defined( NC_DIAG )
+!#if defined( NC_DIAG )
                !--------------------------------------------------------
                ! HISTORY (aka netCDF diagnostics)
                ! OH concentration in [molec/cm3] after chemistry
@@ -981,7 +982,7 @@
                   State_Diag%OHconcAfterChem(I,J,L) = &
                    ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
                ENDIF
-#endif
+!#endif
 
             ENDIF
          ENDDO
@@ -1007,16 +1008,13 @@
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            PREVCH4(I,J,L) = Spc(I,J,L,1)
+            PREVCH4(I,J,L) = Spc(I,J,L,1 )
+            PREVCO( I,J,L) = Spc(I,J,L,16)
          ENDDO
          ENDDO
          ENDDO
          !$OMP END PARALLEL DO
 
-      ENDIF
-
-      IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
       ENDIF
 
       ! Number of advected species
@@ -1433,7 +1431,14 @@
 
 #endif
 
-!#if defined( NC_DIAG )
+                  ! Update regional species 
+                  !<<THIS DOESN'T WORK - MSL>>
+!                  IF (NA .ne. 16) &
+!                  Spc(I,J,L,N) = Spc(I,J,L,N) - ( Spc(I,J,L,N)/PREVCO(I,J,L) ) * &
+!                      ( C(ind_CO2_OH) * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO )
+                  IF (NA .ne. 16)                                     &
+                       Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
+                       ( 1e+0_fp - K_TROP(1) * C(ind_OH_E) * DTCHEM )
 
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
@@ -1441,18 +1446,13 @@
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
                   
-!                  IF (I .eq. 20 .and. J .eq. 20 .and. L .eq. 1) then
-!                     write(*,*) '<<>> CO2_OH: ', C(ind_CO2_OH), C(ind_CO), C(ind_OH_E), K_TROP(1), K_STRAT(3)
-!                     read(*,*)
-!                  endif
-
                   ! Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
-                     State_Diag%Loss(I,J,L,N) =  C(ind_CO2_OH) / DTCHEM  &
-                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+                     State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(1) &
+                          * C(ind_OH_E) * DTCHEM   
+!                     C(ind_CO2_OH) / DTCHEM  &
+!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
                   ENDIF
-
-!#endif
 
                ENDDO
             ENDIF
@@ -1477,7 +1477,7 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
+!#if defined( NC_DIAG )
             !==========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             ! 
@@ -1489,7 +1489,7 @@
                                                * 1e4_fp      ! =>kg/m2/s
 
             ENDIF
-#endif
+!#endif
 
          ENDIF
 #if defined( BPCH_DIAG )
@@ -1531,7 +1531,7 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
+!#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1560,12 +1560,16 @@
 !         IF ( State_Diag%Archive_Loss ) THEN
 !            State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
 !         ENDIF
-#endif
+!#endif
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
+      IF ( LSPLIT ) THEN
+         CALL CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
+      ENDIF
+      
       END SUBROUTINE CHEM_CH4COCO2
 !EOC
 !------------------------------------------------------------------------------
@@ -2039,7 +2043,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_CH4COCO2( am_I_Root, RC )
+      SUBROUTINE CLEANUP_CH4COCO2( RC )
 !
 ! !USES:
 !
@@ -2047,7 +2051,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
