@@ -33,10 +33,10 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: EMISS_CH4COCO2
-      PUBLIC :: CHEM_CH4COCO2
-      PUBLIC :: INIT_CH4COCO2
-      PUBLIC :: CLEANUP_CH4COCO2
+      PUBLIC :: EMISS_CCYCLE
+      PUBLIC :: CHEM_CCYCLE
+      PUBLIC :: INIT_CCYCLE
+      PUBLIC :: CLEANUP_CCYCLE
 !
 ! !REVISION HISTORY:
 !  04 Apr 2022 - M.S. Long   - Initial version
@@ -138,7 +138,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_CH4COCO2( Input_Opt, State_Grid, State_Met, RC )
+      SUBROUTINE EMISS_CCYCLE( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -220,7 +220,7 @@
       CHARACTER(LEN=255)       :: ThisLoc
 
       ! For fields from Input_Opt
-      LOGICAL                  :: ITS_A_CH4COCO2_SIM
+      LOGICAL                  :: ITS_A_CCYCLE_SIM
       LOGICAL                  :: LPRT
       LOGICAL                  :: prtDebug
       LOGICAL, SAVE            :: FIRST = .TRUE.
@@ -240,7 +240,7 @@
       ThisLoc = ' -> at EMISSCH4 (in GeosCore/global_ch4_mod.F)'
 
       ! Copy values from Input_Opt
-      ITS_A_CH4COCO2_SIM  = Input_Opt%ITS_A_CH4COCO2_SIM
+      ITS_A_CCYCLE_SIM  = Input_Opt%ITS_A_CCYCLE_SIM
       LPRT           = Input_Opt%LPRT
 
       ! Do we have to print debug output?
@@ -256,7 +256,7 @@
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
 
-      IF ( ITS_A_CH4COCO2_SIM .and. LPRT ) THEN
+      IF ( ITS_A_CCYCLE_SIM .and. LPRT ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
       ENDIF
 
@@ -618,11 +618,11 @@
          WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS_J(:,:,15))
       ENDIF
 
-      IF ( ITS_A_CH4COCO2_SIM .and. LPRT ) THEN
+      IF ( ITS_A_CCYCLE_SIM .and. LPRT ) THEN
          print*,'END SUBROUTINE: EMISSCH4'
       ENDIF
 
-      END SUBROUTINE EMISS_CH4COCO2
+      END SUBROUTINE EMISS_CCYCLE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -637,7 +637,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_CH4COCO2( Input_Opt,  State_Met, State_Chm, State_Grid, &
+      SUBROUTINE CHEM_CCYCLE( Input_Opt,  State_Met, State_Chm, State_Grid, &
                                 State_Diag, RC )
 !
 ! !USES:
@@ -993,7 +993,7 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      CALL CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid, BOH )
+      CALL CH4_OHSAVE_CCYCLE( State_Met, State_Chm, State_Grid, BOH )
 
       !=================================================================
       ! (5) If multi-CH4 species, we store the CH4 total conc. to
@@ -1504,10 +1504,10 @@
 !$OMP END PARALLEL DO
 
       IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
+         CALL CH4_DISTRIB_CCYCLE( PREVCH4, Input_Opt, State_Chm, State_Grid )
       ENDIF
       
-      END SUBROUTINE CHEM_CH4COCO2
+      END SUBROUTINE CHEM_CCYCLE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1522,7 +1522,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE_CH4COCO2( State_Met, State_Chm, State_Grid, BOH )
+      SUBROUTINE CH4_OHSAVE_CCYCLE( State_Met, State_Chm, State_Grid, BOH )
 !
 ! !USES:
 !
@@ -1688,7 +1688,7 @@
       ! Free pointer
       Spc => NULL()
 
-      END SUBROUTINE CH4_OHSAVE_CH4COCO2
+      END SUBROUTINE CH4_OHSAVE_CCYCLE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1703,7 +1703,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DISTRIB_CH4COCO2( PREVCH4, Input_Opt, State_Chm, State_Grid )
+      SUBROUTINE CH4_DISTRIB_CCYCLE( PREVCH4, Input_Opt, State_Chm, State_Grid )
 !
 ! !USES:
 !
@@ -1776,7 +1776,7 @@
       ! Free pointer
       Spc => NULL()
 
-      END SUBROUTINE CH4_DISTRIB_CH4COCO2
+      END SUBROUTINE CH4_DISTRIB_CCYCLE
 
 !EOC
 !------------------------------------------------------------------------------
@@ -1792,7 +1792,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CH4COCO2( Input_Opt, State_Diag, State_Grid, RC )
+      SUBROUTINE INIT_CCYCLE( Input_Opt, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1964,7 +1964,7 @@
       ! Reset IS_INIT flag
       IS_INIT = .TRUE.
 
-      END SUBROUTINE INIT_CH4COCO2
+      END SUBROUTINE INIT_CCYCLE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1979,7 +1979,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_CH4COCO2( RC )
+      SUBROUTINE CLEANUP_CCYCLE( RC )
 !
 ! !USES:
 !
@@ -2064,7 +2064,7 @@
          RETURN
       ENDIF
 
-      END SUBROUTINE CLEANUP_CH4COCO2
+      END SUBROUTINE CLEANUP_CCYCLE
 !EOC
       SUBROUTINE SETKPPVALS( State_Chm, State_Met, I, J, L, &
            BAIRDENS, CH4LOSS, GMI_PROD_CO, GMI_LOSS_CO, &

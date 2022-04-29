@@ -144,7 +144,7 @@ CONTAINS
 ! !USES:
 !
     USE CARBON_MOD,         ONLY : EMISSCARBON
-    USE CCycleChem_Mod,     ONLY : EMISS_CH4COCO2
+    USE CCycleChem_Mod,     ONLY : EMISS_CCYCLE
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
@@ -288,8 +288,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-    IF ( Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
-       CALL EMISS_CH4COCO2( Input_Opt, State_Grid, State_Met, RC )
+    IF ( Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+       CALL EMISS_CCYCLE( Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

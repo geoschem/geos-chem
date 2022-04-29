@@ -79,7 +79,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
-     LOGICAL                     :: ITS_A_CH4COCO2_SIM
+     LOGICAL                     :: ITS_A_CCYCLE_SIM
      LOGICAL                     :: LPRT
      LOGICAL                     :: useTimers
 

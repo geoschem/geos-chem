@@ -4977,7 +4977,7 @@ CONTAINS
     ! and THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM &
-         .or. Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
+         .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -6760,7 +6760,7 @@ CONTAINS
     !
     ! and THE TAGGED CO SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4COCO2_SIM .or. &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM .or. &
          Input_Opt%ITS_A_TAGCO_SIM    .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
        !--------------------------------------------------------------------
@@ -7304,7 +7304,7 @@ CONTAINS
     !
     ! THE CO2 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .or. Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CO2_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Prod of CO2 from CO oxidation
@@ -7357,7 +7357,7 @@ CONTAINS
     !
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
@@ -7466,7 +7466,7 @@ CONTAINS
     ! THE FULL-CHEMISTRY SIMULATIONS (for archiving output for tagCO)
     !=======================================================================
     IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_FULLCHEM_SIM &
-         .or. Input_Opt%ITS_A_CH4COCO2_SIM ) THEN
+         .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Production of CO from CH4
