@@ -1048,12 +1048,12 @@
       !=================================================================
 
       ! Get species IDs
-      IDch4    = Ind_( 'COch4'   )
-      IDnmvoc  = Ind_( 'COnmvoc' )
-      IDisop   = Ind_( 'COisop'  )
-      IDch3oh  = Ind_( 'COch3oh' )
-      IDmono   = Ind_( 'COmono'  )
-      IDacet   = Ind_( 'COacet'  )
+      ! IDch4    = Ind_( 'COch4'   )
+      ! IDnmvoc  = Ind_( 'COnmvoc' )
+      ! IDisop   = Ind_( 'COisop'  )
+      ! IDch3oh  = Ind_( 'COch3oh' )
+      ! IDmono   = Ind_( 'COmono'  )
+      ! IDacet   = Ind_( 'COacet'  )
       
       ! Get a pointer to the OH field from the HEMCO list (bmy,
       ! 3/11/15)
@@ -1120,6 +1120,19 @@
       ! Also note, skip this section if emissions are turned off,
       ! which will keep the SUM*CO arrays zeroed out. (bmy, 10/11/16)
       !=================================================================
+
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<< THE CODE BELOW IS DISABLED BY 1 .eq. 0 !!! (MSL)
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
+      ! <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>> <<>>
       IF ( Input_Opt%DoEmissions .and. 1.eq.0) THEN
 
          ! Conversion factor from [kg/s] --> [atoms C]
