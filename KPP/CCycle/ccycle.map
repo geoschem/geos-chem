@@ -23,7 +23,7 @@
 ### Options -------------------------------------------
 
 FUNCTION - AGGREGATE
-JACOBIAN - SPARSE W/ ACCOUNT FOR LU DECOMPOSITION FILL-IN
+JACOBIAN - OFF
 DOUBLE   - ON
 REORDER  - ON
 
@@ -47,10 +47,10 @@ REORDER  - ON
 ### Species -------------------------------------------
 
 Variable species
-  1 = CH4 (r)     5 = CO2 (n)     9 = LCO (n)   
-  2 = CO (r)      6 = CO2_OH (n) 10 = LCH4 (n)  
-  3 = CO_CH4 (n)  7 = DUMMY (n) 
-  4 = CO_NMVOC (n)  8 = PCO (n)   
+  1 = CO_CH4 (n)  5 = CH4 (r)     9 = LCO (n)   
+  2 = CO_NMVOC (n)  6 = CO (r)     10 = LCH4 (n)  
+  3 = CO2 (n)     7 = DUMMY (n) 
+  4 = CO2_OH (n)  8 = PCO (n)   
 
 Fixed species
   1 = OH_E (r)    3 = CH4_E (r) 
@@ -58,11 +58,6 @@ Fixed species
 
 ### Subroutines ---------------------------------------
 
-SUBROUTINE Jac_SP ( V, F, RCT, JVS )
-SUBROUTINE Jac_SP_Vec ( JVS, UV, JUV )
-SUBROUTINE JacTR_SP_Vec ( JVS, UV, JTUV )
-SUBROUTINE KppSolve ( JVS, X )
-SUBROUTINE KppSolveTR ( JVS, X, XX )
 SUBROUTINE Initialize ( )
 SUBROUTINE Shuffle_user2kpp ( V_USER, V )
 SUBROUTINE Shuffle_kpp2user ( V, V_USER )

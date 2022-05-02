@@ -23,7 +23,6 @@ add_library(CCYCLE
   ccycle_Initialize.F90
   ccycle_Integrator.F90
   ccycle_Jacobian.F90
-  ccycle_JacobianSP.F90
   ccycle_LinearAlgebra.F90
   ccycle_Model.F90
   ccycle_Monitor.F90

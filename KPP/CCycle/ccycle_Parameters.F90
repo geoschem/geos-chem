@@ -44,9 +44,9 @@ MODULE ccycle_Parameters
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 11 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 18 
+  INTEGER, PARAMETER :: NONZERO = 1 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 18 
+  INTEGER, PARAMETER :: LU_NONZERO = 1 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 11 
 ! NLOOKAT - Number of species to look at
@@ -59,12 +59,12 @@ MODULE ccycle_Parameters
 ! Index declaration for variable species in C and VAR
 !   VAR(ind_spc) = C(ind_spc)
 
-  INTEGER, PARAMETER :: ind_CH4 = 1 
-  INTEGER, PARAMETER :: ind_CO = 2 
-  INTEGER, PARAMETER :: ind_CO_CH4 = 3 
-  INTEGER, PARAMETER :: ind_CO_NMVOC = 4 
-  INTEGER, PARAMETER :: ind_CO2 = 5 
-  INTEGER, PARAMETER :: ind_CO2_OH = 6 
+  INTEGER, PARAMETER :: ind_CO_CH4 = 1 
+  INTEGER, PARAMETER :: ind_CO_NMVOC = 2 
+  INTEGER, PARAMETER :: ind_CO2 = 3 
+  INTEGER, PARAMETER :: ind_CO2_OH = 4 
+  INTEGER, PARAMETER :: ind_CH4 = 5 
+  INTEGER, PARAMETER :: ind_CO = 6 
   INTEGER, PARAMETER :: ind_DUMMY = 7 
   INTEGER, PARAMETER :: ind_PCO = 8 
   INTEGER, PARAMETER :: ind_LCO = 9 

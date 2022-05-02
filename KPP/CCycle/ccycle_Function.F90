@@ -59,13 +59,13 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
   REAL(kind=dp), OPTIONAL :: Aout(NREACT)
 
 ! Computation of equation rates
-  A(1) = RCT(1)*V(1)*F(1)
-  A(2) = RCT(2)*V(1)*F(2)
-  A(3) = RCT(3)*V(2)*F(1)
+  A(1) = RCT(1)*V(5)*F(1)
+  A(2) = RCT(2)*V(5)*F(2)
+  A(3) = RCT(3)*V(6)*F(1)
   A(4) = RCT(4)*F(4)
-  A(5) = RCT(5)*V(1)
+  A(5) = RCT(5)*V(5)
   A(6) = RCT(6)*F(3)
-  A(7) = RCT(7)*V(2)
+  A(7) = RCT(7)*V(6)
 
 
 !### KPP 2.3.0_gc, Bob Yantosca (11 Feb 2021)
@@ -74,12 +74,12 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
 
 
 ! Aggregate function
-  Vdot(1) = -A(1)-A(2)-A(5)
-  Vdot(2) = A(1)-A(3)+A(4)+A(6)-A(7)
-  Vdot(3) = A(1)
-  Vdot(4) = A(4)
-  Vdot(5) = A(3)+A(7)
-  Vdot(6) = A(3)+A(7)
+  Vdot(1) = A(1)
+  Vdot(2) = A(4)
+  Vdot(3) = A(3)+A(7)
+  Vdot(4) = A(3)+A(7)
+  Vdot(5) = -A(1)-A(2)-A(5)
+  Vdot(6) = A(1)-A(3)+A(4)+A(6)-A(7)
   Vdot(7) = A(2)+A(5)
   Vdot(8) = A(1)+A(4)+A(6)
   Vdot(9) = A(3)+A(7)

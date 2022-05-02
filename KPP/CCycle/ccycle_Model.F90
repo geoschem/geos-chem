@@ -11,7 +11,6 @@ MODULE ccycle_Model
   USE ccycle_Function
   USE ccycle_Integrator
   USE ccycle_Rates
-  USE ccycle_Jacobian
   USE ccycle_LinearAlgebra
   USE ccycle_Monitor
   USE ccycle_Util

@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Module CCYLECHEM_MOD contains variables and routines
 ! for simulating CH4 CO and CO2 with an online calculation of the
 ! chemistry between them using KPP. It was adapted directly from
-! the module CH4_CO_CO2_MOD.F.
+! the module CH4_CO_CO2_MOD.F provided by Beata Bukosa.
 !
 
 !\\
@@ -646,7 +646,8 @@
 !      USE CMN_SIZE_MOD
       USE CCYCLE_GLOBAL
       USE CCYCLE_Initialize,  ONLY : Init_KPP => Initialize
-      USE CCYCLE_INTEGRATOR,  ONLY : INTEGRATE, NHnew
+      USE CCYCLE_INTEGRATOR,  ONLY : INTEGRATE
+      USE CCYCLE_MONITOR,     ONLY : SPC_NAMES
       USE CCYCLE_PARAMETERS
       USE CCYCLE_PRECISION
       USE CCYCLE_RATES,       ONLY : UPDATE_RCONST
@@ -768,21 +769,14 @@
       LOGICAL                  :: FOUND
       LOGICAL                  :: LPCO_CH4,      LPCO_NMVOC
       INTEGER                  :: nAdvect,       HcoID,       NA
-      INTEGER                  :: N,             MONTH,       YEAR
+      INTEGER                  :: N, NN,            MONTH,       YEAR
       INTEGER                  :: IERR
-      REAL(fp)                 :: ALPHA_ISOP,    DTCHEM,      GCO
-      REAL(fp)                 :: STTCO,         KRATE,       CH4
+      REAL(fp)                 :: DTCHEM
       REAL(fp)                 :: CO_CH4,        CO_ISOP,     CO_MONO
       REAL(fp)                 :: CO_CH3OH,      CO_OH,       CO_ACET
       REAL(fp)                 :: CO_NMVOC,      E_CO2
-      REAL(fp)                 :: CH4RATE,       DENS,        CORATE
-      REAL(fp)                 :: YMID,          BOXVL,       FMOL_CO
-      REAL(fp)                 :: KHI1,          KLO1,        XYRAT1
-      REAL(fp)                 :: BLOG1,         FEXP1,       KHI2
-      REAL(fp)                 :: KLO2,          XYRAT2,      BLOG2
-      REAL(fp)                 :: FEXP2,         KCO1,        KCO2
-      REAL(fp)                 :: OH_MOLEC_CM3,  FAC_DIURNAL, SUNCOS
-      REAL(fp)                 :: PCO_CH4_MCM3S, PCO_NMVOC_MCM3S
+      REAL(fp)                 :: FMOL_CO
+      REAL(fp)                 :: FAC_DIURNAL, SUNCOS
       REAL(fp)                 :: kgs_to_atomsC, Emis,        DTEMIS
       REAL(fp)                 :: kgm3_to_mcm3OH,kgm3_to_mcm3sCO
       REAL(fp)                 :: TOUT,          TIN
@@ -1081,7 +1075,7 @@
       ENDIF
       
       ! Get pointer to trop P(CO) from CH4 if needed
-      IF ( LPCO_CH4 ) THEN
+      IF ( LPCO_CH4 ) THEN ! This is in kg/box/s
          CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', PCO_CH4, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to PCO_CH4!'
@@ -1090,7 +1084,7 @@
          ENDIF
       ENDIF
       
-      IF ( LPCO_NMVOC ) THEN
+      IF ( LPCO_NMVOC ) THEN ! This is in kg/box/s
          CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', PCO_NMVOC, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
@@ -1207,54 +1201,23 @@
       TIN       = 0
       TOUT      = DTCHEM
       
-      !%%%%% CONVERGENCE CRITERIA %%%%%
-      
-      ! Absolute tolerance
-      ATOL      = 1e-2_dp
-      
-      ! Relative tolerance
-      RTOL      = 0.5e-2_dp
-      
-      !%%%%% SOLVER OPTIONS %%%%%
-      
-      ! Zero all slots of ICNTRL
       ICNTRL    = 0
-      
-      ! 0 - non-autonomous, 1 - autonomous
-      ICNTRL(1) = 1
-      
-      ! 0 - vector tolerances, 1 - scalars
-      ICNTRL(2) = 0
-      
-      ! Select Integrator
-      ! ICNTRL(3)  -> selection of a particular method.
-      ! For Rosenbrock, options are:
-      ! = 0 :  default method is Rodas3
-      ! = 1 :  method is  Ros2
-      ! = 2 :  method is  Ros3
-      ! = 3 :  method is  Ros4
-      ! = 4 :  method is  Rodas3
-      ! = 5:   method is  Rodas4
-      ICNTRL(3) = 4
-      
-      ! 0 - adjoint, 1 - no adjoint
-      ICNTRL(7) = 1
+      ICNTRL(1) = 1 ! Verbose error output
+      ICNTRL(2) = 0 ! Stop on negative values
       
       !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 
       ! DO-loop over all grid boxes to facilitate parallelization
       !=================================================================
-      !$OMP PARALLEL DO                                                       & 
-      !$OMP DEFAULT( SHARED                                                  )&
-      !$OMP PRIVATE( I,       J,            L,           N,          STTCO   )&
-      !$OMP PRIVATE( GCO,     DENS,         CH4RATE,     CO_CH4,     CH4     )&
-      !$OMP PRIVATE( KRATE,   CO_ISOP,      CO_CH3OH,    CO_MONO,    CO_ACET )&
-      !$OMP PRIVATE( CORATE,  CO_OH,        YMID,        ALPHA_ISOP, KHI1    )&
-      !$OMP PRIVATE( KLO1,    XYRAT1,       BLOG1,       FEXP1,      KHI2    )&
-      !$OMP PRIVATE( KLO2,    XYRAT2,       BLOG2,       FEXP2,      KCO1    )&
-      !$OMP PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC )&
-      !$OMP PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)&
-      !$OMP PRIVATE( ERR_VAR, ERR_MSG,      BOXVL, E_CO2                     )
+      !$OMP PARALLEL DO                                       & 
+      !$OMP DEFAULT( SHARED                                  )&
+      !$OMP PRIVATE( I,           J,        L,        N      )&
+      !$OMP PRIVATE( CO_CH4                                  )&
+      !$OMP PRIVATE( CO_ISOP,     CO_CH3OH, CO_MONO, CO_ACET )&
+      !$OMP PRIVATE( CO_OH                                   )&
+      !$OMP PRIVATE( FAC_DIURNAL, SUNCOS,   ERR_LOC          )&
+      !$OMP PRIVATE( CO_NMVOC                                )&
+      !$OMP PRIVATE( ERR_VAR,     ERR_MSG,  E_CO2            )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -1272,8 +1235,8 @@
               / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
          C(ind_CO_CH4)   = Spc(I,J,L,Ind_('COch4')) &
               / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
-         C(ind_CO_NMVOC) = Spc(I,J,L,Ind_('COnmvoc')) &
-              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
+!         C(ind_CO_NMVOC) = Spc(I,J,L,Ind_('COnmvoc')) &
+!              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
 
          C(ind_CH4_E)    = 1.E0 ! Factor. "_E" is "external"
          C(ind_NMVOC_E)  = 1.E0 ! Factor. "_E" is "external"
@@ -1282,21 +1245,15 @@
               State_Met%AIRNUMDEN(I,J,L),                &
               CH4LOSS(I,J,L), GMI_PROD_CO(I,J,L),        &
               GMI_LOSS_CO(I,J,L), PCO_NMVOC(I,J,L),      &
-              FAC_DIURNAL )
+              PCO_CH4(I,J,L), LPCO_CH4, FAC_DIURNAL )
 
 !         C(ind_OH_E)    = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
          C(ind_OH_E)    = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * FAC_DIURNAL
          C(ind_Cl_E)    = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
-!         IF (I .eq. 20 .and. J .eq. 20 .and. L .eq. 1) then
-!         IF ( FAC_DIURNAL .gt. 0.d0 ) then
-!            write(*,*) '<<>>X: ', BOH(I,J,L), BCl(I,J,L), FAC_DIURNAL
-!            read(*,*)
-!         endif
+         IF (LPCO_CH4) k_trop(1) = k_trop(1) / (C(ind_CH4)*C(ind_OH_E)) ! offline rate. Factor out reactants for KPP stability
 
          ! Do KPP
-
-         k_strat = 0.
 
          ! Set VAR and FIX arrays
          VAR(1:NVAR) = C(1:NVAR)
@@ -1317,16 +1274,21 @@
          ! within the OpenMP parallel loop and define it just
          ! before the call to to Integrate. (bmy, 3/24/16)
          !=====================================================================
+ 
+!>>>         IF (i .eq. 40 .and. j .eq. 20 .and. l .eq. 1) then
+!>>>            write(*,*) 'RCONST:', k_trop(2), fac_diurnal, PCO_NMVOC(I,J,L)
+!>>>            do NN=1,NREACT
+!>>>               write(*,*) RCONST(NN)
+!>>>            enddo
+!>>>            write(*,*) 'C:'
+!>>>            do NN=1,NSPEC
+!>>>               write(*,*) SPC_NAMES(NN), C(NN)
+!>>>            enddo
+!>>>            read(*,*)
+!>>>         ENDIF
          
-         ! Zero all slots of RCNTRL
-         RCNTRL    = 0.0_fp
-         
-         ! Starting value for integration time step
-!         RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
-
          ! Call the KPP integrator
-         CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
-                         RCNTRL, ISTATUS, RSTATE, IERR                        )
+         CALL Integrate( TIN, TOUT, ICNTRL, IERR )
          
          ! Done with KPP
 
@@ -2081,7 +2043,7 @@
 !EOC
       SUBROUTINE SETKPPVALS( State_Chm, State_Met, I, J, L, &
            BAIRDENS, CH4LOSS, GMI_PROD_CO, GMI_LOSS_CO, &
-           PCO_NMVOC, FAC_DIURNAL )
+           PCO_NMVOC, PCO_CH4, LPCO_CH4, FAC_DIURNAL )
         
         USE CCYCLE_GLOBAL
         USE CCYCLE_PARAMETERS
@@ -2102,21 +2064,24 @@
         REAL(fp),       INTENT(IN)  :: CH4LOSS
         REAL(fp),       INTENT(IN)  :: GMI_PROD_CO
         REAL(fp),       INTENT(IN)  :: GMI_LOSS_CO
-        REAL(fp),       INTENT(IN)  :: PCO_NMVOC
+        REAL(fp),       INTENT(IN)  :: PCO_NMVOC, PCO_CH4
         REAL(fp),       INTENT(IN)  :: BAIRDENS
         REAL(fp),       INTENT(OUT) :: FAC_DIURNAL
+        LOGICAL,        INTENT(IN)  :: LPCO_CH4
 
         REAL(fp) :: DTCHEM, DTEMIS, SUNCOS
-        REAL(fp) :: kgm3_to_mcm3sCO, FMOL_CO
+        REAL(fp) :: kgs_to_mcm3sCO, FMOL_CO
         
         ! Chemistry timestep in seconds
         DTCHEM = GET_TS_CHEM()
         DTEMIS = GET_TS_EMIS()
 
+        ! Temperature (K)
+        TEMP            = State_Met%T(I,J,L)
         IF ( State_Met%InStratosphere(I,J,L) ) THEN
            K_TROP = 0.d0
            TROP   = 0.d0 ! Toggle
-
+           
            ! Strat Rates
            K_STRAT(1) = CH4LOSS ! 1/s
            K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
@@ -2125,9 +2090,6 @@
 
            K_STRAT = 0.d0
            TROP    = 1.e0 ! Toggle
-
-            ! Temperature (K)
-           TEMP            = State_Met%T(I,J,L)
 
            ! Cosine of the solar zenith angle [unitless]
            SUNCOS = State_Met%SUNCOSmid(I,J)
@@ -2142,10 +2104,14 @@
         
            ! Rates
            ! Trop Rates
-           FMOL_CO         =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp
-           kgm3_to_mcm3sCO = ( AVO / (FMOL_CO * DTEMIS) ) * 1.0e-6_fp
-           K_TROP(1) = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
-           K_TROP(2) = PCO_NMVOC * kgm3_to_mcm3sCO * FAC_DIURNAL
+           FMOL_CO        =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
+           kgs_to_mcm3sCO = ( AVO / (FMOL_CO * State_Met%AIRVOL(I,J,L)) ) * 1.0e-6_fp ! mcl/kg/cm3
+           IF (.not. LPCO_CH4) THEN
+              K_TROP(1)   = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
+           ELSE
+              K_TROP(1)   = PCO_CH4   * kgs_to_mcm3sCO * FAC_DIURNAL
+           ENDIF
+           K_TROP(2)      = PCO_NMVOC * kgs_to_mcm3sCO * FAC_DIURNAL ! kg/s * mcl/kg/cm3 ---> mcl/cm3/s; reactant is a unitless dummy set to 1.
         ENDIF ! In the strat/trop
 
         CONTAINS

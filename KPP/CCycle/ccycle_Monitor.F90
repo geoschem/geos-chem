@@ -24,8 +24,8 @@ MODULE ccycle_Monitor
 
 
   CHARACTER(LEN=15), PARAMETER, DIMENSION(14) :: SPC_NAMES = (/ &
-     'CH4            ','CO             ','CO_CH4         ', & ! index 1 - 3
-     'CO_NMVOC       ','CO2            ','CO2_OH         ', & ! index 4 - 6
+     'CO_CH4         ','CO_NMVOC       ','CO2            ', & ! index 1 - 3
+     'CO2_OH         ','CH4            ','CO             ', & ! index 4 - 6
      'DUMMY          ','PCO            ','LCO            ', & ! index 7 - 9
      'LCH4           ','OH_E           ','Cl_E           ', & ! index 10 - 12
      'CH4_E          ','NMVOC_E        ' /)
@@ -34,10 +34,10 @@ MODULE ccycle_Monitor
   INTEGER, DIMENSION(1) :: MONITOR
   CHARACTER(LEN=15), DIMENSION(1) :: SMASS
   CHARACTER(LEN=100), PARAMETER, DIMENSION(7) :: EQN_NAMES = (/ &
-     'CH4 + OH_E --> CO + CO_CH4 + PCO + LCH4                                                             ', & ! index 1
+     'CH4 + OH_E --> CO_CH4 + CO + PCO + LCH4                                                             ', & ! index 1
      'CH4 + Cl_E --> DUMMY + LCH4                                                                         ', & ! index 2
      ' CO + OH_E --> CO2 + CO2_OH + LCO                                                                   ', & ! index 3
-     '   NMVOC_E --> CO + CO_NMVOC + PCO                                                                  ', & ! index 4
+     '   NMVOC_E --> CO_NMVOC + CO + PCO                                                                  ', & ! index 4
      '       CH4 --> DUMMY + LCH4                                                                         ', & ! index 5
      '     CH4_E --> CO + PCO                                                                             ', & ! index 6
      '        CO --> CO2 + CO2_OH + LCO                                                                   ' /)

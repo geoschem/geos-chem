@@ -31,21 +31,27 @@ MODULE ccycle_Global
 
 ! C - Concentration of all species
   REAL(kind=dp) :: C(NSPEC)
+  !$OMP THREADPRIVATE( C )
 ! VAR - Concentrations of variable species (global)
   REAL(kind=dp) :: VAR(NVAR)
+  !$OMP THREADPRIVATE( VAR )
 ! FIX - Concentrations of fixed species (global)
   REAL(kind=dp) :: FIX(NFIX)
+  !$OMP THREADPRIVATE( FIX )
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
 !      EQUIVALENCE( C(11),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
+  !$OMP THREADPRIVATE( RCONST )
 ! TIME - Current integration time
   REAL(kind=dp) :: TIME
+  !$OMP THREADPRIVATE( TIME )
 ! SUN - Sunlight intensity between [0,1]
   REAL(kind=dp) :: SUN
 ! TEMP - Temperature
   REAL(kind=dp) :: TEMP
+  !$OMP THREADPRIVATE( TEMP )
 ! RTOLS - (scalar) Relative tolerance
   REAL(kind=dp) :: RTOLS
 ! TSTART - Integration start time

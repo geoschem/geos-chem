@@ -1,4 +1,4 @@
-#INTEGRATOR rosenbrock
+#INTEGRATOR feuler
 #LANGUAGE Fortran90
 #DRIVER none
 #HESSIAN off
