@@ -104,6 +104,7 @@ MODULE Mercury_Mod
   !--------------------------------------------------------------------------
   ! Scalars
   !--------------------------------------------------------------------------
+  LOGICAL  :: Failed2x
   INTEGER  :: N_Hg_CATS
   INTEGER  :: id_Hg0,         id_Hg2,      id_HgP
   INTEGER  :: id_phot_NO2,    id_phot_BrO, id_phot_ClO
@@ -212,7 +213,6 @@ CONTAINS
     USE GcKpp_Model
     USE Gckpp_Global
     USE GcKpp_Rates,        ONLY : UPDATE_RCONST, RCONST
-    USE GcKpp_Initialize,   ONLY : Init_KPP => Initialize
     USE Timers_Mod
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
@@ -267,7 +267,7 @@ CONTAINS
     INTEGER                :: P,         MONTH,    YEAR,      IRH
     INTEGER                :: TotSteps,  TotFuncs, TotJacob,  TotAccep
     INTEGER                :: TotRejec,  TotNumLU, HCRC,      IERR
-    INTEGER                :: Day
+    INTEGER                :: Day,       S
     REAL(fp)               :: REL_HUM,   Start,     Finish,   rtim
     REAL(fp)               :: itim,      TOUT,      T,        TIN
 
@@ -284,6 +284,10 @@ CONTAINS
     REAL(dp)               :: RSTATE(20)
     REAL(dp)               :: Vloc(NVAR)
     REAL(dp)               :: Aout(NREACT)
+#ifdef MODEL_GEOS
+    REAL(dp)               :: Vdotout(NVAR)
+    REAL(dp)               :: localC(NSPEC)
+#endif
 
     ! Pointers
     REAL(fp),      POINTER :: Spc(:,:,:,:)
@@ -324,6 +328,7 @@ CONTAINS
     Spc      => State_Chm%Species ! Chemical species array [kg]
     TK       => State_Met%T       ! Temperature [K]
     SpcInfo  => NULL()            ! Pointer to GEOS-Chem species database
+    Failed2x =  .FALSE.           ! Flag for graceful exit of simulation
 
     !========================================================================
     ! Set chemistry options and pointers to chemical inputs from HEMCO
@@ -513,6 +518,11 @@ CONTAINS
     ! 0 - adjoint, 1 - no adjoint
     ICNTRL(7) = 1
 
+    ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
+    ! the integrator.  Rate updates are done before calling KPP.
+    !  -- Bob Yantosca (03 May 2022)
+    ICNTRL(15) = -1
+
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=======================================================================
@@ -537,6 +547,9 @@ CONTAINS
     !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
     !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
     !$OMP PRIVATE( Vloc,     Aout,     NN                                   )&
+#ifdef MODEL_GEOS
+    !$OMP PRIVATE( Vdotout                                                  )&
+#endif
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -562,9 +575,8 @@ CONTAINS
        RCNTRL    = 0.0_fp    ! Rosenbrock input
        RSTATE    = 0.0_dp    ! Rosenbrock output
        C         = 0.0_dp    ! KPP species conc's
-       VAR       = 0.0_dp    ! KPP variable species conc's
-       FIX       = 0.0_dp    ! KPP fixed species conc's
        RCONST    = 0.0_dp    ! KPP rate constants
+       CFACTOR   = 1.0_dp    ! KPP conversion factor (not really needed)
 
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -618,13 +630,10 @@ CONTAINS
 
 
        !====================================================================
-       ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
-       !====================================================================
-       CALL Init_KPP()
-
        ! Copy values at each gridbox into variables in gckpp_Global.F90
        ! This includes e.g. temperature, air density, and quantities
        ! needed for heterogeneous chemistry
+       !====================================================================
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
                                     J          = J,                          &
                                     L          = L,                          &
@@ -644,25 +653,48 @@ CONTAINS
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
-       ! VAR and FIX are chunks of array C (mps, 2/24/16)
-       VAR(1:NVAR) = C(1:NVAR)
-       FIX         = C(NVAR+1:NSPEC)
-
        ! Update the array of rate constants
        CALL Update_RCONST( )
-       CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
 
-       ! Archive KPP reaction rates
+       !---------------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Archive KPP equation rates (Aout).  For GEOS-Chem in GEOS, also
+       ! archive the time derivative of variable species (Vdotout).
+       !
+       ! NOTE: Replace VAR with C(1:NVAR) and FIX with C(NVAR+1:NSPEC),
+       ! because VAR and FIX are now local to the integrator
+       !  -- Bob Yantosca (03 May 2022)
+       !---------------------------------------------------------------------
        IF ( State_Diag%Archive_RxnRate ) THEN
-          CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
-#if !defined( MODEL_GEOS )
-          DO N = 1, NREACT
-             State_Diag%RxnRate(I,J,L,N) = Aout(N)
+
+#ifdef MODEL_GEOS
+          !------------------------------------------
+          ! GEOS-Chem in GEOS: Get Aout and Vdotout
+          !------------------------------------------
+          CALL Fun ( V       = C(1:NVAR),                                    &
+                     F       = C(NVAR+1:NSPEC),                              &
+                     RCT     = RCONST,                                       &
+                     Vdot    = Vloc,                                         &
+                     Aout    = Aout,                                         &
+                     Vdotout = Vdotout                                      )
 #else
-          DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRate(I,J,L,N) = RCONST(N)!Aout(Input_Opt%RxnRates_IDs(N))
+          !------------------------------------------
+          ! All other contexts: Get Aout only
+          !------------------------------------------
+          CALL Fun ( V       = C(1:NVAR),                                    &
+                     F       = C(NVAR+1:NSPEC),                              &
+                     RCT     = RCONST,                                       &
+                     Vdot    = Vloc,                                         &
+                     Aout    = Aout                                         )
 #endif
+
+          ! Only save requested equation rates
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
           ENDDO
+
        ENDIF
 
        !=====================================================================
@@ -691,14 +723,21 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( IERR < 0 ) THEN
 
+#ifdef MODEL_GEOS
+          ! Save a backup copy of C (for GEOS-Chem in GEOS only)
+          localC    = C
+#endif
+
           ! Reset first time step and start concentrations
           ! Retry the integration with non-optimized
           ! settings
-          RCNTRL(3)  = 0e+0_fp
-          CALL Init_KPP( )
-          VAR = C(1:NVAR)
-          FIX = C(NVAR+1:NSPEC)
+          RCNTRL(3) = 0e+0_fp
+          C         = 0.0_dp
+
+          ! Update rate constants again
           CALL Update_RCONST( )
+
+          ! Integrate again
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
 
@@ -706,20 +745,49 @@ CONTAINS
           ! Exit upon the second failure
           !------------------------------------------------------------------
           IF ( IERR < 0 ) THEN
-             WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
-             WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
-             CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
-          ENDIF
+             WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
+             WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
+#ifdef MODEL_GEOS
+             IF ( Input_Opt%KppStop ) THEN
+                CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+                ! Revert to start values
+             ELSE
+                C = localC
+             ENDIF
+             IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+                State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+             ENDIF
+#else
+             ! Set a flag to break out of loop gracefully
+             ! NOTE: You can set a GDB breakpoint here to examine the error
+             !$OMP CRITICAL
+             Failed2x = .TRUE.
 
+             ! Print concentrations at trouble box KPP error
+             PRINT*, REPEAT( '###', 79 )
+             PRINT*, '### KPP DEBUG OUTPUT!'
+             PRINT*, '### Species concentrations at problem box ', I, J, L
+             PRINT*, REPEAT( '###', 79 )
+             DO N = 1, NSPEC
+                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
+             ENDDO
+
+             ! Print rate constants at trouble box KPP error
+             PRINT*, REPEAT( '###', 79 )
+             PRINT*, '### KPP DEBUG OUTPUT!'
+             PRINT*, '### Reaction rates at problem box ', I, J, L
+             PRINT*, REPEAT( '###', 79 )
+             DO N = 1, NREACT
+                PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
+             ENDDO
+             !$OMP END CRITICAL
+          ENDIF
+#endif
        ENDIF
 
        !=====================================================================
        ! Continue upon successful return...
        !=====================================================================
-
-       ! Copy VAR and FIX back into C (mps, 2/24/16)
-       C(1:NVAR)       = VAR(:)
-       C(NVAR+1:NSPEC) = FIX(:)
 
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
@@ -811,7 +879,16 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-! PROBLEM IS HERE!!
+    !=======================================================================
+    ! Return gracefully if integration failed 2x anywhere
+    ! (as we cannot break out of a parallel DO loop!)
+    !=======================================================================
+    IF ( Failed2x ) THEN
+       ErrMsg = 'KPP failed to converge after 2 iterations!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     !========================================================================
     ! Partition Hg2 between gas and aerosol phase
     !========================================================================

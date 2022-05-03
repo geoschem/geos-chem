@@ -1150,10 +1150,14 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+          ! Save a copy of the C vector (GEOS and WRF only)
+          localC    = C
+#endif
+
           ! Reset first time step and start concentrations
           ! Retry the integration with non-optimized settings
           RCNTRL(3) = 0.0_dp
-          localC    = C
           C         = 0.0_dp
 
           ! Update rates again
