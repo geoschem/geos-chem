@@ -19,6 +19,7 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD,     ONLY : SAFE_DIV
       USE HCO_ERROR_MOD, ONLY : HCO_SUCCESS, HCO_FAIL, HCO_WARNING, hp       ! For HEMCO error reporting
       USE PhysConstants
       USE PRECISION_MOD       ! For GEOS-Chem Precision (fp, f4, f8)
@@ -1075,7 +1076,7 @@
       ENDIF
       
       ! Get pointer to trop P(CO) from CH4 if needed
-      IF ( LPCO_CH4 ) THEN ! This is in kg/box/s
+      IF ( LPCO_CH4 ) THEN ! It appears this is in mcl/cm3/s, even though it is labeled as kg/box/s
          CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_CH4', PCO_CH4, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to PCO_CH4!'
@@ -1084,7 +1085,7 @@
          ENDIF
       ENDIF
       
-      IF ( LPCO_NMVOC ) THEN ! This is in kg/box/s
+      IF ( LPCO_NMVOC ) THEN ! It appears this is in mcl/cm3/s, even though it is labeled as kg/box/s
          CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PCO_NMVOC', PCO_NMVOC, RC )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
@@ -1203,7 +1204,7 @@
       
       ICNTRL    = 0
       ICNTRL(1) = 1 ! Verbose error output
-      ICNTRL(2) = 0 ! Stop on negative values
+      ICNTRL(2) = 0 ! Stop model on negative values
       
       !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 
@@ -1247,11 +1248,10 @@
               GMI_LOSS_CO(I,J,L), PCO_NMVOC(I,J,L),      &
               PCO_CH4(I,J,L), LPCO_CH4, FAC_DIURNAL )
 
-!         C(ind_OH_E)    = BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL
          C(ind_OH_E)    = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * FAC_DIURNAL
          C(ind_Cl_E)    = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
-         IF (LPCO_CH4) k_trop(1) = k_trop(1) / (C(ind_CH4)*C(ind_OH_E)) ! offline rate. Factor out reactants for KPP stability
+         IF (LPCO_CH4) k_trop(1) = safe_div(k_trop(1), (C(ind_CH4)*C(ind_OH_E)),0.d+0) ! offline rate. Factor out reactants for KPP
 
          ! Do KPP
 
@@ -1350,7 +1350,7 @@
                !<<Not sure if this is correct - MSL>>
                IF (NA .ne. 16)                                     &
                     Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
-                    ( 1e+0_fp - K_TROP(1) * C(ind_OH_E) * DTCHEM )
+                    ( 1e+0_fp - K_TROP(2) * C(ind_OH_E) * DTCHEM )
                
                !-----------------------------------------------------
                ! HISTORY (aka netCDF diagnostics)
@@ -1360,7 +1360,7 @@
                
                ! Units: [kg/s]
                IF ( State_Diag%Archive_Loss ) THEN
-                  State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(1) &
+                  State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(2) &
                        * C(ind_OH_E) * DTCHEM   
                   !                     C(ind_CO2_OH) / DTCHEM  &
                   !                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
@@ -2087,7 +2087,6 @@
            K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
            K_STRAT(3) = GMI_LOSS_CO ! 1/s
         ELSE ! In the trop
-
            K_STRAT = 0.d0
            TROP    = 1.e0 ! Toggle
 
@@ -2102,16 +2101,16 @@
               FAC_DIURNAL = 0.0_fp
            ENDIF
         
-           ! Rates
            ! Trop Rates
            FMOL_CO        =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
            kgs_to_mcm3sCO = ( AVO / (FMOL_CO * State_Met%AIRVOL(I,J,L)) ) * 1.0e-6_fp ! mcl/kg/cm3
            IF (.not. LPCO_CH4) THEN
-              K_TROP(1)   = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
+              K_TROP(1)   = 2.45E-12*EXP(-1775.E0/TEMP) ! {Troposp.; JPL 1997}
            ELSE
-              K_TROP(1)   = PCO_CH4   * kgs_to_mcm3sCO * FAC_DIURNAL
+              K_TROP(1)   = PCO_CH4   * FAC_DIURNAL
            ENDIF
-           K_TROP(2)      = PCO_NMVOC * kgs_to_mcm3sCO * FAC_DIURNAL ! kg/s * mcl/kg/cm3 ---> mcl/cm3/s; reactant is a unitless dummy set to 1.
+           K_TROP(2)      = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
+           K_TROP(3)      = PCO_NMVOC * FAC_DIURNAL ! 
         ENDIF ! In the strat/trop
 
         CONTAINS

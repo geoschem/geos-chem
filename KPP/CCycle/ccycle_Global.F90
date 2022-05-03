@@ -56,10 +56,13 @@ MODULE ccycle_Global
   REAL(kind=dp) :: RTOLS
 ! TSTART - Integration start time
   REAL(kind=dp) :: TSTART
+  !$OMP THREADPRIVATE( TSTART )
 ! TEND - Integration end time
   REAL(kind=dp) :: TEND
+  !$OMP THREADPRIVATE( TEND )
 ! DT - Integration step
   REAL(kind=dp) :: DT
+  !$OMP THREADPRIVATE( DT )
 ! ATOL - Absolute tolerance
   REAL(kind=dp) :: ATOL(NVAR)
 ! RTOL - Relative tolerance

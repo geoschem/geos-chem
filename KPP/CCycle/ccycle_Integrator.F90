@@ -114,13 +114,13 @@ CONTAINS
           IERR = -9
           IF (ICNTRL(2) /= 0) THEN
              write(*,*) 'Stopping'
-             RETURN
+             STOP
           ENDIF
        ENDIF
     ENDDO
 
     Y = Ynew
-
+    
     ! Succesful exit
     IERR = 1
     
