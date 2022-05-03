@@ -34,16 +34,6 @@
 #BOC
 
 #============================================================================
-# Check KPP version
-#============================================================================
-kppCodeDir=$(basename $KPP_HOME)
-if [[ "x${kppCodeDir}" != "xkpp-code" ]]; then
-    echo "ERROR: You must use KPP version 2.3.0_gc or later!"
-    echo 
-    exit 1
-fi
-
-#============================================================================
 # Check that directory exists before proceeding
 #============================================================================
 if [ "x${1}" != "x" ]; then

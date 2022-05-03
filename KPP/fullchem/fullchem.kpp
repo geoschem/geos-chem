@@ -1,9 +1,11 @@
-#INTEGRATOR rosenbrock
-#LANGUAGE Fortran90
-#DRIVER none
-#HESSIAN off
-#MEX off
-#STOICMAT off
+#MINVERSION   2.5.0
+#INTEGRATOR   rosenbrock
+#LANGUAGE     Fortran90
+#UPPERCASEF90 on
+#DRIVER       none
+#HESSIAN      off
+#MEX          off
+#STOICMAT     off
 
 #INCLUDE fullchem.eqn
 
@@ -43,9 +45,41 @@ PH2O2 : H2O2;
   ! Additional global variables -- will be added to gckpp_Global.F90
   !--------------------------------------------------------------------------
 
+  ! Species molecular weight [g/mole]
+  REAL(dp) :: MW(NSPEC)
+
+  ! Square root of species molecular weight [g/mole]
+  REAL(dp) :: SR_MW(NSPEC)
+
+  ! Henry's law constants
+  REAL(dp) :: HENRY_K0(NSPEC)  ! Solubility constant [M/atm]
+  REAL(dp) :: HENRY_CR(NSPEC)  ! Volatility constant [K    ]
+
+  !--------------------------------------------------------------------------
+  ! Additional global variables -- will be added to gckpp_Global.F90
+  !
+  ! These vary with grid location, and thus must be declared threadprivate
+  !--------------------------------------------------------------------------
+
   ! Inverse of temperature [1/K]
   REAL(dp) :: INV_TEMP
   !$OMP THREADPRIVATE( INV_TEMP )
+
+  ! Square root of Temperature [K**0.5]
+  REAL(dp) :: SR_TEMP
+  !$OMP THREADPRIVATE( SR_TEMP )
+
+  ! TEMP_OVER_K300 - Temperature [K] / 300.0
+  REAL(dp) :: TEMP_OVER_K300
+  !$OMP THREADPRIVATE( TEMP_OVER_K300 )
+
+  ! K300_OVER_TEMP - 300.0 / Temperature [K]
+  REAL(dp) :: K300_OVER_TEMP
+  !$OMP THREADPRIVATE( K300_OVER_TEMP )
+
+  ! NUMDEN - Air number density [#/cm3]
+  REAL(dp) :: NUMDEN
+  !$OMP THREADPRIVATE( NUMDEN )
 
   ! 4.0 * CON_R * TEMP
   REAL(dp) :: FOUR_R_T
@@ -71,10 +105,6 @@ PH2O2 : H2O2;
   ! Cosine of solar zenith angle
   REAL(dp) :: SUNCOS
   !$OMP THREADPRIVATE( SUNCOS )
-
-  ! Henry's law constants (do not need to be THREADPRIVATE)
-  REAL(dp) :: HENRY_K0(NSPEC)
-  REAL(dp) :: HENRY_CR(NSPEC)
 
   ! Array for aqueous sulfur chemistry rates (1/s)
   REAL(dp) :: K_MT(6)

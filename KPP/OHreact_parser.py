@@ -79,8 +79,17 @@ rxt = [i for i in lines if '-->' in i]
 irct = 0
 for irxt in rxt:
     irct += 1
-    irxt = irxt.replace("\n","")
-    irxt = irxt.replace("'","")
+    irxt = irxt.replace("\n", "")
+    irxt = irxt.replace("'", "")
+    #---------------------------------------------------
+    # Also remove extra text for safety's sake
+    #  -- Bob Yantosca (03 May 2022)
+    irxt = irxt.replace("/)", "")
+    irxt = irxt.replace(",", "")
+    irxt = irxt.replace("&", "")
+    irxt = irxt.replace("!", "")
+    irxt = irxt.replace("up to ", "")
+    #---------------------------------------------------
     spl = irxt.split('-->')
     # get reaction number and reactant if OH is on left-hand side of reaction
     if ' OH ' in spl[0]:
