@@ -1236,8 +1236,6 @@
               / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
          C(ind_CO_CH4)   = Spc(I,J,L,Ind_('COch4')) &
               / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
-!         C(ind_CO_NMVOC) = Spc(I,J,L,Ind_('COnmvoc')) &
-!              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO
 
          C(ind_CH4_E)    = 1.E0 ! Factor. "_E" is "external"
          C(ind_NMVOC_E)  = 1.E0 ! Factor. "_E" is "external"
@@ -1266,27 +1264,6 @@
          ! Update the array of rate constants
          CALL Update_RCONST( )
 
-         !=====================================================================
-         ! Set options for the KPP Integrator (M. J. Evans)
-         !
-         ! NOTE: Because RCNTRL(3) is set to an array value that
-         ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
-         ! within the OpenMP parallel loop and define it just
-         ! before the call to to Integrate. (bmy, 3/24/16)
-         !=====================================================================
- 
-!>>>         IF (i .eq. 40 .and. j .eq. 20 .and. l .eq. 1) then
-!>>>            write(*,*) 'RCONST:', k_trop(2), fac_diurnal, PCO_NMVOC(I,J,L)
-!>>>            do NN=1,NREACT
-!>>>               write(*,*) RCONST(NN)
-!>>>            enddo
-!>>>            write(*,*) 'C:'
-!>>>            do NN=1,NSPEC
-!>>>               write(*,*) SPC_NAMES(NN), C(NN)
-!>>>            enddo
-!>>>            read(*,*)
-!>>>         ENDIF
-         
          ! Call the KPP integrator
          CALL Integrate( TIN, TOUT, ICNTRL, IERR )
          
@@ -2078,15 +2055,7 @@
 
         ! Temperature (K)
         TEMP            = State_Met%T(I,J,L)
-        IF ( State_Met%InStratosphere(I,J,L) ) THEN
-           K_TROP = 0.d0
-           TROP   = 0.d0 ! Toggle
-           
-           ! Strat Rates
-           K_STRAT(1) = CH4LOSS ! 1/s
-           K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
-           K_STRAT(3) = GMI_LOSS_CO ! 1/s
-        ELSE ! In the trop
+        IF ( .not. State_Met%InStratosphere(I,J,L) ) THEN ! make the .true. branch the troposphere
            K_STRAT = 0.d0
            TROP    = 1.e0 ! Toggle
 
@@ -2111,6 +2080,14 @@
            ENDIF
            K_TROP(2)      = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
            K_TROP(3)      = PCO_NMVOC * FAC_DIURNAL ! 
+        ELSE ! In the strat
+           K_TROP = 0.d0
+           TROP   = 0.d0 ! Toggle
+           
+           ! Strat Rates
+           K_STRAT(1) = CH4LOSS ! 1/s
+           K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
+           K_STRAT(3) = GMI_LOSS_CO ! 1/s
         ENDIF ! In the strat/trop
 
         CONTAINS
