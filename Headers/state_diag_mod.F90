@@ -6916,7 +6916,7 @@ CONTAINS
     ! (3) The Tagged O3 specialty simulation
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM   .or. &
-         Input_Opt%ITS_A_MERCURY_SIM. .or. Input_Opt%ITS_A_TAGCO_SIM    .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  .or. Input_Opt%ITS_A_TAGCO_SIM    .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                    ) THEN
 
        !--------------------------------------------------------------------

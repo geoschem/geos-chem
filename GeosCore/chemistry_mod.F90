@@ -882,7 +882,7 @@ CONTAINS
        !=====================================================================
        ! CH4-CO-CO2 Joint (configure with -DMECH=ccycle)
        !=====================================================================
-       ELSE IF ( Input_Opt%IT_IS_A_CCYCLE_SIM ) THEN
+       ELSE IF ( Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
           CALL Chem_Ccycle( Input_Opt  = Input_Opt,                          &
                             State_Met  = State_Met,                          &

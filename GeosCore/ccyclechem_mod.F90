@@ -9,8 +9,6 @@
 ! for simulating CH4 CO and CO2 with an online calculation of the
 ! chemistry between them using KPP. It was adapted directly from
 ! the module CH4_CO_CO2_MOD.F provided by Beata Bukosa.
-!
-
 !\\
 !\\
 ! !INTERFACE: 
@@ -20,24 +18,29 @@
 ! !USES:
 !
       USE ERROR_MOD,     ONLY : SAFE_DIV
-      USE HCO_ERROR_MOD, ONLY : HCO_SUCCESS, HCO_FAIL, HCO_WARNING, hp       ! For HEMCO error reporting
+      USE HCO_ERROR_MOD, ONLY : HCO_SUCCESS, HCO_FAIL, HCO_WARNING, hp
       USE PhysConstants
-      USE PRECISION_MOD       ! For GEOS-Chem Precision (fp, f4, f8)
+      USE PRECISION_MOD
       USE inquireMod,    ONLY : findFreeLUN
 
       IMPLICIT NONE
       PRIVATE
-
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: EMISS_CCYCLE
-      PUBLIC :: CHEM_CCYCLE
-      PUBLIC :: INIT_CCYCLE
-      PUBLIC :: CLEANUP_CCYCLE
+      PUBLIC :: Emiss_Ccycle
+      PUBLIC :: Chem_Ccycle
+      PUBLIC :: Init_Ccycle
+      PUBLIC :: Cleanup_Ccycle
+!
+! !PUBLIC DATA MEMBERS:
+!
+      
+      ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
+      ! Methane emissions units are [kg/m2/s]
+      REAL(fp), ALLOCATABLE, PUBLIC :: CH4_EMIS_J(:,:,:)
+
+      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3 ! hard-coded MW
 !
 ! !REVISION HISTORY:
 !  04 Apr 2022 - M.S. Long   - Initial version
@@ -45,20 +48,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PUBLIC DATA MEMBERS:
-!
-      REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3 ! hard-coded MW
 
-      ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
-      ! Methane emissions units are [kg/m2/s]
-      REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS_J(:,:,:)
-
-!------------------------------------------------------------------------------
-!BOC
-!     
-! !DEFINED PARAMETERS:
-!
       !========================================================================
       ! Module Variables:
       ! BAIRDENS   : Array for air density                      [molec/cm3]
@@ -77,13 +67,12 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Diagnostic flags
-      LOGICAL               :: Do_ND43
+      ! Scalars
+      INTEGER               :: id_CH4,   id_CO,  id_COCH4, id_COnmvoc
+      INTEGER               :: id_CO2,   id_OCS, id_OH
+      REAL(fp)              :: TROPOCH4
 
-      ! Species ID flag
-      INTEGER               :: id_CH4
-
-      ! Various arrays      
+      ! Arrays
       REAL(fp), ALLOCATABLE :: BAIRDENS(:,:,:)
 
       ! Pointers to fields in the HEMCO data structure.
@@ -91,8 +80,6 @@
       ! NOTE: These are globally SAVEd variables so we can
       ! nullify these in the declaration statement (bmy, 4/29/16)
       REAL(f4), POINTER     :: CLUSTERS(:,:)  => NULL()
-
-      REAL(fp)              :: TROPOCH4
 
 ! !PRIVATE TYPES:
 !
@@ -131,9 +118,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emissch4
+! !IROUTINE: emiss_ccycle
 !
-! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the
+! !DESCRIPTION: Places emissions of CH4, CO, CO2, OCS [kg] into the 
 !  chemical species array.
 !\\
 !\\
@@ -169,42 +156,6 @@
 !  read the HEMCO manual diagnostics into CH4_EMIS for the analytical
 !  inversion.  Therefore, we will keep EmissCh4 for the time-being
 !  but only remove the bpch diagnostic.
-! 
-! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
-!  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
-!  (5 ) Renamed input files to CH4_monthly.geos.{RES} and 
-!        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
-!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
-!  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
-!        weren't necessary (bmy, 3/20/01)
-!  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
-!        instead of IUNIT as the file unit #. (bmy, 6/27/02)
-!  (9 ) Now reference BXHEIGHT and SUNCOS from "dao_mod.f".  Remove reference 
-!        to header file "comtrid.h" -- it's not used.  Make FIRSTEMISS a local
-!        SAVEd variable.  Also use MONTH from "CMN" instead of the variable
-!        LMN. (bmy, 11/15/02)
-!  (10) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
-!        Now use function GET_MONTH and GET_TS_EMIS from "time_mod.f". 
-!        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        I0 and J0 are now local variables. (bmy, 3/27/03)
-!  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
-!        "directory_mod.f". (bmy, 7/20/04)
-!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (13) Add non-local PBL capability (ccc, 8/31/09)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
-!  09 Sep 2014 - C. Keller   - Implemented HEMCO
-!  11 Sep 2015 - E. Lundgren - Remove area-dependency (except for global mass
-!                              sums) by outputting diagnostics as kg/m2 not kg
-!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arg list since not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,22 +163,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                  :: I, J, N
-      REAL(fp)                 :: DTSRCE, AREA_M2
+      INTEGER            :: I, J, N
+      REAL(fp)           :: DTSRCE, AREA_M2
 
       ! Strings
-      CHARACTER(LEN= 63)       :: DgnName
-      CHARACTER(LEN=255)       :: ErrMsg
-      CHARACTER(LEN=255)       :: ThisLoc
+      CHARACTER(LEN= 63) :: DgnName
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       ! For fields from Input_Opt
-      LOGICAL                  :: ITS_A_CCYCLE_SIM
-      LOGICAL                  :: LPRT
-      LOGICAL                  :: prtDebug
-      LOGICAL, SAVE            :: FIRST = .TRUE.
+      LOGICAL            :: prtDebug
+      LOGICAL, SAVE      :: FIRST = .TRUE.
 
       ! Pointers
-      REAL(f4),        POINTER :: Ptr2D(:,:)
+      REAL(f4), POINTER  :: Ptr2D(:,:)
 
       !=================================================================
       ! EMISSCH4 begins here!
@@ -236,16 +185,12 @@
       Ptr2D => NULL()
 
       ! Assume success
-      RC      = GC_SUCCESS
-      ErrMsg  = ''
-      ThisLoc = ' -> at EMISSCH4 (in GeosCore/global_ch4_mod.F)'
-
-      ! Copy values from Input_Opt
-      ITS_A_CCYCLE_SIM  = Input_Opt%ITS_A_CCYCLE_SIM
-      LPRT           = Input_Opt%LPRT
+      RC       = GC_SUCCESS
+      prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+      ErrMsg   = ''
+      ThisLoc  = ' -> at EMISSCH4 (in GeosCore/global_ch4_mod.F)'
 
       ! Do we have to print debug output?
-      prtDebug       = ( LPRT .and. Input_Opt%amIRoot )
 
       ! Exit with error if we can't find the HEMCO state object
       IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
@@ -257,7 +202,7 @@
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
 
-      IF ( ITS_A_CCYCLE_SIM .and. LPRT ) THEN
+      IF ( Input_Opt%ITS_A_CCYCLE_SIM .and. prtDebug ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
       ENDIF
 
@@ -619,7 +564,7 @@
          WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS_J(:,:,15))
       ENDIF
 
-      IF ( ITS_A_CCYCLE_SIM .and. LPRT ) THEN
+      IF ( Input_Opt%ITS_A_CCYCLE_SIM .and. prtDebug ) THEN
          print*,'END SUBROUTINE: EMISSCH4'
       ENDIF
 
@@ -630,10 +575,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: chemch4
+! !IROUTINE: chem_ccycle
 !
-! !DESCRIPTION: Subroutine CHEMCH4 computes the chemical loss of CH4
-!  (sources - sinks). (jsw, bnd, bmy, 6/8/00, 10/3/05)
+! !DESCRIPTION: Computes the chemical loss of carbon species (sources - sinks)
 !\\
 !\\
 ! !INTERFACE:
@@ -643,15 +587,13 @@
 !
 ! !USES:
 !
-!      USE CCYCLE_PRECISION
-!      USE CMN_SIZE_MOD
-      USE CCYCLE_GLOBAL
-      USE CCYCLE_Initialize,  ONLY : Init_KPP => Initialize
-      USE CCYCLE_INTEGRATOR,  ONLY : INTEGRATE
-      USE CCYCLE_MONITOR,     ONLY : SPC_NAMES
-      USE CCYCLE_PARAMETERS
-      USE CCYCLE_PRECISION
-      USE CCYCLE_RATES,       ONLY : UPDATE_RCONST
+      USE gckpp_Global
+      USE gckpp_Initialize,  ONLY : Init_KPP => Initialize
+      USE gckpp_Integrator,  ONLY : INTEGRATE
+      USE gckpp_Monitor,     ONLY : SPC_NAMES
+      USE gckpp_Parameters
+      USE gckpp_precision
+      USE gckpp_Rates,       ONLY : UPDATE_RCONST
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD43, AD65
@@ -659,18 +601,16 @@
       USE DIAG04_MOD,         ONLY : AD04_chem
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE HCO_State_Mod,      ONLY : Hco_GetHcoId
       USE HCO_State_GC_Mod,   ONLY : HcoState
-!      USE HCO_Error_Mod
       USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
+      USE rateLawUtilFuncs,   ONLY : SafeDiv
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-!      USE Tagged_CO_Mod,      ONLY : CALC_DIURNAL
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -710,47 +650,15 @@
 !  (6 ) Removel by Cl
 ! 
 ! !REVISION HISTORY:
-!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
-!        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
-!        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CHEMCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Updated comments (jsw, bmy, 2/12/01)
-!  (4 ) LD43 is already declared in CMN_DIAG; don't redefine it (bmy, 11/15/01)
-!  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (6 ) Now reference AD from "dao_mod.f".  Now reference GEOS_CHEM_STOP from
-!        "error_mod.f"  Now make FIRSTCHEM a local SAVEd variable.  Now 
-!        reference ALBD from "dao_mod.f".  Now use MONTH and JDATE from "CMN"
-!        instead of LMN and LDY. (bmy, 11/15/02)
-!  (7 ) Remove NYMDb, NYMDe from the arg list.  Now use functions GET_MONTH,
-!        GET_NYMDb, GET_NYMDe, GET_MONTH, GET_DAY from the new "time_mod.f"
-!        (bmy, 3/27/03) 
-!  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (9 ) Remove reference to BPCH2_MOD, it's not needed (bmy, 10/3/05)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the 
-!                              code out with #ifdef blocks so it can be used)
-!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
-!  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+      LOGICAL            :: failed
       INTEGER            :: I, J, L
       REAL(fp)           :: PREVCH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
@@ -773,11 +681,8 @@
       INTEGER                  :: N, NN,            MONTH,       YEAR
       INTEGER                  :: IERR
       REAL(fp)                 :: DTCHEM
-      REAL(fp)                 :: CO_CH4,        CO_ISOP,     CO_MONO
-      REAL(fp)                 :: CO_CH3OH,      CO_OH,       CO_ACET
-      REAL(fp)                 :: CO_NMVOC,      E_CO2
       REAL(fp)                 :: FMOL_CO
-      REAL(fp)                 :: FAC_DIURNAL, SUNCOS
+      REAL(fp)                 :: FAC_DIURNAL
       REAL(fp)                 :: kgs_to_atomsC, Emis,        DTEMIS
       REAL(fp)                 :: kgm3_to_mcm3OH,kgm3_to_mcm3sCO
       REAL(fp)                 :: TOUT,          TIN
@@ -929,7 +834,7 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
-      IF ( Do_ND43 .or. State_Diag%Archive_OHconcAfterChem ) THEN
+      IF ( State_Diag%Archive_OHconcAfterChem ) THEN
 
          ! Zero the diagnostic array for OH to avoid leftover values
          IF ( State_Diag%Archive_OHconcAfterChem ) THEN
@@ -941,6 +846,7 @@
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
 
+            ! NOTE: SUNCOS is in gckpp_Globaal.F90
             ! Same as for CO add a dirunal OH cycle (bb 2019)
             ! Cosine of the solar zenith angle [unitless]
             SUNCOS = State_Met%SUNCOSmid(I,J)
@@ -953,30 +859,15 @@
                FAC_DIURNAL = 0.0_fp
             ENDIF
 
+            !--------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            ! OH concentration in [molec/cm3] after chemistry
+            !--------------------------------------------------------
             IF ( State_Met%InChemGrid(I,J,L) ) THEN
-
-#if defined( BPCH_DIAG )
-               !--------------------------------------------------------
-               ! ND43 (bpch) diagnostic
-               ! OH concentration in [molec/cm3] after chemistry
-               !--------------------------------------------------------
-               IF ( Do_ND43 .and. L <= LD43 ) THEN
-                  AD43(I,J,L,1) = AD43(I,J,L,1) + &
-                  ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
-               ENDIF
-#endif
-
-
-!#if defined( NC_DIAG )
-               !--------------------------------------------------------
-               ! HISTORY (aka netCDF diagnostics)
-               ! OH concentration in [molec/cm3] after chemistry
-               !--------------------------------------------------------
                IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                   State_Diag%OHconcAfterChem(I,J,L) = &
                    ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 * FAC_DIURNAL )
                ENDIF
-!#endif
 
             ENDIF
          ENDDO
@@ -1197,95 +1088,118 @@
       ENDIF
 
       !%%%%% TIMESTEPS %%%%%
-!      DT        = GET_TS_CHEM() ! [s]
-!      T         = 0d0
-      TIN       = 0
-      TOUT      = DTCHEM
+      TIN         = 0
+      TOUT        = DTCHEM
       
-      ICNTRL    = 0
-      ICNTRL(1) = 1 ! Verbose error output
-      ICNTRL(2) = 0 ! Stop model on negative values
+      !%%%%% Fine-tune the integrator %%%%%
+      ICNTRL     =  0
+      ICNTRL(1)  =  1   ! Verbose error output
+      ICNTRL(2)  =  0   ! Stop model on negative values
+      ICNTRL(15) = -1   ! Do not call Update_SUN, Update_RCONST w/in integrator
       
-      !=================================================================
-      ! Do tagged CO chemistry -- Put everything within a large 
-      ! DO-loop over all grid boxes to facilitate parallelization
-      !=================================================================
-      !$OMP PARALLEL DO                                       & 
-      !$OMP DEFAULT( SHARED                                  )&
-      !$OMP PRIVATE( I,           J,        L,        N      )&
-      !$OMP PRIVATE( CO_CH4                                  )&
-      !$OMP PRIVATE( CO_ISOP,     CO_CH3OH, CO_MONO, CO_ACET )&
-      !$OMP PRIVATE( CO_OH                                   )&
-      !$OMP PRIVATE( FAC_DIURNAL, SUNCOS,   ERR_LOC          )&
-      !$OMP PRIVATE( CO_NMVOC                                )&
-      !$OMP PRIVATE( ERR_VAR,     ERR_MSG,  E_CO2            )
+      ! Set a flag to denote if
+      failed     = .FALSE.
+
+      !======================================================================
+      ! Do chemistry -- Put everything within a large DO-loop 
+      ! over all grid boxes to facilitate parallelization
+      !
+      ! NOTE: SUNCOS is held THREADPRIVATE in gckpp_Global.F90
+      !======================================================================
+      !$OMP PARALLEL DO                                                      & 
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I, J, L, N, FAC_DIURNAL                                )&
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( DYNAMIC, 24                                           )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
-         C(:) = 0.d0 !
-
-         ! Initialize KPP for this grid box
-         CALL Init_KPP()
+         ! Initialize private variables
+         C       = 0.0_dp        
+         CFACTOR = 1.0_dp
+         K_STRAT = 0.0_dp
+         K_TROP  = 0.0_dp
+         TROP    = 0.0_dp
 
          ! Species
          ! From kg to molec/cm3
-         C(ind_CH4)      = Spc(I,J,L,1) &
-              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
-         C(ind_CO2)      = Spc(I,J,L,Ind_('CO2')) &
-              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO2 
-         C(ind_CO)       = Spc(I,J,L,Ind_('CO')) &
-              / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CO 
+         IF ( id_CH4 > 0 ) THEN
+            C(ind_CH4) = Spc(I,J,L,id_CH4) / State_Met%AIRVOL(I,J,L)         &
+                       / 1e+6_fp           * XNUMOL_CH4
+         ENDIF
 
-         C(ind_CH4_E)    = 1.E0 ! Factor. "_E" is "external"
-         C(ind_NMVOC_E)  = 1.E0 ! Factor. "_E" is "external"
-           
+         IF ( id_CO2 > 0 ) THEN
+            C(ind_CO2) = Spc(I,J,L,id_CO2) / State_Met%AIRVOL(I,J,L)         &
+                         / 1e+6_fp         * XNUMOL_CO2 
+         ENDIF
+
+         IF ( ind_CO > 0 ) THEN
+            C(ind_CO)  = Spc(I,J,L,id_CO)  / State_Met%AIRVOL(I,J,L)         &
+                       / 1e+6_fp           * XNUMOL_CO 
+         ENDIF
+
+         C(ind_CH4_E)    = 1.0_dp   ! Factor. "_E" is "external"
+         C(ind_NMVOC_E)  = 1.0_dp   ! Factor. "_E" is "external"
+
+
          CALL SETKPPVALS( State_Chm, State_Met, I, J, L, &
               State_Met%AIRNUMDEN(I,J,L),                &
               CH4LOSS(I,J,L), GMI_PROD_CO(I,J,L),        &
               GMI_LOSS_CO(I,J,L), PCO_NMVOC(I,J,L),      &
               PCO_CH4(I,J,L), LPCO_CH4, FAC_DIURNAL )
 
-         C(ind_OH_E)    = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * FAC_DIURNAL
-         C(ind_Cl_E)    = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
+         C(ind_OH_E) = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * FAC_DIURNAL
+         C(ind_Cl_E) = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
-         IF (LPCO_CH4) k_trop(1) = safe_div(k_trop(1), (C(ind_CH4)*C(ind_OH_E)),0.d+0) ! offline rate. Factor out reactants for KPP
-
-         ! Do KPP
-
-         ! Set VAR and FIX arrays
-         VAR(1:NVAR) = C(1:NVAR)
-         FIX         = C(NVAR+1:NSPEC)
+         ! offline rate. Factor out reactants for KPP
+         IF (LPCO_CH4) THEN
+            k_trop(1) = safediv( k_trop(1), ( C(ind_CH4) *C(ind_OH_E) ), 0.0_dp )
+         ENDIF
          
-         !====================================================================
+         !===================================================================
          ! Update reaction rates
-         !=====================================================================
+         !===================================================================
          
          ! Update the array of rate constants
          CALL Update_RCONST( )
 
          ! Call the KPP integrator
-         CALL Integrate( TIN, TOUT, ICNTRL, IERR )
+         CALL Integrate( TIN      = TIN,                                     &
+                         TOUT     = TOUT,                                    &
+                         ICNTRL_U = ICNTRL,                                  & 
+                         IERR_U   = IERR                                    )
          
-         ! Done with KPP
-
-         ! Copy VAR and FIX back into C (mps, 2/24/16)
-         C(1:NVAR)       = VAR(:)
-         C(NVAR+1:NSPEC) = FIX(:)
+         ! Trap potential errors
+         IF ( IERR /= 1 ) failed = .TRUE.
 
          ! Send species from molec/cm3 to kg
-         Spc(I,J,L,1)               = C(ind_CH4) * State_Met%AIRVOL(I,J,L)  &
-             * 1e+6_fp / XNUMOL_CH4
-         Spc(I,J,L,Ind_('CO'))      = C(ind_CO) * State_Met%AIRVOL(I,J,L)  &
-             * 1e+6_fp / XNUMOL_CO
-         Spc(I,J,L,Ind_('COch4'))   = C(ind_CO_CH4) * State_Met%AIRVOL(I,J,L)  &
-             * 1e+6_fp / XNUMOL_CO
-         Spc(I,J,L,Ind_('COnmvoc')) = C(ind_CO_NMVOC) * State_Met%AIRVOL(I,J,L)  &
-             * 1e+6_fp / XNUMOL_CO
-         Spc(I,J,L,Ind_('CO2'))     = C(ind_CO2) * State_Met%AIRVOL(I,J,L)  &
-             * 1e+6_fp / XNUMOL_CO2
+         IF ( id_CH4 > 0 ) THEN
+            Spc(I,J,L,id_CH4)  = C(ind_CH4) * State_Met%AIRVOL(I,J,L)        &
+                               * 1e+6_fp    / XNUMOL_CH4
+         ENDIF
 
-            ! Handle trop loss by OH for regional CO species
+         IF ( id_CO > 0 ) THEN
+            Spc(I,J,L,id_CO)   = C(ind_CO) * State_Met%AIRVOL(I,J,L)         &
+                               * 1e+6_fp   / XNUMOL_CO
+         ENDIF
+
+         IF ( id_COch4 > 0 ) THEN
+            Spc(I,J,L,id_COCH4) = C(ind_CO_CH4) * State_Met%AIRVOL(I,J,L)    &
+                                * 1e+6_fp       / XNUMOL_CO
+         ENDIF
+
+         IF ( id_COnmvoc > 0 ) THEN
+            Spc(I,J,L,id_COnmvoc) = C(ind_CO_NMVOC) * State_Met%AIRVOL(I,J,L)&
+                                  * 1e+6_fp         / XNUMOL_CO
+         ENDIF
+
+         IF ( id_CO2 > 0 ) THEN
+            Spc(I,J,L,id_CO2) = C(ind_CO2) * State_Met%AIRVOL(I,J,L)         &
+                              * 1e+6_fp    / XNUMOL_CO2
+         ENDIF
+
+         ! Handle trop loss by OH for regional CO species
          IF ( LSPLIT ) THEN
                
             ! Loop over regional CO species
@@ -1306,22 +1220,6 @@
                !
                !    -- Jenny Fisher (27 Mar 2017)
                !-----------------------------------------------------
-               
-#if defined( BPCH_DIAG )
-               
-               !-----------------------------------------------------
-               ! ND65 (bpch) diagnostic
-               !
-               ! Loss of CO by OH for "tagged" species via 
-               !-----------------------------------------------------
-               
-               ! Units: [molec CO/cm3/s]
-               IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                  AD65(I,J,L,N) = AD65(I,J,L,N) + &
-                       C(ind_CO2_OH)/DTCHEM
-               ENDIF
-               
-#endif
                
                ! Update regional species 
                !<<Not sure if this is correct - MSL>>
@@ -1346,81 +1244,20 @@
             ENDDO
          ENDIF
 
-         !==============================================================
-         ! Calculate the chemical production of CO2
-         ! based on the CO loss by OH
-         !==============================================================
-
-         ! -- Now in KPP -- MSL
-
+         !==========================================================
+         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+         ! 
+         ! Save production of CO2 from CO oxidation [kg/m2/s]
+         !==========================================================
          IF ( Input_Opt%LCHEMCO2 ) THEN
-
-#if defined( BPCH_DIAG )
-            !==========================================================
-            ! %%%%% ND04 (bpch) DIAGNOSTICS %%%%%
-            ! 
-            ! Save production of CO2 from CO oxidation [molec/cm2/s]
-            !==========================================================
-            IF ( ND04 > 0 ) THEN
-               AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
-            ENDIF
-#endif
-
-!#if defined( NC_DIAG )
-            !==========================================================
-            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-            ! 
-            ! Save production of CO2 from CO oxidation [kg/m2/s]
-            !==========================================================
             IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
                State_Diag%ProdCO2fromCO(I,J,L) = C(ind_CO2_OH) / DTCHEM & !molec/cm2/s 
                                                / XNUMOL_CO2  & !=>kg/cm2/s
                                                * 1e4_fp      ! =>kg/m2/s
 
             ENDIF
-!#endif
-
          ENDIF
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! ND65 (bpch) diagnostics -- Production & Loss of CO
-         ! Also save P(CO) from CH3OH and MONOTERPENES (bmy, 1/2/01)
-         !==============================================================
-         IF ( ND65 > 0 .and. L <= LD65 ) THEN
 
-            ! Loss of CO by OH (global) [molec CO/cm3/s] 
-            N             = 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
-
-            ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = nAdvect + 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
-
-            ! Production of CO from NMVOCs [molec CO/cm3/s]
-            N             = nAdvect + 2
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_NMVOC / DTCHEM )
-
-            IF ( .not. LPCO_NMVOC ) THEN
-               ! Production of CO from Isoprene [molec CO/cm3/s]
-               N             = nAdvect + 3
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
-
-               ! Production of CO from CH3OH [molec CO/cm3/s]            
-               N             = nAdvect + 4
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
-
-               ! Production of CO from MONO [molec CO/cm3/s]
-               N             = nAdvect + 5
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )
-
-               ! Production of CO from ACET [molec CO/cm3/s]
-               N             = nAdvect + 6
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
-            ENDIF
-         ENDIF
-#endif
-
-!#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1444,7 +1281,6 @@
          !
          ! Loss of total CO species 
          !==============================================================
-
          ! Units: [kg/s] 
 !         IF ( State_Diag%Archive_Loss ) THEN
 !            State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
@@ -1455,6 +1291,13 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      IF ( failed ) THEN
+         errMsg = 'KPP integration failed!'
+         CALL GC_Error( errMsg, RC, thisLoc )
+         RETURN
+      ENDIF
+
+      ! Handle tagged species
       IF ( LSPLIT ) THEN
          CALL CH4_DISTRIB_CCYCLE( PREVCH4, Input_Opt, State_Chm, State_Grid )
       ENDIF
@@ -1814,10 +1657,15 @@
       ! Assume Success
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = ' -> INIT_CH4 (in module GeosCore/global_ch4_mod.F)'
+      ThisLoc = ' -> Init_Ccycle (in module GeosCore/ccyclechem_mod.F90)'
 
-      ! Define species ID flag
-      id_CH4  = Ind_('CH4')
+      ! Define species ID flags
+      id_CH4     = Ind_( 'CH4'      )
+      id_CO      = Ind_( 'CO'       )
+      id_COCH4   = Ind_( 'COCH4'    )
+      id_COnmvoc = Ind_( 'COnmvoc'  )
+      id_CO2     = Ind_( 'CO2' )
+      id_OCS     = Ind_( 'OCS' )
 
       ! Make sure CH4 is a defined species (bmy, 6/20/16)
       IF ( id_CH4 <= 0 ) THEN
@@ -1838,13 +1686,6 @@
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
-
-      ! Set a flag to denote if bpch diagnostics are activated
-#if defined( BPCH_DIAG )
-      Do_ND43 = ( ND43 > 0 )
-#else
-      Do_ND43 = .FALSE.
-#endif
 
       !=================================================================
       ! INIT CO begins here!
@@ -2022,13 +1863,14 @@
            BAIRDENS, CH4LOSS, GMI_PROD_CO, GMI_LOSS_CO, &
            PCO_NMVOC, PCO_CH4, LPCO_CH4, FAC_DIURNAL )
         
-        USE CCYCLE_GLOBAL
-        USE CCYCLE_PARAMETERS
-        USE CCYCLE_PRECISION
-        USE PhysConstants,      ONLY : AVO
-        USE State_Chm_Mod,      ONLY : ChmState, Ind_
-        USE State_Met_Mod,      ONLY : MetState
-        USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_TS_EMIS
+        USE gckpp_Global
+        USE gckpp_Parameters
+        USE gckpp_Precision
+        USE ccycle_RateLawFuncs, ONLY : GC_OHCO
+        USE PhysConstants,       ONLY : AVO
+        USE State_Chm_Mod,       ONLY : ChmState, Ind_
+        USE State_Met_Mod,       ONLY : MetState
+        USE TIME_MOD,            ONLY : GET_TS_CHEM, GET_TS_EMIS
         
 !
 ! !INPUT PARAMETERS:
@@ -2046,7 +1888,7 @@
         REAL(fp),       INTENT(OUT) :: FAC_DIURNAL
         LOGICAL,        INTENT(IN)  :: LPCO_CH4
 
-        REAL(fp) :: DTCHEM, DTEMIS, SUNCOS
+        REAL(fp) :: DTCHEM, DTEMIS
         REAL(fp) :: kgs_to_mcm3sCO, FMOL_CO
         
         ! Chemistry timestep in seconds
@@ -2078,7 +1920,7 @@
            ELSE
               K_TROP(1)   = PCO_CH4   * FAC_DIURNAL
            ENDIF
-           K_TROP(2)      = GC_OHCO( State_Met%AIRNUMDEN(I,J,L), 300d0/TEMP )
+           K_TROP(2)      = GC_OHCO()
            K_TROP(3)      = PCO_NMVOC * FAC_DIURNAL ! 
         ELSE ! In the strat
            K_TROP = 0.d0
@@ -2089,38 +1931,6 @@
            K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
            K_STRAT(3) = GMI_LOSS_CO ! 1/s
         ENDIF ! In the strat/trop
-
-        CONTAINS
-          
-          FUNCTION GC_OHCO( NUMDEN, K300_OVER_TEMP ) RESULT( k )
-            ! Reaction rate for:
-            !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
-            !
-            ! For this reaction, these Arrhenius law terms evaluate to 1:
-            !    (300/T)**b0 * EXP(c0/T)
-            ! because b0 = c0 = 0.  Therefore we can skip computing these
-            ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
-            !
-            REAL(dp), INTENT(IN) :: NUMDEN, K300_OVER_TEMP
-
-            REAL(dp)             :: klo1,   klo2,  khi1,    khi2
-            REAL(dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
-            REAL(dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
-            !
-            klo1   = 5.9E-33_dp * K300_OVER_TEMP
-            khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
-            xyrat1 = klo1 * NUMDEN / khi1
-            blog1  = LOG10( xyrat1 )
-            fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
-            kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
-            klo2   = 1.5E-13_dp
-            khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
-            xyrat2 = klo2 * NUMDEN / khi2
-            blog2  = LOG10( xyrat2 )
-            fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
-            kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
-            k      = kco1 + kco2
-          END FUNCTION GC_OHCO
 
         END SUBROUTINE SETKPPVALS
 !------------------------------------------------------------------------------

@@ -12,7 +12,7 @@ endif()
 # Build the ccycle mechanism if configured with -DMECH=ccycle
 #-----------------------------------------------------------------------------
 if("${MECH}" STREQUAL ccycle)
-  add_subdirectory(CCycle)
+  add_subdirectory(ccycle)
 endif()
 
 #-----------------------------------------------------------------------------

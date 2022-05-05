@@ -67,7 +67,8 @@ CONTAINS
 
   !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  SUBROUTINE Integrate( TIN, TOUT, ICNTRL_U, RCNTRL_U, RSTATUS_U, IERR_U )
+  SUBROUTINE Integrate( TIN,       TOUT,      ICNTRL_U , RCNTRL_U,           &
+                        ISTATUS_U, RSTATUS_U, IERR_U                        )
 
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ! User interface routine to the KPP forward Euler integrator
@@ -82,6 +83,7 @@ CONTAINS
     REAL(kind=dp), INTENT(IN),  OPTIONAL :: RCNTRL_U(20)  ! Input options
 
     !~~~> Outputs
+    INTEGER,  INTENT(IN),  OPTIONAL :: ISTATUS_U(20) ! Returned status values
     REAL(kind=dp), INTENT(OUT), OPTIONAL :: RSTATUS_U(20) ! Returned status values
     INTEGER,  INTENT(OUT), OPTIONAL :: IERR_U        ! Error code
 
@@ -135,7 +137,7 @@ CONTAINS
    VAR => NULL()
    FIX => NULL()
 
-   !~~~> Return error status
+   !~~~> Return error status (NOTE: ISTATUS_U does nothing)
    IF ( PRESENT( IERR_U    ) ) IERR_U    = IERR
    IF ( PRESENT( RSTATUS_U ) ) RSTATUS_U = RSTATUS
 

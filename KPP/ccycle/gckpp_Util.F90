@@ -343,7 +343,7 @@ SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
 ! OHreact - OH reactivity [s-1]
   REAL(kind=dp) :: OHreact
 
-  OHreact = 
+  OHreact = 0.0_dp
 
 END SUBROUTINE Get_OHreactivity
 ! End of Get_OHreactivity subroutine
