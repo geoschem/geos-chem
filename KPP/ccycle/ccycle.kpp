@@ -1,9 +1,11 @@
-#INTEGRATOR feuler
-#LANGUAGE Fortran90
-#DRIVER none
-#HESSIAN off
-#MEX off
-#STOICMAT off
+#MINVERSION   2.5.0
+#INTEGRATOR   feuler
+#LANGUAGE     Fortran90
+#UPPERCASEF90 on
+#DRIVER       none
+#HESSIAN      off
+#MEX          off
+#STOICMAT     off
 
 #INCLUDE ccycle.eqn
 

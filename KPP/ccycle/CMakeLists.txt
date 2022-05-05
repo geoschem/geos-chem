@@ -1,42 +1,58 @@
-# KPP/CCycle/CMakeLists.txt
+
+# KPP/ccycle/CMakeLists.txt
 
 #----------------------------------------------------------------------------
-# Add libKPPFirstPass.a -- fullchem mechanism
+# Add libKPPFirstPass.a -- carbon cycle (ccycle) mechanism
 #----------------------------------------------------------------------------
-add_library(CCYCLE_FirstPass
+add_library(KPP_FirstPass
   STATIC EXCLUDE_FROM_ALL
-  ccycle_Precision.F90
-  ccycle_Parameters.F90
-  ccycle_Monitor.F90
+  gckpp_Precision.F90
+  gckpp_Parameters.F90
+  gckppe_Monitor.F90
 )
 
 # Define dependencies for libKPP_FirstPass.a
-target_link_libraries(CCYCLE_FirstPass PUBLIC GEOSChemBuildProperties)
+target_link_libraries(KPP_FirstPass 
+  PUBLIC 
+  GEOSChemBuildProperties
+)
 
 #----------------------------------------------------------------------------
-# Add libKPP.a -- fullchem mechanism
+# Add libKPP.a -- carbon cycle (ccycle) mechanism
 #----------------------------------------------------------------------------
-add_library(CCYCLE 
+add_library(KPP 
   STATIC EXCLUDE_FROM_ALL
-  ccycle_Function.F90
-  ccycle_Global.F90
-  ccycle_Initialize.F90
-  ccycle_Integrator.F90
-  ccycle_Jacobian.F90
-  ccycle_LinearAlgebra.F90
-  ccycle_Model.F90
-  ccycle_Monitor.F90
-  ccycle_Parameters.F90
-  ccycle_Precision.F90
-  ccycle_Rates.F90
-  ccycle_Util.F90
+  gckpp_Function.F90
+  gckpp_Global.F90
+  gckpp_Initialize.F90
+  gckpp_Integrator.F90
+  gckpp_Jacobian.F90
+  gckpp_LinearAlgebra.F90
+  gckpp_Model.F90
+  gckpp_Monitor.F90
+  gckpp_Parameters.F90
+  gckpp_Precision.F90
+  gckpp_Rates.F90
+  gckpp_Util.F90
+  rateLawUtilFuncs.F90
+  #
+  # Build these stub modules to avoid compilation errors.
+  # These are symbolic links to files in the ../stubs folder.
+  #
+  stub_aciduptake_DustChemFuncs.F90
+  stub_fullchem_HetStateFuncs.F90
+  stub_fullchem_SulfurChemFuncs.F90
+  stub_Hg_HetStateFuncs.F90
 )
 
 # Add dependencies
-target_link_libraries(CCYCLE PUBLIC GeosUtil)
+target_link_libraries(KPP 
+  PUBLIC
+  GeosUtil
+)
 
 # When building libKPP.a, treat REAL as if it were REAL*8
-target_compile_options(CCYCLE 
+target_compile_options(KPP
   PRIVATE ""
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
