@@ -184,8 +184,9 @@ def writeReactivity(mechName):
             ntot += 1
             fo.write(istr)
 
-    # Write footer to Get_OHreactivity routine
+    # Close the subroutine and the module
     writeFooter(fo)
+    fo.write(EndModuleStr)
 
     # all done
     print('Reactivity consists of '+str(ntot)+' reactions')
