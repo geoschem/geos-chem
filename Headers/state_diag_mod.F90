@@ -5106,7 +5106,8 @@ CONTAINS
     !
     ! and THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM &
+         .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -5407,9 +5408,9 @@ CONTAINS
              RETURN
           ENDIF
        ENDDO
-
+       
     ENDIF
-
+    
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
@@ -6907,15 +6908,16 @@ CONTAINS
     !=======================================================================
     ! The production and loss diagnostics are only relevant for:
     !
-    ! ALL FULL-CHEMISTRY SIMULATIONS
-    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
-    !
-    ! and THE TAGGED CO SPECIALTY SIMULATION
-    !
-    ! and THE TAGGED O3 SPECIALTY SIMULATION
+    ! (1) All simulations implemented as KPP chemical mechanisms
+    !     - fullchem (including extra options like benchmark, *SOA*, etc.)
+    !     - ccycle
+    !     - Hg
+    ! (2) The Tagged CO specialty simulation
+    ! (3) The Tagged O3 specialty simulation
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM .or. &
-         Input_Opt%ITS_A_TAGCO_SIM    .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM   .or. &
+         Input_Opt%ITS_A_MERCURY_SIM. .or. Input_Opt%ITS_A_TAGCO_SIM    .or. &
+         Input_Opt%ITS_A_TAGO3_SIM                                    ) THEN
 
        !--------------------------------------------------------------------
        ! Chemical loss for selected species or families
@@ -6996,7 +6998,7 @@ CONTAINS
            ENDIF
         ENDDO
 
-    ENDIF
+     ENDIF
 
     !=======================================================================
     ! These diagnostics are only relevant for:
@@ -7458,7 +7460,7 @@ CONTAINS
     !
     ! THE CO2 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CO2_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Prod of CO2 from CO oxidation
@@ -7511,7 +7513,7 @@ CONTAINS
     !
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
@@ -7619,7 +7621,8 @@ CONTAINS
     ! THE CO SPECIALTY SIMULATION and
     ! THE FULL-CHEMISTRY SIMULATIONS (for archiving output for tagCO)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_FULLCHEM_SIM &
+         .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Production of CO from CH4
@@ -13512,6 +13515,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Register each tagged name as a separate diagnostic
     !-----------------------------------------------------------------------
+
     DO N = 1, nTags
 
        ! Get the diagnostic name and description

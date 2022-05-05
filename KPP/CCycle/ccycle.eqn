@@ -1,0 +1,55 @@
+{ ccycle.eqn
+-------------------------------------------------------------------------------
+DESCRIPTION
+-------------------------------------------------------------------------------
+
+GEOS-Chem KPP file containing species and equations for the carbon cycle (ccycle)
+ chemistry mechanism.
+
+===============================================================================
+FILE HISTORY
+===============================================================================
+
+v13.4 (Mar. 31, 2022)
+----------------------
+
+ (1) Initial version (MSL)
+}
+
+#include atoms
+
+#DEFVAR
+CO	 = IGNORE;
+CO_CH4   = IGNORE;
+CO_NMVOC = IGNORE;
+CO2	 = IGNORE;
+CO2_OH	 = IGNORE; {Tag the loss of CO by OH for 'tagged' species}
+CH4	 = IGNORE;
+DUMMY	 = IGNORE;
+
+#DEFFIX
+// these are defined as FIXED so their concentrations don't change
+// when used as reactants. This allows for offline forcing.
+// -- Apr 3, 2021: use *_E to designate "EXTERNAL". Please change if
+//                 an alternative is preferred
+OH_E	= IGNORE;
+Cl_E	= IGNORE;
+CH4_E	= IGNORE;
+NMVOC_E	= IGNORE;
+
+#EQUATIONS
+//----------------------------------------------------------------------------
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Reactions extracted from ch4_co_co2_mod.F                       %%%%%
+// %%%%% Based on Bukosa et al. (2021) with additions for OCS            %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//
+// --- TROP CHEM --- 
+CH4 + OH_E = CO	+ CO_CH4   : K_TROP(1); {PCO_CH4 or EXP() function}
+CH4 + Cl_E = DUMMY     	   : 9.60E-12*EXP(-1360.E0/TEMP)*TROP; {Kirschke et al, 2013 (Nature Geosci.)}
+CO  + OH_E = CO2 + CO2_OH  : K_TROP(2); {Use GC_OHCO(), if online rate calc}
+NMVOC_E    = CO	+ CO_NMVOC : K_TROP(3); {PCO_NMVOC_MCM3S; mcl/cm3/s}
+// --- STRAT CHEM ---
+CH4        = DUMMY	   : K_STRAT(1); {CH4LOSS; Strat; 1/s}
+CH4_E 	   = CO        	   : K_STRAT(2); {From GMI_PROD_CO; mcl/cm3/s}
+CO         = CO2 + CO2_OH  : K_STRAT(3); {Stratospheric CO loss from offline rates; GMI_LOSS_CO; s-1}

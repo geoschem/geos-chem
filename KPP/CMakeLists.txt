@@ -9,6 +9,13 @@ if("${MECH}" STREQUAL fullchem)
 endif()
 
 #-----------------------------------------------------------------------------
+# Build the ccycle mechanism if configured with -DMECH=ccycle
+#-----------------------------------------------------------------------------
+if("${MECH}" STREQUAL ccycle)
+  add_subdirectory(CCycle)
+endif()
+
+#-----------------------------------------------------------------------------
 # Build the custom mechanism if configured with -DMECH=custom
 #-----------------------------------------------------------------------------
 if("${MECH}" STREQUAL custom)

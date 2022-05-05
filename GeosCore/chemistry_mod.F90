@@ -66,6 +66,7 @@ CONTAINS
     USE AEROSOL_MOD,     ONLY : RDAER
     USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
+    USE CCYCLECHEM_MOD,  ONLY : CHEM_CCYCLE
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
     USE DUST_MOD,        ONLY : RDUST_ONLINE
@@ -879,7 +880,26 @@ CONTAINS
           ENDIF
 
        !=====================================================================
-       ! Mercury (only used when compiled with BPCH_DIAG=y)
+       ! CH4-CO-CO2 Joint (configure with -DMECH=ccycle)
+       !=====================================================================
+       ELSE IF ( Input_Opt%IT_IS_A_CCYCLE_SIM ) THEN
+
+          CALL Chem_Ccycle( Input_Opt  = Input_Opt,                          &
+                            State_Met  = State_Met,                          &
+                            State_Chm  = State_Chm,                          &
+                            State_Grid = State_Grid,                         &
+                            State_Diag = State_Diag,                         &
+                            RC         = RC                                 )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Chem_CCYCLE"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       !====================================================================
+       ! Mercury (configure with -DMECH=Hg)
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 

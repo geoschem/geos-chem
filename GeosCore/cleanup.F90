@@ -17,6 +17,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
   USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
   USE CARBON_MOD,              ONLY : CLEANUP_CARBON
+  USE CCycleChem_Mod,          ONLY : CLEANUP_CCYCLE
   USE CO2_MOD,                 ONLY : CLEANUP_CO2
   USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
@@ -159,6 +160,13 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL Cleanup_Global_CH4( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_Global_CH4"!'
+     CALL GC_Error( ErrMsg, RC, ThisLoc )
+     RETURN
+  ENDIF
+
+  CALL Cleanup_CCYCLE( RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Cleanup_CCYCLE"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
