@@ -448,11 +448,13 @@ CONTAINS
  !%%%
                            XMASS,    YMASS,                       &
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        AREA_M2, ND24, ND25, ND26   )
+                        AREA_M2, State_Chm, State_Diag   )
 !----------------------------------------------------------------------------
 
 ! Uses:
     USE PhysConstants  ! Physical constants g0_100 and AIRMW
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
 
  implicit none
 
@@ -549,26 +551,14 @@ CONTAINS
  real  fx(im,jfirst:jlast,km)     ! E-W air mass flux
  real  va(im,jfirst:jlast,km)     ! N-S CFL at cell center (scalar points)
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
  !%%% Added XMASS, YMASS for the PJC pressure-fixer (bdf, bmy, 5/7/03)
- !%%%
  REAL,    INTENT(IN)    :: XMASS(:,:,:), YMASS(:,:,:)
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
- !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
- !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
- !%%% Added netcdf diagnostic arrays (ewl, 1/11/16)
- !%%%
  REAL,    INTENT(IN)    :: AREA_M2(JM)       ! box area for mass flux diag
- INTEGER, INTENT(IN)    :: ND24              ! E/W flux diag switch
- INTEGER, INTENT(IN)    :: ND25              ! N/S flux diag switch
- INTEGER, INTENT(IN)    :: ND26              ! up/down flux diag switch
+
+ ! Chemistry and diagnostic state objects
+ TYPE(ChmState), INTENT(INOUT) :: State_Chm
+ TYPE(DgnState), INTENT(INOUT) :: State_Diag
 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -593,15 +583,17 @@ CONTAINS
  integer nx                         ! Internal E-W OpenMP decomposition
  integer iv                         ! Monotonicity constraints for top and bottom
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Define DTC, QTEMP, TRACE_DIFF for ND26 diagnostic (bdf, bmy, 9/28/04)
- !%%%
- REAL DTC(IM,JM,KM,NQ)              ! up/down flux temp array
- REAL QTEMP(IM,JM,KM,NQ)            ! up/down flux array
- REAL TRACE_DIFF                    ! up/down flux variable
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ ! Binary diagnostics are retired but netcdf needs implementation.
+ ! Comment out for now (ewl, 3/10/22)
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+! !%%%
+! !%%% Define DTC, QTEMP, TRACE_DIFF for ND26 diagnostic (bdf, bmy, 9/28/04)
+! !%%%
+! REAL DTC(IM,JM,KM,NQ)              ! up/down flux temp array
+! REAL QTEMP(IM,JM,KM,NQ)            ! up/down flux array
+! REAL TRACE_DIFF                    ! up/down flux variable
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  parameter (nx = 1)                 ! Try 2 or 4 if large number of OMP threads
                                     ! is to be used
@@ -786,8 +778,10 @@ CONTAINS
                im,  jm,  iv,   iord,     jord,              &
                ng,  mg,  fx(1,jfirst,k), fy(1,jfirst,k),    &
                ffsl(jfirst-ng,k),    jfirst,   jlast,       &
-               delp1(1,jfirst-mg,k),    delp(1,jfirst,k),   &
-               AREA_M2, ND24, ND25, DT )
+               delp1(1,jfirst-mg,k),    delp(1,jfirst,k))!,   &
+ ! Binary diagnostics are retired but netcdf needs implementation.
+ ! Comment out for now (ewl, 3/10/22)
+!               AREA_M2, ND24, ND25, DT )
 
 !------------------------------------------------------------------------------
 ! Prior to 4/1/15:
@@ -818,79 +812,85 @@ CONTAINS
 ! Mass will be conserved if predicted ps2 == psn (data/model)
 !---------------------------------------------------------------
 
+ ! Binary diagnostics are retired but netcdf needs implementation.
+ ! Comment out for now (ewl, 3/10/22)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
  !%%%
  !%%% Save tracer values before vertical transport (bdf, bmy, 9/28/04)
  !%%%
- QTEMP = Q
+! IF ( ND26 > 0 ) THEN
+!    QTEMP = Q
+! ENDIF
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  call qmap(pe, q, im, jm, km, nx, jfirst, jlast, ng, nq,         &
            ps, ak, bk, kord, iv)
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Implement ND26 diag: Up/down flux of tracer [kg/s] (bmy, bdf, 9/28/04)
- !%%%
- !%%% The vertical transport done in qmap.  We need to find the difference
- !%%% in order to to interpret transport.
- !%%%
- !%%% Break up diagnostic into up & down fluxes using the surface boundary
- !%%% conditions.  Start from top down (really surface up for flipped TPCORE)
- !%%%
- IF ( ND26 > 0 ) THEN
-
-    !-----------------
-    ! start with top
-    !-----------------
-    K = 1
-
-!$OMP PARALLEL DO           &
-!$OMP DEFAULT( SHARED )     &
-!$OMP PRIVATE( I, J, IQ )
-    DO IQ = 1, NQ
-    DO I  = 1, IM
-    DO J  = 1, JM
-
-       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
-                         QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
-                         AREA_M2(J) * g0_100
-
-       ! top layer should have no residual.  the small residual is from
-       ! a non-pressure fixed flux diag.  The z direction may be off by
-       ! a few percent.
-       !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
-    ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
-
-    !----------------------------------------------------
-    ! get the other fluxes using a mass balance equation
-    !----------------------------------------------------
-    DO K  = 2, KM
-!$OMP PARALLEL DO                      &
-!$OMP DEFAULT( SHARED )                &
-!$OMP PRIVATE( I, J, IQ, TRACE_DIFF )
-    DO IQ = 1, NQ
-    DO I  = 1, IM
-    DO J  = 1, JM
-
-       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
-                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
-                              AREA_M2(J) * g0_100
-
-       DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
-
-    ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
-    ENDDO
-
-    ENDIF
+ ! Binary diagnostics are retired but netcdf needs implementation.
+ ! Comment out for now (ewl, 3/10/22)
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+! !%%%
+! !%%% Implement ND26 diag: Up/down flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+! !%%%
+! !%%% The vertical transport done in qmap.  We need to find the difference
+! !%%% in order to to interpret transport.
+! !%%%
+! !%%% Break up diagnostic into up & down fluxes using the surface boundary
+! !%%% conditions.  Start from top down (really surface up for flipped TPCORE)
+! !%%%
+! IF ( ND26 > 0 ) THEN
+!
+!    !-----------------
+!    ! start with top
+!    !-----------------
+!    K = 1
+!
+!!$OMP PARALLEL DO           &
+!!$OMP DEFAULT( SHARED )     &
+!!$OMP PRIVATE( I, J, IQ )
+!    DO IQ = 1, NQ
+!    DO I  = 1, IM
+!    DO J  = 1, JM
+!
+!       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
+!                         QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
+!                         AREA_M2(J) * g0_100
+!
+!       ! top layer should have no residual.  the small residual is from
+!       ! a non-pressure fixed flux diag.  The z direction may be off by
+!       ! a few percent.
+!       !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
+!    ENDDO
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+!
+!    !----------------------------------------------------
+!    ! get the other fluxes using a mass balance equation
+!    !----------------------------------------------------
+!    DO K  = 2, KM
+!!$OMP PARALLEL DO                      &
+!!$OMP DEFAULT( SHARED )                &
+!!$OMP PRIVATE( I, J, IQ, TRACE_DIFF )
+!    DO IQ = 1, NQ
+!    DO I  = 1, IM
+!    DO J  = 1, JM
+!
+!       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -     &
+!                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *     &
+!                              AREA_M2(J) * g0_100
+!
+!       DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
+!
+!    ENDDO
+!    ENDDO
+!    ENDDO
+!!$OMP END PARALLEL DO
+!    ENDDO
+!
+!    ENDIF
 
  END subroutine TPCORE_WINDOW
 
@@ -1236,8 +1236,7 @@ CONTAINS
 
  subroutine tp2g(h,  va, crx, cry, im, jm, iv,         &
                 iord, jord, ng, mg, xfx, yfx, ffsl,    &
-                jfirst, jlast, dp, dpp,                &
-                AREA_M2, ND24, ND25, DT )
+                jfirst, jlast, dp, dpp                )
 
 ! Uses:
     USE PhysConstants  ! Physical constants g0_100
@@ -1264,10 +1263,12 @@ CONTAINS
 
    real, intent(inout) :: h(im,jfirst-ng:jlast+ng)
 
-   REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
-   INTEGER, INTENT(IN)    :: ND24           ! flux diag
-   INTEGER, INTENT(IN)    :: ND25           ! flux diag
-   REAL,    INTENT(IN)    :: DT             ! time step for flux diagnostic
+ ! Binary diagnostics are retired but netcdf needs implementation.
+ ! Comment out for now (ewl, 3/10/22)
+!   REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
+!   INTEGER, INTENT(IN)    :: ND24           ! flux diag
+!   INTEGER, INTENT(IN)    :: ND25           ! flux diag
+!   REAL,    INTENT(IN)    :: DT             ! time step for flux diagnostic
 
 ! Local
    real fx(im,jfirst:jlast)        ! tracer flux in x ( unghosted )
@@ -1317,64 +1318,66 @@ CONTAINS
 !        call xpavg(h(:,jm), im)
    endif
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Implement ND24 diag: E/W flux of tracer [kg/s] (bmy, bdf, 9/28/04)
- !%%%
- !%%% (1) H is in units of mixing ratio (input as Q)
- !%%% (2) Unit conversion needs multiply from mixing
- !%%%      (airmass/tracer mass)/timestep to get into kg/s
- !%%% (3) DP is current pressure thickness
- !%%%
-   IF ( ND24 > 0 ) THEN
-      DO J = JS2G0, JN2G0
-
-         DO I = 1, IM-1
-
-            DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT
-
-         ENDDO
-
-         DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT
-
-      ENDDO
-   ENDIF
-
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
- !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 10/29/04)
- !%%%
-   IF ( ND25 > 0 ) THEN
-      DO J = JS2G0, JN2G0
-      DO I = 1,     IM
-
-         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT
-
-      ENDDO
-      ENDDO
-
-      ! South Pole
-      IF ( JFIRST == 1 ) THEN
-         DO I = 1, IM
-
-            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT
-
-         ENDDO
-      ENDIF
-
-      ! North Pole
-      IF ( JLAST == JM ) THEN
-         DO I = 1, IM
-
-            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT
-
-         ENDDO
-      ENDIF
-   ENDIF
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ ! Binary diagnostics are retired but netcdf needs implementation.
+ ! Comment out for now (ewl, 3/10/22)
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+! !%%%
+! !%%% Implement ND24 diag: E/W flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+! !%%%
+! !%%% (1) H is in units of mixing ratio (input as Q)
+! !%%% (2) Unit conversion needs multiply from mixing
+! !%%%      (airmass/tracer mass)/timestep to get into kg/s
+! !%%% (3) DP is current pressure thickness
+! !%%%
+!   IF ( ND24 > 0 ) THEN
+!      DO J = JS2G0, JN2G0
+!
+!         DO I = 1, IM-1
+!
+!            DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT
+!
+!         ENDDO
+!
+!         DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT
+!
+!      ENDDO
+!   ENDIF
+!
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+! !%%%
+! !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
+! !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 10/29/04)
+! !%%%
+!   IF ( ND25 > 0 ) THEN
+!      DO J = JS2G0, JN2G0
+!      DO I = 1,     IM
+!
+!         DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT
+!
+!      ENDDO
+!      ENDDO
+!
+!      ! South Pole
+!      IF ( JFIRST == 1 ) THEN
+!         DO I = 1, IM
+!
+!            DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT
+!
+!         ENDDO
+!      ENDIF
+!
+!      ! North Pole
+!      IF ( JLAST == JM ) THEN
+!         DO I = 1, IM
+!
+!            DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT
+!
+!         ENDDO
+!      ENDIF
+!   ENDIF
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !-------------------------------------------------------------------
 ! Apply a simple nearest neighbor flux correction to reduce negatives
