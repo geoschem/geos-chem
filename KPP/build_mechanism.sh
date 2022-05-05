@@ -129,7 +129,7 @@ sed -i -e "s|${line1}|${line2}|" gckpp_Rates.F90
 #
 # TODO: Port this to C and include within KPP
 #============================================================================
-python ../OHreact_parser.py
+python ../OHreact_parser.py ${mechName}
 
 #============================================================================
 # Change back to the prior directory and exit
