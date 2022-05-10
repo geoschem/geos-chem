@@ -209,15 +209,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Tpcore( IM,     JM,   KM,         JFIRST,                  &
-                          JLAST,  NG,   MG,         dt,                      &
-                          ae,     clat, State_Diag, RC                      )
+  SUBROUTINE Init_Tpcore( IM,     JM,   KM,  JFIRST,     &
+                          JLAST,  NG,   MG,  dt,         &
+                          ae,     clat, RC              )
 !
 ! !USES:
 !
     USE PhysConstants
     USE ErrCode_Mod
-    USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -229,7 +228,6 @@ CONTAINS
     REAL(fp),       INTENT(IN)  :: dt         ! Time step in seconds
     REAL(fp),       INTENT(IN)  :: ae         ! Earth's radius (m)
     REAL(fp),       INTENT(IN)  :: clat(JM)   ! latitude in radian
-    TYPE(DgnState), INTENT(IN)  :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -404,18 +402,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tpcore_FvDas( dt,       ae,       IM,       JM,      KM,       &
-                           JFIRST,   JLAST,    ng,       mg,      nq,       &
-                           ak,       bk,       u,        v,       ps1,      &
-                           ps2,      ps,       q,        iord,    jord,     &
-                           kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-                           AREA_M2, ND24, ND25, ND26, State_Diag )
+  SUBROUTINE Tpcore_FvDas( dt,        ae,       IM,       JM,      KM,       &
+                           JFIRST,    JLAST,    ng,       mg,      nq,       &
+                           ak,        bk,       u,        v,       ps1,      &
+                           ps2,       ps,       iord,     jord,    kord,     &
+                           n_adj,     XMASS,    YMASS,    FILL,    AREA_M2,  &
+                           State_Chm, State_Diag                            )
 !
 ! !USES:
 !
     ! Include files w/ physical constants and met values
     USE PhysConstants
     USE ErrCode_Mod
+    USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE error_mod
 !
@@ -473,11 +472,6 @@ CONTAINS
     ! Grid box surface area for mass flux diag [m2]
     REAL(fp),  INTENT(IN)  :: AREA_M2(JM)
 
-    ! Diagnostic flags
-    INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
-    INTEGER, INTENT(IN)    :: ND25    ! Turns on N/S     flux diagnostic
-    INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic
-
     LOGICAL, INTENT(IN)    :: FILL    ! Fill negatives ?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -491,10 +485,8 @@ CONTAINS
     ! surface pressure at future time=t+dt
     REAL(fp),  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)
 
-    ! Tracer "mixing ratios" [kg tracer/moist air kg]
-    REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
-
     ! Diagnostics state object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
 !
 ! !OUTPUT PARAMETERS:
@@ -564,9 +556,6 @@ CONTAINS
     REAL(fp)           :: fx    (im, jm,   km, nq)
     REAL(fp)           :: fy    (im, jm+1, km, nq)    ! one more for edges
     REAL(fp)           :: fz    (im, jm,   km, nq)
-    REAL(fp)           :: qtemp (im, jm,   km, nq)
-    REAL(fp)           :: DTC                         ! temporary variable
-    REAL(fp)           :: TRACE_DIFF                  ! up/down flux variable
 
     LOGICAL, SAVE      :: first = .true.
 
@@ -580,23 +569,11 @@ CONTAINS
     INTEGER            :: js2g0, jn2g0
 
     ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
-    REAL(fp),  POINTER :: ptr_Q(:,:,:)
-
-    LOGICAL            :: Do_ND24, Do_ND25, Do_ND26
+    REAL(fp),  POINTER :: q_ptr(:,:,:)
 
     !     ----------------
     !     Begin execution.
     !     ----------------
-
-    ! Determine if we need to save any of the bpch diagnostics
-    Do_ND24 = ( ND24 > 0 )
-    Do_ND25 = ( ND25 > 0 )
-    Do_ND26 = ( ND26 > 0 )
-
-    ! Zero netCDF diagnostic arrays
-    IF ( State_Diag%Archive_AdvFluxZonal ) State_Diag%AdvFluxZonal = 0.0_f4
-    IF ( State_Diag%Archive_AdvFluxMerid ) State_Diag%AdvFluxMerid = 0.0_f4
-    IF ( State_Diag%Archive_AdvFluxVert  ) State_Diag%AdvFluxVert  = 0.0_f4
 
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
@@ -658,7 +635,7 @@ CONTAINS
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( IK, IQ  )
+!$OMP PRIVATE( IK, IQ, q_ptr )
     do ik=1,km
 
   ! ====================
@@ -681,12 +658,17 @@ CONTAINS
     if (j1p /= 1+1) then
 
        do iq = 1, nq
+
+          q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
+
        !  ========================
           call Average_Const_Poles  &
        !  ========================
-               (dap(ik), dbk(ik), area_m2, ps1, q(:,:,ik,iq), &
+               (dap(ik), dbk(ik), area_m2, ps1, q_ptr(:,:,ik), &
                1, jm, im, &
                1, im, 1, jm, 1, im, 1, jm)
+
+          q_ptr => NULL()
 
       end do
 
@@ -791,8 +773,10 @@ CONTAINS
 !---------------------------------------------------------------------------
 !$OMP PARALLEL DO                                                     &
 !$OMP DEFAULT( SHARED                                               ) &
-!$OMP PRIVATE( iq, dq1, ik, adx, ady, ptr_Q, qqu, qqv, north, south )
+!$OMP PRIVATE( iq, dq1, ik, adx, ady, q_ptr, qqu, qqv, north, south )
     do iq = 1, nq
+
+       q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
 
        ! Zero 3-D arrays for each species
        dq1 = 0.0_fp
@@ -802,7 +786,6 @@ CONTAINS
           ! Zero PRIVATE variables for safety's sake
           adx   =  0.0_fp
           ady   =  0.0_fp
-          ptr_Q => NULL()
           qqu   =  0.0_fp
           qqv   =  0.0_fp
 
@@ -811,15 +794,15 @@ CONTAINS
           south = js(ik)
 
           !.sds.. convert to "mass"
-          dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
+          dq1(:,:,ik) = q_ptr(:,:,ik) * delp1(:,:,ik)
 
         ! ===========================
           call Calc_Advec_Cross_Terms                                        &
         ! ===========================
-               ( north,      south,      q(:,:,ik,iq), qqu, qqv,             &
-                 ua(:,:,ik), va(:,:,ik), j1p,          j2p, im,              &
-                 1,          jm,         1,            im,  1,               &
-                 jm,         1,          im,           1,   jm,              &
+               ( north,      south,      q_ptr(:,:,ik), qqu, qqv,             &
+                 ua(:,:,ik), va(:,:,ik), j1p,           j2p, im,              &
+                 1,          jm,         1,             im,  1,               &
+                 jm,         1,          im,            1,   jm,              &
                  CROSS                                                      )
 
           !.sds.. notes on arrays
@@ -874,7 +857,7 @@ CONTAINS
 
           !... update constituent array qq1 by adding in cross terms
           !           - use in fzppm
-          q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
+          q_ptr(:,:,ik) = q_ptr(:,:,ik) + ady + adx
 
 
         ! ========
@@ -921,21 +904,12 @@ CONTAINS
 
        end do  ! IK
 
-       qtemp(:,:,:,iq) = q(:,:,:,iq)
-
-       ! Set up temporary pointer to Q to avoid array temporary in FZPPM
-       ! (bmy, 6/5/13)
-       ptr_Q => q(:,:,:,iq)
-
      ! ==========
        call Fzppm                                                            &
      ! ==========
-            ( klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), j1p,                &
+            ( klmt, delp1, wz, dq1, q_ptr, fz(:,:,:,iq), j1p,                &
               1,    jm,    1,  im,  1,     jm,           im,                 &
               km,   1,     im, 1,   jm,    1,            km                 )
-
-       ! Free pointer memory (bmy, 6/5/13)
-       ptr_Q => NULL()
 
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux
@@ -952,31 +926,33 @@ CONTAINS
                (dq1, j1p, j2p, 1, jm, 1, im, 1, jm, 1, im, 1, jm, 1, km     )
        end if
 
-       q(:,:,:,iq) =  &
+       q_ptr(:,:,:) =  &
             dq1 / delp2
 
 
        if (j1p /= 2) then
 
-          q(:,2,:,iq) = q(:,1,:,iq)
-          q(:,jm-1,:,iq)  = q(:,jm,:,iq)
+          q_ptr(:,2,:) = q_ptr(:,1,:)
+          q_ptr(:,jm-1,:)  = q_ptr(:,jm,:)
 
        end if
 
+       !========================================================================
+       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+       !
+       ! Set tracer concentration to a small positive number if concentration
+       ! is negative. Negative concentration may occur at the poles. This
+       ! is an issue that should be looked into in the future. (ewl, 6/30/15)
+       !========================================================================
+       WHERE ( q_ptr < 0.0_fp )
+          q_ptr = 1.0e-26_fp
+       ENDWHERE
+
+       q_ptr => NULL()
+
     ENDDO
 !$OMP END PARALLEL DO
-
-    !=========================================================================
-    ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
-    !
-    ! Set tracer concentration to a small positive number if concentration
-    ! is negative. Negative concentration may occur at the poles. This
-    ! is an issue that should be looked into in the future. (ewl, 6/30/15)
-    !=========================================================================
-    WHERE ( Q < 0.0_fp )
-       Q = 1.0e-26_fp
-    ENDWHERE
-
+       
     !======================================================================
     ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
     !
@@ -996,6 +972,9 @@ CONTAINS
     !======================================================================
     IF ( State_Diag%Archive_AdvFluxZonal ) THEN
 
+       ! Zero netCDF diagnostic array
+       State_Diag%AdvFluxZonal = 0.0_f4
+
        ! Calculate fluxes for diag. (ccc, 11/20/08)
        JS2G0  = MAX( J1P, JFIRST )     !  No ghosting
        JN2G0  = MIN( J2P, JLAST  )     !  No ghosting
@@ -1003,7 +982,7 @@ CONTAINS
        ! Loop over diagnostic slots
        !$OMP PARALLEL DO                           &
        !$OMP DEFAULT( SHARED                     ) &
-       !$OMP PRIVATE( S, IQ, K, J, I, DTC, Kflip )
+       !$OMP PRIVATE( S, IQ, K, J, I, Kflip )
        DO S = 1, State_Diag%Map_AdvFluxZonal%nSlots
 
           ! Get the advectId from the slotId
@@ -1014,13 +993,11 @@ CONTAINS
           DO J = JS2G0, JN2G0
           DO I = 1,     IM
 
-             ! Compute mass flux [kg/s]
-             DTC = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
-
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
              Kflip                                = KM - K + 1 ! flip vert
-             State_Diag%AdvFluxZonal(I,J,Kflip,S) = DTC
+             State_Diag%AdvFluxZonal(I,J,Kflip,S) = &
+                         FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
 
           ENDDO
           ENDDO
@@ -1038,14 +1015,17 @@ CONTAINS
     ! (bdf, bmy, 9/28/04, ccarouge 12/12/08)
     !
     ! NOTE, the unit conversion is the same as desciribed above for the
-    ! ND24 E-W diagnostics.  The geometrical factor was already applied to
+    ! E-W diagnostics.  The geometrical factor was already applied to
     ! fy in Ytp. (ccc, 4/1/09)
     !=======================================================================
     IF ( State_Diag%Archive_AdvFluxMerid ) THEN
 
+       ! Zero netCDF diagnostic array
+       State_Diag%AdvFluxMerid = 0.0_f4
+
        !$OMP PARALLEL DO                           &
        !$OMP DEFAULT( SHARED                     ) &
-       !$OMP PRIVATE( S, IQ, K, J, I, DTC, Kflip )
+       !$OMP PRIVATE( S, IQ, K, J, I, Kflip )
        DO S = 1, State_Diag%Map_AdvFluxMerid%nSlots
 
           ! Get the advectId from the slotId
@@ -1057,12 +1037,13 @@ CONTAINS
           DO I = 1, IM
 
              ! Compute mass flux [kg/s]
-             DTC = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
+             
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
              Kflip                                = KM - K + 1  ! flip vert
-             State_Diag%AdvFluxMerid(I,J,Kflip,S) = DTC
+             State_Diag%AdvFluxMerid(I,J,Kflip,S) = &
+                        FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
 
           ENDDO
           ENDDO
@@ -1092,9 +1073,12 @@ CONTAINS
     !======================================================================
     IF ( State_Diag%Archive_AdvFluxVert ) THEN
 
+       ! Zero netCDF diagnostic array
+       State_Diag%AdvFluxVert  = 0.0_f4
+
        !$OMP PARALLEL DO                           &
        !$OMP DEFAULT( SHARED                     ) &
-       !$OMP PRIVATE( S, IQ, K, J, I, DTC, Kflip )
+       !$OMP PRIVATE( S, IQ, K, J, I, Kflip )
        DO S = 1, State_Diag%Map_AdvFluxVert%nSlots
 
           ! Get the advectId from the modelId
@@ -1121,12 +1105,11 @@ CONTAINS
              !
              !     -- Bob Yantosca (28 Mar 2017)
              !
-             DTC = FZ(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
-
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
              Kflip                               = KM - K + 1  !flip vert
-             State_Diag%AdvFluxVert(I,J,Kflip,S) = DTC
+             State_Diag%AdvFluxVert(I,J,Kflip,S) = &
+                        FZ(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
 
           ENDDO
           ENDDO

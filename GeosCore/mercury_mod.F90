@@ -217,7 +217,7 @@ CONTAINS
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
     USE PRESSURE_MOD
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE Time_Mod,           ONLY : Get_Ts_Chem
     USE Time_Mod,           ONLY : Get_Day
     USE Time_Mod,           ONLY : Get_Month
@@ -270,6 +270,7 @@ CONTAINS
     INTEGER                :: Day
     REAL(fp)               :: REL_HUM,   Start,     Finish,   rtim
     REAL(fp)               :: itim,      TOUT,      T,        TIN
+    REAL(fp)               :: Hg2Sum
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -286,8 +287,8 @@ CONTAINS
     REAL(dp)               :: Aout(NREACT)
 
     ! Pointers
-    REAL(fp),      POINTER :: Spc(:,:,:,:)
-    REAL(fp),      POINTER :: TK(:,:,:   )
+    TYPE(SpcConc), POINTER :: Spc(:)
+    REAL(fp),      POINTER :: TK(:,:,:)
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -740,8 +741,8 @@ CONTAINS
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0_dp )
 
-          ! Copy concentrations back into State_Chm%Species
-          State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
+          ! Copy concentrations back into species concentration array
+          State_Chm%Species(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
 
@@ -777,32 +778,32 @@ CONTAINS
        ! Archive concetration of short-lived radicals [mol/mol]
        !=====================================================================
        IF ( State_Diag%Archive_HgBrAfterChem  ) THEN
-          State_Diag%HgBrAfterChem(I,J,L)  = Spc(I,J,L,id_HgBr)              &
+          State_Diag%HgBrAfterChem(I,J,L)  = Spc(id_HgBr)%Conc(I,J,L)         &
                                            / State_Met%AirNumDen(I,J,L)
        ENDIF
 
        IF ( State_Diag%Archive_HgClAfterChem  ) THEN
-          State_Diag%HgClAfterChem(I,J,L)  = Spc(I,J,L,id_HgCl)              &
+          State_Diag%HgClAfterChem(I,J,L)  = Spc(id_HgCl)%Conc(I,J,L)         &
                                            / State_Met%AirNumDen(I,J,L)
        ENDIF
 
        IF ( State_Diag%Archive_HgOHAfterChem  ) THEN
-          State_Diag%HgOHAfterChem(I,J,L)  = Spc(I,J,L,id_HgOH)              &
+          State_Diag%HgOHAfterChem(I,J,L)  = Spc(id_HgOH)%Conc(I,J,L)         &
                                            / State_Met%AirNumDen(I,J,L)
        ENDIF
 
        IF ( State_Diag%Archive_HgBrOAfterChem ) THEN
-          State_Diag%HgBrOAfterChem(I,J,L) = Spc(I,J,L,id_HgBrO)             &
+          State_Diag%HgBrOAfterChem(I,J,L) = Spc(id_HgBrO)%Conc(I,J,L)        &
                                            / State_Met%AirNumDen(I,J,L)
        ENDIF
 
        IF ( State_Diag%Archive_HgClOAfterChem ) THEN
-          State_Diag%HgClOAfterChem(I,J,L) = Spc(I,J,L,id_HgClO)             &
+          State_Diag%HgClOAfterChem(I,J,L) = Spc(id_HgClO)%Conc(I,J,L)        &
                                            / State_Met%AirNumDen(I,J,L)
        ENDIF
 
        IF ( State_Diag%Archive_HgOHOAfterChem ) THEN
-          State_Diag%HgOHOAfterChem(I,J,L) = Spc(I,J,L,id_HgOHO)             &
+          State_Diag%HgOHOAfterChem(I,J,L) = Spc(id_HgOHO)%Conc(I,J,L)        &
                                            / State_Met%AirNumDen(I,J,L)
        ENDIF
 
@@ -839,14 +840,20 @@ CONTAINS
 
     !### Debug output (uncomment if needed)
     !IF ( ITS_A_NEW_DAY() ) THEN
-    !   WRITE(6,*) 'Total Hg0 mass [Mg]: ',                                   &
-    !               SUM ( State_Chm%Species(:,:,:,id_Hg0) )
-    !   WRITE(6,*) 'Total Hg2 mass [Mg]: ',                                   &
-    !               SUM ( State_Chm%Species(:,:,:,2:25) )
+    !    WRITE(*,*) 'Total Hg0 mass [Mg]: ', &
+    !                SUM ( State_Chm%Species(id_Hg0)%Conc(:,:,:) )
+    !    Hg2Sum = 0.0_fp
+    !    !$OMP PARALLEL DO       &
+    !    !$OMP DEFAULT( SHARED ) &
+    !    !$OMP PRIVATE( N )
+    !    DO N = 2, 25
+    !       Hg2Sum = Hg2Sum + SUM(State_Chm%Species(N)%Conc(:,:,:))
+    !    ENDDO
+    !    !$OMP END PARALLEL DO
+    !    WRITE(*,*) 'Total Hg2 mass [Mg]: ', Hg2Sum
     !ENDIF
 
     ! Free pointer memory
-    Spc     => NULL()
     TK      => NULL()
     SpcInfo => NULL()
 
@@ -1117,15 +1124,11 @@ CONTAINS
     CHARACTER(LEN=255) :: thisLoc            ! routine location
     CHARACTER(LEN=255) :: errMsg             ! message
 
-    ! Pointers
-    REAL(fp),  POINTER        :: Spc(:,:,:,:)
-
     ! Objects
-    TYPE(Species),    POINTER :: SpcInfo
+    TYPE(Species), POINTER :: SpcInfo
 
     ! Initialize pointers
     SpcInfo     => NULL()
-    Spc         => NULL()
 
     !================================================================
     ! Get_HgOxConc begins here!
@@ -1139,9 +1142,6 @@ CONTAINS
     ! Copy values from Input_Opt
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    ! Point to the chemical spcies array
-    Spc             => State_Chm%Species
-
     !=================================================================
     ! Set instantaneous species concentrations
     !=================================================================
@@ -1154,7 +1154,7 @@ CONTAINS
        SpcID = State_Chm%Map_KppFix(N)
 
        ! Get value from pointer to monthly mean field
-       Spc(:,:,:,SpcID)  = FixSpcPtr(N)%Data(:,:,:)
+       State_Chm%Species(SpcID)%Conc(:,:,:) = FixSpcPtr(N)%Data(:,:,:)
     ENDDO
 
     ! Impose diurnal cycle
@@ -1187,6 +1187,7 @@ CONTAINS
 ! !USES:
 !
     USE Time_Mod,       ONLY : Get_Ts_Chem
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1213,7 +1214,7 @@ CONTAINS
     REAL(fp) :: diurnalFac, dtChem, C_OH, C_HO2
 
     ! Pointer to Species array
-    REAL(fp),  POINTER    :: Spc(:,:,:,:)
+    TYPE(SpcConc),  POINTER :: Spc(:)
 
     !========================================================================
     ! DirunalHOx begins here!
@@ -1234,8 +1235,8 @@ CONTAINS
 
        ! Initialize loop variables
        diurnalFac = 0.0_fp
-       C_OH       = State_Chm%Species(I,J,L,id_OH )
-       C_HO2      = State_Chm%Species(I,J,L,id_HO2)
+       C_OH       = State_Chm%Species(id_OH )%Conc(I,J,L)
+       C_HO2      = State_Chm%Species(id_HO2)%Conc(I,J,L)
 
        ! If sunlight, compute diurnalFac
        ! If nighttime, skip (diurnalFac = 0)
@@ -1250,8 +1251,8 @@ CONTAINS
         ENDIF
 
         ! Scale the HOx species by the diurnal factor
-        State_Chm%Species(I,J,L,id_OH ) = C_OH  * DiurnalFac
-        State_Chm%Species(I,J,L,id_HO2) = C_HO2 * DiurnalFac
+        State_Chm%Species(id_OH )%Conc(I,J,L) = C_OH  * DiurnalFac
+        State_Chm%Species(id_HO2)%Conc(I,J,L) = C_HO2 * DiurnalFac
 
     ENDDO
     ENDDO
@@ -1276,6 +1277,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1395,8 +1397,8 @@ CONTAINS
                  ( State_Met%TS(I,J) <= 273.0_fp                   ) ) THEN
 
               ! Get BrOx concentration from species array
-              BrO_CONC = State_Chm%Species(I,J,L,id_BrO)
-              Br_CONC  = State_Chm%Species(I,J,L,id_Br)
+              BrO_CONC = State_Chm%Species(id_BrO)%Conc(I,J,L)
+              Br_CONC  = State_Chm%Species(id_Br )%Conc(I,J,L)
 
               ! Get JBrO
               JBrO     = ZPJ(L,id_phot_BrO,I,J)
@@ -1438,9 +1440,9 @@ CONTAINS
                              * State_Met%AIRNUMDEN(I,J,L)
 
               ! Replace concentrations in species array
-              State_Chm%Species(I,J,L,id_BrO) = BrO_CONC + BrO_POLAR_CONC
-              State_Chm%Species(I,J,L,id_Br ) = Br_CONC  + Br_POLAR_CONC
-              State_Chm%Species(I,J,L,id_O3 ) = O3_POLAR
+              State_Chm%Species(id_BrO)%Conc(I,J,L) = BrO_CONC + BrO_POLAR_CONC
+              State_Chm%Species(id_Br )%Conc(I,J,L) = Br_CONC  + Br_POLAR_CONC
+              State_Chm%Species(id_O3 )%Conc(I,J,L) = O3_POLAR
 
             ENDIF
         ENDIF
@@ -1566,12 +1568,12 @@ CONTAINS
           diurnalFac = Safe_Div( 1440.0_fp, TTDAY(I,J), 0.0_fp )
 
           ! Species concentrations
-          C_Br       = State_Chm%Species(I,J,L,id_Br )
-          C_BrO      = State_Chm%Species(I,J,L,id_BrO)
-          C_Cl       = State_Chm%Species(I,J,L,id_Cl )
-          C_ClO      = State_Chm%Species(I,J,L,id_ClO)
-          C_NO       = State_Chm%Species(I,J,L,id_NO )
-          C_O3       = State_Chm%Species(I,J,L,id_O3 )
+          C_Br       = State_Chm%Species(id_Br )%Conc(I,J,L)
+          C_BrO      = State_Chm%Species(id_BrO)%Conc(I,J,L)
+          C_Cl       = State_Chm%Species(id_Cl )%Conc(I,J,L)
+          C_ClO      = State_Chm%Species(id_ClO)%Conc(I,J,L)
+          C_NO       = State_Chm%Species(id_NO )%Conc(I,J,L)
+          C_O3       = State_Chm%Species(id_O3 )%Conc(I,J,L)
 
           ! BrOx and ClOx concentrations
           C_BrOx     = ( C_Br + C_BrO ) * diurnalFac
@@ -1603,10 +1605,10 @@ CONTAINS
        ! Store back into the species array
        ! If nighttime, these will have already been set to zero
        !---------------------------------------------------------------------
-       State_Chm%Species(I,J,L,id_Br ) = C_Br
-       State_Chm%Species(I,J,L,id_Cl ) = C_Cl
-       State_Chm%Species(I,J,L,id_BrO) = C_BrO
-       State_Chm%Species(I,J,L,id_ClO) = C_ClO
+       State_Chm%Species(id_Br )%Conc(I,J,L) = C_Br
+       State_Chm%Species(id_Cl )%Conc(I,J,L) = C_Cl
+       State_Chm%Species(id_BrO)%Conc(I,J,L) = C_BrO
+       State_Chm%Species(id_ClO)%Conc(I,J,L) = C_ClO
 
     ENDDO
     ENDDO
@@ -1632,6 +1634,7 @@ CONTAINS
 ! !USES:
 !
     USE Error_MoD,      ONLY : Safe_Div
+    Use Species_Mod,    ONLY : SpcConc
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1660,7 +1663,7 @@ CONTAINS
     REAL(fp)            :: C_O3, C_NOx, F_NO2, J_NO2, k3
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc(:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1702,11 +1705,11 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Zero/initialize PRIVATE loop variables
-       C_NOx = Spc(I,J,L,id_NO) + Spc(I,J,L,id_NO2)     ! molec/cm3
-       C_O3  = Spc(I,J,L,id_O3)                         ! molec/cm3
-       J_NO2 = 0.0_fp                                   ! 1/s
-       k3    = 0.0_fp                                   ! 1/s
-       F_NO2 = 1.0_fp                                   ! unitless
+       C_NOx = Spc(id_NO)%Conc(I,J,L) + Spc(id_NO2)%Conc(I,J,L) ! molec/cm3
+       C_O3  = Spc(id_O3)%Conc(I,J,L)                           ! molec/cm3
+       J_NO2 = 0.0_fp                                           ! 1/s
+       k3    = 0.0_fp                                           ! 1/s
+       F_NO2 = 1.0_fp                                           ! unitless
 
        ! Test for sunlight...
        IF ( State_Met%SUNCOS(I,J) > 0.0_fp .and. TTDAY(I,J) > 0.0_fp ) THEN
@@ -1723,16 +1726,13 @@ CONTAINS
        ENDIF
 
        ! Partition NOx into NO and NO2
-       Spc(I,J,L,id_NO2) = F_NO2 * C_NOx
-       Spc(I,J,L,id_NO)  = ( 1.0_fp - F_NO2 ) * C_NOx
+       Spc(id_NO2)%Conc(I,J,L) = F_NO2 * C_NOx
+       Spc(id_NO )%Conc(I,J,L) = ( 1.0_fp - F_NO2 ) * C_NOx
 
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Free pointer memory
-    Spc => NULL()
 
   END SUBROUTINE PartNOx
 !EOC
@@ -2101,14 +2101,14 @@ CONTAINS
           S = Map_Hg2gas(N)
 
           ! Initial Hg(II) gas concentration [molec/cm3]
-          gasConc = State_Chm%Species(I,J,L,S)
+          gasConc = State_Chm%Species(S)%Conc(I,J,L)
 
           ! Remove Hg2 lost to sea salt aerosol from the gas phase [molec/cm3]
           dGasConc = gasConc * ( 1.0_fp - EXP( -k * dt ) )
           gasConc  = gasConc - dGasConc
 
           ! Final Hg2 gas concentration [molec/cm3]
-          State_Chm%Species(I,J,L,S) = gasConc
+          State_Chm%Species(S)%Conc(I,J,L) = gasConc
 
           !------------------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
@@ -2152,7 +2152,7 @@ CONTAINS
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
-    USE Species_Mod,      ONLY : Species
+    USE Species_Mod,      ONLY : Species, SpcConc
     USE TIME_MOD,         ONLY : GET_TS_CHEM
     USE rateLawUtilFuncs, ONLY : Ars_L1K
 !
@@ -2198,7 +2198,7 @@ CONTAINS
     CHARACTER(LEN=255)  :: thisLoc
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -2314,16 +2314,16 @@ CONTAINS
           ! NOTE: gasTot is zeroed at the top of the loop
           DO N = 1, nHg2gasSpc
              S      = Map_Hg2gas(N)
-             gasTot = gasTot + Spc(I,J,L,S)
+             gasTot = gasTot + Spc(S)%Conc(I,J,L)
           ENDDO
 
           ! Concentration of Hg2 on aerosols (inorganic + organic),
           ! include any Hg2+ transported from stratosphere
-          aerConcInorg = Spc(I,J,L,id_Hg2ClP) + Spc(I,J,L,id_Hg2STRP)
-          aerConcOrg   = Spc(I,J,L,id_Hg2ORGP)
+          aerConcInorg = Spc(id_Hg2ClP)%Conc(I,J,L) + Spc(id_Hg2STRP)%Conc(I,J,L)
+          aerConcOrg   = Spc(id_Hg2ORGP)%Conc(I,J,L)
 
           ! Zero stratospheic Hg2
-          Spc(I,J,L,id_Hg2STRP) = 0.0_fp
+          Spc(id_Hg2STRP)%Conc(I,J,L) = 0.0_fp
 
           ! Total HgP concentration [molec/cm3]
           aerConc  =  aerConcInorg + aerConcOrg
@@ -2345,7 +2345,7 @@ CONTAINS
              S = Map_Hg2gas(N)
 
              ! Initial gas concentration [molec/cm3]
-             gasConc = Spc(I,J,L,S)
+             gasConc = Spc(S)%Conc(I,J,L)
 
              ! Mass transfer rate [1/s] onto dust, sulfate, BC/OC and fine SS
              k = 0.0_fp
@@ -2362,8 +2362,8 @@ CONTAINS
              dGasConc = gasConc * ( 1.0_fp - EXP( -k * DT ) )
 
              ! Remove transferred mass from gas and add to aerosol
-             Spc(I,J,L,S) = gasConc - dGasConc
-             aerConc      = aerConc + dGasConc
+             Spc(S)%Conc(I,J,L) = gasConc - dGasConc
+             aerConc            = aerConc + dGasConc
 
              !---------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
@@ -2397,8 +2397,8 @@ CONTAINS
           dGasConc = MIN( dGasConc, aerConc )
 
           ! Remove transferred mass from aerosol HgCl2 and add to gaseous HgCl2
-          aerConc             = aerConc             - dGasConc
-          Spc(I,J,L,id_HgCl2) = Spc(I,J,L,id_HgCl2) + dGasConc
+          aerConc                   = aerConc - dGasConc
+          Spc(id_HgCl2)%Conc(I,J,L) = Spc(id_HgCl2)%Conc(I,J,L) + dGasConc
 
           !------------------------------------------------------------------
           ! Partition aerosol concentration between org and inorg
@@ -2408,8 +2408,8 @@ CONTAINS
           fracOA = MIN( GLOB_fOA(I,J,L), 1.0_fp )
 
           ! Organic and inorganic HgIIP [molec/cm3]
-          Spc(I,J,L,id_Hg2OrgP) = aerConc * fracOA                ! Org
-          Spc(I,J,L,id_Hg2ClP)  = aerConc * ( 1.0_fp - fracOA )   ! Inorg
+          Spc(id_Hg2OrgP)%Conc(I,J,L) = aerConc * fracOA                ! Org
+          Spc(id_Hg2ClP)%Conc(I,J,L)  = aerConc * ( 1.0_fp - fracOA )   ! Inorg
 
           !------------------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
@@ -2430,13 +2430,13 @@ CONTAINS
           !==================================================================
 
           ! Concentration of Hg2 on aerosols [molec/cm3]
-          aerConc = Spc(I,J,L,id_Hg2STRP)                                    &
-                  + Spc(I,J,L,id_Hg2ORGP)                                    &
-                  + Spc(I,J,L,id_Hg2ClP)
+          aerConc = Spc(id_Hg2STRP)%Conc(I,J,L)                                    &
+                  + Spc(id_Hg2ORGP)%Conc(I,J,L)                                    &
+                  + Spc(id_Hg2ClP)%Conc(I,J,L)
 
           ! Zero organic Hg2 aerosol and Hg2Cl aerosol in stratosphere
-          Spc(I,J,L,id_Hg2ORGP) = 0.0_fp
-          Spc(I,J,L,id_Hg2ClP)  = 0.0_fp
+          Spc(id_Hg2ORGP)%Conc(I,J,L) = 0.0_fp
+          Spc(id_Hg2ClP)%Conc(I,J,L)  = 0.0_fp
 
           !------------------------------------------------------------------
           ! Perform mass transfer between gas and stratopsheric aerosol
@@ -2450,7 +2450,7 @@ CONTAINS
              k = Ars_L1K( xArea(SLA), xRadi(SLA), ALPHA_Hg2, srMw(N) )
 
              ! Initial Hg(II) gas [molec/cm3]
-             gasConc = Spc(I,J,L,S)
+             gasConc = Spc(S)%Conc(I,J,L)
 
              ! Amount of mass [molec/cm3] transferred from gas to aerosol
              dGasConc = gasConc * ( 1.0_fp - EXP( -k * DT ) )
@@ -2460,7 +2460,7 @@ CONTAINS
              aerConc  = aerConc + dGasConc
 
              ! Final Hg2 gas concentration [molec/cm3]
-             Spc(I,J,L,S)  = gasConc
+             Spc(S)%Conc(I,J,L)  = gasConc
 
              !---------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
@@ -2474,7 +2474,7 @@ CONTAINS
           ENDDO
 
           ! Update Hg2 stratospheric aerosol concentration [molec/cm3]
-          Spc(I,J,L,id_Hg2STRP) = aerConc
+          Spc(id_Hg2STRP)%Conc(I,J,L) = aerConc
 
        ENDIF
 
@@ -2872,7 +2872,7 @@ CONTAINS
              CHg0aq = Hg0aq(I,J,NN) * 200.59_fp * 1.0e9_fp / 1.0e3_fp
 
              ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-             MHg0_air = State_Chm%Species(I,J,1,N)
+             MHg0_air = State_Chm%Species(N)%Conc(I,J,1)
              CHg0     = MHg0_air *  1.0e9_fp /State_Met%AIRVOL(I,J,1)
 
              !--------------------------------------------------------
@@ -3738,7 +3738,7 @@ CONTAINS
     DO N = 1, NSPEC
        S = State_Chm%Map_KppSpc(N)
        IF ( S > 0 ) THEN
-          C(N) = State_Chm%Species(I,J,L,S)
+          C(N) = State_Chm%Species(S)%Conc(I,J,L)
        ELSE
           C(N) = 0.0_f8
        ENDIF
