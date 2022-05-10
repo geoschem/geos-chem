@@ -5,9 +5,8 @@
 !
 ! !MODULE: input_mod.F90
 !
-! !DESCRIPTION: Module INPUT\_MOD contains routines that read the GEOS-Chem
-!  input file at the start of the run and pass the information to several
-!  other GEOS-Chem F90 modules.
+! !DESCRIPTION: Contains routines that read the GEOS-Chem configuration file at
+!  the start of the run and pass the information to Input_Opt.
 !\\
 !\\
 ! !INTERFACE:
@@ -50,13 +49,12 @@ CONTAINS
 !
 ! !IROUTINE: read_input_file
 !
-! !DESCRIPTION: Subroutine READ\_INPUT\_FILE is the driver program for
-!  reading the GEOS-Chem input file "input.geos" from disk.
+! !DESCRIPTION: Driver program for reading the GEOS-Chem input file.
 !\\
 !\\
 ! In an ESMF environment, all time steps (chemistry, convection, emissions,
 ! dynamics) must be specified externally before calling this routine.
-! The time steps specified in input.geos are ignored.
+! The time steps specified in the GEOS-Chem configuration file are ignored.
 !\\
 !\\
 ! !INTERFACE:
@@ -160,7 +158,6 @@ CONTAINS
 
     !========================================================================
     ! Get settings for GEOS-Chem operations from the YAML Config object
-    ! (read in the same order as we did from input.geos)
     !========================================================================
 
     ! Transport settings
@@ -367,7 +364,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Bpch diagnostic output menu
+    ! Bpch diagnostic output
     ! (Skip if we are connecting to an external model)
     CALL Config_Bpch_Output( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -379,7 +376,7 @@ CONTAINS
     ENDIF
 
 #ifdef TOMAS
-    ! Bpch prod & loss menu -- only needed for TOMAS
+    ! Bpch prod & loss -- only needed for TOMAS
     ! (Skip if we are connecting to an external model)
     CALL Config_Bpch_ProdLoss( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -403,23 +400,6 @@ CONTAINS
        RETURN
     ENDIF
 #endif
-
-!#ifdef BPCH_DIAG
-!       !=====================================================================
-!       ! Skip BPCH-related menus unless compiled with BPCH_DIAG=y
-!       ! Always skip BPCH-related menus for external ESMs
-!       !=====================================================================
-!
-!       ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-!          CALL READ_DIAGNOSTIC_MENU( Input_Opt, RC )
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             errMsg = 'Error in "Read_Diagnostic_Menu"!'
-!             CALL GC_Error( errMsg, RC, thisLoc )
-!             RETURN
-!          ENDIF
-!
-!#endif
-!#endif
 
     !========================================================================
     ! Further error-checking and initialization
@@ -495,7 +475,7 @@ CONTAINS
     RC      = GC_SUCCESS
     errMsg  = ''
     thisLoc = &
-     ' -> at Read_Simulation_Menu (in module GeosCore/input_mod.F90)'
+     ' -> at Config_Simulation (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Simulation type
@@ -684,7 +664,7 @@ CONTAINS
        WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
        errMsg = 'Input%Opt%NYMDb = ' // DateStr        // &
                 ' is not a valid calendar date!'       // &
-                ' Please check your "input.geos" file.'
+                ' Please check your "geoschem_config.yml" file.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -694,7 +674,7 @@ CONTAINS
        WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
        errMsg = 'Input%Opt%NHMSb = ' // TimeStr        // &
                 ' is not a valid clock time!'          // &
-                ' Please check your "input.geos" file.'
+                ' Please check your "geoschem_config.yml" file.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -718,7 +698,7 @@ CONTAINS
        WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
        errMsg = 'Input%Opt%NYMDe = ' // DateStr        // &
                 ' is not a valid calendar date!'       // &
-                ' Please check your "input.geos" file.'
+                ' Please check your "geoschem_config.yml" file.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -728,7 +708,7 @@ CONTAINS
        WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
        errMsg = 'Input%Opt%NHMSe = ' // TimeStr        // &
                 ' is not a valid clock time!'          // &
-                ' Please check your "input.geos" file.'
+                ' Please check your "geoschem_config.yml" file.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -954,7 +934,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Read_Grid_Menu (in GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_Grid (in GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Grid resolution
@@ -976,7 +956,7 @@ CONTAINS
     IF ( nSubStrs /= 2 ) THEN
        errMsg = 'Error in extracting delta X and Y values from'    // &
                 ' State_Grid%GridRes. Values must be separated by' // &
-                ' an x. Please check your "input.geos" file.'
+                ' an x. Please check your "geoschem_config.yml" file.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -1243,8 +1223,8 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
-    thisLoc = ' -> at Read_Timestep_Menu (in module GeosCore/input_mod.F90)'
+    errMsg  = 'Error reading the "geoschem_config.yml" file!'
+    thisLoc = ' -> at Config_Timestep (in module GeosCore/input_mod.F90)'
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     !------------------------------------------------------------------------
@@ -1300,7 +1280,7 @@ CONTAINS
           WRITE( 6,'(a)' ) 'The length of the simulation is shorter '
           WRITE( 6,'(a)' ) 'than the transport and/or chemistry '
           WRITE( 6,'(a)' ) 'timesteps. Check the settings in '
-          WRITE( 6,'(a)' ) 'the "input.geos" file.'
+          WRITE( 6,'(a)' ) 'the "geoschem_config.yml" file.'
           WRITE( 6,'(a)' ) ''
           WRITE( 6,100 ) 'Transport/Convection  [sec] : ', Input_Opt%TS_DYN
           WRITE( 6,100 ) 'Chemistry/Emissions   [sec] : ', Input_Opt%TS_CHEM
@@ -1370,7 +1350,7 @@ CONTAINS
 !
 ! !IROUTINE: config_transport
 !
-! !DESCRIPTION: Copies grid information from the Config object
+! !DESCRIPTION: Copies transport information from the Config object
 !  to Input_Opt, and does necessary checks.
 !\\
 !\\
@@ -1423,7 +1403,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
+    errMsg  = 'Error reading the "geoschem_config.yml" file!'
     thisLoc = ' -> at Config_Transport (in GeosCore/input_mod.F90)'
 
 #ifdef MODEL_CLASSIC
@@ -1633,7 +1613,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Read_Aerosol_Menu (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_Aerosol (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Use online carbon aerosols?
@@ -2137,7 +2117,7 @@ CONTAINS
     CHARACTER(LEN=QFYAML_NamLen) :: key
 
     !========================================================================
-    ! Config_Chemistry begins here!
+    ! Config_CO2 begins here!
     !========================================================================
 
     ! Initialize
@@ -2307,7 +2287,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_CO2_SIM .and. Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
-       WRITE( 6,95  ) '--------------------------------------------'
+       WRITE( 6,95  ) '----------------------------------------------'
        WRITE( 6,100 ) 'National Fossil Fuel Emission :', Input_Opt%LFOSSIL
        WRITE( 6,100 ) 'Ocean CO2 Uptake/Emission     :', Input_Opt%LOCEAN
        WRITE( 6,100 ) 'Biosphere seas/diurnal cycle  :', Input_Opt%LBIODIURNAL
@@ -3159,7 +3139,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Read_Deposition_Menu (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_DryDep_WetDep (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Turn on drydep?
@@ -3276,7 +3256,7 @@ CONTAINS
 
 
        WRITE( 6, 90  ) 'WET DEPOSITION SETTINGS'
-       WRITE( 6, 95  ) '----------------------'
+       WRITE( 6, 95  ) '-----------------------'
        WRITE( 6, 100 ) 'Turn on wet deposition?     : ', Input_Opt%LWETD
     ENDIF
 
@@ -3295,10 +3275,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_gamap_menu
+! !IROUTINE: config_gamap
 !
-! !DESCRIPTION: Subroutine READ\_GAMAP\_MENU reads the GAMAP MENU section
-!  of the GEOS-Chem input file.
+! !DESCRIPTION: Copies GAMAP information from the Config object
+!  to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -3341,7 +3321,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Read_Gamap_Menu (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_Gamap (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! diaginfo.dat
@@ -3390,7 +3370,7 @@ CONTAINS
 !
 ! !IROUTINE: config_bpch_output
 
-! !DESCRIPTION: Copies bpch output menu information from the Config object
+! !DESCRIPTION: Copies bpch output information from the Config object
 !  to Input_Opt, and does necessary checks.
 !\\
 !\\
@@ -3444,7 +3424,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Read_Output_Menu (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_Bpch_Output (in module GeosCore/input_mod.F90)'
 
     !========================================================================
     ! Read data into the Input_Opt%NJDAY array
@@ -3494,8 +3474,8 @@ CONTAINS
     ! Print to screen
     !=================================================================
     IF( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
-       WRITE( 6, '(  a)' ) '-----------'
+       WRITE( 6, '(/,a)' ) 'BPCH OUTPUT SETTINGS'
+       WRITE( 6, '(  a)' ) '--------------------'
        WRITE( 6, 110     )
        WRITE( 6, 120     )
        WRITE( 6, 130     )
@@ -3522,396 +3502,6 @@ CONTAINS
 
   END SUBROUTINE Config_Bpch_Output
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_diagnostic_menu
-!!
-!! !DESCRIPTION: Subroutine READ\_DIAGNOSTIC\_MENU reads the DIAGNOSTIC MENU
-!!  section of the GEOS-Chem input file.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_DIAGNOSTIC_MENU( Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE CMN_DIAG_MOD        ! Needed for timeseries diags (binary only)
-!    USE CMN_SIZE_MOD,  ONLY : NDSTBIN
-!    USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
-!    USE DIAG53_MOD,    ONLY : ND53,      PD53
-!    USE DRYDEP_MOD,    ONLY : NUMDEP
-!    USE ErrCode_Mod
-!    USE FILE_MOD,      ONLY : IU_BPCH
-!    USE Input_Opt_Mod, ONLY : OptInput
-!    USE TIME_MOD,      ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!!
-!! !REVISION HISTORY:
-!!  20 Jul 2004 - R. Yantosca - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: M, N, N_TMP
-!
-!    ! Strings
-!    CHARACTER(LEN=255) :: errMsg, thisLoc, BPCH_FILE
-!
-!    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-!
-!    !=================================================================
-!    ! READ_DIAGNOSTIC_MENU begins here!
-!    !=================================================================
-!
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!
-!    errMsg  = 'Error reading the "input.geos" file!'
-!    thisLoc = ' -> at Read_Diagnostic_Menu (in module GeosCore/input_mod.F90)'
-!
-!    ! Error check
-!    IF ( CT1 /= 2 ) THEN
-!       errMsg= 'SIMULATION MENU & ADVECTED SPECIES MENU ' // &
-!               'must be read in first!'
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    ! Binary punch file name
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'BPCH_FILE', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1:N), '(a)' ) BPCH_FILE
-!
-!    ! Separator line
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'separator', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!
-!    !--------------------------
-!    ! ND44 drydep vel & flux
-!    !--------------------------
-!
-!    ! Number of species depends on simulation type
-!    IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-!       N_TMP = Input_Opt%N_ADVECT
-!    ELSE
-!       N_TMP = NUMDEP
-!    ENDIF
-!
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND44', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!#ifdef TOMAS
-!    READ( SUBSTRS(1), * ) ND44
-!    IF ( .not. Input_Opt%LDRYD ) ND44 = 0
-!    CALL SET_TINDEX( Input_Opt, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
-!#endif
-!
-!    !--------------------------
-!    ! ND53: POPS
-!    !--------------------------
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND53', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!    READ( SUBSTRS(1), * ) ND53
-!    IF ( .not. Input_Opt%ITS_A_POPS_SIM ) ND53 = 0
-!    CALL SET_TINDEX( Input_Opt, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
-!
-!    !--------------------------
-!    ! ND59: TOMAS aerosol emiss
-!    !--------------------------
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND59', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!#ifdef TOMAS
-!    READ( SUBSTRS(1), * ) ND59
-!    CALL SET_TINDEX( Input_Opt, 59, ND59, SUBSTRS(2:N), N-1, PD59 )
-!#endif
-!
-!    !--------------------------
-!    ! ND60: TOMAS rate
-!    !--------------------------
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND60', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!#ifdef TOMAS
-!    READ( SUBSTRS(1), * ) ND60
-!    CALL SET_TINDEX( Input_Opt, 60, ND60, SUBSTRS(2:N), N-1, PD60 )
-!#endif
-!
-!    !--------------------------
-!    ! ND61: 3-D TOMAS rate
-!    !--------------------------
-!    CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND61', RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error( errMsg, RC, thisLoc )
-!       RETURN
-!    ENDIF
-!#ifdef TOMAS
-!    READ( SUBSTRS(1), * ) ND61
-!    CALL SET_TINDEX( Input_Opt, 61, ND61, SUBSTRS(2:N), N-1, PD61 )
-!#endif
-!
-!    !=================================================================
-!    ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
-!    !
-!    ! Copy shadow variables to diagnostic variables and
-!    ! call various bpch diagnostic setup routines
-!    !=================================================================
-!    Input_Opt%ND53  = ND53
-!
-!#ifdef TOMAS
-!    Input_Opt%ND06  = ND06
-!    Input_Opt%ND44  = ND44
-!    Input_Opt%ND59  = ND59
-!    Input_Opt%ND60  = ND60
-!    Input_Opt%ND61  = ND61
-!#endif
-!
-!    ! Loop over # of diagnostics
-!    DO M = 1, Input_Opt%Max_BPCH_Diag
-!       Input_Opt%TCOUNT(M)       = TCOUNT(M)
-!       Input_Opt%TMAX(M)         = TMAX(M)
-!
-!       ! Loop over tracers per diagnostic
-!       DO N = 1, Input_Opt%N_ADVECT
-!          Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
-!       ENDDO
-!    ENDDO
-!
-!    !=================================================================
-!    ! Call other setup routines
-!    !================================================================
-!
-!    ! Expand YYYYMMDD tokens in the bpch file name
-!    CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
-!
-!    ! Find a free file LUN
-!    IU_BPCH = findFreeLUN()
-!
-!    ! Open the binary punch file for output
-!    CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
-!
-!    ! Return success
-!    RC = GC_SUCCESS
-!
-!  END SUBROUTINE READ_DIAGNOSTIC_MENU
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: set_tindex
-!!
-!! !DESCRIPTION: Subroutine SET\_TINDEX sets the TINDEX and TMAX arrays,
-!!  which determine how many tracers to print to the punch file.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE SET_TINDEX(Input_Opt, N_DIAG, L_DIAG, SUBSTRS, N, NMAX)
-!!
-!! !USES:
-!!
-!#ifdef TOMAS
-!    USE CHARPAK_MOD,   ONLY : TXTEXT   ! (win, 7/14/09)
-!#endif
-!    USE CMN_DIAG_MOD        ! TMAX, TINDEX
-!    USE Input_Opt_Mod, ONLY : OptInput
-!!
-!! !INPUT PARAMETERS:
-!!
-!    TYPE(OptInput),     INTENT(IN) :: Input_Opt   ! Input Options object
-!    INTEGER,            INTENT(IN) :: N_DIAG      ! GEOS-Chem diagnostic #
-!    INTEGER,            INTENT(IN) :: N           ! # of valid substrs passed
-!    INTEGER,            INTENT(IN) :: NMAX        ! Max # of tracers allowed
-!    INTEGER,            INTENT(IN) :: L_DIAG      ! # of levels to save
-!    CHARACTER(LEN=255), INTENT(IN) :: SUBSTRS(N)  ! Substrs passed from
-!                                                  !  READ_DIAGNOSTIC_MENU
-!!
-!! !REMARKS:
-!!  NOTE: This routine converts to a stub when BPCH_DIAG=n (bmy, 1/16/18)
-!!
-!! !REVISION HISTORY:
-!!  20 Jul 2004 - R. Yantosca - Initial version
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    LOGICAL, SAVE       :: FIRST = .TRUE.
-!    LOGICAL             :: IS_ALL
-!    INTEGER             :: M
-!#ifdef TOMAS
-!    INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
-!    CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
-!    INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
-!#endif
-!
-!    !=================================================================
-!    ! SET_TINDEX begins here!
-!    !=================================================================
-!
-!    ! Error check
-!    IF ( N < 1 ) THEN
-!       IF ( Input_Opt%amIRoot ) THEN
-!          WRITE( 6, '(a)' ) 'ERROR: N must be 1 or greater!'
-!          WRITE( 6, '(a)' ) 'STOP in SET_TINDEX (input_mod.F90)'
-!          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!       ENDIF
-!       STOP
-!    ENDIF
-!
-!    !=================================================================
-!    ! If the word "all" is present, then set TMAX, TINDEX to all
-!    ! available tracers for the given diagnostic.  Otherwise, just
-!    ! use the tracers that were read in from the line
-!    !=================================================================
-!    IF ( TRIM( SUBSTRS(1) ) == 'all'  .or. &
-!         TRIM( SUBSTRS(1) ) == 'ALL' ) THEN
-!
-!       ! TMAX is the max # of tracers to print out
-!       TMAX(N_DIAG) = NMAX
-!
-!       ! Fill TINDEX with all possible diagnostic tracer numbers
-!       DO M = 1, TMAX(N_DIAG)
-!          TINDEX(N_DIAG,M) = M
-!       ENDDO
-!
-!       ! Set flag
-!       IS_ALL = .TRUE.
-!
-!    ELSE
-!
-!#ifdef TOMAS
-!!(win, 7/14/09)  use TXTEXT and split the read in characters by -
-!
-!       COL      = 1
-!       NN       = 0
-!       SUBWORD  = ''
-!       IFLAG    = 0
-!
-!       ! Use explicit DO-loop
-!       DO M = 1, N
-!          WORD = SUBSTRS(M)
-!
-!          ! Check if the characters are a range with - in the middle
-!          CALL TXTEXT ( '-', WORD, COL, SUBWORD, IFLAG )
-!
-!          ! Found a dash!  Get the numbers on both sides of the dash
-!          ! since these the min and max of the tracer range
-!          IF ( IFLAG == 0 ) THEN
-!             TMP1 = TRIM( WORD(      1:COL-1      ) )
-!             TMP2 = TRIM( WORD( COL+1:LEN_TRIM( WORD ) ) )
-!
-!             READ( TMP1, * ) MINTMP
-!             READ( TMP2, * ) MAXTMP
-!
-!             DO TC = MINTMP, MAXTMP
-!                NN = NN + 1
-!                TINDEX( N_DIAG, NN ) = TC
-!             ENDDO
-!
-!          ! If we haven't found a dash, then there is only one number,
-!          ! so that number is both the min and max of the tracer range
-!          ELSE IF ( IFLAG == -1 ) THEN
-!             NN = NN + 1
-!             TMP1 = TRIM( WORD )
-!             READ( TMP1, * ) TINDEX( N_DIAG, NN )
-!          ENDIF
-!
-!       ENDDO
-!
-!       ! Set TMAX to the counted # of tracers
-!       TMAX( N_DIAG ) = NN
-!#else
-!       ! Otherwise, set TMAX, TINDEX to the # of tracers
-!       ! listed in "input.ctm" -- need some error checks too
-!       TMAX(N_DIAG) = N
-!
-!       ! Use explicit DO-loop
-!       DO M = 1, N
-!          READ( SUBSTRS(M:M), * ) TINDEX(N_DIAG,M)
-!       ENDDO
-!#endif
-!       ! Set flag
-!       IS_ALL = .FALSE.
-!
-!    ENDIF
-!
-!    !=================================================================
-!    ! Print to screen
-!    !=================================================================
-!
-!    ! First-time printing only
-!    IF ( FIRST ) THEN
-!       IF( Input_Opt%amIRoot ) THEN
-!          WRITE( 6,'(/,a)' ) 'DIAGNOSTIC MENU'
-!          WRITE( 6,'(  a)' ) '---------------'
-!          WRITE( 6,'(  a)' ) 'Diag    L   Tracers being saved to disk'
-!       ENDIF
-!       FIRST = .FALSE.
-!    ENDIF
-!
-!    ! Test if all tracers are being printed out
-!    IF ( IS_ALL ) THEN
-!
-!       ! Print abbreviated output string
-!       IF ( L_DIAG > 0 ) THEN
-!          IF ( Input_Opt%amIRoot ) THEN
-!             WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
-!          ENDIF
-!100       FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 )
-!       ENDIF
-!
-!    ELSE
-!
-!       ! Or just list each tracer
-!       ! Print each diagnostic and # of tracers that will print out
-!       IF ( L_DIAG > 0 ) THEN
-!          IF ( Input_Opt%amIRoot ) THEN
-!             WRITE( 6, 110 ) N_DIAG, L_DIAG, &
-!                             ( TINDEX(N_DIAG,M), M=1,TMAX(N_DIAG) )
-!          ENDIF
-!110       FORMAT( 'ND', i2, 2x, i3, 1x, 100i3 )
-!       ENDIF
-!
-!    ENDIF
-!
-!  END SUBROUTINE SET_TINDEX
-!!EOC
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3958,7 +3548,7 @@ CONTAINS
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
-    ! READ_PLANEFLIGHT_MENU begins here!
+    ! Config_PlaneFlight begins here!
     !========================================================================
 
     ! Initialize
@@ -4087,13 +3677,13 @@ CONTAINS
     CHARACTER(LEN=QFYAML_StrLen) :: a_str(QFYAML_MaxArr)
 
     !========================================================================
-    ! READ_OBSPACK_MENU begins here!
+    ! Config_ObsPack begins here!
     !========================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
-    thisLoc = ' -> at Read_ObsPack_Menu (in module GeosCore/input_mod.F90)'
+    errMsg  = 'Error reading the "geoschem_config.yml" file!'
+    thisLoc = ' -> at Config_ObsPack (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Turn on ObsPack diagnostic?
@@ -4187,7 +3777,7 @@ CONTAINS
     ! Print to screen
     !========================================================================
     IF( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 90  ) 'OBSPACK_MENU'
+       WRITE( 6, 90  ) 'OBSPACK SETTINGS'
        WRITE( 6, 95  ) '----------------'
        WRITE( 6, 100 ) 'Turn on ObsPack diagnostic? : ',                     &
                         Input_Opt%Do_ObsPack
@@ -4633,9 +4223,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: config_bpch_output
+! !IROUTINE: config_bpch_prodloss
 
-! !DESCRIPTION: Copies bpch output menu information from the Config object
+! !DESCRIPTION: Copies bpch prodloss information from the Config object
 !  to Input_Opt, and does necessary checks.
 !\\
 !\\
@@ -4689,8 +4279,8 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
-    thisLoc = ' -> at Read_Prod_Loss_Menu (in module GeosCore/input_mod.F90)'
+    errMsg  = 'Error reading the "geoschem_config.yml" file!'
+    thisLoc = ' -> at Config_Bpch_ProdLoss (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Activate bpch ND65 diagnostic?
@@ -4818,8 +4408,8 @@ CONTAINS
     ! Print to screen
     !=================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
-       WRITE( 6, '(  a)' ) '---------------------------'
+       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC SETTINGS'
+       WRITE( 6, '(  a)' ) '-------------------------------'
        WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', &
                         Input_Opt%DO_SAVE_PL
        WRITE( 6, 110 ) '# of levels for P/L diag    : ', &
@@ -5068,13 +4658,13 @@ CONTAINS
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
-    ! READ_CH4_MENU begins here!
+    ! Config_CH4 begins here!
     !========================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "input.geos" file!'
-    thisLoc = ' -> at Read_CH4_Menu (in module GeosCore/input_mod.F90)'
+    errMsg  = 'Error reading the "geoschem_config.yml" file!'
+    thisLoc = ' -> at Config_CH4 (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Use AIRS observational operator?
@@ -5214,6 +4804,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Copies POPs simulation information from the Config
 !  object to Input_Opt, and does necessary checks.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE Config_POPs( Config, Input_Opt, RC )
@@ -5405,7 +4997,7 @@ CONTAINS
     ! Print to screen
     !=================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 90  ) 'POPs SIMULATION_SETTINGS'
+       WRITE( 6, 90  ) 'POPs SIMULATION SETTINGS'
        WRITE( 6, 95  ) '------------------------'
        WRITE( 6, 120 ) 'Species of POP        : ', Input_Opt%POP_TYPE
        WRITE( 6, 110 ) 'Chemistry on?         : ', Input_Opt%CHEM_PROCESS
@@ -5437,11 +5029,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_passive_species_menu
+! !IROUTINE: config_passivespecies
 !
-! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive
-!  species menu section of the GEOS-Chem input file; this defines passive
-!  species to be used for this simulation.
+! !DESCRIPTION: Copies passive species information from the Config
+!  object to Input_Opt, and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -5494,7 +5085,7 @@ CONTAINS
     RC      = GC_SUCCESS
     errMsg  = ''
     thisLoc = &
-     ' -> at Read_Passive_Species_Menu (in module GeosCore/input_mod.F90)'
+     ' -> at Config_PassiveSpecies (in module GeosCore/input_mod.F90)'
 
     !========================================================================
     ! Check for passive species
@@ -5520,8 +5111,8 @@ CONTAINS
 
     ! Write header
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
-       WRITE( 6, '(  a)' ) '---------------------'
+       WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES SETTINGS'
+       WRITE( 6, '(  a)' ) '------------------------'
     ENDIF
 
     ! Loop over passive species
@@ -5634,9 +5225,9 @@ CONTAINS
 !
 ! !IROUTINE: validate_directories
 !
-! !DESCRIPTION: Subroutine VALIDATE\_DIRECTORIES makes sure that each of the
-!  directories that we have read from the GEOS-Chem input file are valid.
-!  Also, trailing separator characters will be added.
+! !DESCRIPTION: Makes sure that each of the directories that we have read from
+!  the GEOS-Chem input file are valid. Also, trailing separator characters will
+!  be added.
 !\\
 !\\
 ! !INTERFACE:
@@ -5670,7 +5261,7 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg, thisLoc, Dir
 
     !=================================================================
-    ! VALIDATE_DIRECTORIES begins here!
+    ! Validate_Directories begins here!
     !=================================================================
 
     ! Initialize
@@ -5709,9 +5300,8 @@ CONTAINS
 !
 ! !IROUTINE: check_directory
 !
-! !DESCRIPTION: Subroutine CHECK\_DIRECTORY makes sure that the given
-!  directory is valid.  Also a trailing slash character will be added if
-!  necessary.
+! !DESCRIPTION: Makes sure that the given directory is valid.  Also a trailing
+!  slash character will be added if necessary.
 !\\
 !\\
 ! !INTERFACE:
@@ -5749,7 +5339,7 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !=================================================================
-    ! CHECK_DIRECTORY begins here!
+    ! Check_Directory begins here!
     !=================================================================
 
     ! Initialize
@@ -5785,10 +5375,10 @@ CONTAINS
 !
 ! !IROUTINE: check_time_steps
 !
-! !DESCRIPTION: Subroutine CHECK\_TIME\_STEPS computes the smallest dynamic
-!  time step for the model, based on which operation are turned on.  This
-!  is called from routine READ\_INPUT\_FILE, after all of the timesteps and
-!  logical flags have been read from "input.geos".
+! !DESCRIPTION: Computes the smallest dynamic time step for the model, based on
+!  which operation are turned on.  This is called from routine
+!  Read_Input_File, after all of the timesteps and logical flags have been
+!  read from the configuration file.
 !\\
 !\\
 ! !INTERFACE:
@@ -5831,7 +5421,7 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !=================================================================
-    ! CHECK_TIME_STEPS begins here!
+    ! Check_Time_Steps begins here!
     !=================================================================
 
     ! Initialize
@@ -5999,8 +5589,8 @@ CONTAINS
 !
 ! !IROUTINE: is_last_day_good
 !
-! !DESCRIPTION: Suborutine IS\_LAST\_DAY\_GOOD tests to see if there is
-!  output scheduled on the last day of the run.
+! !DESCRIPTION: Tests to see if there is output scheduled on the last day of
+!  the run.
 !\\
 !\\
 ! !INTERFACE:
@@ -6037,7 +5627,7 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !=================================================================
-    ! IS_LAST_DAY_GOOD begins here!
+    ! Is_Last_Day_Good begins here!
     !=================================================================
 
     ! Initialize
@@ -6103,12 +5693,6 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REMARKS:
-!  These error checks were originally called when the various menus were
-!  read in from disk.  However, in order to use the Ind_() function to look
-!  up given species indices, we need to call this after the Species Database
-!  (which is in State_Chm) is initialized.  Therefore, we have now moved these
-!  error checks to this routine, which is now called from GC_Init_Extra.
-!                                                                             .
 !  The Ind_() function now defines all species ID's.  It returns -1 if
 !  a species cannot be found.  The prior behavior was to return 0 if a
 !  species wasn't found.  Therefore, in order to preserve the logic of the
@@ -6278,7 +5862,7 @@ CONTAINS
     ! IF LSOA = T:
     !   OCPI OCPO SOA (non-vol + original traditional)
     !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
-    ! NAP emissions are set in input.geos
+    ! NAP emissions are set in HEMCO_Config.rc
     ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
     I = MAX( Ind_('POA1' ,'A'), 0 ) + &
         MAX( Ind_('POA2' ,'A'), 0 ) + &
