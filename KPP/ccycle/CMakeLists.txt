@@ -22,7 +22,7 @@ target_link_libraries(KPP_FirstPass
 #----------------------------------------------------------------------------
 add_library(KPP 
   STATIC EXCLUDE_FROM_ALL
-  ccycle_RateLawFuncs.F90
+  ccycle_Funcs.F90
   gckpp_Function.F90
   gckpp_Global.F90
   gckpp_Initialize.F90

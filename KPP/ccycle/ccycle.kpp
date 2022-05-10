@@ -1,134 +1,20 @@
-#MINVERSION   2.5.0
-#INTEGRATOR   feuler
-#LANGUAGE     Fortran90
-#UPPERCASEF90 on
-#DRIVER       none
-#HESSIAN      off
-#MEX          off
-#STOICMAT     off
+#MINVERSION   2.5.0       { Need this version of KPP or later          }
+#INTEGRATOR   feuler      { Use Forward Euler integration method       }
+#LANGUAGE     Fortran90   { Generate solver code in Fortran90 ...      }
+#UPPERCASEF90 on          { ... with .F90 suffix (instead of .f90)     }
+#DRIVER       none        { Do not create gckpp_Main.F90               }
+#HESSIAN      off         { Do not create the Hessian matrix           }
+#MEX          off         { MEX is for Matlab, so skip it              }
+#STOICMAT     off         { Do not create stoichiometric matrix        }
 
-#INCLUDE ccycle.eqn
+#INCLUDE ccycle.eqn       { Chemical reactions for ccycle mechanism    }
 
-#FAMILIES
+#FAMILIES                 { Chemical families for prod/loss diagnostic }
 PCO : CO;
 LCO : CO;
 LCH4 : CH4;
 
 #INLINE F90_GLOBAL
-
-  ! Universal gas consatant [bar/(mol/kg)/K]  (Source: NIST, 2014)
-  ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
-  REAL(dp), PARAMETER :: CON_R = 0.083144598_dp
-
-  !--------------------------------------------------------------------------
-  ! Additional global variables -- will be added to gckpp_Global.F90
-  !--------------------------------------------------------------------------
-
-  ! Array for strat CH4/CO/CO2 rates
-  REAL(dp) :: K_STRAT(5)
-  !$OMP THREADPRIVATE( K_STRAT )
-
-  ! Array for trop CH4/CO/CO2 rates
-  REAL(dp) :: K_TROP(5)
-  !$OMP THREADPRIVATE( K_TROP )
-
-  REAL(dp) :: TROP
-  !$OMP THREADPRIVATE( TROP )
-
-  ! Cosine of solar zenith angle
-  REAL(dp) :: SUNCOS
-  !$OMP THREADPRIVATE( SUNCOS )
-
-  ! Species molecular weight [g/mole]
-  REAL(dp) :: MW(NSPEC)
-
-  ! Square root of species molecular weight [g/mole]
-  REAL(dp) :: SR_MW(NSPEC)
-
-  !--------------------------------------------------------------------------
-  ! NOTE: These global variables are required in order to compile the
-  ! various fullchem mechanism interface files (such as fullchem_mod.F90),
-  ! but otherwise are not used by the ccycle chemistry mechanism.
-  !   -- Bob Yantosca (05 May 2022)
-  !--------------------------------------------------------------------------
-
-  ! Henry's law constants
-  REAL(dp) :: HENRY_K0(NSPEC)  ! Solubility constant [M/atm]
-  REAL(dp) :: HENRY_CR(NSPEC)  ! Volatility constant [K    ]
-
-  ! Inverse of temperature [1/K]
-  REAL(dp) :: INV_TEMP
-  !$OMP THREADPRIVATE( INV_TEMP )
-
-  ! Square root of Temperature [K**0.5]
-  REAL(dp) :: SR_TEMP
-  !$OMP THREADPRIVATE( SR_TEMP )
-
-  ! TEMP_OVER_K300 - Temperature [K] / 300.0
-  REAL(dp) :: TEMP_OVER_K300
-  !$OMP THREADPRIVATE( TEMP_OVER_K300 )
-
-  ! K300_OVER_TEMP - 300.0 / Temperature [K]
-  REAL(dp) :: K300_OVER_TEMP
-  !$OMP THREADPRIVATE( K300_OVER_TEMP )
-
-  ! NUMDEN - Air number density [#/cm3]
-  REAL(dp) :: NUMDEN
-  !$OMP THREADPRIVATE( NUMDEN )
-
-  ! 8.0 * RSTARG * TEMP
-  REAL(dp) :: EIGHT_RSTARG_T
-  !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
-
-  ! 4.0 * CON_R * TEMP
-  REAL(dp) :: FOUR_R_T
-  !$OMP THREADPRIVATE( FOUR_R_T )
-
-  ! 4.0 * RGASLATM * TEMP
-  REAL(dp) :: FOUR_RGASLATM_T
-  !$OMP THREADPRIVATE( FOUR_RGASLATM_T )
-
-  ! H2O concentration
-  REAL(dp) :: H2O
-  !$OMP THREADPRIVATE( H2O )
-
-  ! Array for aqueous sulfur chemistry rates (1/s)
-  REAL(dp) :: K_MT(6)
-  !$OMP THREADPRIVATE( K_MT )
-
-  ! Array for sulfur chemistry rates in cloud (1/s)
-  REAL(dp) :: K_CLD(6)
-  !$OMP THREADPRIVATE( K_CLD )
-
-  ! Pressure and relative humidity
-  REAL(dp) :: PRESS
-  REAL(dp) :: RELHUM
-  !$OMP THREADPRIVATE( PRESS, RELHUM )
-
-  ! J-values
-  REAL(dp) :: PHOTOL(1)
-  !$OMP THREADPRIVATE( POTOL )
-
-  ! Hetchem State object
-  TYPE, PUBLIC :: HetState
-     LOGICAL  :: cloudBox       ! Are we in a cloudy grid box?
-     LOGICAL  :: debugBox       ! Are we in a debugging box?
-     REAL(dp) :: aIce           ! Ice surface area [cm2/cm3]
-     REAL(dp) :: aLiq           ! Liquid surface area [cm2/cm3]
-     REAL(dp) :: cldFr          ! Cloud fraction
-     REAL(dp) :: clearFr        ! Clear sky fraction
-     REAL(dp) :: fracOrgAer     ! Hg2 fraction forming organic aerosol [1]
-     REAL(dp) :: fracInorgAer   ! Hg2 fraction forming inorganic aerosol [1]
-     REAL(dp) :: qIce           ! Ice mixing ratio [kg/kg]
-     REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
-     REAL(dp) :: rIce           ! Ice radius
-     REAL(dp) :: rLiq           ! Liquid radius
-     REAL(dp) :: vAir           ! Volume of air [cm3]
-     REAL(dp) :: vIce           ! Ice volume [cm3]
-     REAL(dp) :: vLiq           ! Liquid volume [cm3]
-  END TYPE HetState
-  TYPE(HetState), TARGET, PUBLIC :: State_Het
-  !$OMP THREADPRIVATE( State_Het )
+! Inline common variables into gckpp_Global.F90
+#include "commonIncludeVars.H"
 #ENDINLINE
-
-

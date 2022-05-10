@@ -305,12 +305,6 @@ CONTAINS
     ! Relative Humidities (to be passed to FAST_JX)
     REAL(fp), PARAMETER :: RH(5) = (/0.0_fp, 0.5_fp, 0.7_fp, 0.8_fp, 0.9_fp/)
 
-    ! Defines the slot in which the H-value from the KPP integrator is stored.
-    ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
-    ! (assuming Rosenbrock solver).  Define this locally in order to break
-    ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
-    INTEGER,  PARAMETER :: Nhnew = 3
-
     !========================================================================
     ! CHEMMERCURY begins here!
     !========================================================================
@@ -795,8 +789,12 @@ CONTAINS
        ! Continue upon successful return...
        !=====================================================================
 
-       ! Save for next integration time step
-       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
+       ! Save Hnew (predicted but not taken step) for the the next
+       ! integration.  Hnew is returned in the 3rd slot of RSTATE.
+       ! Hnew is also saved to the restart file so that simulations that
+       ! are broken into multiple stages can be initialized properly.
+       !  -- Bob Yantosca (10 May 2022)
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(3)
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations

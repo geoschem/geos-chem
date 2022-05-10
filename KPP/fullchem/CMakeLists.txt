@@ -43,6 +43,7 @@ add_library(KPP
   # These are symbolic links to files in the ../stubs folder.
   #
   stub_aciduptake_DustChemFuncs.F90
+  stub_ccycle_Funcs.F90
   stub_Hg_HetStateFuncs.F90
 )
 

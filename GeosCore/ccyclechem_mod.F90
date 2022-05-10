@@ -68,7 +68,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER               :: id_CH4,   id_CO,  id_COCH4, id_COnmvoc
+      INTEGER               :: id_CH4,   id_CO,  id_COch4, id_COnmvoc
       INTEGER               :: id_CO2,   id_OCS, id_OH
       REAL(fp)              :: TROPOCH4
 
@@ -84,12 +84,12 @@
 ! !PRIVATE TYPES:
 !
       ! Arrays
-      REAL(fp), ALLOCATABLE :: SUMACETCO  (:,:  )   ! P(CO) from Acetone
-      REAL(fp), ALLOCATABLE :: SUMCH3OHCO (:,:  )   ! P(CO) from CH3OH
-      REAL(fp), ALLOCATABLE :: SUMISOPCO  (:,:  )   ! P(CO) from Isoprene
-      REAL(fp), ALLOCATABLE :: SUMMONOCO  (:,:  )   ! P(CO) from Monoterpenes
-      REAL(fp), ALLOCATABLE :: TCOSZ      (:,:  )   ! Daily sum COS(SZA)
-      REAL(fp), ALLOCATABLE :: CH4_OH_TROP(:,:,:)   ! CH4 loss in trop
+      REAL(fp), ALLOCATABLE :: SUMACETCO   (:,:  )   ! P(CO) from Acetone
+      REAL(fp), ALLOCATABLE :: SUMCH3OHCO  (:,:  )   ! P(CO) from CH3OH
+      REAL(fp), ALLOCATABLE :: SUMISOPCO   (:,:  )   ! P(CO) from Isoprene
+      REAL(fp), ALLOCATABLE :: SUMMONOCO   (:,:  )   ! P(CO) from Monoterpenes
+      REAL(fp), ALLOCATABLE :: TCOSZ       (:,:  )   ! Daily sum COS(SZA)
+      REAL(fp), ALLOCATABLE :: CH4_OH_TROP (:,:,:)   ! CH4 loss in trop
       REAL(fp), ALLOCATABLE :: CH4_OH_STRAT(:,:,:)   ! CH4 loss in strat 
 
 !
@@ -587,19 +587,14 @@
 !
 ! !USES:
 !
+      USE ccycle_Funcs
       USE gckpp_Global
       USE gckpp_Initialize,  ONLY : Init_KPP => Initialize
       USE gckpp_Integrator,  ONLY : INTEGRATE
       USE gckpp_Monitor,     ONLY : SPC_NAMES
       USE gckpp_Parameters
       USE gckpp_precision
-      USE gckpp_Rates,       ONLY : UPDATE_RCONST
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD43, AD65
-      USE DIAG04_MOD,         ONLY : ND04
-      USE DIAG04_MOD,         ONLY : AD04_chem
-#endif
+      USE gckpp_Rates,         ONLY : UPDATE_RCONST
       USE ErrCode_Mod
       USE HCO_State_Mod,      ONLY : Hco_GetHcoId
       USE HCO_State_GC_Mod,   ONLY : HcoState
@@ -853,7 +848,7 @@
 
             ! Scaling factor for OH diurnal cycles - zero at night
             IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
-               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) * &
+               FAC_DIURNAL = ( SUNCOS     / TCOSZ(I,J)    ) * &
                              ( 86400.0_fp / GET_TS_CHEM() )
             ELSE
                FAC_DIURNAL = 0.0_fp
@@ -1097,7 +1092,7 @@
       ICNTRL(2)  =  0   ! Stop model on negative values
       ICNTRL(15) = -1   ! Do not call Update_SUN, Update_RCONST w/in integrator
       
-      ! Set a flag to denote if
+      ! Set a flag to denote if the chemistry failed
       failed     = .FALSE.
 
       !======================================================================
@@ -1115,53 +1110,54 @@
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
-         ! Initialize private variables
-         C       = 0.0_dp        
-         CFACTOR = 1.0_dp
-         K_STRAT = 0.0_dp
-         K_TROP  = 0.0_dp
-         TROP    = 0.0_dp
+         ! Initialize PRIVATE and THREADPRIVATE variables
+         C           = 0.0_dp                   ! Concentrations [molec/cm3]
+         CFACTOR     = 1.0_dp                   ! Not used, set = 1
+         fac_Diurnal = 0.0_dp                   ! Diurnal scaling factor [1]
+         K_STRAT     = 0.0_dp                   ! Rate in stratosphere [1/s]
+         K_TROP      = 0.0_dp                   ! Rate in troposphere  [1/s]
+         TROP        = 0.0_dp                   ! Toggle 
+         SUNCOS      = State_Met%SUNCOSmid(I,J) ! Cos(solar zenith angle) [1]
 
-         ! Species
-         ! From kg to molec/cm3
-         IF ( id_CH4 > 0 ) THEN
-            C(ind_CH4) = Spc(I,J,L,id_CH4) / State_Met%AIRVOL(I,J,L)         &
-                       / 1e+6_fp           * XNUMOL_CH4
-         ENDIF
-
-         IF ( id_CO2 > 0 ) THEN
-            C(ind_CO2) = Spc(I,J,L,id_CO2) / State_Met%AIRVOL(I,J,L)         &
-                         / 1e+6_fp         * XNUMOL_CO2 
-         ENDIF
-
-         IF ( ind_CO > 0 ) THEN
-            C(ind_CO)  = Spc(I,J,L,id_CO)  / State_Met%AIRVOL(I,J,L)         &
-                       / 1e+6_fp           * XNUMOL_CO 
-         ENDIF
-
-         C(ind_CH4_E)    = 1.0_dp   ! Factor. "_E" is "external"
-         C(ind_NMVOC_E)  = 1.0_dp   ! Factor. "_E" is "external"
-
-
-         CALL SETKPPVALS( State_Chm, State_Met, I, J, L, &
-              State_Met%AIRNUMDEN(I,J,L),                &
-              CH4LOSS(I,J,L), GMI_PROD_CO(I,J,L),        &
-              GMI_LOSS_CO(I,J,L), PCO_NMVOC(I,J,L),      &
-              PCO_CH4(I,J,L), LPCO_CH4, FAC_DIURNAL )
-
-         C(ind_OH_E) = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * FAC_DIURNAL
-         C(ind_Cl_E) = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
-
-         ! offline rate. Factor out reactants for KPP
-         IF (LPCO_CH4) THEN
-            k_trop(1) = safediv( k_trop(1), ( C(ind_CH4) *C(ind_OH_E) ), 0.0_dp )
-         ENDIF
+         ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
+         CALL ccycle_ConvertKgtoMolecCm3(                                    &
+              I          = I,                                                &
+              J          = J,                                                &
+              L          = L,                                                &
+              id_CH4     = id_CH4,                                           &
+              id_CO      = id_CO,                                            &
+              id_CO2     = id_CO2,                                           &
+              xnumol_CO  = xnumol_CO,                                        &
+              xnumol_CH4 = xnumol_CH4,                                       &
+              xnumol_CO2 = xnumol_CO2,                                       &
+              State_Met  = State_Met,                                        &
+              State_Chm  = State_Chm                                        )
+ 
+         ! Compute the rate constants that will be used
+         ! return the diurnal factor
+         CALL ccycle_ComputeRateConstants(                                   &
+              I            = I,                                              &
+              J            = J,                                              &
+              L            = L,                                              &
+              LPCO_CH4     = LPCO_CH4,                                       &
+              dtChem       = dtChem,                                         &
+              bAirDens     = bAirDens(I,J,L),                                &
+              bCl          = bCL(I,J,L),                                     &
+              bOH          = bOH(I,J,L),                                     &
+              CH4loss      = CH4loss(I,J,L),                                 &
+              GMI_Prod_CO  = GMI_Prod_CO(I,J,L),                             &
+              GMI_Loss_CO  = GMI_Loss_CO(I,J,L),                             &
+              PCO_NMVOC    = PCO_NMVOC(I,J,L),                               &
+              PCO_CH4      = PCO_CH4(I,J,L),                                 &
+              TCOSZ        = TCOSZ(I,J),                                     &
+              State_Met    = State_Met,                                      &
+              State_Chm    = State_Chm                                      )
          
          !===================================================================
          ! Update reaction rates
          !===================================================================
          
-         ! Update the array of rate constants
+         ! Update the array of rate constants for the KPP solver
          CALL Update_RCONST( )
 
          ! Call the KPP integrator
@@ -1173,108 +1169,99 @@
          ! Trap potential errors
          IF ( IERR /= 1 ) failed = .TRUE.
 
-         ! Send species from molec/cm3 to kg
-         IF ( id_CH4 > 0 ) THEN
-            Spc(I,J,L,id_CH4)  = C(ind_CH4) * State_Met%AIRVOL(I,J,L)        &
-                               * 1e+6_fp    / XNUMOL_CH4
-         ENDIF
-
-         IF ( id_CO > 0 ) THEN
-            Spc(I,J,L,id_CO)   = C(ind_CO) * State_Met%AIRVOL(I,J,L)         &
-                               * 1e+6_fp   / XNUMOL_CO
-         ENDIF
-
-         IF ( id_COch4 > 0 ) THEN
-            Spc(I,J,L,id_COCH4) = C(ind_CO_CH4) * State_Met%AIRVOL(I,J,L)    &
-                                * 1e+6_fp       / XNUMOL_CO
-         ENDIF
-
-         IF ( id_COnmvoc > 0 ) THEN
-            Spc(I,J,L,id_COnmvoc) = C(ind_CO_NMVOC) * State_Met%AIRVOL(I,J,L)&
-                                  * 1e+6_fp         / XNUMOL_CO
-         ENDIF
-
-         IF ( id_CO2 > 0 ) THEN
-            Spc(I,J,L,id_CO2) = C(ind_CO2) * State_Met%AIRVOL(I,J,L)         &
-                              * 1e+6_fp    / XNUMOL_CO2
-         ENDIF
-
+         ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
+         CALL ccycle_ConvertMolecCm3ToKg(                                    &
+              I            = I,                                              &
+              J            = J,                                              &
+              L            = L,                                              &
+              id_CH4       = id_CH4,                                         &
+              id_CO        = id_CO,                                          &
+              id_COch4     = id_COch4,                                       &
+              id_COnmvoc   = id_COnmvoc,                                     &
+              id_CO2       = id_CO2,                                         &
+              xnumol_CO    = xnumol_CO,                                      &
+              xnumol_CH4   = xnumol_CH4,                                     &
+              xnumol_CO2   = xnumol_CO2,                                     &
+              State_Met    = State_Met,                                      &
+              State_Chm    = State_Chm                                      )
+ 
          ! Handle trop loss by OH for regional CO species
-         IF ( LSPLIT ) THEN
-               
-            ! Loop over regional CO species
-            DO NA = 16, nAdvect-11
-               
-               ! Advected species ID
-               N            = State_Chm%Map_Advect(NA)
-               
-               !-----------------------------------------------------
-               ! NOTE: The proper order should be:
-               !   (1) Calculate CO loss rate
-               !   (2) Update AD65 array
-               !   (3) Update the SPC array using the loss rate
-               ! 
-               ! Therefore, we have now moved the computation of the
-               ! ND65 diagnostic before we apply the loss to the 
-               ! tagged CO concentrations stored in the SPC array.
-               !
-               !    -- Jenny Fisher (27 Mar 2017)
-               !-----------------------------------------------------
-               
-               ! Update regional species 
-               !<<Not sure if this is correct - MSL>>
-               IF (NA .ne. 16)                                     &
-                    Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
-                    ( 1e+0_fp - K_TROP(2) * C(ind_OH_E) * DTCHEM )
-               
-               !-----------------------------------------------------
-               ! HISTORY (aka netCDF diagnostics)
-               !
-               ! Loss of CO by OH for "tagged" species
-               !-----------------------------------------------------
-               
-               ! Units: [kg/s]
-               IF ( State_Diag%Archive_Loss ) THEN
-                  State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(2) &
-                       * C(ind_OH_E) * DTCHEM   
-                  !                     C(ind_CO2_OH) / DTCHEM  &
-                  !                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-               ENDIF
-               
-            ENDDO
-         ENDIF
+!         IF ( LSPLIT ) THEN
+!               
+!            ! Loop over regional CO species
+!            DO NA = 16, nAdvect-11
+!               
+!               ! Advected species ID
+!               N            = State_Chm%Map_Advect(NA)
+!               
+!               !-----------------------------------------------------
+!               ! NOTE: The proper order should be:
+!               !   (1) Calculate CO loss rate
+!               !   (2) Update AD65 array
+!               !   (3) Update the SPC array using the loss rate
+!               ! 
+!               ! Therefore, we have now moved the computation of the
+!               ! ND65 diagnostic before we apply the loss to the 
+!               ! tagged CO concentrations stored in the SPC array.
+!               !
+!               !    -- Jenny Fisher (27 Mar 2017)
+!               !-----------------------------------------------------
+!               
+!               ! Update regional species 
+!               !<<Not sure if this is correct - MSL>>
+!               IF (NA .ne. 16)                                     &
+!                    Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
+!                    ( 1e+0_fp - K_TROP(2) * C(ind_OH_E) * DTCHEM )
+!               
+!               !-----------------------------------------------------
+!               ! HISTORY (aka netCDF diagnostics)
+!               !
+!               ! Loss of CO by OH for "tagged" species
+!               !-----------------------------------------------------
+!               
+!               ! Units: [kg/s]
+!               IF ( State_Diag%Archive_Loss ) THEN
+!                  State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(2) &
+!                       * C(ind_OH_E) * DTCHEM   
+!                  !                     C(ind_CO2_OH) / DTCHEM  &
+!                  !                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+!               ENDIF
+!               
+!            ENDDO
+!         ENDIF
 
          !==========================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          ! 
          ! Save production of CO2 from CO oxidation [kg/m2/s]
          !==========================================================
-         IF ( Input_Opt%LCHEMCO2 ) THEN
-            IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-               State_Diag%ProdCO2fromCO(I,J,L) = C(ind_CO2_OH) / DTCHEM & !molec/cm2/s 
-                                               / XNUMOL_CO2  & !=>kg/cm2/s
-                                               * 1e4_fp      ! =>kg/m2/s
-
-            ENDIF
-         ENDIF
-
-         !==============================================================
-         ! HISTORY (aka netCDF diagnostics)
-         !
-         ! Production of CO species 
-         !==============================================================
-
-         ! Units: [kg/s] Production of CO from CH4
-         IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
-            State_Diag%ProdCOfromCH4(I,J,L) = C(ind_CO_CH4) / DTCHEM  &
-                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-         ENDIF
-
-         ! Units: [kg/s] Production of CO from NMVOCs
-         IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-            State_Diag%ProdCOfromNMVOC(I,J,L) = C(ind_CO_NMVOC) / DTCHEM  &
-                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-         ENDIF
+! NOTE: Write a routine in ccycle_Funcs to pass this value back
+!         IF ( Input_Opt%LCHEMCO2 ) THEN
+!            IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
+!               State_Diag%ProdCO2fromCO(I,J,L) = C(ind_CO2_OH) / DTCHEM & !molec/cm2/s 
+!                                               / XNUMOL_CO2  & !=>kg/cm2/s
+!                                               * 1e4_fp      ! =>kg/m2/s
+!
+!            ENDIF
+!         ENDIF
+!
+!         !==============================================================
+!         ! HISTORY (aka netCDF diagnostics)
+!         !
+!         ! Production of CO species 
+!         !==============================================================
+!
+!         ! Units: [kg/s] Production of CO from CH4
+!         IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+!            State_Diag%ProdCOfromCH4(I,J,L) = C(ind_CO_CH4) / DTCHEM  &
+!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+!         ENDIF
+!
+!         ! Units: [kg/s] Production of CO from NMVOCs
+!         IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+!            State_Diag%ProdCOfromNMVOC(I,J,L) = C(ind_CO_NMVOC) / DTCHEM  &
+!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+!         ENDIF
 
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
@@ -1405,11 +1392,10 @@
             SUNCOS = State_Met%SUNCOSmid(I,J)
 
             ! Scaling factor for diurnal cycles - zero at night
+            FAC_DIURNAL = 0.0_fp
             IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
-               FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) * &
-                             ( 86400.0_fp / DT )
-            ELSE
-               FAC_DIURNAL = 0.0_fp
+               FAC_DIURNAL = ( SUNCOS     / TCOSZ(I,J) )                     &
+                           * ( 86400.0_fp / DT         )
             ENDIF
 
             ! OH concentration in molec/cm3. BOH is imported
@@ -1592,9 +1578,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
@@ -1660,12 +1643,12 @@
       ThisLoc = ' -> Init_Ccycle (in module GeosCore/ccyclechem_mod.F90)'
 
       ! Define species ID flags
-      id_CH4     = Ind_( 'CH4'      )
-      id_CO      = Ind_( 'CO'       )
-      id_COCH4   = Ind_( 'COCH4'    )
-      id_COnmvoc = Ind_( 'COnmvoc'  )
-      id_CO2     = Ind_( 'CO2' )
-      id_OCS     = Ind_( 'OCS' )
+      id_CH4     = Ind_( 'CH4'     )
+      id_CO      = Ind_( 'CO'      )
+      id_COCH4   = Ind_( 'COch4'   )
+      id_COnmvoc = Ind_( 'COnmvoc' )
+      id_CO2     = Ind_( 'CO2'     )
+      id_OCS     = Ind_( 'OCS'     )
 
       ! Make sure CH4 is a defined species (bmy, 6/20/16)
       IF ( id_CH4 <= 0 ) THEN
@@ -1859,80 +1842,7 @@
 
       END SUBROUTINE CLEANUP_CCYCLE
 !EOC
-      SUBROUTINE SETKPPVALS( State_Chm, State_Met, I, J, L, &
-           BAIRDENS, CH4LOSS, GMI_PROD_CO, GMI_LOSS_CO, &
-           PCO_NMVOC, PCO_CH4, LPCO_CH4, FAC_DIURNAL )
-        
-        USE gckpp_Global
-        USE gckpp_Parameters
-        USE gckpp_Precision
-        USE ccycle_RateLawFuncs, ONLY : GC_OHCO
-        USE PhysConstants,       ONLY : AVO
-        USE State_Chm_Mod,       ONLY : ChmState, Ind_
-        USE State_Met_Mod,       ONLY : MetState
-        USE TIME_MOD,            ONLY : GET_TS_CHEM, GET_TS_EMIS
-        
-!
-! !INPUT PARAMETERS:
-!
-        TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-        TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-        INTEGER,        INTENT(IN)  :: I, J, L
-!        REAL(fp),       INTENT(IN)  :: BOH ! OH
-!        REAL(fp),       INTENT(IN)  :: BCl ! Cl
-        REAL(fp),       INTENT(IN)  :: CH4LOSS
-        REAL(fp),       INTENT(IN)  :: GMI_PROD_CO
-        REAL(fp),       INTENT(IN)  :: GMI_LOSS_CO
-        REAL(fp),       INTENT(IN)  :: PCO_NMVOC, PCO_CH4
-        REAL(fp),       INTENT(IN)  :: BAIRDENS
-        REAL(fp),       INTENT(OUT) :: FAC_DIURNAL
-        LOGICAL,        INTENT(IN)  :: LPCO_CH4
 
-        REAL(fp) :: DTCHEM, DTEMIS
-        REAL(fp) :: kgs_to_mcm3sCO, FMOL_CO
-        
-        ! Chemistry timestep in seconds
-        DTCHEM = GET_TS_CHEM()
-        DTEMIS = GET_TS_EMIS()
-
-        ! Temperature (K)
-        TEMP            = State_Met%T(I,J,L)
-        IF ( .not. State_Met%InStratosphere(I,J,L) ) THEN ! make the .true. branch the troposphere
-           K_STRAT = 0.d0
-           TROP    = 1.e0 ! Toggle
-
-           ! Cosine of the solar zenith angle [unitless]
-           SUNCOS = State_Met%SUNCOSmid(I,J)
-           ! Scaling factor for diurnal cycles - zero at night
-           IF ( State_Met%SUNCOSmid(I,J) > 0.0_fp .and. &
-                TCOSZ(I,J) > 0.0_fp ) THEN
-              FAC_DIURNAL = ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) * &
-                                      ( 86400.0_fp / DTCHEM )
-           ELSE
-              FAC_DIURNAL = 0.0_fp
-           ENDIF
-        
-           ! Trop Rates
-           FMOL_CO        =  State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
-           kgs_to_mcm3sCO = ( AVO / (FMOL_CO * State_Met%AIRVOL(I,J,L)) ) * 1.0e-6_fp ! mcl/kg/cm3
-           IF (.not. LPCO_CH4) THEN
-              K_TROP(1)   = 2.45E-12*EXP(-1775.E0/TEMP) ! {Troposp.; JPL 1997}
-           ELSE
-              K_TROP(1)   = PCO_CH4   * FAC_DIURNAL
-           ENDIF
-           K_TROP(2)      = GC_OHCO()
-           K_TROP(3)      = PCO_NMVOC * FAC_DIURNAL ! 
-        ELSE ! In the strat
-           K_TROP = 0.d0
-           TROP   = 0.d0 ! Toggle
-           
-           ! Strat Rates
-           K_STRAT(1) = CH4LOSS ! 1/s
-           K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! (mcl/cm3/s)
-           K_STRAT(3) = GMI_LOSS_CO ! 1/s
-        ENDIF ! In the strat/trop
-
-        END SUBROUTINE SETKPPVALS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2077,5 +1987,6 @@
     ENDIF
 
   END SUBROUTINE CALC_DIURNAL
+
 !EOC
     END MODULE CCYCLECHEM_MOD
