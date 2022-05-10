@@ -1995,30 +1995,6 @@ PROGRAM GEOS_Chem
           ENDIF
 
           !------------------------------------------------------------------
-          !   ***** A R C H I V E   B P C H   D I A G N O S T I C S *****
-          !------------------------------------------------------------------
-          IF ( ITS_TIME_FOR_DIAG() ) THEN
-
-             IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
-
-             !! Accumulate several diagnostic quantities
-             !CALL Diag1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag1"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG1' )
-
-             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
-             CALL Set_Ct_Diag( INCREMENT=.TRUE. )
-
-             ! Planeflight diagnostic moved to be after chemistry, kyu
-             IF ( prtDebug ) CALL Debug_Msg('### MAIN: a DIAGNOSTICS')
-          ENDIF
-
-          !------------------------------------------------------------------
           !     ***** T I M E S E R I E S   D I A G N O S T I C S  *****
           !------------------------------------------------------------------
 
