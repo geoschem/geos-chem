@@ -211,7 +211,7 @@ inst_collections=(ConcAboveSfc      \
 #-----------------------------------------------------
 # Run-time debug options in config files are no longer set from this file.
 # Do the following manually instead to enable debug prints:
-#   (1) GEOS-Chem core: Set "Turn on debug printout?" to T in geoschem_config.yml
+#   (1) GEOS-Chem core: Set debug_printout to true in geoschem_config.yml
 #   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
 #   (3) MAPL ExtData (handles GCHP inputs):
 #         - For root thread prints:
@@ -686,9 +686,9 @@ fi
 print_msg " "
 print_msg "Timesteps:"
 print_msg "----------"
-replace_val "Tran\/conv timestep \[sec\]"  ${TransConv_Timestep_sec} geoschem_config.yml
-replace_val "Chem\/emis timestep \[sec\]"  ${ChemEmiss_Timestep_sec} geoschem_config.yml
-replace_val "Radiation Timestep \[sec\]"   ${RRTMG_Timestep_sec}     geoschem_config.yml
+replace_val "transport_timestep_in_s"  ${TransConv_Timestep_sec} geoschem_config.yml
+replace_val "chemistry_timestep_in_s"  ${ChemEmiss_Timestep_sec} geoschem_config.yml
+replace_val "radiation_timestep_in_s"  ${RRTMG_Timestep_sec}     geoschem_config.yml
 replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  GCHP.rc
 replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
 replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc
