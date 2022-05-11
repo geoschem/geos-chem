@@ -10575,7 +10575,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,         ONLY : StrSplit, To_UpperCase
-    USE DiagList_Mod,        ONLY : IsFullChem
+    USE DiagList_Mod,        ONLY : isCcycle, isFullChem,  isMercury
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -11507,7 +11507,7 @@ CONTAINS
        ! baggage.  Maybe clean this up at a later point to use the same units
        ! regardless of simulation type. (bmy, 12/4/17)
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( isFullChem ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11523,7 +11523,7 @@ CONTAINS
        ! baggage.  Maybe clean this up at a later point to use the same units
        ! regardless of simulation type. (bmy, 12/4/17)
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( isFullChem ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11838,8 +11838,14 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCO2FROMCO' ) THEN
        IF ( isDesc    ) Desc  = 'Prod of CO2 from CO oxidation'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  =  3
+       IF ( isUnits   ) THEN
+          IF ( isCcycle ) THEN
+             Units = 'molec cm-3 s-1'
+          ELSE
+             Units = 'kg m-2 s-1'
+          ENDIF
+       ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSCH4BYCLINTROP' ) THEN
        IF ( isDesc    ) Desc  = &
@@ -11862,7 +11868,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Production of CO by CH4'
        IF ( isRank    ) Rank  =  3
        IF ( isUnits   ) THEN
-          IF ( isFullChem ) THEN
+          IF ( isFullChem .or. isCcycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11873,7 +11879,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Porduction of CO by NMVOC'
        IF ( isRank    ) Rank  =  3
        IF ( isUnits   ) THEN
-          IF ( isFullChem ) THEN
+          IF ( isFullChem .or. isCcycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'

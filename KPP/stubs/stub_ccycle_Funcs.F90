@@ -84,4 +84,40 @@ CONTAINS
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
   END SUBROUTINE ccycle_ConvertMolecCm3ToKg
 
+  FUNCTION ccycle_Get_CO_CH4_Flux( dtChem ) RESULT ( flux )
+    !
+    ! Stub for ccycle_Get_CO_CH4_Flux
+    ! needed to satisfy compile-time dependencies
+    !
+    REAL(dp), INTENT(IN) :: dtChem
+    REAL(dp)             :: flux
+  END FUNCTION ccycle_Get_CO_CH4_Flux
+
+  FUNCTION ccycle_Get_CO_NMVOC_Flux( dtChem ) RESULT ( flux )
+    !
+    ! Stub for ccycle_Get_CO_NMVOC_Flux
+    ! needed to satisfy compile-time dependencies
+    !
+    REAL(dp), INTENT(IN) :: dtChem
+    REAL(dp)             :: flux
+  END FUNCTION ccycle_Get_CO_NMVOC_Flux
+
+  FUNCTION  ccycle_Get_CO2_OH_Flux( dtChem ) RESULT ( flux )
+    !
+    ! Stub for ccycle_Get_CO_NMVOC_Flux
+    ! needed to satisfy compile-time dependencies
+    !
+    REAL(dp), INTENT(IN) :: dtChem
+    REAL(dp)             :: flux
+  END FUNCTION ccycle_Get_CO2_OH_Flux
+
+  FUNCTION cccycle_Get_OH_E_Flux( dtChem ) RESULT ( flux )
+    !
+    ! Stub for cccycle_Get_OH_E_Flux
+    ! needed to satisfy compile-time dependencies
+    !
+    REAL(dp), INTENT(IN) :: dtChem
+    REAL(dp)             :: flux
+  END FUNCTION cccycle_Get_OH_E_Flux
+
 END MODULE ccycle_Funcs

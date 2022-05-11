@@ -84,7 +84,9 @@ MODULE DiagList_Mod
   CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
   CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)   ! Names of RRTMG outputs (tags)
   INTEGER,           PUBLIC  :: nRadOut      ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
+  LOGICAL,           PUBLIC  :: isCcycle     ! Is this a carbon cycle sim?
+  LOGICAL,           PUBLIC  :: isFullChem   ! Is this a fullchem simulation?
+  LOGICAL,           PUBLIC  :: isMercury    ! Is this a mercury simulation?
   CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
@@ -220,7 +222,9 @@ CONTAINS
     RadWL           =  ''
     RadOut          =  ''
     nRadOut         =  0
-    IsFullChem      = .FALSE.
+    isCcycle        = .FALSE.
+    isFullChem      = .FALSE.
+    isMercury       = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
     Name            =  ''
@@ -261,10 +265,22 @@ CONTAINS
        IF ( INDEX( Line, 'Simulation name' ) > 0 ) THEN
           CALL StrSplit( Line, ':', SubStrs, N )
           SELECT CASE( To_UpperCase( ADJUSTL( SubStrs(2) ) ) )
+             CASE ( 'CCYCLE' )
+                isCcycle   = .TRUE.
+                isFullChem = .FALSE.
+                isMercury  = .FALSE.
              CASE( 'FULLCHEM' )
-                IsFullChem = .TRUE.
+                isCcycle   = .FALSE.
+                isFullChem = .TRUE.
+                isMercury   = .FALSE.
+             CASE( 'HG', 'MERCURY' )
+                isCcycle   = .FALSE.
+                isFullChem = .FALSE.
+                isMercury  = .TRUE.
              CASE DEFAULT
-                IsFullChem = .FALSE.
+                isCcycle   = .FALSE.
+                isFullChem = .FALSE.
+                isMercury  = .FALSE.
           END SELECT
        ENDIF
 

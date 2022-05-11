@@ -1116,7 +1116,7 @@
          fac_Diurnal    = 0.0_dp                   ! Diurnal scaling factor [1]
          K_STRAT        = 0.0_dp                   ! Rate in stratosphere [1/s]
          K_TROP         = 0.0_dp                   ! Rate in troposphere  [1/s]
-         TROP           = 0.0_dp                   ! Toggle 
+         TROP           = 0.0_dp                   ! Toggle
          TEMP           = State_Met%T(I,J,L)       ! Temperature [K]
          INV_TEMP       = 1.0_dp / TEMP            ! 1/T  term for equations
          TEMP_OVER_K300 = TEMP / 300.0_dp          ! T/300 term for equations
@@ -1234,49 +1234,42 @@
 !            ENDDO
 !         ENDIF
 
-         !==========================================================
-         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-         ! 
-         ! Save production of CO2 from CO oxidation [kg/m2/s]
-         !==========================================================
-! NOTE: Write a routine in ccycle_Funcs to pass this value back
-!         IF ( Input_Opt%LCHEMCO2 ) THEN
-!            IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-!               State_Diag%ProdCO2fromCO(I,J,L) = C(ind_CO2_OH) / DTCHEM & !molec/cm2/s 
-!                                               / XNUMOL_CO2  & !=>kg/cm2/s
-!                                               * 1e4_fp      ! =>kg/m2/s
-!
-!            ENDIF
-!         ENDIF
-!
-!         !==============================================================
-!         ! HISTORY (aka netCDF diagnostics)
-!         !
-!         ! Production of CO species 
-!         !==============================================================
-!
-!         ! Units: [kg/s] Production of CO from CH4
-!         IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
-!            State_Diag%ProdCOfromCH4(I,J,L) = C(ind_CO_CH4) / DTCHEM  &
-!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-!         ENDIF
-!
-!         ! Units: [kg/s] Production of CO from NMVOCs
-!         IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-!            State_Diag%ProdCOfromNMVOC(I,J,L) = C(ind_CO_NMVOC) / DTCHEM  &
-!                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-!         ENDIF
-
-         !==============================================================
+         !===================================================================
          ! HISTORY (aka netCDF diagnostics)
          !
-         ! Loss of total CO species 
-         !==============================================================
+         ! Production and loss of CO
+         !
+         ! NOTE: Call functions in KPP/cycle/ccycle_Funcs.F90 so that we
+         ! avoid bringing in KPP species indices into this module, which
+         ! would cause compile-time dependency errors.
+         !===================================================================
+
+         ! Production of CO2 from CO oxidation [molec/cm3/s]
+         IF ( Input_Opt%LCHEMCO2 ) THEN
+            IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
+               State_Diag%ProdCO2fromCO(I,J,L) =                             &
+                  ccycle_Get_CO2_OH_Flux( dtChem )
+            ENDIF
+         ENDIF
+
+         ! Production of CO from CH4
+         IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+            State_Diag%ProdCOfromCH4(I,J,L) =                                &
+              ccycle_Get_CO_CH4_Flux( dtChem )
+         ENDIF
+
+         ! Units: [kg/s] Production of CO from NMVOCs
+         IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+            State_Diag%ProdCOfromNMVOC(I,J,L) =                              &
+              ccycle_Get_CO_NMVOC_Flux( dtChem )
+         ENDIF
+
+         ! Loss of CO by OH -- tagged species
          ! Units: [kg/s] 
 !         IF ( State_Diag%Archive_Loss ) THEN
 !            State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
 !         ENDIF
-!#endif
+
       ENDDO
       ENDDO
       ENDDO

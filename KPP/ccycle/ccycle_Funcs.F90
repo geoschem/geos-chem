@@ -309,6 +309,126 @@ CONTAINS
     Spc => NULL()
 
   END SUBROUTINE ccycle_ConvertMolecCm3ToKg
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ccycle_get_co_ch4_flux
+!
+! !DESCRIPTION: Returns the flux of CO_CH4 in molec/cm3/s for diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ccycle_Get_CO_CH4_Flux( dtChem ) RESULT ( flux )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: flux         ! CO_CH4 flux [molec/cm3/s]
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    flux = C(ind_CO_CH4) / dtChem        ! molec/cm3 --> molec/cm3/s
+
+  END FUNCTION ccycle_Get_CO_CH4_Flux(
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ccycle_get_co_nmvoc_flux
+!
+! !DESCRIPTION: Returns the flux of CO_NMVOC in molec/cm3/s for diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ccycle_Get_CO_NMVOC_Flux( dtChem ) RESULT ( flux )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: flux         ! CO_NMVOC flux [molec/cm3/s]
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    flux = C(ind_CO_NMVOC) / dtChem      ! molec/cm3 --> molec/cm3/s
+
+  END FUNCTION ccycle_Get_CO_NMVOC_Flux
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ccycle_get_co2_oh_flux
+!
+! !DESCRIPTION: Returns the flux of CO2_OH in molec/cm3/s for diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ccycle_Get_CO2_OH_Flux( dtChem ) RESULT ( flux )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: flux         ! CO2_OH flux [molec/cm3/s]
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    flux = C(ind_CO2_OH) / dtChem        ! molec/cm3 --> molec/cm3/s
+
+  END FUNCTION ccycle_Get_CO2_OH_Flux
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ccycle_get_oh_e_flux
+!
+! !DESCRIPTION: Returns the flux of OH_E in molec/cm3/s for diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION cccycle_Get_OH_E_Flux( dtChem ) RESULT ( flux )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
+!
+! !RETURN VALUE:
+!
+    REAL(dp)             :: flux         ! CO2_OH flux [kg/m2/s]
+
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    flux = C(ind_OH_E) / dtChem          ! molec/cm3 --> molec/cm3/s
+
+  END FUNCTION cccycle_Get_OH_E_Flux
+
 
   !==========================================================================
   ! Rate-law functions
