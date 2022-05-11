@@ -28,7 +28,7 @@
 #      - manual configuration of domain decomposition
 #
 #    ERROR CHECKS
-# 
+#
 #    UTILITY FUNCTIONS TO UPDATE CONFIG FILES
 #
 #    COMMANDS TO UPDATE CONFIG FILES
@@ -81,7 +81,7 @@ Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 # in output file cap_restart. Rerunning without removing or editing
 # cap_restart will start at the start time in cap_restart rather than
 # the start time set here. Beware of this feature - if you do not want to
-# do consecutive runs then delete cap_restart prior to running. If you 
+# do consecutive runs then delete cap_restart prior to running. If you
 # do want to run consecutive simulations you can make use of this feature in
 # your own custom run scripts.
 
@@ -90,12 +90,12 @@ Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 #------------------------------------------------
 INITIAL_RESTART=gcchem_internal_restart.${RUNDIR_SIM_END_DATE}_${RUNDIR_SIM_END_TIME}z.nc4$
 #
-# By default the linked restart files in the run directories will be 
+# By default the linked restart files in the run directories will be
 # used. You can specify a custom initial restart file by overwriting the
 # default above.
 #
 # Please note that HEMCO restart variables are stored in the same
-# restart file as species concentrations. Initial restart files available 
+# restart file as species concentrations. Initial restart files available
 # do NOT contain HEMCO variables. Using them will have the same effect
 # as turning the HEMCO restart file option off in GC classic.
 # However, all output restart files will contain HEMCO restart variables
@@ -135,14 +135,14 @@ Checkpoint_Ref_Time=START
 #------------------------------------------------------------
 # WARNING: these settings will override manual updates you make to config files!
 #
-# geoschem_config.yml:
-Turn_on_Chemistry=T
-Turn_on_Dry_Deposition=F
-Turn_on_Wet_Deposition=F
-Turn_on_Transport=T
-Turn_on_Cloud_Conv=T
-Turn_on_PBL_Mixing=T
-Turn_on_Non_Local_Mixing=T
+# geoschem_config.yml
+Turn_on_Chemistry=true
+Turn_on_Transport=true
+Turn_on_Cloud_Conv=true
+Turn_on_PBL_Mixing=true
+Turn_on_Non_Local_Mixing=true
+Turn_on_Dry_Deposition=true
+Turn_on_Wet_Deposition=true
 #
 # HEMCO_Config.rc:
 Turn_on_Base_Emissions=true
@@ -153,6 +153,9 @@ Turn_on_Base_Emissions=true
 AutoUpdate_Diagnostics=ON
 
 # Monthly diagnostics: '0' for off; '1' for on
+# NOTE: fullchem "DefaultCollection" excludes monthly option
+# in HISTORY.rc by default to allow greater output frequency
+# when other collections are monthly.
 timeAvg_monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
 
 # Frequency and duration (ignored if monthly diagnostics on)
@@ -167,6 +170,7 @@ timeAvg_collections=(SpeciesConc    \
                      CloudConvFlux  \
                      ConcAfterChem  \
                      DryDep         \
+                     DefaultCollection \
                      Emissions      \
                      JValues        \
                      KppDiags       \
@@ -194,8 +198,8 @@ inst_collections=(ConcAboveSfc      \
 #   Monthly   = computes monthly time-averaged values (0=OFF, 1=ON)
 #   Frequency = frequency of diagnostic calculation (HHmmSS)
 #   Duration  = frequency of diagnostic file  write (HHmmSS)
-# 
-# NOTES: 
+#
+# NOTES:
 #  1. Set AutoUpdate_Diagnostics to ON/OFF to toggle auto-update of HISTORY.rc
 #  2. If monthly is enabled then frequency and duration are ignored
 #  3. Freq and duration hours may exceed 2 digits, e.g. 7440000 for 31 days
@@ -207,10 +211,10 @@ inst_collections=(ConcAboveSfc      \
 #-----------------------------------------------------
 # Run-time debug options in config files are no longer set from this file.
 # Do the following manually instead to enable debug prints:
-#   (1) GEOS-Chem core: Set debug printout to true in geoschem_config.yml
+#   (1) GEOS-Chem core: Set debug_printout to true in geoschem_config.yml
 #   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
 #   (3) MAPL ExtData (handles GCHP inputs):
-#         - For root thread prints: 
+#         - For root thread prints:
 #              1. Open run directory file logging.yml
 #              2. Set CAP.EXTDATA logger option 'root_level' to DEBUG
 #              3. Run GCHP
@@ -229,11 +233,16 @@ inst_collections=(ConcAboveSfc      \
 #    LESS FREQUENTLY CHANGED SETTINGS
 ########################################################
 
+CS_RES_EFFECTIVE=${CS_RES}
+if [[ ${STRETCH_GRID} == 'ON' ]]; then
+    CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
+fi
+
 #------------------------------------------------
 #    Timesteps
 #------------------------------------------------
 # WARNING: these settings will override settings in geoschem_config.yml!
-if [[ $CS_RES -lt 180 ]]; then
+if [[ $CS_RES_EFFECTIVE -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
     TransConv_Timestep_HHMMSS=001000
@@ -260,6 +269,10 @@ RRTMG_Timestep_sec=10800
 dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc)
 dustSetting=(${dustEntry// / })
 if [[ ${dustSetting[3]} = "on" ]]; then
+    if [[ ${STRETCH_GRID} == 'ON' ]]; then
+        echo "WARNING: Online dust (DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
+    fi
+
     if [[ $CS_RES -eq 24 ]]; then
         Dust_SF=6.0e-4
     elif [[ $CS_RES -eq 48 ]]; then
@@ -290,7 +303,7 @@ NX=1 # Ignore if NXNY_AUTO=ON
 NY=6 # Ignore if NXNY_AUTO=ON
 # Cores are distributed across each of the six cubed sphere faces using
 # configurable parameters NX and NY. Each face is divided into NX by NY/6
-# regions and each of those regions is processed by a single core 
+# regions and each of those regions is processed by a single core
 # independent of which node it belongs to. Making NX by NY/6 as square
 # as possible reduces communication overhead in GCHP.
 #
@@ -298,9 +311,9 @@ NY=6 # Ignore if NXNY_AUTO=ON
 # or set them manually (OFF).
 
 # Rules and tips for setting NX and NY manually (NXNY_AUTO=OFF):
-#   1. NY must be an integer and a multiple of 6	  
+#   1. NY must be an integer and a multiple of 6
 #   2. NX*NY must equal total number of cores (NUM_NODES*NUM_CORES_PER_NODE)
-#   3. Choose NX and NY to optimize NX x NY/6 squareness 
+#   3. Choose NX and NY to optimize NX x NY/6 squareness
 #         Good examples: (NX=4,NY=24)  -> 96  cores at 4x4
 #                        (NX=6,NY=24)  -> 144 cores at 6x4
 #         Bad examples:  (NX=8,NY=12)  -> 96  cores at 8x2
@@ -328,11 +341,11 @@ NY=6 # Ignore if NXNY_AUTO=ON
 #### Check that resource allocation makes sense
 if (( ${TOTAL_CORES}%6 != 0 )); then
    echo "ERROR: TOTAL_CORES must be divisible by 6. Update value in runConfig.sh."
-   exit 1    
+   exit 1
 fi
 if (( ${TOTAL_CORES} != ${NUM_NODES}*${NUM_CORES_PER_NODE} )); then
    echo "ERROR: TOTAL_CORES must equal to NUM_NODES times NUM_CORES_PER_NODE. Update values in runConfig.sh."
-   exit 1    
+   exit 1
 fi
 
 #### If on, auto-calculate NX and NY to maximize squareness of core regions
@@ -343,7 +356,7 @@ if [[ ${NXNY_AUTO} == 'ON' ]]; then
    which python &> /dev/null; py_ok=$?
    if [[ $bc_ok -eq 0 ]]; then
       # Use bash calculator
-      SQRT=$(echo "sqrt (${Z})" | bc -l)  
+      SQRT=$(echo "sqrt (${Z})" | bc -l)
       N=$(echo $SQRT | awk '{print int($1+0.999)}')
    elif [[ $py_ok -eq 0 ]]; then
       # Use system Python
@@ -367,11 +380,11 @@ fi
 #### Check that NX and NY make sense
 if (( ${NX}*${NY} != ${TOTAL_CORES} )); then
    echo "ERROR: NX*NY must equal TOTAL_CORES. Check values in runConfig.sh."
-   exit 1    
+   exit 1
 fi
 if (( ${NY}%6 != 0 )); then
    echo "ERROR: NY must be an integer divisible by 6. Check values in runConfig.sh."
-   exit 1    
+   exit 1
 fi
 
 #### Check that domain decomposition will not trigger a FV3 domain error
@@ -402,9 +415,9 @@ if [[ ! -e ${INITIAL_RESTART} ]]; then
 fi
 
 #### Check transport setting. If okay, set binary indicator
-if [[ ${Turn_on_Transport} == 'T' ]]; then
+if [[ ${Turn_on_Transport} == 'true' ]]; then
     ADVCORE_ADVECTION=1
-elif [[ ${Turn_on_Transport} == 'F' ]]; then
+elif [[ ${Turn_on_Transport} == 'false' ]]; then
     ADVCORE_ADVECTION=0
 else
     echo "ERROR: Incorrect transport setting"
@@ -532,17 +545,17 @@ update_dyn_freq() {
        echo "ERROR: more than one entry in $1 in $2. Reduce to one so that read frequency can be auto-synced with dynamic timestep from runConfig.sh."
        exit 1
     fi
-    
+
     # Get line number
     x=$(grep -n "$str" $2)
     linenum=${x%%:*}
-    
+
     # Get current ExtData.rc frequency read string
     x=$(grep "$str" $2)
     z=${x%%;*}
     charnum=${#z}
     currentstr=${x[0]:${charnum}+1:6}
-    
+
     # Replace string with configured dynamic timestep
     sed -i "${linenum}s/${currentstr}/${TransConv_Timestep_HHMMSS}/" $2
 
@@ -577,7 +590,7 @@ else
    replace_val WRITE_RESTART_BY_OSERVER   NO    GCHP.rc
 fi
 
-### Uncomment out Adjoint collection in HISTORY.rc. It's not 
+### Uncomment out Adjoint collection in HISTORY.rc. It's not
 ### needed for forward run, but we need it now
 print_msg "Removing adjoint history collections"
 sed -i "s/^\([\t ]*\)'Adjoint',/\1'Adjoint',/" HISTORY.rc
@@ -645,7 +658,7 @@ replace_val END_DATE  "${End_Time}"   CAP.rc
 replace_val JOB_SGMT  "${Duration}"   CAP.rc
 replace_val REVERSE_TIME "1"          CAP.rc
 
-##### Set commonly changed settings in geoschem_config.yml
+##### Set commonly changed settings in geoschem_config.yml and GCHP.rc
 print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
@@ -733,7 +746,7 @@ if [[ ${AutoUpdate_Diagnostics} == "ON" ]]; then
    if [[ ${#timeAvg_collections[@]} > 0 ]]; then
       for c in ${timeAvg_collections[@]}; do
          replace_val $c.mode        "'time-averaged'"  HISTORY.rc
-         replace_val $c.monthly     ${timeAvg_monthly} HISTORY.rc  
+         replace_val $c.monthly     ${timeAvg_monthly} HISTORY.rc
          replace_val $c.frequency   ${timeAvg_freq}    HISTORY.rc
          replace_val $c.duration    ${timeAvg_dur}     HISTORY.rc
       done
@@ -741,7 +754,7 @@ if [[ ${AutoUpdate_Diagnostics} == "ON" ]]; then
    if [[ ${#inst_collections[@]} > 0 ]]; then
       for c in ${inst_collections[@]}; do
          replace_val $c.mode        "'instantaneous'" HISTORY.rc
-         replace_val $c.frequency   ${inst_freq}      HISTORY.rc  
+         replace_val $c.frequency   ${inst_freq}      HISTORY.rc
          replace_val $c.duration    ${inst_dur}       HISTORY.rc
       done
    fi
@@ -751,5 +764,3 @@ else
     print_msg "ERROR: unknown setting for AutoUpdate_Diagnostics. Must be ON or OFF."
     exit 1
 fi
-
-
