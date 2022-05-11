@@ -602,6 +602,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE rateLawUtilFuncs,   ONLY : SafeDiv
+      USE Species_Mod,        ONLY : SpcConc
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
@@ -667,7 +668,7 @@
       LOGICAL            :: LPRT
 
       ! Pointers
-      REAL(fp), POINTER  :: Spc(:,:,:,:)
+      TYPE(SpcConc), POINTER :: Spc(:)
 
       ! Scalars
       LOGICAL                  :: FOUND
@@ -712,7 +713,6 @@
       ! Pointers
       REAL(fp),        POINTER :: AD    (:,:,:  )
       REAL(fp),        POINTER :: AIRVOL(:,:,:  )
-      !REAL(fp),        POINTER :: Spc   (:,:,:,:)
       REAL(fp),        POINTER :: T     (:,:,:  )
 
       ! SAVED scalars
@@ -888,7 +888,7 @@
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            PREVCH4(I,J,L) = Spc(I,J,L,1 )
+            PREVCH4(I,J,L) = Spc(id_CH4)%Conc(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -1214,7 +1214,7 @@
 !               ! Update regional species 
 !               !<<Not sure if this is correct - MSL>>
 !               IF (NA .ne. 16)                                     &
-!                    Spc(I,J,L,N) = Spc(I,J,L,N) *                  &
+!                    Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) *      &
 !                    ( 1e+0_fp - K_TROP(2) * C(ind_OH_E) * DTCHEM )
 !               
 !               !-----------------------------------------------------
@@ -1225,7 +1225,7 @@
 !               
 !               ! Units: [kg/s]
 !               IF ( State_Diag%Archive_Loss ) THEN
-!                  State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * K_TROP(2) &
+!                  State_Diag%Loss(I,J,L,N) = Spc(N)%Conc(I,J,L) * K_TROP(2) &
 !                       * C(ind_OH_E) * DTCHEM   
 !                  !                     C(ind_CO2_OH) / DTCHEM  &
 !                  !                          * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
@@ -1306,8 +1306,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-!      USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-!      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
+      USE Species_Mod,        ONLY : SpcConc
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Grid_Mod,     ONLY : GrdState
@@ -1355,7 +1354,7 @@
       REAL(fp)          :: C_OH, DT, FAC_DIURNAL, SUNCOS 
 
       ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
+      TYPE(SpcConc), POINTER :: Spc(:)
 
       !=================================================================
       ! CH4_OHSAVE begins here!
@@ -1419,8 +1418,8 @@
             KCH4 = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L) )
 
             ! Calculate CH4 mass [molec / box] from [kg / box]
-            CH4TROPMASS = Spc(I,J,L,1) * XNUMOL_CH4 
-            CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4 
+            CH4TROPMASS = Spc(id_CH4)%Conc(I,J,L) * XNUMOL_CH4 
+            CH4MASS     = Spc(id_CH4)%Conc(I,J,L) * XNUMOL_CH4 
 
             ! Calculate loss term  [molec /box / s]
             CH4LOSE = KCH4            * C_OH  * &
@@ -1448,7 +1447,7 @@
             CH4LOSE     = 0e+0_fp
             CH4TROPMASS = 0e+0_fp
             CH4EMIS     = 0e+0_fp
-            CH4MASS     = Spc(I,J,L,1) * XNUMOL_CH4 
+            CH4MASS     = Spc(id_CH4)%Conc(I,J,L) * XNUMOL_CH4 
 
          ENDIF
 
@@ -1488,6 +1487,7 @@
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE Species_Mod,        ONLY : SpcConc
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
    
@@ -1519,7 +1519,7 @@
       INTEGER           :: I, J, L, N, NA, nAdvect
 
       ! Pointers
-      REAL(fp), POINTER :: Spc(:,:,:,:)
+      TYPE(SpcConc), POINTER :: Spc(:)
 
       !========================================================================
       ! CH4_DISTRIB begins here
@@ -1542,8 +1542,9 @@
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-           Spc(I,J,L,N) = SAFE_DIV(Spc(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp) &
-                           * Spc(I,J,L,1)
+           Spc(N)%Conc(I,J,L) = &
+                SAFE_DIV( Spc(N)%Conc(I,J,L), PREVCH4(I,J,L), 0.0_fp) &
+                * Spc(id_CH4)%Conc(I,J,L)
          ENDDO
          ENDDO
          ENDDO
