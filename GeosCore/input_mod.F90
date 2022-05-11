@@ -2064,7 +2064,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "tagged_CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2077,7 +2077,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "tagged_CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4700,7 +4700,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use AIRS observational operator?
     !------------------------------------------------------------------------
-    key    = "ch4_simulation_options%use_observational_operators%AIRS"
+    key    = "CH4_simulation_options%use_observational_operators%AIRS"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4713,7 +4713,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use GOSAT observational operator?
     !------------------------------------------------------------------------
-    key    = "ch4_simulation_options%use_observational_operators%GOSAT"
+    key    = "CH4_simulation_options%use_observational_operators%GOSAT"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4726,7 +4726,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use TCCON observational operator?
     !------------------------------------------------------------------------
-    key    = "ch4_simulation_options%use_observational_operators%TCCON"
+    key    = "CH4_simulation_options%use_observational_operators%TCCON"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4739,7 +4739,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Do an analytical inversion?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%activate"
+    key    = "CH4_simulation_options%analytical_inversion%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4752,7 +4752,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Emission perturbation
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%emission_perturbation"
+    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4765,7 +4765,8 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Current state vector element number
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%state_vector_element_number"
+    key   = &
+     "CH4_simulation_options%analytical_inversion%state_vector_element_number"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4778,7 +4779,8 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use emission scale factor?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_emission_scale_factor"
+    key = &
+     "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4791,7 +4793,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use OH scale factors?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_OH_scale_factors"
+    key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN

@@ -1,6 +1,6 @@
 ---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the CO2 mechanism.
+### Customized for simulations using the KPP "ccycle" mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -52,6 +52,10 @@ operations:
   convection:
     activate: true
 
+  dry_deposition:
+    activate: true
+    diag_alt_above_sfc_in_m: 10
+
   pbl_mixing:
      activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
@@ -62,11 +66,75 @@ operations:
       fill_negative_values: true      # GEOS-Chem Classic only
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
+      - CH4
+      - CH4_OIL
+      - CH4_GAS
+      - CH4_COL
+      - CH4_LIV
+      - CH4_LDF
+      - CH4_WST
+      - CH4_RIC
+      - CH4_OTA
+      - CH4_BBN
+      - CH4_WTL
+      - CH4_SEE
+      - CH4_LAK
+      - CH4_TER
+      - CH4_SAB
+      - CO
+      - COus
+      - COeur
+      - COasia
+      - COoth
+      - CObbam
+      - CObbaf
+      - CObbas
+      - CObboc
+      - CObbeu
+      - CObboth
+      - COch4
+      - COnmvoc
       - CO2
+      - CO2ff
+      - CO2oc
+      - CO2bal
+      - CO2bb
+      - CO2bf
+      - CO2nte
+      - CO2se
+      - CO2av
+      - CO2ch
+      - CO2corr
+
+#============================================================================
+# Options for CH4
+#============================================================================
+CH4_simulation_options:
+
+  use_observational_operators:
+    AIRS: false
+    GOSAT: false
+    TCCON: false
+
+  analytical_inversion:
+    activate: true
+    emission_perturbation: 1.0
+    state_vector_element_number: 0
+    use_emission_scale_factor: false
+    use_OH_scale_factors: false
+
+#============================================================================
+# Options for CO
+#============================================================================
+
+CO_simulation_options:
+  use_fullchem_PCO_from_CH4: true
+  use_fullchem_PCO_from_NMVOC: true
 
 #============================================================================
 # Options for CO2
 #============================================================================
+
 CO2_simulation_options:
 
   sources:
@@ -84,7 +152,7 @@ CO2_simulation_options:
     tag_land_fossil_fuel_CO2: 
     tag_global_ship_CO2: false
     tag_global_aircraft_CO2: false
-    
+
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
 #============================================================================
@@ -96,9 +164,9 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
+      - CH4
       - CO
-      - 'NO'
-      - O3
+      - CO2
 
   planeflight:
     activate: false
@@ -128,6 +196,9 @@ extra_diagnostics:
       TOMAS_aerosol_emissions: "0 all"
       TOMAS_rate: "0 all"
       TOMAS_3D_rate: "0 all"
+      ND65_prodloss:
+        activate: true
+        number_of_levels: 72
 
     ND51_satellite:
       activate: false
