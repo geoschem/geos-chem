@@ -45,7 +45,7 @@ PROGRAM GEOS_Chem
   USE GC_Environment_Mod    ! For allocating derived type objects
   USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
   USE Input_Opt_Mod         ! Derived type for Input Options
-  USE INPUT_MOD             ! For reading settings from "input.geos"
+  USE INPUT_MOD             ! For reading settings from geoschem_config.yml
   USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
@@ -1992,30 +1992,6 @@ PROGRAM GEOS_Chem
 #ifdef BPCH_DIAG
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "=> Binary punch diagnostics",  RC )
-          ENDIF
-
-          !------------------------------------------------------------------
-          !   ***** A R C H I V E   B P C H   D I A G N O S T I C S *****
-          !------------------------------------------------------------------
-          IF ( ITS_TIME_FOR_DIAG() ) THEN
-
-             IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
-
-             ! Accumulate several diagnostic quantities
-             CALL Diag1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag1"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG1' )
-
-             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
-             CALL Set_Ct_Diag( INCREMENT=.TRUE. )
-
-             ! Planeflight diagnostic moved to be after chemistry, kyu
-             IF ( prtDebug ) CALL Debug_Msg('### MAIN: a DIAGNOSTICS')
           ENDIF
 
           !------------------------------------------------------------------

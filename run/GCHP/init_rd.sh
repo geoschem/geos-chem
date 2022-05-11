@@ -57,7 +57,7 @@ SUBST_LIST="""
 runConfig.sh.template
 ExtData.rc.templates/ExtData.rc.${RUNDIR_SIM_NAME}
 GCHP.rc.template
-input.geos.templates/input.geos.${RUNDIR_SIM_NAME}
+geoschem_config.yml.templates/geoschem_config.yml.${RUNDIR_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RUNDIR_SIM_NAME}
 HISTORY.rc.templates/HISTORY.rc.${RUNDIR_SIM_NAME}
 CAP.rc.template

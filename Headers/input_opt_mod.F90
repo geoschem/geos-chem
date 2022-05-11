@@ -303,7 +303,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: DO_ND51
      INTEGER                     :: N_ND51
      CHARACTER(LEN=255)          :: ND51_FILE
-     LOGICAL                     :: LND51_HDF
      INTEGER,            POINTER :: ND51_TRACERS(:)
      REAL(fp)                    :: ND51_HR_WRITE
      REAL(fp)                    :: ND51_HR1
@@ -321,7 +320,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: DO_ND51b
      INTEGER                     :: N_ND51b
      CHARACTER(LEN=255)          :: ND51b_FILE
-     LOGICAL                     :: LND51b_HDF
      INTEGER,            POINTER :: ND51b_TRACERS(:)
      REAL(fp)                    :: ND51b_HR_WRITE
      REAL(fp)                    :: ND51b_HR1
@@ -615,9 +613,9 @@ CONTAINS
     Input_Opt%PASSIVE_NAME           = ''
     Input_Opt%PASSIVE_LONGNAME       = ''
     Input_Opt%PASSIVE_ID             = 0
-    Input_Opt%PASSIVE_MW             = 0e+0_fp
-    Input_Opt%PASSIVE_TAU            = 0e+0_fp
-    Input_Opt%PASSIVE_INITCONC       = 0e+0_fp
+    Input_Opt%PASSIVE_MW             = 0.0_fp
+    Input_Opt%PASSIVE_TAU            = 0.0_fp
+    Input_Opt%PASSIVE_INITCONC       = 0.0_fp
     Input_Opt%PASSIVE_DECAYID        = 0
 
     !----------------------------------------
@@ -644,20 +642,20 @@ CONTAINS
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
-    Input_Opt%SALA_REDGE_um          = 0e+0_fp
-    Input_Opt%SALC_REDGE_um          = 0e+0_fp
+    Input_Opt%SALA_REDGE_um          = 0.0_fp
+    Input_Opt%SALC_REDGE_um          = 0.0_fp
     Input_Opt%LGRAVSTRAT             = .FALSE.
     Input_Opt%LSOLIDPSC              = .FALSE.
     Input_Opt%LHOMNUCNAT             = .FALSE.
-    Input_Opt%T_NAT_SUPERCOOL        = 0e+0_fp
-    Input_Opt%P_ICE_SUPERSAT         = 0e+0_fp
+    Input_Opt%T_NAT_SUPERCOOL        = 0.0_fp
+    Input_Opt%P_ICE_SUPERSAT         = 0.0_fp
     Input_Opt%LPSCCHEM               = .FALSE.
     Input_Opt%LSTRATOD               = .FALSE.
     Input_Opt%hvAerNIT               = .FALSE.
-    Input_Opt%hvAerNIT_JNIT          = 0e+0_fp
-    Input_Opt%hvAerNIT_JNITs         = 0e+0_fp
-    Input_Opt%JNITChanA              = 0e+0_fp
-    Input_Opt%JNITChanB              = 0e+0_fp
+    Input_Opt%hvAerNIT_JNIT          = 0.0_fp
+    Input_Opt%hvAerNIT_JNITs         = 0.0_fp
+    Input_Opt%JNITChanA              = 0.0_fp
+    Input_Opt%JNITChanB              = 0.0_fp
 
     !----------------------------------------
     ! EMISSIONS MENU fields
@@ -709,7 +707,7 @@ CONTAINS
     Input_Opt%LGMIOZ                 = .FALSE.
 #endif
     Input_Opt%TS_CHEM                = 0
-    Input_Opt%GAMMA_HO2              = 0e+0_fp
+    Input_Opt%GAMMA_HO2              = 0.0_fp
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
     Input_Opt%USE_ONLINE_O3          = .FALSE.
@@ -754,7 +752,7 @@ CONTAINS
     Input_Opt%LSKYRAD                = .FALSE.
     Input_Opt%TS_RAD                 = 0
     Input_Opt%NWVSELECT              = 0
-    Input_Opt%WVSELECT               = 0e+0_fp
+    Input_Opt%WVSELECT               = 0.0_fp
     Input_Opt%STRWVSELECT            = ''
 
     !----------------------------------------
@@ -858,10 +856,9 @@ CONTAINS
     Input_Opt%DO_ND51                = .FALSE.
     Input_Opt%N_ND51                 = 0
     Input_Opt%ND51_FILE              = ''
-    Input_Opt%LND51_HDF              = .FALSE.
-    Input_Opt%ND51_HR_WRITE          = 0e+0_fp
-    Input_Opt%ND51_HR1               = 0e+0_fp
-    Input_Opt%ND51_HR2               = 0e+0_fp
+    Input_Opt%ND51_HR_WRITE          = 0.0_fp
+    Input_Opt%ND51_HR1               = 0.0_fp
+    Input_Opt%ND51_HR2               = 0.0_fp
     Input_Opt%ND51_IMIN              = 0
     Input_Opt%ND51_IMAX              = 0
     Input_Opt%ND51_JMIN              = 0
@@ -874,10 +871,9 @@ CONTAINS
     Input_Opt%DO_ND51b               = .FALSE.
     Input_Opt%N_ND51b                = 0
     Input_Opt%ND51b_FILE             = ''
-    Input_Opt%LND51b_HDF             = .FALSE.
-    Input_Opt%ND51b_HR_WRITE         = 0e+0_fp
-    Input_Opt%ND51b_HR1              = 0e+0_fp
-    Input_Opt%ND51b_HR2              = 0e+0_fp
+    Input_Opt%ND51b_HR_WRITE         = 0.0_fp
+    Input_Opt%ND51b_HR1              = 0.0_fp
+    Input_Opt%ND51b_HR2              = 0.0_fp
     Input_Opt%ND51b_IMIN             = 0
     Input_Opt%ND51b_IMAX             = 0
     Input_Opt%ND51b_JMIN             = 0
@@ -932,15 +928,15 @@ CONTAINS
     !----------------------------------------
     Input_Opt%POP_TYPE               = ''
     Input_Opt%CHEM_PROCESS           = .FALSE.
-    Input_Opt%POP_XMW                = 0e+0_fp
-    Input_Opt%POP_KOA                = 0e+0_fp
-    Input_Opt%POP_KBC                = 0e+0_fp
-    Input_Opt%POP_K_POPG_OH          = 0e+0_fp
-    Input_Opt%POP_K_POPP_O3A         = 0e+0_fp
-    Input_Opt%POP_K_POPP_O3B         = 0e+0_fp
-    Input_Opt%POP_HSTAR              = 0e+0_fp
-    Input_Opt%POP_DEL_H              = 0e+0_fp
-    Input_Opt%POP_DEL_Hw             = 0e+0_fp
+    Input_Opt%POP_XMW                = 0.0_fp
+    Input_Opt%POP_KOA                = 0.0_fp
+    Input_Opt%POP_KBC                = 0.0_fp
+    Input_Opt%POP_K_POPG_OH          = 0.0_fp
+    Input_Opt%POP_K_POPP_O3A         = 0.0_fp
+    Input_Opt%POP_K_POPP_O3B         = 0.0_fp
+    Input_Opt%POP_HSTAR              = 0.0_fp
+    Input_Opt%POP_DEL_H              = 0.0_fp
+    Input_Opt%POP_DEL_Hw             = 0.0_fp
 
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
@@ -992,7 +988,7 @@ CONTAINS
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    Input_Opt%LINOZ_TPARM            = 0e+0_fp
+    Input_Opt%LINOZ_TPARM            = 0.0_fp
 
   END SUBROUTINE Set_Input_Opt
 !EOC

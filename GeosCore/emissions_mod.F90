@@ -404,7 +404,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -450,7 +450,7 @@ CONTAINS
     CHARACTER(LEN=512)         :: ErrMsg
 
     ! Pointers
-    REAL(fp),        POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc),   POINTER   :: Spc(:)
     TYPE(Species),   POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
@@ -511,7 +511,7 @@ CONTAINS
 
              ! Compute mol of Tracer needed to achieve the desired value
              Total_Spc = Total_Spc + &
-                ( GlobalBurden - State_Chm%Species(I,J,L,N)) * &
+                ( GlobalBurden - State_Chm%Species(N)%Conc(I,J,L) ) * &
                 (State_Met%AIRNUMDEN(I,J,L)/ AVO) * State_Met%AIRVOL(I,J,1)
 
              ! To distribute it uniformly on the surface, compute the total
@@ -538,7 +538,7 @@ CONTAINS
           Flux(:,:) = ( Total_Spc / Total_Area ) * MASK(:,:)
 
           ! Update species concentrations [mol/mol]
-          Spc(:,:,1,N) = Spc(:,:,1,N) + Flux(:,:) * &
+          Spc(N)%Conc(:,:,1) = Spc(N)%Conc(:,:,1) + Flux(:,:) * &
              AVO / ( State_Met%BXHEIGHT(:,:,1) * State_Met%AIRNUMDEN(:,:,1) )
 
        ENDIF ! MMR tracer

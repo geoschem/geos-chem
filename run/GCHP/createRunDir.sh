@@ -170,6 +170,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	fi
     done
 
+
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
@@ -181,45 +182,45 @@ RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
 if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='true'\n"
     if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
-	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='true'\n"
     else
-	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
     fi
 else
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
-    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='false'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "aciduptake" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='true'\n"
 else
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='true'\n"
 else
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='true'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
 else
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='false'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
 fi
 
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true'\n"
 fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
@@ -340,10 +341,14 @@ while [ "${valid_rundir}" -eq 0 ]; do
     fi
 done
 
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/rundirConfig
+
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
 mkdir -p ${rundir}
+mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
@@ -472,9 +477,9 @@ fi
 
 # Turn on GEOS-Chem timers for benchmark simulations
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='true'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
@@ -519,11 +524,12 @@ RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 #--------------------------------------------------------------------
 
 # Save RUNDIR variables to file
-echo -e "$RUNDIR_VARS" > rundir_vars.txt
-sort -o rundir_vars.txt rundir_vars.txt
+rundir_config_log=${rundir_config}/rundir_vars.txt
+echo -e "$RUNDIR_VARS" > ${rundir_config_log}
+sort -o ${rundir_config_log} ${rundir_config_log}
 
 # Call init_rd.sh
-${srcrundir}/init_rd.sh rundir_vars.txt
+${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
@@ -534,8 +540,8 @@ printf "\n  -- The default frequency and duration of diagnostics is set to month
 printf "\n  -- You may modify these settings in runConfig.sh.\n"
 
 # Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP. This script mainly now adds species to input.geos
-# and modifies diagnostic output based on simulation type.
+# GEOS-Chem Classic and GCHP. This script mainly now adds species to 
+# geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
@@ -584,7 +590,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
+	git add *.rc *.sh *.yml input.nml
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}

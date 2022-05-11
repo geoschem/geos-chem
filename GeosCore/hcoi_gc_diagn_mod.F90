@@ -36,7 +36,6 @@ MODULE HCOI_GC_Diagn_Mod
 #ifdef BPCH_DIAG
   USE CMN_DIAG_Mod
   USE DIAG_Mod
-  USE DIAG53_Mod
 #endif
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod

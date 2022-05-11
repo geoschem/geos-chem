@@ -816,9 +816,9 @@ ${RUNDIR_GLOBAL_Cl}
 #==============================================================================
 # --- Files needed for analytical inversion ---
 #
-# These fields are are only used if 'Do analytical inversion?' is set to T
-# in input.geos. These fields are manually obtained from HEMCO and applied in
-# global_ch4_mod.F90.
+# These fields are are only used if analytical_inversion?' is activated in
+# geoschem_config.yml. These fields are obtained from HEMCO and applied in
+# GEOS-Chem/GeosCore/global_ch4_mod.F90.
 #
 # Entries below provided for examples only. Add your own here!
 #==============================================================================
@@ -832,9 +832,9 @@ ${RUNDIR_GLOBAL_Cl}
 #==============================================================================
 # --- Scale factors for posterior run ---
 #
-# Enable emission scale factors by setting the emissions, wetland, or OH
-# scale factor options to T in the CH4 MENU of input.geos. These fields are
-# manually obtained from HEMCO and applied in global_ch4_mod.F90.
+# Enable emission scale factors by setting the use_emission_scale_factor or
+# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
+# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
 #
 # Entries below are provided for examples only. Add your own here!
 #==============================================================================
