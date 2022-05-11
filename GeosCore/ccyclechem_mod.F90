@@ -1083,8 +1083,8 @@
       ENDIF
 
       !%%%%% TIMESTEPS %%%%%
-      TIN         = 0
-      TOUT        = DTCHEM
+      TIN        = 0
+      TOUT       = DTCHEM
       
       !%%%%% Fine-tune the integrator %%%%%
       ICNTRL     =  0
@@ -1111,13 +1111,17 @@
       DO I = 1, State_Grid%NX
 
          ! Initialize PRIVATE and THREADPRIVATE variables
-         C           = 0.0_dp                   ! Concentrations [molec/cm3]
-         CFACTOR     = 1.0_dp                   ! Not used, set = 1
-         fac_Diurnal = 0.0_dp                   ! Diurnal scaling factor [1]
-         K_STRAT     = 0.0_dp                   ! Rate in stratosphere [1/s]
-         K_TROP      = 0.0_dp                   ! Rate in troposphere  [1/s]
-         TROP        = 0.0_dp                   ! Toggle 
-         SUNCOS      = State_Met%SUNCOSmid(I,J) ! Cos(solar zenith angle) [1]
+         C              = 0.0_dp                   ! Species conc. [molec/cm3]
+         CFACTOR        = 1.0_dp                   ! Not used, set = 1
+         fac_Diurnal    = 0.0_dp                   ! Diurnal scaling factor [1]
+         K_STRAT        = 0.0_dp                   ! Rate in stratosphere [1/s]
+         K_TROP         = 0.0_dp                   ! Rate in troposphere  [1/s]
+         TROP           = 0.0_dp                   ! Toggle 
+         TEMP           = State_Met%T(I,J,L)       ! Temperature [K]
+         INV_TEMP       = 1.0_dp / TEMP            ! 1/T  term for equations
+         TEMP_OVER_K300 = TEMP / 300.0_dp          ! T/300 term for equations
+         K300_OVER_TEMP = 300.0_dp / TEMP          ! 300/T term for equations
+         SUNCOS         = State_Met%SUNCOSmid(I,J) ! Cos(SZA) ) [1]
 
          ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
          CALL ccycle_ConvertKgtoMolecCm3(                                    &
