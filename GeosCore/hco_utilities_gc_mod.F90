@@ -1542,7 +1542,7 @@ CONTAINS
    USE HCO_State_GC_Mod,  ONLY : HcoState
    USE PhysConstants,     ONLY : AIRMW
    USE Input_Opt_Mod,     ONLY : OptInput
-   USE Species_Mod,       ONLY : Species
+   USE Species_Mod,       ONLY : Species, SpcConc
    USE State_Chm_Mod,     ONLY : ChmState
    USE State_Grid_Mod,    ONLY : GrdState
    USE State_Met_Mod,     ONLY : MetState
@@ -1604,6 +1604,7 @@ CONTAINS
    REAL(fp)                  :: Background_VV
 
    ! Objects
+   TYPE(SpcConc),    POINTER :: Spc(:)
    TYPE(Species),    POINTER :: SpcInfo
 
    !=================================================================
@@ -1624,6 +1625,9 @@ CONTAINS
 
    ! Set minimum value threshold for [mol/mol]
    SMALL_NUM = 1.0e-30_fp
+
+   ! Set pointer to species concentrations
+   Spc => State_Chm%Species
 
    !=================================================================
    ! If running Hg simulation, set Hg-specific local variables
@@ -1652,18 +1656,18 @@ CONTAINS
 
    !=================================================================
    ! Read species concentrations from NetCDF or use default
-   ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
+   ! background [mol/mol]; store in State_Chm%Species%Conc in [kg/kg dry]
    !=================================================================
 
    ! Print header for min/max concentration to log
    WRITE( 6, 110 )
 110 FORMAT( 'Min and Max of each species in restart file [mol/mol]:' )
 
-   ! Initialize species to all zeroes
-   State_Chm%Species = 0.e+0_fp
-
    ! Loop over species
    DO N = 1, State_Chm%nSpecies
+
+      ! Initialize species concentration to all zeroes
+      Spc(N)%Conc = 0.e+0_fp
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
@@ -1711,7 +1715,7 @@ CONTAINS
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            State_Chm%Species(I,J,L,N) = Ptr3D(I,J,L) * MW_g / AIRMW
+            Spc(N)%Conc(I,J,L) = Ptr3D(I,J,L) * MW_g / AIRMW
          ENDDO
          ENDDO
          ENDDO
@@ -1733,13 +1737,13 @@ CONTAINS
             IF ( L > State_Grid%MaxChemLev .and. &
                      .NOT. SpcInfo%Is_Advected ) THEN
 
-               State_Chm%Species(I,J,L,N) = SMALL_NUM * MW_g / AIRMW
+               Spc(N)%Conc(I,J,L) = SMALL_NUM * MW_g / AIRMW
 
             ! For all other cases, use the background value
             ! stored in the species database
             ELSE
 
-               State_Chm%Species(I,J,L,N) = SpcInfo%BackgroundVV &
+               Spc(N)%Conc(I,J,L) = SpcInfo%BackgroundVV &
                                             * MW_g / AIRMW
 
                ! Print to log if debugging is on
@@ -1772,8 +1776,8 @@ CONTAINS
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very
                ! low
-               State_Chm%Species(I,J,L,N) = &
-               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+               Spc(N)%Conc(I,J,L) = &
+               Spc(APMIDS%id_SO4)%Conc(I,J,L)/20.D0
             ENDDO
             ENDDO
             ENDDO
@@ -1788,8 +1792,8 @@ CONTAINS
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very
                ! low
-               State_Chm%Species(I,J,L,N) = &
-               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+               Spc(N)%Conc(I,J,L) = &
+               Spc(APMIDS%id_SO4)%Conc(I,J,L)/20.D0
             ENDDO
             ENDDO
             ENDDO
@@ -1805,8 +1809,8 @@ CONTAINS
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very
                ! low
-               State_Chm%Species(I,J,L,N) = &
-               State_Chm%Species(I,J,L,APMIDS%id_SALA)/9.D0
+               Spc(N)%Conc(I,J,L) = &
+               Spc(APMIDS%id_SALA)%Conc(I,J,L)/9.D0
             ENDDO
             ENDDO
             ENDDO
@@ -1821,8 +1825,8 @@ CONTAINS
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very
                ! low
-               State_Chm%Species(I,J,L,N) = &
-               State_Chm%Species(I,J,L,APMIDS%id_SALC)/10.D0
+               Spc(N)%Conc(I,J,L) = &
+               Spc(APMIDS%id_SALC)%Conc(I,J,L)/10.D0
             ENDDO
             ENDDO
             ENDDO
@@ -1836,8 +1840,11 @@ CONTAINS
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very low
-               State_Chm%Species(I,J,L,N) = &
-               SUM(State_Chm%Species(I,J,L,APMIDS%id_DST1:APMIDS%id_DST4))/6.D0
+               Spc(N)%Conc(I,J,L) = &
+                  ( Spc(APMIDS%id_DST1)%Conc(I,J,L)    &
+                  + Spc(APMIDS%id_DST2)%Conc(I,J,L)    &
+                  + Spc(APMIDS%id_DST3)%Conc(I,J,L)    &
+                  + Spc(APMIDS%id_DST4)%Conc(I,J,L) )/6.D0
             ENDDO
             ENDDO
             ENDDO
@@ -1851,7 +1858,7 @@ CONTAINS
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very low
-               State_Chm%Species(I,J,L,N) = 1.D-30
+               Spc(N)%Conc(I,J,L) = 1.D-30
             ENDDO
             ENDDO
             ENDDO
@@ -1865,7 +1872,7 @@ CONTAINS
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very low
-               State_Chm%Species(I,J,L,N) = 1.D-30
+               Spc(N)%Conc(I,J,L) = 1.D-30
             ENDDO
             ENDDO
             ENDDO
@@ -1901,10 +1908,10 @@ CONTAINS
       ! Print values
       DO N = 1, State_Chm%nSpecies
          SpcInfo => State_Chm%SpcData(N)%Info
-         WRITE(6,150) N, TRIM( SpcInfo%Name ),                 &
-                         MINVAL( State_Chm%Species(:,:,:,N) ), &
-                         MAXVAL( State_Chm%Species(:,:,:,N) )
-150      FORMAT( 'Species ', i3, ', ', a9,                     &
+         WRITE(6,150) N, TRIM( SpcInfo%Name ),         &
+                         MINVAL( Spc(N)%Conc(:,:,:) ), &
+                         MAXVAL( Spc(N)%Conc(:,:,:) )
+150      FORMAT( 'Species ', i3, ', ', a9,             &
                  ': Min = ', es15.9, ', Max = ', es15.9 )
          SpcInfo => NULL()
       ENDDO
@@ -2450,6 +2457,9 @@ CONTAINS
    ! Clean up
    !=================================================================
 
+   ! Free pointer
+   Spc => NULL()
+
    ! Mark end of section in log
    IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
       CALL DEBUG_MSG('### DONE GET_GC_RESTART')
@@ -2480,7 +2490,7 @@ CONTAINS
    USE HCO_State_GC_Mod, ONLY : HcoState
    USE Input_Opt_Mod,    ONLY : OptInput
    USE PhysConstants,    ONLY : AIRMW
-   USE Species_Mod,      ONLY : Species
+   USE Species_Mod,      ONLY : Species, SpcConc
    USE State_Chm_Mod,    ONLY : ChmState
    USE State_Grid_Mod,   ONLY : GrdState
    USE State_Met_Mod,    ONLY : MetState
@@ -2522,9 +2532,9 @@ CONTAINS
    CHARACTER(LEN=16)    :: STAMP
 
    ! Temporary arrays and pointers
-   REAL*4,  TARGET      :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-   REAL*4,  POINTER     :: Ptr3D(:,:,:)
-   REAL(fp), POINTER    :: Spc(:,:,:,:)
+   REAL*4,  TARGET        :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+   REAL*4,  POINTER       :: Ptr3D(:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    ! Objects
    TYPE(Species), POINTER :: SpcInfo
@@ -2648,12 +2658,12 @@ CONTAINS
 
             ! West BC
             DO I = 1, State_Grid%WestBuffer
-               State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
             ! East BC
             DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-               State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
          ENDDO
@@ -2663,12 +2673,12 @@ CONTAINS
 
             ! South BC
             DO J = 1, State_Grid%SouthBuffer
-               Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
 
             ! North BC
             DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-               Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
             ENDDO
          ENDDO
 
@@ -2679,6 +2689,9 @@ CONTAINS
       SpcInfo => NULL()
 
    ENDDO
+
+   ! Free pointer
+   Spc => NULL()
 
    ! Reset FIRST flag
    FIRST = .FALSE.

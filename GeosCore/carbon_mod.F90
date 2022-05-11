@@ -113,7 +113,7 @@ MODULE CARBON_MOD
 !  (14) Pye. H.O.T., A.W.H Chan, M.P. Barkley, and J.H. Seinfeld, "Global
 !        modeling of organic aerosol: The importance of reactive nitrogen (NOx
 !        and NO3)", Atmos. Chem. Phys., Vol 10, 11261-11276,
-!        doi:10.5194/acp-10-11261-2010, 2010.
+!        doi:10.5194/acp-10-11261-2010, 2010.spc(
 !  (15) Shilling, J.E., Q. Chen, S.M. King, T. Rosenoern, J.H. Kroll, D.R.
 !        Worsnop, K.A. McKinney, S.T., Martin, "Particle mass yield in
 !        secondary orgainc aerosol formed by the dark ozonolysis of a-pinene",
@@ -308,6 +308,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_State_GC_Mod,   ONLY : HcoState                      ! APM: for HEMCO diags
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -367,6 +368,7 @@ CONTAINS
     LOGICAL            :: FND
     REAL(fp)           :: NEWSOA
     REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
+    REAL(fp)           :: CONC_SUM
     INTEGER            :: L
 
 #ifdef TOMAS
@@ -375,7 +377,7 @@ CONTAINS
 #endif
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
 
     ! For getting fields from HEMCO
     CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F90)'
@@ -407,7 +409,7 @@ CONTAINS
     ! Do we have to print debug output?
     prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    ! Point to chemical species array [kg]
+    ! Point to chemical species vector containing concentrations
     Spc                  => State_Chm%Species
 
     ! First-time initialization
@@ -422,19 +424,19 @@ CONTAINS
 
           ! lumped arom/IVOC (hotp 5/17/10)
           ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
-          IF ( id_ASOAN > 0 ) Spc(:,:,:,id_ASOAN) = 0.0_fp
-          IF ( id_ASOA1 > 0 ) Spc(:,:,:,id_ASOA1) = 0.0_fp
-          IF ( id_ASOA2 > 0 ) Spc(:,:,:,id_ASOA2) = 0.0_fp
-          IF ( id_ASOA3 > 0 ) Spc(:,:,:,id_ASOA3) = 0.0_fp
-          IF ( id_ASOG1 > 0 ) Spc(:,:,:,id_ASOG1) = 0.0_fp
-          IF ( id_ASOG2 > 0 ) Spc(:,:,:,id_ASOG2) = 0.0_fp
-          IF ( id_ASOG3 > 0 ) Spc(:,:,:,id_ASOG3) = 0.0_fp
+          IF ( id_ASOAN > 0 ) Spc(id_ASOAN)%Conc(:,:,:) = 0.0_fp
+          IF ( id_ASOA1 > 0 ) Spc(id_ASOA1)%Conc(:,:,:) = 0.0_fp
+          IF ( id_ASOA2 > 0 ) Spc(id_ASOA2)%Conc(:,:,:) = 0.0_fp
+          IF ( id_ASOA3 > 0 ) Spc(id_ASOA3)%Conc(:,:,:) = 0.0_fp
+          IF ( id_ASOG1 > 0 ) Spc(id_ASOG1)%Conc(:,:,:) = 0.0_fp
+          IF ( id_ASOG2 > 0 ) Spc(id_ASOG2)%Conc(:,:,:) = 0.0_fp
+          IF ( id_ASOG3 > 0 ) Spc(id_ASOG3)%Conc(:,:,:) = 0.0_fp
 
 
           ! initialize SOA Precursor and SOA for simplified SOA sims
           IF ( id_SOAP > 0 ) THEN
-             Spc(:,:,:,id_SOAP) = 0e+0_fp
-             Spc(:,:,:,id_SOAS) = 0e+0_fp
+             Spc(id_SOAP)%Conc(:,:,:) = 0e+0_fp
+             Spc(id_SOAS)%Conc(:,:,:) = 0e+0_fp
           ENDIF
 
        ENDIF
@@ -502,7 +504,7 @@ CONTAINS
     ! Chemistry for hydrophobic BC
     IF ( id_BCPO > 0 ) THEN
        CALL CHEM_BCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(:,:,:,id_BCPO),   RC          )
+                       Spc(id_BCPO)%Conc(:,:,:),   RC          )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
        ENDIF
@@ -511,7 +513,7 @@ CONTAINS
     ! Chemistry for hydrophilic BC
     IF ( id_BCPI > 0 ) THEN
        CALL CHEM_BCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(:,:,:,id_BCPI),   RC )
+                       Spc(id_BCPI)%Conc(:,:,:),   RC )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
        ENDIF
@@ -520,7 +522,7 @@ CONTAINS
     ! Chemistry for hydrophobic OC (traditional POA only)
     IF ( id_OCPO > 0 ) THEN
        CALL CHEM_OCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(:,:,:,id_OCPO),   RC          )
+                       Spc(id_OCPO)%Conc(:,:,:),   RC          )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
        ENDIF
@@ -529,7 +531,7 @@ CONTAINS
     ! Chemistry for hydrophilic OC (traditional POA only)
     IF ( id_OCPI > 0 ) THEN
        CALL CHEM_OCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(:,:,:,id_OCPI),   RC )
+                       Spc(id_OCPI)%Conc(:,:,:),   RC )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
        ENDIF
@@ -615,8 +617,8 @@ CONTAINS
           E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
           DO N = 1, NBCOC
-             Spc(I,J,L,APMIDS%id_BCBIN1+N-1)= &
-                Spc(I,J,L,APMIDS%id_BCBIN1+N-1)+ &
+             Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = &
+                Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)+ &
                 E_CARBON*( &
                 (1.0e+0_fp-EMITRATE(I,J))*CEMITBCOC1(N,1)+ &
                 EMITRATE(I,J)*CEMITBCOC1(N,2))
@@ -641,8 +643,8 @@ CONTAINS
           E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
           DO N = 1, NBCOC
-             Spc(I,J,L,APMIDS%id_BCBIN1+N-1)= &
-                Spc(I,J,L,APMIDS%id_BCBIN1+N-1)+ &
+             Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)= &
+                Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)+ &
                 E_CARBON*( &
                 (1.0e+0_fp-EMITRATE(I,J))*CEMITBCOC1(N,1)+ &
                 EMITRATE(I,J)*CEMITBCOC1(N,2))
@@ -721,8 +723,8 @@ CONTAINS
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
          DO N=1,NBCOC
-            Spc(I,J,L,APMIDS%id_OCBIN1+N-1)= &
-               Spc(I,J,L,APMIDS%id_OCBIN1+N-1)+ &
+            Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
                E_CARBON*( &
                (1.0e+0_fp-EMITRATE(I,J))*CEMITBCOC1(N,1)+ &
                EMITRATE(I,J)*CEMITBCOC1(N,2))
@@ -747,8 +749,8 @@ CONTAINS
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
          DO N=1,NBCOC
-            Spc(I,J,L,APMIDS%id_OCBIN1+N-1)= &
-               Spc(I,J,L,APMIDS%id_OCBIN1+N-1)+ &
+            Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
                E_CARBON*( &
                (1.D0-EMITRATE(I,J))*CEMITBCOC1(N,1)+ &
                EMITRATE(I,J)*CEMITBCOC1(N,2))
@@ -759,9 +761,11 @@ CONTAINS
       !$OMP END PARALLEL DO
    ENDIF
 
+   !do N= 1, 14
+   !   conc_sum = conc_sum + Spc(APMIDS%id_BCBIN1+N-1)%Conc(:,:,1)
+   !enddo
    !write(*,'(a4,10e15.7)')'Luo1', &
-   ! (sum(Spc(:,:,1,id_BCPO))+sum(Spc(:,:,1,id_BCPI))), &
-   !  sum(Spc(:,:,1,APMIDS%id_BCBIN1:(APMIDS%id_BCBIN1+14)))
+   ! (sum(Spc(id_BCPO)%conc(:,:,1))+sum(Spc(id_BCPI)%Conc(:,:,1))), conc_sum
 
    IF( ( id_POG1 + id_POA1 ) > 2 )THEN
       !$OMP PARALLEL DO       &
@@ -771,8 +775,8 @@ CONTAINS
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
          DO N=1,NBCOC
-            Spc(I,J,L,APMIDS%id_OCBIN1+N-1)= &
-               Spc(I,J,L,APMIDS%id_OCBIN1+N-1)+ &
+            Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
                POAEMISS(I,J,L,1)*0.9d0*CEMITBCOC1(N,1)
          ENDDO
       ENDDO
@@ -787,17 +791,13 @@ CONTAINS
                  State_Met, 'CHECKMN from chemcarbon', RC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
-      CALL AGING_CARB( State_Grid, &
-                       Spc(:,:,:,id_ECIL1:id_ECIL1+IBINS-1), &
-                       Spc(:,:,:,id_ECOB1:id_ECOB1+IBINS-1) )
+      CALL AGING_CARB( id_ECIL1, id_ECOB1, State_Grid, State_Chm )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
       ENDIF
    ENDIF
    IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
-      CALL AGING_CARB( State_Grid, &
-                       Spc(:,:,:,id_OCIL1:id_OCIL1+IBINS-1), &
-                       Spc(:,:,:,id_OCOB1:id_OCOB1+IBINS-1) )
+      CALL AGING_CARB( id_OCIL1, id_OCOB1, State_Grid, State_Chm )
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
@@ -817,7 +817,7 @@ CONTAINS
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         NEWSOA  = Spc(I,J,L,id_SOAP) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
+         NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,L)
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
@@ -826,8 +826,8 @@ CONTAINS
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
                           State_Chm, State_Grid, RC)
          ENDIF
-         Spc(I,J,L,id_SOAS) = Spc(I,J,L,id_SOAS) + NEWSOA
-         Spc(I,J,L,id_SOAP) = Spc(I,J,L,id_SOAP) - NEWSOA
+         Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
+         Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
       ENDDO
       ENDDO
       ENDDO
@@ -840,9 +840,9 @@ CONTAINS
          !NEWSOA used in a different context than above.
          !above is absolute mass, here is a relative decay factor
          NEWSOA = DEXP(-DTCHEM/SOAP_LIFETIME)
-         Spc(:,:,L,id_SOAS) = Spc(:,:,L,id_SOAS) + &
-                              Spc(:,:,L,id_SOAP) * (1.0_fp - NEWSOA)
-         Spc(:,:,L,id_SOAP) = Spc(:,:,L,id_SOAP) * NEWSOA
+         Spc(id_SOAS)%Conc(:,:,L) = Spc(id_SOAS)%Conc(:,:,L) + &
+                              Spc(id_SOAP)%Conc(:,:,L) * (1.0_fp - NEWSOA)
+         Spc(id_SOAP)%Conc(:,:,L) = Spc(id_SOAP)%Conc(:,:,L) * NEWSOA
       ENDDO
       !$OMP END PARALLEL DO
 #endif
@@ -1353,24 +1353,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE AGING_CARB( State_Grid, MIL, MOB )
+ SUBROUTINE AGING_CARB( id_MIL, id_MOB, State_Grid, State_Chm )
 !
 ! !USES:
 !
+   USE Species_Mod,    ONLY : SpcConc
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
    USE TIME_MOD,       ONLY : GET_TS_CHEM    ! [=] second
    USE TOMAS_MOD,      ONLY : IBINS
 !
 ! !INPUT PARAMETERS:
 !
+   INTEGER,        INTENT(IN) :: id_MIL
+   INTEGER,        INTENT(IN) :: id_MOB
    TYPE(GrdState), INTENT(IN) :: State_Grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   REAL(fp), INTENT(INOUT) :: MIL(State_Grid%NX,State_Grid%NY, &
-                                  State_Grid%NZ, IBINS)
-   REAL(fp), INTENT(INOUT) :: MOB(State_Grid%NX,State_Grid%NY, &
-                                  State_Grid%NZ, IBINS)
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !REMARKS:
 !  11 Sep 2007 - W. Trivitayanurak - Initial version
@@ -1381,21 +1382,28 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER                :: I, J, L, K
+   INTEGER                :: I, J, L, N
    REAL(fp)               :: DTCHEM
    REAL(fp),  PARAMETER   :: TAU_HYDRO = 1.15e+0_fp  ! [=]day
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! AGING_CARB begins here!
    !=================================================================
 
+   Spc => State_Chm%Species
+
    DTCHEM = GET_TS_CHEM() / 3600e+0_fp / 24e+0_fp    ![=] day
 
-   DO K = 1, IBINS
-      MIL(:,:,:,K) = MIL(:,:,:,K) + &
-                     MOB(:,:,:,K) * (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
-      MOB(:,:,:,K) = MOB(:,:,:,K) * (DEXP(-DTCHEM/TAU_HYDRO))
+   DO N = 1, IBINS
+      Spc(id_MIL+N-1)%Conc(:,:,:) = Spc(id_MIL+N-1)%Conc(:,:,:)   &
+                                    + Spc(id_MOB+N-1)%Conc(:,:,:) &
+                                    * (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
+      Spc(id_MOB+N-1)%Conc(:,:,:) = Spc(id_MOB+N-1)%Conc(:,:,:)   &
+                                    * (DEXP(-DTCHEM/TAU_HYDRO))
    ENDDO
+
+   NULLIFY(Spc)
 
  END SUBROUTINE AGING_CARB
 !EOC
@@ -1422,6 +1430,7 @@ CONTAINS
    USE ErrCode_Mod
    USE ERROR_MOD,      ONLY : DEBUG_MSG
    USE Input_Opt_Mod,  ONLY : OptInput
+   USE Species_Mod,    ONLY : SpcConc
    USE State_Met_Mod,  ONLY : MetState
    USE State_Chm_Mod,  ONLY : ChmState
    USE State_Diag_Mod, ONLY : DgnState
@@ -1618,7 +1627,7 @@ CONTAINS
    REAL(fp)        :: DELDIOL, DELORGS, DELORGN
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    ! Debug
    Integer           :: IIDebug, JJDebug
@@ -1626,6 +1635,7 @@ CONTAINS
 #ifdef APM
    INTEGER           :: IFINORG
    INTEGER           :: NTEMP
+   REAL(fp)          :: OCBIN_SUM
 #endif
 
    !=================================================================
@@ -1708,14 +1718,14 @@ CONTAINS
               'box ',IIDEBUG,',',JJDEBUG,',10    '
 
       IF ( Input_Opt%LSVPOA ) THEN
-         print*,'POA1', SUM(Spc(:,:,:,id_POA1))
-         print*,'POA2', SUM(Spc(:,:,:,id_POA2))
-         print*,'POG1', SUM(Spc(:,:,:,id_POG1))
-         print*,'POG2', SUM(Spc(:,:,:,id_POG2))
-         print*,'OPOA1',SUM(Spc(:,:,:,id_OPOA1))
-         print*,'OPOA2',SUM(Spc(:,:,:,id_OPOA2))
-         print*,'OPOG1',SUM(Spc(:,:,:,id_OPOG1))
-         print*,'OPOG2',SUM(Spc(:,:,:,id_OPOG2))
+         print*,'POA1', SUM(Spc(id_POA1)%Conc(:,:,:))
+         print*,'POA2', SUM(Spc(id_POA2)%Conc(:,:,:))
+         print*,'POG1', SUM(Spc(id_POG1)%Conc(:,:,:))
+         print*,'POG2', SUM(Spc(id_POG2)%Conc(:,:,:))
+         print*,'OPOA1',SUM(Spc(id_OPOA1)%Conc(:,:,:))
+         print*,'OPOA2',SUM(Spc(id_OPOA2)%Conc(:,:,:))
+         print*,'OPOG1',SUM(Spc(id_OPOG1)%Conc(:,:,:))
+         print*,'OPOG2',SUM(Spc(id_OPOG2)%Conc(:,:,:))
       ENDIF
 
       ! semivolpoa3: debug POAEMISS
@@ -1728,10 +1738,10 @@ CONTAINS
 
       ! 10/12/09 debug
       IF ( Input_Opt%LSVPOA ) THEN
-         print*,'POAG tot', SUM(Spc(:,:,:,id_POA1))+ &
-                            SUM(Spc(:,:,:,id_POA2))+ &
-                            SUM(Spc(:,:,:,id_POG1))+ &
-                            SUM(Spc(:,:,:,id_POG2))
+         print*,'POAG tot', SUM(Spc(id_POA1)%Conc(:,:,:))+ &
+                            SUM(Spc(id_POA2)%Conc(:,:,:))+ &
+                            SUM(Spc(id_POG1)%Conc(:,:,:))+ &
+                            SUM(Spc(id_POG2)%Conc(:,:,:))
       ENDIF
    ENDIF
 
@@ -1856,7 +1866,11 @@ CONTAINS
       ! (Colette Heald, 12/3/09)
       !-----------------------------------------------------------
 #ifdef APM
-      MPOC = FAC * SUM(Spc(I,J,L,APMIDS%id_OCBIN1:(APMIDS%id_OCBIN1+NBCOC-1)))
+      OCBIN_SUM = 0.e+0_fp
+      DO N = 1, NBCOC
+         OCBIN_SUM = OCBIN_SUM + SUM(Spc(APMIDS%id_OCBIN1+N-1)%Conc(:,:,:))
+      ENDDO
+      MPOC = FAC * OCBIN_SUM
       MPOC = MPOC * 2.1d0
 
       IFINORG = 2
@@ -1866,75 +1880,75 @@ CONTAINS
               APMIDS%id_NH4 > 0 .and. &
               APMIDS%id_NIT > 0 ) THEN
             ! Then compute SOG condensation onto SO4, NH4, NIT aerosols
-            MPOC = MPOC + ( Spc(I,J,L,APMIDS%id_NH4) + &
-                            Spc(I,J,L,APMIDS%id_NIT) ) * FAC
+            MPOC = MPOC + ( Spc(APMIDS%id_NH4)%Conc(I,J,L) + &
+                            Spc(APMIDS%id_NIT)%Conc(I,J,L) ) * FAC
 
             IF(NSO4>=1)THEN
                NTEMP=APMIDS%id_SO4BIN1-1
                DO N=(NTEMP+1),(NTEMP+NSO4)
-                  MPOC = MPOC + Spc(I,J,L,N) * FAC
+                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
                ENDDO
             ENDIF
 
             IF(NCTSO4>=1)THEN
                NTEMP=APMIDS%id_CTSO4-1
                DO N=(NTEMP+1),(NTEMP+NCTSO4)
-                  MPOC = MPOC + Spc(I,J,L,N) * FAC
+                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
                ENDDO
             ENDIF
 
             IF(NCTBC>=1)THEN
                NTEMP=APMIDS%id_CTBC-1
                DO N=(NTEMP+1),(NTEMP+NCTBC)
-                  MPOC = MPOC + Spc(I,J,L,N) * FAC
+                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
                ENDDO
             ENDIF
 
             IF(NCTOC>=1)THEN
                NTEMP=APMIDS%id_CTOC-1
                DO N=(NTEMP+1),(NTEMP+NCTOC)
-                  MPOC = MPOC + Spc(I,J,L,N) * FAC
+                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
                ENDDO
             ENDIF
 
             IF(NCTSEA>=1)THEN
                NTEMP=APMIDS%id_CTSEA-1
                DO N=(NTEMP+1),(NTEMP+NCTSEA)
-                  MPOC = MPOC + Spc(I,J,L,N) * FAC
+                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
                ENDDO
             ENDIF
 
             IF(NSEA>=1)THEN
                NTEMP=APMIDS%id_SEABIN1-1
                DO N=(NTEMP+1),(NTEMP+16) ! SALTbin16 = 1 um
-                  MPOC = MPOC + Spc(I,J,L,N) * FAC
+                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
                ENDDO
             ENDIF
 
             !Add MSA
-            MPOC = MPOC + Spc(I,J,L,APMIDS%id_MSA) * FAC
+            MPOC = MPOC + Spc(APMIDS%id_MSA)%Conc(I,J,L) * FAC
 
          ENDIF
 
       ELSEIF(IFINORG.EQ.2) THEN !Consider SV SOA partition on LV SOA
 
-         MPOC = MPOC + FAC * (Spc(I,J,L,APMIDS%id_CTSO4) + & !MSULFLV
-                Spc(I,J,L,APMIDS%id_CTBC+1)  + & !MBCLV
-                Spc(I,J,L,APMIDS%id_CTOC+1)  + & !MOCLV
-                Spc(I,J,L,APMIDS%id_CTDST+1) + & !MDSTLV
-                Spc(I,J,L,APMIDS%id_CTSEA+1))    !MSALTLV
+         MPOC = MPOC + FAC * (Spc(APMIDS%id_CTSO4)%Conc(I,J,L) + & !MSULFLV
+                Spc(APMIDS%id_CTBC+1)%Conc(I,J,L)  + & !MBCLV
+                Spc(APMIDS%id_CTOC+1)%Conc(I,J,L)  + & !MOCLV
+                Spc(APMIDS%id_CTDST+1)%Conc(I,J,L) + & !MDSTLV
+                Spc(APMIDS%id_CTSEA+1)%Conc(I,J,L))    !MSALTLV
 
       ELSE
 
          ! Compute SOG condensation onto OC aerosol
-         MPOC = ( Spc(I,J,L,id_OCPI) + Spc(I,J,L,id_OCPO) ) * FAC
+         MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
          MPOC = MPOC * 2.1d0
 
       ENDIF
 #else
       ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
       IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
-         MPOC = ( Spc(I,J,L,id_OCPI) + Spc(I,J,L,id_OCPO) ) * FAC
+         MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
          MPOC = MPOC * OCFOPOA(I,J)
       ELSE
          ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
@@ -2104,10 +2118,10 @@ CONTAINS
 
       IF ( Input_Opt%LSVPOA ) THEN
          ! 10/12/09 debug
-         print*,'POAG tot', SUM(Spc(:,:,:,id_POA1))+ &
-                            SUM(Spc(:,:,:,id_POA2))+ &
-                            SUM(Spc(:,:,:,id_POG1))+ &
-                            SUM(Spc(:,:,:,id_POG2))
+         print*,'POAG tot', SUM(Spc(id_POA1)%Conc(:,:,:))+ &
+                            SUM(Spc(id_POA2)%Conc(:,:,:))+ &
+                            SUM(Spc(id_POG1)%Conc(:,:,:))+ &
+                            SUM(Spc(id_POG2)%Conc(:,:,:))
       ENDIF
 
       ! dkh print some diagnostics
@@ -2149,14 +2163,14 @@ CONTAINS
               'box ',IIDEBUG,',',JJDEBUG,',10    '
 
       IF ( Input_Opt%LSVPOA ) THEN
-         print*,'POA1 ', SUM(Spc(:,:,:,id_POA1))
-         print*,'POA2 ', SUM(Spc(:,:,:,id_POA2))
-         print*,'POG1 ', SUM(Spc(:,:,:,id_POG1))
-         print*,'POG2 ', SUM(Spc(:,:,:,id_POG2))
-         print*,'OPOA1', SUM(Spc(:,:,:,id_OPOA1))
-         print*,'OPOA2', SUM(Spc(:,:,:,id_OPOA2))
-         print*,'OPOG1', SUM(Spc(:,:,:,id_OPOG1))
-         print*,'OPOG2', SUM(Spc(:,:,:,id_OPOG2))
+         print*,'POA1 ', SUM(Spc(id_POA1)%Conc(:,:,:))
+         print*,'POA2 ', SUM(Spc(id_POA2)%Conc(:,:,:))
+         print*,'POG1 ', SUM(Spc(id_POG1)%Conc(:,:,:))
+         print*,'POG2 ', SUM(Spc(id_POG2)%Conc(:,:,:))
+         print*,'OPOA1', SUM(Spc(id_OPOA1)%Conc(:,:,:))
+         print*,'OPOA2', SUM(Spc(id_OPOA2)%Conc(:,:,:))
+         print*,'OPOG1', SUM(Spc(id_OPOG1)%Conc(:,:,:))
+         print*,'OPOG2', SUM(Spc(id_OPOG2)%Conc(:,:,:))
       ENDIF
 
       ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
@@ -2208,8 +2222,8 @@ CONTAINS
                               GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,2), &
                               GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,2)
 
-         print*, 'POA to trop', SUM(Spc(:,:,1:State_Grid%MaxChemLev,id_POA1))+ &
-                                SUM(Spc(:,:,1:State_Grid%MaxChemLev,id_POA2))
+         print*, 'POA to trop', SUM(Spc(id_POA1)%Conc(:,:,1:State_Grid%MaxChemLev))+ &
+                                SUM(Spc(id_POA2)%Conc(:,:,1:State_Grid%MaxChemLev))
       ENDIF ! OPOA (hotp 8/24/09)
 
    ENDIF
@@ -3294,6 +3308,7 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE Input_Opt_Mod,      ONLY : OptInput
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Diag_Mod,     ONLY : DgnState
    USE State_Grid_Mod,     ONLY : GrdState
@@ -3365,7 +3380,7 @@ CONTAINS
    REAL(fp) :: TEMPHC
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! CHEM_NVOC begins here!
@@ -3407,9 +3422,9 @@ CONTAINS
    ENDIF
 
    ! update for new mtp lumping (hotp 5/22/10)
-   NMVOC(1) = Spc(I,J,L,id_MTPA)
-   NMVOC(2) = Spc(I,J,L,id_LIMO)
-   NMVOC(3) = Spc(I,J,L,id_MTPO)
+   NMVOC(1) = Spc(id_MTPA)%Conc(I,J,L)
+   NMVOC(2) = Spc(id_LIMO)%Conc(I,J,L)
+   NMVOC(3) = Spc(id_MTPO)%Conc(I,J,L)
    NMVOC(4) = State_Chm%ORVCsesq(I,J,L)
 
    ! Initialize DELHC so that the values from the previous
@@ -3679,9 +3694,9 @@ CONTAINS
    ! is treated online.
    ! The same now applies to MTPA and LIMO. As of v11-02c, their
    ! oxidation is treated online (mps, 9/7/17)
-   !Spc(I,J,L,id_MTPA)       = MAX( NMVOC(1), 1.e-32_fp )
-   !Spc(I,J,L,id_LIMO)       = MAX( NMVOC(2), 1.e-32_fp )
-   Spc(I,J,L,id_MTPO)        = MAX( NMVOC(3), 1.e-32_fp )
+   !Spc(id_MTPA)%Conc(I,J,L) = MAX( NMVOC(1), 1.e-32_fp )
+   !Spc(id_LIMO)%Conc(I,J,L) = MAX( NMVOC(2), 1.e-32_fp )
+   Spc(id_MTPO)%Conc(I,J,L) = MAX( NMVOC(3), 1.e-32_fp )
    State_Chm%ORVCsesq(I,J,L) = MAX( NMVOC(4), 1.e-32_fp )
 
    ! Free pointer
@@ -3711,6 +3726,7 @@ CONTAINS
 !
 ! !USES:
 !
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
@@ -3747,7 +3763,7 @@ CONTAINS
    INTEGER           :: JHC, IPR, NOX, JSV
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! SOA_PARTITION begins here!
@@ -3767,15 +3783,15 @@ CONTAINS
    JHC = PARENTMTPA
    JSV = IDSV(JHC)
    ! gas phase
-   GM0(1,JSV)=Spc(I,J,L,id_TSOG1) ! C* =   1
-   GM0(2,JSV)=Spc(I,J,L,id_TSOG2) ! C* =  10
-   GM0(3,JSV)=Spc(I,J,L,id_TSOG3) ! C* = 100
-   GM0(4,JSV)=Spc(I,J,L,id_TSOG0) ! C* =   0.1
+   GM0(1,JSV)=Spc(id_TSOG1)%Conc(I,J,L) ! C* =   1
+   GM0(2,JSV)=Spc(id_TSOG2)%Conc(I,J,L) ! C* =  10
+   GM0(3,JSV)=Spc(id_TSOG3)%Conc(I,J,L) ! C* = 100
+   GM0(4,JSV)=Spc(id_TSOG0)%Conc(I,J,L) ! C* =   0.1
    ! aerosol phase
-   AM0(1,JSV)=Spc(I,J,L,id_TSOA1)
-   AM0(2,JSV)=Spc(I,J,L,id_TSOA2)
-   AM0(3,JSV)=Spc(I,J,L,id_TSOA3)
-   AM0(4,JSV)=Spc(I,J,L,id_TSOA0)
+   AM0(1,JSV)=Spc(id_TSOA1)%Conc(I,J,L)
+   AM0(2,JSV)=Spc(id_TSOA2)%Conc(I,J,L)
+   AM0(3,JSV)=Spc(id_TSOA3)%Conc(I,J,L)
+   AM0(4,JSV)=Spc(id_TSOA0)%Conc(I,J,L)
 
    !---------------------------------------------------------------------------
    ! Prior to 7/15/19:
@@ -3786,13 +3802,13 @@ CONTAINS
    !JHC = PARENTISOP
    !JSV = IDSV(JHC)
    !! gas phase
-   !GM0(1,JSV)=Spc(I,J,L,id_ISOG1)
-   !GM0(2,JSV)=Spc(I,J,L,id_ISOG2)
-   !GM0(3,JSV)=Spc(I,J,L,id_ISOG3)
+   !GM0(1,JSV)=Spc(id_ISOG1)%Conc(I,J,L)
+   !GM0(2,JSV)=Spc(id_ISOG2)%Conc(I,J,L)
+   !GM0(3,JSV)=Spc(id_ISOG3)%Conc(I,J,L)
    !! aerosol phase
-   !AM0(1,JSV)=Spc(I,J,L,id_ISOA1)
-   !AM0(2,JSV)=Spc(I,J,L,id_ISOA2)
-   !AM0(3,JSV)=Spc(I,J,L,id_ISOA3)
+   !AM0(1,JSV)=Spc(id_ISOA1)%Conc(I,J,L)
+   !AM0(2,JSV)=Spc(id_ISOA2)%Conc(I,J,L)
+   !AM0(3,JSV)=Spc(id_ISOA3)%Conc(I,J,L)
    !---------------------------------------------------------------------------
 
    !---------------------------------------
@@ -3802,14 +3818,14 @@ CONTAINS
    JHC = PARENTBENZ ! IDSV(B)=IDSV(T)=IDSV(X)=IDSV(N)
    JSV = IDSV(JHC)
    ! gas phase
-   GM0(1,JSV)=Spc(I,J,L,id_ASOG1)
-   GM0(2,JSV)=Spc(I,J,L,id_ASOG2)
-   GM0(3,JSV)=Spc(I,J,L,id_ASOG3)
+   GM0(1,JSV)=Spc(id_ASOG1)%Conc(I,J,L)
+   GM0(2,JSV)=Spc(id_ASOG2)%Conc(I,J,L)
+   GM0(3,JSV)=Spc(id_ASOG3)%Conc(I,J,L)
    ! aerosol phase
-   AM0(1,JSV)=Spc(I,J,L,id_ASOA1)
-   AM0(2,JSV)=Spc(I,J,L,id_ASOA2)
-   AM0(3,JSV)=Spc(I,J,L,id_ASOA3)
-   AM0(4,JSV)=Spc(I,J,L,id_ASOAN)
+   AM0(1,JSV)=Spc(id_ASOA1)%Conc(I,J,L)
+   AM0(2,JSV)=Spc(id_ASOA2)%Conc(I,J,L)
+   AM0(3,JSV)=Spc(id_ASOA3)%Conc(I,J,L)
+   AM0(4,JSV)=Spc(id_ASOAN)%Conc(I,J,L)
 
    !---------------------------------------
    ! SEMIVOLATILE 4: POA/SVOCs
@@ -3820,11 +3836,11 @@ CONTAINS
    IF ( id_POA1 > 0 .and. id_POA2 > 0 .and. &
         id_POG1 > 0 .and. id_POG2 > 0 ) THEN
       ! gas phase
-      GM0(1,JSV) = Spc(I,J,L,id_POG1)
-      GM0(2,JSV) = Spc(I,J,L,id_POG2)
+      GM0(1,JSV) = Spc(id_POG1)%Conc(I,J,L)
+      GM0(2,JSV) = Spc(id_POG2)%Conc(I,J,L)
       ! aerosol phase
-      AM0(1,JSV) = Spc(I,J,L,id_POA1)
-      AM0(2,JSV) = Spc(I,J,L,id_POA2)
+      AM0(1,JSV) = Spc(id_POA1)%Conc(I,J,L)
+      AM0(2,JSV) = Spc(id_POA2)%Conc(I,J,L)
    ENDIF
 
    !---------------------------------------
@@ -3836,11 +3852,11 @@ CONTAINS
    IF ( id_OPOA1 > 0 .and. id_OPOA2 > 0 .and. &
         id_OPOG1 > 0 .and. id_OPOG2 > 0 ) THEN
       ! gas phase
-      GM0(1,JSV) = Spc(I,J,L,id_OPOG1)
-      GM0(2,JSV) = Spc(I,J,L,id_OPOG2)
+      GM0(1,JSV) = Spc(id_OPOG1)%Conc(I,J,L)
+      GM0(2,JSV) = Spc(id_OPOG2)%Conc(I,J,L)
       ! aerosol phase
-      AM0(1,JSV) = Spc(I,J,L,id_OPOA1)
-      AM0(2,JSV) = Spc(I,J,L,id_OPOA2)
+      AM0(1,JSV) = Spc(id_OPOA1)%Conc(I,J,L)
+      AM0(2,JSV) = Spc(id_OPOA2)%Conc(I,J,L)
    ENDIF
 
    ! Free pointer
@@ -3865,6 +3881,7 @@ CONTAINS
 !
 ! !USES:
 !
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Diag_Mod,     ONLY : DgnState
 !
@@ -3898,7 +3915,7 @@ CONTAINS
    REAL(fp)          :: AERCHANGE  ! hotp 6/5/10
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! SOA_LUMP begins here!
@@ -3929,7 +3946,7 @@ CONTAINS
    !-----------------------------
    id_SPECIES = id_TSOA1
    IPR = 1
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -3938,7 +3955,7 @@ CONTAINS
 
    id_SPECIES = id_TSOA2
    IPR = 2
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -3947,7 +3964,7 @@ CONTAINS
 
    id_SPECIES = id_TSOA3
    IPR = 3
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -3957,7 +3974,7 @@ CONTAINS
    ! Add C*=0.1 product (hotp 6/12/10)
    id_SPECIES = id_TSOA0
    IPR = 4
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -3968,15 +3985,15 @@ CONTAINS
    ! Update species [kg]
    !-----------------------------
    ! gas phase
-   Spc(I,J,L,id_TSOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-   Spc(I,J,L,id_TSOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-   Spc(I,J,L,id_TSOG3) = MAX( GM0(3,JSV), 1e-32_fp )
-   Spc(I,J,L,id_TSOG0) = MAX( GM0(4,JSV), 1e-32_fp )
+   Spc(id_TSOG1)%Conc(I,J,L) = MAX( GM0(1,JSV), 1e-32_fp )
+   Spc(id_TSOG2)%Conc(I,J,L) = MAX( GM0(2,JSV), 1e-32_fp )
+   Spc(id_TSOG3)%Conc(I,J,L) = MAX( GM0(3,JSV), 1e-32_fp )
+   Spc(id_TSOG0)%Conc(I,J,L) = MAX( GM0(4,JSV), 1e-32_fp )
    ! aerosol phase
-   Spc(I,J,L,id_TSOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-   Spc(I,J,L,id_TSOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-   Spc(I,J,L,id_TSOA3) = MAX( AM0(3,JSV), 1e-32_fp )
-   Spc(I,J,L,id_TSOA0) = MAX( AM0(4,JSV), 1e-32_fp )
+   Spc(id_TSOA1)%Conc(I,J,L) = MAX( AM0(1,JSV), 1e-32_fp )
+   Spc(id_TSOA2)%Conc(I,J,L) = MAX( AM0(2,JSV), 1e-32_fp )
+   Spc(id_TSOA3)%Conc(I,J,L) = MAX( AM0(3,JSV), 1e-32_fp )
+   Spc(id_TSOA0)%Conc(I,J,L) = MAX( AM0(4,JSV), 1e-32_fp )
 
    !=================================================================
    ! Semivolatile Group 2: isoprene (hotp 5/22/10)
@@ -4003,7 +4020,7 @@ CONTAINS
    !!-----------------------------
    !id_SPECIES = id_ISOA1
    !IPR = 1
-   !AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   !AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    !IF ( AERCHANGE .GT. 0e+0_fp ) THEN
    !   SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    !ELSE
@@ -4012,7 +4029,7 @@ CONTAINS
    !
    !id_SPECIES = id_ISOA2
    !IPR = 2
-   !AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   !AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    !IF ( AERCHANGE .GT. 0e+0_fp ) THEN
    !   SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    !ELSE
@@ -4021,7 +4038,7 @@ CONTAINS
    !
    !id_SPECIES = id_ISOA3
    !IPR = 3
-   !AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   !AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    !IF ( AERCHANGE .GT. 0e+0_fp ) THEN
    !   SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    !ELSE
@@ -4032,13 +4049,13 @@ CONTAINS
    !! Update species [kg]
    !!-----------------------------
    !! gas phase
-   !Spc(I,J,L,id_ISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-   !Spc(I,J,L,id_ISOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-   !Spc(I,J,L,id_ISOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+   !Spc(id_ISOG1)%Conc(I,J,L) = MAX( GM0(1,JSV), 1e-32_fp )
+   !Spc(id_ISOG2)%Conc(I,J,L) = MAX( GM0(2,JSV), 1e-32_fp )
+   !Spc(id_ISOG3)%Conc(I,J,L) = MAX( GM0(3,JSV), 1e-32_fp )
    !! aerosol phase
-   !Spc(I,J,L,id_ISOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-   !Spc(I,J,L,id_ISOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-   !Spc(I,J,L,id_ISOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+   !Spc(id_ISOA1)%Conc(I,J,L) = MAX( AM0(1,JSV), 1e-32_fp )
+   !Spc(id_ISOA2)%Conc(I,J,L) = MAX( AM0(2,JSV), 1e-32_fp )
+   !Spc(id_ISOA3)%Conc(I,J,L) = MAX( AM0(3,JSV), 1e-32_fp )
    !---------------------------------------------------------------------------
 
    !=================================================================
@@ -4066,7 +4083,7 @@ CONTAINS
    !-----------------------------
    id_SPECIES = id_ASOA1
    IPR = 1
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -4075,7 +4092,7 @@ CONTAINS
 
    id_SPECIES = id_ASOA2
    IPR = 2
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -4084,7 +4101,7 @@ CONTAINS
 
    id_SPECIES = id_ASOA3
    IPR = 3
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -4093,7 +4110,7 @@ CONTAINS
 
    id_SPECIES = id_ASOAN
    IPR = 4
-   AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+   AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
    IF ( AERCHANGE .GT. 0e+0_fp ) THEN
       SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
    ELSE
@@ -4108,16 +4125,16 @@ CONTAINS
    ! HIGH NOX  ! update dims (hotp 5/22/10)
    !NOX = NHIGHNOX
    ! gas phase
-   Spc(I,J,L,id_ASOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-   Spc(I,J,L,id_ASOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-   Spc(I,J,L,id_ASOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+   Spc(id_ASOG1)%Conc(I,J,L) = MAX( GM0(1,JSV), 1e-32_fp )
+   Spc(id_ASOG2)%Conc(I,J,L) = MAX( GM0(2,JSV), 1e-32_fp )
+   Spc(id_ASOG3)%Conc(I,J,L) = MAX( GM0(3,JSV), 1e-32_fp )
    ! aerosol phase
-   Spc(I,J,L,id_ASOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-   Spc(I,J,L,id_ASOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-   Spc(I,J,L,id_ASOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+   Spc(id_ASOA1)%Conc(I,J,L) = MAX( AM0(1,JSV), 1e-32_fp )
+   Spc(id_ASOA2)%Conc(I,J,L) = MAX( AM0(2,JSV), 1e-32_fp )
+   Spc(id_ASOA3)%Conc(I,J,L) = MAX( AM0(3,JSV), 1e-32_fp )
    ! LOW NOX (only 1 aerosol phase)
    !NOX = NLOWNOX ! store in spot 4 (hotp 5/22/10)
-   Spc(I,J,L,id_ASOAN) = MAX( AM0(4,JSV), 1e-32_fp )
+   Spc(id_ASOAN)%Conc(I,J,L) = MAX( AM0(4,JSV), 1e-32_fp )
 
    !=================================================================
    ! Semivolatile 4: POA/primary SVOCs
@@ -4146,7 +4163,7 @@ CONTAINS
       !---------------------------
       id_SPECIES = id_POA1
       IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
@@ -4155,7 +4172,7 @@ CONTAINS
 
       id_SPECIES = id_POA2
       IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
@@ -4166,11 +4183,11 @@ CONTAINS
       ! Update species [kg]
       !---------------------------
       ! gas phase
-      Spc(I,J,L,id_POG1) = MAX( GM0(1,JSV), 1.e-32_fp )
-      Spc(I,J,L,id_POG2) = MAX( GM0(2,JSV), 1.e-32_fp )
+      Spc(id_POG1)%Conc(I,J,L) = MAX( GM0(1,JSV), 1.e-32_fp )
+      Spc(id_POG2)%Conc(I,J,L) = MAX( GM0(2,JSV), 1.e-32_fp )
       ! aerosol phase
-      Spc(I,J,L,id_POA1) = MAX( AM0(1,JSV), 1.e-32_fp )
-      Spc(I,J,L,id_POA2) = MAX( AM0(2,JSV), 1.e-32_fp )
+      Spc(id_POA1)%Conc(I,J,L) = MAX( AM0(1,JSV), 1.e-32_fp )
+      Spc(id_POA2)%Conc(I,J,L) = MAX( AM0(2,JSV), 1.e-32_fp )
 
    ENDIF ! POA
 
@@ -4200,7 +4217,7 @@ CONTAINS
       !---------------------------
       id_SPECIES = id_OPOA1
       IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
@@ -4209,7 +4226,7 @@ CONTAINS
 
       id_SPECIES = id_OPOA2
       IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+      AERCHANGE = AM0(IPR,JSV) - Spc(id_SPECIES)%Conc(I,J,L)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
          SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE + SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
@@ -4220,11 +4237,11 @@ CONTAINS
       ! Update species [kg]
       !---------------------------
       ! gas phase
-      Spc(I,J,L,id_OPOG1) = MAX( GM0(1,JSV), 1.e-32_fp )
-      Spc(I,J,L,id_OPOG2) = MAX( GM0(2,JSV), 1.e-32_fp )
+      Spc(id_OPOG1)%Conc(I,J,L) = MAX( GM0(1,JSV), 1.e-32_fp )
+      Spc(id_OPOG2)%Conc(I,J,L) = MAX( GM0(2,JSV), 1.e-32_fp )
       ! aerosol phase
-      Spc(I,J,L,id_OPOA1) = MAX( AM0(1,JSV), 1.e-32_fp )
-      Spc(I,J,L,id_OPOA2) = MAX( AM0(2,JSV), 1.e-32_fp )
+      Spc(id_OPOA1)%Conc(I,J,L) = MAX( AM0(1,JSV), 1.e-32_fp )
+      Spc(id_OPOA2)%Conc(I,J,L) = MAX( AM0(2,JSV), 1.e-32_fp )
 
    ENDIF ! OPOA
 
@@ -4260,6 +4277,7 @@ CONTAINS
 #endif
    USE ERROR_MOD,          ONLY : IT_IS_NAN
    USE Input_Opt_Mod,      ONLY : OptInput
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
@@ -4300,7 +4318,7 @@ CONTAINS
    REAL(fp)  :: NDIST2(IBINS)
    REAL(fp)  :: MDIST2(IBINS,ICOMP)
    REAL*4    :: BOXVOL, TEMP, PRES
-   INTEGER   :: I, J, L, K, C, PBL_MAX
+   INTEGER   :: I, J, L, K, C, N, PBL_MAX
    REAL(fp)  :: F_OF_PBL
    LOGICAL   :: ERRORSWITCH, PDBUG
    REAL*4    :: N0(State_Grid%NZ,IBINS)
@@ -4314,7 +4332,7 @@ CONTAINS
    DATA ii, jj, ll /53, 29, 8 /
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! EMITSGC begins here!
@@ -4336,11 +4354,15 @@ CONTAINS
    if( dbg) then
       print *,'===== Entering EMITSGC ===== at',ii,jj,ll
       print *,'Nk'
-      print *,Spc(ii,jj,ll,id_NK1:id_NK1+ibins-1)
+      do N = 1, ibins
+         print *,Spc(id_NK1+N-1)%conc(ii,jj,ll)
+      enddo
       print *,'Mk'
       do k=1,icomp-idiag
          print *,'comp',k
-         print *,Spc(ii,jj,ll,id_NK1+k*IBINS:id_NK1+IBINS-1+k*IBINS)
+         do N = 1, IBINS
+            print *,Spc(id_NK1+k*IBINS+N-1)%Conc(ii,jj,ll)
+         enddo
       enddo
       print *,'EMISSION'
       print *,emismass(ii,jj,:)
@@ -4357,22 +4379,22 @@ CONTAINS
 
          DO K = 1, IBINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K)
-            NDIST(K) = Spc(I,J,L,id_NK1+K-1)
+            NDIST(K) = Spc(id_NK1+K-1)%Conc(I,J,L)
             DO C = 1, ICOMP-IDIAG
-               MDIST(K,C) = Spc(I,J,L,id_NK1+IBINS*C+K-1)
+               MDIST(K,C) = Spc(id_NK1+IBINS*C+K-1)%Conc(I,J,L)
                IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                   PRINT *,'+++++++ Found NaN in EMITSGC ++++++++'
                   PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
                ENDIF
             ENDDO
-            MDIST(K,SRTH2O) = Spc(I,J,L,id_AW1-1+K)
+            MDIST(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
             NDISTFINAL(K) = 0e+0_fp
             MADDFINAL(K) = 0e+0_fp
          ENDDO
 
          IF ( SRTNH4 > 0 ) THEN
             CALL NH4BULKTOBIN( MDIST(:,SRTSO4),   &
-                               Spc(I,J,L,id_NH4), &
+                               Spc(id_NH4)%Conc(I,J,L), &
                                MDIST(:,SRTNH4) )
          ENDIF
 
@@ -4402,10 +4424,14 @@ CONTAINS
                            PRES, SGCTSCALE, NDISTFINAL, MADDFINAL,pdbug)
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
-            PRINT *,'Nk',Spc(I,J,L,id_NK1:id_NK1+ibins-1)
+            do k=N,ibins
+               PRINT *,'Nk',Spc(id_NK1+N-1)%Conc(I,J,L)
+            enddo
             do k=1,8
                print *,'Mk comp',k
-               print *,Spc(I,J,L,id_NK1+k*IBINS:id_NK1+IBINS-1+k*IBINS)
+               do N=1,IBINS
+                  print *,Spc(id_NK1+N-1)%Conc(I,J,L)
+               enddo
             enddo
          ENDIF
 
@@ -4459,11 +4485,11 @@ CONTAINS
                                    'after SUBGRIDCOAG at ',I,J,L
 
          DO K = 1, IBINS
-            Spc(I,J,L,id_NK1-1+K) = NDIST2(K)
+            Spc(id_NK1-1+K)%Conc(I,J,L) = NDIST2(K)
             DO C = 1, ICOMP-IDIAG
-               Spc(I,J,L,id_NK1+K-1+C*IBINS) = MDIST2(K,C)
+               Spc(id_NK1+K-1+C*IBINS)%Conc(I,J,L) = MDIST2(K,C)
             ENDDO
-            Spc(I,J,L,id_AW1-1+K)  = MDIST2(K,SRTH2O)
+            Spc(id_AW1-1+K)%Conc(I,J,L)  = MDIST2(K,SRTH2O)
          ENDDO
 
          ! Save final info for diagnostic
@@ -4932,7 +4958,7 @@ CONTAINS
    ! Grid box aarea
    AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
-   ! Convert State_Chm%Species to [kg] for TOMAS. This will be
+   ! Convert concentration units to [kg] for TOMAS. This will be
    ! removed once TOMAS uses mixing ratio instead of mass
    ! as species units (ewl, 9/11/15)
    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -5158,7 +5184,7 @@ CONTAINS
 
    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
-   ! Convert State_Chm%Species back to original units (ewl, 9/11/15)
+   ! Convert concentrations back to original units (ewl, 9/11/15)
    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                            OrigUnit, RC )
    IF ( RC /= GC_SUCCESS ) THEN
@@ -5189,6 +5215,7 @@ CONTAINS
 ! !USES:
 !
    USE Input_Opt_Mod,      ONLY : OptInput
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
@@ -5220,13 +5247,13 @@ CONTAINS
    REAL(fp)          :: F_OF_PBL
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! EMITHIGH2 begins here!
    !=================================================================
 
-   ! Point to chemical species array [kg]
+   ! Point to chemical species vector containing concentrations
    Spc => State_Chm%Species
 
    ! Maximum extent of PBL [model levels]
@@ -5253,23 +5280,23 @@ CONTAINS
       F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
       ! Hydrophilic ELEMENTAL CARBON
-      Spc(I,J,L,id_ECIL1-1+K) = Spc(I,J,L,id_ECIL1-1+K) + &
+      Spc(id_ECIL1-1+K)%Conc(I,J,L) = Spc(id_ECIL1-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * BCSRC(I,J,K,1) )
 
       ! Hydrophobic ELEMENTAL CARBON
-      Spc(I,J,L,id_ECOB1-1+K) = Spc(I,J,L,id_ECOB1-1+K) + &
+      Spc(id_ECOB1-1+K)%Conc(I,J,L) = Spc(id_ECOB1-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * BCSRC(I,J,K,2) )
 
       ! Hydrophilic ORGANIC CARBON
-      Spc(I,J,L,id_OCIL1-1+K) = Spc(I,J,L,id_OCIL1-1+K) + &
+      Spc(id_OCIL1-1+K)%Conc(I,J,L) = Spc(id_OCIL1-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * OCSRC(I,J,K,1) )
 
       ! Hydrophobic ORGANIC CARBON
-      Spc(I,J,L,id_OCOB1-1+K) = Spc(I,J,L,id_OCOB1-1+K) + &
+      Spc(id_OCOB1-1+K)%Conc(I,J,L) = Spc(id_OCOB1-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * OCSRC(I,J,K,2) )
 
       ! Number corresponding to EC + OC [No.]
-      Spc(I,J,L,id_NK1-1+K)   = Spc(I,J,L,id_NK1-1+K) + &
+      Spc(id_NK1-1+K)%Conc(I,J,L)   = Spc(id_NK1-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * NUMBSRC(I,J,K) )
 
    ENDDO
@@ -5428,7 +5455,7 @@ CONTAINS
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species%Conc (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 7/9/04)
 !\\
@@ -5482,10 +5509,10 @@ CONTAINS
       ! OH is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
+         ! Get OH from State_Chm%Species%Conc [kg] and convert to [molec/cm3]
          OH_MW_kg = State_Chm%SpcData(id_OH)%Info%MW_g * 1.e-3_fp
 
-         OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH) &
+         OH_MOLEC_CM3 = State_Chm%Species(id_OH)%Conc(I,J,L) &
                         * ( AVO / OH_MW_kg ) &
                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -5541,9 +5568,9 @@ CONTAINS
 !
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species (for
-!  coupled runs) or monthly mean OH (for offline runs).  For offline runs, the
-!  concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species%Conc
+!  (for coupled runs) or monthly mean OH (for offline runs).  For offline runs,
+!  the concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
 !  7/20/04)
 !\\
 !\\
@@ -5595,10 +5622,10 @@ CONTAINS
       ! NO3 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
+         ! Get NO3 from State_Chm%Species%Conc [kg]; convert to [molec/cm3]
          NO3_MW_kg   = State_Chm%SpcData(id_NO3)%Info%MW_g * 1.e-3_fp
 
-         NO3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO3) &
+         NO3_MOLEC_CM3 = State_Chm%Species(id_NO3)%Conc(I,J,L) &
                          * ( AVO / NO3_MW_kg ) &
                          / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp  )
 
@@ -5704,10 +5731,10 @@ CONTAINS
       ! O3 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
+         ! Get O3 from State_Chm%Species%Conc [kg] and convert to [molec/cm3]
          O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%MW_g * 1.e-3_fp
 
-         O3_MOLEC_CM3 = State_Chm%Species(I,J,L,id_O3) &
+         O3_MOLEC_CM3 = State_Chm%Species(id_O3)%Conc(I,J,L) &
                         * ( AVO / O3_MW_kg ) &
                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -5934,12 +5961,13 @@ CONTAINS
 
          ENDIF
 
-         ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%Species
+         ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%Species%Conc
          ! [kg LARO2] and convert to [kg AROM]
          AROM_MW_kg  = State_Chm%SpcData(id_AROM)%Info%MW_g * 1.e-3_fp
          LARO2_MW_kg = State_Chm%SpcData(id_LARO2)%Info%MW_g * 1.e-3_fp
 
-         DARO2 = State_Chm%Species(I,J,L,id_LARO2) * ( AVO / LARO2_MW_kg ) &
+         DARO2 = State_Chm%Species(id_LARO2)%Conc(I,J,L) &
+                 * ( AVO / LARO2_MW_kg ) &
                  / ( AVO / AROM_MW_kg  ) * ARO2CARB
 
       ELSE
@@ -6033,12 +6061,13 @@ CONTAINS
       ! Test if we are in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
+         ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species%Conc
          ! [kg LISOPOH] and convert to [kg C ISOP]
          ISOP_MW_kg    = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
          LISOPOH_MW_kg = State_Chm%SpcData(id_LISOPOH)%Info%MW_g * 1.e-3_fp
 
-         DOH = State_Chm%Species(I,J,L,id_LISOPOH) * ( AVO / LISOPOH_MW_kg ) &
+         DOH = State_Chm%Species(id_LISOPOH)%Conc(I,J,L) &
+               * ( AVO / LISOPOH_MW_kg ) &
                / ( AVO / ISOP_MW_kg )
 
       ELSE
@@ -6089,6 +6118,7 @@ CONTAINS
 !
 ! !USES:
 !
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
@@ -6141,35 +6171,35 @@ CONTAINS
    REAL(fp)            :: MOTEMP, OATEMP, EQLBDIFF
 
    ! Pointers
-   REAL(fp), POINTER   :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER   :: Spc(:)
 
    !=================================================================
    ! CHECK_EQLB starts here
    !=================================================================
 
-   ! Point to chemical species array [kg]
+   ! Point to chemical species vector containing concentrations
    Spc => State_Chm%Species
 
    ! Calculate mass of absorbing organic medium
-   MOTEMP = Spc(I,J,L,id_ASOAN) + &
-            Spc(I,J,L,id_ASOA1) + &
-            Spc(I,J,L,id_ASOA2) + &
-            Spc(I,J,L,id_ASOA3) + &
-            Spc(I,J,L,id_TSOA1) + &
-            Spc(I,J,L,id_TSOA2) + &
-            Spc(I,J,L,id_TSOA3) + &
-            Spc(I,J,L,id_TSOA0)
+   MOTEMP = Spc(id_ASOAN)%Conc(I,J,L) + &
+            Spc(id_ASOA1)%Conc(I,J,L) + &
+            Spc(id_ASOA2)%Conc(I,J,L) + &
+            Spc(id_ASOA3)%Conc(I,J,L) + &
+            Spc(id_TSOA1)%Conc(I,J,L) + &
+            Spc(id_TSOA2)%Conc(I,J,L) + &
+            Spc(id_TSOA3)%Conc(I,J,L) + &
+            Spc(id_TSOA0)%Conc(I,J,L)
 
    ! Add primary material as appropriate
    IF ( id_POA1 > 0 ) THEN
       MOTEMP = MOTEMP              + &
-               Spc(I,J,L,id_POA1 ) * OCFPOA(I,J)  + &
-               Spc(I,J,L,id_POA2 ) * OCFPOA(I,J)  + &
-               Spc(I,J,L,id_OPOA1) * OCFOPOA(I,J) + &
-               Spc(I,J,L,id_OPOA2) * OCFOPOA(I,J)
+               Spc(id_POA1 )%Conc(I,J,L) * OCFPOA(I,J)  + &
+               Spc(id_POA2 )%Conc(I,J,L) * OCFPOA(I,J)  + &
+               Spc(id_OPOA1)%Conc(I,J,L) * OCFOPOA(I,J) + &
+               Spc(id_OPOA2)%Conc(I,J,L) * OCFOPOA(I,J)
    ELSEIF ( id_OCPI > 0 ) THEN
       MOTEMP = MOTEMP + &
-               ( Spc(I,J,L,id_OCPI) + Spc(I,J,L,id_OCPO) ) * 2.1e+0_fp
+               ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * 2.1e+0_fp
    ENDIF
 
    ! Convert Mo from [kg] to [ug/m3]
@@ -6198,9 +6228,9 @@ CONTAINS
    ! Product 1
    IPR = 1
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_TSOG1) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA1) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA1)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV',  IPR, JSV, ' in box ', I, J, L
@@ -6209,24 +6239,24 @@ CONTAINS
    ! Product 2
    IPR = 2
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_TSOG2) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA2) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA2)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L, &
                   MSOACHEM,MOTEMP,LOW,TOL, &
                   ASOANGAS, ASOANAER, OCPIOCPO, &
-                  Spc(I,J,L,id_TSOA2),Spc(I,J,L,id_TSOG2)
+                  Spc(id_TSOA2)%Conc(I,J,L),Spc(id_TSOG2)%Conc(I,J,L)
       WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
    ENDIF
 
    ! Product 3
    IPR = 3
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_TSOG3) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG3)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA3) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA3)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
@@ -6235,15 +6265,15 @@ CONTAINS
    ! Product 4, C*=0.1
    IPR = 4
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_TSOG0) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG0)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_TSOA0) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA0)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L, &
                   MSOACHEM,MOTEMP,LOW,TOL, &
                   ASOANGAS, ASOANAER, OCPIOCPO, &
-                  Spc(I,J,L,id_TSOA0),Spc(I,J,L,id_TSOG0)
+                  Spc(id_TSOA0)%Conc(I,J,L),Spc(id_TSOG0)%Conc(I,J,L)
       WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
    ENDIF
 
@@ -6259,9 +6289,9 @@ CONTAINS
    !! Product 1
    !IPR = 1
    !! Compute OA in kg
-   !OATEMP = Spc(I,J,L,id_ISOG1) * KOMIJL(IPR,JSV) * MOTEMP
+   !OATEMP = Spc(id_ISOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    !! Compute difference in ug/m3
-   !EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA1) )* CONVFAC
+   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA1)%Conc(I,J,L) )* CONVFAC
    !! Assess error
    !IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
    !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
@@ -6270,9 +6300,9 @@ CONTAINS
    !! Product 2
    !IPR = 2
    !! Compute OA in kg
-   !OATEMP = Spc(I,J,L,id_ISOG2) * KOMIJL(IPR,JSV) * MOTEMP
+   !OATEMP = Spc(id_ISOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    !! Compute difference in ug/m3
-   !EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA2) )* CONVFAC
+   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA2)%Conc(I,J,L) )* CONVFAC
    !! Assess error
    !IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
    !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV,' in box ', I, J, L
@@ -6281,9 +6311,9 @@ CONTAINS
    !! Product 3
    !IPR = 3
    !! Compute OA in kg
-   !OATEMP = Spc(I,J,L,id_ISOG3) * KOMIJL(IPR,JSV) * MOTEMP
+   !OATEMP = Spc(id_ISOG3)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    !! Compute difference in ug/m3
-   !EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA3) )* CONVFAC
+   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA3)%Conc(I,J,L) )* CONVFAC
    !! Assess error
    !IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
    !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
@@ -6300,9 +6330,9 @@ CONTAINS
    !NOX = NHIGHNOX
    IPR = 1
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_ASOG1) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_ASOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ASOA1) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA1)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
@@ -6312,9 +6342,9 @@ CONTAINS
    !NOX = NHIGHNOX
    IPR = 2
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_ASOG2) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_ASOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ASOA2) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA2)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
@@ -6324,9 +6354,9 @@ CONTAINS
    !NOX = NHIGHNOX
    IPR = 3
    ! Compute OA in kg
-   OATEMP = Spc(I,J,L,id_ASOG3) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_ASOG3)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ASOA3) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA3)%Conc(I,J,L) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
       WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
@@ -6347,9 +6377,9 @@ CONTAINS
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_POG1) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_POG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_POA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_POA1)%Conc(I,J,L) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
@@ -6360,9 +6390,9 @@ CONTAINS
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_POG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_POG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_POA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_POA2)%Conc(I,J,L) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
@@ -6383,9 +6413,9 @@ CONTAINS
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_OPOG1) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_OPOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_OPOA1) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_OPOA1)%Conc(I,J,L) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
@@ -6396,9 +6426,9 @@ CONTAINS
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_OPOG2) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_OPOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_OPOA2) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_OPOA2)%Conc(I,J,L) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
@@ -6430,6 +6460,7 @@ CONTAINS
 !
 ! !USES:
 !
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
@@ -6452,13 +6483,13 @@ CONTAINS
    INTEGER           :: I, J, L, NOX, JHC, JSV
 
    ! Pointers
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! SAVE_OAGINIT starts here
    !=================================================================
 
-   ! Point to chemical species array [kg]
+   ! Point to chemical species vector containing concentrations
    Spc => State_Chm%Species
 
    !$OMP PARALLEL DO       &
@@ -6475,10 +6506,10 @@ CONTAINS
       !----------------------------------------------------
       JHC = PARENTMTPA
       JSV = IDSV(JHC)
-      OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_TSOA1) + Spc(I,J,L,id_TSOG1)
-      OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_TSOA2) + Spc(I,J,L,id_TSOG2)
-      OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_TSOA3) + Spc(I,J,L,id_TSOG3)
-      OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_TSOA0) + Spc(I,J,L,id_TSOG0)
+      OAGINITSAVE(I,J,L,1,JSV) = Spc(id_TSOA1)%Conc(I,J,L) + Spc(id_TSOG1)%Conc(I,J,L)
+      OAGINITSAVE(I,J,L,2,JSV) = Spc(id_TSOA2)%Conc(I,J,L) + Spc(id_TSOG2)%Conc(I,J,L)
+      OAGINITSAVE(I,J,L,3,JSV) = Spc(id_TSOA3)%Conc(I,J,L) + Spc(id_TSOG3)%Conc(I,J,L)
+      OAGINITSAVE(I,J,L,4,JSV) = Spc(id_TSOA0)%Conc(I,J,L) + Spc(id_TSOG0)%Conc(I,J,L)
 
       !------------------------------------------------------------------------
       ! Prior to 7/15/19:
@@ -6488,9 +6519,9 @@ CONTAINS
       !!----------------------------------------------------
       !JHC = PARENTISOP
       !JSV = IDSV(JHC)
-      !OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ISOA1) + Spc(I,J,L,id_ISOG1)
-      !OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ISOA2) + Spc(I,J,L,id_ISOG2)
-      !OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ISOA3) + Spc(I,J,L,id_ISOG3)
+      !OAGINITSAVE(I,J,L,1,JSV) = Spc(id_ISOA1)%Conc(I,J,L) + Spc(id_ISOG1)%Conc(I,J,L)
+      !OAGINITSAVE(I,J,L,2,JSV) = Spc(id_ISOA2)%Conc(I,J,L) + Spc(id_ISOG2)%Conc(I,J,L)
+      !OAGINITSAVE(I,J,L,3,JSV) = Spc(id_ISOA3)%Conc(I,J,L) + Spc(id_ISOG3)%Conc(I,J,L)
       !------------------------------------------------------------------------
 
       !----------------------------------------------------
@@ -6499,11 +6530,11 @@ CONTAINS
       JHC = PARENTBENZ
       JSV = IDSV(JHC)
       ! High NOx
-      OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ASOA1) + Spc(I,J,L,id_ASOG1)
-      OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ASOA2) + Spc(I,J,L,id_ASOG2)
-      OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ASOA3) + Spc(I,J,L,id_ASOG3)
+      OAGINITSAVE(I,J,L,1,JSV) = Spc(id_ASOA1)%Conc(I,J,L) + Spc(id_ASOG1)%Conc(I,J,L)
+      OAGINITSAVE(I,J,L,2,JSV) = Spc(id_ASOA2)%Conc(I,J,L) + Spc(id_ASOG2)%Conc(I,J,L)
+      OAGINITSAVE(I,J,L,3,JSV) = Spc(id_ASOA3)%Conc(I,J,L) + Spc(id_ASOG3)%Conc(I,J,L)
       ! Low NOx
-      OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_ASOAN)
+      OAGINITSAVE(I,J,L,4,JSV) = Spc(id_ASOAN)%Conc(I,J,L)
 
       !----------------------------------------------------
       ! POA: total POA+POG in kgC (if semivol simulation)
@@ -6511,8 +6542,8 @@ CONTAINS
       IF ( id_POA1 > 0 ) THEN
          JHC = PARENTPOA
          JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_POA1) + Spc(I,J,L,id_POG1)
-         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_POA2) + Spc(I,J,L,id_POG2)
+         OAGINITSAVE(I,J,L,1,JSV) = Spc(id_POA1)%Conc(I,J,L) + Spc(id_POG1)%Conc(I,J,L)
+         OAGINITSAVE(I,J,L,2,JSV) = Spc(id_POA2)%Conc(I,J,L) + Spc(id_POG2)%Conc(I,J,L)
       ENDIF
 
       !----------------------------------------------------
@@ -6521,8 +6552,8 @@ CONTAINS
       IF ( id_OPOA1 > 0 ) THEN
          JHC = PARENTOPOA
          JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_OPOA1) + Spc(I,J,L,id_OPOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_OPOA2) + Spc(I,J,L,id_OPOG2)
+         OAGINITSAVE(I,J,L,1,JSV) = Spc(id_OPOA1)%Conc(I,J,L) + Spc(id_OPOG1)%Conc(I,J,L)
+         OAGINITSAVE(I,J,L,2,JSV) = Spc(id_OPOA2)%Conc(I,J,L) + Spc(id_OPOG2)%Conc(I,J,L)
       ENDIF
 
    ENDDO
@@ -6555,6 +6586,7 @@ CONTAINS
 ! !USES:
 !
    USE Input_Opt_Mod,      ONLY : OptInput
+   USE Species_Mod,        ONLY : SpcConc
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
@@ -6590,13 +6622,13 @@ CONTAINS
    REAL(fp)             :: MBDIFF
 
    ! Pointers
-   REAL(fp), POINTER    :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! CHECK_MB starts here
    !=================================================================
 
-   ! Point to chemical species array [kg]
+   ! Point to chemical species vector containing concentrations
    Spc => State_Chm%Species
 
    ! Do we have to print debug output?
@@ -6635,7 +6667,7 @@ CONTAINS
       ! Product 1, C* = 1 ug/m3
       IPR      = 1
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA1) + Spc(I,J,L,id_TSOG1) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA1)%Conc(I,J,L) + Spc(id_TSOG1)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6648,7 +6680,7 @@ CONTAINS
       ! Product 2, C* = 10 ug/m3
       IPR      = 2
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA2) +  Spc(I,J,L,id_TSOG2) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA2)%Conc(I,J,L) +  Spc(id_TSOG2)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6661,7 +6693,7 @@ CONTAINS
       ! Product 3, C* = 100 ug/m3
       IPR      = 3
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA3) + Spc(I,J,L,id_TSOG3) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA3)%Conc(I,J,L) + Spc(id_TSOG3)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6674,7 +6706,7 @@ CONTAINS
       ! Product 4, C* = 0.1 ug/m3
       IPR      = 4
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA0) + Spc(I,J,L,id_TSOG0) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA0)%Conc(I,J,L) + Spc(id_TSOG0)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6703,7 +6735,7 @@ CONTAINS
       !! Product 1, C* = 1 ug/m3
       !IPR      = 1
       !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      !MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA1) + Spc(I,J,L,id_ISOG1) ))
+      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA1)%Conc(I,J,L) + Spc(id_ISOG1)%Conc(I,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       !IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6714,7 +6746,7 @@ CONTAINS
       !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
       !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
       !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-      !   print*,'Spc',Spc(I,J,L,id_ISOA1),Spc(I,J,L,id_ISOG1)
+      !   print*,'Spc',Spc(id_ISOA1)%Conc(I,J,L),Spc(id_ISOG1)%Conc(I,J,L)
       !   print*,'NNOX',NNOX(JSV)
       !   print*,'strat?',State_Met%InStratosphere(I,J,L)
       !ENDIF
@@ -6722,7 +6754,7 @@ CONTAINS
       !! Product 2, C* = 10 ug/m3
       !IPR      = 2
       !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      !MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA2) + Spc(I,J,L,id_ISOG2) ))
+      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA2)%Conc(I,J,L) + Spc(id_ISOG2)%Conc(I,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       !IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6733,7 +6765,7 @@ CONTAINS
       !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
       !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
       !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-      !   print*,'Spc',Spc(I,J,L,id_ISOA2),Spc(I,J,L,id_ISOG2)
+      !   print*,'Spc',Spc(id_ISOA2)%Conc(I,J,L),Spc(id_ISOG2)%Conc(I,J,L)
       !   print*,'NNOX',NNOX(JSV)
       !   print*,'strat?',State_Met%InStratosphere(I,J,L)
       !
@@ -6742,7 +6774,7 @@ CONTAINS
       !! Product 3, C* = 100 ug/m3
       !IPR      = 3
       !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      !MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA3) + Spc(I,J,L,id_ISOG3) ))
+      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA3)%Conc(I,J,L) + Spc(id_ISOG3)%Conc(I,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       !IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6753,7 +6785,7 @@ CONTAINS
       !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
       !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
       !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-      !   print*,'Spc',Spc(I,J,L,id_ISOA3),Spc(I,J,L,id_ISOG3)
+      !   print*,'Spc',Spc(id_ISOA3)%Conc(I,J,L),Spc(id_ISOG3)%Conc(I,J,L)
       !   print*,'NNOX',NNOX(JSV)
       !   print*,'strat?',State_Met%InStratosphere(I,J,L)
       !ENDIF
@@ -6779,7 +6811,7 @@ CONTAINS
       NOX      = NLOWNOX
       IPR      = 4
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - Spc(I,J,L,id_ASOAN) )
+      MBDIFF   = ABS( TEMPSOAG - Spc(id_ASOAN)%Conc(I,J,L) )
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6789,7 +6821,7 @@ CONTAINS
                 TEMPDELTA(:,IPR)
          !print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,6:8)
          !print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,11)
-         !print*,'Spc',Spc(I,J,L,id_ASOAN)
+         !print*,'Spc',Spc(id_ASOAN)%Conc(I,J,L)
          !print*,'NNOX',NNOX(JSV)
          !print*,'strat?',State_Met%InStratosphere(I,J,L)
       ENDIF
@@ -6807,7 +6839,7 @@ CONTAINS
       NOX      = NHIGHNOX
       IPR      = 1
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA1) + Spc(I,J,L,id_ASOG1) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA1)%Conc(I,J,L) + Spc(id_ASOG1)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6821,7 +6853,7 @@ CONTAINS
       NOX      = NHIGHNOX
       IPR      = 2
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA2) + Spc(I,J,L,id_ASOG2) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA2)%Conc(I,J,L) + Spc(id_ASOG2)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6835,7 +6867,7 @@ CONTAINS
       NOX      = NHIGHNOX
       IPR      = 3
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA3) + Spc(I,J,L,id_ASOG3) ))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA3)%Conc(I,J,L) + Spc(id_ASOG3)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
@@ -6865,7 +6897,7 @@ CONTAINS
          ! Only NOx, Product 1
          IPR      = 1
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_POA1) + Spc(I,J,L,id_POG1) ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA1)%Conc(I,J,L) + Spc(id_POG1)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
@@ -6878,7 +6910,7 @@ CONTAINS
          ! Only NOx, Product 2
          IPR      = 2
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_POA2) + Spc(I,J,L,id_POG2) ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA2)%Conc(I,J,L) + Spc(id_POG2)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
@@ -6905,7 +6937,7 @@ CONTAINS
          ! Only NOx, Product 1
          IPR      = 1
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_OPOA1) + Spc(I,J,L,id_OPOG1) ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA1)%Conc(I,J,L) + Spc(id_OPOG1)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
@@ -6918,7 +6950,7 @@ CONTAINS
          ! Only NOx, Product 2
          IPR      = 2
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_OPOA2) + Spc(I,J,L,id_OPOG2) ))
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA2)%Conc(I,J,L) + Spc(id_OPOG2)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
@@ -6979,11 +7011,6 @@ CONTAINS
       JHC = 10
       print*,'POG1 OH       Rxn : ', DELTAHCSAVE(1,JHC)
       print*,'POG2 OH       Rxn : ', DELTAHCSAVE(2,JHC)
-
-      ! Check Spc for debug purposes (hotp 6/4/10)
-      !IF ( prtDebug ) THEN
-      !   print*,Spc(37,25,4,:)
-      !ENDIF
 
       ! Print diagnostic info about SOA production
       print*,'Aerosol production and evaporation (cumulative kg)'
@@ -7060,7 +7087,7 @@ CONTAINS
 !
 ! !IROUTINE: get_no
 !
-! !DESCRIPTION: Function GET\_NO returns NO from State\_Chm%Species
+! !DESCRIPTION: Function GET\_NO returns NO from State\_Chm%Species%Conc
 ! (for coupled runs). (hotp 5/7/2010)
 !\\
 !\\
@@ -7112,10 +7139,10 @@ CONTAINS
       ! NO is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
+         ! Get NO from State_Chm%Species%Conc [kg] and convert to [molec/cm3]
          NO_MW_kg   = State_Chm%SpcData(id_NO)%Info%MW_g * 1.e-3_fp
 
-         NO_MOLEC_CM3 = State_Chm%Species(I,J,L,id_NO) &
+         NO_MOLEC_CM3 = State_Chm%Species(id_NO)%Conc(I,J,L) &
                         * ( AVO / NO_MW_kg ) &
                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -7144,7 +7171,7 @@ CONTAINS
 !
 ! !IROUTINE: get_ho2
 !
-! !DESCRIPTION: Function GET\_HO2 returns HO2 from State\_Chm%Species
+! !DESCRIPTION: Function GET\_HO2 returns HO2 from State\_Chm%Species%Conc
 ! (for coupled runs). Created by Havala Pye (5/7/2010).
 !\\
 !\\
@@ -7196,10 +7223,10 @@ CONTAINS
       ! HO2 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
+         ! Get HO2 from State_Chm%Species%Conc [kg]; convert to [molec/cm3]
          HO2_MW_kg  = State_Chm%SpcData(id_HO2)%Info%MW_g*1.e-3_fp
 
-         HO2_MOLEC_CM3 = State_Chm%Species(I,J,L,id_HO2) &
+         HO2_MOLEC_CM3 = State_Chm%Species(id_HO2)%Conc(I,J,L) &
                          * ( AVO / HO2_MW_kg ) &
                          / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -7284,12 +7311,12 @@ CONTAINS
       ! Test if we are in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species
+         ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species%Conc
          ! [kg ISOPNO3] and convert to [kg C ISOP]
          ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
          LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%MW_g * 1.e-3_fp
 
-         ISOPNO3 = State_Chm%Species(I,J,L,id_LISOPNO3) &
+         ISOPNO3 = State_Chm%Species(id_LISOPNO3)%Conc(I,J,L) &
                    * ( AVO / LISOPNO3_MW_kg ) &
                    / ( AVO / ISOP_MW_kg     )
 
@@ -8306,6 +8333,7 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE Input_Opt_Mod,  ONLY : OptInput
+   USE Species_Mod,    ONLY : SpcConc
    USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
    USE State_Diag_Mod, ONLY : DgnState
@@ -8373,7 +8401,7 @@ CONTAINS
    REAL(fp)          :: OLD(State_Grid%NZ,NCTBC)
 
    ! Make a pointer to the tracer array
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! DRY_SETTLINGBIN begins here!
@@ -8382,7 +8410,7 @@ CONTAINS
    ! Assume success
    RC        = GC_SUCCESS
 
-   ! Point to Spc
+   ! Point to chemical species vector containing concentrations
    Spc => State_Chm%species
 
    ! Aerosol settling timestep [s]
@@ -8400,10 +8428,12 @@ CONTAINS
    DO I = 1, State_Grid%NX
 
       DO L = 1, State_Grid%NZ
-         MASS(L) = SUM(Spc(I,J,L,APMIDS%id_BCBIN1:IDTEMP))
+         DO N = APMIDS%id_BCBIN1, IDTEMP
+            MASS(L) = Spc(N)%Conc(I,J,L)
+         ENDDO
          DO K = 1, NCTBC
-            OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTBC+K-1))
-            Spc(I,J,L,(APMIDS%id_CTBC+K-1)) = 0.e+0_fp
+            OLD(L,K) = Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L)
+            Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L) = 0.e+0_fp
          ENDDO
       ENDDO
 
@@ -8412,7 +8442,7 @@ CONTAINS
 
          DO L = 1, State_Grid%NZ
 
-            TC0(L) = Spc(I,J,L,(APMIDS%id_BCBIN1+N-1))
+            TC0(L) = Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)
 
             IF(TC0(L)>1.e-30_fp)THEN
                ! Initialize
@@ -8446,13 +8476,13 @@ CONTAINS
          IF(MASS(L)>1.e-30)THEN
             DELZ = State_Met%BXHEIGHT(I,J,L)
 
-            Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) = &
-               Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) / &
+            Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = &
+               Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) / &
                ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
             DO K = 1, NCTBC
-               Spc(I,J,L,(APMIDS%id_CTBC+K-1)) = &
-                  Spc(I,J,L,(APMIDS%id_CTBC+K-1))+ &
+               Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L)+ &
                   OLD(L,K)*TC0(L)/MASS(L) / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
             ENDDO
@@ -8462,15 +8492,15 @@ CONTAINS
             IF((MASS(L)*MASS(L+1))>1.e-30)THEN
                DELZ  = State_Met%BXHEIGHT(I,J,L)
                DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-               Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) = 1.e+0_fp / &
+               Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                  * (Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) &
+                  * (Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) &
                   + DT_SETTL * VTS(L+1) / DELZ1 &
                   * TC0(L+1) )
 
                DO K = 1, NCTBC
-                  Spc(I,J,L,(APMIDS%id_CTBC+K-1)) = &
-                     Spc(I,J,L,(APMIDS%id_CTBC+K-1))+ &
+                  Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L) = &
+                     Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L)+ &
                      1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * (OLD(L,K)*TC0(L)/MASS(L) &
@@ -8481,15 +8511,15 @@ CONTAINS
             ELSE IF(MASS(L)>1.e-30)THEN
                DELZ  = State_Met%BXHEIGHT(I,J,L)
                DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-               Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) = 1.e+0_fp / &
+               Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                  * (Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) &
+                  * (Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) &
                   + DT_SETTL * VTS(L+1) / DELZ1 &
                   * TC0(L+1) )
 
                DO K = 1, NCTBC
-                  Spc(I,J,L,(APMIDS%id_CTBC+K-1)) = &
-                     Spc(I,J,L,(APMIDS%id_CTBC+K-1))+ &
+                  Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L) = &
+                     Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L)+ &
                      1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * OLD(L,K)*TC0(L)/MASS(L)
@@ -8498,15 +8528,15 @@ CONTAINS
             ELSE IF(MASS(L+1)>1.e-30)THEN
                DELZ  = State_Met%BXHEIGHT(I,J,L)
                DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-               Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) = 1.e+0_fp / &
+               Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                  * (Spc(I,J,L,(APMIDS%id_BCBIN1+N-1)) &
+                  * (Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) &
                   + DT_SETTL * VTS(L+1) / DELZ1 &
                   * TC0(L+1) )
 
                DO K = 1, NCTBC
-                  Spc(I,J,L,(APMIDS%id_CTBC+K-1)) = &
-                     Spc(I,J,L,(APMIDS%id_CTBC+K-1))+ &
+                  Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L) = &
+                     Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L)+ &
                      1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * DT_SETTL * VTS(L+1) / DELZ1 &
@@ -8520,8 +8550,8 @@ CONTAINS
 
       DO L = 1, State_Grid%NZ
          DO K = 1, NCTBC
-            Spc(I,J,L,(APMIDS%id_CTBC+K-1)) = &
-               MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTBC+K-1)))
+            Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L) = &
+               MAX(1.d-30,Spc(APMIDS%id_CTBC+K-1)%Conc(I,J,L))
          ENDDO
       ENDDO
 
@@ -8554,6 +8584,7 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE Input_Opt_Mod,  ONLY : OptInput
+   USE Species_Mod,    ONLY : SpcConc
    USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
    USE State_Diag_Mod, ONLY : DgnState
@@ -8621,7 +8652,7 @@ CONTAINS
    REAL(fp)          :: OLD(State_Grid%NZ,NCTOC)
 
    ! Make a pointer to the tracer array
-   REAL(fp), POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc(:)
 
    !=================================================================
    ! DRY_SETTLINGBIN begins here!
@@ -8630,8 +8661,8 @@ CONTAINS
    ! Assume success
    RC        = GC_SUCCESS
 
-   ! Point to Spc
-   Spc => State_Chm%species
+   ! Point to chemical species vector containing concentrations
+   Spc => State_Chm%Species
 
    ! Aerosol settling timestep [s]
    DT_SETTL = GET_TS_CHEM()
@@ -8648,10 +8679,12 @@ CONTAINS
    DO I = 1, State_Grid%NX
 
       DO L = 1, State_Grid%NZ
-         MASS(L) = SUM(Spc(I,J,L,APMIDS%id_OCBIN1:IDTEMP))
+         DO N = APMIDS%id_OCBIN1, IDTEMP
+            MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
+         ENDDO
          DO K = 1, NCTOC
-            OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTOC+K-1))
-            Spc(I,J,L,(APMIDS%id_CTOC+K-1)) = 0.e+0_fp
+            OLD(L,K) = Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L)
+            Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L) = 0.e+0_fp
          ENDDO
       ENDDO
 
@@ -8660,7 +8693,7 @@ CONTAINS
 
          DO L = 1, State_Grid%NZ
 
-            TC0(L) = Spc(I,J,L,(APMIDS%id_OCBIN1+N-1))
+            TC0(L) = Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)
 
             IF(TC0(L)>1.e-30)THEN
                ! Initialize
@@ -8686,7 +8719,7 @@ CONTAINS
                VTS(L) = 0.e+0_fp
             ENDIF
 
-         ENDDO
+         ENDDO ! L
 
          ! Method is to solve bidiagonal matrix
          ! which is implicit and first order accurate in Z
@@ -8694,13 +8727,13 @@ CONTAINS
          IF(MASS(L)>1.e-30)THEN
             DELZ = State_Met%BXHEIGHT(I,J,L)
 
-            Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) = &
-               Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) / &
+            Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) = &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) / &
                ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
             DO K = 1, NCTOC
-               Spc(I,J,L,(APMIDS%id_CTOC+K-1)) = &
-                  Spc(I,J,L,(APMIDS%id_CTOC+K-1))+ &
+               Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L) = &
+                  Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L)+ &
                   OLD(L,K)*TC0(L)/MASS(L) / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
             ENDDO
@@ -8710,15 +8743,15 @@ CONTAINS
             IF((MASS(L)*MASS(L+1))>1.e-30)THEN
                DELZ  = State_Met%BXHEIGHT(I,J,L)
                DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-               Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) = 1.e+0_fp / &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                  * (Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) &
+                  * (Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) &
                   + DT_SETTL * VTS(L+1) / DELZ1 &
                   * TC0(L+1) )
 
                DO K = 1, NCTOC
-                  Spc(I,J,L,(APMIDS%id_CTOC+K-1)) = &
-                     Spc(I,J,L,(APMIDS%id_CTOC+K-1))+ &
+                  Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L) = &
+                     Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L)+ &
                      1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * (OLD(L,K)*TC0(L)/MASS(L) &
@@ -8729,15 +8762,15 @@ CONTAINS
             ELSE IF(MASS(L)>1.e-30)THEN
                DELZ  = State_Met%BXHEIGHT(I,J,L)
                DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-               Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) = 1.e+0_fp / &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                  * (Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) &
+                  * (Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) &
                   + DT_SETTL * VTS(L+1) / DELZ1 &
                   * TC0(L+1) )
 
                DO K = 1, NCTOC
-                  Spc(I,J,L,(APMIDS%id_CTOC+K-1)) = &
-                     Spc(I,J,L,(APMIDS%id_CTOC+K-1))+ &
+                  Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L) = &
+                     Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L)+ &
                      1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * OLD(L,K)*TC0(L)/MASS(L)
@@ -8746,15 +8779,15 @@ CONTAINS
             ELSE IF(MASS(L+1)>1.e-30)THEN
                DELZ  = State_Met%BXHEIGHT(I,J,L)
                DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
-               Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) = 1.e+0_fp / &
+               Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) = 1.e+0_fp / &
                   ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
-                  * (Spc(I,J,L,(APMIDS%id_OCBIN1+N-1)) &
+                  * (Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L) &
                   + DT_SETTL * VTS(L+1) / DELZ1 &
                   * TC0(L+1) )
 
                DO K = 1, NCTOC
-                  Spc(I,J,L,(APMIDS%id_CTOC+K-1)) = &
-                     Spc(I,J,L,(APMIDS%id_CTOC+K-1))+ &
+                  Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L) = &
+                     Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L)+ &
                      1.e+0_fp / &
                      ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * DT_SETTL * VTS(L+1) / DELZ1 &
@@ -8762,19 +8795,19 @@ CONTAINS
                ENDDO
             ENDIF
 
-         ENDDO
+         ENDDO ! L
 
-      ENDDO
+      ENDDO ! N
 
       DO L = 1, State_Grid%NZ
          DO K = 1, NCTOC
-            Spc(I,J,L,(APMIDS%id_CTOC+K-1)) = &
-               MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTOC+K-1)))
+            Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L) = &
+               MAX(1.d-30,Spc(APMIDS%id_CTOC+K-1)%Conc(I,J,L))
          ENDDO
       ENDDO
 
-   ENDDO
-   ENDDO
+   ENDDO ! I
+   ENDDO ! J
    !$OMP END PARALLEL DO
 
    ! Clear the pointer

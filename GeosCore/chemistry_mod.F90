@@ -382,7 +382,7 @@ CONTAINS
 #ifdef APM
           ! Save SO4 concentration before chemistry
           N          = APMIDS%id_SO4
-          CONCTMPSO4 = State_Chm%Species(:,:,:,N)
+          CONCTMPSO4 = State_Chm%Species(N)%Conc
 
           CALL AERONUM( Input_Opt  = Input_Opt,                              &
                         State_Chm  = State_Chm,                              &
@@ -481,8 +481,8 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             IF ( State_Chm%Species(I,J,L,N) > CONCTMPSO4(I,J,L) ) THEN
-                PSO4GAS(I,J,L) = State_Chm%Species(I,J,L,N)                  &
+             IF ( State_Chm%Species(N)%Conc(I,J,L) > CONCTMPSO4(I,J,L) ) THEN
+                PSO4GAS(I,J,L) = State_Chm%Species(N)%Conc(I,J,L)                  &
                                - CONCTMPSO4(I,J,L)
              ELSE
                 PSO4GAS(I,J,L) = 0.D0
@@ -1406,8 +1406,8 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%Species(I,J,L,GcId) = State_Chm%Species(I,J,L,GcId)      &
-                                        * Rate
+          State_Chm%Species(GcId)%Conc(I,J,L) =                &
+                    State_Chm%Species(GcId)%Conc(I,J,L) * Rate
        ENDDO
        ENDDO
        ENDDO

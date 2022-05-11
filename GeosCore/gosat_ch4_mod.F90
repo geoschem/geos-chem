@@ -740,7 +740,7 @@ CONTAINS
        GC_CH4_NATIVE(:) = 0.0_fp
 
        ! Get species concentrations [v/v]
-       GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4)
+       GC_CH4_NATIVE(:) = State_Chm%Species(id_CH4)%Conc(I,J,:)
 
        CALL MASS_INTERP( GC_PEDGE, GOS(NT)%PRES, GC_CH4_NATIVE, &
                          L0, State_Grid%NZ, LGOS, GC_CH4 )

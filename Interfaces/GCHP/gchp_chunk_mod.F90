@@ -498,10 +498,10 @@ CONTAINS
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Extra')
 
 
-    ! Set initial State_Chm%Species units to internal state units, the same
+    ! Set initial species units to internal state units, the same
     ! units as the restart file values. Note that species concentrations
     ! are all still zero at this point since internal state values are not
-    ! copied to State_Chm%Species until Run (post-initialization).
+    ! copied to State_Chm%Species%Conc until Run (post-initialization).
 # if defined( MODEL_GEOS )
     State_Chm%Spc_Units = 'kg/kg total'
 #else
@@ -1017,7 +1017,7 @@ CONTAINS
        JFD = Input_Opt%JFD
        LFD = Input_Opt%LFD
        NFD = Input_Opt%NFD
-       WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+       WRITE (*, 1017) TRIM(FD_SPEC), state_chm%Species(NFD)%Conc(IFD,JFD,LFD)
        IF (Input_Opt%IS_ADJOINT) THEN
           WRITE(*,*) ' Computing final cost function'
           CFN = 0d0
@@ -1026,9 +1026,9 @@ CONTAINS
           DO J = 1,State_Grid%NY
           DO I = 1,State_Grid%NX
              if (State_chm%CostFuncMask(I,J,L) > 0d0) THEN
-                WRITE (*, 1047) I, J, L, state_chm%species(I, J, L, NFD)
+                WRITE (*, 1047) I, J, L, State_Chm%Species(NFD)%Conc(I,J,L)
                 state_chm%SpeciesAdj(I,J,L, NFD) = 1.0d0
-                CFN = CFN + state_chm%species(I,J,L,NFD)
+                CFN = CFN + State_Chm%Species(NFD)%Conc(I,J,L)
              endif
           ENDDO
           ENDDO
@@ -1040,14 +1040,14 @@ CONTAINS
              WRITE(*, *) '    Not perturbing'
           ELSEIF (Input_Opt%FD_STEP .eq. 1) THEN
              WRITE(*, *) '    Perturbing +0.1'
-             state_chm%species(IFD, JFD, LFD, NFD) = state_chm%species(IFD, JFD, LFD, NFD) * 1.1d0
+             State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) = State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) * 1.1d0
           ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
              WRITE(*, *) '    Perturbing -0.1'
-             state_chm%species(IFD, JFD, LFD, NFD) = state_chm%species(IFD, JFD, LFD, NFD) * 0.9d0
+             State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) = State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) * 0.9d0
           ELSE
              WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
           ENDIF
-          WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+          WRITE (*, 1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
        ENDIF
     ENDIF
 
@@ -1058,7 +1058,7 @@ CONTAINS
        IF (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
           IFD = Input_Opt%IFD
           JFD = Input_Opt%JFD
-          WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+          WRITE (*, 1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
           IF (Input_Opt%Is_Adjoint) &
                WRITE (*, 1018) TRIM(FD_SPEC), state_chm%SpeciesAdj(IFD, JFD, LFD, NFD)
        ENDIF
@@ -1067,15 +1067,15 @@ CONTAINS
              WRITE(*, *) '    Not perturbing'
           ELSEIF (Input_Opt%FD_STEP .eq. 1) THEN
              WRITE(*, *) '    Perturbing +0.1'
-             state_chm%species(:, :, :, NFD) = state_chm%species(:, :, :, NFD) * 1.1d0
+             State_Chm%Species(NFD)%Conc = State_Chm%Species(NFD)%Conc(:,:,:) * 1.1d0
           ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
              WRITE(*, *) '    Perturbing -0.1'
-             state_chm%species(:, :, :, NFD) = state_chm%species(:, :, :, NFD) * 0.9d0
+             State_Chm%Species(NFD)%Conc = State_Shm%Species(NFD)%Conc(:,:,:) * 0.9d0
           ELSE
              WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
           ENDIF
           IF (Input_Opt%IS_FD_SPOT_THIS_PET) &
-               WRITE (*, 1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+               WRITE (*, 1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
        ELSE
           state_chm%SpeciesAdj(:,:,:,:) = 0d0
           IF (NFD > 0) THEN
@@ -1102,7 +1102,7 @@ CONTAINS
        IFD = Input_Opt%IFD
        JFD = Input_Opt%JFD
        LFD = Input_Opt%LFD
-       WRITE(*,1017) TRIM(FD_SPEC), state_chm%species(IFD, JFD, LFD, NFD)
+       WRITE(*,1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
        IF (Input_Opt%Is_Adjoint) &
             WRITE (*, 1018) TRIM(FD_SPEC), state_chm%SpeciesAdj(IFD, JFD, LFD, NFD)
     ENDIF
@@ -1522,7 +1522,7 @@ CONTAINS
           ! Find the non-adjoint variable or this
           TRACNAME = ThisSpc%Name
 
-          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(:,:,:,N) * &
+          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(N)%Conc(:,:,:) * &
                ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
 
           if (Input_Opt%IS_FD_SPOT_THIS_PET .and. Input_Opt%IFD > 0) THEN

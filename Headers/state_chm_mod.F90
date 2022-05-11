@@ -26,7 +26,7 @@ MODULE State_Chm_Mod
   USE PhysConstants                      ! Physical constants
   USE Precision_Mod                      ! GEOS-Chem precision types
   USE Registry_Mod                       ! Registry module
-  USE Species_Mod                        ! For species database object
+  USE Species_Mod                        ! For species database and conc objects
 
   IMPLICIT NONE
   PRIVATE
@@ -114,7 +114,8 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
+     TYPE(SpcConc),     POINTER :: Species (:      ) ! Vector for species
+                                                        ! concentrations
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
@@ -767,24 +768,19 @@ CONTAINS
        RETURN
     ENDIF
 
+
     !========================================================================
     ! Allocate and initialize chemical species fields
     !========================================================================
-    chmID = 'Species'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%Species,                                     &
-         nSlots     = State_Chm%nSpecies,                                    &
-         RC         = RC                                                    )
 
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! Allocate the array
+    ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
+    DO N = 1, State_Chm%nSpecies
+       ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
+                                            State_Grid%NY, &
+                                            State_Grid%NZ ), STAT=RC )
+       State_Chm%Species(N)%Conc = 0.0_f8
+    ENDDO
 
 #ifdef ADJOINT
     !========================================================================
@@ -2798,7 +2794,7 @@ CONTAINS
 !
 ! !LOCAL VARAIBLES
 !
-    ! Strings
+    INTEGER            :: N
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -2923,11 +2919,18 @@ CONTAINS
        State_Chm%Map_WL => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Species ) ) THEN
-       DEALLOCATE( State_Chm%Species, STAT=RC )
+    IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
+       DO N = 1, State_Chm%nSpecies
+          IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
+             DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+             State_Chm%Species(N)%Conc => NULL()
+          ENDIF
+       ENDDO
+       DEALLOCATE( State_Chm%Species )
        CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Species => NULL()
+       State_Chm%Species => NULL()    
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
