@@ -6196,8 +6196,8 @@ CONTAINS
 ! !IROUTINE: init_tomas
 !
 ! !DESCRIPTION: Subroutine INIT_TOMAS intializes variables for TOMAS
-!  microphysics based on switches from input.geos, e.g. what aerosol species to
-!  simulate.(win, 7/9/07)
+!  microphysics based on switches from geoschem_config.yml, e.g. what aerosol
+!  species to simulate.(win, 7/9/07)
 !\\
 !\\
 ! !INTERFACE:

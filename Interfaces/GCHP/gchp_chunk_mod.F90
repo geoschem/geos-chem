@@ -810,8 +810,8 @@ CONTAINS
     ! 6.  WetDep (kg)      --> Phase 2
     !
     ! Any of the listed processes is only executed if the corresponding switch
-    ! in the input.geos file is enabled. If the physics component already
-    ! covers convection or turbulence, they should not be applied here!
+    ! in the geoschem_config.yml file is enabled. If the physics component
+    ! already covers convection or turbulence, they should not be applied here!
     ! The tendencies are only applied if turbulence is not done within
     ! GEOS-Chem (ckeller, 10/14/14).
     !
@@ -821,7 +821,8 @@ CONTAINS
     ! across two runs as is done in GEOS-5. (ewl, 10/26/18)
     !=======================================================================
 
-    ! By default, do processes as defined in input.geos. DoTend defined below.
+    ! By default, do processes as defined in geoschem_config.yml. DoTend
+    ! defined below.
     DoConv   = Input_Opt%LCONV                    ! dynamic time step
     DoDryDep = Input_Opt%LDRYD .AND. IsChemTime   ! chemistry time step
     DoEmis   = IsChemTime                         ! chemistry time step
@@ -971,7 +972,7 @@ CONTAINS
        !=======================================================================
        ! Tropospheric H2O is always prescribed (using GEOS Q). For strat H2O
        ! there are three options, controlled by toggles 'set initial global MR'
-       ! in input.geos and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
+       ! in geoschem_config.yml and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
        ! (A) never prescribe strat H2O -> both toggles off
        ! (B) prescribe strat H2O on init time step -> toggle in input.goes on
        ! (C) always prescribe strat H2O -> toggle in GEOSCHEMchem_GridComp.rc on
@@ -1130,8 +1131,8 @@ CONTAINS
     ! 1. Convection
     !
     ! Call GEOS-Chem internal convection routines if convection is enabled
-    ! in input.geos. This should only be done if convection is not covered
-    ! by another gridded component and/or the GC species are not made
+    ! in geoschem_config.yml. This should only be done if convection is not
+    ! covered by another gridded component and/or the GC species are not made
     ! friendly to this component!!
     !=======================================================================
     IF ( DoConv ) THEN
@@ -1247,8 +1248,8 @@ CONTAINS
     ! 4. Turbulence
     !
     ! Call GEOS-Chem internal turbulence routines if turbulence is enabled
-    ! in input.geos. This should only be done if turbulence is not covered
-    ! by another gridded component and/or the GC species are not made
+    ! in geoschem_config.yml. This should only be done if turbulence is not
+    ! covered by another gridded component and/or the GC species are not made
     ! friendly to this component!!
     !=======================================================================
     IF ( DoTurb ) THEN

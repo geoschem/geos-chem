@@ -654,7 +654,7 @@ CONTAINS
        ! Exit with error if linearized chemistry is not activated
        ErrMsg = 'Linearized chemistry needs to be activated for this '      // &
                 'simulation type. Please see GeosCore/linear_chem_mod.F90 ' // &
-                'or disable linearized chemistry in your "input.geos" file.'
+                'or disable linear_chemistry_aloft in geoschem_config.yml'
        CALL GC_Error( ErrMsg, errCode, ThisLoc )
        RETURN
 

@@ -384,7 +384,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         ENDIF
 
-        ! To output only the species asked in input.geos
+        ! To output only the species asked in geoschem_config.yml
         ! (ccc, 5/15/09)
         MM  = 1
         MMB = 0
@@ -426,7 +426,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      DO N = 1, M
 
         NN  = State_Chm%Map_DryDep(N)
-        ! To output only the species asked in input.geos
+        ! To output only the species asked in geoschem_config.yml
         ! (ccc, 5/15/09)
         MM  = 1
         MMB = 0

@@ -133,7 +133,7 @@ CONTAINS
 !
 ! !IROUTINE: Init_DiagList
 !
-! !DESCRIPTION: Reads the HISTORY.rc and input.geos input files to get
+! !DESCRIPTION: Reads the HISTORY.rc and geoschem_config.yml input files to get
 !  determine which GEOS-Chem diagnostics have been requested.  Then it
 !  uses this information to initialize the main list of diagnostics,
 !  aka, the DiagList object.

@@ -572,7 +572,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Call Init_VDIFF so that we can pass several values from
     ! Input_Opt to the vdiff_mod.F90. This has to be called
-    ! after the input.geos file has been read from disk.
+    ! after the geoschem_config.yml file has been read from disk.
     !-----------------------------------------------------------------
     IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
        CALL Init_Vdiff( Input_Opt, State_Chm, State_Grid, RC )
@@ -878,7 +878,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    ErrMsg  = 'Error reading the "input.geos" file!'
+    ErrMsg  = ''
     ThisLoc = ' -> at Init_Tomas_Microphysics (in GeosCore/gc_environment_mod.F90)'
     ! Exit if this is a dry-run
     IF ( Input_Opt%DryRun) RETURN

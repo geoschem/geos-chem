@@ -304,7 +304,8 @@ CONTAINS
     ! To disable the HEMCO intermediate grid feature, simply set this DY, DX to
     ! equal to State_Grid%DY, State_Grid%DX (e.g. 2x2.5, 4x5, ...)
     !
-    ! TODO: Read in the grid parameters via input.geos. For now, hardcode the scale factor.
+    ! TODO: Read in the grid parameters via geoschem_config.yml. For now,
+    ! hardcode the scale factor.
     Input_Opt%IMGRID_XSCALE = 1
     Input_Opt%IMGRID_YSCALE = 1
 
@@ -683,7 +684,8 @@ CONTAINS
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux > 0 ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
-          ErrMsg = 'DustGinoux is on in HEMCO but LDUST=F in input.geos!'
+          ErrMsg = 'DustGinoux is on in HEMCO but activate dust is false ' // &
+                   ' in geoschem_config.yml!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -694,7 +696,8 @@ CONTAINS
     ! DEAD dust emissions
     IF ( ExtState%DustDead > 0 ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
-          ErrMsg = 'DustDead is on in HEMCO but LDUST=F in input.geos!'
+          ErrMsg = 'DustDead is on in HEMCO but activate dust is false ' // &
+                   'in geoschem_config.yml!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -705,7 +708,8 @@ CONTAINS
     ! Dust alkalinity
     IF ( ExtState%DustAlk > 0 ) THEN
        IF ( .not. Input_Opt%LDSTUP ) THEN
-          ErrMsg = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
+          ErrMsg = 'DustAlk is on in HEMCO but acid_uptake_on_dust is ' // &
+                   'false in geoschem_config.yml'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -3973,8 +3977,8 @@ CONTAINS
 ! !IROUTINE: CheckSettings
 !
 ! !DESCRIPTION: Subroutine CheckSettings performs some sanity checks of the
-! switches provided in the HEMCO configuration file (in combination with the
-! settings specified in input.geos).
+! switches provided in the HEMCO configuration file in combination with the
+! settings specified in geoschem_config.yml.
 !\\
 !\\
 ! !INTERFACE:
@@ -4047,8 +4051,9 @@ CONTAINS
 
        IF ( Input_Opt%amIRoot ) THEN
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
-          Print*, '% Chemistry is set to false in input.geos so chemistry  %'
-          Print*, '% data will not be read by HEMCO (hco_interface_gc_mod.F90)%'
+          Print*, '% WARNING: Activate chemistry is set to false in        %'
+          Print*, '% geoschem_config.yml so chemistry data will not be     %'
+          Print*, '% read by HEMCO(hco_interface_gc_mod.F90)               %'
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        ENDIF
 
@@ -4204,7 +4209,7 @@ CONTAINS
     ! Ocean Hg input data (for Hg sims only)
     !
     ! If we have turned on the Ocean Mercury simulation in the
-    ! input.geos file, then we will also toggle the OCEAN_Hg
+    ! geoschem_config.yml file, then we will also toggle the OCEAN_Hg
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN ) THEN
@@ -4225,7 +4230,7 @@ CONTAINS
        ENDIF
        IF ( .not. LTMP ) THEN
           ErrMsg = 'OCEAN_Hg is set to false in HEMCO_Config.rc ' // &
-                   'but LDYNOCEAN is true in input.geos.'
+                   'but use_dynamic_ocean_Hg is true in geoschem_config.yml.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -4235,7 +4240,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Input data for CH4 simulations only
     !
-    ! If we have turned on options in the CH4 MENU of input.geos, then we
+    ! If we have turned on CH4 options in geoschem_config.yml, then we
     ! also need to toggle switches so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
@@ -4315,7 +4320,7 @@ CONTAINS
     ! RRTMG input data
     !
     ! If we have turned on the RRTMG simulation in the
-    ! input.geos file, then we will also toggle the RRTMG
+    ! geoschem_config.yml file, then we will also toggle the RRTMG
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LRAD .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN

@@ -142,7 +142,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Proceed to do full PBL mixing only if it has been selected in input.geos
+    ! Proceed to do full PBL mixing only if it has been selected in
+    ! geoschem_config.yml
     IF ( Input_Opt%LTURB .and. ( .not. Input_Opt%LNLPBL ) ) THEN
 
        !=====================================================================

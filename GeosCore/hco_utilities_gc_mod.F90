@@ -2479,7 +2479,7 @@ CONTAINS
       IF ( FOUND ) THEN
 
          ! Print the min & max of each species as it is read from
-         ! the BC file in mol/mol if debug is turned on in input.geos
+         ! the BC file in mol/mol if debug is turned on in geoschem_config.yml
          IF ( Input_Opt%amIRoot ) THEN
             IF ( FIRST .or. Input_Opt%LPRT ) THEN
                WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
@@ -2501,7 +2501,7 @@ CONTAINS
 
       ELSE
 
-         ! Print to log if debug is turned on in input.geos
+         ! Print to log if debug is turned on in geoschem_config.yml
          IF ( Input_Opt%amIRoot ) THEN
             IF ( FIRST .or. Input_Opt%LPRT ) THEN
                WRITE( 6, 130 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV

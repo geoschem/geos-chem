@@ -51,7 +51,8 @@ MODULE Species_Database_Mod
 !BOC
 
   ! Work array to hold the list of species names, which combines the advected
-  ! species from input.geos with the KPP species names (and removes duplicates)
+  ! species from geoschem_config.yml with the KPP species names (and removes
+  ! duplicates)
   CHARACTER(LEN=31), ALLOCATABLE :: Species_Names(:)
 
   ! Work array to hold the list of all KPP species indices
@@ -245,11 +246,12 @@ CONTAINS
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
-    ! below. This is the combined list of advected species (from input.geos)
-    ! plus KPP species (from SPC_NAMES in gckpp_Monitor.F90), with all
-    ! duplicates removed. Also stores the corresponding indices in the
-    ! KPP VAR and FIX arrays.  For simulations that do not use KPP, the
-    ! unique species list is the list of advected species from input.geos.
+    ! below. This is the combined list of advected species (from
+    ! geoschem_config.yml) plus KPP species (from SPC_NAMES in
+    ! gckpp_Monitor.F90), with all duplicates removed. Also stores the
+    ! corresponding indices in the KPP VAR and FIX arrays.  For simulations
+    ! that do not use KPP, the unique species list is the list of advected
+    ! species from geoschem_config.yml.
     !=======================================================================
     CALL Unique_Species_Names( Input_Opt, nSpecies, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1102,7 +1104,7 @@ CONTAINS
     thisLoc  = &
     ' -> at Unique_Species_Names (in module Headers/species_database_mod.F90)'
 
-    ! Number of advected species listed in input.geos
+    ! Number of advected species listed in geoschem_config.yml
     nAdvect  = Input_Opt%N_Advect
 
     ! First set the # of species to the # of advected species
@@ -1115,7 +1117,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Allocate a temporary array large enough to hold all of the
-       ! advected species listed in input.geos as well as all of the
+       ! advected species listed in geoschem_config.yml as well as all of the
        ! KPP species names (listed in SPC_NAMES of gckpp_Monitor.F90)
        ALLOCATE( Tmp( nAdvect + NSPEC ), STAT=RC )
        CALL GC_CheckVar( 'species_database_mod.F90:Tmp', 0 , RC )
@@ -1127,7 +1129,8 @@ CONTAINS
        ! (so that we don't duplicate storage for advected & chemical species)
        !--------------------------------------------------------------------
 
-       ! First, store advected species (from input.geos) in the TMP array
+       ! First, store advected species (from geoschem_config.yml) in the
+       ! TMP array
        DO S = 1, nSpecies
           Tmp(S) = Input_Opt%AdvectSpc_Name(S)
        ENDDO
@@ -1223,7 +1226,7 @@ CONTAINS
 
     !=======================================================================
     ! For specialty simulations, we do not have KPP species.  Thus, the
-    ! of species is just the list of advected species from input.geos
+    ! of species is just the list of advected species from geoschem_config.yml
     !=======================================================================
     ELSE
 

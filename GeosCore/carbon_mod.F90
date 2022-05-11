@@ -1504,7 +1504,7 @@ CONTAINS
 !  O-SVOC/OPOA    OH                OPOA/G1-2
 !  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Species that must be defined in input.geos (in addition to standard
+!  Species that must be defined in geoschem_config.yml (in addition to standard
 !  full chem species) (34 additional):
 !  TSOA1      TSOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ASOA2      ASOG2
@@ -1546,7 +1546,7 @@ CONTAINS
 !  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Species that must be defined in input.geos (in addition to standard
+!  Species that must be defined in geoschem_config.yml (in addition to standard
 !  full chem species) (25 additional):
 !  TSOA1      TSOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ASOA2      ASOG2

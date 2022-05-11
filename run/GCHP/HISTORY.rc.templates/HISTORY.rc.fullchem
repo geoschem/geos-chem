@@ -1,3 +1,4 @@
+
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
@@ -4051,7 +4052,7 @@ COLLECTIONS: @#'DefaultCollection',
 @#
 @# Concentrations of O3 and HNO3 at a user-specified altitude above
 @# the surface, such as 10m.  Set the desired output altitude in meters
-@# in the DEPOSITION MENU of input.geos.
+@# in the deposition settings in geoschem_config.yml.
 @#
 @# NOTES:
 @# (1) This collection requires dry deposition to be turned on.

@@ -314,7 +314,7 @@ CONTAINS
 
        ! Overhead ozone column [DU] at (NLON, NLAT)
        ! These values are either from the met fields or TOMS/SBUV,
-       ! depending on the settings in input.geos
+       ! depending on the settings in geoschem_config.yml
        O3_TOMS = GET_OVERHEAD_O3( State_Chm, NLON, NLAT )
 
        ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
@@ -2703,7 +2703,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  Now the user is able to select any 3 wavelengths for optics
-!  output in the input.geos file we need to be able to interpolate
+!  output in the geoschem_config.yml file we need to be able to interpolate
 !  to those wavelengths based on what is available in the optics
 !  look-up table.
 !                                                                             .
@@ -5323,10 +5323,10 @@ CONTAINS
     C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
-    ! scaled value of JHNO3. NOTE: this is set in input.geos
+    ! scaled value of JHNO3. NOTE: this is set in geoschem_config.yml
     IF ( Input_Opt%hvAerNIT ) THEN
 
-       ! Get the photolysis scalars read in from input.geos
+       ! Get the photolysis scalars read in from geoschem_config.yml
        JscaleNITs = Input_Opt%hvAerNIT_JNITs
        JscaleNIT  = Input_Opt%hvAerNIT_JNIT
        ! convert reaction channel % to a fraction
@@ -5340,7 +5340,7 @@ CONTAINS
        ! Set the photolysis rate of NIT
        ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
        ZPJ(L,RXN_JNITb,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
-       ! Adjust to scaling for channels set in input.geos
+       ! Adjust to scaling for channels set in geoschem_config.yml
        ! NOTE: channel scaling is 1 in FJX_j2j.dat, then updated here
        ZPJ(L,RXN_JNITSa,I,J) = ZPJ(L,RXN_JNITSa,I,J) * JNITChanA
        ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JNITa,I,J) * JNITChanA

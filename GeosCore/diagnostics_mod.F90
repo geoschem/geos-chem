@@ -646,7 +646,7 @@ CONTAINS
     !    C(Z1) is the ozone concentration at Z1.
     !
     ! Ra(Z1,Zc) is calculated to the lowest model level in drydep_mod.F90.
-    ! We recalculate Ra using Z1 using a value specified in input.geos;
+    ! We recalculate Ra using Z1 using a value specified in geoschem_config.yml;
     ! usually 10m, which is the height of the CASTNET measurement for O3.
     ! This new Ra is stored in State_Diag%DryDepRaALT1.
     !
@@ -686,7 +686,7 @@ CONTAINS
              IF ( Conv < 0.0_fp ) Conv = 1.0_fp
 
              ! Save concentration at the user-defined altitude
-             ! as defined in input.geos (usually 10m).
+             ! as defined in geoschem_config.yml (usually 10m).
              State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
 
           ENDDO

@@ -602,7 +602,7 @@ CONTAINS
  jn1gd = min(jm,jlast+ng)           ! NG latitudes on N (ending at jm)
 
 ! Eloise Marais questioned why iord_bg and jord_bg are set to 1 instead of
-! being set to the iord and jord values from input.geos.  I looked back
+! being set to the iord and jord values from geoschem_config.yml.  I looked back
 ! into the Git history and couldn't find where this change was made, so
 ! this issue has probably persisted for quite some time.  We will set these
 ! values to iord and jord in an attempt to avoid negative values.

@@ -45,7 +45,7 @@ PROGRAM GEOS_Chem
   USE GC_Environment_Mod    ! For allocating derived type objects
   USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
   USE Input_Opt_Mod         ! Derived type for Input Options
-  USE INPUT_MOD             ! For reading settings from "input.geos"
+  USE INPUT_MOD             ! For reading settings from geoschem_config.yml
   USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes

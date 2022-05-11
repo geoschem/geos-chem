@@ -1462,7 +1462,7 @@ CONTAINS
           NWVS = NWVAA-NWVAA0+NWVREQUIRED
        ELSE
           !Loop over wavelengths needed for
-          !interpolation to those requested in input.geos
+          !interpolation to those requested in geoschem_config.yml
           !(determined in RD_AOD)
           NWVS = NWVREQUIRED
        ENDIF
@@ -2042,7 +2042,7 @@ CONTAINS
           ! Get ID following ordering of aerosol densities in RD_AOD
           N = Map_NRHAER(NA)
 
-          ! Loop over wavelengths set in input.geos radiation menu
+          ! Loop over wavelengths set in geoschem_config.yml
           DO W = 1, Input_Opt%NWVSELECT
 
              ! Set wavelength logical

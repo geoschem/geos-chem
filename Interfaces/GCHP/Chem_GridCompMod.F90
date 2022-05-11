@@ -12,7 +12,7 @@
 ! dry deposition, emissions, and wet deposition. In addition, the
 ! parameterizations for PBL mixing and convection as used in GEOS-Chem
 ! can be invoked by enabling the corresponding option in the GEOS-Chem
-! input file (input.geos). In this case, the corresponding GEOS-5
+! input file (geoschem_config.yml). In this case, the corresponding GEOS-5
 ! process must NOT be applied to the GC tracers, i.e. the tracers must
 ! not be friendly to turbulence (if PBL mixing is used) and/or moist
 ! (for convection).
@@ -596,7 +596,7 @@ CONTAINS
 #endif
 #endif
 
-!-- Read in species from input.geos and set FRIENDLYTO
+!-- Read in species from geoschem_config.yml and set FRIENDLYTO
     ! ewl TODO: This works but is not ideal. Look into how to remove it.
 
 #if defined( MODEL_GEOS )
@@ -2153,8 +2153,8 @@ CONTAINS
     ! from the internal state to State_Chm%Tracers, and vice versa.
     ! In this step, we also check for the friendlieness of the tracers. If
     ! the GEOS-Chem internal convection/turbulence schemes shall be used
-    ! (as specified in input.geos), the tracers must not be friendly to
-    ! the GEOS-5 moist / turbulence components!
+    ! (as specified in geoschem_config.yml), the tracers must not be friendly
+    ! to the GEOS-5 moist / turbulence components!
     !=======================================================================
     nFlds = State_Chm%nSpecies
     ALLOCATE( Int2Spc(nFlds), STAT=STATUS )
@@ -3025,7 +3025,7 @@ CONTAINS
     ! Includes all of the above
     !
     ! Convection and turbulence are only called if the corresponding
-    ! switches are turned on in the GEOS-Chem input file (input.geos).
+    ! switches are turned on in the GEOS-Chem input file (geoschem_config.yml).
     !
     ! To avoid unnecessary calls to the GEOS-Chem driver routine, we
     ! check here if it's time for any of the processes listed above.

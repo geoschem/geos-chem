@@ -1508,12 +1508,12 @@ CONTAINS
              ErrMsg =                                                        &
                 'No diagnostic output will be created for collection: "'  // &
                  TRIM( CollectionName(C) ) // '"!  Make sure that the '   // &
-                'length of the simulation as specified in "input.geos" '  // &
-                '(check the start and end times) is not shorter than '    // &
-                'the frequency setting in HISTORY.rc!  For example, if '  // &
-                'the frequency is 010000 (1 hour) but the simulation '    // &
-                'is set up to run for only 20 minutes, then this error '  // &
-                'will occur.'
+                'length of the simulation as specified in '               // &
+                'geoschem_config.yml (check the start and end dates) is ' // &
+                'not shorter than the frequency setting in HISTORY.rc! '  // &
+                'For example, if the frequency is 010000 (1 hour) but '   // &
+                'the simulation is set up to run for only 20 minutes, '   // &
+                'then this error will occur.'
 
              ! Return error
              WRITE( ErrorLine, 250 ) LineNum
