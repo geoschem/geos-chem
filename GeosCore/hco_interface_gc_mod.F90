@@ -4532,121 +4532,10 @@ CONTAINS
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! On first call, attempt to get instantaneous met fields for prior
-      ! timestep from the GEOS-Chem restart file. Otherwise, initialize
-      ! to met fields for this timestep.
-
-      !-------------
-      ! TMPU
-      !-------------
-
-      ! Define variable name
-      v_name = 'TMPU1'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%TMPU1 = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize TMPU1    from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'TMPU1    not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr3D => NULL()
-
-      !-------------
-      ! SPHU
-      !-------------
-
-      ! Define variable name
-      v_name = 'SPHU1'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%SPHU1 = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize SPHU1    from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'SPHU1    not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr3D => NULL()
-
-      !-------------
-      ! PS1_WET
-      !-------------
-
-      ! Define variable name
-      v_name = 'PS1WET'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%PS1_WET = Ptr2D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize PS1_WET  from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'PS1_WET  not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr2D => NULL()
-
-      !-------------
-      ! PS1_DRY
-      !-------------
-
-      ! Define variable name
-      v_name = 'PS1DRY'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%PS1_DRY = Ptr2D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize PS1_DRY  from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'PS1_DRY  not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr2D => NULL()
-
-      !-------------
-      ! DELP_DRY
-      !-------------
-
-      ! Define variable name
+      ! Get delta pressure per grid box stored in restart file to allow
+      ! mass conservation across consecutive runs.
       v_name = 'DELPDRY'
-
-      ! Get variable from HEMCO and store in local array
       CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%DELP_DRY = Ptr3D
          IF ( Input_Opt%amIRoot ) THEN
@@ -4657,8 +4546,6 @@ CONTAINS
             WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
          ENDIF
       ENDIF
-
-      ! Nullify pointer
       Ptr3D => NULL()
 
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
