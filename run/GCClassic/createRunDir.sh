@@ -1013,6 +1013,12 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	# For metals, use the extra option is in the restart file name
 	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
+# To be added (bmy, 12 May 2022)
+#    elif [[ "x${sim_name}" == "xcarboncycle" ]]; then
+#
+#	# For carboncycle, point to the restart in v2022-05
+#	sample_rst=${rst_root}/v2022-05/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+   
     else
 
 	# For other specialty simulations, use previoiusly saved restarts

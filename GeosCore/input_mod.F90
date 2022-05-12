@@ -497,11 +497,13 @@ CONTAINS
          TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
          TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
          TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
+         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'             .and. &
+         TRIM(Sim) /= 'CARBONCYCLE'                                  ) THEN
+         
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
-                ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
+                ' aerosol, carboncycle, CH4, CO2, fullchem, Hg, POPs,'    // &
+                ' TransportTracers, TagCO, TagCH4, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -511,14 +513,14 @@ CONTAINS
                                        TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
-    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
-                                       TRIM(Sim) == 'TAGHG'                 )
+    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
     Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
     Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
+    Input_Opt%ITS_A_CARBONCYCLE_SIM= ( TRIM(Sim) == 'CARBONCYCLE'           )
 
     !------------------------------------------------------------------------
     ! Species database file
@@ -789,7 +791,7 @@ CONTAINS
          TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
          TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
          TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'CCYCLE'  .and. &
+         TRIM(Sim) /= 'CARBONCYCLE'                                    .and. &
          TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
        ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
@@ -812,7 +814,7 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CCYCLE_SIM     = ( TRIM(SIM) == 'CCYCLE'                )
+    Input_Opt%ITS_A_CARBONCYCLE_SIM  = ( TRIM(SIM) == 'CARBONCYCLE'         )
 
     !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"

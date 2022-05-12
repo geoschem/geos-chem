@@ -5106,8 +5106,9 @@ CONTAINS
     !
     ! and THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM &
-         .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_A_CH4_SIM                                        .or. &
+         Input_Opt%ITS_A_CARBONCYCLE_SIM                              ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -6915,8 +6916,10 @@ CONTAINS
     ! (2) The Tagged CO specialty simulation
     ! (3) The Tagged O3 specialty simulation
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM   .or. &
-         Input_Opt%ITS_A_MERCURY_SIM  .or. Input_Opt%ITS_A_TAGCO_SIM    .or. &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBONCYCLE_SIM                                .or. &
+         Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
+         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                    ) THEN
 
        !--------------------------------------------------------------------
@@ -7460,7 +7463,7 @@ CONTAINS
     !
     ! THE CO2 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CO2_SIM .or. Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Prod of CO2 from CO oxidation
@@ -7513,7 +7516,7 @@ CONTAINS
     !
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
@@ -7621,8 +7624,9 @@ CONTAINS
     ! THE CO SPECIALTY SIMULATION and
     ! THE FULL-CHEMISTRY SIMULATIONS (for archiving output for tagCO)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_FULLCHEM_SIM &
-         .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TAGCO_SIM                                      .or. & 
+         Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBONCYCLE_SIM                              ) THEN
 
        !--------------------------------------------------------------------
        ! Production of CO from CH4
@@ -10575,7 +10579,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,         ONLY : StrSplit, To_UpperCase
-    USE DiagList_Mod,        ONLY : isCcycle, isFullChem,  isMercury
+    USE DiagList_Mod,        ONLY : isCarbonCycle, isFullChem,  isMercury
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -11840,7 +11844,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Prod of CO2 from CO oxidation'
        IF ( isRank    ) Rank  =  3
        IF ( isUnits   ) THEN
-          IF ( isCcycle ) THEN
+          IF ( isCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg m-2 s-1'
@@ -11868,7 +11872,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Production of CO by CH4'
        IF ( isRank    ) Rank  =  3
        IF ( isUnits   ) THEN
-          IF ( isFullChem .or. isCcycle ) THEN
+          IF ( isFullChem .or. isCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11879,7 +11883,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Porduction of CO by NMVOC'
        IF ( isRank    ) Rank  =  3
        IF ( isUnits   ) THEN
-          IF ( isFullChem .or. isCcycle ) THEN
+          IF ( isFullChem .or. isCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'

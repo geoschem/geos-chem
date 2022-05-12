@@ -81,13 +81,13 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)   ! Names of RRTMG outputs (tags)
-  INTEGER,           PUBLIC  :: nRadOut      ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: isCcycle     ! Is this a carbon cycle sim?
-  LOGICAL,           PUBLIC  :: isFullChem   ! Is this a fullchem simulation?
-  LOGICAL,           PUBLIC  :: isMercury    ! Is this a mercury simulation?
-  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
+  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)    ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
+  LOGICAL,           PUBLIC  :: isCarbonCycle ! Is this a carbon cycle sim?
+  LOGICAL,           PUBLIC  :: isFullChem    ! Is this a fullchem simulation?
+  LOGICAL,           PUBLIC  :: isMercury     ! Is this a mercury simulation?
+  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
   ! Derived type for Collections List
@@ -227,7 +227,7 @@ CONTAINS
     RadWL           =  ''
     RadOut          =  ''
     nRadOut         =  0
-    isCcycle        = .FALSE.
+    isCarbonCycle   = .FALSE.
     isFullChem      = .FALSE.
     isMercury       = .FALSE.
     InDefSection    = .FALSE.
@@ -271,16 +271,16 @@ CONTAINS
 
     ! Set flags to denote the type of simulation
     ! so that we can set the appropriate metadata
-    isCcycle   = .FALSE.
-    isFullChem = .FALSE.
-    isMercury  = .FALSE.
+    isCarbonCycle = .FALSE.
+    isFullChem    = .FALSE.
+    isMercury     = .FALSE.
     SELECT CASE( To_UpperCase( v_str ) )
-       CASE ( 'CCYCLE'       )
-          isCcycle   = .TRUE.
+       CASE ( 'CARBONCYCLE'  )
+          isCarbonCycle = .TRUE.
        CASE( 'FULLCHEM'      )
-          isFullChem = .TRUE.
+          isFullChem    = .TRUE.
        CASE( 'HG', 'MERCURY' )
-          isMercury  = .TRUE.
+          isMercury     = .TRUE.
        CASE DEFAULT
           ! Nothing
     END SELECT

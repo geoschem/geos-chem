@@ -67,7 +67,6 @@ Warnings:                    1
 # ..... Global Inventories ...........
     --> GFEIv2                 :       true     # 2019
     --> EDGARv6                :       true     # 2000-2018
-    --> QFED2                  :       false    # 2009-2015
     --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
@@ -80,7 +79,6 @@ Warnings:                    1
     --> BB4MIPS                :       false    # 1850-2100
 # ..... Non-Emissions Data ...........
     --> GMI_CH4_LOSS           :       true     # 1985
-    --> GLOBAL_OH              :       true     # 2010-2019
     --> GLOBAL_CL              :       true     # 2010-2019
 # ..... Options for the IMI ..........
     --> AnalyticalInv          :       false
@@ -95,7 +93,6 @@ Warnings:                    1
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
 # ..... Non-emissions data ...........
-    --> GLOBAL_OH              :       true     # 2010-2019
     --> PROD_CO_CH4            :       true     # 2010-2019
     --> PROD_CO_NMVOC          :       true     # 2010-2019
     --> GMI_PROD_LOSS          :       true     # 2005
@@ -140,6 +137,8 @@ Warnings:                    1
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
+    --> GLOBAL_OH              :       true     # 2010-2019
+    --> GLOBAL_OH_GCv5         :       true     # 1985 (GCv5 OH, need for IMI)
 # -----------------------------------------------------------------------------
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -1602,15 +1601,11 @@ Warnings:                    1
 # Entries below are provided for examples only. Add your own here!
 #------------------------------------------------------------------------------
 (((Emis_ScaleFactor
-* EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 * - 1 1
+* EMIS_SF    gridded_posterior.nc  ScaleFactor  2000/1/1/0       C xy 1 * - 1 1
 )))Emis_ScaleFactor
 
 (((OH_ScaleFactor
-* OH_SF      Post_SF_OH.nc         SF_OH         2010-2017/1/1/0    E xy 1 * - 1 1
-)))OH_ScaleFactor
-
-)))USE_CH4_DATA
-  SF_OH         2010-2017/1/1/0    E xy 1 * - 1 1
+* OH_SF      Post_SF_OH.nc         SF_OH        2010-2017/1/1/0  E xy 1 * - 1 1
 )))OH_ScaleFactor
 
 )))USE_CH4_DATA
@@ -1621,18 +1616,39 @@ Warnings:                    1
 (((CHEMISTRY_INPUT
 
 #------------------------------------------------------------------------------
+# --- Global OH fields ---
+#
+# If GLOBAL_OH_GCv5 is turned on:
+#   - Use GEOS-Chem v5-07 OH if GLOBAL_OH_GCv5 is turned on.
+#   - This is the recommended setting for CH4 and the IMI.
+#
+# If GLOBAL_OH_GCv5 is turned off:
+#   - Use the OH archived from the last 10-yr benchmark simulation.
+#------------------------------------------------------------------------------
+(((GLOBAL_OH
+
+# --- OH from GEOS-Chem v5-07 ---
+(((GLOBAL_OH_GCv5
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
+)))GLOBAL_OH_GCv5
+
+# --- OH from the last 10-yr benchmark
+(((.not.GLOBAL_OH_GCv5
+${RUNDIR_GLOBAL_OH}
+))).not.GLOBAL_OH_GCv5
+
+)))GLOBAL_OH
+
+#------------------------------------------------------------------------------
 # --- Quantities needed for CH4 chemistry ---
 #------------------------------------------------------------------------------
 (((USE_CH4_DATA
 
-# --- Global CH4 loss, OH, and Cl fields for CH4 simulation -----------
-# --- NOTE: Use OH from GEOS-Chem version 5.7 because it is stable! ---
+# --- Global CH4 loss, Cl fields for CH4 simulation -----------
 (((GMI_CH4_LOSS
 ${RUNDIR_CH4_LOSS}
 )))GMI_CH4_LOSS
-(((GLOBAL_OH
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
-)))GLOBAL_OH
+
 (((GLOBAL_CL
 ${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL
@@ -1655,11 +1671,6 @@ ${RUNDIR_GLOBAL_Cl}
 #------------------------------------------------------------------------------
 (((USE_CO_DATA
 
-# --- Global oxidant fields ---
-(((GLOBAL_OH
-${RUNDIR_GLOBAL_OH}
-)))GLOBAL_OH
-
 # -- P(CO) from CH4 and NMVOC ---
 (((PROD_CO_CH4
 ${RUNDIR_PCO_CH4}
@@ -1667,8 +1678,6 @@ ${RUNDIR_PCO_CH4}
 (((PROD_CO_NMVOC
 ${RUNDIR_PCO_NMVOC}
 )))PROD_CO_NMVOC
-
-)))USE_CO_DATA
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
 (((GMI_PROD_LOSS
@@ -1745,6 +1754,26 @@ ${RUNDIR_CO2_COPROD}
 # --- Scale factors used for species conversions ---
 #==============================================================================
 
+# Units carbon to species conversions
+# Factor = # carbon atoms * MW carbon) / MW species
+40 CtoACET MATH:58.09/(3.0*12.0)   - - - xy unitless 1
+41 CtoALD2 MATH:44.06/(2.0*12.0)   - - - xy unitless 1
+42 CtoALK4 MATH:58.12/(4.3*12.0)   - - - xy unitless 1
+43 CtoBENZ MATH:78.12/(6.0*12.0)   - - - xy unitless 1
+44 CtoC2H4 MATH:28.05/(2.0*12.0)   - - - xy unitless 1
+45 CtoC2H6 MATH:30.08/(2.0*12.0)   - - - xy unitless 1
+46 CtoC3H8 MATH:46.08/(3.0*12.0)   - - - xy unitless 1
+47 CtoEOH  MATH:46.06/(2.0*12.0)   - - - xy unitless 1
+48 CtoMEK  MATH:72.11/(4.0*12.0)   - - - xy unitless 1
+49 CtoPRPE MATH:42.09/(3.0*12.0)   - - - xy unitless 1
+55 CtoTOLU MATH:92.15/(7.0*12.0)   - - - xy unitless 1
+56 CtoXYLE MATH:106.18/(8.0*12.0)  - - - xy unitless 1
+59 CtoC2H2 MATH:26.04/(2.0*12.0)   - - - xy unitless 1
+61 CtoISOP MATH:68.13/(5.0*12.0)   - - - xy unitless 1
+62 CtoMTPA MATH:136.26/(10.0*12.0) - - - xy unitless 1
+64 CtoMBOX MATH:86.13/(5.0*12.0)   - - - xy unitless 1
+67 CtoSESQ MATH:204.4/(15.0*12.0)  - - - xy unitless 1
+
 # VOC speciations
 (((APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 52 COPROD_FOSSIL    1.02  - - - xy unitless 1
@@ -1767,42 +1796,6 @@ ${RUNDIR_CO2_COPROD}
 (((NEI2016_MONMEAN
 211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc      CO 1999/1-12/WD/0 C xy 1 1
 )))NEI2016_MONMEAN
-
-#==============================================================================
-# --- AEIC2019 aircraft emissions scale factors ---
-#
-# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
-#==============================================================================
-(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
-#------------------------------------------------------------------------------
-# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Increase
-# from 2018 to 2019 is estimated based on the growth from 2017 to 2018.
-# Lee et al. (2021) only covers 1990 to 2018, so to get to 2019 it is
-# assumed that the growth from 2017 to 2018 is the same as that from 2018
-# to 2019. So the formula is something like:
-#
-# Emissions of CO  in 2009 = AEIC 2019 emissions of CO
-#                          * (Lee 2017 CO        / Lee 2018 fuel burn)
-#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
-#
-# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
-# emissions to the “2018” values, and then scale directly using the Lee et al
-# fuel burn. This ensures that, when running with year 2019, you get an
-# unadjusted version of the AEIC2019 inventory, and all previous years are
-# scaled down.
-#
-# All scaling factors are included in here in HEMCO_Config.rc.
-#------------------------------------------------------------------------------
-(((AEIC_SCALE_1990_2019
-241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
-)))AEIC_SCALE_1990_2019
-
-# If not applying 1990-2019 scale factors, use 1.0
-(((.not.AEIC_SCALE_1990_2019
-241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
-))).not.AEIC_SCALE_1990_2019
-)))AEIC2019_DAILY.or.AEIC2019_MONMEAN
-
 #==============================================================================
 # --- EPA NEI2016 annual scale factors ---
 #

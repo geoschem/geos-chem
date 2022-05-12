@@ -66,7 +66,7 @@ CONTAINS
     USE AEROSOL_MOD,     ONLY : RDAER
     USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
-    USE CCYCLECHEM_MOD,  ONLY : CHEM_CCYCLE
+    USE CarbonCycle_Mod, ONLY : Chem_CarbonCycle
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
     USE DUST_MOD,        ONLY : RDUST_ONLINE
@@ -880,20 +880,20 @@ CONTAINS
           ENDIF
 
        !=====================================================================
-       ! CH4-CO-CO2 Joint (configure with -DMECH=ccycle)
+       ! CH4-CO-CO2 Joint (configure with -DMECH=carboncycle)
        !=====================================================================
-       ELSE IF ( Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+       ELSE IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
-          CALL Chem_Ccycle( Input_Opt  = Input_Opt,                          &
-                            State_Met  = State_Met,                          &
-                            State_Chm  = State_Chm,                          &
-                            State_Grid = State_Grid,                         &
-                            State_Diag = State_Diag,                         &
-                            RC         = RC                                 )
+          CALL Chem_CarbonCycle( Input_Opt  = Input_Opt,                     &
+                                 State_Met  = State_Met,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 State_Grid = State_Grid,                    &
+                                 State_Diag = State_Diag,                    &
+                                 RC         = RC                                 )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Chem_CCYCLE"!'
+             ErrMsg = 'Error encountered in "Chem_CarbonCycle"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1371,6 +1371,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CarbonCycle_Mod,ONLY : Init_CarbonCycle
     USE ErrCode_Mod
     USE FAST_JX_MOD,    ONLY : Init_FJX
     USE FullChem_Mod,   ONLY : Init_FullChem
@@ -1390,6 +1391,13 @@ CONTAINS
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
     INTEGER,        INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  We initialize relevant fullchem and carboncycle KPP mechanism variables
+!  here in order to use values from the Species Database.  When the other
+!  modules are initialized (most of which are done in GC_Init_Extra), at
+!  that point the Species Database has not been read from the YAML file,
+!  so we must call Init_FullChem and Init_CarbonCycle here.
 !
 ! !REVISION HISTORY:
 !  19 May 2014 - C. Keller   - Initial version
@@ -1425,18 +1433,34 @@ CONTAINS
        id_DST1 = Ind_( 'DST1' )
        id_NK1  = Ind_( 'NK1'  )
 
-       !--------------------------------------------------------------------
-       ! Initialize FlexChem (skip if it is a dry-run)
-       !--------------------------------------------------------------------
+       ! Skip for dry-run simulations
        IF ( .not. Input_Opt%DryRun ) THEN
-          CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
 
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Init_FlexChem"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
+          !-----------------------------------------------------------------
+          ! Initialize the fullchem mechanism (skip if it is a dry-run)
+          !-----------------------------------------------------------------
+          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+             CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Init_FlexChem"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
           ENDIF
+             
+          !------------------------------------------------------------------
+          ! Initialize the carboncycle mechanism (skip if it is a dry-run)
+          !------------------------------------------------------------------
+          IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+             CALL Init_CarbonCycle( Input_Opt  = Input_Opt,                  &
+                                    State_Chm  = State_Chm,                  &
+                                    State_Diag = State_Diag,                 &
+                                    State_Grid = State_Grid,                 &
+                                    RC         = RC                         )
+          ENDIF
+
        ENDIF
 
        !--------------------------------------------------------------------

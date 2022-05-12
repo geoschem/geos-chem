@@ -43,8 +43,8 @@ def writeHeader(fo, mechName):
     fo.write('! OHreact - OH reactivity [s-1]\n')
     fo.write('  REAL(kind=dp) :: OHreact\n')
     fo.write('\n')
-    if "ccycle" in mechName:
-        fo.write('  OHreact = 0.0_dp')   # ccycle mechanism has no OH reactivity
+    if "carboncycle" in mechName:
+        fo.write('  OHreact = 0.0_dp') # carboncycle mech has no OH reactivity
     else:
         fo.write('  OHreact = ')
 

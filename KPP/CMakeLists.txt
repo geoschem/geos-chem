@@ -11,8 +11,8 @@ endif()
 #-----------------------------------------------------------------------------
 # Build the ccycle mechanism if configured with -DMECH=ccycle
 #-----------------------------------------------------------------------------
-if("${MECH}" STREQUAL ccycle)
-  add_subdirectory(ccycle)
+if("${MECH}" STREQUAL carboncycle)
+  add_subdirectory(carboncycle)
 endif()
 
 #-----------------------------------------------------------------------------

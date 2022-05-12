@@ -145,7 +145,7 @@ CONTAINS
 !
     USE CARBON_MOD,            ONLY : EmissCarbon
     USE CO2_MOD,               ONLY : EmissCO2
-    USE CCycleChem_Mod,        ONLY : Emiss_Ccycle
+    USE CarbonCycle_Mod,       ONLY : Emiss_CarbonCycle
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,        ONLY : EmissCH4
     USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
@@ -288,12 +288,12 @@ CONTAINS
     ENDIF
 
     ! Carbon cycle simulation (e.g. CO2-CO-CH4-OCS)
-    IF ( Input_Opt%ITS_A_CCYCLE_SIM ) THEN
-       CALL Emiss_Ccycle( Input_Opt, State_Grid, State_Met, RC )
+    IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+       CALL Emiss_CarbonCycle( Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissCH4"!'
+          ErrMsg = 'Error encountered in "Emiss_CarbonCycle"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

@@ -28,12 +28,12 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
-             'CH4',
-	     'CO',
-	     'CO2',
              'Metrics',
              'SpeciesConc',
              #'Budget',
+             #'CH4',
+             #'CO',
+             #'CO2',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
@@ -176,6 +176,7 @@ COLLECTIONS: 'Restart',
   CO2.duration:               ${RUNDIR_HIST_TIME_AVG_DUR}
   CO2.mode:                   'time-averaged'
   CO2.fields:                 'ProdCO2fromCO                 ',  
+::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
 #
@@ -325,6 +326,4 @@ COLLECTIONS: 'Restart',
   BoundaryConditions.duration:   00000001 000000
   BoundaryConditions.mode:       'instantaneous'
   BoundaryConditions.fields:     'SpeciesBC_?ADV?             ',
-
-
-
+::

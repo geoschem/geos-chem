@@ -412,7 +412,7 @@ CONTAINS
 !
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
-    USE CCycleChem_Mod,     ONLY : INIT_CCYCLE
+    USE CarbonCycle_Mod,    ONLY : Init_CarbonCycle
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE DiagList_Mod,       ONLY : DgnList
@@ -696,12 +696,13 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! CCYCLE
+    ! Carbon Cycle
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CCYCLE_SIM ) THEN
-       CALL Init_CCYCLE( Input_Opt, State_Diag, State_Grid, RC )
+    IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+       CALL Init_CarbonCycle( Input_Opt,  State_Chm, State_Diag,             &
+                              State_Grid, RC                                )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "CCYCLE"!'
+          ErrMsg = 'Error encountered in "Init_CarbonCycle"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

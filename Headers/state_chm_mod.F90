@@ -6335,7 +6335,8 @@ CONTAINS
        ! array fields of the State_Diag object (e.g. ProdCOfromISOP, etc.)
        State_Chm%nProd = 0
 
-    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
+              Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
        !------------------------------
        ! Tagged O3 simulation
@@ -6488,7 +6489,8 @@ CONTAINS
        State_Chm%Name_Prod => NULL()
        State_Chm%Map_Prod  => NULL()
 
-    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or. Input_Opt%ITS_A_CCYCLE_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
+              Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Tagged O3 simulations

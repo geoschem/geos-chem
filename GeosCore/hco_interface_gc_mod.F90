@@ -3695,7 +3695,7 @@ CONTAINS
          Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
          Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
          Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_CCYCLE_SIM       .or.                               &
+         Input_Opt%ITS_A_CARBONCYCLE_SIM  .or.                               &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
 
 
