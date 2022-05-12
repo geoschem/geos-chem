@@ -86,6 +86,7 @@ printf "   8. Tagged CO\n"
 printf "   9. Tagged O3\n"
 printf "  10. TransportTracers\n"
 printf "  11. Trace metals\n"
+printf "  12. Carbon cycle\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -113,6 +114,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "11" ]]; then
 	sim_name=metals
+    elif [[ ${sim_num} = "12" ]]; then
+	sim_name=carboncycle
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -632,7 +635,7 @@ if [[ ${met} = "geosfp" ]] || [[ ${met} = "merra2" ]]; then
         fi
     done
 fi
-
+f
 if [[ ${met} = "ModelE2.1" ]]; then
     printf "  1. 40 (native)\n"
     valid_lev=0
