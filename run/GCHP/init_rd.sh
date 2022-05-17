@@ -30,7 +30,7 @@ if [[ ( $* == --rundir-vars ) ]]; then
 fi 
 
 function get_rundir_vars_list() {
-   sed -n 's#^\s*\([A-Z0-9_][A-Z0-9_]*\)=.*#\1#p'
+   sed -n 's#^\s*\([A-Za-z0-9_][A-Za-z0-9_]*\)=.*#\1#p'
 }
 
 # Source given files, and build variable list

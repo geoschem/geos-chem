@@ -3,6 +3,7 @@ RUNDIR_MET_LOWERCASE='geosfp'
 RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/GEOS_FP"
 RUNDIR_MET_DIR_NATIVE="${RUNDIR_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP_Native"
 
+RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN=.true.
 RUNDIR_MET_RES='025x03125'
 RUNDIR_MET_NATIVE_RES='0.25x0.3125'
 RUNDIR_MET_LAT_RES='025'
@@ -14,21 +15,7 @@ RUNDIR_MET_PRES_UNIT='hPa'
 RUNDIR_MET_PRES_SCALE='1.0'
 
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
-## For IMPORT_MASS_FLUX_FROM_EXTDATA uncomment {tavg|inst}_1hr_ctm_c0720_v72 collections and comment out PS,QV imports from inst3_3d_asm_Nv
-# Note: Uncomment MF[XY]C,C[XY]C,PS1,PS2,SPHU1,SPHU2 if using mass fluxes.
-#MFXC;MFYC Pa_m+2_s-1    N H F0;003000 none  0.6666666 MFXC;MFYC  ./MetDir/../../GEOS_C720/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:30:00P01:00
-#CXC;CYC   1             N H F0;003000 none  none CX;CY           ./MetDir/../../GEOS_C720/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:30:00P01:00
-#PS1       Pa            N Y  0        none  0.01 PS              ./MetDir/../../GEOS_C720/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P01:00
-#PS2       Pa            N Y  0;001000 none  0.01 PS              ./MetDir/../../GEOS_C720/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P01:00
-#SPHU1     kg_kg-1       N Y  0        none  none QV              ./MetDir/../../GEOS_C720/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P01:00
-#SPHU2     kg_kg-1       N Y  0;001000 none  none QV              ./MetDir/../../GEOS_C720/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P01:00
-
-# inst3_3d_asm_Nv
-# Note: Comment out PS1,PS2,SPHU1,SPHU2 if using mass fluxes.
-PS1       Pa            N Y  0        none  0.01 PS         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P03:00
-PS2       Pa            N Y  0;001000 none  0.01 PS         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P03:00
-SPHU1     kg_kg-1       N Y  0        none  none QV         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P03:00
-SPHU2     kg_kg-1       N Y  0;001000 none  none QV         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P03:00
+${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION}
 
 TMPU1     K             N Y  0        none  none T          ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P03:00
 TMPU2     K             N Y  0;001000 none  none T          ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T00:00:00P03:00
@@ -82,7 +69,6 @@ OMEGA     Pa_s-1        N Y F0;013000 none  none OMEGA      ./MetDir/Y%y4/M%m2/D
 QI        kg_kg-1       N Y F0;013000 none  none QI         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T01:30:00P03:00
 QL        kg_kg-1       N Y F0;013000 none  none QL         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T01:30:00P03:00
 RH        1             N Y F0;013000 none  none RH         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T01:30:00P03:00
-UA;VA     m_s-1         N Y F0;013000 none  none U;V        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T01:30:00P03:00
 
 # tavg3_3d_cld_Nv
 DTRAIN    kg_m-2_s-1    N Y F0;013000 none  none DTRAIN     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_cld_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2021-10-01T01:30:00P03:00
@@ -118,12 +104,11 @@ SEAICE90 1 N Y F0;003000 none none SEAICE90 /dev/null
 CLDF      1             N Y F0;013000 none  none CLOUD      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_rad_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2018-01-01T01:30:00P03:00
 #
 # --- Fixed variables, from constants file ---
-FRLAKE   1 N Y - none none FRLAKE   ./MetDir/2011/01/GEOSFP.20110101.CN.025x03125.nc
-FRLAND   1 N Y - none none FRLAND   ./MetDir/2011/01/GEOSFP.20110101.CN.025x03125.nc
-FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/2011/01/GEOSFP.20110101.CN.025x03125.nc
-FROCEAN  1 N Y - none none FROCEAN  ./MetDir/2011/01/GEOSFP.20110101.CN.025x03125.nc
-#
-PHIS m2_s-2 N Y - none none PHIS ./MetDir.bk/2011/01/GEOSFP.20110101.CN.025x03125.nc
+FRLAKE   1 N Y - none none FRLAKE     ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+FRLAND   1 N Y - none none FRLAND     ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+FRLANDIC 1 N Y - none none FRLANDICE  ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+FROCEAN  1 N Y - none none FROCEAN    ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+PHIS m2_s-2 N Y - none none PHIS      ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
 """
 
 RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""

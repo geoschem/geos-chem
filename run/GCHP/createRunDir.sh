@@ -239,9 +239,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
-printf "  3. Native GEOS-FP data\n"
-printf "  4. Native GEOS-IT data\n"
-printf "  5. Native MERRA2 data\n"
+printf "  3. GEOS-FP native data\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -254,14 +252,22 @@ while [ "${valid_met}" -eq 0 ]; do
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
     elif [[ ${met_num} = "3" ]]; then
+        read -p "Do you want to use mass fluxes for advection? (yes/no, default=no): " use_mass_fluxes
+	if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
+            use_mass_flux_derived_wind=no
+        else
+            read -p "Do you want to use mass fluxes derived winds for advection? (yes/no, default=no): " use_mass_flux_derived_wind
+        fi
+        
+        if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux.txt)\n"
+        elif [[ "$use_mass_flux_derived_wind" =~ ^[Yy] ]]; then
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux_derived_wind.txt)\n"
+        else 
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_normal_wind.txt)\n"
+        fi
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp.txt)\n"
-    elif [[ ${met_num} = "4" ]]; then
-	met="geosit"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosit.txt)\n"
-    elif [[ ${met_num} = "5" ]]; then
-	met="merra2"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_merra2.txt)\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
