@@ -56,7 +56,7 @@ CONTAINS
 
    REAL(kind=dp) FUNCTION EP2(A0,C0,A2,C2,A3,C3)
       REAL A0,C0,A2,C2,A3,C3
-      REAL(dp) K0,K2,K3            
+      REAL(kind=dp) K0,K2,K3            
       K0 = DBLE(A0) * EXP(-DBLE(C0)/TEMP)
       K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
       K3 = DBLE(A3) * EXP(-DBLE(C3)/TEMP)
@@ -66,7 +66,7 @@ CONTAINS
 
    REAL(kind=dp) FUNCTION EP3(A1,C1,A2,C2) 
       REAL A1, C1, A2, C2
-      REAL(dp) K1, K2      
+      REAL(kind=dp) K1, K2      
       K1 = DBLE(A1) * EXP(-DBLE(C1)/TEMP)
       K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
       EP3 = K1 + K2*(1.0E6_dp*CFACTOR)
@@ -74,7 +74,7 @@ CONTAINS
 
    REAL(kind=dp) FUNCTION FALL ( A0,B0,C0,A1,B1,C1,CF)
       REAL A0,B0,C0,A1,B1,C1,CF
-      REAL(dp) K0, K1     
+      REAL(kind=dp) K0, K1     
       K0 = DBLE(A0) * EXP(-DBLE(B0)/TEMP)* (TEMP/300.0_dp)**DBLE(C0)
       K1 = DBLE(A1) * EXP(-DBLE(B1)/TEMP)* (TEMP/300.0_dp)**DBLE(C1)
       K0 = K0*CFACTOR*1.0E6_dp
@@ -85,18 +85,18 @@ CONTAINS
 
   !---------------------------------------------------------------------------
 
-  ELEMENTAL REAL(dp) FUNCTION k_3rd(temp,cair,k0_300K,n,kinf_300K,m,fc)
+  ELEMENTAL REAL(kind=dp) FUNCTION k_3rd(temp,cair,k0_300K,n,kinf_300K,m,fc)
 
     INTRINSIC LOG10
 
-    REAL(dp), INTENT(IN) :: temp      ! temperature [K]
-    REAL(dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
-    REAL,     INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
-    REAL,     INTENT(IN) :: n         ! exponent for low pressure limit
-    REAL,     INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
-    REAL,     INTENT(IN) :: m         ! exponent for high pressure limit
-    REAL,     INTENT(IN) :: fc        ! broadening factor (usually fc=0.6)
-    REAL(dp) :: zt_help, k0_T, kinf_T, k_ratio
+    REAL(kind=dp), INTENT(IN) :: temp      ! temperature [K]
+    REAL(kind=dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
+    REAL, INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
+    REAL, INTENT(IN) :: n         ! exponent for low pressure limit
+    REAL, INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
+    REAL, INTENT(IN) :: m         ! exponent for high pressure limit
+    REAL, INTENT(IN) :: fc        ! broadening factor (usually fc=0.6)
+    REAL(kind=dp) :: zt_help, k0_T, kinf_T, k_ratio
 
     zt_help = 300._dp/temp
     k0_T    = k0_300K   * zt_help**(n) * cair ! k_0   at current T
@@ -106,69 +106,14 @@ CONTAINS
 
   END FUNCTION k_3rd
 
-  ! --------------------------------------------------------------------------
-
-  PURE FUNCTION k_3rd_jpl_activation(temp,cair,k0_298K,n,kinf_298K,m,A,B)
-    ! JPL termolecular chemical activation reaction
-    
-    INTRINSIC :: LOG10
-    REAL,   DIMENSION(2) :: k_3rd_jpl_activation
-    REAL(dp), INTENT(IN) :: temp      ! temperature [K]
-    REAL(dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
-    REAL,     INTENT(IN) :: k0_298K   ! low pressure limit at 300 K
-    REAL,     INTENT(IN) :: n         ! exponent for low pressure limit
-    REAL,     INTENT(IN) :: kinf_298K ! high pressure limit at 300 K
-    REAL,     INTENT(IN) :: m         ! exponent for high pressure limit
-    REAL,     INTENT(IN) :: A         ! for k_int
-    REAL,     INTENT(IN) :: B         ! for k_int
-    REAL                 :: zt_help, k0_TM, kinf_T, k_ratio, k_f, k_int, k_fCA
-
-    zt_help = 298./temp
-    k0_TM   = k0_298K   * zt_help**n * cair ! k_0   at current T * M
-    kinf_T  = kinf_298K * zt_help**m        ! k_inf at current T
-    k_ratio = k0_TM/kinf_T
-    k_f     = k0_TM/(1.+k_ratio)*0.6**(1./(1.+LOG10(k_ratio)**2))
-    k_int   = A * exp(-B/temp)
-    k_fCA   = k_int * (1. - k_f/kinf_T)
-    k_3rd_jpl_activation(ASSOC)  = k_f
-    k_3rd_jpl_activation(DISSOC) = k_fCA
-    
-  END FUNCTION k_3rd_jpl_activation
-
-  ! --------------------------------------------------------------------------
-
-  ELEMENTAL REAL(dp) FUNCTION k_3rd_iupac(temp,cair,k0_300K,n,kinf_300K,m,fc)
-    ! IUPAC three body reaction formula (iupac.pole-ether.fr)
-    
-    INTRINSIC :: LOG10
-    REAL(dp), INTENT(IN) :: temp      ! temperature [K]
-    REAL(dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
-    REAL,     INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
-    REAL,     INTENT(IN) :: n         ! exponent for low pressure limit
-    REAL,     INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
-    REAL,     INTENT(IN) :: m         ! exponent for high pressure limit
-    REAL,     INTENT(IN) :: fc        ! broadening factor (e.g. 0.45 or 0.6...)
-    REAL                 :: nu        ! N
-    REAL                 :: zt_help, k0_T, kinf_T, k_ratio
-
-    zt_help = 300._dp/temp
-    k0_T    = k0_300K   * zt_help**(n) * cair ! k_0   at current T
-    kinf_T  = kinf_300K * zt_help**(m)        ! k_inf at current T
-    k_ratio = k0_T/kinf_T
-    nu      = 0.75-1.27*LOG10(fc)
-    k_3rd_iupac = k0_T/(1._dp+k_ratio)* &
-      fc**(1._dp/(1._dp+(LOG10(k_ratio)/nu)**2))
-    
-  END FUNCTION k_3rd_iupac
-
   !---------------------------------------------------------------------------
 
-  ELEMENTAL REAL(dp) FUNCTION k_arr (k_298,tdep,temp)
+  ELEMENTAL REAL(kind=dp) FUNCTION k_arr (k_298,tdep,temp)
     ! Arrhenius function
 
     REAL,     INTENT(IN) :: k_298 ! k at T = 298.15K
     REAL,     INTENT(IN) :: tdep  ! temperature dependence
-    REAL(dp), INTENT(IN) :: temp  ! temperature
+    REAL(kind=dp), INTENT(IN) :: temp  ! temperature
 
     INTRINSIC EXP
 

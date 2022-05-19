@@ -82,11 +82,11 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
    REAL(kind=dp), INTENT(IN) :: TIN  ! Start Time
    REAL(kind=dp), INTENT(IN) :: TOUT ! End Time
    !~~~> Optional input parameters and statistics
-   INTEGER,  INTENT(IN),  OPTIONAL :: ICNTRL_U(20)
+   INTEGER,       INTENT(IN),  OPTIONAL :: ICNTRL_U(20)
    REAL(kind=dp), INTENT(IN),  OPTIONAL :: RCNTRL_U(20)
-   INTEGER,  INTENT(OUT), OPTIONAL :: ISTATUS_U(20)
+   INTEGER,       INTENT(OUT), OPTIONAL :: ISTATUS_U(20)
    REAL(kind=dp), INTENT(OUT), OPTIONAL :: RSTATUS_U(20)
-   INTEGER,  INTENT(OUT), OPTIONAL :: IERR_U
+   INTEGER,       INTENT(OUT), OPTIONAL :: IERR_U
 
    REAL(kind=dp) :: RCNTRL(20), RSTATUS(20)
    INTEGER       :: ICNTRL(20), ISTATUS(20), IERR
@@ -100,7 +100,9 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
    RSTATUS    = 0.0_dp
 
    !~~~> fine-tune the integrator:
-   ICNTRL(15) = 5       ! Call Update_SUN and Update_RCONST from w/in the int.
+   ICNTRL(1)  = 0       ! 0 - non-autonomous, 1 - autonomous
+   ICNTRL(2)  = 0       ! 0 - vector tolerances, 1 - scalars
+   ICNTRL(15) = 5       ! Call Update_SUN and Update_RCONST from w/in the int. 
 
    !~~~> if optional parameters are given, and if they are /= 0,
    !     then use them to overwrite default settings
@@ -120,7 +122,7 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
    !            =  2 ! Call Update_PHOTO from within the integrator
    !            =  3 ! Call Update_RCONST and Update_PHOTO from w/in the int.
    !            =  4 ! Call Update_SUN from within the integrator
-   !            =  5 ! Call Update_SUN and Update_RCONST from within the int.
+   !            =  5 ! Call Update_SUN and Update_RCONST from within the int.   
    !            =  6 ! Call Update_SUN and Update_PHOTO from within the int.
    !            =  7 ! Call Update_SUN, Update_PHOTO, Update_RCONST w/in int.
    CALL Integrator_Update_Options( ICNTRL(15),          &
@@ -135,16 +137,16 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
    FIX => C(NVAR+1:NSPEC)
 
    !~~~> Call the integrator
-   CALL Rosenbrock( NVAR,   VAR,    TIN,     TOUT,    ATOL, RTOL,  &
-                    RCNTRL, ICNTRL, RSTATUS, ISTATUS, IERR        )
+   CALL Rosenbrock( NVAR,   VAR,    TIN,    TOUT,    ATOL, RTOL,  &
+                    RCNTRL, ICNTRL, RSTATUS,ISTATUS, IERR        )
 
    !~~~> Free pointers
    VAR => NULL()
    FIX => NULL()
 
-   !~~~> Debug option: show number of steps
-   !Ntotal = Ntotal + ISTATUS(Nstp)
-   !PRINT*,'NSTEPS=',ISTATUS(Nstp),' (',Ntotal,')','  O3=', VAR(ind_O3)
+   !~~~> Debug option: show no of steps
+   ! Ntotal = Ntotal + ISTATUS(Nstp)
+   ! PRINT*,'NSTEPS=',ISTATUS(Nstp),' (',Ntotal,')','  O3=', VAR(ind_O3)
 
    STEPMIN = RSTATUS(Nhexit)
 
@@ -228,7 +230,7 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
 !        = 5 :    Rodas4
 !
 !    ICNTRL(4)  -> maximum number of integration steps
-!        For ICNTRL(4)=0) the default value of 200000 is used
+!        For ICNTRL(4)=0) the default value of 100000 is used
 !
 !    ICNTRL(15) -> Toggles calling of Update_* functions w/in the integrator
 !        = -1 :  Do not call Update_* functions within the integrator
@@ -462,11 +464,11 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
 CONTAINS !  SUBROUTINES internal to Rosenbrock
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  SUBROUTINE ros_ErrorMsg(Code,T,H,IERR)
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !    Handles all error messages
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    REAL(kind=dp), INTENT(IN) :: T, H
    INTEGER, INTENT(IN)  :: Code
@@ -518,7 +520,6 @@ CONTAINS !  SUBROUTINES internal to Rosenbrock
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   IMPLICIT NONE
-
 !~~~> Input: the initial condition at Tstart; Output: the solution at T
    REAL(kind=dp), INTENT(INOUT) :: Y(N)
 !~~~> Input: integration interval
@@ -697,6 +698,7 @@ Stage: DO istage = 1, ros_S
 
    END DO UntilAccepted
 
+   
    END DO TimeLoop
 
 !~~~> Succesful exit
@@ -746,7 +748,6 @@ Stage: DO istage = 1, ros_S
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    IMPLICIT NONE
 
-!~~~> Input arguments
    REAL(kind=dp), INTENT(IN) :: T, Roundoff, Y(N), Fcn0(N)
 !~~~> Output arguments
    REAL(kind=dp), INTENT(OUT) :: dFdT(N)
@@ -795,7 +796,7 @@ Stage: DO istage = 1, ros_S
 !~~~> Inout arguments
    REAL(kind=dp), INTENT(INOUT) :: H   ! step size is decreased when LU fails
 !~~~> Local variables
-   INTEGER  :: i, ising, Nconsecutive
+   INTEGER  :: i, ISING, Nconsecutive
    REAL(kind=dp) :: ghinv
    REAL(kind=dp), PARAMETER :: ONE  = 1.0_dp, HALF = 0.5_dp
 
@@ -823,22 +824,22 @@ Stage: DO istage = 1, ros_S
      END DO
 #endif
 !~~~>    Compute LU decomposition
-     CALL ros_Decomp( Ghimj, Pivot, ising )
-     IF (ising == 0) THEN
+     CALL ros_Decomp( Ghimj, Pivot, ISING )
+     IF (ISING == 0) THEN
 !~~~>    If successful done
         Singular = .FALSE.
-     ELSE ! ising .ne. 0
+     ELSE ! ISING .ne. 0
 !~~~>    If unsuccessful half the step size; if 5 consecutive fails then return
         ISTATUS(Nsng) = ISTATUS(Nsng) + 1
         Nconsecutive = Nconsecutive+1
         Singular = .TRUE.
-        PRINT*,'Warning: LU Decomposition returned ising = ',ising
+        PRINT*,'Warning: LU Decomposition returned ISING = ',ISING
         IF (Nconsecutive <= 5) THEN ! Less than 5 consecutive failed decompositions
            H = H*HALF
         ELSE  ! More than 5 consecutive failed decompositions
            RETURN
         END IF  ! Nconsecutive
-      END IF    ! ising
+      END IF    ! ISING
 
    END DO ! WHILE Singular
 
@@ -846,7 +847,7 @@ Stage: DO istage = 1, ros_S
 
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SUBROUTINE ros_Decomp( A, Pivot, ising )
+  SUBROUTINE ros_Decomp( A, Pivot, ISING )
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !  Template for the LU decomposition
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -858,12 +859,12 @@ Stage: DO istage = 1, ros_S
    REAL(kind=dp), INTENT(INOUT) :: A(LU_NONZERO)
 #endif
 !~~~> Output variables
-   INTEGER, INTENT(OUT) :: Pivot(N), ising
+   INTEGER, INTENT(OUT) :: Pivot(N), ISING
 
 #ifdef FULL_ALGEBRA
-   CALL  DGETRF( N, N, A, N, Pivot, ising )
+   CALL  DGETRF( N, N, A, N, Pivot, ISING )
 #else
-   CALL KppDecomp ( A, ising )
+   CALL KppDecomp ( A, ISING )
    Pivot(1) = 1
 #endif
    ISTATUS(Ndec) = ISTATUS(Ndec) + 1
@@ -874,14 +875,14 @@ Stage: DO istage = 1, ros_S
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SUBROUTINE ros_Solve( A, Pivot, b )
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!  Template for the forward/backward substitution
+!  Template for the forward/backward substitution 
 !  (using pre-computed LU decomposition)
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    IMPLICIT NONE
 !~~~> Input variables
 #ifdef FULL_ALGEBRA
    REAL(kind=dp), INTENT(IN) :: A(N,N)
-   INTEGER :: ising
+   INTEGER :: ISING
 #else
    REAL(kind=dp), INTENT(IN) :: A(LU_NONZERO)
 #endif
@@ -890,9 +891,9 @@ Stage: DO istage = 1, ros_S
    REAL(kind=dp), INTENT(INOUT) :: b(N)
 
 #ifdef FULL_ALGEBRA
-   CALL  DGETRS( 'N', N , 1, A, N, Pivot, b, N, ising )
+   CALL  DGETRS( 'N', N , 1, A, N, Pivot, b, N, ISING )
    IF ( Info < 0 ) THEN
-      PRINT*,"Error in DGETRS. ising=",ising
+      PRINT*,"Error in DGETRS. ISING=",ISING
    END IF
 #else
    CALL KppSolve( A, b )
