@@ -54,7 +54,7 @@ HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RUNDIR_SIM_NAME}
 """
 
 SUBST_LIST="""
-runConfig.sh.template
+setCommonRunSettings.sh.template
 ExtData.rc.templates/ExtData.rc.${RUNDIR_SIM_NAME}
 GCHP.rc.template
 geoschem_config.yml.templates/geoschem_config.yml.${RUNDIR_SIM_NAME}

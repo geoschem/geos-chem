@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setEnvironment: set local environment symbolic link gchp.env
+# setEnvironmentLink: set local environment symbolic link gchp.env
 #    
 # Arguments: pass full path (no symlinks) to your customized GCHP env file
 #
@@ -10,7 +10,7 @@
 
 # Make sure user passes environment file path
 if [[ $# != 1 ]] ; then
- echo "Usage: ./setEnvironment /path/to/your/env/file"
+ echo "Usage: ./setEnvironmentLink /path/to/your/env/file"
  exit 1
 fi
 

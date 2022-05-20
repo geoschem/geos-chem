@@ -3,11 +3,11 @@
 rm -fv trac_avg.*
 rm -fv tracerinfo.dat
 rm -fv diaginfo.dat
-rm -fv cap_restart
 rm -fv gcchem*
 rm -fv *.rcx
 rm -fv *~
 rm -fv gchp.log
+rm -fv gchp.*.log
 rm -fv HEMCO.log
 rm -fv PET*.log
 rm -fv multirun.log

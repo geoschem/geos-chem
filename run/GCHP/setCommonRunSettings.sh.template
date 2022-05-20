@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# runSettings.sh: Set run-time settings for GCHP and update all config
-# files to use these settings. Pass optional argument --silent to suppress
-# information of settings updated per file. Errors/warnings will still be printed.
+# setCommonRunSettings.sh: Set run-time settings for GCHP and update all config
+# files to use these settings. Pass optional argument --verbose to print
+# information of settings updated per file.
 
-# Usage: ./runConfig.sh [--silent]
+# Usage: ./setCommonRunSettings.sh [--verbose]
 #
 # Initial version: E. Lundgren, 8/17/2017
 
@@ -15,9 +15,8 @@
 #    FREQUENTLY CHANGED SETTINGS (***customize your run here***)
 #       - Compute resources (num nodes, num cores
 #       - Run grid resolution
-#       - Simulation start, end, duration
-#       - Initial restart file
-#       - Optionfor more frequent output restart files
+#       - Simulation duration
+#       - Option for more frequent output restart files
 #       - Turn components on/off
 #       - Diagnostic frequency, duration, and monthly mean
 #       - Debug print options (informational only)
@@ -67,10 +66,8 @@ TARGET_LON=170.0
 #    (3) Target lon must be in range [0,360)
 
 #------------------------------------------------
-#    Simulation start, end, duration
+#    Simulation duration
 #------------------------------------------------
-Start_Time="${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}"
-End_Time="${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}"
 Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 #
 # Duration should be less than or equal to the difference between start
@@ -84,22 +81,6 @@ Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 # do consecutive runs then delete cap_restart prior to running. If you
 # do want to run consecutive simulations you can make use of this feature in
 # your own custom run scripts.
-
-#------------------------------------------------
-#    Initial restart file
-#------------------------------------------------
-INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_${RUNDIR_SIM_NAME}.nc
-#
-# By default the linked restart files in the run directories will be
-# used. You can specify a custom initial restart file by overwriting the
-# default above.
-#
-# Please note that HEMCO restart variables are stored in the same
-# restart file as species concentrations. Initial restart files available
-# do NOT contain HEMCO variables. Using them will have the same effect
-# as turning the HEMCO restart file option off in GC classic.
-# However, all output restart files will contain HEMCO restart variables
-# for your next run.
 
 #-------------------------------------------------
 #    Option for more frequent output restart files
@@ -150,7 +131,7 @@ Turn_on_Base_Emissions=true
 #---------------------------------------------------------------------
 #    Diagnostic frequency, duration, and monthly mean
 #---------------------------------------------------------------------
-AutoUpdate_Diagnostics=ON
+AutoUpdate_Diagnostics=OFF
 
 # Monthly diagnostics: '0' for off; '1' for on
 # NOTE: fullchem "DefaultCollection" excludes monthly option
@@ -233,15 +214,21 @@ inst_collections=(ConcAboveSfc      \
 #    LESS FREQUENTLY CHANGED SETTINGS
 ########################################################
 
-CS_RES_EFFECTIVE=${CS_RES}
-if [[ ${STRETCH_GRID} == 'ON' ]]; then
-    CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
-fi
+#------------------------------------------------
+#   Run model as forward or adjoint
+#------------------------------------------------
+Model_Phase=FORWARD
+# Forward model: FORWARD
+# Adjoint model: ADJOINT
 
 #------------------------------------------------
 #    Timesteps
 #------------------------------------------------
 # WARNING: these settings will override settings in geoschem_config.yml!
+CS_RES_EFFECTIVE=${CS_RES}
+if [[ ${STRETCH_GRID} == 'ON' ]]; then
+    CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
+fi
 if [[ $CS_RES_EFFECTIVE -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
@@ -340,11 +327,11 @@ NY=6 # Ignore if NXNY_AUTO=ON
 
 #### Check that resource allocation makes sense
 if (( ${TOTAL_CORES}%6 != 0 )); then
-   echo "ERROR: TOTAL_CORES must be divisible by 6. Update value in runConfig.sh."
+   echo "ERROR: TOTAL_CORES must be divisible by 6. Update value in setCommonRunSettings.sh."
    exit 1
 fi
 if (( ${TOTAL_CORES} != ${NUM_NODES}*${NUM_CORES_PER_NODE} )); then
-   echo "ERROR: TOTAL_CORES must equal to NUM_NODES times NUM_CORES_PER_NODE. Update values in runConfig.sh."
+   echo "ERROR: TOTAL_CORES must equal to NUM_NODES times NUM_CORES_PER_NODE. Update values in setCommonRunSettings.sh."
    exit 1
 fi
 
@@ -379,23 +366,23 @@ fi
 
 #### Check that NX and NY make sense
 if (( ${NX}*${NY} != ${TOTAL_CORES} )); then
-   echo "ERROR: NX*NY must equal TOTAL_CORES. Check values in runConfig.sh."
+   echo "ERROR: NX*NY must equal TOTAL_CORES. Check values in setCommonRunSettings.sh."
    exit 1
 fi
 if (( ${NY}%6 != 0 )); then
-   echo "ERROR: NY must be an integer divisible by 6. Check values in runConfig.sh."
+   echo "ERROR: NY must be an integer divisible by 6. Check values in setCommonRunSettings.sh."
    exit 1
 fi
 
 #### Check that domain decomposition will not trigger a FV3 domain error
 if [[ $(( ${CS_RES}/${NX} )) -lt 4 || $(( ${CS_RES}*6/${NY} )) -lt 4  ]]; then
-   echo "ERROR: NX and NY are set such that face side length divided by NX or NY/6 is less than 4. The cubed sphere compute domain has a minimum requirement of 4 points in NX and NY/6. This problem occurs when grid resolution is too low for core count requested. Edit runConfig.sh to loower total number of cores or increase your grid resolution."
+   echo "ERROR: NX and NY are set such that face side length divided by NX or NY/6 is less than 4. The cubed sphere compute domain has a minimum requirement of 4 points in NX and NY/6. This problem occurs when grid resolution is too low for core count requested. Edit setCommonRunSettings.sh to loower total number of cores or increase your grid resolution."
    exit 1
 fi
 
 #### Check if domains are square enough (NOTE: approx using integer division)
 if [[ $(( ${NX}*6/${NY}*2 )) -ge 5 || $(( ${NY}/${NX}/6*2 )) -ge 5 ]] ; then
-    echo "WARNING: NX and NY are set such that NX x NY/6 has side ratio >= 2.5. Consider adjusting resources in runConfig.sh to be more square. This will avoid negative effects due to excessive communication between cores."
+    echo "WARNING: NX and NY are set such that NX x NY/6 has side ratio >= 2.5. Consider adjusting resources in setCommonRunSettings.sh to be more square. This will avoid negative effects due to excessive communication between cores."
 fi
 
 abs() {
@@ -404,13 +391,7 @@ abs() {
 
 #### Give error if chem timestep is < dynamic timestep
 if [[ ${ChemEmiss_Timestep_sec} -lt ${TransConv_Timestep_sec} ]]; then
-    echo "ERROR: chemistry timestep must be >= dynamic timestep. Update values in runConfig.sh."
-    exit 1
-fi
-
-## Check if restart file exists
-if [[ ! -e ${INITIAL_RESTART} ]]; then
-    printf 'ERROR: Restart file specified in runConfig.sh not found: %s\n' ${INITIAL_RESTART}
+    echo "ERROR: chemistry timestep must be >= dynamic timestep. Update values in setCommonRunSettings.sh."
     exit 1
 fi
 
@@ -427,10 +408,10 @@ fi
 #### If using stretched grid, check that target lat and lon have decimal
 if [[ ${STRETCH_GRID} == 'ON' ]]; then
     if [[ ${TARGET_LAT} != *"."* ]]; then
-	echo "ERROR: Stretched grid target latitude must be float. Edit entry in runConfig.sh."
+	echo "ERROR: Stretched grid target latitude must be float. Edit entry in setCommonRunSettings.sh."
 	exit 1
     elif [[ ${TARGET_LON} != *"."* ]]; then
-	echo "ERROR: Stretched grid target longitude must be float. Edit entry in runConfig.sh."
+	echo "ERROR: Stretched grid target longitude must be float. Edit entry in setCommonRunSettings.sh."
 	exit 1
     fi
 fi
@@ -440,10 +421,10 @@ fi
 ##########################################
 
 #### Determine whether to print info about updates. Prints enabled by default.
-verbose=1
+verbose=0
 if [ $# -ne 0 ]; then
-    if [[ $1 = "--silent" ]]; then
-        verbose=0
+    if [[ $1 = "--verbose" ]]; then
+        verbose=1
     fi
 fi
 
@@ -542,7 +523,7 @@ update_dyn_freq() {
        echo "ERROR: met-field $1 missing in $2"
        #exit 1
     elif [[ ${numlines} > 1 ]]; then
-       echo "ERROR: more than one entry in $1 in $2. Reduce to one so that read frequency can be auto-synced with dynamic timestep from runConfig.sh."
+       echo "ERROR: more than one entry in $1 in $2. Reduce to one so that read frequency can be auto-synced with dynamic timestep from setCommonRunSettings.sh."
        exit 1
     fi
 
@@ -568,9 +549,10 @@ update_dyn_freq() {
 ###############################
 ####   UPDATE FILES
 ###############################
+
 print_msg " "
 print_msg "============================================================"
-print_msg "Auto-updating config files based on settings in runConfig.sh"
+print_msg "Auto-updating config files based on settings in setCommonRunSettings.sh"
 print_msg "============================================================"
 
 #### Set # nodes, # cores, and shared memory option
@@ -590,13 +572,17 @@ else
    replace_val WRITE_RESTART_BY_OSERVER   NO    GCHP.rc
 fi
 
-### Uncomment out Adjoint collection in HISTORY.rc. It's not
-### needed for forward run, but we need it now
-print_msg "Removing adjoint history collections"
-sed -i "s/^\([\t ]*\)'Adjoint',/\1#'Adjoint',/" HISTORY.rc
-sed -i "s/^\([\t ]*\)'SFEmissions',/\1#'SFEmissions',/" HISTORY.rc
-replace_val SFEmissions.backwards 0 HISTORY.rc
-sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
+###  Make sure adjoint diagnostics (if present) are commented out if using
+### forward model, and uncommented if using adjoint.
+if [[ ${Model_Phase} == "FORWARD" ]]; then
+   sed -i "s/^\([\t ]*\)'Adjoint',/\1#'Adjoint',/" HISTORY.rc
+   sed -i "s/^\([\t ]*\)'SFEmissions',/\1#'SFEmissions',/" HISTORY.rc
+   sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
+else
+   sed -i "s/^\([\t ]*\)'Adjoint',/\1'Adjoint',/" HISTORY.rc
+   sed -i "s/^\([\t ]*\)'SFEmissions',/\1'SFEmissions',/" HISTORY.rc
+   sed -i -e "s/^[ \t]*#\([ \t]*SFEmis.*\)$/\1/" HEMCO_Diagn.rc
+fi
 
 ####  set cubed-sphere resolution and related grid variables
 print_msg " "
@@ -640,23 +626,35 @@ else
     exit 1
 fi
 
-####  set input restart filename
+#### Time settings. This includes updating ExtData.rc entries for PS2,
+#### SPHU2, and TMPU2 such that read frequency matches dynamic frequency
+if [[ ${Model_Phase} == "FORWARD" ]]; then
+   Reverse_Time=0
+else
+   Reverse_Time=1
+fi
 print_msg " "
-print_msg "Initial restart file:"
-print_msg "---------------------"
-replace_val GCHPchem_INTERNAL_RESTART_FILE "${INITIAL_RESTART}" GCHP.rc
-
-### adjoint model phase
-replace_val MODEL_PHASE "FORWARD" GCHP.rc
-
-#### Set simulation start and end datetimes based on geoschem_config.yml
-print_msg " "
-print_msg "Simulation start, end, duration:"
+print_msg "Time settings:"
 print_msg "--------------------------------"
-replace_val BEG_DATE     "${Start_Time}" CAP.rc
-replace_val END_DATE     "${End_Time}"   CAP.rc
-replace_val JOB_SGMT     "${Duration}"   CAP.rc
-replace_val REVERSE_TIME "0"             CAP.rc
+replace_val JOB_SGMT              "${Duration}"     CAP.rc
+replace_val MODEL_PHASE           "${Model_Phase}"  GCHP.rc
+replace_val REVERSE_TIME          "${Reverse_Time}" CAP.rc
+replace_val SFEmissions.backwards "${Reverse_Time}" HISTORY.rc
+replace_val "transport_timestep_in_s"  ${TransConv_Timestep_sec} geoschem_config.yml
+replace_val "chemistry_timestep_in_s"  ${ChemEmiss_Timestep_sec} geoschem_config.yml
+replace_val "radiation_timestep_in_s"  ${RRTMG_Timestep_sec}     geoschem_config.yml
+replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  GCHP.rc
+replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
+replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc
+replace_val RUN_DT        ${TransConv_Timestep_sec}  GCHP.rc
+replace_val GCHPchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
+replace_val RRTMG_DT      ${RRTMG_Timestep_sec}      GCHP.rc
+replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
+replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
+replace_val GCHPchem_REFERENCE_TIME ${TransConv_Timestep_HHMMSS} GCHP.rc
+update_dyn_freq PS2   ExtData.rc
+update_dyn_freq SPHU2 ExtData.rc
+update_dyn_freq TMPU2 ExtData.rc
 
 ##### Set commonly changed settings in geoschem_config.yml and GCHP.rc
 print_msg " "
@@ -680,27 +678,6 @@ print_msg "NOTE: Includes base emissions only. Turning Extensions on/off must be
 if [[ ${dustSetting[3]} = "on" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
-
-#### Set timesteps. This includes updating ExtData.rc entries for PS2,
-#### SPHU2, and TMPU2 such that read frequency matches dynamic frequency
-print_msg " "
-print_msg "Timesteps:"
-print_msg "----------"
-replace_val "transport_timestep_in_s"  ${TransConv_Timestep_sec} geoschem_config.yml
-replace_val "chemistry_timestep_in_s"  ${ChemEmiss_Timestep_sec} geoschem_config.yml
-replace_val "radiation_timestep_in_s"  ${RRTMG_Timestep_sec}     geoschem_config.yml
-replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  GCHP.rc
-replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
-replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc
-replace_val RUN_DT        ${TransConv_Timestep_sec}  GCHP.rc
-replace_val GCHPchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
-replace_val RRTMG_DT      ${RRTMG_Timestep_sec}      GCHP.rc
-replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
-replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
-replace_val GCHPchem_REFERENCE_TIME ${TransConv_Timestep_HHMMSS} GCHP.rc
-update_dyn_freq PS2   ExtData.rc
-update_dyn_freq SPHU2 ExtData.rc
-update_dyn_freq TMPU2 ExtData.rc
 
 #### Set frequency of writing restart files
 # Set to a very large number if turned off

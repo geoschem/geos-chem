@@ -72,7 +72,7 @@ RECORD_REF_TIME: 000000
 
 # Chemistry/AEROSOL Model Restart Files
 # -------------------------------------
-GCHPchem_INTERNAL_RESTART_FILE:     initial_GEOSChem_rst.c24_${RUNDIR_SIM_NAME}.nc
+GCHPchem_INTERNAL_RESTART_FILE:     gchp_restart.nc4
 GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
 GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
 GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
@@ -115,6 +115,7 @@ EXCLUDE_ADVECTION_TRACERS: NO
 #
 # %%% Adjoint variables
 #
+# MODEL_PHASE indicates forward model (FORWARD) or adjoint model (ADJOINT)
 MODEL_PHASE: FORWARD
 # FD_TYPE:             GLOBAL
 # FD_STEP:             0

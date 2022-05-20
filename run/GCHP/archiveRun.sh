@@ -8,7 +8,7 @@
 #
 # All output files are copied, including output data (OutputDir/*.nc4), 
 # log files (*.log, slurm-*), config files (*.rc, *.yml), 
-# run files (*.run, *.env, runConfig.sh), and restarts (only gcchem*). 
+# run files (*.run, *.env, setCommonRunSettings.sh), and restarts (only gcchem*). 
 # Files are stored in subdirectories within the archive directory.
 #
 # NOTE: Clean the run directory AFTER archiving with './cleanupRunDir.sh'
@@ -76,34 +76,25 @@ echo "Archiving files to directory $1"
 mkdir -p ${archivedir}
 mkdir -p ${archivedir}/OutputDir
 mkdir -p ${archivedir}/BenchmarkResults
-mkdir -p ${archivedir}/Logs
-mkdir -p ${archivedir}/Config
-mkdir -p ${archivedir}/Restarts
-mkdir -p ${archivedir}/Checkpoints
-mkdir -p ${archivedir}/Build
 
 # Copy files
 echo "Copying files..."
-copyfiles "*.yml"              ${archivedir}/Config
-copyfiles "rundir.version"     ${archivedir}/Config
-copyfiles "*.rc"               ${archivedir}/Config
-copyfiles "runConfig.sh"       ${archivedir}/Config
-copyfiles "*.run"              ${archivedir}/Config
-copyfiles "*.multirun.sh"      ${archivedir}/Config
-copyfiles "*.env"              ${archivedir}/Config
-copyfiles "*.log"              ${archivedir}/Logs
-copyfiles "slurm-*"            ${archivedir}/Logs
-copyfiles "gcchem_*"           ${archivedir}/Checkpoints
-copyfiles "cap_restart"        ${archivedir}/Checkpoints
-copyfiles "build_info/*"       ${archivedir}/Build
+copyfiles "*.yml"              ${archivedir}
+copyfiles "rundir.version"     ${archivedir}
+copyfiles "*.rc"               ${archivedir}
+copyfiles "setCommonRunSettings.sh" ${archivedir}
+copyfiles "*.run"              ${archivedir}
+copyfiles "*.multirun.sh"      ${archivedir}
+copyfiles "*.env"              ${archivedir}
+copyfiles "*.log"              ${archivedir}
+copyfiles "slurm-*"            ${archivedir}
+copyfiles "gcchem_*"           ${archivedir}
+copyfiles "cap_restart"        ${archivedir}
+copyfiles "build_info/*"       ${archivedir}/build_info
 copyfiles "BenchmarkResults/*" ${archivedir}/BenchmarkResults
 copyfiles "OutputDir/*"        ${archivedir}/OutputDir
 
-# Special handling for copying initial restart (retrieve filename from config)
-x=$(grep "GCHPchem_INTERNAL_RESTART_FILE:" GCHP.rc)
-rst=${x:37}
-copyfiles $rst                 ${archivedir}/Restarts
-
+printf "WARNING: Restart files are not archived. Copy manually if you would like to store restarts in the archive directory."
 printf "Complete!\n"
 
 exit 0

@@ -14,7 +14,7 @@ EGRESS
 cap_restart
 fort.11
 *.bin
-geos
+gchp
 setEnvironment
 *.out
 RunScriptSamples

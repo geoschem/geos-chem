@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# GCHP run script template for running interactively from the command line.
+# Consecutive executions of this script will do consecutive GCHP simulations.
+# Log information is sent to both terminal and log file. Set cap_restart in
+# run directory to specify start date. Set grid resolution, number of nodes,
+# and other common settings in setCommonRunSettings.sh prior to running.
+
+# Define log name to include simulation start date
+start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+log=gchp.${start_str}z.log
+
+# Update config files, set restart symlink, load run env, and do sanity checks
+source setCommonRunSettings.sh --verbose 2>&1 | tee -a ${log}
+source setRestartLink.sh 2>&1 | tee -a ${log}
+source gchp.env 2>&1 | tee -a ${log}
+source checkRunSettings.sh  2>&1 | tee -a ${log}
+
+# Run GCHP with # processors specified in config file setCommonRunSettings.sh
+nCores=$( grep -oP 'TOTAL_CORES=\s*\K\d+' setCommonRunSettings.sh )
+
+#--------------------------------------------------
+# Edit this line to run GCHP on your system
+#--------------------------------------------------
+time mpirun -np ${nCores} ./gchp 2>&1 | tee -a ${log}
+
+# If new start time in cap_restart is okay, rename and move restart file
+# and update restart symlink
+new_start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: cap_restart either did not change or is empty."
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str}z.c${N}.nc4
+    source setRestartLink.sh
+fi
+

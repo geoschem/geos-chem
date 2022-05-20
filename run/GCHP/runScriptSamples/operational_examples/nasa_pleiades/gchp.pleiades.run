@@ -31,8 +31,8 @@ fi
 # Assume success until overwritten
 rc=0
 
-# Sync all config files with settings in runConfig.sh                           
-./runConfig.sh > ${log}
+# Sync all config files with settings in setCommonRunSettings.sh                           
+./setCommonRunSettings.sh > ${log}
 rc=$?
 if [[ $rc == 0 ]]; then
 
