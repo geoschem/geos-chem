@@ -7,7 +7,7 @@
 # Example usage: ./archiveRun.sh 1mon_24hrDiag
 #
 # The output data (OutputDir/*.nc4) is moved but everything else is copied, 
-# including log files (*.log, slurm-*), config files (*.rc, input.geos), 
+# including log files (*.log, slurm-*), config files (*.rc, *.yml), 
 # run files (*.run), and restarts (GEOSChem.Restart.*, HEMCO_restart.*). 
 # Files are stored in subdirectories within the archive directory.
 #
@@ -86,9 +86,8 @@ movefiles "OutputDir" ${archivedir}/OutputDir FILLER
 
 # Copy everything else
 echo "Copying files..."
-copyfiles "tracerinfo.dat"     ${archivedir}/OutputDir
-copyfiles "diaginfo.dat"       ${archivedir}/OutputDir
-copyfiles "input.geos"         ${archivedir}/Config
+copyfiles "*.dat"              ${archivedir}/OutputDir
+copyfiles "*.yml"              ${archivedir}/Config
 copyfiles "rundir.version"     ${archivedir}/Config
 copyfiles "*.rc"               ${archivedir}/Config
 copyfiles "*.run"              ${archivedir}/Config

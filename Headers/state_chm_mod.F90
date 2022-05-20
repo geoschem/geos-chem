@@ -26,7 +26,7 @@ MODULE State_Chm_Mod
   USE PhysConstants                      ! Physical constants
   USE Precision_Mod                      ! GEOS-Chem precision types
   USE Registry_Mod                       ! Registry module
-  USE Species_Mod                        ! For species database object
+  USE Species_Mod                        ! For species database and conc objects
 
   IMPLICIT NONE
   PRIVATE
@@ -114,7 +114,8 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
+     TYPE(SpcConc),     POINTER :: Species (:      ) ! Vector for species
+                                                        ! concentrations
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
@@ -153,6 +154,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
      REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
      REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
+     REAL(fp),          POINTER :: ORVCsesq     (:,:,:) ! Sesquiterpenes mass [kg/box]
 
      !-----------------------------------------------------------------------
      ! Fields for nitrogen deposition
@@ -234,6 +236,8 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
      REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
 #endif
+     REAL(fp),          POINTER :: JOH        (:,:    ) ! OH J-value
+     REAL(fp),          POINTER :: JNO2       (:,:    ) ! NO2 J-value
 
      !-----------------------------------------------------------------------
      ! Fields for non-local PBL mixing
@@ -422,6 +426,7 @@ CONTAINS
     State_Chm%pHCloud           => NULL()
     State_Chm%isCloud           => NULL()
     State_Chm%QLxpHCloud        => NULL()
+    State_Chm%ORVCsesq          => NULL()
     State_Chm%KPPHvalue         => NULL()
     State_Chm%STATE_PSC         => NULL()
     State_Chm%KHETI_SLA         => NULL()
@@ -446,6 +451,8 @@ CONTAINS
     State_Chm%DryDepRa2m        => NULL()
     State_Chm%DryDepRa10m       => NULL()
 #endif
+    State_Chm%JOH               => NULL()
+    State_Chm%JNO2              => NULL()
 
     ! Non-local PBL mixing quantities
     State_Chm%SurfaceFlux       => NULL()
@@ -761,24 +768,19 @@ CONTAINS
        RETURN
     ENDIF
 
+
     !========================================================================
     ! Allocate and initialize chemical species fields
     !========================================================================
-    chmID = 'Species'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         chmId      = chmId,                                                 &
-         Ptr2Data   = State_Chm%Species,                                     &
-         nSlots     = State_Chm%nSpecies,                                    &
-         RC         = RC                                                    )
 
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! Allocate the array
+    ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
+    DO N = 1, State_Chm%nSpecies
+       ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
+                                            State_Grid%NY, &
+                                            State_Grid%NZ ), STAT=RC )
+       State_Chm%Species(N)%Conc = 0.0_f8
+    ENDDO
 
 #ifdef ADJOINT
     !========================================================================
@@ -975,7 +977,7 @@ CONTAINS
        fieldId = (/ 'AeroH2OMDUST1    ', 'AeroH2OMDUST2    ',                &
                     'AeroH2OMDUST3    ', 'AeroH2OMDUST4    ',                &
                     'AeroH2OMDUST5    ', 'AeroH2OMDUST6    ',                &
-                    'AeroH2OMDUST7    ', 'AeroH2OSULF      ',                &
+                    'AeroH2OMDUST7    ', 'AeroH2OSNA       ',                &
                     'AeroH2OBC        ', 'AeroH2OOC        ',                &
                     'AeroH2OSSA       ', 'AeroH2OSSC       ',                &
                     'AeroH2OBGSULF    ', 'AeroH2OICEI      '               /)
@@ -1282,6 +1284,24 @@ CONTAINS
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%QLxpHCloud,                               &
             RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! ORVCsesq
+       !---------------------------------------------------------------------
+       chmId = 'ORVCsesq'
+       CALL Init_and_Register(                                            &
+            Input_Opt  = Input_Opt,                                       &
+            State_Chm  = State_Chm,                                       &
+            State_Grid = State_Grid,                                      &
+            chmId      = chmId,                                           &
+            Ptr2Data   = State_Chm%ORVCsesq,                              &
+            RC         = RC                                              )
 
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
@@ -1890,6 +1910,46 @@ CONTAINS
        RETURN
     ENDIF
 #endif
+
+    ! J(OH) and J(NO2) are only used in fullchem simulations
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !---------------------------------------------------------------------
+       ! J(OH); needed for restart file input to HEMCO PARANOx extension
+       !---------------------------------------------------------------------
+       chmId = 'JOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%JOH,                                      &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! J(NO2); needed for restart file input to HEMCO PARANOx extension
+       !---------------------------------------------------------------------
+       chmId = 'JNO2'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%JNO2,                                     &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     !------------------------------------------------------------------
     ! Surface flux for non-local PBL mixing
@@ -2649,13 +2709,13 @@ CONTAINS
          Ptr2Data   = State_Chm%TO3_DAILY,                                &
          noRegister = .TRUE.,                                             &
          RC         = RC                                                 )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    
+
     chmId = 'TOMS1'
     CALL Init_and_Register(                                               &
          Input_Opt  = Input_Opt,                                          &
@@ -2665,13 +2725,13 @@ CONTAINS
          Ptr2Data   = State_Chm%TOMS1,                                    &
          noRegister = .TRUE.,                                             &
          RC         = RC                                                 )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    
+
     chmId = 'TOMS2'
     CALL Init_and_Register(                                               &
          Input_Opt  = Input_Opt,                                          &
@@ -2681,13 +2741,13 @@ CONTAINS
          Ptr2Data   = State_Chm%TOMS2,                                    &
          noRegister = .TRUE.,                                             &
          RC         = RC                                                 )
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2734,7 +2794,7 @@ CONTAINS
 !
 ! !LOCAL VARAIBLES
 !
-    ! Strings
+    INTEGER            :: N
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -2859,11 +2919,18 @@ CONTAINS
        State_Chm%Map_WL => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Species ) ) THEN
-       DEALLOCATE( State_Chm%Species, STAT=RC )
+    IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
+       DO N = 1, State_Chm%nSpecies
+          IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
+             DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+             State_Chm%Species(N)%Conc => NULL()
+          ENDIF
+       ENDDO
+       DEALLOCATE( State_Chm%Species )
        CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Species => NULL()
+       State_Chm%Species => NULL()    
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
@@ -3041,6 +3108,13 @@ CONTAINS
        State_Chm%QLxpHCloud => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%ORVCsesq ) ) THEN
+       DEALLOCATE( State_Chm%ORVCsesq, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ORVCsesq', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%ORVCsesq => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%isCloud ) ) THEN
        DEALLOCATE( State_Chm%isCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%isCloud', 2, RC )
@@ -3214,6 +3288,20 @@ CONTAINS
        State_Chm%DryDepRa10m => NULL()
     ENDIF
 #endif
+
+    IF ( ASSOCIATED( State_Chm%JOH ) ) THEN
+       DEALLOCATE( State_Chm%JOH, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%JOH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%JOH => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%JNO2 ) ) THEN
+       DEALLOCATE( State_Chm%JNO2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%JNO2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%JNO2 => NULL()
+    ENDIF
 
     IF ( ASSOCIATED( State_Chm%SurfaceFlux ) ) THEN
        DEALLOCATE( State_Chm%SurfaceFlux, STAT=RC )
@@ -3809,8 +3897,8 @@ CONTAINS
           IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'AEROH2OSULF' )
-          IF ( isDesc  ) Desc  = 'Aerosol H2O content for tropospheric sulfate'
+       CASE ( 'AEROH2OSNA' )
+          IF ( isDesc  ) Desc  = 'Sulfur-nitrogen-ammonia aerosol water content'
           IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
@@ -4022,6 +4110,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
+       CASE( 'ORVCSESQ' )
+          IF ( isDesc  ) Desc  = 'Sesquiterpenes mass'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  =  3
+
        CASE( 'ISCLOUD' )
           IF ( isDesc  ) Desc  = 'Cloud presence'
           IF ( isUnits ) Units = '1'
@@ -4161,7 +4254,17 @@ CONTAINS
           IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
           IF ( isUnits   ) Units = 's cm-1'
           IF ( isRank    ) Rank  = 2
+
 #endif
+       CASE( 'JOH' )
+          IF ( isDesc    ) Desc  = 'Surface J-values for reaction O3 + hv --> O2 + O'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 2
+
+       CASE( 'JNO2' )
+          IF ( isDesc    ) Desc  = 'Surface J-values for reaction NO2 + hv --> NO + O'
+          IF ( isUnits   ) Units = '1'
+          IF ( isRank    ) Rank  = 2
 
        CASE( 'SURFACEFLUX' )
           IF ( isDesc  ) Desc   = 'Surface flux (E-D) for non-local PBL mixing'
@@ -4956,7 +5059,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Hg simulation quantities
        !---------------------------------------------------------------------
- 
+
 !>>       ! Append the category name to the diagnostic name
 !>>       diagName = TRIM( name ) // TRIM( State_Chm%Hg_Cat_Name(N) )
 !>>

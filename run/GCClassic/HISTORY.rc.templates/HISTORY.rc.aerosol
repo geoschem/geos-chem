@@ -61,15 +61,12 @@ COLLECTIONS: 'Restart',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Chem_AeroH2OSNA                ',
                               'Chem_H2O2AfterChem             ',
                               'Chem_SO2AfterChem              ',
                               'Chem_DryDepNitrogen            ',
                               'Chem_WetDepNitrogen            ',
                               'Met_DELPDRY                    ',
-                              'Met_PS1WET                     ',
-                              'Met_PS1DRY                     ',
-                              'Met_SPHU1                      ',
-                              'Met_TMPU1                      ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

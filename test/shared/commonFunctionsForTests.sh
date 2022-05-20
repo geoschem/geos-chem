@@ -21,13 +21,13 @@
 FILL=$(printf '.%.0s' {1..44})
 SEP_MAJOR=$(printf '=%.0s' {1..78})
 SEP_MINOR=$(printf '\055%.0s' {1..78})
-SED_INPUT_GEOS_1='s/End   YYYYMMDD, hhmmss  : 20190801 000000/End   YYYYMMDD, hhmmss  : 20190701 010000/'
-SED_INPUT_GEOS_2='s/End   YYYYMMDD, hhmmss  : 20190201 000000/End   YYYYMMDD, hhmmss  : 20190101 010000/'
-SED_INPUT_GEOS_3='s/Start YYYYMMDD, hhmmss  : 20160101 000000/Start YYYYMMDD, hhmmss  : 20190101 000000/'
-SED_INPUT_GEOS_4='s/End   YYYYMMDD, hhmmss  : 20160201 000000/End   YYYYMMDD, hhmmss  : 20190101 010000/'
-SED_INPUT_GEOS_5='s/End   YYYYMMDD, hhmmss  : 20160101 010000/End   YYYYMMDD, hhmmss  : 20190101 010000/'
-SED_INPUT_GEOS_6='s/End   YYYYMMDD, hhmmss  : 20110201 000000/End   YYYYMMDD, hhmmss  : 20110101 010000/'
-SED_INPUT_GEOS_N='s/End   YYYYMMDD, hhmmss  : 20190801 000000/End   YYYYMMDD, hhmmss  : 20190701 002000/'
+SED_CONFIG_1='s/end_date: \[20110201, 000000\]/end_date: \[20110101, 010000\]/'
+SED_CONFIG_2='s/start_date: \[20160101, 000000\]/start_date: \[20190101, 000000\]/'
+SED_CONFIG_3='s/end_date: \[20160201, 000000\]/end_date: \[20190101, 010000\]/'
+SED_CONFIG_4='s/end_date: \[20160101, 000000\]/end_date: \[20190101, 010000\]/'
+SED_CONFIG_5='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 010000\]/'
+SED_CONFIG_6='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 010000\]/'
+SED_CONFIG_N='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
 SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
 SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
@@ -85,7 +85,7 @@ function is_valid_rundir() {
     # 1st argument: File or directory to be tested
     #========================================================================
     if [[ -d ${1} ]]; then
-	if [[ -f ${1}/input.geos && -f ${1}/HEMCO_Config.rc ]]; then
+	if [[ -f ${1}/geoschem_config.yml && -f ${1}/HEMCO_Config.rc ]]; then
 	    echo "TRUE"
 	    return
 	fi
@@ -147,25 +147,25 @@ function update_config_files() {
     runDir=${2}
 
     #------------------------------------------------------------------------
-    # Replace text in input.geos
+    # Replace text in geoschem_config.yml
     #------------------------------------------------------------------------
 
     # For nested-grid fullchem runs, change simulation time to 20 minutes
     # in order to reduce the run time of the whole set of integration tests.
     if grep -q "025x03125_fullchem" <<< "${runDir}"; then
-	sed_ie "${SED_INPUT_GEOS_N}" "${root}/${runDir}/input.geos"
+	sed_ie "${SED_CONFIG_N}" "${root}/${runDir}/geoschem_config.yml"
     fi
     if grep -q "05x0625_fullchem" <<< "${runDir}"; then
-	sed_ie "${SED_INPUT_GEOS_N}" "${root}/${runDir}/input.geos"
+	sed_ie "${SED_CONFIG_N}" "${root}/${runDir}/geoschem_config.yml"
     fi
 
     # Other text replacements
-    sed_ie "${SED_INPUT_GEOS_1}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_2}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_3}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_4}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_5}" "${root}/${runDir}/input.geos"
-    sed_ie "${SED_INPUT_GEOS_6}" "${root}/${runDir}/input.geos"
+    sed_ie "${SED_CONFIG_1}" "${root}/${runDir}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_2}" "${root}/${runDir}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_3}" "${root}/${runDir}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_4}" "${root}/${runDir}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_5}" "${root}/${runDir}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_6}" "${root}/${runDir}/geoschem_config.yml"
 
     #------------------------------------------------------------------------
     # Replace text in HEMCO_Config.rc
@@ -348,7 +348,7 @@ function gcclassic_config_options() {
 
     # Local variables
     exeFileName=$(gcclassic_exe_name ${dir})
-    
+
     # Turn on case-insensitivity
     shopt -s nocasematch
 
