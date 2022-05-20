@@ -289,10 +289,12 @@ CONTAINS
        ! --------------------------------------------
        IF ( State_Diag%Archive_SatDiagnOH ) THEN
 
-          State_Diag%SatDiagnOH(I,:,1:State_Grid%MaxChemLev) = &
-               (State_Chm%Species(I,:,1:State_Grid%MaxChemLev,id_OH) * GOOD * &
-                State_Met%AIRDEN(I,:,1:State_Grid%MaxChemLev)  * AVO ) /      &
-               ( State_Chm%SpcData(id_OH)%Info%Mw_g ) / 1.0e+3_fp !JDS Changed to 1.0e+3_fp (orig 1.0e+6) (1/20/22)
+          ! Changed to 1.0e+3_fp (orig 1.0e+6)
+          !  -- Joshua Shutter and Bob Yantosca (20 May 2022)
+          State_Diag%SatDiagnOH(I,:,1:State_Grid%MaxChemLev) =               &
+           (State_Chm%Species(id_OH)%Conc(I,:,1:State_Grid%MaxChemLev)*GOOD* &
+            State_Met%AIRDEN(I,:,1:State_Grid%MaxChemLev)  * AVO ) /         &
+           ( State_Chm%SpcData(id_OH)%Info%Mw_g ) / 1.0e+3_fp 
        ENDIF
     
        ! --------------------------------------------

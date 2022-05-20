@@ -554,8 +554,8 @@ CONTAINS
                 ! NOTE: 1.0e+3_fp added by for correct unit conversion
                 !   -- Joshua Sutter + Bob Yantosca (20 May 2022)
                 Q(X,Y,K,W) = Q(X,Y,K,W) +                                    &
-                     ( State_Chm%Species(I,J,L,id_OH) * GOOD(X) ) *          &
-                     ( State_Met%AIRDEN(I,J,L)        * CONV_OH   * 1.0e+3_fp)
+                  ( State_Chm%Species(id_OH)%Conc(I,J,L) * GOOD(X)   ) *     &
+                  ( State_Met%AIRDEN(I,J,L)  * CONV_OH   * 1.0e+3_fp  )
 
 
              ELSE IF ( N == 502 .and. IS_NOy ) THEN
