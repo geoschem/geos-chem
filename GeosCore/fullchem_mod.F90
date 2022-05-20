@@ -103,12 +103,11 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
+    USE GcKpp_Integrator,         ONLY : INTEGRATE
     USE GcKpp_Function
     USE GcKpp_Model
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
-    USE GcKpp_Initialize,         ONLY : Init_KPP => Initialize
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
     USE PhysConstants,            ONLY : AVO, AIRMW
@@ -204,9 +203,13 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
-    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+    REAL(dp)               :: Vloc(NVAR),     Aout(NREACT)
 #ifdef MODEL_GEOS
     REAL(f4)               :: NOxTau, NOxConc, Vdotout(NVAR)
+    REAL(dp)               :: localC(NSPEC)
+#endif
+#ifdef MODEL_WRF
+    REAL(dp)               :: localC(NSPEC)
 #endif
 
     ! Objects
@@ -435,6 +438,10 @@ CONTAINS
     ! 0 - adjoint, 1 - no adjoint
     ICNTRL(7) = 1
 
+    ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
+    ! the integrator.  Rate updates are done before calling KPP.
+    ICNTRL(15) = -1
+
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=======================================================================
@@ -476,9 +483,11 @@ CONTAINS
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,   NOxConc,  Vdotout                              )&
+    !$OMP PRIVATE( NOxTau,   NOxConc,  Vdotout, localC                      )&
 #endif
-
+#ifdef MODEL_WRF
+    !$OMP PRIVATE( localC                                                   )&
+#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -503,16 +512,18 @@ CONTAINS
        LWC       = 0.0_fp                   ! Liquid water content
        SIZE_RES  = .FALSE.                  ! Size resolved calculation?
        C         = 0.0_dp                   ! KPP species conc's
-       VAR       = 0.0_dp                   ! KPP variable species conc's
-       FIX       = 0.0_dp                   ! KPP fixed species conc's
        RCONST    = 0.0_dp                   ! KPP rate constants
        PHOTOL    = 0.0_dp                   ! Photolysis array for KPP
        K_CLD     = 0.0_dp                   ! Sulfur in-cloud rxn het rates
        K_MT      = 0.0_dp                   ! Sulfur sea salt rxn het rates
+       CFACTOR   = 1.0_dp                   ! KPP conversion factor
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
+#endif
+#if defined( MODEL_GEOS ) && defined( MODEL_WRF )
+       localC    = 0.0_dp                   ! Local backup array for C
 #endif
 
        !=====================================================================
@@ -710,9 +721,6 @@ CONTAINS
                             RC        =  RC                                 )
        ENDIF
 
-       ! Initialize KPP for this grid box
-       CALL Init_KPP()
-
        ! Copy values into the various KPP global variables
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
                                     J          = J,                          &
@@ -881,11 +889,6 @@ CONTAINS
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
-       ! Set VAR and FIX arrays
-       ! This has to be done after the zeroing above
-       VAR(1:NVAR) = C(1:NVAR)
-       FIX         = C(NVAR+1:NSPEC)
-
        !=====================================================================
        ! Update reaction rates
        !=====================================================================
@@ -914,14 +917,34 @@ CONTAINS
        !
        ! Archive KPP reaction rates [s-1]
        ! See gckpp_Monitor.F90 for a list of chemical reactions
+       !
+       ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
+       ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
+       ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate ) THEN
 #ifdef MODEL_GEOS
-          ! gckpp_Function.F90 function Fun must be modified to use optional
-          ! argument Vdotout if building with GEOS
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+          !---------------------------------------------------
+          ! GEOS-Chem in NASA/GEOS:
+          ! Get equation rates (Aout) and the time derivative
+          ! of variable species concentrations (Vdotout)
+          !---------------------------------------------------
+          CALL Fun( V       = C(1:NVAR),                                     &
+                    F       = C(NVAR+1:NSPEC),                               &
+                    RCT     = RCONST,                                        &
+                    Vdot    = Vloc,                                          &
+                    Aout    = Aout,                                          &
+                    Vdotout = Vdotout                                       )
 #else
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+          !---------------------------------------------------
+          ! All other contexts
+          ! Get equation rates (Aout) only
+          !---------------------------------------------------
+          CALL Fun( V       = C(1:NVAR),                                     &
+                    F       = C(NVAR+1:NSPEC),                               &
+                    RCT     = RCONST,                                        &
+                    Vdot    = Vloc,                                          &
+                    Aout    = Aout                                          )
 #endif
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
@@ -941,7 +964,9 @@ CONTAINS
        ! Zero all slots of RCNTRL
        RCNTRL    = 0.0_fp
 
-       ! Starting value for integration time step
+       ! Initialize Hstart (the starting value of the integration step
+       ! size with the value of Hnew (the last predicted but not yet 
+       ! taken timestep)  saved to the the restart file.
        RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
        !=====================================================================
@@ -1034,13 +1059,15 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+          ! Save a copy of the C vector (GEOS and WRF only)
+          localC    = C
+#endif
+
           ! Reset first time step and start concentrations
-          ! Retry the integration with non-optimized
-          ! settings
-          RCNTRL(3)  = 0e+0_fp
-          CALL Init_KPP( )
-          VAR = C(1:NVAR)
-          FIX = C(NVAR+1:NSPEC)
+          ! Retry the integration with non-optimized settings
+          RCNTRL(3) = 0.0_dp
+          C         = 0.0_dp
 
           ! Update rates again
           CALL Update_RCONST( )
@@ -1131,8 +1158,7 @@ CONTAINS
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
              ELSE
-                VAR = C(1:NVAR)
-                FIX = C(NVAR+1:NSPEC)
+                C = localC
              ENDIF
              IF ( ASSOCIATED(State_Diag%KppError) ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
@@ -1171,17 +1197,17 @@ CONTAINS
        ! Continue upon successful return...
        !=====================================================================
 
-       ! Copy VAR and FIX back into C (mps, 2/24/16)
-       C(1:NVAR)       = VAR(:)
-       C(NVAR+1:NSPEC) = FIX(:)
-
        ! Revert Alkalinity (only when using sulfur chemistry in KPP)
        IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
           CALL fullchem_ConvertEquivToAlk()
        ENDIF
 
-       ! Save for next integration time step
-       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
+       ! Save Hnew (the last predicted but not taken step) from the 3rd slot
+       ! of RSTATE into State_Chm so that it can be written to the restart
+       ! file.  For simulations that are broken into multiple stages,
+       ! Hstart will be initialized to the value of Hnew from the restart
+       ! file at startup (see above).
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(3)
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
@@ -1240,8 +1266,8 @@ CONTAINS
           ! time step (win, 8/4/09)
           IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
              ! Hard-coded MW
-             H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
-                                 State_Met%AIRVOL(I,J,L)  * &
+             H2SO4_RATE(I,J,L) = C(KppID) / AVO * 98.e-3_fp * &
+                                 State_Met%AIRVOL(I,J,L)    * &
                                  1.0e+6_fp / DT
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
@@ -1260,9 +1286,8 @@ CONTAINS
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
        IF ( State_Diag%Archive_NoxTau ) THEN
-          ! gckpp_Function.F90 function Fun must be modified to use optional
-          ! argument Vdotout if building with GEOS
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+          CALL Fun( C(1:NVAR), C(NVAR+1:NSPEC), RCONST,                          &
+                    Vloc,      Aout=Aout,       Vdotout=Vdotout )
           NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
                  + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
                  + Vdotout(ind_HNO4)
@@ -1311,10 +1336,10 @@ CONTAINS
             State_Diag%Archive_ProdCOfromNMVOC ) THEN
 
           ! Total production of CO
-          PCO_TOT   = VAR(id_PCO) / DT
+          PCO_TOT   = C(id_PCO) / DT
 
           ! Loss of CO from CH4
-          LCH4      = VAR(id_LCH4) / DT
+          LCH4      = C(id_LCH4) / DT
 
           ! P(CO)_CH4 is LCH4. Cap so that it is never greater
           ! than total P(CO) to prevent negative P(CO)_NMVOC.
