@@ -235,6 +235,14 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_DryDepVel
      LOGICAL                     :: Archive_DryDepVel
 
+     REAL(f4),           POINTER :: SatDiagnDryDep(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDep
+     LOGICAL                     :: Archive_SatDiagnDryDep
+
+     REAL(f4),           POINTER :: SatDiagnDryDepVel(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDepVel
+     LOGICAL                     :: Archive_SatDiagnDryDepVel
+
      !%%%%% Photolysis %%%%%
 
      REAL(f4),           POINTER :: Jval(:,:,:,:)
@@ -246,6 +254,16 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: JvalO3O3P(:,:,:)
      LOGICAL                     :: Archive_JvalO3O3P
+
+     REAL(f4),           POINTER :: SatDiagnJval(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnJval
+     LOGICAL                     :: Archive_SatDiagnJval
+
+     REAL(f4),           POINTER :: SatDiagnJvalO3O1D(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnJvalO3O1D
+
+     REAL(f4),           POINTER :: SatDiagnJvalO3O3P(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnJvalO3O3P
 
      REAL(f4),           POINTER :: JNoon(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_JNoon
@@ -272,8 +290,15 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_RxnRate
      LOGICAL                     :: Archive_RxnRate
 
+     REAL(f4),           POINTER :: SatDiagnRxnRate(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnRxnRate
+     LOGICAL                     :: Archive_SatDiagnRxnRate     
+
      REAL(f4),           POINTER :: OHreactivity(:,:,:)
      LOGICAL                     :: Archive_OHreactivity
+
+     REAL(f4),           POINTER :: SatDiagnOHreactivity(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnOHreactivity     
 
      REAL(f4),           POINTER :: OHconcAfterChem(:,:,:)
      LOGICAL                     :: Archive_OHconcAfterChem
@@ -290,9 +315,17 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
      LOGICAL                     :: Archive_CH4pseudoFlux
 
+     REAL(f4),           POINTER :: SatDiagnLoss(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnLoss
+     LOGICAL                     :: Archive_SatDiagnLoss
+
      REAL(f4),           POINTER :: Loss(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_Loss
      LOGICAL                     :: Archive_Loss
+
+     REAL(f4),           POINTER :: SatDiagnProd(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnProd
+     LOGICAL                     :: Archive_SatDiagnProd
 
      REAL(f4),           POINTER :: Prod(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_Prod
@@ -493,9 +526,17 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_WetLossConv
      LOGICAL                     :: Archive_WetLossConv
 
+     REAL(f4),           POINTER :: SatDiagnWetLossConv(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnWetLossConv
+     LOGICAL                     :: Archive_SatDiagnWetLossConv
+
      REAL(f4),           POINTER :: WetLossLS(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_WetLossLS
      LOGICAL                     :: Archive_WetLossLS
+
+     REAL(f4),           POINTER :: SatDiagnWetLossLS(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnWetLossLS
+     LOGICAL                     :: Archive_SatDiagnWetLossLS
 
      ! These are obsolete diagnostics
      !REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  )
@@ -648,6 +689,84 @@ MODULE State_Diag_Mod
 
      REAL(f8),           POINTER :: OHwgtByAirMassColumnTrop(:,:)
      LOGICAL                     :: Archive_OHwgtByAirMassColumnTrop
+
+     !%%%%% Satellite diagnostic %%%%%
+
+     REAL(fp)                    :: SatDiagn_StartHr
+     REAL(fp)                    :: SatDiagn_EndHr
+     REAL(fp)                    :: SatDiagn_Count
+
+     REAL(f8),           POINTER :: SatDiagnCount(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnCount
+     
+     REAL(f8),           POINTER :: SatDiagnConc(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnConc
+     LOGICAL                     :: Archive_SatDiagnConc
+
+     REAL(f8),           POINTER :: SatDiagnColEmis(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnColEmis
+     LOGICAL                     :: Archive_SatDiagnColEmis
+
+     REAL(f8),           POINTER :: SatDiagnSurfFlux(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SatDiagnSurfFlux
+     LOGICAL                     :: Archive_SatDiagnSurfFlux
+    
+     REAL(f8),           POINTER :: SatDiagnOH(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnOH
+     
+     REAL(f8),           POINTER :: SatDiagnRH(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnRH
+
+     REAL(f8),           POINTER :: SatDiagnAirDen(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnAirDen
+
+     REAL(f8),           POINTER :: SatDiagnBoxHeight(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnBoxHeight
+
+     REAL(f8),           POINTER :: SatDiagnPEdge(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnPEdge
+
+     REAL(f8),           POINTER :: SatDiagnTROPP(:,:)
+     LOGICAL                     :: Archive_SatDiagnTROPP
+
+     REAL(f8),           POINTER :: SatDiagnPBLHeight(:,:)
+     LOGICAL                     :: Archive_SatDiagnPBLHeight
+
+     REAL(f8),           POINTER :: SatDiagnPBLTop(:,:)
+     LOGICAL                     :: Archive_SatDiagnPBLTop
+
+     REAL(f8),           POINTER :: SatDiagnTAir(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnTAir
+
+     REAL(f8),           POINTER :: SatDiagnGWETROOT(:,:)
+     LOGICAL                     :: Archive_SatDiagnGWETROOT
+
+     REAL(f8),           POINTER :: SatDiagnGWETTOP(:,:)
+     LOGICAL                     :: Archive_SatDiagnGWETTOP
+
+     REAL(f8),           POINTER :: SatDiagnPARDR(:,:)
+     LOGICAL                     :: Archive_SatDiagnPARDR
+
+     REAL(f8),           POINTER :: SatDiagnPARDF(:,:)
+     LOGICAL                     :: Archive_SatDiagnPARDF
+
+     REAL(f8),           POINTER :: SatDiagnPRECTOT(:,:)
+     LOGICAL                     :: Archive_SatDiagnPRECTOT
+
+     REAL(f8),           POINTER :: SatDiagnSLP(:,:)
+     LOGICAL                     :: Archive_SatDiagnSLP
+
+     REAL(f8),           POINTER :: SatDiagnSPHU(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnSPHU
+
+     REAL(f8),           POINTER :: SatDiagnTS(:,:)
+     LOGICAL                     :: Archive_SatDiagnTS
+
+     REAL(f8),           POINTER :: SatDiagnPBLTOPL(:,:)
+     LOGICAL                     :: Archive_SatDiagnPBLTOPL
+
+     REAL(f8),           POINTER :: SatDiagnMODISLAI(:,:)
+     LOGICAL                     :: Archive_SatDiagnMODISLAI
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -1316,6 +1435,14 @@ CONTAINS
     State_Diag%Map_DryDepVel                       => NULL()
     State_Diag%Archive_DryDepVel                   = .FALSE.
 
+    State_Diag%SatDiagnDryDep                      => NULL()
+    State_Diag%Map_SatDiagnDryDep                  => NULL()
+    State_Diag%Archive_SatDiagnDryDep              = .FALSE.
+
+    State_Diag%SatDiagnDryDepVel                   => NULL()
+    State_Diag%Map_SatDiagnDryDepVel               => NULL()
+    State_Diag%Archive_SatDiagnDryDepVel           = .FALSE.
+
     !%%%%% Chemistry, J-value, Prod/Loss diagnostics %%%%%
 
     State_Diag%Jval                                => NULL()
@@ -1328,6 +1455,16 @@ CONTAINS
     State_Diag%JvalO3O3P                           => NULL()
     State_Diag%Archive_JvalO3O3P                   = .FALSE.
 
+    State_Diag%SatDiagnJval                        => NULL()
+    State_Diag%Map_SatDiagnJval                    => NULL()
+    State_Diag%Archive_SatDiagnJval                = .FALSE.
+
+    State_Diag%SatDiagnJvalO3O1D                   => NULL()
+    State_Diag%Archive_SatDiagnJvalO3O1D           = .FALSE.
+
+    State_Diag%SatDiagnJvalO3O3P                   => NULL()
+    State_Diag%Archive_SatDiagnJvalO3O3P           = .FALSE.
+
     State_Diag%JNoon                               => NULL()
     State_Diag%Map_JNoon                           => NULL()
     State_Diag%Archive_JNoon                       = .FALSE.
@@ -1339,8 +1476,15 @@ CONTAINS
     State_Diag%Map_RxnRate                         => NULL()
     State_Diag%Archive_RxnRate                     = .FALSE.
 
+    State_Diag%SatDiagnRxnRate                     => NULL()
+    State_Diag%Map_SatDiagnRxnRate                 => NULL()
+    State_Diag%Archive_SatDiagnRxnRate             = .FALSE.
+
     State_Diag%OHreactivity                        => NULL()
     State_Diag%Archive_OHreactivity                = .FALSE.
+
+    State_Diag%SatDiagnOHreactivity                => NULL()
+    State_Diag%Archive_SatDiagnOHreactivity        = .FALSE.    
 
     State_Diag%UVFluxDiffuse                       => NULL()
     State_Diag%Map_UvFluxDiffuse                   => NULL()
@@ -1369,9 +1513,17 @@ CONTAINS
     State_Diag%CH4pseudoflux                       => NULL()
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
 
+    State_Diag%SatDiagnLoss                        => NULL()
+    State_Diag%Map_SatDiagnLoss                    => NULL()
+    State_Diag%Archive_SatDiagnLoss                = .FALSE.
+
     State_Diag%Loss                                => NULL()
     State_Diag%Map_Loss                            => NULL()
     State_Diag%Archive_Loss                        = .FALSE.
+
+    State_Diag%SatDiagnProd                        => NULL()
+    State_Diag%Map_SatDiagnProd                    => NULL()
+    State_Diag%Archive_SatDiagnProd                = .FALSE.
 
     State_Diag%Prod                                => NULL()
     State_Diag%Map_Prod                            => NULL()
@@ -1566,6 +1718,10 @@ CONTAINS
     State_Diag%Map_WetLossConv                     => NULL()
     State_Diag%Archive_WetLossConv                 = .FALSE.
 
+    State_Diag%SatDiagnWetLossConv                 => NULL()
+    State_Diag%Map_SatDiagnWetLossConv             => NULL()
+    State_Diag%Archive_SatDiagnWetLossConv         = .FALSE.
+
     State_Diag%WetLossConvFrac                     => NULL()
     State_Diag%Map_WetLossConvFrac                 => NULL()
     State_Diag%Archive_WetLossConvFrac             = .FALSE.
@@ -1573,6 +1729,10 @@ CONTAINS
     State_Diag%WetLossLS                           => NULL()
     State_Diag%Map_WetLossLS                       => NULL()
     State_Diag%Archive_WetLossLS                   = .FALSE.
+
+    State_Diag%SatDiagnWetLossLS                   => NULL()
+    State_Diag%Map_SatDiagnWetLossLS               => NULL()
+    State_Diag%Archive_SatDiagnWetLossLS           = .FALSE.    
 
 !### Comment out these diagnostics for now (bmy, 6/2/20)
 !###    State_Diag%PrecipFracLS                        => NULL()
@@ -1734,6 +1894,84 @@ CONTAINS
     State_Diag%RadDecay                            => NULL()
     State_Diag%Map_RadDecay                        => NULL()
     State_Diag%Archive_RadDecay                    = .FALSE.
+
+    !%%%%% Satellite diagnostic %%%%%
+
+    State_Diag%SatDiagn_StartHr                    =  0.0
+    State_Diag%SatDiagn_EndHr                      =  0.0
+    State_Diag%SatDiagn_Count                      =  0.0
+
+    State_Diag%SatDiagnCount                       => NULL()
+    State_Diag%Archive_SatDiagnCount               = .FALSE.
+    
+    State_Diag%SatDiagnConc                        => NULL()
+    State_Diag%Map_SatDiagnConc                    => NULL()
+    State_Diag%Archive_SatDiagnConc                = .FALSE.
+
+    State_Diag%SatDiagnColEmis                     => NULL()
+    State_Diag%Map_SatDiagnColEmis                 => NULL()
+    State_Diag%Archive_SatDiagnColEmis             = .FALSE.
+
+    State_Diag%SatDiagnSurfFlux                    => NULL()
+    State_Diag%Map_SatDiagnSurfFlux                => NULL()
+    State_Diag%Archive_SatDiagnSurfFlux            = .FALSE.
+
+    State_Diag%SatDiagnOH                          => NULL()
+    State_Diag%Archive_SatDiagnOH                  = .FALSE.
+
+    State_Diag%SatDiagnRH                          => NULL()
+    State_Diag%Archive_SatDiagnRH                  = .FALSE.
+
+    State_Diag%SatDiagnAirDen                      => NULL()
+    State_Diag%Archive_SatDiagnAirDen              = .FALSE.
+
+    State_Diag%SatDiagnBoxHeight                   => NULL()
+    State_Diag%Archive_SatDiagnBoxHeight           = .FALSE.
+
+    State_Diag%SatDiagnPEdge                       => NULL()
+    State_Diag%Archive_SatDiagnPEdge               = .FALSE.
+
+    State_Diag%SatDiagnTROPP                       => NULL()
+    State_Diag%Archive_SatDiagnTROPP               = .FALSE.
+
+    State_Diag%SatDiagnPBLHeight                   => NULL()
+    State_Diag%Archive_SatDiagnPBLHeight           = .FALSE.
+
+    State_Diag%SatDiagnPBLTop                      => NULL()
+    State_Diag%Archive_SatDiagnPBLTop              = .FALSE.
+
+    State_Diag%SatDiagnTAir                        => NULL()
+    State_Diag%Archive_SatDiagnTAir                = .FALSE.
+
+    State_Diag%SatDiagnGWETROOT                    => NULL()
+    State_Diag%Archive_SatDiagnGWETROOT            = .FALSE.
+
+    State_Diag%SatDiagnGWETTOP                     => NULL()
+    State_Diag%Archive_SatDiagnGWETTOP             = .FALSE.
+
+    State_Diag%SatDiagnPARDR                       => NULL()
+    State_Diag%Archive_SatDiagnPARDR               = .FALSE.
+
+    State_Diag%SatDiagnPARDF                       => NULL()
+    State_Diag%Archive_SatDiagnPARDF               = .FALSE.
+
+    State_Diag%SatDiagnPRECTOT                     => NULL()
+    State_Diag%Archive_SatDiagnPRECTOT             = .FALSE.
+
+    State_Diag%SatDiagnSLP                         => NULL()
+    State_Diag%Archive_SatDiagnSLP                 = .FALSE.
+
+    State_Diag%SatDiagnSPHU                        => NULL()
+    State_Diag%Archive_SatDiagnSPHU                = .FALSE.
+
+    State_Diag%SatDiagnTS                          => NULL()
+    State_Diag%Archive_SatDiagnTS                  = .FALSE.
+
+    State_Diag%SatDiagnPBLTOPL                     => NULL()
+    State_Diag%Archive_SatDiagnPBLTOPL             = .FALSE.
+
+    State_Diag%SatDiagnMODISLAI                    => NULL()
+    State_Diag%Archive_SatDiagnMODISLAI            = .FALSE.
 
     ! RRTMG simulation diagnostics
 
@@ -2852,6 +3090,30 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite Diagnostic: Total dry deposition flux
+    !------------------------------------------------------------------------
+    diagID  = 'SatDiagnDryDep'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnDryDep,                         &
+         archiveData    = State_Diag%Archive_SatDiagnDryDep,                 &
+         mapData        = State_Diag%Map_SatDiagnDryDep,                     &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF    
+
+    !------------------------------------------------------------------------
     ! Dry deposition flux from chemistry
     ! NOTE: Turn on this diagnostic if we are saving total drydep,
     ! but do not register individual fields unless they are in HISTORY.rc
@@ -2967,6 +3229,31 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Satellite Diagnostic: Dry deposition velocity
+    !-----------------------------------------------------------------------
+    diagID  = 'SatDiagnDryDepVel'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnDryDepVel,                      &
+         archiveData    = State_Diag%Archive_SatDiagnDryDepVel,              &
+         mapData        = State_Diag%Map_SatDiagnDryDepVel,                  &
+         diagId         = diagId,                                            &
+         diagFlag       = 'D',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -3403,6 +3690,30 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
+    ! Satellite Diagnostics: Loss of soluble species in convective updrafts
+    !-----------------------------------------------------------------------
+    diagID  = 'SatDiagnWetLossConv'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnWetLossConv,                    &
+         archiveData    = State_Diag%Archive_SatDiagnWetLossConv,            &
+         mapData        = State_Diag%Map_SatDiagnWetLossConv,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Loss of solutble species in large-scale rainout/washout
     !-----------------------------------------------------------------------
     diagID  = 'WetLossLS'
@@ -3416,6 +3727,30 @@ CONTAINS
          Ptr2Data       = State_Diag%WetLossLS,                              &
          archiveData    = State_Diag%Archive_WetLossLS,                      &
          mapData        = State_Diag%Map_WetLossLS,                          &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! SatDiagn Diagnostic: Loss of soluble species in large-scale rainout/washout
+    !-----------------------------------------------------------------------
+    diagID  = 'SatDiagnWetLossLS'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnWetLossLS,                      &
+         archiveData    = State_Diag%Archive_SatDiagnWetLossLS,              &
+         mapData        = State_Diag%Map_SatDiagnWetLossLS,                  &
          diagId         = diagId,                                            &
          diagFlag       = 'W',                                               &
          RC             = RC                                                )
@@ -3565,6 +3900,540 @@ CONTAINS
           ENDIF
        ENDDO
 
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Advected species concentrations
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnConc'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnConc,                           &
+         archiveData    = State_Diag%Archive_SatDiagnConc,                   &
+         mapData        = State_Diag%Map_SatDiagnConc,                       &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Column Emissions [kg/m2/s] for Advected Species
+    ! From Surface to Maximum Vertical Level
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnColEmis'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnColEmis,                        &
+         archiveData    = State_Diag%Archive_SatDiagnColEmis,                &
+         mapData        = State_Diag%Map_SatDiagnColEmis,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Total Surface Fluxes [kg/m2/s] [eflx (emis)- dflx (drydep)]
+    ! From Surface to Top of the PBL; For Advected Species
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnSurfFlux'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnSurfFlux,                       &
+         archiveData    = State_Diag%Archive_SatDiagnSurfFlux,               &
+         mapData        = State_Diag%Map_SatDiagnSurfFlux,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: OH number density
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnOH'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnOH,                             &
+         archiveData    = State_Diag%Archive_SatDiagnOH,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Relative humidity (RH)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnRH'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnRH,                             &
+         archiveData    = State_Diag%Archive_SatDiagnRH,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Air density (AirDen)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnAirDen'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnAirDen,                         &
+         archiveData    = State_Diag%Archive_SatDiagnAirDen,                 &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Box height (BoxHeight)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnBoxHeight'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnBoxHeight,                      &
+         archiveData    = State_Diag%Archive_SatDiagnBoxHeight,              &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Pressure edges (PEDGE)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPEdge'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPEdge,                          &
+         archiveData    = State_Diag%Archive_SatDiagnPEdge,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Tropopause pressure (TROPP)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnTROPP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnTROPP,                          &
+         archiveData    = State_Diag%Archive_SatDiagnTROPP,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: PBL Height (m)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPBLHeight'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPBLHeight,                      &
+         archiveData    = State_Diag%Archive_SatDiagnPBLHeight,              &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: PBL Height (m)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPBLTop'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPBLTop,                         &
+         archiveData    = State_Diag%Archive_SatDiagnPBLTop,                 &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Air temperature (K)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnTAir'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnTAir,                           &
+         archiveData    = State_Diag%Archive_SatDiagnTAir,                   &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Root Zone Soil Moisture (or Wetness): GWETROOT
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnGWETROOT'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnGWETROOT,                       &
+         archiveData    = State_Diag%Archive_SatDiagnGWETROOT,               &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Topsoil Moisture (or Wetness): GWETTOP
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnGWETTOP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnGWETTOP,                        &
+         archiveData    = State_Diag%Archive_SatDiagnGWETTOP,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Direct Photosynthetically Active Radiation [W/m2]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPARDR'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPARDR,                          &
+         archiveData    = State_Diag%Archive_SatDiagnPARDR,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Diffuse Photosynthetically Active Radiation [W/m2]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPARDF'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPARDF,                          &
+         archiveData    = State_Diag%Archive_SatDiagnPARDF,                  &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Total Precipitation (at surface) [mm/day]: PRECTOT
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPRECTOT'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPRECTOT,                        &
+         archiveData    = State_Diag%Archive_SatDiagnPRECTOT,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Sea Level Pressure [hPa]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnSLP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnSLP,                            &
+         archiveData    = State_Diag%Archive_SatDiagnSLP,                    &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Specific Humidity Interpolated to Current Time [g H2O/kg air]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnSPHU'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnSPHU,                           &
+         archiveData    = State_Diag%Archive_SatDiagnSPHU,                   &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Surface Temperature at 2m [K]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnTS'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnTS,                             &
+         archiveData    = State_Diag%Archive_SatDiagnTS,                     &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: PBL Top Height [Levels]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPBLTOPL'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPBLTOPL,                        &
+         archiveData    = State_Diag%Archive_SatDiagnPBLTOPL,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: MODIS Daily LAI [m2/m2]
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnMODISLAI'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnMODISLAI,                       &
+         archiveData    = State_Diag%Archive_SatDiagnMODISLAI,               &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! ------------------------------------------------------------------------
+    ! Satellite diagnostic: Counter
+    !------------------------------------------------------------------------
+    IF ( State_Diag%Archive_SatDiagnConc        .OR. &
+         State_Diag%Archive_SatDiagnColEmis     .OR. &
+         State_Diag%Archive_SatDiagnSurfFlux    .OR. &
+         State_Diag%Archive_SatDiagnOH          .OR. &
+         State_Diag%Archive_SatDiagnRH          .OR. &
+         State_Diag%Archive_SatDiagnAirDen      .OR. &
+         State_Diag%Archive_SatDiagnBoxHeight   .OR. &
+         State_Diag%Archive_SatDiagnPEdge       .OR. &
+         State_Diag%Archive_SatDiagnTROPP       .OR. &
+         State_Diag%Archive_SatDiagnPBLHeight   .OR. &
+         State_Diag%Archive_SatDiagnPBLTop      .OR. &
+         State_Diag%Archive_SatDiagnTAir        .OR. &
+         State_Diag%Archive_SatDiagnGWETROOT    .OR. &
+         State_Diag%Archive_SatDiagnGWETTOP     .OR. &
+         State_Diag%Archive_SatDiagnPARDR       .OR. &
+         State_Diag%Archive_SatDiagnPARDF       .OR. &
+         State_Diag%Archive_SatDiagnPRECTOT     .OR. &
+         State_Diag%Archive_SatDiagnSLP         .OR. &
+         State_Diag%Archive_SatDiagnSPHU        .OR. &
+         State_Diag%Archive_SatDiagnTS          .OR. &
+         State_Diag%Archive_SatDiagnPBLTOPL     .OR. &
+         State_Diag%Archive_SatDiagnMODISLAI    .OR. &
+         State_Diag%Archive_SatDiagnWetLossLS   .OR. &
+         State_Diag%Archive_SatDiagnWetLossConv .OR. &
+         State_Diag%Archive_SatDiagnJval        .OR. &
+         State_Diag%Archive_SatDiagnJvalO3O1D   .OR. &
+         State_Diag%Archive_SatDiagnJvalO3O3P   .OR. &
+         State_Diag%Archive_SatDiagnDryDep      .OR. &
+         State_Diag%Archive_SatDiagnDryDepVel   .OR. &
+         State_Diag%Archive_SatDiagnOHreactivity ) THEN
+       ! Array to contain the satellite diagnostic weights
+       ALLOCATE( State_Diag%SatDiagnCount( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
+                 STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DiagnCount', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SatDiagnCount = 0.0_f4
+       State_Diag%Archive_SatDiagnCount = .TRUE.
     ENDIF
 
     !=======================================================================
@@ -4081,6 +4950,30 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Satellite Diagnostic: KPP Reaction Rates
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnRxnRate'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnRxnRate,                     &
+            archiveData    = State_Diag%Archive_SatDiagnRxnRate,             &
+            mapData        = State_Diag%Map_SatDiagnRxnRate,                 &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! OH reactivity
        !--------------------------------------------------------------------
        diagID  = 'OHreactivity'
@@ -4124,6 +5017,28 @@ CONTAINS
           RETURN
        ENDIF
 #endif
+
+       !--------------------------------------------------------------------
+       ! Satellite Diagnostic: OH reactivity
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnOHreactivity'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnOHreactivity,                &
+            archiveData    = State_Diag%Archive_SatDiagnOHreactivity,        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF       
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
@@ -4184,6 +5099,74 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%JvalO3O3P,                           &
             archiveData    = State_Diag%Archive_JvalO3O3P,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Satellite Diagnostics J-Values (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnJval'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnJval,                        &
+            archiveData    = State_Diag%Archive_SatDiagnJval,                &
+            mapData        = State_Diag%Map_SatDiagnJval,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'P',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Satellite Diagnostics J-Values for O3_O1D (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnJvalO3O1D'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnJvalO3O1D,                   &
+            archiveData    = State_Diag%Archive_SatDiagnJvalO3O1D,           &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Satellite Diagnostics J-Values for O3_O3P (instantaneous values)
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnJvalO3O3P'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnJvalO3O3P,                   &
+            archiveData    = State_Diag%Archive_SatDiagnJvalO3O3P,           &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -6918,6 +7901,30 @@ CONTAINS
          Input_Opt%ITS_A_TAGCO_SIM    .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
        !--------------------------------------------------------------------
+       ! Satellite Diagnostic: Chemical loss for selected species or families
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnLoss'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnLoss,                        &
+            archiveData    = State_Diag%Archive_SatDiagnLoss,                &
+            mapData        = State_Diag%Map_SatDiagnLoss,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'X',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Chemical loss for selected species or families
        !--------------------------------------------------------------------
        diagID  = 'Loss'
@@ -6933,6 +7940,30 @@ CONTAINS
             mapData        = State_Diag%Map_Loss,                            &
             diagId         = diagId,                                         &
             diagFlag       = 'X',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Satellite Diagnostic: Chemical production for selected species or families
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnProd'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnProd,                        &
+            archiveData    = State_Diag%Archive_SatDiagnProd,                &
+            mapData        = State_Diag%Map_SatDiagnProd,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Y',                                            &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -9369,6 +10400,18 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnDryDep',                              &
+                   Ptr2Data = State_Diag%SatDiagnDryDep,                     &
+                   mapData  = State_Diag%Map_SatDiagnDryDep,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnDryDepVel',                           &
+                   Ptr2Data = State_Diag%SatDiagnDryDepVel,                  &
+                   mapData  = State_Diag%Map_SatDiagnDryDepVel,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'Jval',                                        &
                    Ptr2Data = State_Diag%Jval,                               &
                    mapData  = State_Diag%Map_Jval,                           &
@@ -9382,6 +10425,22 @@ CONTAINS
 
     CALL Finalize( diagId   = 'JvalO3O3P',                                   &
                    Ptr2Data = State_Diag%Jval,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnJval',                                 &
+                   Ptr2Data = State_Diag%SatDiagnJval,                        &
+                   mapData  = State_Diag%Map_SatDiagnJval,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnJvalO3O1D',                            &
+                   Ptr2Data = State_Diag%SatDiagnJval,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnJvalO3O3P',                            &
+                   Ptr2Data = State_Diag%SatDiagnJval,                        &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9402,6 +10461,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnRxnRate',                             &
+                   Ptr2Data = State_Diag%SatDiagnRxnRate,                    &
+                   mapData  = State_Diag%Map_SatDiagnRxnRate,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'OHreactivity',                                &
                    Ptr2Data = State_Diag%OHreactivity,                       &
                    RC       = RC                                            )
@@ -9413,6 +10478,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
+
+    CALL Finalize( diagId   = 'SatDiagnOHreactivity',                        &
+                   Ptr2Data = State_Diag%SatDiagnOHreactivity,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'UvFluxDiffuse',                               &
                    Ptr2Data = State_Diag%UvFluxDiffuse,                      &
@@ -9473,6 +10543,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnWetLossConv',                         &
+                   Ptr2Data = State_Diag%SatDiagnWetLossConv,                &
+                   mapData  = State_Diag%Map_SatDiagnWetLossConv,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'WetLossConvFrac',                             &
                    Ptr2Data = State_Diag%WetLossConvFrac,                    &
                    RC       = RC                                            )
@@ -9481,6 +10557,12 @@ CONTAINS
     CALL Finalize( diagId   = 'WetLossLS',                                   &
                    Ptr2Data = State_Diag%WetLossLS,                          &
                    mapData  = State_Diag%Map_WetLossLS,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnWetLossLS',                           &
+                   Ptr2Data = State_Diag%SatDiagnWetLossLS,                  &
+                   mapData  = State_Diag%Map_SatDiagnWetLossLS,              &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9504,6 +10586,119 @@ CONTAINS
 !       IF ( RC /= GC_SUCCESS ) RETURN
 !       State_Diag%WashFracLS => NULL()
 !    ENDIF
+
+    CALL Finalize( diagId   = 'SatDiagnConc',                                &
+                   Ptr2Data = State_Diag%SatDiagnConc,                       &
+                   mapData  = State_Diag%Map_SatDiagnConc,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnColEmis',                             &
+                   Ptr2Data = State_Diag%SatDiagnColEmis,                    &
+                   mapData  = State_Diag%Map_SatDiagnColEmis,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnSurfFlux',                            &
+                   Ptr2Data = State_Diag%SatDiagnSurfFlux,                   &
+                   mapData  = State_Diag%Map_SatDiagnSurfFlux,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnOH',                                &
+                   Ptr2Data = State_Diag%SatDiagnOH,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnRH',                                &
+                   Ptr2Data = State_Diag%SatDiagnRH,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnAirDen',                            &
+                   Ptr2Data = State_Diag%SatDiagnAirDen,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnBoxHeight',                         &
+                   Ptr2Data = State_Diag%SatDiagnBoxHeight,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPEdge',                             &
+                   Ptr2Data = State_Diag%SatDiagnPEdge,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnTROPP',                             &
+                   Ptr2Data = State_Diag%SatDiagnTROPP,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPBLHeight',                         &
+                   Ptr2Data = State_Diag%SatDiagnPBLHeight,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPBLTop',                            &
+                   Ptr2Data = State_Diag%SatDiagnPBLTop,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnTAir',                              &
+                   Ptr2Data = State_Diag%SatDiagnTAir,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnGWETROOT',                          &
+                   Ptr2Data = State_Diag%SatDiagnGWETROOT,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnGWETTOP',                           &
+                   Ptr2Data = State_Diag%SatDiagnGWETTOP,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPARDR',                             &
+                   Ptr2Data = State_Diag%SatDiagnPARDR,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPARDF',                             &
+                   Ptr2Data = State_Diag%SatDiagnPARDF,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPRECTOT',                           &
+                   Ptr2Data = State_Diag%SatDiagnPRECTOT,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnSLP',                               &
+                   Ptr2Data = State_Diag%SatDiagnSLP,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnSPHU',                              &
+                   Ptr2Data = State_Diag%SatDiagnSPHU,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnTS',                                &
+                   Ptr2Data = State_Diag%SatDiagnTS,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPBLTOPL',                           &
+                   Ptr2Data = State_Diag%SatDiagnPBLTOPL,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnMODISLAI',                          &
+                   Ptr2Data = State_Diag%SatDiagnMODISLAI,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'PbFromRnDecay',                               &
                    Ptr2Data = State_Diag%PbFromRnDecay,                      &
@@ -9758,9 +10953,21 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnLoss',                                &
+                   Ptr2Data = State_Diag%SatDiagnLoss,                       &
+                   mapData  = State_Diag%Map_SatDiagnLoss,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'Loss',                                        &
                    Ptr2Data = State_Diag%Loss,                               &
                    mapData  = State_Diag%Map_Loss,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnProd',                                &
+                   Ptr2Data = State_Diag%SatDiagnProd,                       &
+                   mapData  = State_Diag%Map_SatDiagnProd,                   &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10831,6 +12038,18 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNDRYDEP' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
+       IF ( isUnits   ) Units = 'molec cm-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNDRYDEPVEL' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity of species'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRY'       
+
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'MONINOBUKHOV' ) THEN
        IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
@@ -10923,6 +12142,22 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNJVAL' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for species'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'PHO'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNJVALO3O1D' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for O3 -> O1D'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNJVALO3O3P' ) THEN
+       IF ( isDesc    ) Desc  = 'Photolysis rate for O3 -> O3P'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'JNOON' ) THEN
        IF ( isDesc    ) Desc  = 'Noontime photolysis rate for species'
        IF ( isUnits   ) Units = 's-1'
@@ -10941,6 +12176,12 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNRXNRATE' ) THEN
+       IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'RXN'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'OHREACTIVITY' ) THEN
        IF ( isDesc    ) Desc  = 'OH reactivity'
        IF ( isUnits   ) Units = 's-1'
@@ -10952,6 +12193,11 @@ CONTAINS
        IF ( isUnits   ) Units = 'h'
        IF ( isRank    ) Rank  = 3
 #endif
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNOHREACTIVITY' ) THEN
+       IF ( isDesc    ) Desc  = 'OH reactivity'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3       
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
        IF ( isDesc    ) Desc  = 'Diffuse UV flux in bin'
@@ -11026,6 +12272,13 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNWETLOSSCONV' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Loss of soluble species in convective updrafts'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'WET'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRECIPFRACCONV' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of grid box undergoing ' // &
                                 'convective precipitation'
@@ -11047,6 +12300,13 @@ CONTAINS
        IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSLS' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale ' // &
+                                'precipitation'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'WET'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNWETLOSSLS' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale ' // &
                                 'precipitation'
        IF ( isUnits   ) Units = 'kg s-1'
@@ -11084,6 +12344,121 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNCONC' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
+       IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNCOLEMIS' ) THEN
+       IF ( isDesc    ) Desc  = 'Column Emissions for Advected Species'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNSURFFLUX' ) THEN
+       IF ( isDesc    ) Desc  = 'Total Surface Fluxes (EFLX (emis) - DFLX (drydep)); from Surface to Top of PBL) for Advected Species'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'       
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNOH' ) THEN
+       IF ( isDesc    ) Desc  = 'OH number density'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNRH' ) THEN
+       IF ( isDesc    ) Desc  = 'Relative humidity'
+       IF ( isUnits   ) Units = '%'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNAIRDEN' ) THEN
+       IF ( isDesc    ) Desc  = 'Air density'
+       IF ( isUnits   ) Units = 'molec/cm3'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNBOXHEIGHT' ) THEN
+       IF ( isDesc    ) Desc  = 'Box height'
+       IF ( isUnits   ) Units = 'm'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPEDGE' ) THEN
+       IF ( isDesc    ) Desc  = 'Pressure edges'
+       IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 3
+       !IF ( isVLoc    ) VLoc  = VLocationEdge
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPP' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropopause pressure'
+       IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPBLHEIGHT' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL Height'
+       IF ( isUnits   ) Units = 'm'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPBLTOP' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL Top'
+       IF ( isUnits   ) Units = 'm'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTAIR' ) THEN
+       IF ( isDesc    ) Desc  = 'Air temperature'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNGWETROOT' ) THEN
+       IF ( isDesc    ) Desc  = 'Root Zone Soil Moisture (or Wetness)'
+       IF ( isUnits   ) Units = 'Fraction'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNGWETTOP' ) THEN
+       IF ( isDesc    ) Desc  = 'Topsoil Moisture (or Wetness)'
+       IF ( isUnits   ) Units = 'Fraction'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPARDR' ) THEN
+       IF ( isDesc    ) Desc  = 'Direct Photosynthetically Active Radiation'
+       IF ( isUnits   ) Units = 'W/m2'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPARDF' ) THEN
+       IF ( isDesc    ) Desc  = 'Diffuse Photosynthetically Active Radiation'
+       IF ( isUnits   ) Units = 'W/m2'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPRECTOT' ) THEN
+       IF ( isDesc    ) Desc  = 'Total Precipitation (at surface)'
+       IF ( isUnits   ) Units = 'mm/day'
+       IF ( isRank    ) Rank  = 2       
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNSLP' ) THEN
+       IF ( isDesc    ) Desc  = 'Sea Level Pressure'
+       IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNSPHU' ) THEN
+       IF ( isDesc    ) Desc  = 'Specific Humidity Interpolated to Current Time'
+       IF ( isUnits   ) Units = 'g H2O/kg air'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTS' ) THEN
+       IF ( isDesc    ) Desc  = 'Surface Temperature at 2m'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPBLTOPL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL Top Height'
+       IF ( isUnits   ) Units = 'Levels'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNMODISLAI' ) THEN
+       IF ( isDesc    ) Desc  = 'MODIS Daily LAI'
+       IF ( isUnits   ) Units = 'm2/m2'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at surface'
@@ -11495,10 +12870,42 @@ CONTAINS
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNLOSS' ) THEN
+       IF ( IsDesc    ) Desc  = 'Chemical loss of'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'LOS'
+
+       ! NOTE: Units are different depending on simulation, due to historical
+       ! baggage.  Maybe clean this up at a later point to use the same units
+       ! regardless of simulation type. (bmy, 12/4/17)
+       IF ( isUnits   ) THEN
+          IF ( IsFullChem ) THEN
+             Units = 'molec cm-3 s-1'
+          ELSE
+             Units = 'kg s-1'
+          ENDIF
+       ENDIF
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSS' ) THEN
        IF ( IsDesc    ) Desc  = 'Chemical loss of'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'LOS'
+
+       ! NOTE: Units are different depending on simulation, due to historical
+       ! baggage.  Maybe clean this up at a later point to use the same units
+       ! regardless of simulation type. (bmy, 12/4/17)
+       IF ( isUnits   ) THEN
+          IF ( IsFullChem ) THEN
+             Units = 'molec cm-3 s-1'
+          ELSE
+             Units = 'kg s-1'
+          ENDIF
+       ENDIF
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPROD' ) THEN
+       IF ( isDesc    ) Desc  = 'Chemical production of'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'PRD'
 
        ! NOTE: Units are different depending on simulation, due to historical
        ! baggage.  Maybe clean this up at a later point to use the same units
@@ -14666,7 +16073,7 @@ CONTAINS
     TYPE(OptInput),        INTENT(IN)  :: Input_Opt      ! Input Options
     TYPE(ChmState),        INTENT(IN)  :: State_Chm      ! Chemistry State
     TYPE(TaggedDgnList),   INTENT(IN)  :: TaggedDiagList ! Tags/WCs per diag
-    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diangnostic name
+    CHARACTER(LEN=*),      INTENT(IN)  :: metadataId     ! Diagnostic name
     CHARACTER(LEN=*),      INTENT(IN)  :: indFlag        !
 !
 ! !OUTPUT PARAMETERS:

@@ -4628,10 +4628,10 @@ CONTAINS
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants
-    USE Species_Mod,          ONLY : Species
+    USE Species_Mod,          ONLY : Species,  SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
-    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Diag_Mod,       ONLY : DgnState, DgnMap
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
@@ -4694,6 +4694,9 @@ CONTAINS
     REAL(fp), TARGET        :: eflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
+    REAL(fp), TARGET        :: colEflx(State_Grid%NX,                        &
+                                       State_Grid%NY,                        &
+                                       State_Chm%nAdvect                    )
     REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
@@ -4705,6 +4708,7 @@ CONTAINS
     REAL(f4),       POINTER :: PNOxLoss_HNO3(:,:)
 
     TYPE(Species),  POINTER :: ThisSpc
+    TYPE(DgnMap),   POINTER :: mapData
 
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
@@ -4714,6 +4718,7 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
+    colEflx =  0.0_fp
     ThisSpc => NULL()
     errMsg  = ''
     thisLoc = &
@@ -4863,6 +4868,15 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
+           ! Compute column emission fluxes for satellite diagnostics
+           tmpFlx = 0.0_fp
+           DO L = 1, State_Grid%NZ
+              CALL GetHcoValEmis( Input_Opt, State_Grid, NA, I, J, L, found, emis )
+              IF ( .NOT. found ) EXIT
+              tmpFlx = tmpFlx + emis
+           ENDDO
+           colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+
         ENDIF
 #endif
 
@@ -4988,6 +5002,44 @@ CONTAINS
        ! SFLX is what we need to pass into routine VDIFF
        !=====================================================================
        State_Chm%SurfaceFlux(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
+
+       !=====================================================================
+       ! Defining Satellite Diagnostics
+       !=====================================================================
+
+       ! Define emission satellite diagnostics
+       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+
+         ! Point to mapping obj specific to this diagnostic
+         mapData => State_Diag%Map_SatDiagnColEmis
+
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             !Print *, 'JDS N = ', N
+             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)             
+          ENDDO
+
+        ! Free pointer
+        mapData => NULL()
+
+       ENDIF
+
+       ! N.B. SatDiagnSurfFlux contains within it the underlying eflx variable as opposed to colEflx.
+       ! Thus, taking SatDiagnSurfFlux - SatDiagnColEmis will not necessarily equal the dry deposition flux (dflx)
+       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
+
+         ! Point to mapping obj specific to this diagnostic
+         mapData => State_Diag%Map_SatDiagnSurfFlux
+
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)             
+          ENDDO
+
+        ! Free pointer
+        mapData => NULL()
+
+       ENDIF
 
        !=====================================================================
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
