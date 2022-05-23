@@ -437,11 +437,6 @@ CONTAINS
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
-#ifdef BPCH_DIAG
-    USE Diag51_Mod,         ONLY : Init_Diag51
-    USE Diag51b_Mod,        ONLY : Init_Diag51b
-    USE Gamap_Mod,          ONLY : Do_Gamap
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -777,14 +772,6 @@ CONTAINS
 
     ! Allocate and initialize variables
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
-
-    ! Satellite timeseries (bpch)
-    IF ( Input_Opt%DO_ND51 ) THEN
-       CALL Init_Diag51 ( Input_Opt, State_Grid, RC )
-    ENDIF
-    IF ( Input_Opt%DO_ND51b ) THEN
-       CALL Init_Diag51b( Input_Opt, State_Grid, RC )
-    ENDIF
 
 #if defined( MODEL_CLASSIC )
     !--------------------------------------------------------------------

@@ -85,8 +85,6 @@ PROGRAM GEOS_Chem
 #ifdef BPCH_DIAG
   USE DIAG_MOD              ! G-C diagnostic arrays & counters
   USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
-  USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
-  USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
 #endif
   USE PLANEFLIGHT_MOD       ! For planeflight track diag
   USE HISTORY_MOD           ! Updated netCDF diagnostics
@@ -1989,43 +1987,6 @@ PROGRAM GEOS_Chem
           ENDIF
           IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after Planeflight' )
 
-#ifdef BPCH_DIAG
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Binary punch diagnostics",  RC )
-          ENDIF
-
-          !------------------------------------------------------------------
-          !     ***** T I M E S E R I E S   D I A G N O S T I C S  *****
-          !------------------------------------------------------------------
-
-          ! Morning or afternoon timeseries
-          IF ( Input_Opt%DO_ND51 ) THEN
-             CALL DIAG51( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag51"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-          ENDIF
-
-          IF ( Input_Opt%DO_ND51b ) THEN
-             CALL DIAG51b( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag51b"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-          ENDIF
-          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG51' )
-
-          IF ( prtDebug ) CALL Debug_Msg('### MAIN: after TIMESERIES')
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Binary punch diagnostics",  RC )
-          ENDIF
-#endif
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "All diagnostics",              RC )
              CALL Timer_End( "Output",                       RC )

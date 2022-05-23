@@ -4826,16 +4826,17 @@ CONTAINS
          CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
       ENDIF
 
-      !$OMP PARALLEL DO                                                        &
-      !$OMP DEFAULT( SHARED )                                                  &
-      !$OMP PRIVATE( I,       J,            topMix                            )&
-      !$OMP PRIVATE( tmpflx,  found,        emis,      dep                    )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED )                                                &
+      !$OMP PRIVATE( I,       J,         topMix                             )&
+      !$OMP PRIVATE( found,   emis,      dep                                )&
+      !$OMP REDUCTION( +:tmpflx                                             )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
       ! Below emissions. Do not apply for MODEL_CESM as its handled by
       ! HEMCO-CESM independently
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
         ! PBL top level [integral model levels]
         topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
@@ -4869,13 +4870,16 @@ CONTAINS
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
            ! Compute column emission fluxes for satellite diagnostics
-           tmpFlx = 0.0_fp
-           DO L = 1, State_Grid%NZ
-              CALL GetHcoValEmis( Input_Opt, State_Grid, NA, I, J, L, found, emis )
-              IF ( .NOT. found ) EXIT
-              tmpFlx = tmpFlx + emis
-           ENDDO
-           colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+           IF ( State_Diag%Archive_SatDiagn ) THEN
+              tmpFlx = 0.0_fp
+              DO L = 1, State_Grid%NZ
+                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
+                                     J,         L,          found, emis     )
+                 IF ( .NOT. found ) EXIT
+                 tmpFlx = tmpFlx + emis
+              ENDDO
+              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+           ENDIF
 
         ENDIF
 #endif

@@ -49,8 +49,6 @@ add_library(GeosCore
   convection_mod.F90
   depo_mercury_mod.F90
   diag3.F90
-  diag51b_mod.F90
-  diag51_mod.F90
   drydep_mod.F90
   dust_mod.F90
   emissions_mod.F90

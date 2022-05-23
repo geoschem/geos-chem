@@ -238,6 +238,7 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: SatDiagnDryDep(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDep
      LOGICAL                     :: Archive_SatDiagnDryDep
+     LOGICAL                     :: Archive_SatDiagn
 
      REAL(f4),           POINTER :: SatDiagnDryDepVel(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDepVel
@@ -1438,6 +1439,7 @@ CONTAINS
     State_Diag%SatDiagnDryDep                      => NULL()
     State_Diag%Map_SatDiagnDryDep                  => NULL()
     State_Diag%Archive_SatDiagnDryDep              = .FALSE.
+    State_Diag%Archive_SatDiagn                    = .FALSE.
 
     State_Diag%SatDiagnDryDepVel                   => NULL()
     State_Diag%Map_SatDiagnDryDepVel               => NULL()
@@ -4394,42 +4396,49 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ------------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Set a single logical for SatDiagn output
+    !------------------------------------------------------------------------
+    State_Diag%Archive_SatDiagn = (                                          &
+         State_Diag%Archive_SatDiagnColEmis                             .or. &
+         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
+         State_Diag%Archive_SatDiagnOH                                  .or. &
+         State_Diag%Archive_SatDiagnRH                                  .or. &
+         State_Diag%Archive_SatDiagnAirDen                              .or. &
+         State_Diag%Archive_SatDiagnBoxHeight                           .or. &
+         State_Diag%Archive_SatDiagnPEdge                               .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnGWETROOT                            .or. &
+         State_Diag%Archive_SatDiagnGWETTOP                             .or. &
+         State_Diag%Archive_SatDiagnPARDR                               .or. &
+         State_Diag%Archive_SatDiagnPARDF                               .or. &
+         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
+         State_Diag%Archive_SatDiagnSLP                                 .or. &
+         State_Diag%Archive_SatDiagnSPHU                                .or. &
+         State_Diag%Archive_SatDiagnTS                                  .or. &
+         State_Diag%Archive_SatDiagnPBLTOPL                             .or. &
+         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
+         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
+         State_Diag%Archive_SatDiagnWetLossConv                         .or. &
+         State_Diag%Archive_SatDiagnJval                                .or. &
+         State_Diag%Archive_SatDiagnJvalO3O1D                           .or. &
+         State_Diag%Archive_SatDiagnJvalO3O3P                           .or. &
+         State_Diag%Archive_SatDiagnDryDep                              .or. &
+         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
+         State_Diag%Archive_SatDiagnOHreactivity                            )
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: Counter
     !------------------------------------------------------------------------
-    IF ( State_Diag%Archive_SatDiagnConc        .OR. &
-         State_Diag%Archive_SatDiagnColEmis     .OR. &
-         State_Diag%Archive_SatDiagnSurfFlux    .OR. &
-         State_Diag%Archive_SatDiagnOH          .OR. &
-         State_Diag%Archive_SatDiagnRH          .OR. &
-         State_Diag%Archive_SatDiagnAirDen      .OR. &
-         State_Diag%Archive_SatDiagnBoxHeight   .OR. &
-         State_Diag%Archive_SatDiagnPEdge       .OR. &
-         State_Diag%Archive_SatDiagnTROPP       .OR. &
-         State_Diag%Archive_SatDiagnPBLHeight   .OR. &
-         State_Diag%Archive_SatDiagnPBLTop      .OR. &
-         State_Diag%Archive_SatDiagnTAir        .OR. &
-         State_Diag%Archive_SatDiagnGWETROOT    .OR. &
-         State_Diag%Archive_SatDiagnGWETTOP     .OR. &
-         State_Diag%Archive_SatDiagnPARDR       .OR. &
-         State_Diag%Archive_SatDiagnPARDF       .OR. &
-         State_Diag%Archive_SatDiagnPRECTOT     .OR. &
-         State_Diag%Archive_SatDiagnSLP         .OR. &
-         State_Diag%Archive_SatDiagnSPHU        .OR. &
-         State_Diag%Archive_SatDiagnTS          .OR. &
-         State_Diag%Archive_SatDiagnPBLTOPL     .OR. &
-         State_Diag%Archive_SatDiagnMODISLAI    .OR. &
-         State_Diag%Archive_SatDiagnWetLossLS   .OR. &
-         State_Diag%Archive_SatDiagnWetLossConv .OR. &
-         State_Diag%Archive_SatDiagnJval        .OR. &
-         State_Diag%Archive_SatDiagnJvalO3O1D   .OR. &
-         State_Diag%Archive_SatDiagnJvalO3O3P   .OR. &
-         State_Diag%Archive_SatDiagnDryDep      .OR. &
-         State_Diag%Archive_SatDiagnDryDepVel   .OR. &
-         State_Diag%Archive_SatDiagnOHreactivity ) THEN
+    IF ( State_Diag%Archive_SatDiagn ) THEN 
+
        ! Array to contain the satellite diagnostic weights
-       ALLOCATE( State_Diag%SatDiagnCount( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
-                 STAT=RC )
+       ALLOCATE( State_Diag%SatDiagnCount( State_Grid%NX,                    &
+                                           State_Grid%NY,                    &
+                                           State_Grid%NZ ), STAT=RC         )
        CALL GC_CheckVar( 'State_Diag%DiagnCount', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SatDiagnCount = 0.0_f4
