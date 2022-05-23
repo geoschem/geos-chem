@@ -837,7 +837,7 @@ CONTAINS
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
                             ' the transport time step.'  
-                 !RC = GC_FAILURE !bc, comment out for test
+                 !RC = GC_FAILURE !comment out to allow model to run for now -needs fix
                 ENDIF
              ENDIF
 

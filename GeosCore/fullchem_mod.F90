@@ -1200,7 +1200,7 @@ CONTAINS
 !#endif
 !#endif
 
-!betty
+
 #ifdef TOMAS
           !-----------------------------------------------------------------
           ! FOR TOMAS MICROPHYSICS:
@@ -2478,7 +2478,7 @@ CONTAINS
           IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
           IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
 
-!betty
+
           ! Find the KPP Id corresponding to PSO4
           ! so that we can save output for TOMAS simulations
           IF ( TRIM( Fam_Names(N) ) == 'PSO4'  ) id_PSO4  = KppId

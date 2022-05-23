@@ -816,7 +816,7 @@ CONTAINS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
-      !$OMP PARALLEL DO ssta      &
+      !$OMP PARALLEL DO       &
       !$OMP DEFAULT( SHARED ) &
       !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
       DO L = 1, State_Grid%NZ

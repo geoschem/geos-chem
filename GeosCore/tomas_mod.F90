@@ -548,7 +548,7 @@ CONTAINS
     nucrate(:,:)  = 0.e+0_fp
     nucrate1(:,:) = 0.e+0_fp
 
-    !betty - remove BPCH diagnostics
+    !remove BPCH diagnostics
     ! First-time setup
     if (firsttime) then
 
@@ -704,7 +704,7 @@ CONTAINS
 
        ! Give it the pseudo-steady state value instead later (win,9/30/08)
        !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
-!betty
+!
        H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
         !  if (H2SO4_RATE(I,J,L) > 0.e+0_fp) then
         !  print*,'H2SO4 is ',H2SO4_RATE(I,J,L), I, J, L
@@ -760,11 +760,11 @@ CONTAINS
 
        !MPNUM = 5
        MPNUM = 11
-!betty removed
+!removed
 !#ifdef BPCH_DIAG
        !IF ( ND60 > 0 ) THEN 
-           IF ( State_Diag%Archive_TomasERRORezwat1mass .or. &
-                State_Diag%Archive_TomasERRORezwat1number )  &
+           IF ( State_Diag%Archive_TomasMNFIXezwat1mass .or. &
+                State_Diag%Archive_TomasMNFIXezwat1number )  &
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
             State_Diag )
        !ENDIF
@@ -795,7 +795,7 @@ CONTAINS
        !-------------------------------------
        ! Condensation and nucleation (coupled)
        !-------------------------------------
-!betty
+!
 !       IF ( COND .AND. NUCL ) THEN
        IF ( COND .AND. NUCL .AND. H2SO4rate_o > 0.e0_fp) THEN
 
@@ -940,7 +940,7 @@ CONTAINS
              ENDDO
           ENDDO
 
-       ENDIF ! end of cond and nuc !betty - note changed the if above here
+       ENDIF ! end of cond and nuc !
 
        ! nitrogen and sulfur mass checks
        ! get the total mass of N
@@ -972,8 +972,8 @@ CONTAINS
         MPNUM = 14
 !#ifdef BPCH_DIAG
 !       IF ( ND60 > 0 ) THEN
-           IF ( State_Diag%Archive_TomasERRORcondmass .or. &
-                State_Diag%Archive_TomasERRORcondnumber )  &
+           IF ( State_Diag%Archive_TomasMNFIXh2so4mass .or. &
+                State_Diag%Archive_TomasMNFIXh2so4number )  &
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
                          State_Grid, State_Diag )
 !       ENDIF
@@ -1027,8 +1027,8 @@ CONTAINS
           MPNUM = 15
 !#ifdef BPCH_DIAG
 !          IF ( ND60 > 0 ) THEN
-           IF ( State_Diag%Archive_TomasERRORcoagmass .or. &
-                State_Diag%Archive_TomasERRORcoagnumber )  &
+           IF ( State_Diag%Archive_TomasMNFIXcoagmass .or. &
+                State_Diag%Archive_TomasMNFIXcoagnumber )  &
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
                             State_Grid, State_Diag )
 !          ENDIF
@@ -1068,8 +1068,8 @@ CONTAINS
        MPNUM = 12
 !#ifdef BPCH_DIAG
 !       IF ( ND60 > 0 ) THEN
-           IF ( State_Diag%Archive_TomasERRORezwat2mass .or. &
-                State_Diag%Archive_TomasERRORezwat2number )  &
+           IF ( State_Diag%Archive_TomasMNFIXezwat2mass .or. &
+                State_Diag%Archive_TomasMNFIXezwat2number )  &
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
                          State_Grid, State_Diag )
 !       ENDIF
@@ -3753,8 +3753,8 @@ CONTAINS
     MPNUM = 13
 !#ifdef BPCH_DIAG
 !    IF ( ND60 > 0 ) &
-         IF ( State_Diag%Archive_TomasERRORezwat3mass .or. &
-                State_Diag%Archive_TomasERRORezwat3number ) &
+         IF ( State_Diag%Archive_TomasMNFIXezwat3mass .or. &
+                State_Diag%Archive_TomasMNFIXezwat3number ) &
          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
              State_Diag )
 !         ENDIF
@@ -3909,8 +3909,8 @@ CONTAINS
     MPNUM = 16
 !#ifdef BPCH_DIAG
 !    IF ( ND60 > 0 ) &
-           IF ( State_Diag%Archive_TomasERRORaqoxmass .or. &
-                State_Diag%Archive_TomasERRORaqoxnumber )  &
+           IF ( State_Diag%Archive_TomasMNFIXaqoxmass .or. &
+                State_Diag%Archive_TomasMNFIXaqoxnumber )  &
          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
             State_Diag )
 !#endif
@@ -4107,7 +4107,7 @@ CONTAINS
 
     ! Fraction to each bin for mass partitioning
 
-    if (MEDTOT > 0.e+0_fp) then  !bc, 20/01/2022, skip this if no abssorning media
+    if (MEDTOT > 0.e+0_fp) then  !bc, 20/01/2022, skip this if no absorbing media
 
     do k = 1,IBINS
        partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per
@@ -6122,7 +6122,7 @@ CONTAINS
 !
     INTEGER,        INTENT(IN) :: PTYPE    ! Number assigned to each dianostic
     INTEGER ,       INTENT(IN) :: I, J, L  ! Grid box indices
-!    INTEGER ,       INTENT(IN) :: LD61   ! betty removed
+!    INTEGER ,       INTENT(IN) :: LD61   ! removed
     REAL(fp),       INTENT(IN) :: Nk(IBINS)
     REAL(fp),       INTENT(IN) :: Nkd(IBINS)
     REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
@@ -6150,35 +6150,35 @@ CONTAINS
     !=================================================================
     ! AERODIAG begins here!
     !=================================================================
-!betty removed
+!removed
 !#ifdef BPCH_DIAG
 !LD61 = State_Grid%NZ
 
-       State_Diag%TomasCOND=1.e+0_fp
+       State_Diag%TomasH2SO4=1.e+0_fp
        State_Diag%TomasCOAG=2.e+0_fp
        State_Diag%TomasNUCL=3.e+0_fp
        State_Diag%TomasAQOX=4.e+0_fp
-       State_Diag%TomasERROR=5.e+0_fp
+       State_Diag%TomasMNFIX=5.e+0_fp
        State_Diag%TomasSOA=6.e+0_fp
 
        IF ( PTYPE == 1 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasCONDmass(I,J,L,K) = 0.e+0_fp
-           State_Diag%TomasCONDnumber(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasH2SO4mass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasH2SO4number(I,J,L,K) = 0.e+0_fp
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasCONDmass ) THEN
-             S = State_Diag%Map_TomasCONDmass%id2slot(K)
+       IF ( State_Diag%Archive_TomasH2SO4mass ) THEN
+             S = State_Diag%Map_TomasH2SO4mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasCONDmass(I,J,L,K) = & 
-                  State_Diag%TomasCONDmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasH2SO4mass(I,J,L,K) = & 
+                  State_Diag%TomasH2SO4mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasCONDnumber ) THEN
-             S = State_Diag%Map_TomasCONDnumber%id2slot(K)
+       IF ( State_Diag%Archive_TomasH2SO4number ) THEN
+             S = State_Diag%Map_TomasH2SO4number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasCONDnumber(I,J,L,K) = & 
-                  State_Diag%TomasCONDnumber(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasH2SO4number(I,J,L,K) = & 
+                  State_Diag%TomasH2SO4number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6255,22 +6255,22 @@ CONTAINS
 
        IF ( PTYPE == 5 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORmass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORnumber(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXmass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXnumber(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORmass ) THEN
-             S = State_Diag%Map_TomasERRORmass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXmass ) THEN
+             S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORmass(I,J,L,K) = & 
-                  State_Diag%TomasERRORmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXmass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORnumber ) THEN
-             S = State_Diag%Map_TomasERRORnumber%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXnumber ) THEN
+             S = State_Diag%Map_TomasMNFIXnumber%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORnumber(I,J,L,K) = & 
-                  State_Diag%TomasERRORnumber(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXnumber(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXnumber(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6316,22 +6316,22 @@ CONTAINS
 
        IF ( PTYPE == 11 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORezwat1mass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORezwat1number(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat1number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORezwat1mass ) THEN
-             S = State_Diag%Map_TomasERRORezwat1mass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXezwat1mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat1mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORezwat1mass(I,J,L,K) = & 
-                  State_Diag%TomasERRORezwat1mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat1mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORezwat1number ) THEN
-             S = State_Diag%Map_TomasERRORezwat1number%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXezwat1number ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat1number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORezwat1number(I,J,L,K) = & 
-                  State_Diag%TomasERRORezwat1number(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXezwat1number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat1number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6339,22 +6339,22 @@ CONTAINS
 
        IF ( PTYPE == 12 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORezwat2mass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORezwat2number(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat2number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORezwat2mass ) THEN
-             S = State_Diag%Map_TomasERRORezwat2mass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXezwat2mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat2mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORezwat2mass(I,J,L,K) = & 
-                  State_Diag%TomasERRORezwat2mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat2mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORezwat2number ) THEN
-             S = State_Diag%Map_TomasERRORezwat2number%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXezwat2number ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat2number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORezwat2number(I,J,L,K) = & 
-                  State_Diag%TomasERRORezwat2number(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXezwat2number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat2number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6362,22 +6362,22 @@ CONTAINS
 
        IF ( PTYPE == 13 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORezwat3mass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORezwat3number(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat3number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORezwat3mass ) THEN
-             S = State_Diag%Map_TomasERRORezwat3mass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXezwat3mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat3mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORezwat3mass(I,J,L,K) = & 
-                  State_Diag%TomasERRORezwat3mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat3mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORezwat3number ) THEN
-             S = State_Diag%Map_TomasERRORezwat3number%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXezwat3number ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat3number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORezwat3number(I,J,L,K) = & 
-                  State_Diag%TomasERRORezwat3number(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXezwat3number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat3number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6385,22 +6385,22 @@ CONTAINS
 
        IF ( PTYPE == 14 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORcondmass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORcondnumber(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXh2so4number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORcondmass ) THEN
-             S = State_Diag%Map_TomasERRORcondmass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXh2so4mass ) THEN
+             S = State_Diag%Map_TomasMNFIXh2so4mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcondmass(I,J,L,K) = & 
-                  State_Diag%TomasERRORcondmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXh2so4mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORcondnumber ) THEN
-             S = State_Diag%Map_TomasERRORcondnumber%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXh2so4number ) THEN
+             S = State_Diag%Map_TomasMNFIXh2so4number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcondnumber(I,J,L,K) = & 
-                  State_Diag%TomasERRORcondnumber(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXh2so4number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXh2so4number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6408,22 +6408,22 @@ CONTAINS
 
        IF ( PTYPE == 15 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORcoagmass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORcoagnumber(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcoagmass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORcoagmass ) THEN
-             S = State_Diag%Map_TomasERRORcoagmass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcoagmass ) THEN
+             S = State_Diag%Map_TomasMNFIXcoagmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcoagmass(I,J,L,K) = & 
-                  State_Diag%TomasERRORcoagmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXcoagmass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcoagmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORcoagnumber ) THEN
-             S = State_Diag%Map_TomasERRORcoagnumber%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcoagnumber ) THEN
+             S = State_Diag%Map_TomasMNFIXcoagnumber%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcoagnumber(I,J,L,K) = & 
-                  State_Diag%TomasERRORcoagnumber(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcoagnumber(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6431,22 +6431,22 @@ CONTAINS
 
        IF ( PTYPE == 16 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORaqoxmass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORaqoxnumber(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORaqoxmass ) THEN
-             S = State_Diag%Map_TomasERRORaqoxmass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXaqoxmass ) THEN
+             S = State_Diag%Map_TomasMNFIXaqoxmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORaqoxmass(I,J,L,K) = & 
-                  State_Diag%TomasERRORaqoxmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXaqoxmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORaqoxnumber ) THEN
-             S = State_Diag%Map_TomasERRORaqoxnumber%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXaqoxnumber ) THEN
+             S = State_Diag%Map_TomasMNFIXaqoxnumber%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORaqoxnumber(I,J,L,K) = & 
-                  State_Diag%TomasERRORaqoxnumber(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6454,22 +6454,22 @@ CONTAINS
 
        IF ( PTYPE == 17 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORcheck1mass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORcheck1number(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck1number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORcheck1mass ) THEN
-             S = State_Diag%Map_TomasERRORcheck1mass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcheck1mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck1mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcheck1mass(I,J,L,K) = & 
-                  State_Diag%TomasERRORcheck1mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck1mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORcheck1number ) THEN
-             S = State_Diag%Map_TomasERRORcheck1number%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcheck1number ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck1number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcheck1number(I,J,L,K) = & 
-                  State_Diag%TomasERRORcheck1number(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXcheck1number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck1number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6477,22 +6477,22 @@ CONTAINS
 
        IF ( PTYPE == 18 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORcheck2mass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORcheck2number(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck2number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORcheck2mass ) THEN
-             S = State_Diag%Map_TomasERRORcheck2mass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcheck2mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck2mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcheck2mass(I,J,L,K) = & 
-                  State_Diag%TomasERRORcheck2mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck2mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORcheck2number ) THEN
-             S = State_Diag%Map_TomasERRORcheck2number%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcheck2number ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck2number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcheck2number(I,J,L,K) = & 
-                  State_Diag%TomasERRORcheck2number(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXcheck2number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck2number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6500,22 +6500,22 @@ CONTAINS
 
        IF ( PTYPE == 19 ) THEN
        DO K=1,IBINS
-           State_Diag%TomasERRORcheck3mass(I,J,L,K) = 0.e+0_fp  
-           State_Diag%TomasERRORcheck3number(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck3number(I,J,L,K) = 0.e+0_fp  
        DO JS = 1, ICOMP-IDIAG
-       IF ( State_Diag%Archive_TomasERRORcheck3mass ) THEN
-             S = State_Diag%Map_TomasERRORcheck3mass%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcheck3mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck3mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcheck3mass(I,J,L,K) = & 
-                  State_Diag%TomasERRORcheck3mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck3mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
              ENDIF
           ENDIF
        ENDDO
-       IF ( State_Diag%Archive_TomasERRORcheck3number ) THEN
-             S = State_Diag%Map_TomasERRORcheck3number%id2slot(K)
+       IF ( State_Diag%Archive_TomasMNFIXcheck3number ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck3number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasERRORcheck3number(I,J,L,K) = & 
-                  State_Diag%TomasERRORcheck3number(I,J,L,K) + NK(K) - NKD(K)
+                State_Diag%TomasMNFIXcheck3number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck3number(I,J,L,K) + NK(K) - NKD(K)
              ENDIF
           ENDIF
        ENDDO
@@ -6529,7 +6529,7 @@ CONTAINS
     !        in all (I,J,L), thus this is created. (win, 5/21/08)
 !    IF ( PTYPE == 7 ) THEN
       ! IF ( L <= LD61 ) THEN
-!betty - remove for now
+!removed 
          ! DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
          ! AD61(I,J,L,1) = AD61(I,J,L,1)  + ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
          ! AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
@@ -6556,7 +6556,7 @@ CONTAINS
        !   print *, '   NaCl   :',ACCUM(2)
        !ENDIF
 
-!betty - comment out and edit later
+!
 !       IF ( L <= LD60 ) THEN
 
 !          SELECT CASE ( PTYPE )
@@ -7953,20 +7953,20 @@ CONTAINS
 
        IF ( LOCATION .eq.  'Before Aerodrydep') THEN
          MPNUM = 17 
-           IF ( State_Diag%Archive_TomasERRORcheck1mass .or. &
-                State_Diag%Archive_TomasERRORcheck1number )  &
+           IF ( State_Diag%Archive_TomasMNFIXcheck1mass .or. &
+                State_Diag%Archive_TomasMNFIXcheck1number )  &
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
             State_Diag )
        ELSEIF ( LOCATION .eq.  'Before exiting DO_TOMAS') THEN
          MPNUM = 18 
-           IF ( State_Diag%Archive_TomasERRORcheck2mass .or. &
-                State_Diag%Archive_TomasERRORcheck2number )  &
+           IF ( State_Diag%Archive_TomasMNFIXcheck2mass .or. &
+                State_Diag%Archive_TomasMNFIXcheck2number )  &
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
             State_Diag )
        ELSEIF ( LOCATION .eq. 'AERO_DIADEN called from DEPVEL' ) THEN
          MPNUM = 19 
-           IF ( State_Diag%Archive_TomasERRORcheck3mass .or. &
-                State_Diag%Archive_TomasERRORcheck3number )  &
+           IF ( State_Diag%Archive_TomasMNFIXcheck3mass .or. &
+                State_Diag%Archive_TomasMNFIXcheck3number )  &
           CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
             State_Diag )
        ENDIF

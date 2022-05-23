@@ -316,17 +316,17 @@ MODULE State_Diag_Mod
 
      !%%%%% TOMAS microphysics rates %%%%%
 
-     REAL(f4),           POINTER :: TomasCOND(:,:,:)
-     LOGICAL                     :: Archive_TomasCOND
+     REAL(f4),           POINTER :: TomasH2SO4(:,:,:)
+     LOGICAL                     :: Archive_TomasH2SO4
      LOGICAL                     :: Archive_Tomas
 
-     REAL(f4),           POINTER :: TomasCONDmass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasCONDmass
-     LOGICAL                     :: Archive_TomasCONDmass
+     REAL(f4),           POINTER :: TomasH2SO4mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasH2SO4mass
+     LOGICAL                     :: Archive_TomasH2SO4mass
 
-     REAL(f4),           POINTER :: TomasCONDnumber(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasCONDnumber
-     LOGICAL                     :: Archive_TomasCONDnumber
+     REAL(f4),           POINTER :: TomasH2SO4number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasH2SO4number
+     LOGICAL                     :: Archive_TomasH2SO4number
 
      REAL(f4),           POINTER :: TomasCOAG(:,:,:)
      LOGICAL                     :: Archive_TomasCOAG
@@ -368,88 +368,88 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_TomasAQOXnumber
      LOGICAL                     :: Archive_TomasAQOXnumber
 
-     REAL(f4),           POINTER :: TomasERROR(:,:,:)
-     LOGICAL                     :: Archive_TomasERROR
+     REAL(f4),           POINTER :: TomasMNFIX(:,:,:)
+     LOGICAL                     :: Archive_TomasMNFIX
  
-     REAL(f4),           POINTER :: TomasERRORmass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORmass
-     LOGICAL                     :: Archive_TomasERRORmass
+     REAL(f4),           POINTER :: TomasMNFIXmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXmass
+     LOGICAL                     :: Archive_TomasMNFIXmass
 
-     REAL(f4),           POINTER :: TomasERRORnumber(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORnumber
-     LOGICAL                     :: Archive_TomasERRORnumber
+     REAL(f4),           POINTER :: TomasMNFIXnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXnumber
+     LOGICAL                     :: Archive_TomasMNFIXnumber
 
-     REAL(f4),           POINTER :: TomasERRORcondmass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcondmass
-     LOGICAL                     :: Archive_TomasERRORcondmass
+     REAL(f4),           POINTER :: TomasMNFIXh2so4mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXh2so4mass
+     LOGICAL                     :: Archive_TomasMNFIXh2so4mass
 
-     REAL(f4),           POINTER :: TomasERRORcondnumber(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcondnumber
-     LOGICAL                     :: Archive_TomasERRORcondnumber
+     REAL(f4),           POINTER :: TomasMNFIXh2so4number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXh2so4number
+     LOGICAL                     :: Archive_TomasMNFIXh2so4number
 
-     REAL(f4),           POINTER :: TomasERRORcoagmass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcoagmass
-     LOGICAL                     :: Archive_TomasERRORcoagmass
+     REAL(f4),           POINTER :: TomasMNFIXcoagmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcoagmass
+     LOGICAL                     :: Archive_TomasMNFIXcoagmass
 
-     REAL(f4),           POINTER :: TomasERRORcoagnumber(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcoagnumber
-     LOGICAL                     :: Archive_TomasERRORcoagnumber
+     REAL(f4),           POINTER :: TomasMNFIXcoagnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcoagnumber
+     LOGICAL                     :: Archive_TomasMNFIXcoagnumber
 
-     REAL(f4),           POINTER :: TomasERRORaqoxmass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORaqoxmass
-     LOGICAL                     :: Archive_TomasERRORaqoxmass
+     REAL(f4),           POINTER :: TomasMNFIXaqoxmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXaqoxmass
+     LOGICAL                     :: Archive_TomasMNFIXaqoxmass
 
-     REAL(f4),           POINTER :: TomasERRORaqoxnumber(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORaqoxnumber
-     LOGICAL                     :: Archive_TomasERRORaqoxnumber
+     REAL(f4),           POINTER :: TomasMNFIXaqoxnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXaqoxnumber
+     LOGICAL                     :: Archive_TomasMNFIXaqoxnumber
 
-     REAL(f4),           POINTER :: TomasERRORezwat1mass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat1mass
-     LOGICAL                     :: Archive_TomasERRORezwat1mass
+     REAL(f4),           POINTER :: TomasMNFIXezwat1mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat1mass
+     LOGICAL                     :: Archive_TomasMNFIXezwat1mass
 
-     REAL(f4),           POINTER :: TomasERRORezwat1number(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat1number
-     LOGICAL                     :: Archive_TomasERRORezwat1number
+     REAL(f4),           POINTER :: TomasMNFIXezwat1number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat1number
+     LOGICAL                     :: Archive_TomasMNFIXezwat1number
 
-     REAL(f4),           POINTER :: TomasERRORezwat2mass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat2mass
-     LOGICAL                     :: Archive_TomasERRORezwat2mass
+     REAL(f4),           POINTER :: TomasMNFIXezwat2mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat2mass
+     LOGICAL                     :: Archive_TomasMNFIXezwat2mass
 
-     REAL(f4),           POINTER :: TomasERRORezwat2number(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat2number
-     LOGICAL                     :: Archive_TomasERRORezwat2number
+     REAL(f4),           POINTER :: TomasMNFIXezwat2number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat2number
+     LOGICAL                     :: Archive_TomasMNFIXezwat2number
 
-     REAL(f4),           POINTER :: TomasERRORezwat3mass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat3mass
-     LOGICAL                     :: Archive_TomasERRORezwat3mass
+     REAL(f4),           POINTER :: TomasMNFIXezwat3mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat3mass
+     LOGICAL                     :: Archive_TomasMNFIXezwat3mass
 
-     REAL(f4),           POINTER :: TomasERRORezwat3number(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORezwat3number
-     LOGICAL                     :: Archive_TomasERRORezwat3number
+     REAL(f4),           POINTER :: TomasMNFIXezwat3number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat3number
+     LOGICAL                     :: Archive_TomasMNFIXezwat3number
 
-     REAL(f4),           POINTER :: TomasERRORcheck1mass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck1mass
-     LOGICAL                     :: Archive_TomasERRORcheck1mass
+     REAL(f4),           POINTER :: TomasMNFIXcheck1mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck1mass
+     LOGICAL                     :: Archive_TomasMNFIXcheck1mass
 
-     REAL(f4),           POINTER :: TomasERRORcheck1number(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck1number
-     LOGICAL                     :: Archive_TomasERRORcheck1number
+     REAL(f4),           POINTER :: TomasMNFIXcheck1number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck1number
+     LOGICAL                     :: Archive_TomasMNFIXcheck1number
 
-     REAL(f4),           POINTER :: TomasERRORcheck2mass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck2mass
-     LOGICAL                     :: Archive_TomasERRORcheck2mass
+     REAL(f4),           POINTER :: TomasMNFIXcheck2mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck2mass
+     LOGICAL                     :: Archive_TomasMNFIXcheck2mass
 
-     REAL(f4),           POINTER :: TomasERRORcheck2number(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck2number
-     LOGICAL                     :: Archive_TomasERRORcheck2number
+     REAL(f4),           POINTER :: TomasMNFIXcheck2number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck2number
+     LOGICAL                     :: Archive_TomasMNFIXcheck2number
 
-     REAL(f4),           POINTER :: TomasERRORcheck3mass(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck3mass
-     LOGICAL                     :: Archive_TomasERRORcheck3mass
+     REAL(f4),           POINTER :: TomasMNFIXcheck3mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck3mass
+     LOGICAL                     :: Archive_TomasMNFIXcheck3mass
 
-     REAL(f4),           POINTER :: TomasERRORcheck3number(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_TomasERRORcheck3number
-     LOGICAL                     :: Archive_TomasERRORcheck3number
+     REAL(f4),           POINTER :: TomasMNFIXcheck3number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck3number
+     LOGICAL                     :: Archive_TomasMNFIXcheck3number
 
      REAL(f4),           POINTER :: TomasSOA(:,:,:)
      LOGICAL                     :: Archive_TomasSOA
@@ -1495,17 +1495,18 @@ CONTAINS
 
     !%%%%% Tomas microphysical rate diagnostics %%%%%
 
-    State_Diag%TomasCOND                          => NULL()
-    State_Diag%Archive_TomasCOND                  = .FALSE.
+    State_Diag%TomasH2SO4                          => NULL()
+    State_Diag%Archive_TomasH2SO4                  = .FALSE.
     State_Diag%Archive_Tomas                       = .FALSE.
 
-    State_Diag%TomasCONDmass                       => NULL()
-    State_Diag%Map_TomasCONDmass                   => NULL()
-    State_Diag%Archive_TomasCONDmass               = .FALSE.
+    State_Diag%TomasH2SO4mass                       => NULL()
+    State_Diag%Map_TomasH2SO4mass                   => NULL()
+    State_Diag%Archive_TomasH2SO4mass               = .FALSE.
+    State_Diag%Archive_Tomas                       = .FALSE.
 
-    State_Diag%TomasCONDnumber                       => NULL()
-    State_Diag%Map_TomasCONDnumber                   => NULL()
-    State_Diag%Archive_TomasCONDnumber               = .FALSE.
+    State_Diag%TomasH2SO4number                       => NULL()
+    State_Diag%Map_TomasH2SO4number                   => NULL()
+    State_Diag%Archive_TomasH2SO4number               = .FALSE.
 
     State_Diag%TomasCOAG                          => NULL()
     State_Diag%Archive_TomasCOAG                  = .FALSE.
@@ -1547,90 +1548,90 @@ CONTAINS
     State_Diag%Map_TomasAQOXnumber                   => NULL()
     State_Diag%Archive_TomasAQOXnumber               = .FALSE.
 
-    State_Diag%TomasERROR                          => NULL()
-    State_Diag%Archive_TomasERROR                  = .FALSE.
+    State_Diag%TomasMNFIX                          => NULL()
+    State_Diag%Archive_TomasMNFIX                  = .FALSE.
 
-    State_Diag%TomasERRORmass                       => NULL()
-    State_Diag%Map_TomasERRORmass                   => NULL()
-    State_Diag%Archive_TomasERRORmass               = .FALSE.
+    State_Diag%TomasMNFIXmass                       => NULL()
+    State_Diag%Map_TomasMNFIXmass                   => NULL()
+    State_Diag%Archive_TomasMNFIXmass               = .FALSE.
 
-    State_Diag%TomasERRORnumber                       => NULL()
-    State_Diag%Map_TomasERRORnumber                   => NULL()
-    State_Diag%Archive_TomasERRORnumber               = .FALSE.
+    State_Diag%TomasMNFIXnumber                       => NULL()
+    State_Diag%Map_TomasMNFIXnumber                   => NULL()
+    State_Diag%Archive_TomasMNFIXnumber               = .FALSE.
 
-    State_Diag%TomasERRORcondmass                       => NULL()
-    State_Diag%Map_TomasERRORcondmass                   => NULL()
-    State_Diag%Archive_TomasERRORcondmass               = .FALSE.
+    State_Diag%TomasMNFIXh2so4mass                       => NULL()
+    State_Diag%Map_TomasMNFIXh2so4mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXh2so4mass               = .FALSE.
 
-    State_Diag%TomasERRORcondnumber                       => NULL()
-    State_Diag%Map_TomasERRORcondnumber                   => NULL()
-    State_Diag%Archive_TomasERRORcondnumber               = .FALSE.
+    State_Diag%TomasMNFIXh2so4number                       => NULL()
+    State_Diag%Map_TomasMNFIXh2so4number                   => NULL()
+    State_Diag%Archive_TomasMNFIXh2so4number               = .FALSE.
 
-    State_Diag%TomasERRORcoagmass                       => NULL()
-    State_Diag%Map_TomasERRORcoagmass                   => NULL()
-    State_Diag%Archive_TomasERRORcoagmass               = .FALSE.
+    State_Diag%TomasMNFIXcoagmass                       => NULL()
+    State_Diag%Map_TomasMNFIXcoagmass                   => NULL()
+    State_Diag%Archive_TomasMNFIXcoagmass               = .FALSE.
 
-    State_Diag%TomasERRORcoagnumber                       => NULL()
-    State_Diag%Map_TomasERRORcoagnumber                   => NULL()
-    State_Diag%Archive_TomasERRORcoagnumber               = .FALSE.
+    State_Diag%TomasMNFIXcoagnumber                       => NULL()
+    State_Diag%Map_TomasMNFIXcoagnumber                   => NULL()
+    State_Diag%Archive_TomasMNFIXcoagnumber               = .FALSE.
 
-    State_Diag%TomasERRORaqoxmass                       => NULL()
-    State_Diag%Map_TomasERRORaqoxmass                   => NULL()
-    State_Diag%Archive_TomasERRORaqoxmass               = .FALSE.
+    State_Diag%TomasMNFIXaqoxmass                       => NULL()
+    State_Diag%Map_TomasMNFIXaqoxmass                   => NULL()
+    State_Diag%Archive_TomasMNFIXaqoxmass               = .FALSE.
 
-    State_Diag%TomasERRORaqoxnumber                       => NULL()
-    State_Diag%Map_TomasERRORaqoxnumber                   => NULL()
-    State_Diag%Archive_TomasERRORaqoxnumber               = .FALSE.
+    State_Diag%TomasMNFIXaqoxnumber                       => NULL()
+    State_Diag%Map_TomasMNFIXaqoxnumber                   => NULL()
+    State_Diag%Archive_TomasMNFIXaqoxnumber               = .FALSE.
 
-    State_Diag%TomasERRORezwat1mass                       => NULL()
-    State_Diag%Map_TomasERRORezwat1mass                   => NULL()
-    State_Diag%Archive_TomasERRORezwat1mass               = .FALSE.
+    State_Diag%TomasMNFIXezwat1mass                       => NULL()
+    State_Diag%Map_TomasMNFIXezwat1mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXezwat1mass               = .FALSE.
 
-    State_Diag%TomasERRORezwat1number                       => NULL()
-    State_Diag%Map_TomasERRORezwat1number                   => NULL()
-    State_Diag%Archive_TomasERRORezwat1number               = .FALSE.
+    State_Diag%TomasMNFIXezwat1number                       => NULL()
+    State_Diag%Map_TomasMNFIXezwat1number                   => NULL()
+    State_Diag%Archive_TomasMNFIXezwat1number               = .FALSE.
 
-    State_Diag%TomasERRORezwat2mass                       => NULL()
-    State_Diag%Map_TomasERRORezwat2mass                   => NULL()
-    State_Diag%Archive_TomasERRORezwat2mass               = .FALSE.
+    State_Diag%TomasMNFIXezwat2mass                       => NULL()
+    State_Diag%Map_TomasMNFIXezwat2mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXezwat2mass               = .FALSE.
 
-    State_Diag%TomasERRORezwat2number                       => NULL()
-    State_Diag%Map_TomasERRORezwat2number                   => NULL()
-    State_Diag%Archive_TomasERRORezwat2number               = .FALSE.
+    State_Diag%TomasMNFIXezwat2number                       => NULL()
+    State_Diag%Map_TomasMNFIXezwat2number                   => NULL()
+    State_Diag%Archive_TomasMNFIXezwat2number               = .FALSE.
 
-    State_Diag%TomasERRORezwat3mass                       => NULL()
-    State_Diag%Map_TomasERRORezwat3mass                   => NULL()
-    State_Diag%Archive_TomasERRORezwat3mass               = .FALSE.
+    State_Diag%TomasMNFIXezwat3mass                       => NULL()
+    State_Diag%Map_TomasMNFIXezwat3mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXezwat3mass               = .FALSE.
 
-    State_Diag%TomasERRORezwat3number                       => NULL()
-    State_Diag%Map_TomasERRORezwat3number                   => NULL()
-    State_Diag%Archive_TomasERRORezwat3number               = .FALSE.
+    State_Diag%TomasMNFIXezwat3number                       => NULL()
+    State_Diag%Map_TomasMNFIXezwat3number                   => NULL()
+    State_Diag%Archive_TomasMNFIXezwat3number               = .FALSE.
  
-    State_Diag%TomasERRORcheck1mass                       => NULL()
-    State_Diag%Map_TomasERRORcheck1mass                   => NULL()
-    State_Diag%Archive_TomasERRORcheck1mass               = .FALSE.
+    State_Diag%TomasMNFIXcheck1mass                       => NULL()
+    State_Diag%Map_TomasMNFIXcheck1mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXcheck1mass               = .FALSE.
 
-    State_Diag%TomasERRORcheck1number                       => NULL()
-    State_Diag%Map_TomasERRORcheck1number                   => NULL()
-    State_Diag%Archive_TomasERRORcheck1number               = .FALSE.
+    State_Diag%TomasMNFIXcheck1number                       => NULL()
+    State_Diag%Map_TomasMNFIXcheck1number                   => NULL()
+    State_Diag%Archive_TomasMNFIXcheck1number               = .FALSE.
 
-    State_Diag%TomasERRORcheck2mass                       => NULL()
-    State_Diag%Map_TomasERRORcheck2mass                   => NULL()
-    State_Diag%Archive_TomasERRORcheck2mass               = .FALSE.
+    State_Diag%TomasMNFIXcheck2mass                       => NULL()
+    State_Diag%Map_TomasMNFIXcheck2mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXcheck2mass               = .FALSE.
 
-    State_Diag%TomasERRORcheck2number                       => NULL()
-    State_Diag%Map_TomasERRORcheck2number                   => NULL()
-    State_Diag%Archive_TomasERRORcheck2number               = .FALSE.
+    State_Diag%TomasMNFIXcheck2number                       => NULL()
+    State_Diag%Map_TomasMNFIXcheck2number                   => NULL()
+    State_Diag%Archive_TomasMNFIXcheck2number               = .FALSE.
 
-    State_Diag%TomasERRORcheck3mass                       => NULL()
-    State_Diag%Map_TomasERRORcheck3mass                   => NULL()
-    State_Diag%Archive_TomasERRORcheck3mass               = .FALSE.
+    State_Diag%TomasMNFIXcheck3mass                       => NULL()
+    State_Diag%Map_TomasMNFIXcheck3mass                   => NULL()
+    State_Diag%Archive_TomasMNFIXcheck3mass               = .FALSE.
 
-    State_Diag%TomasERRORcheck3number                       => NULL()
-    State_Diag%Map_TomasERRORcheck3number                   => NULL()
-    State_Diag%Archive_TomasERRORcheck3number               = .FALSE.
+    State_Diag%TomasMNFIXcheck3number                       => NULL()
+    State_Diag%Map_TomasMNFIXcheck3number                   => NULL()
+    State_Diag%Archive_TomasMNFIXcheck3number               = .FALSE.
 
-   State_Diag%TomasSOA                            => NULL()
+    State_Diag%TomasSOA                            => NULL()
     State_Diag%Archive_TomasSOA                    = .FALSE.
 
     State_Diag%TomasSOAmass                       => NULL()
@@ -5591,7 +5592,7 @@ CONTAINS
        ! Tomas Microphysics Rate - Condensation
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasCOND' 
+       diagID  = 'TomasH2SO4' 
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5599,8 +5600,8 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasCOND,                          &
-            archiveData    = State_Diag%Archive_TomasCOND,                  &
+            Ptr2Data       = State_Diag%TomasH2SO4,                          &
+            archiveData    = State_Diag%Archive_TomasH2SO4,                  &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -5613,7 +5614,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Condensation rate per bin
        !--------------------------------------------------------------------
-       diagID  = 'TomasCONDmass'
+       diagID  = 'TomasH2SO4mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5621,9 +5622,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasCONDmass,                       &
-            archiveData    = State_Diag%Archive_TomasCONDmass,               &
-            mapData        = State_Diag%Map_TomasCONDmass,                   &
+            Ptr2Data       = State_Diag%TomasH2SO4mass,                       &
+            archiveData    = State_Diag%Archive_TomasH2SO4mass,               &
+            mapData        = State_Diag%Map_TomasH2SO4mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -5637,7 +5638,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Tomas Microphysics Rate - Condensation rate per bin
        !--------------------------------------------------------------------
-       diagID  = 'TomasCONDnumber'
+       diagID  = 'TomasH2SO4number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5645,9 +5646,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasCONDnumber,                       &
-            archiveData    = State_Diag%Archive_TomasCONDnumber,               &
-            mapData        = State_Diag%Map_TomasCONDnumber,                   &
+            Ptr2Data       = State_Diag%TomasH2SO4number,                       &
+            archiveData    = State_Diag%Archive_TomasH2SO4number,               &
+            mapData        = State_Diag%Map_TomasH2SO4number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -5934,7 +5935,7 @@ CONTAINS
        ! Tomas Microphysics Rate - Error
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERROR' 
+       diagID  = 'TomasMNFIX' 
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5942,9 +5943,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERROR,                          &
-            archiveData    = State_Diag%Archive_TomasERROR,                  &
-            !mapData        = State_Diag%Map_TomasERROR,                      &
+            Ptr2Data       = State_Diag%TomasMNFIX,                          &
+            archiveData    = State_Diag%Archive_TomasMNFIX,                  &
+            !mapData        = State_Diag%Map_TomasMNFIX,                      &
             diagId         = diagId,                                         &
             !diagFlag       = 'B',                                            &
             RC             = RC                                             )
@@ -5959,7 +5960,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORmass'
+       diagID  = 'TomasMNFIXmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5967,9 +5968,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORmass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORmass,               &
-            mapData        = State_Diag%Map_TomasERRORmass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXmass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXmass,               &
+            mapData        = State_Diag%Map_TomasMNFIXmass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -5984,7 +5985,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORnumber'
+       diagID  = 'TomasMNFIXnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -5992,9 +5993,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORnumber,                       &
-            archiveData    = State_Diag%Archive_TomasERRORnumber,               &
-            mapData        = State_Diag%Map_TomasERRORnumber,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXnumber,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXnumber,               &
+            mapData        = State_Diag%Map_TomasMNFIXnumber,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6010,7 +6011,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcondmass'
+       diagID  = 'TomasMNFIXh2so4mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6018,9 +6019,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcondmass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcondmass,               &
-            mapData        = State_Diag%Map_TomasERRORcondmass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXh2so4mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXh2so4mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXh2so4mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6035,7 +6036,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcondnumber'
+       diagID  = 'TomasMNFIXh2so4number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6043,61 +6044,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcondnumber,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcondnumber,               &
-            mapData        = State_Diag%Map_TomasERRORcondnumber,                   &
-            diagId         = diagId,                                         &
-            diagFlag       = 'T',                                            &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-
-
-       !--------------------------------------------------------------------
-       ! Tomas Microphysics Rate - ERROR per bin
-       !--------------------------------------------------------------------
-
-       diagID  = 'TomasERRORcoagmass'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcoagmass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcoagmass,               &
-            mapData        = State_Diag%Map_TomasERRORcoagmass,                   &
-            diagId         = diagId,                                         &
-            diagFlag       = 'T',                                            &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Tomas Microphysics Rate - ERROR per bin
-       !--------------------------------------------------------------------
-
-       diagID  = 'TomasERRORcoagnumber'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcoagnumber,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcoagnumber,               &
-            mapData        = State_Diag%Map_TomasERRORcoagnumber,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXh2so4number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXh2so4number,               &
+            mapData        = State_Diag%Map_TomasMNFIXh2so4number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6114,7 +6063,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORaqoxmass'
+       diagID  = 'TomasMNFIXcoagmass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6122,9 +6071,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORaqoxmass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORaqoxmass,               &
-            mapData        = State_Diag%Map_TomasERRORaqoxmass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcoagmass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcoagmass,               &
+            mapData        = State_Diag%Map_TomasMNFIXcoagmass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6139,7 +6088,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORaqoxnumber'
+       diagID  = 'TomasMNFIXcoagnumber'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6147,9 +6096,61 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORaqoxnumber,                       &
-            archiveData    = State_Diag%Archive_TomasERRORaqoxnumber,               &
-            mapData        = State_Diag%Map_TomasERRORaqoxnumber,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcoagnumber,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcoagnumber,               &
+            mapData        = State_Diag%Map_TomasMNFIXcoagnumber,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+
+       diagID  = 'TomasMNFIXaqoxmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXaqoxmass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXaqoxmass,               &
+            mapData        = State_Diag%Map_TomasMNFIXaqoxmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+
+       diagID  = 'TomasMNFIXaqoxnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXaqoxnumber,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXaqoxnumber,               &
+            mapData        = State_Diag%Map_TomasMNFIXaqoxnumber,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6165,7 +6166,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORezwat1mass'
+       diagID  = 'TomasMNFIXezwat1mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6173,9 +6174,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORezwat1mass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORezwat1mass,               &
-            mapData        = State_Diag%Map_TomasERRORezwat1mass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat1mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat1mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXezwat1mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6190,7 +6191,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORezwat1number'
+       diagID  = 'TomasMNFIXezwat1number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6198,9 +6199,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORezwat1number,                       &
-            archiveData    = State_Diag%Archive_TomasERRORezwat1number,               &
-            mapData        = State_Diag%Map_TomasERRORezwat1number,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat1number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat1number,               &
+            mapData        = State_Diag%Map_TomasMNFIXezwat1number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6215,7 +6216,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORezwat2mass'
+       diagID  = 'TomasMNFIXezwat2mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6223,9 +6224,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORezwat2mass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORezwat2mass,               &
-            mapData        = State_Diag%Map_TomasERRORezwat2mass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat2mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat2mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXezwat2mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6240,7 +6241,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORezwat2number'
+       diagID  = 'TomasMNFIXezwat2number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6248,9 +6249,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORezwat2number,                       &
-            archiveData    = State_Diag%Archive_TomasERRORezwat2number,               &
-            mapData        = State_Diag%Map_TomasERRORezwat2number,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat2number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat2number,               &
+            mapData        = State_Diag%Map_TomasMNFIXezwat2number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6265,7 +6266,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORezwat3mass'
+       diagID  = 'TomasMNFIXezwat3mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6273,9 +6274,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORezwat3mass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORezwat3mass,               &
-            mapData        = State_Diag%Map_TomasERRORezwat3mass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat3mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat3mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXezwat3mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6290,7 +6291,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORezwat3number'
+       diagID  = 'TomasMNFIXezwat3number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6298,9 +6299,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORezwat3number,                       &
-            archiveData    = State_Diag%Archive_TomasERRORezwat3number,               &
-            mapData        = State_Diag%Map_TomasERRORezwat3number,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat3number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat3number,               &
+            mapData        = State_Diag%Map_TomasMNFIXezwat3number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6315,7 +6316,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcheck1mass'
+       diagID  = 'TomasMNFIXcheck1mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6323,9 +6324,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcheck1mass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcheck1mass,               &
-            mapData        = State_Diag%Map_TomasERRORcheck1mass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck1mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck1mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXcheck1mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6340,7 +6341,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcheck1number'
+       diagID  = 'TomasMNFIXcheck1number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6348,9 +6349,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcheck1number,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcheck1number,               &
-            mapData        = State_Diag%Map_TomasERRORcheck1number,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck1number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck1number,               &
+            mapData        = State_Diag%Map_TomasMNFIXcheck1number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6365,7 +6366,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcheck2mass'
+       diagID  = 'TomasMNFIXcheck2mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6373,9 +6374,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcheck2mass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcheck2mass,               &
-            mapData        = State_Diag%Map_TomasERRORcheck2mass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck2mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck2mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXcheck2mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6390,7 +6391,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcheck2number'
+       diagID  = 'TomasMNFIXcheck2number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6398,9 +6399,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcheck2number,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcheck2number,               &
-            mapData        = State_Diag%Map_TomasERRORcheck2number,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck2number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck2number,               &
+            mapData        = State_Diag%Map_TomasMNFIXcheck2number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6415,7 +6416,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcheck3mass'
+       diagID  = 'TomasMNFIXcheck3mass'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6423,9 +6424,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcheck3mass,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcheck3mass,               &
-            mapData        = State_Diag%Map_TomasERRORcheck3mass,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck3mass,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck3mass,               &
+            mapData        = State_Diag%Map_TomasMNFIXcheck3mass,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6440,7 +6441,7 @@ CONTAINS
        ! Tomas Microphysics Rate - ERROR per bin
        !--------------------------------------------------------------------
 
-       diagID  = 'TomasERRORcheck3number'
+       diagID  = 'TomasMNFIXcheck3number'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -6448,9 +6449,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%TomasERRORcheck3number,                       &
-            archiveData    = State_Diag%Archive_TomasERRORcheck3number,               &
-            mapData        = State_Diag%Map_TomasERRORcheck3number,                   &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck3number,                       &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck3number,               &
+            mapData        = State_Diag%Map_TomasMNFIXcheck3number,                   &
             diagId         = diagId,                                         &
             diagFlag       = 'T',                                            &
             RC             = RC                                             )
@@ -6483,7 +6484,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
+          RETURN!
        ENDIF
 
 
@@ -7770,7 +7771,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 31
+       DO N = 1, 25
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -7827,21 +7828,18 @@ CONTAINS
                 diagID = 'AerMassHMS'
              CASE( 25 ) ! (jmm, 06/29/18)
                 diagID = 'ProdSO2andHCHOfromHMSinCloud'
-             CASE( 26 ) ! 
-                diagID = 'TomasCOND'
-             CASE( 27 ) ! 
-                diagID = 'TomasCOAG'
-             CASE( 28 ) ! 
-                diagID = 'TomasNUCL'
-             CASE( 29 ) ! 
-                diagID = 'TomasAQOX'
-             CASE( 30 ) ! 
-                diagID = 'TomasERROR'
-             CASE( 31 ) ! 
-                diagID = 'TomasSOA'
-             !CASE( 32 ) ! 
-             !   TmpWL  = RadWL(1)
-             !   diagID = 'TomasSOA' // TRIM( TmpWL ) // 'bins'
+!             CASE( 26 ) ! 
+!                diagID = 'TomasH2SO4'
+!             CASE( 27 ) ! 
+!                diagID = 'TomasCOAG'
+!             CASE( 28 ) ! 
+!                diagID = 'TomasNUCL'
+!             CASE( 29 ) ! 
+!                diagID = 'TomasAQOX'
+!             CASE( 30 ) ! 
+!                diagID = 'TomasMNFIX'
+!             CASE( 31 ) ! 
+!                diagID = 'TomasSOA'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -9948,9 +9946,9 @@ CONTAINS
                                    State_Diag%Archive_TotalOC           .or. &
                                    State_Diag%Archive_TotalBiogenicOA       )
 
-    State_Diag%Archive_Tomas  = ( State_Diag%Archive_TomasCOND         .or. &
-                                  State_Diag%Archive_TomasCONDmass     .or. &
-                                  State_Diag%Archive_TomasCONDnumber   .or. &
+    State_Diag%Archive_Tomas  = ( State_Diag%Archive_TomasH2SO4         .or. &
+                                  State_Diag%Archive_TomasH2SO4mass     .or. &
+                                  State_Diag%Archive_TomasH2SO4number   .or. &
                                   State_Diag%Archive_TomasCOAG         .or. &
                                   State_Diag%Archive_TomasCOAGmass     .or. &
                                   State_Diag%Archive_TomasCOAGnumber   .or. &
@@ -9962,27 +9960,27 @@ CONTAINS
                                   State_Diag%Archive_TomasAQOX         .or. &
                                   State_Diag%Archive_TomasAQOXmass     .or. &
                                   State_Diag%Archive_TomasAQOXnumber   .or. &
-                                  State_Diag%Archive_TomasERROR        .or. &
-                                  State_Diag%Archive_TomasERRORmass    .or. &
-                                  State_Diag%Archive_TomasERRORnumber  .or. &
-                                  State_Diag%Archive_TomasERRORcondmass    .or. &
-                                  State_Diag%Archive_TomasERRORcondnumber  .or. &
-                                  State_Diag%Archive_TomasERRORcoagmass    .or. &
-                                  State_Diag%Archive_TomasERRORcoagnumber  .or. &
-                                  State_Diag%Archive_TomasERRORaqoxmass    .or. &
-                                  State_Diag%Archive_TomasERRORaqoxnumber  .or. &
-                                  State_Diag%Archive_TomasERRORezwat1mass    .or. &
-                                  State_Diag%Archive_TomasERRORezwat1number  .or. &
-                                  State_Diag%Archive_TomasERRORezwat2mass    .or. &
-                                  State_Diag%Archive_TomasERRORezwat2number  .or. &
-                                  State_Diag%Archive_TomasERRORezwat3mass    .or. &
-                                  State_Diag%Archive_TomasERRORezwat3number  .or. &
-                                  State_Diag%Archive_TomasERRORcheck1mass    .or. &
-                                  State_Diag%Archive_TomasERRORcheck1number  .or. &
-                                  State_Diag%Archive_TomasERRORcheck2mass    .or. &
-                                  State_Diag%Archive_TomasERRORcheck2number  .or. &
-                                  State_Diag%Archive_TomasERRORcheck3mass    .or. &
-                                  State_Diag%Archive_TomasERRORcheck3number  .or. &
+                                  State_Diag%Archive_TomasMNFIX        .or. &
+                                  State_Diag%Archive_TomasMNFIXmass    .or. &
+                                  State_Diag%Archive_TomasMNFIXnumber  .or. &
+                                  State_Diag%Archive_TomasMNFIXh2so4mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXh2so4number  .or. &
+                                  State_Diag%Archive_TomasMNFIXcoagmass    .or. &
+                                  State_Diag%Archive_TomasMNFIXcoagnumber  .or. &
+                                  State_Diag%Archive_TomasMNFIXaqoxmass    .or. &
+                                  State_Diag%Archive_TomasMNFIXaqoxnumber  .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat1mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat1number  .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat2mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat2number  .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat3mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat3number  .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck1mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck1number  .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck2mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck2number  .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck3mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck3number  .or. &
                                   State_Diag%Archive_TomasSOA          .or. &
                                   State_Diag%Archive_TomasSOAmass      .or. &
                                   State_Diag%Archive_TomasSOAnumber           )
@@ -10533,20 +10531,20 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasCOND',                                  &
-                   Ptr2Data = State_Diag%TomasCOND,                         &
+    CALL Finalize( diagId   = 'TomasH2SO4',                                  &
+                   Ptr2Data = State_Diag%TomasH2SO4,                         &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasCONDmass',                               &
-                   Ptr2Data = State_Diag%TomasCONDmass,                      &
-                   mapData  = State_Diag%Map_TomasCONDmass,                  &
+    CALL Finalize( diagId   = 'TomasH2SO4mass',                               &
+                   Ptr2Data = State_Diag%TomasH2SO4mass,                      &
+                   mapData  = State_Diag%Map_TomasH2SO4mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasCONDnumber',                               &
-                   Ptr2Data = State_Diag%TomasCONDnumber,                      &
-                   mapData  = State_Diag%Map_TomasCONDnumber,                  &
+    CALL Finalize( diagId   = 'TomasH2SO4number',                               &
+                   Ptr2Data = State_Diag%TomasH2SO4number,                      &
+                   mapData  = State_Diag%Map_TomasH2SO4number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10613,129 +10611,129 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERROR',                                  &
-                   Ptr2Data = State_Diag%TomasERROR,                         &
+    CALL Finalize( diagId   = 'TomasMNFIX',                                  &
+                   Ptr2Data = State_Diag%TomasMNFIX,                         &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
 
-    CALL Finalize( diagId   = 'TomasERRORmass',                               &
-                   Ptr2Data = State_Diag%TomasERRORmass,                      &
-                   mapData  = State_Diag%Map_TomasERRORmass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXmass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXmass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXmass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORnumber',                               &
-                   Ptr2Data = State_Diag%TomasERRORnumber,                      &
-                   mapData  = State_Diag%Map_TomasERRORnumber,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXnumber',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXnumber,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXnumber,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcondmass',                               &
-                   Ptr2Data = State_Diag%TomasERRORcondmass,                      &
-                   mapData  = State_Diag%Map_TomasERRORcondmass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXh2so4mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXh2so4mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXh2so4mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcondnumber',                               &
-                   Ptr2Data = State_Diag%TomasERRORcondnumber,                      &
-                   mapData  = State_Diag%Map_TomasERRORcondnumber,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXh2so4number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXh2so4number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXh2so4number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcoagmass',                               &
-                   Ptr2Data = State_Diag%TomasERRORcoagmass,                      &
-                   mapData  = State_Diag%Map_TomasERRORcoagmass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcoagmass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcoagmass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcoagmass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcoagnumber',                               &
-                   Ptr2Data = State_Diag%TomasERRORcoagnumber,                      &
-                   mapData  = State_Diag%Map_TomasERRORcoagnumber,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcoagnumber',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcoagnumber,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcoagnumber,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORaqoxmass',                               &
-                   Ptr2Data = State_Diag%TomasERRORaqoxmass,                      &
-                   mapData  = State_Diag%Map_TomasERRORaqoxmass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXaqoxmass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXaqoxmass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXaqoxmass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORaqoxnumber',                               &
-                   Ptr2Data = State_Diag%TomasERRORaqoxnumber,                      &
-                   mapData  = State_Diag%Map_TomasERRORaqoxnumber,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXaqoxnumber',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXaqoxnumber,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXaqoxnumber,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORezwat1mass',                               &
-                   Ptr2Data = State_Diag%TomasERRORezwat1mass,                      &
-                   mapData  = State_Diag%Map_TomasERRORezwat1mass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXezwat1mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat1mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat1mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORezwat1number',                               &
-                   Ptr2Data = State_Diag%TomasERRORezwat1number,                      &
-                   mapData  = State_Diag%Map_TomasERRORezwat1number,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXezwat1number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat1number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat1number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORezwat2mass',                               &
-                   Ptr2Data = State_Diag%TomasERRORezwat2mass,                      &
-                   mapData  = State_Diag%Map_TomasERRORezwat2mass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXezwat2mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat2mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat2mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORezwat2number',                               &
-                   Ptr2Data = State_Diag%TomasERRORezwat2number,                      &
-                   mapData  = State_Diag%Map_TomasERRORezwat2number,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXezwat2number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat2number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat2number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORezwat3mass',                               &
-                   Ptr2Data = State_Diag%TomasERRORezwat3mass,                      &
-                   mapData  = State_Diag%Map_TomasERRORezwat3mass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXezwat3mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat3mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat3mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORezwat3number',                               &
-                   Ptr2Data = State_Diag%TomasERRORezwat3number,                      &
-                   mapData  = State_Diag%Map_TomasERRORezwat3number,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXezwat3number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat3number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat3number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcheck1mass',                               &
-                   Ptr2Data = State_Diag%TomasERRORcheck1mass,                      &
-                   mapData  = State_Diag%Map_TomasERRORcheck1mass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcheck1mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck1mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck1mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcheck1number',                               &
-                   Ptr2Data = State_Diag%TomasERRORcheck1number,                      &
-                   mapData  = State_Diag%Map_TomasERRORcheck1number,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcheck1number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck1number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck1number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcheck2mass',                               &
-                   Ptr2Data = State_Diag%TomasERRORcheck2mass,                      &
-                   mapData  = State_Diag%Map_TomasERRORcheck2mass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcheck2mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck2mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck2mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcheck2number',                               &
-                   Ptr2Data = State_Diag%TomasERRORcheck2number,                      &
-                   mapData  = State_Diag%Map_TomasERRORcheck2number,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcheck2number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck2number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck2number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcheck3mass',                               &
-                   Ptr2Data = State_Diag%TomasERRORcheck3mass,                      &
-                   mapData  = State_Diag%Map_TomasERRORcheck3mass,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcheck3mass',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck3mass,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck3mass,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'TomasERRORcheck3number',                               &
-                   Ptr2Data = State_Diag%TomasERRORcheck3number,                      &
-                   mapData  = State_Diag%Map_TomasERRORcheck3number,                  &
+    CALL Finalize( diagId   = 'TomasMNFIXcheck3number',                               &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck3number,                      &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck3number,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -12406,19 +12404,19 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
 #endif
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOND' ) THEN
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4' ) THEN
        IF ( isDesc    ) Desc  = 'TOMAS Condensation Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCONDMASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASCOND Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASH2SO4 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCONDNUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASCOND Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASH2SO4 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
@@ -12485,127 +12483,127 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROR' ) THEN
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIX' ) THEN
        IF ( isDesc    ) Desc  = 'TOMAS Error Rate'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORMASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROR Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIX Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORNUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROR Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIX Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCONDMASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCOND Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXH2SO4MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXH2SO4 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCONDNUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCOAG Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXH2SO4NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXH2SO4 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCOAGMASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCOAG Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCOAGMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCOAG Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCOAGNUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORAQOX Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCOAGNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXAQOX Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORAQOXMASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORAQOX Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXAQOXMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXAQOX Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORAQOXNUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCOND Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXAQOXNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCOND Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT1MASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT1 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT1MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT1 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT1NUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT1 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT1NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT1 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT2MASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT2 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT2MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT2 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT2NUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT2 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT2NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT2 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT3MASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT3 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT3MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT3 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERROREZWAT3NUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERROREZWAT3 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT3NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT3 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK1MASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK1 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK1MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK1 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK1NUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK1 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK1NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK1 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK2MASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK2 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK2MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK2 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK2NUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK2 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK2NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK2 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK3MASS'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK3 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK3MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK3 Rate'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
-    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASERRORCHECK3NUMBER'  ) THEN
-       IF ( isDesc    ) Desc  = 'TOMASERRORCHECK3 Rate'
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK3NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK3 Rate'
        IF ( isUnits   ) Units = 'number'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
@@ -13676,7 +13674,7 @@ CONTAINS
           numTags = State_Chm%nDryAlt
        CASE( 'TOMASBIN', 'T' )
          ! numTags = HcoState%MicroPhys%nBins
-           numTags = 15  ! fix - this - pass this in
+           numTags = 15  !!!! fix this - pass this in - should not be hard coded
        CASE( 'DUSTBIN', 'B' )
           numTags = NDUST
        CASE( 'FIX',     'F' )

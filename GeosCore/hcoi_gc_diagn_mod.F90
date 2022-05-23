@@ -175,12 +175,12 @@ CONTAINS
     CALL Diagn_Dust    ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!!!! betty removed ====== > #ifdef BPCH_DIAG  
+!#ifdef BPCH_DIAG  
 #ifdef TOMAS
     CALL Diagn_TOMAS   ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
-! Betty removed =====> #endif
+!#endif
     ! Return
     RC = HCO_SUCCESS
 
@@ -1126,7 +1126,7 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-!!!!! betty removed ======>  #ifdef BPCH_DIAG
+!#ifdef BPCH_DIAG
 
     ! Get default HEMCO species ID's
     id_BCPI = HCO_GetHcoID( 'BCPI', HcoState )
@@ -1440,7 +1440,7 @@ CONTAINS
        CALL GC_Error( Msg, RC, Loc )
        RETURN
     ENDIF
-!!!!!!!!! betty removed ============> #endif
+!#endif
 
   END SUBROUTINE Diagn_TOMAS
 !EOC
