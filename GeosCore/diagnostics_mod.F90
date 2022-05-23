@@ -1426,7 +1426,8 @@ CONTAINS
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for WetLossLS [units of kg/s as per WetLossLS]
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+       IF ( State_Diag%Archive_SatDiagnWetLossLS                       .and. &
+            State_Diag%WetLossLS                                     ) THEN
    
              ! Point to mapping obj specific to species boundary conditions
              mapData => State_Diag%Map_SatDiagnWetLossLS
@@ -1436,7 +1437,8 @@ CONTAINS
 !                !$OMP PRIVATE( N, S   )
                 DO S = 1, mapData%nSlots
                    N = mapData%slot2id(S)
-                   State_Diag%SatDiagnWetLossLS(I,:,:,S) = State_Diag%WetLossLS(I,:,:,N) * GOOD   
+                   State_Diag%SatDiagnWetLossLS(I,:,:,S) =                   &
+                        State_Diag%WetLossLS(I,:,:,N) * GOOD   
                 ENDDO
 !               !$OMP END PARALLEL DO
   
@@ -1447,7 +1449,8 @@ CONTAINS
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for WetLossConv [units of kg/s as per WetLossConv]
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnWetLossConv ) THEN
+       IF ( State_Diag%Archive_SatDiagnWetLossConv,                     .and. &
+            State_Diag%Archive_WetLossConv                             ) THEN
    
              ! Point to mapping obj specific to species boundary conditions
              mapData => State_Diag%Map_SatDiagnWetLossConv
@@ -1468,7 +1471,8 @@ CONTAINS
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for Jval [units of s-1 as per Jval]
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnJval ) THEN
+       IF ( State_Diag%Archive_SatDiagnJval                            .and. &
+            State_Diag%Archive_Jval                                   ) THEN
    
              ! Point to mapping obj specific to species boundary conditions
              mapData => State_Diag%Map_SatDiagnJval
@@ -1478,7 +1482,8 @@ CONTAINS
 !                !$OMP PRIVATE( N, S   )
                 DO S = 1, mapData%nSlots
                    N = mapData%slot2id(S)
-                   State_Diag%SatDiagnJval(I,:,:,S) = State_Diag%Jval(I,:,:,N) * GOOD
+                   State_Diag%SatDiagnJval(I,:,:,S) =                        &
+                        State_Diag%Jval(I,:,:,N) * GOOD
                 ENDDO
 !               !$OMP END PARALLEL DO
   
@@ -1489,21 +1494,26 @@ CONTAINS
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for JvalO3O1D [units of s-1 as per JvalO3O1D]:
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-          State_Diag%SatDiagnJvalO3O1D(I,:,:) = State_Diag%JvalO3O1D(I,:,:) * GOOD
+       IF ( State_Diag%Archive_SatDiagnJvalO3O1D                       .and. &
+            State_Diag%Archive_JvalO3O1D                              ) THEN
+          State_Diag%SatDiagnJvalO3O1D(I,:,:) =                              &
+               State_Diag%JvalO3O1D(I,:,:) * GOOD
        ENDIF
 
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for JvalO3O3P [units of s-1 as per JvalO3O3P]:
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-          State_Diag%SatDiagnJvalO3O3P(I,:,:) = State_Diag%JvalO3O3P(I,:,:) * GOOD
+       IF ( State_Diag%Archive_SatDiagnJvalO3O3P                       .and. &
+            State_Diag%Archive_JvalO3O3P                              ) THEN
+          State_Diag%SatDiagnJvalO3O3P(I,:,:) =                              &
+               State_Diag%JvalO3O3P(I,:,:) * GOOD
        ENDIF
 
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for DryDep [units of molec cm-2 s-1 as per DryDep]
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnDryDep ) THEN
+       IF ( State_Diag%Archive_SatDiagnDryDep                          .and. &
+            State_Diag%Archive_DryDep )                                 THEN
    
              ! Point to mapping obj specific to species boundary conditions
              mapData => State_Diag%Map_SatDiagnDryDep
@@ -1513,7 +1523,8 @@ CONTAINS
 !                !$OMP PRIVATE( N, S   )
                 DO S = 1, mapData%nSlots
                    N = mapData%slot2id(S)
-                   State_Diag%SatDiagnDryDep(I,:,S) = State_Diag%DryDep(I,:,N) * GOOD
+                   State_Diag%SatDiagnDryDep(I,:,S) =                        &
+                        State_Diag%DryDep(I,:,N) * GOOD
                 ENDDO
 !               !$OMP END PARALLEL DO
   
@@ -1524,7 +1535,8 @@ CONTAINS
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for DryDepVel [units of cm s-1 as per DryDepVel]
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+       IF ( State_Diag%Archive_SatDiagnDryDepVel                       .and. &
+            State_Diag%Archive_DryDepVel                              ) THEN
    
              ! Point to mapping obj specific to species boundary conditions
              mapData => State_Diag%Map_SatDiagnDryDepVel
@@ -1545,8 +1557,10 @@ CONTAINS
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for OH Reactivity [units of s-1]
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
-          State_Diag%SatDiagnOHreactivity(I,:,:) = State_Diag%OHreactivity(I,:,:) * GOOD
+       IF ( State_Diag%Archive_SatDiagnOHreactivity                    .and. &
+            State_Diag%Archive_OHreactivity                           ) THEN
+          State_Diag%SatDiagnOHreactivity(I,:,:) =                           &
+               State_Diag%OHreactivity(I,:,:) * GOOD
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1554,7 +1568,8 @@ CONTAINS
        ! From surface to maximum vertical level for advected species
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
-          State_Diag%SatDiagnColEmis(I,:,:) = State_Diag%SatDiagnColEmis(I,:,:) * GOOD
+          State_Diag%SatDiagnColEmis(I,:,:) =                                &
+               State_Diag%SatDiagnColEmis(I,:,:) * GOOD
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1562,20 +1577,23 @@ CONTAINS
        ! From surface to top of the PBL for Advected Species (eflx (emis) - dflx(drydep)))
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
-          State_Diag%SatDiagnSurfFlux(I,:,:) = State_Diag%SatDiagnSurfFlux(I,:,:) * GOOD
+          State_Diag%SatDiagnSurfFlux(I,:,:) =                               &
+               State_Diag%SatDiagnSurfFlux(I,:,:) * GOOD
        ENDIF
 
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for Chemical Loss
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+       IF ( State_Diag%Archive_SatDiagnLoss                            .and. &
+            State_Diag%Archive_Loss                                   ) THEN
           State_Diag%SatDiagnLoss(I,:,:,:) = State_Diag%Loss(I,:,:,:) * GOOD
        ENDIF
 
        !---------------------------------------------------------------------
        ! SatDiagn Diagnostic for Chemical Production
        !---------------------------------------------------------------------
-       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+       IF ( State_Diag%Archive_SatDiagnProd                            .and. &
+            State_Diag%Archive_Prod                                   ) THEN
           State_Diag%SatDiagnProd(I,:,:,:) = State_Diag%Prod(I,:,:,:) * GOOD
        ENDIF
 
@@ -1584,7 +1602,8 @@ CONTAINS
        ! SatDiagnRxnRate was previously defined in fullchem_mod.F90
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
-          State_Diag%SatDiagnRxnRate(I,:,:,:) = State_Diag%SatDiagnRxnRate(I,:,:,:) * GOOD
+          State_Diag%SatDiagnRxnRate(I,:,:,:) =                              &
+               State_Diag%SatDiagnRxnRate(I,:,:,:) * GOOD
        ENDIF
 
     ENDDO

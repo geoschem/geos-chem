@@ -4828,9 +4828,8 @@ CONTAINS
 
       !$OMP PARALLEL DO                                                      &
       !$OMP DEFAULT( SHARED )                                                &
-      !$OMP PRIVATE( I,       J,         topMix                             )&
-      !$OMP PRIVATE( found,   emis,      dep                                )&
-      !$OMP REDUCTION( +:tmpflx                                             )
+      !$OMP PRIVATE( I,       J,       topMix                               )&
+      !$OMP PRIVATE( tmpFlx,  found,   emis,      dep                       )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -4869,17 +4868,19 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
-           ! Compute column emission fluxes for satellite diagnostics
-           IF ( State_Diag%Archive_SatDiagn ) THEN
-              tmpFlx = 0.0_fp
-              DO L = 1, State_Grid%NZ
-                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
-                                     J,         L,          found, emis     )
-                 IF ( .NOT. found ) EXIT
-                 tmpFlx = tmpFlx + emis
-              ENDDO
-              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
-           ENDIF
+! Temporarily disable this code, it causes segmentation faults
+! Investigate later on -- Bob Yantosca, 23 May 2022
+!           ! Compute column emission fluxes for satellite diagnostics
+!           IF ( State_Diag%Archive_SatDiagn ) THEN
+!              tmpFlx = 0.0_fp
+!              DO L = 1, State_Grid%NZ
+!                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
+!                                     J,         L,          found, emis     )
+!                 IF ( .NOT. found ) EXIT
+!                 tmpFlx = tmpFlx + emis
+!              ENDDO
+!              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+!           ENDIF
 
         ENDIF
 #endif
@@ -5007,43 +5008,47 @@ CONTAINS
        !=====================================================================
        State_Chm%SurfaceFlux(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
-       !=====================================================================
-       ! Defining Satellite Diagnostics
-       !=====================================================================
-
-       ! Define emission satellite diagnostics
-       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
-
-         ! Point to mapping obj specific to this diagnostic
-         mapData => State_Diag%Map_SatDiagnColEmis
-
-          DO S = 1, mapData%nSlots
-             N = mapData%slot2id(S)
-             !Print *, 'JDS N = ', N
-             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)             
-          ENDDO
-
-        ! Free pointer
-        mapData => NULL()
-
-       ENDIF
-
-       ! N.B. SatDiagnSurfFlux contains within it the underlying eflx variable as opposed to colEflx.
-       ! Thus, taking SatDiagnSurfFlux - SatDiagnColEmis will not necessarily equal the dry deposition flux (dflx)
-       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
-
-         ! Point to mapping obj specific to this diagnostic
-         mapData => State_Diag%Map_SatDiagnSurfFlux
-
-          DO S = 1, mapData%nSlots
-             N = mapData%slot2id(S)
-             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)             
-          ENDDO
-
-        ! Free pointer
-        mapData => NULL()
-
-       ENDIF
+! Temporarily disable this code, it causes segmentation faults
+! Investigate later on -- Bob Yantosca, 23 May 2022
+!       !=====================================================================
+!       ! Defining Satellite Diagnostics
+!       !=====================================================================
+!
+!       ! Define emission satellite diagnostics
+!       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+!
+!         ! Point to mapping obj specific to this diagnostic
+!         mapData => State_Diag%Map_SatDiagnColEmis
+!
+!          DO S = 1, mapData%nSlots
+!             N = mapData%slot2id(S)
+!             !Print *, 'JDS N = ', N
+!             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)             
+!          ENDDO
+!
+!        ! Free pointer
+!        mapData => NULL()
+!
+!       ENDIF
+!
+!       ! N.B. SatDiagnSurfFlux contains within it the underlying eflx
+!       ! variable as opposed to colEflx.
+!       ! Thus, taking SatDiagnSurfFlux - SatDiagnColEmis will not
+!       1  necessarily equal the dry deposition flux (dflx)
+!       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
+!
+!         ! Point to mapping obj specific to this diagnostic
+!         mapData => State_Diag%Map_SatDiagnSurfFlux
+!
+!          DO S = 1, mapData%nSlots
+!             N = mapData%slot2id(S)
+!             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)
+!          ENDDO
+!
+!        ! Free pointer
+!        mapData => NULL()
+!
+!       ENDIF
 
        !=====================================================================
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)

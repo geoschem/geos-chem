@@ -947,19 +947,32 @@ CONTAINS
                     Vdot    = Vloc,                                          &
                     Aout    = Aout                                          )
 #endif
+
+          ! Archive reaction rates
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
           ENDDO
        ENDIF
 
+       ! Archive reaction rates for the satellite diagnostic
        IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
+
+          ! (Only call FUN if it hasn't been called above)
+          IF ( .not. State_Diag%Archive_RxnRate ) THEN
+             CALL Fun( V       = C(1:NVAR),                                  &
+                       F       = C(NVAR+1:NSPEC),                            &
+                       RCT     = RCONST,                                     &
+                       Vdot    = Vloc,                                       &
+                       Aout    = Aout                                       )
+          ENDIF
+
           DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
              N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
              State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
           ENDDO
        ENDIF
+
 
        !=====================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
