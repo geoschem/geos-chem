@@ -765,7 +765,7 @@ CONTAINS
        !IF ( ND60 > 0 ) THEN 
            IF ( State_Diag%Archive_TomasMNFIXezwat1mass .or. &
                 State_Diag%Archive_TomasMNFIXezwat1number )  &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
             State_Diag )
        !ENDIF
 !#endif
@@ -872,7 +872,7 @@ CONTAINS
 !          IF ( ND60 > 0 ) THEN
            IF ( State_Diag%Archive_TomasNUCLmass .or. &
                 State_Diag%Archive_TomasNUCLnumber )  &
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
 !          ENDIF
 !#endif
@@ -881,7 +881,7 @@ CONTAINS
 !#ifdef BPCH_DIAG
 !          IF ( ND61 > 0 )  THEN
            IF ( State_Diag%Archive_TomasNUCRATEnumber) &
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
 !          ENDIF
 !#endif
@@ -906,7 +906,7 @@ CONTAINS
 !          IF ( ND60 > 0 ) THEN
            IF ( State_Diag%Archive_TomasNUCLmass .or. &
                 State_Diag%Archive_TomasNUCLnumber )  &
-              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
 !          ENDIF
 !#endif
@@ -974,7 +974,7 @@ CONTAINS
 !       IF ( ND60 > 0 ) THEN
            IF ( State_Diag%Archive_TomasMNFIXh2so4mass .or. &
                 State_Diag%Archive_TomasMNFIXh2so4number )  &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                          State_Grid, State_Diag )
 !       ENDIF
 !#endif
@@ -1001,7 +1001,7 @@ CONTAINS
 !          IF ( ND60 > 0 ) THEN
            IF ( State_Diag%Archive_TomasCOAGmass .or. &
                 State_Diag%Archive_TomasCOAGnumber )  &
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
 !          ENDIF
 !#endif
@@ -1029,7 +1029,7 @@ CONTAINS
 !          IF ( ND60 > 0 ) THEN
            IF ( State_Diag%Archive_TomasMNFIXcoagmass .or. &
                 State_Diag%Archive_TomasMNFIXcoagnumber )  &
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
 !          ENDIF
 !#endif
@@ -1070,7 +1070,7 @@ CONTAINS
 !       IF ( ND60 > 0 ) THEN
            IF ( State_Diag%Archive_TomasMNFIXezwat2mass .or. &
                 State_Diag%Archive_TomasMNFIXezwat2number )  &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                          State_Grid, State_Diag )
 !       ENDIF
 !#endif
@@ -3669,6 +3669,7 @@ CONTAINS
     REAL(fp)                 :: Gc(ICOMP - 1)
     REAL(fp)                 :: Gcd(ICOMP - 1)
     REAL*4                   :: BOXVOL
+    REAL*4                   :: BOXMASS
     REAL*4                   :: thresh
     CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
     LOGICAL                  :: UNITCHANGE_KGM2
@@ -3707,6 +3708,7 @@ CONTAINS
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
 
     BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+    BOXMASS  = State_Met%AD(I,J,L) ! in kg
     ! Update aerosol water from the current RH
     DO K = 1, IBINS
        CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm, RC )
@@ -3755,7 +3757,7 @@ CONTAINS
 !    IF ( ND60 > 0 ) &
          IF ( State_Diag%Archive_TomasMNFIXezwat3mass .or. &
                 State_Diag%Archive_TomasMNFIXezwat3number ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
              State_Diag )
 !         ENDIF
 !#endif
@@ -3891,7 +3893,7 @@ CONTAINS
 !    IF ( ND60 > 0 ) &
          IF ( State_Diag%Archive_TomasAQOXmass .or. &
                 State_Diag%Archive_TomasAQOXnumber ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
             State_Diag )
 !         ENDIF
 !#endif
@@ -3911,7 +3913,7 @@ CONTAINS
 !    IF ( ND60 > 0 ) &
            IF ( State_Diag%Archive_TomasMNFIXaqoxmass .or. &
                 State_Diag%Archive_TomasMNFIXaqoxnumber )  &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
             State_Diag )
 !#endif
 
@@ -3961,7 +3963,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOACOND( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
+  SUBROUTINE SOACOND( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS,&
                       State_Chm, State_Grid, State_Diag, RC )
 !
 ! !USES:
@@ -3979,7 +3981,7 @@ CONTAINS
 !
     REAL(fp)                      :: MSOA
     INTEGER,        INTENT(IN)    :: I, J, L
-    REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES
+    REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES, BOXMASS
     TYPE(GrdState), INTENT(IN)    :: State_Grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -4242,7 +4244,7 @@ CONTAINS
     !IF ( ND60 > 0 ) &
            IF ( State_Diag%Archive_TomasSOAmass .or. &
                 State_Diag%Archive_TomasSOAnumber ) &
-       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
               State_Diag )
 !#endif
 
@@ -6103,7 +6105,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, State_Diag )
+  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, State_Diag )
 !
 ! !USES:
 !
@@ -6127,7 +6129,7 @@ CONTAINS
     REAL(fp),       INTENT(IN) :: Nkd(IBINS)
     REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
     REAL(fp),       INTENT(IN) :: Mkd(IBINS,ICOMP)
-    REAL*4,         INTENT(IN) :: BOXVOL
+    REAL*4,         INTENT(IN) :: BOXMASS
     TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:   
@@ -6161,6 +6163,8 @@ CONTAINS
        State_Diag%TomasMNFIX=5.e+0_fp
        State_Diag%TomasSOA=6.e+0_fp
 
+       DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
+
        IF ( PTYPE == 1 ) THEN
        DO K=1,IBINS
            State_Diag%TomasH2SO4mass(I,J,L,K) = 0.e+0_fp
@@ -6170,7 +6174,8 @@ CONTAINS
              S = State_Diag%Map_TomasH2SO4mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasH2SO4mass(I,J,L,K) = & 
-                  State_Diag%TomasH2SO4mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasH2SO4mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS)) / &
+                       DTCHEM / BOXMASS  ! kg/kg air/sec                   
              ENDIF
           ENDIF
        ENDDO
@@ -6178,7 +6183,8 @@ CONTAINS
              S = State_Diag%Map_TomasH2SO4number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasH2SO4number(I,J,L,K) = & 
-                  State_Diag%TomasH2SO4number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasH2SO4number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6193,7 +6199,8 @@ CONTAINS
              S = State_Diag%Map_TomasCOAGmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasCOAGmass(I,J,L,K) = & 
-                  State_Diag%TomasCOAGmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasCOAGmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6201,7 +6208,8 @@ CONTAINS
              S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasCOAGnumber(I,J,L,K) = & 
-                  State_Diag%TomasCOAGnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasCOAGnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6216,7 +6224,8 @@ CONTAINS
              S = State_Diag%Map_TomasNUCLmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasNUCLmass(I,J,L,K) = & 
-                  State_Diag%TomasNUCLmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasNUCLmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6224,7 +6233,8 @@ CONTAINS
              S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasNUCLnumber(I,J,L,K) = & 
-                  State_Diag%TomasNUCLnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasNUCLnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6239,7 +6249,8 @@ CONTAINS
              S = State_Diag%Map_TomasAQOXmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasAQOXmass(I,J,L,K) = & 
-                  State_Diag%TomasAQOXmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasAQOXmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6247,7 +6258,8 @@ CONTAINS
              S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasAQOXnumber(I,J,L,K) = & 
-                  State_Diag%TomasAQOXnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasAQOXnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6262,7 +6274,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXmass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6270,7 +6283,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXnumber(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6285,7 +6299,8 @@ CONTAINS
              S = State_Diag%Map_TomasSOAmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasSOAmass(I,J,L,K) = & 
-                  State_Diag%TomasSOAmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasSOAmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6293,22 +6308,25 @@ CONTAINS
              S = State_Diag%Map_TomasSOAnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasSOAnumber(I,J,L,K) = & 
-                  State_Diag%TomasSOAnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasSOAnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
        ENDIF
 
-       IF ( PTYPE == 7 ) THEN
-           DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
+       IF ( PTYPE == 7 ) THEN  
        DO K=1,IBINS
            State_Diag%TomasNUCRATEnumber(I,J,L,K) = 0.e+0_fp
        IF ( State_Diag%Archive_TomasNUCRATEnumber ) THEN
              S = State_Diag%Map_TomasNUCRATEnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasNUCRATEnumber(I,J,L,K) = & 
-                  State_Diag%TomasNUCRATEnumber(I,J,L,K) + NK(K) - NKD(K) / &
-                       DTCHEM / BOXVOL  ! no./cm3/sec  
+                  State_Diag%TomasNUCRATEnumber(I,J,L,K) + (NK(K) - NKD(K)) / &
+                       DTCHEM / BOXMASS  ! no./kg air/sec
+!            print*,'Values for nuc',BOXMASS,DTCHEM,NK(K),NKD(K),K, &
+!                (NK(K) - NKD(K)),  (NK(K) - NKD(K)) / &
+!                       DTCHEM / BOXMASS  ! no./kg air/sec              
              ENDIF
           ENDIF
        ENDDO
@@ -6323,7 +6341,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXezwat1mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXezwat1mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXezwat1mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6331,7 +6350,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXezwat1number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXezwat1number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXezwat1number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXezwat1number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6346,7 +6366,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXezwat2mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXezwat2mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXezwat2mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6354,7 +6375,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXezwat2number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXezwat2number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXezwat2number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXezwat2number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6369,7 +6391,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXezwat3mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXezwat3mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXezwat3mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6377,7 +6400,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXezwat3number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXezwat3number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXezwat3number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXezwat3number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6392,7 +6416,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXh2so4mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXh2so4mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXh2so4mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6400,7 +6425,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXh2so4number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXh2so4number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXh2so4number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXh2so4number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6415,7 +6441,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcoagmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcoagmass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcoagmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXcoagmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6423,7 +6450,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcoagnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcoagnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXcoagnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6438,7 +6466,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXaqoxmass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXaqoxmass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXaqoxmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6446,7 +6475,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXaqoxnumber%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6461,7 +6491,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcheck1mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcheck1mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXcheck1mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6469,7 +6500,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcheck1number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcheck1number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcheck1number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXcheck1number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6484,7 +6516,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcheck2mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcheck2mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXcheck2mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6492,7 +6525,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcheck2number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcheck2number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcheck2number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXcheck2number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6507,7 +6541,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcheck3mass%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcheck3mass(I,J,L,K) + MK(K,JS) - MKD(K,JS)
+                  State_Diag%TomasMNFIXcheck3mass(I,J,L,K) +( MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -6515,7 +6550,8 @@ CONTAINS
              S = State_Diag%Map_TomasMNFIXcheck3number%id2slot(K)
              IF ( S > 0 ) THEN
                 State_Diag%TomasMNFIXcheck3number(I,J,L,K) = & 
-                  State_Diag%TomasMNFIXcheck3number(I,J,L,K) + NK(K) - NKD(K)
+                  State_Diag%TomasMNFIXcheck3number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no/kg air/sec                      
              ENDIF
           ENDIF
        ENDDO
@@ -7845,6 +7881,7 @@ CONTAINS
     REAL(fp)            :: Gc(ICOMP - 1)
     REAL(fp)            :: Gcd(ICOMP - 1)
     REAL*4              :: BOXVOL
+    REAL*4              :: BOXMASS
     REAL(fp)            :: XFER(IBINS)
 
     ! For values from Input_Opt
@@ -7895,7 +7932,7 @@ CONTAINS
     !$OMP PARALLEL DO        &
     !$OMP DEFAULT( SHARED )  &
     !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL ) &
+    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL, BOXMASS ) &
     !$OMP PRIVATE( GC, GCd, ERRORSWITCH ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO I = I1, I2
@@ -7903,6 +7940,7 @@ CONTAINS
     DO L = L1, L2
 
        BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+       BOXMASS  = State_Met%AD(I,J,L) !kg
 
        ! Swap GEOSCHEM variables into aerosol algorithm variables
        DO K = 1, IBINS
@@ -7955,19 +7993,19 @@ CONTAINS
          MPNUM = 17 
            IF ( State_Diag%Archive_TomasMNFIXcheck1mass .or. &
                 State_Diag%Archive_TomasMNFIXcheck1number )  &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
             State_Diag )
        ELSEIF ( LOCATION .eq.  'Before exiting DO_TOMAS') THEN
          MPNUM = 18 
            IF ( State_Diag%Archive_TomasMNFIXcheck2mass .or. &
                 State_Diag%Archive_TomasMNFIXcheck2number )  &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
             State_Diag )
        ELSEIF ( LOCATION .eq. 'AERO_DIADEN called from DEPVEL' ) THEN
          MPNUM = 19 
            IF ( State_Diag%Archive_TomasMNFIXcheck3mass .or. &
                 State_Diag%Archive_TomasMNFIXcheck3number )  &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
             State_Diag )
        ENDIF
 !       MPNUM = 5
