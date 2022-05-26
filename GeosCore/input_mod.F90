@@ -1273,6 +1273,7 @@ CONTAINS
     ! Error checks
     !========================================================================
 
+#ifdef MODEL_CLASSIC
     IF ( Input_Opt%SimLengthSec < Input_Opt%TS_DYN                      .or. &
          Input_Opt%SimLengthSec < Input_Opt%TS_CHEM )                   THEN
        IF ( Input_Opt%amIRoot )                                         THEN
@@ -1291,7 +1292,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifdef MODEL_CLASSIC
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
        IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM )     THEN
