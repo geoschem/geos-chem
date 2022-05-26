@@ -149,7 +149,7 @@ Warnings:                    1
     --> OFFLINE_DUST           :       ${RUNDIR_OFFLINE_DUST}    # 1980-2021
     --> OFFLINE_BIOGENICVOC    :       ${RUNDIR_OFFLINE_BIOVOC}    # 1980-2021
     --> OFFLINE_SEASALT        :       ${RUNDIR_OFFLINE_SEASALT}    # 1980-2021
-    -->  CalcBrSalt            :       false
+    -->  CalcBrSeasalt         :       false
     --> OFFLINE_SOILNOX        :       ${RUNDIR_OFFLINE_SOILNOX}    # 1980-2021
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> UVALBEDO               :       true     # 1985
