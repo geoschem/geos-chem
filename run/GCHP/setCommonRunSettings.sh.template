@@ -620,3 +620,5 @@ if [[ ${AutoUpdate_Diagnostics} == "ON" ]]; then
 else
     print_msg "Auto-update of diagnostic settings in HISTORY.rc is turned off"
 fi
+
+print_msg " "
