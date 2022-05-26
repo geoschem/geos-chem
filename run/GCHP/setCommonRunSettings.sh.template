@@ -2,229 +2,135 @@
 
 # setCommonRunSettings.sh: Set run-time settings for GCHP and update all config
 # files to use these settings. Pass optional argument --verbose to print
-# information of settings updated per file.
+# all settings configured when using this script.
 
 # Usage: ./setCommonRunSettings.sh [--verbose]
-#
-# Initial version: E. Lundgren, 8/17/2017
-
-###############################################################
-#
-# Contents of this file:
-#
-#    FREQUENTLY CHANGED SETTINGS (***customize your run here***)
-#       - Compute resources (num nodes, num cores
-#       - Run grid resolution
-#       - Simulation duration
-#       - Option for more frequent output restart files
-#       - Turn components on/off
-#       - Diagnostic frequency, duration, and monthly mean
-#       - Debug print options (informational only)
-#
-#    LESS FREQUENTLY CHANGED SETTINGS
-#      - timesteps
-#      - dust mass tuning factor
-#      - manual configuration of domain decomposition
-#
-#    ERROR CHECKS
-#
-#    UTILITY FUNCTIONS TO UPDATE CONFIG FILES
-#
-#    COMMANDS TO UPDATE CONFIG FILES
-#
-###############################################################
-
-
-########################################
-#     FREQUENTLY CHANGED SETTINGS
-########################################
 
 #------------------------------------------------
-#   Compute resources
+#   COMPUTE RESOURCES
 #------------------------------------------------
+# Total cores must be divisible by 6
 TOTAL_CORES=${RUNDIR_NUM_CORES}
 NUM_NODES=${RUNDIR_NUM_NODES}
 NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
-# Set number of cores, number of nodes, and number of cores per node.
-# Total cores must be divisible by 6. Cores per node must equal number
-# of cores divided by number of nodes. Make sure you have these
-# resources available.
 
 #------------------------------------------------
-#   Run grid resolution
+#   GRID RESOLUTION
 #------------------------------------------------
+# Integer representing number of grid cells per cubed-sphere face side
 CS_RES=${RUNDIR_CS_RES}
+
+#------------------------------------------------
+#   STRETCHED GRID
+#------------------------------------------------
+# Turn stretched grid ON/OFF. Follow these rules if ON:
+#    (1) Minimum STRETCH_FACTOR value is 1.0001
+#    (2) TARGET_LAT and TARGET_LON are floats containing decimal
+#    (3) TARGET_LON in range [0,360)
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
 TARGET_LON=170.0
-# Primary resolution is an integer value
-#   24 ~ 4x5, 48 ~ 2x2.25, 90 ~ 1x1.25, 180 ~ 1/2 deg, 360 ~ 1/4 deg
-# Set stretched grid to ON or OFF. If ON, follow these rules for parameters:
-#    (1) Minimum STRETCH_FACTOR is 1.0001
-#    (2) Target lat and lon must be floats (contain decimal)
-#    (3) Target lon must be in range [0,360)
 
 #------------------------------------------------
-#    Simulation duration
+#    SIMULATION DURATION
 #------------------------------------------------
-Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
-#
-# Duration should be less than or equal to the difference between start
-# and end time. If end time is past start time plus duration, the simulation
-# will end at start time plus duration rather than end time.
-#
-# At the end of each run the end time is stored as the new start time
-# in output file cap_restart. Rerunning without removing or editing
-# cap_restart will start at the start time in cap_restart rather than
-# the start time set here. Beware of this feature - if you do not want to
-# do consecutive runs then delete cap_restart prior to running. If you
-# do want to run consecutive simulations you can make use of this feature in
-# your own custom run scripts.
+# Format is "YYYYMMDD HHmmSS". Example: "0000100 000000" for 1 month
+Run_Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 
-#-------------------------------------------------
-#    Option for more frequent output restart files
-#-------------------------------------------------
+#------------------------------------------------------------
+#    GEOS-CHEM COMPONENTS
+#------------------------------------------------------------
+# Sets values in geoschem_config.yml
+Do_Chemistry=true
+Do_Transport=true
+Do_Cloud_Conv=true
+Do_PBL_Mixing=true
+Do_Non_Local_Mixing=true
+Do_DryDep=true
+Do_WetDep=true
+
+#---------------------------------------------------------------------
+#    DIAGNOSTICS
+#---------------------------------------------------------------------
+# Auto-update settings in HISTORY.rc for specific collections (enable with ON)
+AutoUpdate_Diagnostics=OFF
+
+# Instructions to auto-update diagnostics
+#   1. Set AutoUpdate_Diagnostics=ON:
+#   2. Set Diag_Monthly to compute monthly time-averaged values (0=OFF, 1=ON)
+#   3. If Diag_Monthly=OFF:
+#        3a. Set Diag_Frequency for diagnostic frequency, format "HHmmSS"
+#        3b. Set Diag_Duration for file write frequency, format "HHmmSS"
+#        *Note that number of hours may exceed 2 digits, e.g. 744 for 744 hrs
+#   4. Edit Diag_Collections list to specify which collections to update
+#
+Diag_Monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
+Diag_Frequency="${RUNDIR_HIST_TIME_AVG_FREQ}"
+Diag_Duration="${RUNDIR_HIST_TIME_AVG_DUR}"
+Diag_Collections=(SpeciesConc    \
+                  AerosolMass    \
+                  Aerosols       \
+                  Budget         \
+                  CloudConvFlux  \
+                  ConcAfterChem  \
+                  DryDep         \
+                  DefaultCollection \
+                  Emissions      \
+                  JValues        \
+                  KppDiags       \
+                  LevelEdgeDiags \
+                  Metrics        \
+                  ProdLoss       \
+                  RadioNuclide   \
+                  RRTMG 	 \
+                  StateChm	 \
+                  StateMet       \
+                  Transport	 \
+                  WetLossConv    \
+                  WetLossLS      \
+)
+
+#------------------------------------------------------------
+#    MID-RUN CHECKPOINT FILES
+#------------------------------------------------------------
 Periodic_Checkpoint=OFF
 Checkpoint_Freq="1680000"
 Checkpoint_Ref_Date=START
 Checkpoint_Ref_Time=START
-# An end-of-run restart file is always produced by GCHP. Optionally, you
-# can also output restart files at regular or irregular intervals throughout
-# your simulation. To turn on periodic checkpoints, set above setting
-# Periodic_Checkpoint to ON; set to OFF to disable. Then follow instructions
-# below for regular or irregular output frequency.
+# Instructions for configuring regular or irregular output frequency.
 #
 # Regular output frequency:
 #  - Set Checkpoint_Freq to a string of format HHmmss. More than 2 digits for
 #    hours string is permitted, e.g. 168000 for 7 days.
-#  - Set Checkpoint_Ref_Date and Checkpoint_Ref_Date to START to use the run
+#  - Set Checkpoint_Ref_Date and Checkpoint_Ref_Time to START to use the run
 #    start datetime as reference time; else set them to YYYYMMDD and HHmmss.
-#  - WARNING: if using the run start datetime as reference time then a checkpoint
-#    file will be output the first timestep. That happens before setting the
-#    values from the restart files so it will contain all zeros.
+#  - WARNING: if using the run start datetime as reference time then a
+#    checkpoint file will be output the first timestep. That happens before
+#    setting the values from the restart files so it will contain all zeros.
 #
 # Irregular output frequency:
 #  - Set Checkpoint_Freq to string of space-separated zeros with each zero
-#    corresponding to a single checkpoint file (e.g. 0 0 0 for 3 checkpoints
+#    corresponding to a single checkpoint file (e.g. "0 0 0" for 3 checkpoints
 #    total)
 #  - Set Checkpoint_Ref_Date to a string of space-separated YYYYMMDD values.
 #  - Set Checkpoint_Ref_Time to a string of space-separated HHmmss values.
 
-#------------------------------------------------------------
-#    Turn components on/off
-#------------------------------------------------------------
-# WARNING: these settings will override manual updates you make to config files!
-#
-# geoschem_config.yml
-Turn_on_Chemistry=true
-Turn_on_Transport=true
-Turn_on_Cloud_Conv=true
-Turn_on_PBL_Mixing=true
-Turn_on_Non_Local_Mixing=true
-Turn_on_Dry_Deposition=true
-Turn_on_Wet_Deposition=true
-#
-# HEMCO_Config.rc:
-Turn_on_Base_Emissions=true
 
-#---------------------------------------------------------------------
-#    Diagnostic frequency, duration, and monthly mean
-#---------------------------------------------------------------------
-AutoUpdate_Diagnostics=OFF
-
-# Monthly diagnostics: '0' for off; '1' for on
-# NOTE: fullchem "DefaultCollection" excludes monthly option
-# in HISTORY.rc by default to allow greater output frequency
-# when other collections are monthly.
-timeAvg_monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
-
-# Frequency and duration (ignored if monthly diagnostics on)
-timeAvg_freq="${RUNDIR_HIST_TIME_AVG_FREQ}"
-timeAvg_dur="${RUNDIR_HIST_TIME_AVG_DUR}"
-
-# Time-averaged HISTORY.rc collections to auto-update
-timeAvg_collections=(SpeciesConc    \
-                     AerosolMass    \
-                     Aerosols       \
-                     Budget         \
-                     CloudConvFlux  \
-                     ConcAfterChem  \
-                     DryDep         \
-                     DefaultCollection \
-                     Emissions      \
-                     JValues        \
-                     KppDiags       \
-                     LevelEdgeDiags \
-                     Metrics        \
-                     ProdLoss       \
-                     RadioNuclide   \
-                     RRTMG 	    \
-                     StateChm	    \
-                     StateMet       \
-                     Transport	    \
-                     WetLossConv    \
-                     WetLossLS      \
-)
-
-# Instantaneous collection settings to auto-update (monthly diag does not apply)
-inst_freq="${RUNDIR_HIST_INST_FREQ}"
-inst_dur="${RUNDIR_HIST_INST_DUR}"
-inst_collections=(ConcAboveSfc      \
-)
-# Set frequency and duration for time-averaged and instantaneous collections.
-# Optionally set monthly for time-averaged collections. This option is only
-# functional if start time is the first day and time of the month.
-#
-#   Monthly   = computes monthly time-averaged values (0=OFF, 1=ON)
-#   Frequency = frequency of diagnostic calculation (HHmmSS)
-#   Duration  = frequency of diagnostic file  write (HHmmSS)
-#
-# NOTES:
-#  1. Set AutoUpdate_Diagnostics to ON/OFF to toggle auto-update of HISTORY.rc
-#  2. If monthly is enabled then frequency and duration are ignored
-#  3. Freq and duration hours may exceed 2 digits, e.g. 7440000 for 31 days
-#  4. Collections excluded from the lists must be manually set in HISTORY.rc
-#  5. To turn off collections comment them out in HISTORY.rc, not here.
-
-#-----------------------------------------------------
-#    Run-time debug print options (informational only)
-#-----------------------------------------------------
-# Run-time debug options in config files are no longer set from this file.
-# Do the following manually instead to enable debug prints:
-#   (1) GEOS-Chem core: Set debug_printout to true in geoschem_config.yml
-#   (2) HEMCO: Set VERBOSE and WARNINGS to 3 in HEMCO_Config.rc
-#   (3) MAPL ExtData (handles GCHP inputs):
-#         - For root thread prints:
-#              1. Open run directory file logging.yml
-#              2. Set CAP.EXTDATA logger option 'root_level' to DEBUG
-#              3. Run GCHP
-#              4. Check output file allPEs.log for error messages
-#         - For prints by all threads:
-#              1. Open run directory file logging.yml
-#              2. Set CAP.EXTDATA logger option 'level' to DEBUG
-#              3. Run GCHP
-#              4. Check output file allPEs.log for error messages
-#
-# WARNING: Turning on debug prints significantly slows down the model!
-#          Remember to turn back off before doing a long simulation.
-
-
-#######################################################
-#    LESS FREQUENTLY CHANGED SETTINGS
-########################################################
+###################################################################
+#    INFREQUENTLY CHANGED SETTINGS
+###################################################################
 
 #------------------------------------------------
-#   Run model as forward or adjoint
+#   MODEL PHASE
 #------------------------------------------------
+# FORWARD for forward model, ADJOINT for adjoint model
 Model_Phase=FORWARD
-# Forward model: FORWARD
-# Adjoint model: ADJOINT
 
 #------------------------------------------------
-#    Timesteps
+#    TIMESTEPS
 #------------------------------------------------
-# WARNING: these settings will override settings in geoschem_config.yml!
+# Timesteps in GCHP are resolution-dependent
 CS_RES_EFFECTIVE=${CS_RES}
 if [[ ${STRETCH_GRID} == 'ON' ]]; then
     CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
@@ -239,20 +145,13 @@ else
     TransConv_Timestep_HHMMSS=000500
 fi
 RRTMG_Timestep_sec=10800
-# Optimal timesteps are dependent on grid resolution and are automatically
-# set based on the GCHP Working Group's recommendation below. To override
-# these settings, comment out the code and manually define the following
-# variables:
-#    ChemEmiss_Timestep_sec     : chemistry timestep interval [s]
-#    TransConv_Timestep_sec     : dynamic timestep interval [s]
-#    TransConv_Timestep_HHMMSS  : dynamic timestep interval as HHMMSS string
-#
-# NOTE: Default timesteps for c24 and c48, the cubed-sphere rough equivalents
-# of 4x5 and 2x2.5, are the same as defaults timesteps in GEOS-Chem Classic
 
 #------------------------------------------------------------------
-#    Dust mass tuning factor (only if using HEMCO dust extension)
+#    ONLINE DUST MASS TUNING FACTOR
 #------------------------------------------------------------------
+# Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
+# benchmarking and is resolution-dependent. We recommend using offline dust
+# instead of the online extension for GCHP science runs.
 dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc)
 dustSetting=(${dustEntry// / })
 if [[ ${dustSetting[3]} = "on" ]]; then
@@ -273,34 +172,32 @@ if [[ ${dustSetting[3]} = "on" ]]; then
     elif [[ $CS_RES -eq 720 ]]; then
         Dust_SF=2.3e-4
     else
-        echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
+        echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the targe\
+t resolution above."
         exit 1
     fi
 fi
-# Dust_SF sets mass tuning factor in HEMCO_Config.rc used in the
-# DustDead extension. The mass tuning factor is resolution-dependent and must
-# be defined here for the target resolution if using online dust.
-# NOTE: the online dust extension is NOT recommended for use in GCHP
 
 #------------------------------------------------
-#   Domain decomposition
+#   DOMAIN DECOMPOSITION
 #------------------------------------------------
-NXNY_AUTO=ON
-NX=1 # Ignore if NXNY_AUTO=ON
-NY=6 # Ignore if NXNY_AUTO=ON
+# Enable auto-update of NX and NY based on core count by setting to ON. This
+# will make NX by NY/6 as square as possible to reduce communication overhead
+# in GCHP.
+AutoUpdate_NXNY=ON
+
+# Specify NX and NY if not auto-updating. See rules below.
+NX=
+NY=
 # Cores are distributed across each of the six cubed sphere faces using
 # configurable parameters NX and NY. Each face is divided into NX by NY/6
 # regions and each of those regions is processed by a single core
-# independent of which node it belongs to. Making NX by NY/6 as square
-# as possible reduces communication overhead in GCHP.
+# independent of which node it belongs to.
 #
-# Set NXNY_AUTO to either auto-calculate NX and NY (ON) (recommended)
-# or set them manually (OFF).
-
-# Rules and tips for setting NX and NY manually (NXNY_AUTO=OFF):
+# Rules and tips for setting NX and NY manually:
 #   1. NY must be an integer and a multiple of 6
 #   2. NX*NY must equal total number of cores (NUM_NODES*NUM_CORES_PER_NODE)
-#   3. Choose NX and NY to optimize NX x NY/6 squareness
+#
 #         Good examples: (NX=4,NY=24)  -> 96  cores at 4x4
 #                        (NX=6,NY=24)  -> 144 cores at 6x4
 #         Bad examples:  (NX=8,NY=12)  -> 96  cores at 8x2
@@ -315,11 +212,6 @@ NY=6 # Ignore if NXNY_AUTO=ON
 #      Using fewer cores may still trigger a domain decomposition error, e.g.:
 #         c48: 768 cores   (NX=16, NY=48)  --> 48/16=3 will trigger FV3 error
 
-##########################################################
-##########################################################
-####        END OF CONFIGURABLES SECTION
-##########################################################
-##########################################################
 
 ###############################
 ####   ERROR CHECKS
@@ -636,7 +528,7 @@ fi
 print_msg " "
 print_msg "Time settings:"
 print_msg "--------------------------------"
-replace_val JOB_SGMT              "${Duration}"     CAP.rc
+replace_val JOB_SGMT              "${Run_Duration}" CAP.rc
 replace_val MODEL_PHASE           "${Model_Phase}"  GCHP.rc
 replace_val REVERSE_TIME          "${Reverse_Time}" CAP.rc
 replace_val SFEmissions.backwards "${Reverse_Time}" HISTORY.rc
@@ -660,21 +552,19 @@ update_dyn_freq TMPU2 ExtData.rc
 print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
-replace_val_yaml "chemistry"         "activate"            "${Turn_on_Chemistry}"        geoschem_config.yml
-replace_val_yaml "transport"         "activate"            "${Turn_on_Transport}"        geoschem_config.yml
-replace_val_yaml "convection"        "activate"            "${Turn_on_Cloud_Conv}"       geoschem_config.yml
-replace_val_yaml "pbl_mixing"        "activate"            "${Turn_on_PBL_Mixing}"       geoschem_config.yml
-replace_val_yaml "pbl_mixing"        "use_non_local_pbl"   "${Turn_on_Non_Local_Mixing}" geoschem_config.yml
-replace_val_yaml "dry_deposition"    "activate"            "${Turn_on_Dry_Deposition}"   geoschem_config.yml
-replace_val_yaml "wet_deposition"    "activate"            "${Turn_on_Wet_Deposition}"   geoschem_config.yml
-replace_val      "AdvCore_Advection" "${ADVCORE_ADVECTION}"                              GCHP.rc
+replace_val_yaml "chemistry"  "activate" "${Do_Chemistry}"  geoschem_config.yml
+replace_val_yaml "transport"  "activate" "${Do_Transport}"  geoschem_config.yml
+replace_val_yaml "convection" "activate" "${Do_Cloud_Conv}" geoschem_config.yml
+replace_val_yaml "pbl_mixing" "activate" "${Do_PBL_Mixing}" geoschem_config.yml
+replace_val_yaml "pbl_mixing" "use_non_local_pbl" "${Do_Non_Local_Mixing}" geoschem_config.yml
+replace_val_yaml "dry_deposition" "activate" "${Do_DryDep}" geoschem_config.yml
+replace_val_yaml "wet_deposition" "activate" "${Do_WetDep}" geoschem_config.yml
+replace_val      "AdvCore_Advection" "${ADVCORE_ADVECTION}" GCHP.rc
 
 #### Set options in HEMCO_Config.rc
 print_msg ""
 print_msg "HEMCO settings:"
 print_msg "---------------"
-replace_val "--> EMISSIONS" ${Turn_on_Base_Emissions} HEMCO_Config.rc
-print_msg "NOTE: Includes base emissions only. Turning Extensions on/off must be done manually in HEMCO_Config.rc."
 if [[ ${dustSetting[3]} = "on" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
@@ -720,24 +610,13 @@ if [[ ${AutoUpdate_Diagnostics} == "ON" ]]; then
    print_msg " "
    print_msg "Diagnostics:"
    print_msg "------------"
-   if [[ ${#timeAvg_collections[@]} > 0 ]]; then
-      for c in ${timeAvg_collections[@]}; do
-         replace_val $c.mode        "'time-averaged'"  HISTORY.rc
-         replace_val $c.monthly     ${timeAvg_monthly} HISTORY.rc
-         replace_val $c.frequency   ${timeAvg_freq}    HISTORY.rc
-         replace_val $c.duration    ${timeAvg_dur}     HISTORY.rc
+   if [[ ${#Diag_Collections[@]} > 0 ]]; then
+      for c in ${Diag_Collections[@]}; do
+         replace_val $c.monthly     ${Diag_Monthly}   HISTORY.rc
+         replace_val $c.frequency   ${Diag_Frequency} HISTORY.rc
+         replace_val $c.duration    ${Diag_Duration}  HISTORY.rc
       done
    fi
-   if [[ ${#inst_collections[@]} > 0 ]]; then
-      for c in ${inst_collections[@]}; do
-         replace_val $c.mode        "'instantaneous'" HISTORY.rc
-         replace_val $c.frequency   ${inst_freq}      HISTORY.rc
-         replace_val $c.duration    ${inst_dur}       HISTORY.rc
-      done
-   fi
-elif [[ ${Periodic_Checkpoint} == "OFF" ]]; then
-    print_msg "WARNING: Auto-update of diagnostic settings in HISTORY.rc is turned off"
 else
-    print_msg "ERROR: unknown setting for AutoUpdate_Diagnostics. Must be ON or OFF."
-    exit 1
+    print_msg "Auto-update of diagnostic settings in HISTORY.rc is turned off"
 fi
