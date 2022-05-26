@@ -43,7 +43,7 @@ Run_Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 #------------------------------------------------------------
 # Sets values in geoschem_config.yml
 Do_Chemistry=true
-Do_Transport=true
+Do_Advection=true
 Do_Cloud_Conv=true
 Do_PBL_Mixing=true
 Do_Non_Local_Mixing=true
@@ -228,7 +228,7 @@ if (( ${TOTAL_CORES} != ${NUM_NODES}*${NUM_CORES_PER_NODE} )); then
 fi
 
 #### If on, auto-calculate NX and NY to maximize squareness of core regions
-if [[ ${NXNY_AUTO} == 'ON' ]]; then
+if [[ ${AutoUpdate_NXNY} == 'ON' ]]; then
    Z=$(( ${NUM_NODES}*${NUM_CORES_PER_NODE}/6 ))
    # Use "bash calculator" if available; Python if not; fail otherwise
    which bc &> /dev/null; bc_ok=$?
@@ -288,12 +288,12 @@ if [[ ${ChemEmiss_Timestep_sec} -lt ${TransConv_Timestep_sec} ]]; then
 fi
 
 #### Check transport setting. If okay, set binary indicator
-if [[ ${Turn_on_Transport} == 'true' ]]; then
+if [[ ${Do_Advection} == 'true' ]]; then
     ADVCORE_ADVECTION=1
-elif [[ ${Turn_on_Transport} == 'false' ]]; then
+elif [[ ${Do_Advection} == 'false' ]]; then
     ADVCORE_ADVECTION=0
 else
-    echo "ERROR: Incorrect transport setting"
+    echo "ERROR: Incorrect advection setting"
     exit 1
 fi
 
@@ -553,7 +553,7 @@ print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
 replace_val_yaml "chemistry"  "activate" "${Do_Chemistry}"  geoschem_config.yml
-replace_val_yaml "transport"  "activate" "${Do_Transport}"  geoschem_config.yml
+replace_val_yaml "advection"  "activate" "${Do_Advection}"  geoschem_config.yml
 replace_val_yaml "convection" "activate" "${Do_Cloud_Conv}" geoschem_config.yml
 replace_val_yaml "pbl_mixing" "activate" "${Do_PBL_Mixing}" geoschem_config.yml
 replace_val_yaml "pbl_mixing" "use_non_local_pbl" "${Do_Non_Local_Mixing}" geoschem_config.yml

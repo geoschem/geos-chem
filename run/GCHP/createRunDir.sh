@@ -406,7 +406,7 @@ do
         restart_dir='v2021-09'
     elif [[ ${sim_name} = "TransportTracers" ]]; then
         start_date='20190101'
-        restart_dir='GC13.0.0'
+        restart_dir='GC_13.0.0'
     fi
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
