@@ -32,6 +32,6 @@ if [[ -f "${rst_target}" ]]; then
    ln -nsf ${rst_target} ${rst_link_name}
    echo "Restart symlink ${rst_link_name} set to ${rst_target}"
 else
-  echo "ERROR: Unable to set symlink ${rst_link_name} because file ${rst_target} does not exist! Create file or link with that name, or change start date in cap_restart and/or grid resolution updateRunConfigSettings.sh to match restart file that exists."
+  echo "ERROR: Unable to set symlink ${rst_link_name} because file ${rst_target} does not exist! Create file or link with that name, or change start date in cap_restart and/or grid resolution in setCommonRunSettings.sh to match restart file that exists."
   exit 1
 fi

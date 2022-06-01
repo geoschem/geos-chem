@@ -138,8 +138,8 @@ create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
-sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/runConfig.sh
-sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Standard run directories
@@ -150,7 +150,7 @@ create_rundir "1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
-sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Benchmark run directories
@@ -161,8 +161,8 @@ create_rundir "1\n2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
-sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/runConfig.sh
-sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Cleanup and quit

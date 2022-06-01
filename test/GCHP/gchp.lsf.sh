@@ -21,13 +21,12 @@
 # Define GEOS-Chem log file
 log="gchp.log"
 
-# Always remove cap_restart if not doing a multi-segmented run.
-if [[ -e cap_restart ]]; then
-   rm cap_restart
-fi
+# Update config files, set restart symlink, load run env, and do sanity checks
+source setCommonRunSettings.sh > ${log}
+source setRestartLink.sh >> ${log}
+source gchp.env >> ${log}
+source checkRunSettings.sh >> ${log}
 
-# Sync all config files with settings in runConfig.sh                           
-source runConfig.sh > ${log}
 if [[ $? == 0 ]]; then
 
     # Source your environment file. This requires first setting the gchp.env
@@ -67,11 +66,16 @@ if [[ $? == 0 ]]; then
     time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
     echo '===> Run ended at' `date` >> ${log}
 
-    # Rename the restart (checkpoint) file to include datetime
-    if [ -f cap_restart ]; then
-       restart_datetime=$(echo $(cat cap_restart) | sed 's/ /_/g')
-       mv gcchem_internal_checkpoint gcchem_internal_checkpoint.restart.${restart_datetime}.nc4
-    fi
+# Rename and move restart file and update restart symlink if new start time ok
+new_start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: cap_restart either did not change or is empty."
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str}z.c${N}.nc4
+    source setRestartLink.sh
+fi
 
 else
     cat ${log}
