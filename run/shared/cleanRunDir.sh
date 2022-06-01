@@ -25,3 +25,6 @@ rm -fv allPEs.log
 # Clean data too. Prompt user to confirm they want to do this.
 # perhaps asking if they want to archive before deletion.
 rm -Iv ./OutputDir/*.nc*
+
+# Give instruction to reset start date if using GCHP
+echo "Reset simulation start date in cap_restart if using GCHP"
