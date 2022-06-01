@@ -40,6 +40,11 @@ for envfile in "$@"; do
    variables+="$(cat $envfile | get_rundir_vars_list) "
    export $variables
 done
+# Source a second time to resolve dependent variables
+for envfile in "$@"; do
+   source $envfile
+   export $variables
+done
 variables=$(echo $variables | sort | uniq)
 envsubst_list="$(printf '${%s} ' $variables)"
 
