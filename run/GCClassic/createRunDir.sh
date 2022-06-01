@@ -922,7 +922,7 @@ fi
 # Save RUNDIR variables to a file in the rundirConfig folder
 rundir_config_log=${rundir_config}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
-sort -o ${rundir_config_log} ${rundir_config_log}
+#sort -o ${rundir_config_log} ${rundir_config_log}
 
 # Call init_rd.sh
 ${srcrundir}/init_rd.sh ${rundir_config_log}
