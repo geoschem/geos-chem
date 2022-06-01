@@ -553,7 +553,7 @@ print_msg " "
 print_msg "Components on/off:"
 print_msg "------------------"
 replace_val_yaml "chemistry"  "activate" "${Do_Chemistry}"  geoschem_config.yml
-replace_val_yaml "advection"  "activate" "${Do_Advection}"  geoschem_config.yml
+replace_val_yaml "transport"  "activate" "${Do_Advection}"  geoschem_config.yml
 replace_val_yaml "convection" "activate" "${Do_Cloud_Conv}" geoschem_config.yml
 replace_val_yaml "pbl_mixing" "activate" "${Do_PBL_Mixing}" geoschem_config.yml
 replace_val_yaml "pbl_mixing" "use_non_local_pbl" "${Do_Non_Local_Mixing}" geoschem_config.yml
