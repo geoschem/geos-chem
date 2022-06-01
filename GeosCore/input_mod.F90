@@ -569,7 +569,7 @@ CONTAINS
     IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
        WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
        errMsg = 'Input%Opt%NYMDb = ' // DateStr // ' is not a valid '     // &
-                'calendar date!  Please check your "CAP.rc" file.'
+                'calendar date!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -578,25 +578,25 @@ CONTAINS
     IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
        WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
        errMsg = 'Input%Opt%NHMSb = ' // TimeStr // ' is not a valid '     // &
-                'clock time!  Please check your "CAP.rc" file.'
+                'clock time!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    ! Make sure the starting date NYMDe is valid
+    ! Make sure the ending date NYMDe is valid
     IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
        WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
        errMsg = 'Input%Opt%NYMDe = ' // DateStr // ' is not a valid '     // &
-                'calendar date!  Please check your "CAP.rc" file.'
+                'calendar date!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-    ! Make sure the starting time NHMSe is valid
+    ! Make sure the ending time NHMSe is valid
     IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
        WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
        errMsg = 'Input%Opt%NHMSe = ' // TimeStr // ' is not a valid '     // &
-                'clock time!  Please check your "CAP.rc" file.'
+                'clock time!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -833,24 +833,26 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 90  ) 'SIMULATION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
+       WRITE( 6, 110 ) 'Simulation name             : ',                     &
+                        TRIM( Input_Opt%SimulationName )
+       WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',                     &
+                        TRIM( Input_Opt%CHEM_INPUTS_DIR )
+       WRITE( 6, 110 ) 'Species database file       : ',                     &
+                        TRIM( Input_Opt%SpcDatabaseFile )
+       WRITE( 6, 120 ) 'Turn on debug output        : ',                     &
+                        Input_Opt%LPRT
+#ifdef MODEL_CLASSIC
        WRITE( 6, 100 ) 'Start time of run           : ',                     &
                         Input_Opt%NYMDb, Input_Opt%NHMSb
        WRITE( 6, 100 ) 'End time of run             : ',                     &
                         Input_Opt%NYMDe, Input_Opt%NHMSe
        WRITE( 6, 110 ) 'Data Directory              : ',                     &
                         TRIM( Input_Opt%DATA_DIR )
-       WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',                     &
-                        TRIM( Input_Opt%CHEM_INPUTS_DIR )
        WRITE( 6, 110 ) 'Meteorology field           : ',                     &
                         TRIM( Input_Opt%MetField )
-       WRITE( 6, 110 ) 'Simulation name             : ',                     &
-                        TRIM( Input_Opt%SimulationName )
-       WRITE( 6, 110 ) 'Species database file       : ',                     &
-                        TRIM( Input_Opt%SpcDatabaseFile )
-       WRITE( 6, 120 ) 'Turn on debug output        : ',                     &
-                        Input_Opt%LPRT
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ',                     &
                         Input_Opt%useTimers
+#endif
     ENDIF
 
     ! Format statements
