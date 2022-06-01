@@ -21,6 +21,7 @@ target_link_libraries(KPP_FirstPass
 #----------------------------------------------------------------------------
 add_library(KPP
   STATIC EXCLUDE_FROM_ALL
+  commonIncludeVars.H
   fullchem_HetStateFuncs.F90
   fullchem_RateLawFuncs.F90
   fullchem_SulfurChemFuncs.F90

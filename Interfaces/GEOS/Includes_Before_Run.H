@@ -36,6 +36,7 @@
 !                              ARCHV_H2O2s/SO2s -> H2O2/SO2AfterChem, 
 !                              ARCHV_DRY/WET_TOTN -> DryDep/WetNitrogent, 
 !                              HSAVE_FOR_KPP -> KPPHvalue
+!  See git history for additional changes.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,46 +286,18 @@
   Ptr3D => NULL()
 
   ! Sesquiterpene concentrations. Convert from kgC/m3 to kgC/box.
-  IF ( ALLOCATED(ORVC_SESQ) ) THEN
-     CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'SESQ_CARBDENS', notFoundOK=.TRUE., __RC__ )
-     IF ( ASSOCIATED(Ptr3D) ) THEN
-        ORVC_SESQ(:,:,1:LM) = Ptr3D(:,:,LM:1:-1) * State_Met%AIRVOL(:,:,1:LM)
-     ENDIF
-     Ptr3D => NULL()
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'SESQ_CARBDENS', notFoundOK=.TRUE., __RC__ )
+  IF ( ASSOCIATED(Ptr3D) ) THEN
+     State_Chm%ORVCsesq(:,:,1:LM) = Ptr3D(:,:,LM:1:-1) * State_Met%AIRVOL(:,:,1:LM)
   ENDIF
+  Ptr3D => NULL()
 
   !=========================================================================
-  ! Saved fields from ISORROPIA needed for heterogeneous chemistry
-  ! (ckeller, 3/9/19)
+  ! Saved fields from ISORROPIA needed for computing optical properties
   !=========================================================================
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_fine', notFoundOK=.TRUE., __RC__ )
+  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
   IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropHplus(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_Hplus_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropHplus(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_sulfate', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropSulfate(:,:,:) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_fine', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropNitrate(:,:,:,1) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_nitrate_coarse', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropNitrate(:,:,:,2) = Ptr3D(:,:,LM:1:-1)
-  ENDIF
-  Ptr3D => NULL()
-  CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'Iso_bisulfate', notFoundOK=.TRUE., __RC__ )
-  IF ( ASSOCIATED(Ptr3D) ) THEN
-     State_Chm%IsorropBisulfate(:,:,:) = Ptr3D(:,:,LM:1:-1)
+     State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr3D(:,:,LM:1:-1)
   ENDIF
   Ptr3D => NULL()
 !EOF
