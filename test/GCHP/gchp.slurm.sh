@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH -n 24
+#SBATCH -n 12
 #SBATCH -N 1
 #SBATCH -t 0-1:00
-#SBATCH -p huce_cascade
+#SBATCH -p huce_intel
 #SBATCH --mem=110000
 #SBATCH --mail-type=END
 
@@ -18,6 +18,9 @@
 # See SLURM documentation for descriptions of all possible settings.
 # Type 'man sbatch' at the command prompt to browse documentation.
 
+# Exit if an error is encountered
+set -e
+
 # Define GEOS-Chem log file (and remove any prior log file)
 thisDir=$(pwd -P)
 root=$(dirname ${thisDir})
@@ -25,10 +28,13 @@ runDir=$(basename ${thisDir})
 log="${root}/logs/execute.${runDir}.log"
 rm -f ${log}
 
-# Update setCommonRunSettings.sh to use 24 cores
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/"               ./setCommonRunSettings.sh
+# Save start date string from cap_restart
+start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+
+# Update core count in setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=12/"               ./setCommonRunSettings.sh
 sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/"                    ./setCommonRunSettings.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ./setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=12/" ./setCommonRunSettings.sh
 
 # Update config files, set restart symlink, load run env, and do sanity checks
 source setCommonRunSettings.sh > ${log}
@@ -36,45 +42,18 @@ source setRestartLink.sh >> ${log}
 source gchp.env >> ${log}
 source checkRunSettings.sh >> ${log}
 
-if [[ $? == 0 ]]; then
+# Harvard Cannon-specific setting to avoid connection issues at high # cores
+export OMPI_MCL_btl=openib
 
-    # Source your environment file. This requires first setting the gchp.env
-    # symbolic link using script setEnvironment in the run directory. 
-    # Be sure gchp.env points to the same file for both compilation and run.
-    gchp_env=$(readlink -f gchp.env)
-    if [ ! -f ${gchp_env} ] 
-    then
-       echo "ERROR: gchp.env symbolic link is not set!"
-       echo "Set symbolic link to env file using setEnvironment.sh."
-       echo "Exiting."
-       exit 1
-    fi
-    echo " " >> ${log}
-    echo "WARNING: You are using environment settings in ${gchp_env}" >> ${log}
-    source ${gchp_env} >> ${log}
-
-    # Use SLURM to distribute tasks across nodes
-    NX=$( grep NX GCHP.rc | awk '{print $2}' )
-    NY=$( grep NY GCHP.rc | awk '{print $2}' )
-    coreCount=$(( ${NX} * ${NY} ))
-    planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
-    if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
+# Use SLURM to distribute tasks across nodes
+NX=$( grep NX GCHP.rc | awk '{print $2}' )
+NY=$( grep NY GCHP.rc | awk '{print $2}' )
+coreCount=$(( ${NX} * ${NY} ))
+planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
+if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
 	${planeCount}=$(( ${planeCount} + 1 ))
-    fi
-
-    # Echo info from computational cores to log file for displaying results
-    echo "# of CPUs : ${coreCount}" >> ${log}
-    echo "# of nodes: ${SLURM_NNODES}" >> ${log}
-    echo "-m plane  : ${planeCount}" >> ${log}
-    echo ' ' >> ${log}
-
-    # Harvard Cannon-specific setting to get around connection issues at high # cores
-    export OMPI_MCL_btl=openib
-
-    # Start the simulation
-    echo '===> Run started at' `date` >> ${log}
-    time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
-    echo '===> Run ended at' `date` >> ${log}
+fi
+time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
 # Rename and move restart file and update restart symlink if new start time ok
 new_start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
@@ -85,10 +64,6 @@ else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
     mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str}z.c${N}.nc4
     source setRestartLink.sh
-fi
-
-else
-    cat ${log}
 fi
 
 # Update the results log

@@ -139,6 +139,7 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/AutoUpdate_Diagnostics.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
@@ -150,7 +151,9 @@ create_rundir "1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
+sed -i -e "s/AutoUpdate_Diagnostics.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Benchmark run directories
@@ -162,6 +165,7 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/AutoUpdate_Diagnostics.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
