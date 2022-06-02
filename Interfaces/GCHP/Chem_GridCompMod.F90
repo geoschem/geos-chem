@@ -6977,7 +6977,7 @@ CONTAINS
 !
 ! !USE:
 !
-   USE Species_Mod,      ONLY : MISSING, MISSING_R8
+   USE Precision_Mod,      ONLY : MISSING, MISSING_DBLE
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7067,11 +7067,11 @@ CONTAINS
        dhr   = 0.0 !mkelp 20210114
        ak0   = 0.0 !mkelp
        ! Henry law coefficient [mol/atm]
-       IF ( SpcInfo%Henry_K0  /= MISSING_R8 ) hstar = SpcInfo%Henry_K0
+       IF ( SpcInfo%Henry_K0  /= MISSING_DBLE ) hstar = SpcInfo%Henry_K0
        ! Temperature correction factor [K]
-       IF ( SpcInfo%Henry_CR  /= MISSING_R8 ) dhr = SpcInfo%Henry_CR
+       IF ( SpcInfo%Henry_CR  /= MISSING_DBLE ) dhr = SpcInfo%Henry_CR
        ! Acid dissociation constant Ka, compute from pKa
-       IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = SpcInfo%Henry_pKa
+       IF ( SpcInfo%Henry_pKa /= MISSING_DBLE ) ak0 = SpcInfo%Henry_pKa
        ! Temperature correction for Ka, currently ignored by GEOS-Chem
        dak   = 0.0 !mkelp
        ! Don't washout SO2 if specified so
