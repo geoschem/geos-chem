@@ -292,15 +292,15 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+        shared_met_settings=${gcdir}/run/shared/settings/merra2.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+        shared_met_settings=${gcdir}/run/shared/settings/geosfp.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "3" ]]; then
 	met="ModelE2.1"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/modele2.1.txt)\n"
+        shared_met_settings=${gcdir}/run/shared/settings/modele2.1.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gcap2_metfields'\n"
     else
 	valid_met=0
@@ -519,6 +519,9 @@ else
 	RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
     fi
 fi
+
+
+RUNDIR_VARS+="$(cat ${shared_met_settings})\n"   # shared_met_settings needs to be included after RUNDIR_GRID_DIR is defined
 
 # Set timesteps according to grid resolution
 if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
@@ -922,7 +925,7 @@ fi
 # Save RUNDIR variables to a file in the rundirConfig folder
 rundir_config_log=${rundir_config}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
-sort -o ${rundir_config_log} ${rundir_config_log}
+#sort -o ${rundir_config_log} ${rundir_config_log}
 
 # Call init_rd.sh
 ${srcrundir}/init_rd.sh ${rundir_config_log}
