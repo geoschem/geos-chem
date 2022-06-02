@@ -560,15 +560,10 @@ function submit_gchp_slurm_job() {
 
     # Remove any leftover files in the run dir
     # (similar to createRunDir.sh, but do not ask user to confirm)
-    rm -f cap_restart
     rm -f gcchem*
     rm -f *.rcx
     rm -f *~
-    rm -f gchp.log
-    rm -f HEMCO.log
-    rm -f PET*.log
-    rm -f multirun.log
-    rm -f GC*.log
+    rm -f *.log
     rm -f log.dryrun*
     rm -f logfile.000000.out
     rm -f slurm-*
