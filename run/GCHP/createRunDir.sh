@@ -397,55 +397,36 @@ ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
+if [[ ${sim_name} = "fullchem" ]]; then
+    start_date='20190701'
+    restart_dir='v2021-09'
+elif [[ ${sim_name} = "TransportTracers" ]]; then
+    start_date='20190101'
+    restart_dir='GC_13.0.0'
+fi
 for N in 24 48 90 180 360
 do
     old_prefix="GCHP.Restart.${sim_name}"
     new_prefix="GEOSChem.Restart"
-    if [[ ${sim_name} = "fullchem" ]]; then
-        start_date='20190701'
-        restart_dir='v2021-09'
-    elif [[ ${sim_name} = "TransportTracers" ]]; then
-        start_date='20190101'
-        restart_dir='GC_13.0.0'
-    fi
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
     linkname="${rundir}/Restarts/${new_prefix}.${start_date}_000000z.c${N}.nc4"
     ln -s ${initial_rst} ${linkname}
 done
 
-# Add restart file to RUNDIR vars (need to fix/test this)
-RUNDIR_VARS+="RUNDIR_RESTART_FILE=${new_prefix}.${start_date}.c"'{CS_RES}'".nc4\n"
-
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
 cd ${rundir}
 
-# Special handling for start/end date based on simulation so that
-# start year/month/day matches default initial restart file.
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
-    startdate='20190101'
-    enddate='20190201'
-elif [[ "x${sim_name}" == "xCO2" ]]; then
-    startdate='20140901'
-    enddate='20141001'
-else
-    startdate='20190701'
-    enddate='20190801'
-fi
-RUNDIR_VARS+="RUNDIR_SIM_START_DATE=$startdate\n"
-RUNDIR_VARS+="RUNDIR_SIM_END_DATE=$enddate\n"
-RUNDIR_VARS+="RUNDIR_SIM_START_TIME='000000'\n"
-RUNDIR_VARS+="RUNDIR_SIM_END_TIME='000000'\n"
 RUNDIR_VARS+="RUNDIR_SIM_DUR_YYYYMMDD='00000100'\n"
 RUNDIR_VARS+="RUNDIR_SIM_DUR_HHmmSS='000000'\n"
 
 # Use monthly diagnostics by default
-RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='7440000'\n"
-RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='7440000'\n"
-RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='7440000'\n"
-RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='010000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='010000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='010000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='010000'\n"
 RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Set default compute resources
@@ -453,13 +434,6 @@ RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
 RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
 RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
 RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
-
-# Turn on GEOS-Chem timers for benchmark simulations
-if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='true'\n"
-else
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
-fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
@@ -514,9 +488,8 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
 
-printf "\n  -- This run directory has been set up for $startdate - $enddate.\n"
-printf "\n  -- The default frequency and duration of diagnostics is set to monthly.\n"
-printf "\n  -- You may modify these settings in setCommonRunSettings.sh.\n"
+printf "\n  -- This run directory has been set up to start on $start_date. Edit this in file cap_restart.\n"
+printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh, geoschem_config.yml, and HEMCO_Config.rc.\n"
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
