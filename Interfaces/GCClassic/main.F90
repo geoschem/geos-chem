@@ -935,6 +935,19 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
+          ! Write HISTORY ITEMS in each diagnostic collection to disk
+          ! (or skip writing if it is not the proper output time.
+          ! Appears at start of run to output instantaneous boundary conditions
+          ! at the start of the simulation with the correct time:
+          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, &
+                              State_Chm, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered before timestepping in "History_Write"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "All diagnostics",           RC )
              CALL Timer_End( "=> History (netCDF diags)", RC )
@@ -2060,7 +2073,7 @@ PROGRAM GEOS_Chem
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
-          CALL History_Write( Input_Opt, State_Chm%Spc_Units, RC )
+          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, State_Chm, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
