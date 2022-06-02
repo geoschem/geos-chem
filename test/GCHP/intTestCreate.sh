@@ -138,7 +138,7 @@ create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/AutoUpdate_Diagnostics.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
