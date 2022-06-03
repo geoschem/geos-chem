@@ -77,6 +77,13 @@ operations:
       - AONITA
       - AROMP4
       - AROMP5
+      - ASOA1
+      - ASOA2
+      - ASOA3
+      - ASOAN
+      - ASOG1
+      - ASOG2
+      - ASOG3
       - ATOOH
       - BALD
       - BCPI
@@ -288,6 +295,14 @@ operations:
       - SOAP
       - SOAS
       - TOLU
+      - TSOA0
+      - TSOA1
+      - TSOA2
+      - TSOA3
+      - TSOG0
+      - TSOG1
+      - TSOG2
+      - TSOG3
       - XYLE
 
   wet_deposition:
