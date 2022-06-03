@@ -3,7 +3,7 @@
 # GCHP run script for running interactively from the command line.
 # Consecutive executions of this script will do consecutive GCHP simulations.
 # Log information is sent to both terminal and log file. Set cap_restart in
-# run directory to specify start date. Set grid resolution, number of nodes,
+# run directory to specify start date. Set grid resolution, number of cores,
 # and other common settings in setCommonRunSettings.sh prior to running.
 
 # Define log name to include simulation start date
