@@ -147,7 +147,12 @@ MODULE Chem_GridCompMod
   LOGICAL                          :: DoRATS
   LOGICAL                          :: DoANOX
 
-  ! To set ozone from PCHEM
+  ! NO2 analysis
+  LOGICAL                          :: LANANO2, LANANO, LANANO2OBSH
+  LOGICAL                          :: ANANO2FWD, LANANO2INC, LANANO2TROP
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANANO2FILE, ANANO2VAR, ANANO2VARH
+
+  ! To update ozone from external analysis field
   LOGICAL                          :: LANAO3
   LOGICAL                          :: LPCHEMO3
   LOGICAL                          :: ANAO3FWD
@@ -158,6 +163,9 @@ MODULE Chem_GridCompMod
   INTEGER                          :: ANAO3L3
   INTEGER                          :: ANAO3L4
   INTEGER                          :: ANAO3ERR
+  INTEGER                          :: ANAO3FREQ
+  INTEGER                          :: ANAO3HR
+  INTEGER                          :: ANAO3MIN
   REAL                             :: ANAO3FR
   CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3FILE
   CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3VAR
@@ -5247,7 +5255,7 @@ CONTAINS
           ENDIF
        ENDDO
        ASSERT_(indO3>0)
-       PTR_O3 => State_Chm%SpeciesVec(indO3)%Conc(:,:,LM:1:-1)
+       PTR_O3 => State_Chm%Species(indO3)%Conc(:,:,LM:1:-1)
     ENDIF
     IF ( ASSOCIATED(O3)     ) O3     = PTR_O3
     IF ( ASSOCIATED(O3PPMV) ) O3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
@@ -5255,10 +5263,10 @@ CONTAINS
        OX = PTR_O3  * MAPL_AIRMW / MAPL_O3MW
        IndSpc = Ind_('O')
        ASSERT_(IndSpc>0)
-       OX = OX + ( State_Chm%SpeciesVec(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
+       OX = OX + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
        IndSpc = Ind_('O1D')
        ASSERT_(IndSpc>0)
-       OX = OX + ( State_Chm%SpeciesVec(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
+       OX = OX + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
     ENDIF
 
     !=======================================================================
@@ -5290,7 +5298,7 @@ CONTAINS
        IF ( ASSOCIATED(Ptr3D) ) THEN
           IndSpc = Ind_(TRIM(RatsNames(I)))
           ASSERT_(IndSpc>0) 
-          Ptr3D = State_Chm%SpeciesVec(IndSpc)%Conc(:,:,LM:1:-1) &
+          Ptr3D = State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) &
                 * ( MAPL_AIRMW / State_Chm%SpcData(IndSpc)%Info%MW_g ) 
        ENDIF
     ENDDO
@@ -5332,7 +5340,7 @@ CONTAINS
           nlen = LEN(TRIM(GcName))
           IndSpc = Ind_(TRIM(GcName(5:nlen)))
           ASSERT_(IndSpc>0)
-          GcPtr3D => State_Chm%SpeciesVec(IndSpc)%Conc(:,:,LM:1:-1) 
+          GcPtr3D => State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) 
           !CALL MAPL_GetPointer ( INTSTATE, GcPtr3D, TRIM(GcName), __RC__ )
 
           ! Pass GC to AERO. Convert from mol/mol to kg/kg. Only use the
@@ -5540,7 +5548,7 @@ CONTAINS
 
     ! Get O3 from species array (kg/kg total)
     indO3 = Ind_('O3')
-    O3 => State_Chm%SpeciesVec(indO3)%Conc(:,:,:)
+    O3 => State_Chm%Species(indO3)%Conc(:,:,:)
 
     ! Grid size
     IM = SIZE(O3,1)
@@ -5709,7 +5717,7 @@ CONTAINS
        MW    = State_Chm%SpcData(ID)%Info%MW_g
 
        ! Get species from internal state
-       Spc3D => State_Chm%SpeciesVec(ID)%Conc(:,:,LM:1:-1)
+       Spc3D => State_Chm%Species(ID)%Conc(:,:,LM:1:-1)
 
        ! constant 
        const = MAPL_AVOGAD / ( MAPL_GRAV * MW )
@@ -5949,7 +5957,7 @@ CONTAINS
                 ENDIF
              ENDIF
           ENDIF
-          PtrTmp => State_Chm%SpeciesVec(N)%Conc(:,:,LM:1:-1)
+          PtrTmp => State_Chm%Species(N)%Conc(:,:,LM:1:-1)
           IF ( STATUS /= ESMF_SUCCESS ) THEN
              WRITE(*,*) 'Error reading ',TRIM(SpcName)
              VERIFY_(STATUS)
@@ -6722,7 +6730,7 @@ CONTAINS
                 IF ( UnitFlag == 4 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-9
 
                 ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
-                O3old = State_Chm%SpeciesVec(N)%Conc(I,J,L)
+                O3old = State_Chm%Species(N)%Conc(I,J,L)
                 O3new = O3old
                 IF ( ANAO3INC ) THEN
                    IF ( ABS(O3ana) > tiny(1.0) ) THEN
@@ -6740,7 +6748,7 @@ CONTAINS
                 O3diff = O3new - O3old 
                 IF ( ASSOCIATED(O3INC) )    O3INC(I,J,LR)     = O3diff
                 IF ( ASSOCIATED(O3INCPPMV)) O3INCPPMV(I,J,LR) = O3diff * ( MAPL_AIRMW / MAPL_O3MW ) * 1.0e6
-                State_Chm%SpeciesVec(N)%Conc(I,J,L) = O3new
+                State_Chm%Species(N)%Conc(I,J,L) = O3new
              ENDDO ! L 
           ENDDO
           ENDDO
@@ -6938,8 +6946,8 @@ CONTAINS
        ! Also flip vertical axis to be consistent with GEOS
        ALLOCATE(NO2bkg(IM,JM,LM),NO2asm(IM,JM,LM)) 
        ALLOCATE( NObkg(IM,JM,LM), NOasm(IM,JM,LM)) 
-       NO2bkg(:,:,:) = State_Chm%SpeciesVec(indNO2)%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwNO2
-       NObkg(:,:,:)  = State_Chm%SpeciesVec(indNO)%Conc(:,:,LM:1:-1)  / (1.-Q) * MAPL_AIRMW / mwNO 
+       NO2bkg(:,:,:) = State_Chm%Species(indNO2)%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwNO2
+       NObkg(:,:,:)  = State_Chm%Species(indNO)%Conc(:,:,LM:1:-1)  / (1.-Q) * MAPL_AIRMW / mwNO 
        NO2asm(:,:,:) = NO2bkg(:,:,:) 
        NOasm(:,:,:)  = NObkg(:,:,:)
 
@@ -7025,8 +7033,8 @@ CONTAINS
        IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm / NObkg
 
        ! Pass back to State_Chm%Species array: flip vertical axis and convert v/v dry to kg/kg total
-       State_Chm%SpeciesVec(indNO2)%Conc(:,:,LM:1:-1) = NO2asm(:,:,:) * (1.-Q) / MAPL_AIRMW * mwNO2
-       State_Chm%SpeciesVec(indNO)%Conc(:,:,LM:1:-1)  = NOasm(:,:,:)  * (1.-Q) / MAPL_AIRMW * mwNO
+       State_Chm%Species(indNO2)%Conc(:,:,LM:1:-1) = NO2asm(:,:,:) * (1.-Q) / MAPL_AIRMW * mwNO2
+       State_Chm%Species(indNO)%Conc(:,:,LM:1:-1)  = NOasm(:,:,:)  * (1.-Q) / MAPL_AIRMW * mwNO
     ENDIF
 
     ! Cleanup
