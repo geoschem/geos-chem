@@ -5239,7 +5239,7 @@ COLLECTIONS: @#'DefaultCollection',
   StateChm.template:       '%y4%m2%d2_%h2%n2z.nc4',
   StateChm.format:         'CFIO',
   StateChm.timestampStart: .true.
-  StateChm.monthly:        0
+  StateChm.monthly:        1
   StateChm.frequency:      010000
   StateChm.duration:       010000
   StateChm.mode:           'time-averaged'

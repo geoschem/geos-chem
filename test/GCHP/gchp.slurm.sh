@@ -31,11 +31,6 @@ rm -f ${log}
 # Save start date string from cap_restart
 start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
 
-# Update core count in setCommonRunSettings.sh
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=12/"               ./setCommonRunSettings.sh
-sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/"                    ./setCommonRunSettings.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=12/" ./setCommonRunSettings.sh
-
 # Update config files, set restart symlink, load run env, and do sanity checks
 source setCommonRunSettings.sh > ${log}
 source setRestartLink.sh >> ${log}
