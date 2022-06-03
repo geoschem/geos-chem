@@ -237,45 +237,45 @@ fi
 if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='true '\n"
     if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
-	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='true '\n"
     else
-	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
     fi
 else
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
-    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='false'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "aciduptake" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='true '\n"
 else
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='true '\n"
 else
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='true '\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
 else
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='false'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
 fi
 
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true '\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true '\n"
 fi
 
 #-----------------------------------------------------------------
@@ -292,15 +292,15 @@ while [ "${valid_met}" -eq 0 ]; do
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+        shared_met_settings=${gcdir}/run/shared/settings/merra2.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+        shared_met_settings=${gcdir}/run/shared/settings/geosfp.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "3" ]]; then
 	met="ModelE2.1"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/modele2.1.txt)\n"
+        shared_met_settings=${gcdir}/run/shared/settings/modele2.1.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gcap2_metfields'\n"
     else
 	valid_met=0
@@ -468,31 +468,31 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AS'\n"
 		grid_nest="AS"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE=' 60.0 150.0'\n"
-		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='-11.0  55.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 60.0, 150.0]'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-11.0,  55.0]'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE=' 70.0 140.0'\n"
-		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 15.0  55.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 70.0, 140.0]'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 15.0,  55.0]'\n"
 		fi
 	    elif [[ ${domain_num} = "3" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='EU'\n"
 	        grid_nest="EU"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-30.0 50.0'\n"
-		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 30.0 70.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-30.0, 50.0]'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 30.0, 70.0]'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-15.0  40.0'\n"
-		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE=' 32.75 61.25'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-15.0,  40.0 ]'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 32.75, 61.25]'\n"
 		fi
 	    elif [[ ${domain_num} = "4" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='NA'\n"
 		grid_nest+="NA"
 	        if [[ ${grid_res} = "05x0625" ]]; then
-	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-140.0 -40.0'\n"
-		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='  10.0  70.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-140.0, -40.0]'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[  10.0,  70.0]'\n"
 		elif [[ ${grid_res} = "025x03125" ]]; then
-	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='-130.0  -60.0'\n"
-		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='   9.75  60.0'\n"
+	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-130.0,  -60.0]'\n"
+		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[   9.75,  60.0]'\n"
 		fi
 	    elif [[ ${domain_num} = "5" ]]; then
 		grid_nest="CU"
@@ -500,7 +500,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='MinLon MaxLon'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='MinLat MaxLat'\n"
 	        printf "\n  -- You will need to manually set longitude and latitude"
-		printf "\n     bounds in the Grid Menu of input.geos.\n"
+		printf "\n     bounds in the Grid Menu of geoschem_config.yml!\n"
 	    else
   		valid_domain=0
 		printf "Invalid horizontal grid domain option. Try again.\n"
@@ -511,14 +511,17 @@ else
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
     if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
         if [[ "$grid_res" == "4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='T'\n"
+	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
 	else
-	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='F'\n"
+	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='false'\n"
 	fi
     else
-	RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='T'\n"
+	RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
     fi
 fi
+
+
+RUNDIR_VARS+="$(cat ${shared_met_settings})\n"   # shared_met_settings needs to be included after RUNDIR_GRID_DIR is defined
 
 # Set timesteps according to grid resolution
 if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
@@ -541,14 +544,14 @@ fi
 if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]] ; then
     if [[ "$grid_res" == "2x25" ]]; then
 	# Native GISS fine resolution
-	RUNDIR_VARS+="RUNDIR_CENTER_LON_180='F'\n"
+	RUNDIR_VARS+="RUNDIR_CENTER_LON_180='false'\n"
     else
         # FlexGrid re-gridded resolutions
-	RUNDIR_VARS+="RUNDIR_CENTER_LON_180='T'\n"
+	RUNDIR_VARS+="RUNDIR_CENTER_LON_180='true '\n"
     fi
 else
     # All GMAO products
-    RUNDIR_VARS+="RUNDIR_CENTER_LON_180='T'\n"
+    RUNDIR_VARS+="RUNDIR_CENTER_LON_180='true '\n"
 fi
 
 #----------------------------------------------------------------
@@ -753,10 +756,14 @@ while [ "${valid_rundir}" -eq 0 ]; do
     fi
 done
 
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/rundirConfig
+
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
 mkdir -p ${rundir}
+mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
@@ -855,9 +862,9 @@ RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Turn on GEOS-Chem timers for benchmark simulations
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='true '\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
@@ -915,19 +922,21 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Save RUNDIR variables to file
-echo -e "$RUNDIR_VARS" > rundir_vars.txt
-sort -o rundir_vars.txt rundir_vars.txt
+# Save RUNDIR variables to a file in the rundirConfig folder
+rundir_config_log=${rundir_config}/rundir_vars.txt
+echo -e "$RUNDIR_VARS" > ${rundir_config_log}
+#sort -o ${rundir_config_log} ${rundir_config_log}
 
 # Call init_rd.sh
-${srcrundir}/init_rd.sh rundir_vars.txt
+${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
+printf "\n  See rundirConfig/rundir_vars.txt for run directory settings.\n\n"
 
 printf "\n  -- This run directory has been set up for $startdate - $enddate."
-printf "\n     You may modify these settings in input.geos.\n"
+printf "\n     You may modify these settings in geoschem_config.yml.\n"
 
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
@@ -956,7 +965,9 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
     fi
 
-    if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
+    if [[ "x${sim_name}" == "xfullchem"     ||
+          "x${sim_name}" == "xaerosol"      ||
+          "x${sim_name}" == "xtagO3"    ]]; then
 
         # NOTE: We need to read the fullchem restart files from the v2021-09/
         # folder and TOMAS restart files from the v2021-12/ folder.  These
@@ -969,6 +980,11 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
         #
         # Aerosol-only simulations can use the fullchem restart since all
         # of the aerosol species are included.
+	#
+	# For TagO3, we now use the same restart file as the fullchem
+	# to ensure that we start with the same initial conditions.
+	#  -- Bob Yantosca (02 Mar 2022)
+	#
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
@@ -1058,13 +1074,13 @@ fi
 # Sample restarts for several simulations do not contain all species. For those
 # simulations, print a warning and change the time cycle option in HEMCO config
 # so that we do not force an error if not found (i.e. EFYO --> EY)
-if [[ "x${sim_extra_option}" == "xaciduptake"        ||
-      "x${sim_extra_option}" == "xmarinePOA"         ||
-      "x${sim_extra_option}" == "xcomplexSOA_SVPOA"  ||
-      "x${sim_extra_option}" == "xAPM"               ||
-      "x${sim_name}"         == "xPOPs"              ||
-      "x${sim_name}"         == "xtagCH4"            ||
-      "x${sim_name}"         == "xtagO3"             ]]; then
+if [[ "x${sim_extra_option}" == "xaciduptake"       ||
+      "x${sim_extra_option}" == "xmarinePOA"        ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
+      "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xPOPs"             ||
+      "x${sim_name}"         == "xtagCH4"           ||
+      "x${sim_name}"         == "xtagO3"        ]]; then
     old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFYO"
     new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY  "
     sed_ie "s|${old}|${new}|" HEMCO_Config.rc
@@ -1078,8 +1094,8 @@ if [[ "x${sim_extra_option}" == "xaciduptake"        ||
 fi
 
 # Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP. This script mainly now adds species to input.geos
-# and modifies diagnostic output based on simulation type.
+# GEOS-Chem Classic and GCHP. This script mainly now adds species to
+# input_options.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
@@ -1092,10 +1108,8 @@ cd ${srcrundir}
 #----------------------------------------------------------------------
 # Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
-version_log=${rundir}/rundir.version
-echo "This run directory was created with ${srcrundir}/createRunDir.sh." > ${version_log}
-echo " " >> ${version_log}
-echo "GEOS-Chem repository version information:" >> ${version_log}
+
+# Get info about the current commit in geoschem/geos-chem
 cd ${gcdir}
 remote_url=$(git config --get remote.origin.url)
 code_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -1104,12 +1118,18 @@ commit_date=$(git log -n 1 --pretty=format:"%cd")
 commit_user=$(git log -n 1 --pretty=format:"%cn")
 commit_hash=$(git log -n 1 --pretty=format:"%h")
 cd ${srcrundir}
-printf "\n  Remote URL: ${remote_url}" >> ${version_log}
-printf "\n  Branch: ${code_branch}"    >> ${version_log}
-printf "\n  Commit: ${last_commit}"    >> ${version_log}
-printf "\n  Date: ${commit_date}"      >> ${version_log}
-printf "\n  User: ${commit_user}"      >> ${version_log}
-printf "\n  Hash: ${commit_hash}"      >> ${version_log}
+
+# Write commit info to a version log
+version_log=${rundir_config}/rundir.version
+printf   " This run directory was created with:"        >  ${version_log}
+printf "\n ${srcrundir}/createRunDir.sh.\n"             >> ${version_log}
+printf "\n GEOS-Chem repository version information:\n" >> ${version_log}
+printf "\n  Remote URL: ${remote_url}"                  >> ${version_log}
+printf "\n  Branch: ${code_branch}"                     >> ${version_log}
+printf "\n  Commit: ${last_commit}"                     >> ${version_log}
+printf "\n  Date: ${commit_date}"                       >> ${version_log}
+printf "\n  User: ${commit_user}"                       >> ${version_log}
+printf "\n  Hash: ${commit_hash}\n"                     >> ${version_log}
 
 #-----------------------------------------------------------------
 # Ask user whether to track run directory changes with git
@@ -1118,14 +1138,15 @@ printf "${thinline}Do you want to track run directory changes with git? (y/n)${t
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
     read enable_git
-    if [[ ${enable_git} = "y" ]]; then
+    if [[ "x${enable_git}" == "xy" ]]; then
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.py input.geos getRunInfo
+	git add *.rc *.sh *.yml *.py geoschem_config.yml getRunInfo
 	[[ -f geoschem.benchmark.run ]] && git add geoschem.benchmark.run
 	[[ -f geoschem.run           ]] && git add geoschem.run
+	[[ -f ${rundir_config_log}   ]] && git add ${rundir_config_log}
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
@@ -1136,6 +1157,38 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "Input not recognized. Try again.\n"
     fi
 done
+
+#-----------------------------------------------------------------
+# Add the version info to the top of the rundir configuration log
+#-----------------------------------------------------------------
+
+# Add a caveat that these rundir settings only go with this commit
+printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
+
+# Add a "# " characters to the front of each line so we can use
+# it as a comment heading for rundir_vars.txt
+sed 's/^/# /' ${version_log} > tmp.txt
+mv tmp.txt ${version_log}
+
+# Add the version log to the top of the rundir config log
+cat ${version_log} ${rundir_config_log} > tmp.txt
+mv tmp.txt ${rundir_config_log}
+
+# Remove the version log
+rm -rf ${version_log}
+
+# Remove a few blanks spaces
+
+
+# Save the updated rundir_vars file to the git repo
+if [[ "x${enable_git}" == "xy" ]]; then
+    if [[ -f ${rundir_config_log} ]]; then
+	cd ${rundir}
+	git add ${rundir_config_log}
+	git commit -m "Update header of rundirConfig/rundir_vars.txt" > /dev/null
+	cd ${srcrundir}
+    fi
+fi
 
 #-----------------------------------------------------------------
 # Done!

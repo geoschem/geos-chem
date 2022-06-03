@@ -273,6 +273,7 @@ CONTAINS
     State_Chm%IsorropSulfate   = 0.0_fp
     State_Chm%IsorropNitrate   = 0.0_fp
     State_Chm%IsorropBisulfate = 0.0_fp
+    State_Chm%IsorropChloride  = 0.0_fp
 
     ! First-time initialization
     IF ( FIRST ) THEN
@@ -467,7 +468,7 @@ CONTAINS
     ENDIF
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !========================================================================
     ! Loop over grid boxes and call ISORROPIA (see comments in the

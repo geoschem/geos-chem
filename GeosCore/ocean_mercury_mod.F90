@@ -249,7 +249,6 @@ CONTAINS
     USE ErrCode_Mod
 #ifdef BPCH_DIAG
     USE CMN_DIAG_MOD
-    USE DIAG03_MOD,         ONLY : ND03
     USE TIME_MOD,           ONLY : SET_Hg2_DIAG
 #endif
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
@@ -585,9 +584,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE DIAG03_MOD,         ONLY : AD03,    ND03
-#endif
     USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -675,18 +671,6 @@ CONTAINS
           ! Add all snow Hg to aqueous Hg2 reservoir
           SNOW_Hg2aq(NN) = ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
 
-#ifdef BPCH_DIAG
-          !===========================================================
-          ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
-          !
-          ! Store diagnostic of meltwater delivery to ocean [kg]
-          !===========================================================
-          IF ( ND03 > 0 ) THEN
-             AD03(I,J,19,1) = AD03(I,J,19,1) + &
-                             ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
-          ENDIF
-#endif
-
           !===========================================================
           ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
           !
@@ -739,9 +723,6 @@ CONTAINS
 ! !USES:
 !
     USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-#ifdef BPCH_DIAG
-    USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_State_GC_Mod,   ONLY : HcoState
@@ -1019,7 +1000,7 @@ CONTAINS
     LKRedUV      = Input_Opt%LKRedUV
 
     ! Point to fields in State_Chm
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
     Hg0aq    => State_Chm%OceanHg0
     Hg2aq    => State_Chm%OceanHg2
     HgPaq    => State_Chm%OceanHgP
@@ -1040,17 +1021,18 @@ CONTAINS
     ! Get current year to check if leap year (jaf, 8/12/11)
     THISYEAR  = GET_YEAR()
 
-    !-----------------------------------------------
-    ! Check tagged & total sums (if necessary)
-    !-----------------------------------------------
-    IF ( USE_CHECKS .and. LSPLIT ) THEN
-       CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid, &
-                                 'start of OCEAN_MERCURY_FLUX' )
-       CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
-                                 'start of OCEAN_MERCURY_FLUX' )
-       CALL CHECK_OCEAN_FLUXES ( State_Grid, &
-                                 'start of OCEAN_MERCURY_FLUX' )
-    ENDIF
+!%% Tagged Hg simulation no longer works, so comment out (bmy, 04 Apr 2022)
+!%%    !-----------------------------------------------
+!%%    ! Check tagged & total sums (if necessary)
+!%%    !-----------------------------------------------
+!%%    IF ( USE_CHECKS .and. LSPLIT ) THEN
+!%%       CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid, &
+!%%                                 'start of OCEAN_MERCURY_FLUX' )
+!%%       CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
+!%%                                 'start of OCEAN_MERCURY_FLUX' )
+!%%       CALL CHECK_OCEAN_FLUXES ( State_Grid, &
+!%%                                 'start of OCEAN_MERCURY_FLUX' )
+!%%    ENDIF
 
     !-----------------------------------------------------------------
     ! Read O3 data from HEMCO
@@ -1730,18 +1712,6 @@ CONTAINS
                 Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG * &
                                 A_M2 * DTSRCE * FRAC_O
 
-#ifdef BPCH_DIAG
-                !-----------------------------------------------------
-                ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
-                !
-                ! Flux of Hg(II) from rivers to ocean in Arctic [kg/s]
-                ! NOTE: RIVER_HG is kg/m2/s, convert to kg/s
-                !-----------------------------------------------------
-                IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) ) &
-                     AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG * &
-                                     A_M2 * DTSRCE * FRAC_O
-#endif
-
                 !-----------------------------------------------------
                 ! %%%%% HISTORY DIAGNOSTIC %%%%%
                 !
@@ -1887,17 +1857,6 @@ CONTAINS
              HgPaq(I,J,NN)   = HgPaq(I,J,NN) - HgPaq_SUNK(I,J,NN)
              HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )
 
-#ifdef BPCH_DIAG
-             !-----------------------------------------------------
-             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
-             !
-             ! Store organic carbon sinking to ocean [kgC/time]
-             !-----------------------------------------------------
-             IF ( ND03 > 0 ) THEN
-                AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
-             ENDIF
-#endif
-
              !-----------------------------------------------------
              ! %%%%% HISTORY DIAGNOSTIC %%%%%
              !
@@ -2008,54 +1967,6 @@ CONTAINS
 
           ENDDO
 
-#ifdef BPCH_DIAG
-          !-----------------------------------------------------------
-          ! %%%%% ND03 (bpch) DIAGNOSTICS
-          !
-          ! Oceanic Hg quantities
-          !-----------------------------------------------------------
-          IF ( ND03 > 0 ) THEN
-
-             ! eds 9/9/10 added NN loop
-             DO NN = 1, N_HG_CATS
-
-                ! Aqueous Hg(0) mass [kg]
-                AD03(I,J,2,NN)  = AD03(I,J,2,NN)  + Hg0aq(I,J,NN)
-
-                ! Aqueous Hg(II) mass [kg]
-                AD03(I,J,7,NN)  = AD03(I,J,7,NN)  + Hg2aq(I,J,NN)
-
-                ! Hg2 sunk deep into the ocean [kg/time]
-                AD03(I,J,8,NN)= AD03(I,J,8,NN) + HgPaq_SUNK(I,J,NN)
-
-                ! HgTot aqua mass [kg]
-                AD03(I,J,10,NN) =AD03(I,J,10,NN) + Hgaq_tot(I,J,NN)
-
-                ! HgP ocean mass [kg]
-                AD03(I,J,11,NN) = AD03(I,J,11,NN) + HgPaq(I,J,NN)
-
-                !Prior to 09 Nov 2011, H Amos --------------------------
-                ! flux up and down (eck)
-                !AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
-                !AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
-                ! Loop over tagged tracers (eds)
-                IF (FLUX(I,J,NN) > 0e+0_fpp) THEN
-                   AD03(I,J,16,NN) = AD03(I,J,16,NN) + &
-                                     FLUX(I,J,NN) * DTSRCE
-                ELSE IF (FLUX(I,J,NN) < 0e+0_fpp) THEN
-                   AD03(I,J,17,NN) = AD03(I,J,17,NN) + &
-                                     ( abs(FLUX(I,J,NN) * DTSRCE ))
-                ENDIF
-                !-------------------------------------------------------
-
-             ENDDO
-
-             ! Total HgII/HgP dep to open ocean [kg]
-             AD03(I,J,20,1) = AD03(I,J,20,1) + TOTDEP
-
-          ENDIF
-#endif
-
           !-----------------------------------------------------------
           ! %%%%% HISTORY (aka netCDF) DIAGNOSTICS %%%%%
           !
@@ -2146,19 +2057,20 @@ CONTAINS
     TOMS_PD  => NULL()
     TOMS_LT  => NULL()
 
-    !=================================================================
-    ! Check tagged & total sums (if necessary)
-    !=================================================================
-    IF ( USE_CHECKS .and. LSPLIT ) THEN
-       CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid, &
-                                 'end of OCEAN_MERCURY_FLUX' )
-       CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
-                                 'end of OCEAN_MERCURY_FLUX' )
-       CALL CHECK_OCEAN_FLUXES ( State_Grid, &
-                                 'end of OCEAN_MERCURY_FLUX' )
-       CALL CHECK_FLUX_OUT( State_Grid, FLUX, &
-                            'end of OCEAN_MERCURY_FLUX' )
-    ENDIF
+!%% Tagged simulation no longer works so comment out (bmy, 04 Apr 2022)
+!%%    !=================================================================
+!%%    ! Check tagged & total sums (if necessary)
+!%%    !=================================================================
+!%%    IF ( USE_CHECKS .and. LSPLIT ) THEN
+!%%       CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid, &
+!%%                                 'end of OCEAN_MERCURY_FLUX' )
+!%%       CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
+!%%                                 'end of OCEAN_MERCURY_FLUX' )
+!%%       CALL CHECK_OCEAN_FLUXES ( State_Grid, &
+!%%                                 'end of OCEAN_MERCURY_FLUX' )
+!%%       CALL CHECK_FLUX_OUT( State_Grid, FLUX, &
+!%%                            'end of OCEAN_MERCURY_FLUX' )
+!%%    ENDIF
 
   END SUBROUTINE OCEAN_MERCURY_FLUX
 !EOC
@@ -2821,7 +2733,7 @@ CONTAINS
     FLAG = .FALSE.
 
     ! Point to chemical species array [kg]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over grid boxes
     !OMP PARALLEL DO       &

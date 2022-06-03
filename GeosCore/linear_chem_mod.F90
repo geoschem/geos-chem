@@ -320,7 +320,7 @@ CONTAINS
        !=======================================================================
 
        ! Initialize pointers
-       Spc         => State_Chm%SpeciesVec
+       Spc         => State_Chm%Species
        AD          => State_Met%AD
        T           => State_Met%T
 
@@ -654,7 +654,7 @@ CONTAINS
        ! Exit with error if linearized chemistry is not activated
        ErrMsg = 'Linearized chemistry needs to be activated for this '      // &
                 'simulation type. Please see GeosCore/linear_chem_mod.F90 ' // &
-                'or disable linearized chemistry in your "input.geos" file.'
+                'or disable linear_chemistry_aloft in geoschem_config.yml'
        CALL GC_Error( ErrMsg, errCode, ThisLoc )
        RETURN
 
@@ -1384,7 +1384,7 @@ CONTAINS
     P70mb = 70e+0_fp
 
     ! Point to chemical species array [v/v dry]
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !=================================================================
     ! Compute the proper release rate of O3 coming down from the

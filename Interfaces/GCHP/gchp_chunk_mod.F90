@@ -190,7 +190,18 @@ CONTAINS
     _VERIFY(STATUS)
 #endif
 
-    ! Read input.geos at very beginning of simulation on every thread
+    ! Update Input_Opt with timing fields
+    ! We will skip defining these in READ_INPUT_FILE
+    Input_Opt%NYMDb   = nymdB           ! YYYYMMDD @ start of simulation
+    Input_Opt%NHMSb   = nhmsB           ! hhmmss   @ end   of simulation
+    Input_Opt%NYMDe   = nymdE           ! YYYYMMDD @ start of simulation
+    Input_Opt%NHMSe   = nhmsE           ! hhmmss   @ end   of simulation
+    Input_Opt%TS_CHEM = INT( tsChem )   ! Chemistry timestep [sec]
+    Input_Opt%TS_EMIS = INT( tsChem )   ! Chemistry timestep [sec]
+    Input_Opt%TS_DYN  = INT( tsDyn  )   ! Dynamic   timestep [sec]
+    Input_Opt%TS_CONV = INT( tsDyn  )   ! Dynamic   timestep [sec]
+
+    ! Read geoschem_config.yml at very beginning of simulation on every CPU
     CALL Read_Input_File( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Read_Input_File')
 
@@ -217,34 +228,25 @@ CONTAINS
 
     ! Set grid based on passed mid-points
     CALL SetGridFromCtr( Input_Opt, State_Grid, lonCtr, latCtr, RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error caling')
-
-    ! Update Input_Opt with timing fields
-    Input_Opt%NYMDb   = nymdB
-    Input_Opt%NHMSb   = nhmsB
-    Input_Opt%NYMDe   = nymdE
-    Input_Opt%NHMSe   = nhmsE
-    Input_Opt%TS_CHEM = INT( tsChem )   ! Chemistry timestep [sec]
-    Input_Opt%TS_EMIS = INT( tsChem )   ! Chemistry timestep [sec]
-    Input_Opt%TS_DYN  = INT( tsDyn  )   ! Dynamic   timestep [sec]
-    Input_Opt%TS_CONV = INT( tsDyn  )   ! Dynamic   timestep [sec]
+    _ASSERT(RC==GC_SUCCESS, 'Error calling "SetGridFromCtr"')
 
     ! Set GEOS-Chem timesteps on all CPUs
-    CALL SET_TIMESTEPS( Input_Opt,                                       &
-                        Chemistry  = Input_Opt%TS_CHEM,                  &
-                        Convection = Input_Opt%TS_CONV,                  &
-                        Dynamics   = Input_Opt%TS_DYN,                   &
-                        Emission   = Input_Opt%TS_EMIS,                  &
-                        Radiation  = Input_Opt%TS_RAD,                   &
-                        Unit_Conv  = MAX( Input_Opt%TS_DYN,              &
-                                          Input_Opt%TS_CONV ),           &
+    CALL Set_Timesteps( Input_Opt  = Input_Opt,                              &
+                        Chemistry  = Input_Opt%TS_CHEM,                      &
+                        Convection = Input_Opt%TS_CONV,                      &
+                        Dynamics   = Input_Opt%TS_DYN,                       &
+                        Emission   = Input_Opt%TS_EMIS,                      &
+                        Radiation  = Input_Opt%TS_RAD,                       &
+                        Unit_Conv  = MAX( Input_Opt%TS_DYN,                  &
+                                          Input_Opt%TS_CONV ),               &
                         Diagnos    = Input_Opt%TS_DIAG         )
 
     ! Initialize derived-type objects for met, chem, and diag
-    CALL GC_Init_StateObj( HistoryConfig%DiagList,                       &
-                           HistoryConfig%TaggedDiagList, Input_Opt,      &
+    CALL GC_Init_StateObj( HistoryConfig%DiagList,                           &
+                           HistoryConfig%TaggedDiagList, Input_Opt,          &
                            State_Chm, State_Diag, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_StateObj')
+
 
 #ifdef ADJOINT
     ! Are we running the adjoint?
@@ -501,7 +503,7 @@ CONTAINS
     ! Set initial species units to internal state units, the same
     ! units as the restart file values. Note that species concentrations
     ! are all still zero at this point since internal state values are not
-    ! copied to State_Chm%SpeciesVec%Conc until Run (post-initialization).
+    ! copied to State_Chm%Species%Conc until Run (post-initialization).
 # if defined( MODEL_GEOS )
     State_Chm%Spc_Units = 'kg/kg total'
 #else
@@ -648,8 +650,8 @@ CONTAINS
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Set_SpecMask
 #endif
 
-#if defined( MODEL_GEOS )
     USE Calc_Met_Mod,           ONLY : GET_COSINE_SZA
+#if defined( MODEL_GEOS )
     USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_WriteDiagn
 #endif
     USE Species_Mod,   ONLY : Species
@@ -808,8 +810,8 @@ CONTAINS
     ! 6.  WetDep (kg)      --> Phase 2
     !
     ! Any of the listed processes is only executed if the corresponding switch
-    ! in the input.geos file is enabled. If the physics component already
-    ! covers convection or turbulence, they should not be applied here!
+    ! in the geoschem_config.yml file is enabled. If the physics component
+    ! already covers convection or turbulence, they should not be applied here!
     ! The tendencies are only applied if turbulence is not done within
     ! GEOS-Chem (ckeller, 10/14/14).
     !
@@ -819,7 +821,8 @@ CONTAINS
     ! across two runs as is done in GEOS-5. (ewl, 10/26/18)
     !=======================================================================
 
-    ! By default, do processes as defined in input.geos. DoTend defined below.
+    ! By default, do processes as defined in geoschem_config.yml. DoTend
+    ! defined below.
     DoConv   = Input_Opt%LCONV                    ! dynamic time step
     DoDryDep = Input_Opt%LDRYD .AND. IsChemTime   ! chemistry time step
     DoEmis   = IsChemTime                         ! chemistry time step
@@ -940,7 +943,7 @@ CONTAINS
     ENDIF
 #endif
 
-    ! Eventually initialize/reset wetdep
+    ! Initialize/reset wetdep after air quantities computed
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
        CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
     ENDIF
@@ -973,7 +976,7 @@ CONTAINS
        !=======================================================================
        ! Tropospheric H2O is always prescribed (using GEOS Q). For strat H2O
        ! there are three options, controlled by toggles 'set initial global MR'
-       ! in input.geos and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
+       ! in geoschem_config.yml and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
        ! (A) never prescribe strat H2O -> both toggles off
        ! (B) prescribe strat H2O on init time step -> toggle in input.goes on
        ! (C) always prescribe strat H2O -> toggle in GEOSCHEMchem_GridComp.rc on
@@ -998,8 +1001,6 @@ CONTAINS
        IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
     ENDIF
 
-#if defined( MODEL_GEOS )
-    ! GEOS-5 only: needed in GCHP?
     ! Compute the cosine of the solar zenith angle array:
     !    State_Met%SUNCOS     => COS(SZA) at the current time
     !    State_Met%SUNCOSmid  => COS(SZA) at the midpt of the chem timestep
@@ -1007,7 +1008,7 @@ CONTAINS
     !    calculated elsewhere, in the HEMCO PARANOx extension
     CALL GET_COSINE_SZA( Input_Opt, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GET_COSINE_SZA')
-#endif
+
 #ifdef ADJOINT
     if (.not. first) &
          CALL Print_Global_Species_Kg( I_DBG, J_DBG, L_DBG,           &
@@ -1023,7 +1024,7 @@ CONTAINS
        JFD = Input_Opt%JFD
        LFD = Input_Opt%LFD
        NFD = Input_Opt%NFD
-       WRITE (*, 1017) TRIM(FD_SPEC), state_chm%SpeciesVec(NFD)%Conc(IFD,JFD,LFD)
+       WRITE (*, 1017) TRIM(FD_SPEC), state_chm%Species(NFD)%Conc(IFD,JFD,LFD)
        IF (Input_Opt%IS_ADJOINT) THEN
           WRITE(*,*) ' Computing final cost function'
           CFN = 0d0
@@ -1032,9 +1033,9 @@ CONTAINS
           DO J = 1,State_Grid%NY
           DO I = 1,State_Grid%NX
              if (State_chm%CostFuncMask(I,J,L) > 0d0) THEN
-                WRITE (*, 1047) I, J, L, state_chm%speciesvec(NFD)%Conc(I,J,L)
+                WRITE (*, 1047) I, J, L, State_Chm%Species(NFD)%Conc(I,J,L)
                 state_chm%SpeciesAdj(I,J,L, NFD) = 1.0d0
-                CFN = CFN + state_chm%speciesvec(NFD)%Conc(I,J,L)
+                CFN = CFN + State_Chm%Species(NFD)%Conc(I,J,L)
              endif
           ENDDO
           ENDDO
@@ -1046,14 +1047,14 @@ CONTAINS
              WRITE(*, *) '    Not perturbing'
           ELSEIF (Input_Opt%FD_STEP .eq. 1) THEN
              WRITE(*, *) '    Perturbing +0.1'
-             state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD) = state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD) * 1.1d0
+             State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) = State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) * 1.1d0
           ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
              WRITE(*, *) '    Perturbing -0.1'
-             state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD) = state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD) * 0.9d0
+             State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) = State_Chm%Species(NFD)%Conc(IFD,JFD,LFD) * 0.9d0
           ELSE
              WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
           ENDIF
-          WRITE (*, 1017) TRIM(FD_SPEC), state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD)
+          WRITE (*, 1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
        ENDIF
     ENDIF
 
@@ -1064,7 +1065,7 @@ CONTAINS
        IF (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
           IFD = Input_Opt%IFD
           JFD = Input_Opt%JFD
-          WRITE (*, 1017) TRIM(FD_SPEC), state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD)
+          WRITE (*, 1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
           IF (Input_Opt%Is_Adjoint) &
                WRITE (*, 1018) TRIM(FD_SPEC), state_chm%SpeciesAdj(IFD, JFD, LFD, NFD)
        ENDIF
@@ -1073,15 +1074,15 @@ CONTAINS
              WRITE(*, *) '    Not perturbing'
           ELSEIF (Input_Opt%FD_STEP .eq. 1) THEN
              WRITE(*, *) '    Perturbing +0.1'
-             state_chm%speciesvec(NFD)%Conc = state_chm%speciesvec(NFD)%Conc(:,:,:) * 1.1d0
+             State_Chm%Species(NFD)%Conc = State_Chm%Species(NFD)%Conc(:,:,:) * 1.1d0
           ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
              WRITE(*, *) '    Perturbing -0.1'
-             state_chm%speciesvec(NFD)%Conc = state_chm%speciesvec(NFD)%Conc(:,:,:) * 0.9d0
+             State_Chm%Species(NFD)%Conc = State_Shm%Species(NFD)%Conc(:,:,:) * 0.9d0
           ELSE
              WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
           ENDIF
           IF (Input_Opt%IS_FD_SPOT_THIS_PET) &
-               WRITE (*, 1017) TRIM(FD_SPEC), state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD)
+               WRITE (*, 1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
        ELSE
           state_chm%SpeciesAdj(:,:,:,:) = 0d0
           IF (NFD > 0) THEN
@@ -1108,7 +1109,7 @@ CONTAINS
        IFD = Input_Opt%IFD
        JFD = Input_Opt%JFD
        LFD = Input_Opt%LFD
-       WRITE(*,1017) TRIM(FD_SPEC), state_chm%speciesvec(NFD)%Conc(IFD,JFD,LFD)
+       WRITE(*,1017) TRIM(FD_SPEC), State_Chm%Species(NFD)%Conc(IFD,JFD,LFD)
        IF (Input_Opt%Is_Adjoint) &
             WRITE (*, 1018) TRIM(FD_SPEC), state_chm%SpeciesAdj(IFD, JFD, LFD, NFD)
     ENDIF
@@ -1132,8 +1133,8 @@ CONTAINS
     ! 1. Convection
     !
     ! Call GEOS-Chem internal convection routines if convection is enabled
-    ! in input.geos. This should only be done if convection is not covered
-    ! by another gridded component and/or the GC species are not made
+    ! in geoschem_config.yml. This should only be done if convection is not
+    ! covered by another gridded component and/or the GC species are not made
     ! friendly to this component!!
     !=======================================================================
     IF ( DoConv ) THEN
@@ -1249,8 +1250,8 @@ CONTAINS
     ! 4. Turbulence
     !
     ! Call GEOS-Chem internal turbulence routines if turbulence is enabled
-    ! in input.geos. This should only be done if turbulence is not covered
-    ! by another gridded component and/or the GC species are not made
+    ! in geoschem_config.yml. This should only be done if turbulence is not
+    ! covered by another gridded component and/or the GC species are not made
     ! friendly to this component!!
     !=======================================================================
     IF ( DoTurb ) THEN
@@ -1533,7 +1534,7 @@ CONTAINS
           ! Find the non-adjoint variable or this
           TRACNAME = ThisSpc%Name
 
-          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%SpeciesVec(N)%Conc(:,:,:) * &
+          State_Chm%SpeciesAdj(:,:,:,N) = State_Chm%SpeciesAdj(:,:,:,N) * State_Chm%Species(N)%Conc(:,:,:) * &
                ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
 
           if (Input_Opt%IS_FD_SPOT_THIS_PET .and. Input_Opt%IFD > 0) THEN

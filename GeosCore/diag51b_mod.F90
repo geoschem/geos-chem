@@ -493,7 +493,7 @@ CONTAINS
        ENDIF
 
        ! Initialize pointers
-       Spc => State_Chm%SpeciesVec
+       Spc => State_Chm%Species
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &

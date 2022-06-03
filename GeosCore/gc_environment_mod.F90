@@ -379,6 +379,8 @@ CONTAINS
     ENDIF
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
+    ! Compute the grid centers & edges
+    ! (skip if using an external model like GCHP or NASA/GEOS)
     CALL Compute_Grid( Input_Opt, State_Grid, RC)
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Compute_Grid"!'
@@ -436,10 +438,8 @@ CONTAINS
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
-    USE Diag03_Mod,         ONLY : Init_Diag03
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
-    USE Diag53_Mod,         ONLY : Init_Diag53
     USE Gamap_Mod,          ONLY : Do_Gamap
 #endif
 !
@@ -572,7 +572,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Call Init_VDIFF so that we can pass several values from
     ! Input_Opt to the vdiff_mod.F90. This has to be called
-    ! after the input.geos file has been read from disk.
+    ! after the geoschem_config.yml file has been read from disk.
     !-----------------------------------------------------------------
     IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
        CALL Init_Vdiff( Input_Opt, State_Chm, State_Grid, RC )
@@ -721,7 +721,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Main mercury module
-       CALL Init_Mercury( Input_Opt, State_Chm, State_Grid, RC )
+       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -778,22 +778,12 @@ CONTAINS
     ! Allocate and initialize variables
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
-    ! Initialize the Hg diagnostics (bpch)
-    IF ( .not. Input_Opt%DryRun ) THEN
-       CALL Init_Diag03( State_Chm, State_Grid )
-    ENDIF
-
     ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) THEN
        CALL Init_Diag51 ( Input_Opt, State_Grid, RC )
     ENDIF
     IF ( Input_Opt%DO_ND51b ) THEN
        CALL Init_Diag51b( Input_Opt, State_Grid, RC )
-    ENDIF
-
-    ! POPs (bpch)
-    IF ( .not. Input_Opt%DryRun ) THEN
-       CALL Init_Diag53( State_Grid )
     ENDIF
 
 #if defined( MODEL_CLASSIC )
@@ -888,7 +878,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    ErrMsg  = 'Error reading the "input.geos" file!'
+    ErrMsg  = ''
     ThisLoc = ' -> at Init_Tomas_Microphysics (in GeosCore/gc_environment_mod.F90)'
     ! Exit if this is a dry-run
     IF ( Input_Opt%DryRun) RETURN

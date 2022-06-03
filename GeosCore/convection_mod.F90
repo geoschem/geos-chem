@@ -534,7 +534,7 @@ CONTAINS
     T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
     H2O2s    => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
     SO2s     => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
-    Spc      => State_Chm%SpeciesVec              ! Chemical species vector
+    Spc      => State_Chm%Species              ! Chemical species vector
     SpcInfo  => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges

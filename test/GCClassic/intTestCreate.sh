@@ -103,7 +103,6 @@ root=$(absolute_path ${root})
 cleanup_files ${root}
 
 # Make the directory for the executables
-# Add an empty input.geos file so that CMake thinks it's a rundir
 printf "\nCreating new build and executable directories:\n"
 echo " ... ${root}/exe_files"
 mkdir -p ${root}/exe_files
@@ -466,9 +465,6 @@ unset dir
 unset FILL
 unset SEP_MAJOR
 unset SEP_MINOR
-unset SED_INPUT_GEOS_1
-unset SED_INPUT_GEOS_2
-unset SED_HISTORY_RC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

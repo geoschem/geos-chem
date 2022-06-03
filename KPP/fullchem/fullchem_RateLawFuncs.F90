@@ -563,11 +563,10 @@ CONTAINS
     !
     REAL(dp), INTENT(IN) :: a0
     !
-    REAL(dp)             :: r0,     klo1,   klo2,  khi1,    khi2
+    REAL(dp)             :: klo1,   klo2,   khi1,  khi2
     REAL(dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
     REAL(dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
     !
-    r0     = a0 * ( 1.0_dp + 0.6_dp * 9.871E7_dp * PRESS )
     klo1   = 5.9E-33_dp * K300_OVER_TEMP
     khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
     xyrat1 = klo1 * NUMDEN / khi1
@@ -2034,7 +2033,7 @@ CONTAINS
             H,         gammaLiq,  k_tot,                                     &
             k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm )
        !
-       ! Branching ratio for liquid path of HOBr + HSO3m in cloud
+       ! Branching ratio for liquid path of HOBr + HSO3- in cloud
        brLiq = k_HOBr_HSO3m / k_tot
        !
        ! Compute overall HOBr removal rate in cloud
@@ -2043,7 +2042,8 @@ CONTAINS
     ENDIF
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
-    k = kIIR1Ltd( C(ind_HOBr), C(ind_HSO3m), k )
+    ! Convert SO2 to HSO3- with the HSO3-/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k ) * H%HSO3m
   END FUNCTION HOBrUptkByHSO3m
 
   FUNCTION HOBrUptkBySO3mm( H ) RESULT( k )
@@ -2067,7 +2067,7 @@ CONTAINS
             H,         gammaLiq,  k_tot,                                     &
             k_HOBr_Cl, k_HOBr_Br, k_HOBr_HSO3m, k_HOBr_SO3mm )
        !
-       ! Branching ratio for liquid path of HOBr + HSO3m in cloud
+       ! Branching ratio for liquid path of HOBr + SO3-- in cloud
        brLiq = k_HOBr_SO3mm / k_tot
        !
        ! Compute overall HOBr removal rate in cloud
@@ -2076,7 +2076,9 @@ CONTAINS
     ENDIF
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
-    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO3mm), k )
+    ! Convert SO2 to SO3-- with the SO3--/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k ) * H%SO3mm
+
   END FUNCTION HOBrUptkBySO3mm
 
   !=========================================================================
@@ -2324,19 +2326,20 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
     !
-    ! Compute HOCl + HSO3m uptake in tropospheric liquid cloud
+    ! Compute HOCl + HSO3- uptake in tropospheric liquid cloud
     IF ( .not. H%stratBox ) THEN
        !
-       ! HOCl + HSO3mL uptake coeff [1] & branch ratio [1], liquid path
+       ! HOCl + HSO3- uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
        branch = branchSO3 * H%frac_HSO3_aq
        !
-       ! HOCl + HSO3m uptake rate [1/s] accounting for cloud fraction
+       ! HOCl + HSO3- uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
-    k = kIIR1Ltd( C(ind_HOCl), C(ind_HSO3m), k )
+    ! Convert SO2 to HSO3- with the HSO3-/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO2), k ) * H%HSO3m
   END FUNCTION HOClUptkByHSO3m
 
   FUNCTION HOClUptkBySO3mm( H ) RESULT( k )
@@ -2352,19 +2355,20 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_HOCl)
     !
-    ! Compute HOCl + SO3mm uptake in tropospheric liquid cloud
+    ! Compute HOCl + SO3-- uptake in tropospheric liquid cloud
     IF ( .not. H%stratBox ) THEN
        !
-       ! HOCl + SO3mm  uptake coeff [1] & branch ratio [1], liquid path
+       ! HOCl + SO3-- uptake coeff [1] & branch ratio [1], liquid path
        CALL Gam_HOCl_Cld( H, gamma, dummy, branchSO3 )
        branch = branchSO3 * H%frac_SO3_aq
        !
-       ! HOCl + SO3mm uptake rate [1/s] accounting for cloud fraction
+       ! HOCl + SO3-- uptake rate [1/s] accounting for cloud fraction
        k = k + CloudHet( H, srMw, gamma, 0.0_dp, branch, 0.0_dp )
     ENDIF
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
-    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO3mm), k )
+    ! Convert SO2 to SO3-- with the SO3--/SO2 ratio
+    k = kIIR1Ltd( C(ind_HOCl), C(ind_SO2), k ) * H%SO3mm
   END FUNCTION HOClUptkBySO3mm
 
   !=========================================================================

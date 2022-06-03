@@ -7,7 +7,7 @@
 # Example usage: ./archiveRun.sh c48_1hr_emissionsOff
 #
 # All output files are copied, including output data (OutputDir/*.nc4), 
-# log files (*.log, slurm-*), config files (*.rc, input.geos), 
+# log files (*.log, slurm-*), config files (*.rc, *.yml), 
 # run files (*.run, *.env, runConfig.sh), and restarts (only gcchem*). 
 # Files are stored in subdirectories within the archive directory.
 #
@@ -84,7 +84,7 @@ mkdir -p ${archivedir}/Build
 
 # Copy files
 echo "Copying files..."
-copyfiles "input.geos"         ${archivedir}/Config
+copyfiles "*.yml"              ${archivedir}/Config
 copyfiles "rundir.version"     ${archivedir}/Config
 copyfiles "*.rc"               ${archivedir}/Config
 copyfiles "runConfig.sh"       ${archivedir}/Config

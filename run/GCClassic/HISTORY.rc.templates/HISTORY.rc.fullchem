@@ -43,7 +43,7 @@ COLLECTIONS: 'Restart',
              ##'LevelEdgeDiags',
              ##'ProdLoss',
              ##'RRTMG',
-	     ##'RxnRates',
+             ##'RxnRates',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
@@ -70,17 +70,17 @@ COLLECTIONS: 'Restart',
   Restart.duration:           ${RUNDIR_HIST_INST_DUR}
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Chem_AeroH2OSNA                ',
+                              'Chem_ORVCsesq                  ',
                               'Chem_H2O2AfterChem             ',
+                              'Chem_JOH                       ',
+                              'Chem_JNO2                      ',
                               'Chem_SO2AfterChem              ',
                               'Chem_DryDepNitrogen            ',
                               'Chem_WetDepNitrogen            ',
                               'Chem_KPPHvalue                 ',
                               'Chem_StatePSC                  ',
                               'Met_DELPDRY                    ',
-                              'Met_PS1WET                     ',
-                              'Met_PS1DRY                     ',
-                              'Met_SPHU1                      ',
-                              'Met_TMPU1                      ',
                               'Met_BXHEIGHT                   ',
                               'Met_TropLev                    ',
 ::
@@ -156,7 +156,7 @@ COLLECTIONS: 'Restart',
                               'AerMassSOAIE                 ',
                               'AerMassTSOA                  ',
                               'BetaNO                       ',
-			      'PM25                         ',
+                              'PM25                         ',
                               'PM10                         ',
                               'TotalBiogenicOA              ',
                               'TotalOA                      ',
@@ -306,7 +306,7 @@ COLLECTIONS: 'Restart',
 #
 # Concentrations of O3 and HNO3 at a user-specified altitude above
 # the surface, such as 10m.  Set the desired output altitude in meters
-# in the DEPOSITION MENU of input.geos.
+# in the deposition settings in geoschem_config.yml.
 #
 # NOTES:
 # (1) This collection requires dry deposition to be turned on.

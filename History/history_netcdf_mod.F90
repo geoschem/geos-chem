@@ -350,7 +350,8 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( Container%Operation      == COPY_FROM_SOURCE            .and.    &
             Container%UpdateIvalSec  == Container%FileCloseIvalSec  .and.    &
-            Container%FileCloseAlarm == 0.0                        ) THEN
+            Container%FileCloseAlarm == 0.0                         .and.    &
+            TRIM(Container%Name) .ne. 'BoundaryConditions' )  THEN
           RETURN
 
        ELSE
@@ -519,7 +520,7 @@ CONTAINS
                                Item     = Current%Item,                      &
                                VarUnits = VarUnits                          )
 
-          ! Replace "TBD"  with the current units of State_Chm%SpeciesVec(:)%Conc
+          ! Replace "TBD"  with the current units of State_Chm%Species(:)%Conc
           IF ( TRIM( VarUnits ) == 'TBD' ) THEN
              VarUnits = Container%Spc_Units
           ENDIF

@@ -101,7 +101,7 @@ INIT_ZERO:            0
 ARCHIVED_CONV:        0
 
 # %%% Use MOIST module for convective transport (including washout)
-# Make species friendly to moist? If turned on, convection must be turned off in input.geos
+# Make species friendly to moist? If turned on, convection must be turned off in in geoschem_config.yml
 Species_friendly_to_moist: 0
 # Turn off washout for SO2?
 TurnOff_SO2_washout: 1

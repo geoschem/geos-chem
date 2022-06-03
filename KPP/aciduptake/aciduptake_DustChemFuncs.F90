@@ -292,7 +292,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize pointers
-    Spc       => State_Chm%SpeciesVec  ! GEOS-Chem species array [v/v dry]
+    Spc       => State_Chm%Species  ! GEOS-Chem species array [v/v dry]
     ERADIUS   => State_Chm%AeroRadi    ! Aerosol Radius [cm]
     TAREA     => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
 

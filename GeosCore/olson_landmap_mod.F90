@@ -388,6 +388,9 @@ CONTAINS
     ThisLoc = &
       ' -> at Init_LandTypeFrac (in module "GeosCore/olson_landmap_mod.F90'
 
+    ! Zero land type fractions array for safety's sake
+    State_Met%LandTypeFrac = 0.0_fp
+
     ! Loop over the number of Olson land types
     DO T = 1, NSURFTYPE
 
@@ -403,7 +406,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-     
+
        ! Copy into State_Met%LandTypeFrac
        State_Met%LandTypeFrac(:,:,T) = Ptr2D
 

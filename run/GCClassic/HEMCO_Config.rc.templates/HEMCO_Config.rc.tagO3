@@ -46,13 +46,13 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
-# ----- NON-EMISSIONS DATA ------------------------------------
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> O3_PROD_LOSS           :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
@@ -105,10 +105,6 @@ Warnings:                    1
 #==============================================================================
 (((GC_RESTART
 * SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
-* TMPU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_TMPU1           $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
-* SPHU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_SPHU1           $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
-* PS1DRY         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1DRY          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
-* PS1WET         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1WET          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
 * DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
 )))GC_RESTART
 

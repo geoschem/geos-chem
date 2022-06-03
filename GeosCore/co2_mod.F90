@@ -249,7 +249,7 @@ CONTAINS
     IF ( Input_Opt%LCHEMCO2 ) THEN
 
        ! Point to chemical species array [kg/kg dry air]
-       Spc => State_Chm%SpeciesVec
+       Spc => State_Chm%Species
 
        ! Evalulate the CO2 production from HEMCO
        CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CO2_COPROD', CO2_COPROD, RC )

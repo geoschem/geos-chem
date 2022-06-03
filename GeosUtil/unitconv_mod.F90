@@ -439,7 +439,7 @@ ENDIF
     ThisLoc   = ' -> at Print_Global_Species_Kg (in module ' // &
                 'GeosUtil/unitconv_mod.F90)'
 
-    !PRINT *, TRIM(LOC), ', 1,', State_Chm%SpeciesVec(N)%Conc(I,J,L)
+    !PRINT *, TRIM(LOC), ', 1,', State_Chm%Species(N)%Conc(I,J,L)
 
     ! Convert species conc units to kg
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -462,7 +462,7 @@ ENDIF
     N = Ind_(spc)
 
     ! Compute global sum
-    SpcTotal = SUM( State_Chm%SpeciesVec(N)%Conc(:,:,:) )
+    SpcTotal = SUM( State_Chm%Species(N)%Conc(:,:,:) )
 
     ! Get species name from the species database
     SpcName = TRIM( State_Chm%SpcData(N)%Info%Name )
@@ -470,7 +470,7 @@ ENDIF
     ! Write formatted output
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 110 ) SpcName, SpcTotal
-       WRITE( 6, 115 ) SpcName, State_Chm%SpeciesVec(N)%Conc(I,J,L), I, J, L
+       WRITE( 6, 115 ) SpcName, State_Chm%Species(N)%Conc(I,J,L), I, J, L
        WRITE( 6, 115 ) 'AD', State_Met%AD(I,J,L), I, J, L
        WRITE( 6, 115 ) 'PREVSPHU', State_Met%SPHU_PREV(I,J,L), I, J, L
        WRITE( 6, 115 ) 'SPHU', State_Met%SPHU(I,J,L), I, J, L
@@ -484,7 +484,7 @@ ENDIF
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             OrigUnit,  RC )
 
-    !PRINT *, TRIM(LOC), ', 2,', State_Chm%SpeciesVec(N)%Conc(I,J,L)
+    !PRINT *, TRIM(LOC), ', 2,', State_Chm%Species(N)%Conc(I,J,L)
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -598,8 +598,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) = &
-                    State_Chm%SpeciesVec(N)%Conc(I,J,L) * MwRatio
+          State_Chm%Species(N)%Conc(I,J,L) = &
+                    State_Chm%Species(N)%Conc(I,J,L) * MwRatio
 #ifdef ADJOINT
           if (Is_Adjoint) &
                State_Chm%SpeciesAdj(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N) * MwRatio
@@ -712,8 +712,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-         State_Chm%SpeciesVec(N)%Conc(I,J,L) = &
-                   State_Chm%SpeciesVec(N)%Conc(I,J,L) / ( AIRMW / MW_G )
+         State_Chm%Species(N)%Conc(I,J,L) = &
+                   State_Chm%Species(N)%Conc(I,J,L) / ( AIRMW / MW_G )
 #ifdef ADJOINT
          if (Is_Adjoint) &
               State_Chm%SpeciesAdj(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)  &
@@ -807,8 +807,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                         &
-                        State_Chm%SpeciesVec(N)%Conc(I,J,L)             &
+          State_Chm%Species(N)%Conc(I,J,L) =                         &
+                        State_Chm%Species(N)%Conc(I,J,L)             &
                         * ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
 #ifdef ADJOINT
           if (Is_Adjoint) &
@@ -903,8 +903,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-         State_Chm%SpeciesVec(N)%Conc(I,J,L) =                          &
-                        State_Chm%SpeciesVec(N)%Conc(I,J,L)             &
+         State_Chm%Species(N)%Conc(I,J,L) =                          &
+                        State_Chm%Species(N)%Conc(I,J,L)             &
                         / ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
 #ifdef ADJOINT
           if (Is_Adjoint) &
@@ -1008,8 +1008,8 @@ ENDIF
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                              &
-                                    State_Chm%SpeciesVec(N)%Conc(I,J,L)   &
+       State_Chm%Species(N)%Conc(I,J,L) =                              &
+                                    State_Chm%Species(N)%Conc(I,J,L)   &
                                     * ( g0_100 * State_Met%DELP_DRY(I,J,L) )
 #ifdef ADJOINT
           if (Is_Adjoint) &
@@ -1114,8 +1114,8 @@ ENDIF
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                            &
-                                    State_Chm%SpeciesVec(N)%Conc(I,J,L) &
+       State_Chm%Species(N)%Conc(I,J,L) =                            &
+                                    State_Chm%Species(N)%Conc(I,J,L) &
                                     * ( 1.0e+0_fp / ( g0_100            &
                                     * State_Met%DELP_DRY(I,J,L) ) )
 #ifdef ADJOINT
@@ -1238,8 +1238,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                             &
-                                     State_Chm%SpeciesVec(N)%Conc(I,J,L)    &
+          State_Chm%Species(N)%Conc(I,J,L) =                             &
+                                     State_Chm%Species(N)%Conc(I,J,L)    &
                                      * State_Met%AIRDEN(I,J,L)              &
                                      * ( AVO / MW_kg ) / 1e+6_fp
 #ifdef ADJOINT
@@ -1367,8 +1367,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                             & 
-                                     State_Chm%SpeciesVec(N)%Conc(I,J,L)    &
+          State_Chm%Species(N)%Conc(I,J,L) =                             & 
+                                     State_Chm%Species(N)%Conc(I,J,L)    &
                                      * 1e+6_fp / ( AVO / MW_kg )            &
                                      / State_Met%AIRDEN(I,J,L)
 #ifdef ADJOINT
@@ -1494,8 +1494,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                            &
-                                       State_Chm%SpeciesVec(N)%Conc(I,J,L) &
+          State_Chm%Species(N)%Conc(I,J,L) =                            &
+                                       State_Chm%Species(N)%Conc(I,J,L) &
                                        * State_Met%AD(I,J,L)               &
                                        / ( AIRMW / MW_g )
 #ifdef ADJOINT
@@ -1620,8 +1620,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                         &
-                                       State_Chm%SpeciesVec(N)%Conc(I,J,L)  &
+          State_Chm%Species(N)%Conc(I,J,L) =                         &
+                                       State_Chm%Species(N)%Conc(I,J,L)  &
                                        *  ( AIRMW / MW_g )              &
                                        / State_Met%AD(I,J,L)
 #ifdef ADJOINT
@@ -1734,8 +1734,8 @@ ENDIF
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                          &
-                                  State_Chm%SpeciesVec(N)%Conc(I,J,L) &
+       State_Chm%Species(N)%Conc(I,J,L) =                          &
+                                  State_Chm%Species(N)%Conc(I,J,L) &
                                   * State_Met%AD(I,J,L)
 #ifdef ADJOINT
        if (Is_Adjoint) &
@@ -1844,8 +1844,8 @@ ENDIF
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                          &
-                                  State_Chm%SpeciesVec(N)%Conc(I,J,L) &
+       State_Chm%Species(N)%Conc(I,J,L) =                          &
+                                  State_Chm%Species(N)%Conc(I,J,L) &
                                   / State_Met%AD(I,J,L)
 #ifdef ADJOINT
        if (Is_Adjoint) &
@@ -1971,8 +1971,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                             &
-                                     State_Chm%SpeciesVec(N)%Conc(I,J,L)    &
+          State_Chm%Species(N)%Conc(I,J,L) =                             &
+                                     State_Chm%Species(N)%Conc(I,J,L)    &
                                      / ( AVO / MW_kg )                      &
                                      * (  State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 #ifdef ADJOINT
@@ -2097,8 +2097,8 @@ ENDIF
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%SpeciesVec(N)%Conc(I,J,L) =                             &
-                                    State_Chm%SpeciesVec(N)%Conc(I,J,L)     &
+          State_Chm%Species(N)%Conc(I,J,L) =                             &
+                                    State_Chm%Species(N)%Conc(I,J,L)     &
                                      * ( AVO / MW_kg )                      &
                                      / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 #ifdef ADJOINT
@@ -2184,8 +2184,8 @@ ENDIF
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                          &
-                                  State_Chm%SpeciesVec(N)%Conc(I,J,L) &
+       State_Chm%Species(N)%Conc(I,J,L) =                          &
+                                  State_Chm%Species(N)%Conc(I,J,L) &
                                   * State_Met%AD(I,J,L)
 #ifdef ADJOINT
        if (Is_Adjoint) &
@@ -2261,8 +2261,8 @@ ENDIF
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                          &
-                                  State_Chm%SpeciesVec(N)%Conc(I,J,L) &
+       State_Chm%Species(N)%Conc(I,J,L) =                          &
+                                  State_Chm%Species(N)%Conc(I,J,L) &
                                   / State_Met%AD(I,J,L)
 #ifdef ADJOINT
        if (Is_Adjoint) &
@@ -2335,8 +2335,8 @@ ENDIF
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( N      )
     DO N = 1, State_Chm%nSpecies
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                             &
-                                  State_Chm%SpeciesVec(N)%Conc(I,J,L)    &
+       State_Chm%Species(N)%Conc(I,J,L) =                             &
+                                  State_Chm%Species(N)%Conc(I,J,L)    &
                                   * State_Grid%Area_M2(I,J)
 #ifdef ADJOINT
        if (Is_Adjoint) &
@@ -2409,8 +2409,8 @@ ENDIF
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( N      )
     DO N = 1, State_Chm%nSpecies
-       State_Chm%SpeciesVec(N)%Conc(I,J,L) =                             &
-                                  State_Chm%SpeciesVec(N)%Conc(I,J,L)    &
+       State_Chm%Species(N)%Conc(I,J,L) =                             &
+                                  State_Chm%Species(N)%Conc(I,J,L)    &
                                   / State_Grid%Area_M2(I,J)
 #ifdef ADJOINT
        if (Is_Adjoint) &

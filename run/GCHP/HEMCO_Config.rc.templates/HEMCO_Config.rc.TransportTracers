@@ -47,20 +47,20 @@ Warnings:                    1
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       false    # 1980-2021
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       false
-# ----- GLOBAL INVENTORIES ------------------------------------
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> EDGARv42_SF6           :       true     # 1970-2008
     --> OCEAN_CH3I             :       true
     --> CEDSv2                 :       true     # 1750-2019
     --> EDGARv43               :       false    # 1970-2010
     --> HTAP                   :       false    # 2008-2010
     --> UNIFORM_CO             :       true
-# ----- NON-EMISSIONS DATA ------------------------------------
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> OLSON_LANDMAP          :       false    # 1985
     --> YUAN_MODIS_LAI         :       false    # 2000-2020
 #------------------------------------------------------------------------------
@@ -205,10 +205,6 @@ Warnings:                    1
 #==============================================================================
 (((GC_RESTART
 * SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
-* TMPU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_TMPU1           $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
-* SPHU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_SPHU1           $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
-* PS1DRY         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1DRY          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
-* PS1WET         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1WET          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
 * DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
 )))GC_RESTART
 

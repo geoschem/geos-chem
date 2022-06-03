@@ -1707,7 +1707,7 @@ CONTAINS
           PR = 0
 
           ! Initialize GEOS-Chem species array
-          Spc => State_Chm%SpeciesVec
+          Spc => State_Chm%Species
 
           ! Loop over all variables to save out
           DO V = 1, NPVAR

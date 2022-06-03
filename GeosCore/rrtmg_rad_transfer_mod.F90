@@ -613,7 +613,7 @@ CONTAINS
     ENDIF
 
     ! Set pointer to species vector containing concentrations
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     !$OMP PARALLEL DO          &
     !$OMP DEFAULT( SHARED )    &
@@ -722,14 +722,14 @@ CONTAINS
 
        ! Overhead ozone column [DU]
        ! These values are either from the met fields or TOMS/SBUV,
-       ! depending on the settings in input.geos
+       ! depending on the settings in geoschem_config.yml
        O3COL = GET_OVERHEAD_O3(State_Chm, I,J)
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
        LCHEM           = State_Met%ChemGridLev(I,J)
        DO L = 1, LCHEM
-          O3_CTM(L)    = State_Chm%SpeciesVec(id_O3)%Conc(I,J,L)
+          O3_CTM(L)    = State_Chm%Species(id_O3)%Conc(I,J,L)
        ENDDO
 
        DO L = 1, State_Grid%NZ
@@ -1866,7 +1866,7 @@ CONTAINS
 ! !REMARKS:
 !  The index fields Input_Opt%RadOutCt, Input_Opt%RadOutName, and
 !  Input_Opt%RadOutInd are populated from information obtained in
-!  Headers/diaglist_mod.F90.  But the input.geos file is read before
+!  Headers/diaglist_mod.F90.  But the geoschem_config.yml file is read before
 !  the diaglist is constructed.  Therefore, we have to delay population
 !  of these fields until after the call to Init_DiagList.
 !

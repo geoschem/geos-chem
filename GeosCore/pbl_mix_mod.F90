@@ -142,7 +142,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Proceed to do full PBL mixing only if it has been selected in input.geos
+    ! Proceed to do full PBL mixing only if it has been selected in
+    ! geoschem_config.yml
     IF ( Input_Opt%LTURB .and. ( .not. Input_Opt%LNLPBL ) ) THEN
 
        !=====================================================================
@@ -575,7 +576,7 @@ CONTAINS
     AD      => State_Met%AD         ! Dry air mass
     IMIX    => State_Met%IMIX       ! Integer level where PBL top occurs
     FPBL    => State_Met%FPBL       ! Fractional level above IMIX to PBL top
-    TC      => State_Chm%SpeciesVec ! Chemical species [v/v]
+    TC      => State_Chm%Species ! Chemical species [v/v]
 
     ! Convection timestep [s]
     DTCONV = GET_TS_CONV()

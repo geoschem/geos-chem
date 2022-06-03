@@ -40,6 +40,7 @@ add_library(GeosCore
   STATIC EXCLUDE_FROM_ALL
   aero_drydep.F90
   aerosol_mod.F90
+  airs_ch4_mod.F90
   carbon_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
@@ -47,12 +48,9 @@ add_library(GeosCore
   co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
-  diag03_mod.F90
-  diag1.F90
   diag3.F90
   diag51b_mod.F90
   diag51_mod.F90
-  diag53_mod.F90
   drydep_mod.F90
   dust_mod.F90
   emissions_mod.F90

@@ -302,7 +302,7 @@ CONTAINS
     ENDIF
 
     ! Get a pointer to the species array
-    Spc => State_Chm%SpeciesVec
+    Spc => State_Chm%Species
 
     ! Loop over all objects
     iObj => SfcMrHead

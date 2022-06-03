@@ -163,24 +163,8 @@ MODULE Species_Mod
 
   END TYPE Species
 !
-! !DEFINED PARAMETERS
+! !DEFINED PARAMETERS:
 !
-  !=========================================================================
-  ! Missing value parameters
-  !=========================================================================
-  INTEGER,          PARAMETER, PUBLIC :: MISSING_INT  = -999
-  REAL(fp),         PARAMETER, PUBLIC :: MISSING      = -999.0_fp
-  REAL(f4),         PARAMETER, PUBLIC :: MISSING_R4   = -999.0_f4
-  REAL(f8),         PARAMETER, PUBLIC :: MISSING_R8   = -999.0_f8
-  REAL(fp),         PARAMETER, PUBLIC :: ZERO         =  0.0_fp
-  REAL(f4),         PARAMETER, PUBLIC :: ZERO_R4      =  0.0_f4
-  REAL(f8),         PARAMETER, PUBLIC :: ZERO_R8      =  0.0_f8
-  REAL(fp),         PARAMETER, PUBLIC :: ONE          =  1.0_fp
-  REAL(f4),         PARAMETER, PUBLIC :: ONE_R4       =  1.0_f4
-  REAL(f8),         PARAMETER, PUBLIC :: ONE_R8       =  1.0_f8
-  LOGICAL,          PARAMETER, PUBLIC :: MISSING_BOOL = .FALSE.
-  CHARACTER(LEN=1), PARAMETER, PUBLIC :: MISSING_STR  = ""
-
   !=========================================================================
   ! Missing species concentration value if not in restart file and special
   ! background value not defined
@@ -423,9 +407,9 @@ CONTAINS
     Spc%WD_RetFactor    = MISSING
 
     ! Reals (8-byte precision)
-    Spc%Henry_CR        = MISSING_R8
-    Spc%Henry_K0        = MISSING_R8
-    Spc%Henry_PKA       = MISSING_R8
+    Spc%Henry_CR        = MISSING_DBLE
+    Spc%Henry_K0        = MISSING_DBLE
+    Spc%Henry_PKA       = MISSING_DBLE
 
     ! Strings
     Spc%Formula         = MISSING_STR
@@ -499,11 +483,11 @@ CONTAINS
        ! Print Henry"s Law info (only applicable to gas-phase species)
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
-          IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
+          IF ( ThisSpc%Henry_K0 > ZERO_DBLE ) THEN
              WRITE( 6, 120 ) "Henry_K0       ", ThisSpc%Henry_K0
           ENDIF
 
-          IF ( ThisSpc%Henry_CR > ZERO_R8 ) THEN
+          IF ( ThisSpc%Henry_CR > ZERO_DBLE ) THEN
              WRITE( 6, 120 ) "Henry_CR       ", ThisSpc%Henry_CR
           ENDIF
        ENDIF

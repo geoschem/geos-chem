@@ -37,10 +37,6 @@ MODULE CARBON_MOD
 !
   ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
   PUBLIC :: BETANOSAVE
-
-  ! ORVC_SESQ needs to be public so that it can be added as a
-  ! restart variable to GEOS-5. (ckeller, 10/10/17)
-  PUBLIC :: ORVC_SESQ
 !
 ! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon
@@ -209,7 +205,6 @@ MODULE CARBON_MOD
   REAL(fp), ALLOCATABLE :: BCCONV(:,:,:)
   REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
   REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
-  REAL(fp), ALLOCATABLE :: ORVC_SESQ(:,:,:)
   REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06)
 
 #ifdef TOMAS
@@ -415,7 +410,7 @@ CONTAINS
     prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to chemical species vector containing concentrations
-    Spc                  => State_Chm%SpeciesVec
+    Spc                  => State_Chm%Species
 
     ! First-time initialization
     IF ( FIRSTCHEM ) THEN
@@ -1396,7 +1391,7 @@ CONTAINS
    ! AGING_CARB begins here!
    !=================================================================
 
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    DTCHEM = GET_TS_CHEM() / 3600e+0_fp / 24e+0_fp    ![=] day
 
@@ -1504,7 +1499,7 @@ CONTAINS
 !  O-SVOC/OPOA    OH                OPOA/G1-2
 !  NAP            OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Species that must be defined in input.geos (in addition to standard
+!  Species that must be defined in geoschem_config.yml (in addition to standard
 !  full chem species) (34 additional):
 !  TSOA1      TSOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ASOA2      ASOG2
@@ -1546,7 +1541,7 @@ CONTAINS
 !  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
-!  Species that must be defined in input.geos (in addition to standard
+!  Species that must be defined in geoschem_config.yml (in addition to standard
 !  full chem species) (25 additional):
 !  TSOA1      TSOG1      ASOA1      ASOG1
 !  TSOA2      TSOG2      ASOA2      ASOG2
@@ -1648,7 +1643,7 @@ CONTAINS
    !=================================================================
 
    ! Point to chemical species array [kg]
-   Spc          => State_Chm%SpeciesVec
+   Spc          => State_Chm%Species
 
    ! Do we have to print debug output?
    prtDebug     = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -3395,7 +3390,7 @@ CONTAINS
    RC      = GC_SUCCESS
 
    ! Point to chemical species array [kg]
-   Spc     => State_Chm%SpeciesVec
+   Spc     => State_Chm%Species
 
    ! Chemistry timestep [s]
    DTCHEM  = GET_TS_CHEM()
@@ -3430,7 +3425,7 @@ CONTAINS
    NMVOC(1) = Spc(id_MTPA)%Conc(I,J,L)
    NMVOC(2) = Spc(id_LIMO)%Conc(I,J,L)
    NMVOC(3) = Spc(id_MTPO)%Conc(I,J,L)
-   NMVOC(4) = ORVC_SESQ(I,J,L)
+   NMVOC(4) = State_Chm%ORVCsesq(I,J,L)
 
    ! Initialize DELHC so that the values from the previous
    ! time step are not carried over.
@@ -3520,7 +3515,9 @@ CONTAINS
          ! update dims and switch order (hotp 5/22/10)
          DO NOX = 1, NNOX(JSV)
          DO IPR = 1, NPROD(JSV)
+
             GM0(IPR,JSV) = GM0(IPR,JSV) + ALPHA(NOX,IPR,JHC) * DELHC(NOX)
+
          ENDDO
          ENDDO
 
@@ -3700,7 +3697,7 @@ CONTAINS
    !Spc(id_MTPA)%Conc(I,J,L) = MAX( NMVOC(1), 1.e-32_fp )
    !Spc(id_LIMO)%Conc(I,J,L) = MAX( NMVOC(2), 1.e-32_fp )
    Spc(id_MTPO)%Conc(I,J,L) = MAX( NMVOC(3), 1.e-32_fp )
-   ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
+   State_Chm%ORVCsesq(I,J,L) = MAX( NMVOC(4), 1.e-32_fp )
 
    ! Free pointer
    Spc => NULL()
@@ -3773,7 +3770,7 @@ CONTAINS
    !=================================================================
 
    ! Point to the chemical species array [kg]
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    ! Initialize everything to zero (hotp 5/17/10)
    GM0 = 0e+0_fp
@@ -3925,7 +3922,7 @@ CONTAINS
    !=================================================================
 
    ! Point to the chemical species array [kg]
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    !=================================================================
    ! Semivolatile Group 1: monoterpenes and sesquiterpenes (hotp 5/22/10)
@@ -4348,7 +4345,7 @@ CONTAINS
    ENDIF
 
    ! Point to the chemical species array [kg]
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
@@ -4652,7 +4649,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE EMISSCARBON( Input_Opt, State_Grid, State_Met, RC )
+ SUBROUTINE EMISSCARBON( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -4662,6 +4659,7 @@ CONTAINS
    USE HCO_State_GC_Mod,      ONLY : HcoState
    USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis, LoadHcoValEmis
    USE Input_Opt_Mod,         ONLY : OptInput
+   USE State_Chm_Mod,         ONLY : ChmState
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState
    USE TIME_MOD,              ONLY : GET_TS_EMIS
@@ -4669,6 +4667,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
+   TYPE(ChmState),  INTENT(IN   )  :: State_Chm   ! Chemistry State object
    TYPE(GrdState),  INTENT(IN   )  :: State_Grid  ! Grid State object
    TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
 !
@@ -4782,14 +4781,15 @@ CONTAINS
       ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
       F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
-      ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
+      ! Add sesquiterpene emissions from HEMCO to ORVCSESQ array.
       ! We assume all SESQ emissions are placed in surface level.
       IF ( SESQID > 0 ) THEN
          CALL GetHcoValEmis ( Input_Opt, State_Grid, SESQID, I, J, 1, FOUND, EMIS )
          IF ( FOUND ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
-            TMPFLX           = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
-            ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + ( F_OF_PBL  * TMPFLX )
+            TMPFLX = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
+            State_Chm%ORVCsesq(I,J,L) = &
+                  State_Chm%ORVCsesq(I,J,L) + ( F_OF_PBL * TMPFLX )
          ENDIF
       ENDIF
 
@@ -5254,7 +5254,7 @@ CONTAINS
    !=================================================================
 
    ! Point to chemical species vector containing concentrations
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
@@ -5455,7 +5455,7 @@ CONTAINS
 !
 ! !IROUTINE: get_oh
 !
-! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%SpeciesVec%Conc (for
+! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species%Conc (for
 !  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 7/9/04)
 !\\
@@ -5509,10 +5509,10 @@ CONTAINS
       ! OH is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get OH from State_Chm%SpeciesVec%Conc [kg] and convert to [molec/cm3]
+         ! Get OH from State_Chm%Species%Conc [kg] and convert to [molec/cm3]
          OH_MW_kg = State_Chm%SpcData(id_OH)%Info%MW_g * 1.e-3_fp
 
-         OH_MOLEC_CM3 = State_Chm%SpeciesVec(id_OH)%Conc(I,J,L) &
+         OH_MOLEC_CM3 = State_Chm%Species(id_OH)%Conc(I,J,L) &
                         * ( AVO / OH_MW_kg ) &
                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -5568,7 +5568,7 @@ CONTAINS
 !
 ! !IROUTINE: get_no3
 !
-! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%SpeciesVec%Conc
+! !DESCRIPTION: Function GET\_NO3 returns NO3 from State\_Chm%Species%Conc
 !  (for coupled runs) or monthly mean OH (for offline runs).  For offline runs,
 !  the concentration of NO3 is set to zero during the day. (rjp, bmy, 12/16/02,
 !  7/20/04)
@@ -5622,10 +5622,10 @@ CONTAINS
       ! NO3 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get NO3 from State_Chm%SpeciesVec%Conc [kg]; convert to [molec/cm3]
+         ! Get NO3 from State_Chm%Species%Conc [kg]; convert to [molec/cm3]
          NO3_MW_kg   = State_Chm%SpcData(id_NO3)%Info%MW_g * 1.e-3_fp
 
-         NO3_MOLEC_CM3 = State_Chm%SpeciesVec(id_NO3)%Conc(I,J,L) &
+         NO3_MOLEC_CM3 = State_Chm%Species(id_NO3)%Conc(I,J,L) &
                          * ( AVO / NO3_MW_kg ) &
                          / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp  )
 
@@ -5731,10 +5731,10 @@ CONTAINS
       ! O3 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get O3 from State_Chm%SpeciesVec%Conc [kg] and convert to [molec/cm3]
+         ! Get O3 from State_Chm%Species%Conc [kg] and convert to [molec/cm3]
          O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%MW_g * 1.e-3_fp
 
-         O3_MOLEC_CM3 = State_Chm%SpeciesVec(id_O3)%Conc(I,J,L) &
+         O3_MOLEC_CM3 = State_Chm%Species(id_O3)%Conc(I,J,L) &
                         * ( AVO / O3_MW_kg ) &
                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -5961,12 +5961,12 @@ CONTAINS
 
          ENDIF
 
-         ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%SpeciesVec%Conc
+         ! Get LARO2 (AROM lost to HO2 or NO) from State_Chm%Species%Conc
          ! [kg LARO2] and convert to [kg AROM]
          AROM_MW_kg  = State_Chm%SpcData(id_AROM)%Info%MW_g * 1.e-3_fp
          LARO2_MW_kg = State_Chm%SpcData(id_LARO2)%Info%MW_g * 1.e-3_fp
 
-         DARO2 = State_Chm%SpeciesVec(id_LARO2)%Conc(I,J,L) &
+         DARO2 = State_Chm%Species(id_LARO2)%Conc(I,J,L) &
                  * ( AVO / LARO2_MW_kg ) &
                  / ( AVO / AROM_MW_kg  ) * ARO2CARB
 
@@ -6061,12 +6061,12 @@ CONTAINS
       ! Test if we are in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get LISOPOH (ISOP lost to OH) from State_Chm%SpeciesVec%Conc
+         ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species%Conc
          ! [kg LISOPOH] and convert to [kg C ISOP]
          ISOP_MW_kg    = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
          LISOPOH_MW_kg = State_Chm%SpcData(id_LISOPOH)%Info%MW_g * 1.e-3_fp
 
-         DOH = State_Chm%SpeciesVec(id_LISOPOH)%Conc(I,J,L) &
+         DOH = State_Chm%Species(id_LISOPOH)%Conc(I,J,L) &
                * ( AVO / LISOPOH_MW_kg ) &
                / ( AVO / ISOP_MW_kg )
 
@@ -6178,7 +6178,7 @@ CONTAINS
    !=================================================================
 
    ! Point to chemical species vector containing concentrations
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    ! Calculate mass of absorbing organic medium
    MOTEMP = Spc(id_ASOAN)%Conc(I,J,L) + &
@@ -6490,7 +6490,7 @@ CONTAINS
    !=================================================================
 
    ! Point to chemical species vector containing concentrations
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
@@ -6629,7 +6629,7 @@ CONTAINS
    !=================================================================
 
    ! Point to chemical species vector containing concentrations
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    ! Do we have to print debug output?
    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
@@ -7087,7 +7087,7 @@ CONTAINS
 !
 ! !IROUTINE: get_no
 !
-! !DESCRIPTION: Function GET\_NO returns NO from State\_Chm%SpeciesVec%Conc
+! !DESCRIPTION: Function GET\_NO returns NO from State\_Chm%Species%Conc
 ! (for coupled runs). (hotp 5/7/2010)
 !\\
 !\\
@@ -7139,10 +7139,10 @@ CONTAINS
       ! NO is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get NO from State_Chm%SpeciesVec%Conc [kg] and convert to [molec/cm3]
+         ! Get NO from State_Chm%Species%Conc [kg] and convert to [molec/cm3]
          NO_MW_kg   = State_Chm%SpcData(id_NO)%Info%MW_g * 1.e-3_fp
 
-         NO_MOLEC_CM3 = State_Chm%SpeciesVec(id_NO)%Conc(I,J,L) &
+         NO_MOLEC_CM3 = State_Chm%Species(id_NO)%Conc(I,J,L) &
                         * ( AVO / NO_MW_kg ) &
                         / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -7171,7 +7171,7 @@ CONTAINS
 !
 ! !IROUTINE: get_ho2
 !
-! !DESCRIPTION: Function GET\_HO2 returns HO2 from State\_Chm%SpeciesVec%Conc
+! !DESCRIPTION: Function GET\_HO2 returns HO2 from State\_Chm%Species%Conc
 ! (for coupled runs). Created by Havala Pye (5/7/2010).
 !\\
 !\\
@@ -7223,10 +7223,10 @@ CONTAINS
       ! HO2 is defined only in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get HO2 from State_Chm%SpeciesVec%Conc [kg]; convert to [molec/cm3]
+         ! Get HO2 from State_Chm%Species%Conc [kg]; convert to [molec/cm3]
          HO2_MW_kg  = State_Chm%SpcData(id_HO2)%Info%MW_g*1.e-3_fp
 
-         HO2_MOLEC_CM3 = State_Chm%SpeciesVec(id_HO2)%Conc(I,J,L) &
+         HO2_MOLEC_CM3 = State_Chm%Species(id_HO2)%Conc(I,J,L) &
                          * ( AVO / HO2_MW_kg ) &
                          / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
 
@@ -7311,12 +7311,12 @@ CONTAINS
       ! Test if we are in the chemistry grid
       IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-         ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%SpeciesVec%Conc
+         ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species%Conc
          ! [kg ISOPNO3] and convert to [kg C ISOP]
          ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
          LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%MW_g * 1.e-3_fp
 
-         ISOPNO3 = State_Chm%SpeciesVec(id_LISOPNO3)%Conc(I,J,L) &
+         ISOPNO3 = State_Chm%Species(id_LISOPNO3)%Conc(I,J,L) &
                    * ( AVO / LISOPNO3_MW_kg ) &
                    / ( AVO / ISOP_MW_kg     )
 
@@ -7766,10 +7766,6 @@ CONTAINS
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
       TCOSZ = 0e+0_fp
 
-      ALLOCATE( ORVC_SESQ(State_Grid%NX,State_Grid%NY, State_Grid%NZ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
-      ORVC_SESQ = 0e+0_fp
-
       ! diagnostic  (dkh, 11/11/06)
       ! increase last dimension by 1 to add NAP (hotp 7/22/09)
       ALLOCATE( GLOB_DARO2(State_Grid%NX,State_Grid%NY,State_Grid%NZ,2,4), &
@@ -7865,7 +7861,6 @@ CONTAINS
    IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
    IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
    IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
-   IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
    IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
    IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
    IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )
@@ -8416,7 +8411,7 @@ CONTAINS
    RC        = GC_SUCCESS
 
    ! Point to chemical species vector containing concentrations
-   Spc => State_Chm%speciesVec
+   Spc => State_Chm%species
 
    ! Aerosol settling timestep [s]
    DT_SETTL = GET_TS_CHEM()
@@ -8667,7 +8662,7 @@ CONTAINS
    RC        = GC_SUCCESS
 
    ! Point to chemical species vector containing concentrations
-   Spc => State_Chm%SpeciesVec
+   Spc => State_Chm%Species
 
    ! Aerosol settling timestep [s]
    DT_SETTL = GET_TS_CHEM()

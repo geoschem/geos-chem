@@ -141,10 +141,11 @@ MODULE AEROSOL_MOD
   ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F90 (e.g. if there is
   ! a new hygroscopic species) requires manual update of this mapping
   ! (ewl, 1/23/17)
-  INTEGER :: Map_NRHAER(5)
+  INTEGER  :: Map_NRHAER(5)
 
   ! Diagnostic switches
-  LOGICAL :: Is_POA
+  LOGICAL  :: Is_POA
+  LOGICAL  :: Is_OPOA
 
   ! Conversionf factors to ugC/m3 for Total Organic Carbon diagnostic
   REAL(fp) :: Fac_INDIOL
@@ -315,7 +316,7 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    Spc    => State_Chm%SpeciesVec
+    Spc    => State_Chm%Species
     AIRVOL => State_Met%AIRVOL
     PMID   => State_Met%PMID
     T      => State_Met%T
@@ -1461,7 +1462,7 @@ CONTAINS
           NWVS = NWVAA-NWVAA0+NWVREQUIRED
        ELSE
           !Loop over wavelengths needed for
-          !interpolation to those requested in input.geos
+          !interpolation to those requested in geoschem_config.yml
           !(determined in RD_AOD)
           NWVS = NWVREQUIRED
        ENDIF
@@ -2041,7 +2042,7 @@ CONTAINS
           ! Get ID following ordering of aerosol densities in RD_AOD
           N = Map_NRHAER(NA)
 
-          ! Loop over wavelengths set in input.geos radiation menu
+          ! Loop over wavelengths set in geoschem_config.yml
           DO W = 1, Input_Opt%NWVSELECT
 
              ! Set wavelength logical
@@ -2673,9 +2674,12 @@ CONTAINS
        id_LVOCOA  = Ind_( 'LVOCOA' )
        id_POA1    = Ind_( 'POA1'   )
        id_POA2    = Ind_( 'POA2'   )
+       id_OPOA1   = Ind_( 'OPOA1'  )
+       id_OPOA2   = Ind_( 'OPOA2'  )
        id_SOAGX   = Ind_( 'SOAGX'  )
        id_SOAIE   = Ind_( 'SOAIE'  )
-       Is_POA     = ( id_POA1 > 0 .and. id_POA2 > 0 )
+       Is_POA     = ( id_POA1  > 0 .and. id_POA2  > 0 )
+       Is_OPOA    = ( id_OPOA1 > 0 .and. id_OPOA2 > 0 )
 
        ! Initialize conversion factors for total OC diagnostic
        Fac_INDIOL = 0.0_fp
@@ -2749,9 +2753,14 @@ CONTAINS
     ! consistent with the legacy ND42 bpch diagnostics
     !=======================================================================
 
-    ! Point to fielss of State_Chm and State_Met
-    Spc    => State_Chm%SpeciesVec
+    ! Point to fields of State_Chm and State_Met
+    Spc    => State_Chm%Species
     AirDen => State_Met%AIRDEN
+
+    ! Zero out the totalOC diagnostic
+    IF ( State_Diag%Archive_TotalOC ) THEN
+       State_Diag%TotalOC = 0.0_fp
+    ENDIF
 
     !$OMP PARALLEL DO         &
     !$OMP DEFAULT( SHARED   ) &
@@ -2916,7 +2925,7 @@ CONTAINS
                     + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
 
-          ELSE
+          ELSE IF ( IS_OPOA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
                     + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) ) &

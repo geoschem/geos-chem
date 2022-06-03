@@ -139,6 +139,7 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
 
 #=============================================================================
 # Standard run directories
@@ -161,6 +162,7 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
 sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
 
 #=============================================================================
 # Cleanup and quit
@@ -182,9 +184,6 @@ unset dir
 unset FILL
 unset SEP_MAJOR
 unset SEP_MINOR
-unset SED_INPUT_GEOS_1
-unset SED_INPUT_GEOS_2
-unset SED_HISTORY_RC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

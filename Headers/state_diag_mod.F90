@@ -287,6 +287,9 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: O3PconcAfterChem(:,:,:)
      LOGICAL                     :: Archive_O3PconcAfterChem
 
+     REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
+     LOGICAL                     :: Archive_CH4pseudoFlux
+
      REAL(f4),           POINTER :: Loss(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_Loss
      LOGICAL                     :: Archive_Loss
@@ -1047,9 +1050,6 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RO2concAfterChem(:,:,:)
      LOGICAL                     :: Archive_RO2concAfterChem
 
-     REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
-     LOGICAL                     :: Archive_CH4pseudoFlux
-
      !%%%%% PM2.5 diagnostics %%%%%
 
      REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
@@ -1365,6 +1365,9 @@ CONTAINS
 
     State_Diag%O3PconcAfterChem                    => NULL()
     State_Diag%Archive_O3PconcAfterChem            = .FALSE.
+
+    State_Diag%CH4pseudoflux                       => NULL()
+    State_Diag%Archive_CH4pseudoflux               = .FALSE.
 
     State_Diag%Loss                                => NULL()
     State_Diag%Map_Loss                            => NULL()
@@ -2049,9 +2052,6 @@ CONTAINS
 
     State_Diag%RO2concAfterChem                    => NULL()
     State_Diag%Archive_RO2concAfterChem            = .FALSE.
-
-    State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%Archive_CH4pseudoflux               = .FALSE.
 
     State_Diag%PM25ni                              => NULL()
     State_Diag%Archive_PM25ni                      = .FALSE.
@@ -4378,6 +4378,28 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! CH4 pseudo-flux
+       !--------------------------------------------------------------------
+       diagID  = 'CH4pseudoFlux'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%CH4pseudoFlux,                       &
+            archiveData    = State_Diag%Archive_CH4pseudoFlux,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Production of SO4 by aqueous oxidation of HOBr in cloud
        !--------------------------------------------------------------------
        diagID  = 'ProdSO4fromHOBrInCloud'
@@ -4838,30 +4860,6 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-
-#ifdef MODEL_GEOS
-       !--------------------------------------------------------------------
-       ! CH4 pseudo-flux
-       !--------------------------------------------------------------------
-       diagID  = 'CH4pseudoFlux'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%CH4pseudoFlux,                       &
-            archiveData    = State_Diag%Archive_CH4pseudoFlux,               &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
@@ -9628,6 +9626,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
+                   Ptr2Data = State_Diag%CH4pseudoFlux,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'AODdust',                                     &
                    Ptr2Data = State_Diag%AODdust,                            &
                    RC       = RC                                            )
@@ -10499,11 +10502,6 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
-                   Ptr2Data = State_Diag%CH4pseudoFlux,                      &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'TotCol',                                      &
                    Ptr2Data = State_Diag%TotCol,                             &
                    mapData  = State_Diag%Map_TotCol,                         &
@@ -11246,12 +11244,10 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-#ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'CH4PSEUDOFLUX' ) THEN
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN

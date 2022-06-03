@@ -184,7 +184,7 @@ CONTAINS
     CALL Expand_Date( nc_file, YYYYMMDD, 9999 )
 
     ! Construct complete filename
-    dir = '/n/regal/jacob_lab/msulprizio/ExtData/Obs/TCCON/' // CYEAR // '/'
+    dir = 'ExtData/Obs/TCCON/' // CYEAR // '/'
     nc_file = TRIM( dir ) // TRIM( nc_file )
     WRITE( 6, 10 ) TRIM( nc_file )
 10  FORMAT( '     - Reading ', a)
@@ -743,7 +743,7 @@ CONTAINS
 
        ! Get species concentrations
        ! Convert from [kg/box] --> [v/v]
-       GC_CH4_NATIVE(:) = State_Chm%SpeciesVec(id_CH4)%Conc(I,J,:) * ( AIRMW / &
+       GC_CH4_NATIVE(:) = State_Chm%Species(id_CH4)%Conc(I,J,:) * ( AIRMW / &
                           State_Chm%SpcData(id_CH4)%Info%MW_g )
 
        GC_H2O_NATIVE(:) = State_Met%AVGW(I,J,:)

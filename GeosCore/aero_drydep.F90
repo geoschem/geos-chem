@@ -133,7 +133,7 @@
     prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
-    Spc      => State_Chm%SpeciesVec
+    Spc      => State_Chm%Species
     BXHEIGHT => State_Met%BXHEIGHT
     T        => State_Met%T
     DepFreq  => State_Chm%DryDepFreq
