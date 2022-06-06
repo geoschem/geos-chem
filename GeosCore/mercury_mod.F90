@@ -782,8 +782,8 @@ CONTAINS
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
              !$OMP END CRITICAL
-          ENDIF
 #endif
+          ENDIF
        ENDIF
 
        !=====================================================================

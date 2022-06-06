@@ -1,0 +1,9 @@
+RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA=.false.
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION="""
+UA;VA     m_s-1         N Y F0;003000 none  none UA;VA  ./MetDir/../../GEOS_C720/GEOS_FP_DerivedWind/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg_1hr_ctmwind_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2021-03-11T00:30:00P01:00
+PS1       Pa            N Y  0        none  0.01 PS              ./MetDir/../../GEOS_C720/GEOS_FP_Native/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-20T00:00:00P01:00
+PS2       Pa            N Y  0;001000 none  0.01 PS              ./MetDir/../../GEOS_C720/GEOS_FP_Native/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-20T00:00:00P01:00
+SPHU1     kg_kg-1       N Y  0        none  none QV              ./MetDir/../../GEOS_C720/GEOS_FP_Native/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-20T00:00:00P01:00
+SPHU2     kg_kg-1       N Y  0;001000 none  none QV              ./MetDir/../../GEOS_C720/GEOS_FP_Native/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst_1hr_ctm_c0720_v72.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-20T00:00:00P01:00
+"""
