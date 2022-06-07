@@ -63,6 +63,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout, Vdotout )
 ! Vdotout - Optional argument to return time derivative of variable species
   REAL(kind=dp), OPTIONAL :: Vdotout(NVAR)
 
+
 ! Computation of equation rates
   A(1) = RCT(1)*V(144)*V(269)*V(286)
   A(2) = RCT(2)*V(144)*V(271)
@@ -1519,9 +1520,6 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout, Vdotout )
   !### Use Vdotout to return time deriv. of variable species
   IF ( PRESENT( Vdotout ) ) Vdotout = Vdot
       
-!### Use Vdotout to return species rates 
-  IF ( PRESENT( Vdotout ) ) Vdotout = Vdot
-
 END SUBROUTINE Fun
 
 ! End of Fun function
