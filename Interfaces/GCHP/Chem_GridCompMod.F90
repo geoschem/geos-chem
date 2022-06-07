@@ -650,60 +650,70 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Add additional internal state fields if specified so in the RC file
-    DO II=1,11
-     WRITE ( intStr, '(I2.2)' ) II
-     myName = 'KHETI_SLA_'//TRIM(IntStr)
-     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
-    ENDDO
-    DO II=1,14
-     WRITE ( intStr, '(I2.2)' ) II
-     myName = 'AeroArea_'//TRIM(IntStr)
-     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
-    ENDDO
-    DO II=1,14
-     WRITE ( intStr, '(I2.2)' ) II
-     myName = 'AeroRadi_'//TRIM(IntStr)
-     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
-    ENDDO
-    DO II=1,14
-     WRITE ( intStr, '(I2.2)' ) II
-     myName = 'WetAeroArea_'//TRIM(IntStr)
-     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
-    ENDDO
-    DO II=1,14
-     WRITE ( intStr, '(I2.2)' ) II
-     myName = 'WetAeroRadi_'//TRIM(IntStr)
-     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
-    ENDDO
-    DO II=1,14
-     WRITE ( intStr, '(I2.2)' ) II
-     myName = 'AeroH2O_'//TRIM(IntStr)
-     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
-    ENDDO
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_fine'    , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_coarse'  , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_fine'   , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_coarse' , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_fine'  , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_coarse', 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_01'       , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_02'       , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_03'       , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_01'           , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_02'           , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC'               , 2, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_POA'           , 2, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_OPOA'          , 2, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLArea'            , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLRadi'            , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'QLxpHCloud'         , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'pHCloud'            , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'isCloud'            , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'HSO3_AQ'            , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SO3_AQ'             , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOCl'        , 3, __RC__ ) 
-    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOBr'        , 3, __RC__ ) 
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'AeroH2O_SNA',  &
+       LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
+       UNITS              = 'g/m3', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+!       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = 'GEOSCHEMCHEM',    __RC__ )
+
+!    ! Add additional internal state fields if specified so in the RC file
+!    DO II=1,11
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'KHETI_SLA_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'AeroArea_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'AeroRadi_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'WetAeroArea_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'WetAeroRadi_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'AeroH2O_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_fine'    , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_coarse'  , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_fine'   , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_coarse' , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_fine'  , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_coarse', 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_01'       , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_02'       , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_03'       , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_01'           , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_02'           , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC'               , 2, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_POA'           , 2, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_OPOA'          , 2, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLArea'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLRadi'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'QLxpHCloud'         , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'pHCloud'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'isCloud'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'HSO3_AQ'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SO3_AQ'             , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOCl'        , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOBr'        , 3, __RC__ ) 
 #endif
 
     ! Open geoschem_config.yml to find the sim name and transported species
@@ -2995,14 +3005,6 @@ CONTAINS
     USE MAPL_MemUtilsMod
     USE Olson_Landmap_Mod,       ONLY : Compute_Olson_Landmap
     USE Precision_Mod
-
-#if defined( MODEL_GEOS )
-    ! To archive selected reaction rates
-    USE GCKPP_Parameters
-    USE GCKPP_Monitor
-    USE CMN_FJX_MOD,             ONLY : JVN_
-#endif
-
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
