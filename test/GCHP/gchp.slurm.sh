@@ -29,7 +29,7 @@ log="${root}/logs/execute.${runDir}.log"
 rm -f ${log}
 
 # Save start date string from cap_restart
-start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+start_str=$(sed 's/ /_/g' cap_restart)
 
 # Update config files, set restart symlink, load run env, and do sanity checks
 source setCommonRunSettings.sh > ${log}
@@ -51,7 +51,7 @@ fi
 time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
 # Rename and move restart file and update restart symlink if new start time ok
-new_start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    echo "ERROR: cap_restart either did not change or is empty."
    exit 1

@@ -19,7 +19,7 @@ rst_link_name=gchp_restart.nc4
 
 # Get simulation start from cap_restart
 if [ -f cap_restart ]; then
-   start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+   start_str=$(sed 's/ /_/g' cap_restart)
 else
    echo "ERROR: Unable to set ${rst_link_name} link because cap_restart does not exist! Create cap_restart containing simulation start date with format YYYYMMDD HHmmSS."
    exit	1

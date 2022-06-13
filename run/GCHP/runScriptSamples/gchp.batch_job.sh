@@ -110,7 +110,7 @@ ulimit -s unlimited          # stacksize
 module list     
 
 # Define log name to include simulation start date
-start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+start_str=$(sed 's/ /_/g' cap_restart)
 log=gchp.${start_str}z.log
 
 # Update config files, set restart symlink, and do sanity checks
@@ -146,7 +146,7 @@ source checkRunSettings.sh
 #
 # If new start time in cap_restart is okay, rename and move restart file
 # and update restart symlink
-new_start_str=$(echo $(cat cap_restart) | sed 's/ /_/g')
+new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    echo "ERROR: cap_restart either did not change or is empty."
    exit 1
