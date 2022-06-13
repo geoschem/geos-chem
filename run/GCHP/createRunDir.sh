@@ -505,8 +505,11 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
 
-printf "\n  -- This run directory has been set up to start on $start_date. Edit this in file cap_restart.\n"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh, geoschem_config.yml, and HEMCO_Config.rc.\n"
+printf "\n  -- This run directory has been set up to start on $start_date and"
+printf "\n     restart files for this date are in the Restarts subdirectory.\n"
+printf "\n  -- Update start time in configuration file cap_restart.\n"
+printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmSSz.cN.nc4.\n"
+printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh."
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
