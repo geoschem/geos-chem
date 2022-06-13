@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH -n 12
+#SBATCH -n 24
 #SBATCH -N 1
 #SBATCH -t 0-1:00
-#SBATCH -p huce_intel
+#SBATCH -p huce_cascade
 #SBATCH --mem=110000
 #SBATCH --mail-type=END
 

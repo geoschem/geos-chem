@@ -145,9 +145,9 @@ sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=12/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=12/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Standard run directories
@@ -162,9 +162,9 @@ sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=12/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=12/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Benchmark run directories
@@ -179,9 +179,9 @@ sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=12/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=12/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Cleanup and quit
