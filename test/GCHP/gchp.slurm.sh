@@ -18,8 +18,8 @@
 # See SLURM documentation for descriptions of all possible settings.
 # Type 'man sbatch' at the command prompt to browse documentation.
 
-# Exit if an error is encountered
-set -e
+# Exit if an error is encountered, and log commands of this script
+set -xe
 
 # Define GEOS-Chem log file (and remove any prior log file)
 thisDir=$(pwd -P)

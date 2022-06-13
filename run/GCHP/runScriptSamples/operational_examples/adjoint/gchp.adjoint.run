@@ -20,6 +20,9 @@
 
 cd $PBS_O_WORKDIR
 
+# Exit if error in command, and log commands
+set -xe
+
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
 log=gchp.${start_str}z.log

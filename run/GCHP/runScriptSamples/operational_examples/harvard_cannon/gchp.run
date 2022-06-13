@@ -8,6 +8,9 @@
 #SBATCH --mem=180000
 #SBATCH --mail-type=END
 
+# Exit if command fails, and log all commands
+set -xe
+
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
 log=gchp.${start_str}z.log
