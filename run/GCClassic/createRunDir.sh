@@ -12,14 +12,18 @@
 #
 # Initial version: M. Sulprizio, 6/24/2020 (based off GCHP/createRunDir.sh)
 
+# post registration details to api
 function post_registration() {
-    email=$1
-    affiliation=$2
-    research_interest=$3
-    body="{'email': ${email}, 'affiliation': ${affiliation}, 'research_interest': ${research_interest}"
-    curl -X POST https://4uh55iovvv6v5xvpmgxkwiidxm0mdyki.lambda-url.us-east-1.on.aws/registration \
-        -H "Content-Type: application/json" \
-        -d "{'email': ${email}, 'affiliation': ${affiliation}, 'research_interest': ${research_interest}"
+    email="$1"
+    affiliation="$2"
+    research_interest="$3"
+    curl --location --request POST "https://4uh55iovvv6v5xvpmgxkwiidxm0mdyki.lambda-url.us-east-1.on.aws/registration" \
+        --header "Content-Type: text/plain" \
+        --data-raw "{
+            \"email\": \"${email}\",
+            \"affiliation\": \"${affiliation}\",
+            \"research_interest\": \"${research_interest}\"
+        }"
 }
 
 srcrundir=$(pwd -P)
@@ -84,18 +88,19 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # --------------------------------------------------------------
 # registration for first time users
 # --------------------------------------------------------------
-printf "${thinline}Are you a first time user? If so, would you like to register with the GEOS-Chem community? (y/n)${thinline}"
+printf "${thinline}Are you a first time user? If so, would you like to\nregister with the GEOS-Chem community? (y/n)${thinline}"
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
     read enable_registration
     if [[ ${enable_registration} = "y" ]]; then
-    printf "${thinline}What is your email address (If you would like to be added to our user email list)?${thinline}"
+    printf "${thinline}What is your email address?${thinline}"
     read email
-    printf "${thinline}What is your research affiliation (University, Research Group, Government Organization, Company)?${thinline}"
-    read affiliation
+    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
+    IFS='\n' read -r affiliation
     printf "${thinline}What is your application for GEOS-Chem?${thinline}"
-    read research_interest
-    post_registration $email $affiliation $research_interest
+    IFS='\n' read -r research_interest
+
+    post_registration "$email" "$affiliation" "$research_interest"
 	valid_response=1
     elif [[ ${enable_git} = "n" ]]; then
 	valid_response=1
