@@ -88,26 +88,30 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # --------------------------------------------------------------
 # registration for first time users
 # --------------------------------------------------------------
-printf "${thinline}Are you a first time user? If so, would you like to\nregister with the GEOS-Chem community? (y/n)${thinline}"
-valid_response=0
-while [ "$valid_response" -eq 0 ]; do
-    read enable_registration
-    if [[ ${enable_registration} = "y" ]]; then
-    printf "${thinline}What is your email address?${thinline}"
-    read email
-    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
-    IFS='\n' read -r affiliation
-    printf "${thinline}What is your application for GEOS-Chem?${thinline}"
-    IFS='\n' read -r research_interest
+if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
+    printf "${thinline}Are you a first time user? If so, would you like to\nregister with the GEOS-Chem community? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+        read enable_registration
+        if [[ ${enable_registration} = "y" ]]; then
+        printf "${thinline}What is your email address?${thinline}"
+        read email
+        printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
+        IFS='\n' read -r affiliation
+        printf "${thinline}What is your application for GEOS-Chem?${thinline}"
+        IFS='\n' read -r research_interest
 
-    post_registration "$email" "$affiliation" "$research_interest"
-	valid_response=1
-    elif [[ ${enable_git} = "n" ]]; then
-	valid_response=1
-    else
-	printf "Input not recognized. Try again.\n"
-    fi
-done
+        post_registration "$email" "$affiliation" "$research_interest"
+    	valid_response=1
+        elif [[ ${enable_git} = "n" ]]; then
+    	valid_response=1
+        else
+    	printf "Input not recognized. Try again.\n"
+        fi
+    done
+    echo "export GC_FIRST_TIME_USER=true" >> ${HOME}/.geoschem/config
+    source ${HOME}/.geoschem/config
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
