@@ -54,6 +54,8 @@ MODULE GEOS_Analysis
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarName
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
      LOGICAL                      :: ApplyIncrement
+     LOGICAL                      :: NonZeroIncOnly
+     CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarNameInc
      LOGICAL                      :: InStrat
      LOGICAL                      :: InTrop
      INTEGER                      :: AnaL1 
@@ -64,6 +66,10 @@ MODULE GEOS_Analysis
      INTEGER                      :: StratSponge 
      REAL                         :: MaxChangeStrat
      REAL                         :: MaxChangeTrop
+     REAL                         :: MaxRatioStrat
+     REAL                         :: MaxRatioTrop
+     REAL                         :: MinRatioStrat
+     REAL                         :: MinRatioTrop
      REAL                         :: MinConc
      LOGICAL                      :: UseObsHour
      CHARACTER(LEN=ESMF_MAXSTR)   :: ObsHourName 
@@ -413,19 +419,19 @@ CONTAINS
     INTEGER                    :: StratCount
     REAL                       :: ThisHour
     CHARACTER(LEN=ESMF_MAXSTR) :: SpecName, Spec2Name, FldName
-    REAL, POINTER              :: DiagInc(:,:,:), DiagIncFrac(:,:,:)
+    REAL, POINTER              :: DiagInc(:,:,:),  DiagIncFrac(:,:,:)
     REAL, POINTER              :: DiagInc2(:,:,:), DiagIncFrac2(:,:,:), DiagSpcRatio(:,:,:)
-    REAL, POINTER              :: DiagMsk2d(:,:), DiagMsk3d(:,:,:)
-    REAL, POINTER              :: AnaPtr(:,:,:),  ObsHour(:,:)
-    REAL, ALLOCATABLE          :: SpcBkg(:,:,:),  SpcAsm(:,:,:)
-    REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:),  Spc2Asm(:,:,:)
+    REAL, POINTER              :: DiagMsk2d(:,:),  DiagMsk3d(:,:,:)
+    REAL, POINTER              :: AnaPtr(:,:,:), IncPtr(:,:,:), ObsHour(:,:)
+    REAL, ALLOCATABLE          :: SpcBkg(:,:,:), SpcAsm(:,:,:)
+    REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:), Spc2Asm(:,:,:)
     TYPE(MAPL_SimpleBundle)    :: VarBundle, VarBundleH
-    CHARACTER(LEN=ESMF_MAXSTR) :: ifile
+    CHARACTER(LEN=ESMF_MAXSTR) :: ifile, only_vars
     TYPE(ESMF_TIME)            :: fileTime
     INTEGER                    :: I, J, L, IM, JM, LM, LB, indSpc, indSpc2
     INTEGER                    :: UnitFlag, NNEG
     REAL                       :: Spc2toSpc, wgt, tropwgt, stratwgt
-    REAL                       :: frac, maxChange
+    REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc, mwSpc2
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
@@ -493,12 +499,14 @@ CONTAINS
     CALL MAPL_GetPointer ( Export, DiagMsk3d, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(DiagMsk3d) ) DiagMsk3d = 0.0 
 
-    ! Check if file exists (only if it's time to do the analyhsis
+    ! Check if file exists (only if it's time to do the analysis
     HasBundle = .FALSE.
     IF ( TimeForAna ) THEN
+       only_vars = TRIM(iopt%FileVarName)
+       IF ( iopt%NonZeroIncOnly ) only_vars = TRIM(only_vars)//','//TRIM(iopt%FileVarNameInc)
        CALL GetAnaBundle_( am_I_Root, iopt%FileTemplate, 'AnaFld', yy, mm, dd, h, m, grid, &
                            VarBundle, HasBundle, ifile=ifile, fileTime=fileTime,    &
-                           only_vars=TRIM(iopt%FileVarName), err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, __RC__ )
+                           only_vars=only_vars, err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, __RC__ )
 
        ! Read obs time using voting regridding method 
        IF ( HasBundle .AND. iopt%UseObsHour ) THEN
@@ -522,6 +530,11 @@ CONTAINS
        VarID   = MAPL_SimpleBundleGetIndex ( VarBundle, TRIM(iopt%FileVarName), 3, RC=STATUS, QUIET=.TRUE. )
        ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
        AnaPtr => VarBundle%r3(VarID)%q
+       IF ( iopt%nonZeroIncOnly ) THEN
+          VarID   = MAPL_SimpleBundleGetIndex ( VarBundle, TRIM(iopt%FileVarNameInc), 3, RC=STATUS, QUIET=.TRUE. )
+          ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
+          IncPtr => VarBundle%r3(VarID)%q
+       ENDIF
        ! Observation hour
        ObsHour => NULL()
        IF ( iopt%UseObsHour ) THEN
@@ -615,6 +628,10 @@ CONTAINS
              ! Count number of cells since vertical loop start that have been (at least partly) in stratosphere
              IF ( stratwgt > 0.1 ) StratCount = StratCount + 1 
 
+             ! Skip cell if concentration change is too small
+             IF ( iopt%ApplyIncrement .AND. ABS(AnaPtr(I,J,L)) < MinConc ) CYCLE 
+             IF ( iopt%NonZeroIncOnly .AND. ABS(IncPtr(I,J,L)) < MinConc ) CYCLE
+
              ! Default weight to be given to analysis.
              wgt = iopt%AnaFraction
 
@@ -644,12 +661,10 @@ CONTAINS
              ! Update field
              SpcNew = SpcBkg(I,J,L)
              IF ( iopt%ApplyIncrement ) THEN
-                IF ( ABS(SpcAna) > MinConc ) THEN
-                   SpcNew = SpcBkg(I,J,L) + wgt*SpcAna
-                   IF ( SpcNew <= MinConc ) THEN
-                      SpcNew = MinConc
-                      NNEG   = NNEG + 1
-                   ENDIF
+                SpcNew = SpcBkg(I,J,L) + wgt*SpcAna
+                IF ( SpcNew <= MinConc ) THEN
+                   SpcNew = MinConc
+                   NNEG   = NNEG + 1
                 ENDIF
              ELSE
                 IF ( SpcAna >= MinConc ) THEN
@@ -660,20 +675,33 @@ CONTAINS
                 ENDIF 
              ENDIF 
 
-             ! Restrict change to maximum allowed range 
+             ! Check for absolute change limit 
              IF ( stratwgt >= 0.5 ) THEN
                 maxChange = iopt%MaxChangeStrat
+                maxRatio  = iopt%MaxRatioStrat
+                minRatio  = iopt%MinRatioStrat
              ELSE 
                 maxChange = iopt%MaxChangeTrop
+                maxRatio  = iopt%MaxRatioTrop 
+                minRatio  = iopt%MinRatioTrop 
              ENDIF
              IF ( maxChange >= 0.0 ) THEN
+                diff = SpcNew - SpcBkg(I,J,L)
+                IF ( ABS(diff) > maxChange ) THEN
+                   IF ( diff > 0.0 ) SpcNew = SpcBkg(I,J,L) + maxChange
+                   IF ( diff < 0.0 ) SpcNew = SpcBkg(I,J,L) - maxChange
+                ENDIF
+             ENDIF
+
+             ! Check for relative change limit
+             IF ( maxRatio > 0.0 .AND. minRatio > 0.0 ) THEN 
                 frac = SpcNew / MAX(SpcBkg(I,J,L),MinConc)
                 ! If change is greater than maximum allowed fraction, restrict to max. fraction
-                IF ( frac > (1.0+maxChange) ) THEN
-                   SpcNew = SpcBkg(I,J,L) * (1.0+maxChange)
-                ! If change is smaller than maximum allowed frcation, restrict to max. fraction
-                ELSEIF ( frac < (1.-maxChange) ) THEN
-                   SpcNew = SpcBkg(I,J,L) * (1.0-maxChange)
+                IF ( frac > maxRatio ) THEN 
+                   SpcNew = MAX(SpcBkg(I,J,L),MinConc) * maxRatio
+                ! If change is smaller than maximum allowed fraction, restrict to min. fraction
+                ELSEIF ( frac < minRatio ) THEN
+                   SpcNew = MAX(SpcBkg(I,J,L),MinConc) * minRatio 
                 ENDIF
              ENDIF
 
@@ -1069,6 +1097,9 @@ CONTAINS
     AnaConfig(ispec)%InStrat = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InTrop:'        , Default=1,     __RC__ )
     AnaConfig(ispec)%InTrop = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='NonZeroIncOnly:', Default=1,     __RC__ )
+    AnaConfig(ispec)%NonZeroIncOnly = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarNameInc, Label='FileVarNameInc:',                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnaL1,          Label='AnaL1:'         , Default=1,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnaL2,          Label='AnaL2:'         , Default=1,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnaL3,          Label='AnaL3:'         , Default=72,    __RC__ )
@@ -1077,6 +1108,10 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%StratSponge,    Label='StratSponge:'   , Default=0,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MaxChangeStrat, Label='MaxChangeStrat:', Default=-1.0,  __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MaxChangeTrop , Label='MaxChangeTrop:' , Default=-1.0,  __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MaxRatioStrat , Label='MaxRatioStrat:' , Default=-1.0,  __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MaxRatioTrop  , Label='MaxRatioTrop:'  , Default=-1.0,  __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MinRatioStrat , Label='MinRatioStrat:' , Default=-1.0,  __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MinRatioTrop  , Label='MinRatioTrop:'  , Default=-1.0,  __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='UseObsHour:'    , Default=0,     __RC__ )
     AnaConfig(ispec)%UseObsHour = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%ObsHourName,    Label='ObsHourName:'   , Default='ana_hour', __RC__ )
@@ -1091,6 +1126,9 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%Spec2MaxRatio,  Label='Spec2MaxRatio:' , Default=-1.0,  __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MinConc,        Label='MinConc:'       , Default=1.0e-20, __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%ErrorMode,      Label='ErrorMode:'     , Default=1   ,  __RC__ )
+
+    ! Some logical checks
+    IF ( AnaConfig(ispec)%ApplyIncrement ) AnaConfig(ispec)%NonZeroIncOnly = .FALSE.
 
     ! Verbose
     IF ( am_I_Root ) THEN
@@ -1110,7 +1148,11 @@ CONTAINS
           IF ( AnaConfig(ispec)%UseObsHour ) THEN
              WRITE(*,*) '- Observation hour name on file : ', TRIM(AnaConfig(ispec)%ObsHourName)
           ENDIF
-          WRITE(*,*) '- Apply increments:      ', AnaConfig(ispec)%ApplyIncrement
+          WRITE(*,*) '- Apply increments              : ', AnaConfig(ispec)%ApplyIncrement
+          WRITE(*,*) '- Analysis where inc is not zero: ', AnaConfig(ispec)%NonZeroIncOnly
+          IF ( AnaConfig(ispec)%NonZeroIncOnly ) THEN
+             WRITE(*,*) '- Analysis inc variable name    : ', TRIM(AnaConfig(ispec)%FileVarNameInc)
+          ENDIF
           WRITE(*,*) '- Apply analysis in stratosphere: ', AnaConfig(ispec)%InStrat
           WRITE(*,*) '- Apply analysis in troposphere : ', AnaConfig(ispec)%InTrop
           WRITE(*,*) '- Tropopause sponge layer       : ', AnaConfig(ispec)%StratSponge
@@ -1119,8 +1161,12 @@ CONTAINS
           WRITE(*,*) '- Analysis level 3              : ', AnaConfig(ispec)%AnaL3
           WRITE(*,*) '- Analysis level 4              : ', AnaConfig(ispec)%AnaL4
           WRITE(*,*) '- Analysis fraction             : ', AnaConfig(ispec)%AnaFraction
-          WRITE(*,*) '- Max. relative change in strat : ', AnaConfig(ispec)%MaxChangeStrat
-          WRITE(*,*) '- Max. relative change in trop  : ', AnaConfig(ispec)%MaxChangeTrop  
+          WRITE(*,*) '- Max. absolute change in strat : ', AnaConfig(ispec)%MaxChangeStrat
+          WRITE(*,*) '- Max. absolute change in trop  : ', AnaConfig(ispec)%MaxChangeTrop  
+          WRITE(*,*) '- Max. relative change in strat : ', AnaConfig(ispec)%MaxRatioStrat
+          WRITE(*,*) '- Max. relative change in trop  : ', AnaConfig(ispec)%MaxRatioTrop  
+          WRITE(*,*) '- Min. relative change in strat : ', AnaConfig(ispec)%MinRatioStrat
+          WRITE(*,*) '- Min. relative change in trop  : ', AnaConfig(ispec)%MinRatioTrop  
           WRITE(*,*) '- Min. concentration (for ratio): ', AnaConfig(ispec)%MinConc
           WRITE(*,*) '- Also update 2nd species       : ', AnaConfig(ispec)%HasSpec2
           IF ( AnaConfig(ispec)%HasSpec2 ) THEN
