@@ -903,7 +903,7 @@ CONTAINS
        ! If 21z, get next day (but keep minutes)
        ELSE
           call ESMF_TimeSet(currTime, yy=yy_, mm=mm_, dd=dd_, h=23, m=m_, s=0)
-          call ESMF_TimeIntervalSet(tsInt, s_r8=real(120.0,8), __RC__ )
+          call ESMF_TimeIntervalSet(tsInt, s_r8=real(7200.0,8), __RC__ )
           call ESMF_TimeGet( currTime+tsInt, yy=yy_, mm=mm_, dd=dd_)
           h_ = 0
        ENDIF
