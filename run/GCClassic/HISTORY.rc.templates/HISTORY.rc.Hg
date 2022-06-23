@@ -29,6 +29,7 @@ EXPID:  ./OutputDir/GEOSChem
 #==============================================================================
 COLLECTIONS: 'Restart',
              #'MercuryChem',
+             #'MercuryEmis',
              #'MercuryOcean',
              'SpeciesConc',
              #'Budget',
@@ -185,6 +186,23 @@ COLLECTIONS: 'Restart',
                               'Hg2PToHg2G                    ',
                               'Hg2GasToHg2StrP               ',
                               'Hg2GasToSSA                   ',
+::
+#==============================================================================
+# %%%%% THE MercuryEmis COLLECTION %%%%%
+#
+# Concentration and prod/loss diagnostics for mercury species that are
+# not archived by HEMCO.
+#
+# Available for the Hg and tagged Hg simulations
+#==============================================================================
+  MercuryEmis.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  MercuryEmis.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  MercuryEmis.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  MercuryEmis.mode:           'time-averaged'
+  MercuryEmis.fields:         'EmisHg0land                   ',
+                              'EmisHg0ocean                  ',
+                              'EmisHg0snow                   ',
+                              'EmisHg0soil                   ',
 ::
 #==============================================================================
 # %%%%% THE MercuryOcean COLLECTION %%%%%
