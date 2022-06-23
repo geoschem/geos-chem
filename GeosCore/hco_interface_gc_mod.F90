@@ -4627,6 +4627,7 @@ CONTAINS
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE Mercury_Mod,          ONLY : Hg_Emis
     USE PhysConstants
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
@@ -4863,6 +4864,11 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
+           ! For Hg simulations, also add Hg emissions not handled by HEMCO
+           IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+              eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
+           ENDIF
+
         ENDIF
 #endif
 
@@ -5009,22 +5015,16 @@ CONTAINS
 
              IF ( ThisSpc%Is_Hg2 ) THEN
 
-                ! Get the category number for this Hg2 tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
                 ! Archive dry-deposited Hg2
-                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                CALL ADD_Hg2_DD      ( I, J, dep                            )
+                CALL ADD_Hg2_SNOWPACK( I, J, dep,                    &
                                        State_Met, State_Chm, State_Diag     )
 
              ELSE IF ( ThisSpc%Is_HgP ) THEN
 
-                ! Get the category number for this HgP tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
                 ! Archive dry-deposited HgP
-                CALL ADD_HgP_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                CALL ADD_HgP_DD      ( I, J, dep                            )
+                CALL ADD_Hg2_SNOWPACK( I, J, dep,                            &
                                        State_Met, State_Chm, State_Diag     )
 
              ENDIF
