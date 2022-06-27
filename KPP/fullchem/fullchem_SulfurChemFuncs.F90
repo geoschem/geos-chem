@@ -3548,6 +3548,14 @@ CONTAINS
 
   FUNCTION CloudHet2R( A, B, FC, KAB )  RESULT( KX )
 !
+! !DESCRIPTION: Function CloudHet2R calculates the effective, grid-average reaction rate 
+!  for bimolecular reactions occuring in a partially cloudy grid cell.
+!  The function uses the approximate "entrainment limited uptake" equations of
+!  Holmes (2022). 
+!
+!  Holmes, C.D. (2022) Technical Note: Entrainment-limited kinetics of bimolecular 
+!    reactions in clouds, Atmos. Chem. Phys., https://doi.org/10.5194/acp-2021-752
+!
 ! !USES
 !
     USE rateLawUtilFuncs
@@ -3555,16 +3563,17 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     REAL(fp), INTENT(IN) :: FC         ! Cloud Fraction [0-1]
-    REAL(fp), INTENT(IN) :: A, B       ! Reactant Abundances
+    REAL(fp), INTENT(IN) :: A, B       ! Reactant Abundances, units must be consistent with KAB
     REAL(fp), INTENT(IN) :: KAB        ! Bimolecular Rate Constant
 !
 ! !RETURN VALUE:
 !
-    REAL(fp)             :: KX ! Grid-average loss frequency, cm3/mcl/s
+    REAL(fp)             :: KX ! Grid-average reaction rate, cm3/mcl/s
 !
 ! !REVISION HISTORY:
 !  23 Aug 2018 - C. D. Holmes - Initial version
 !  15 May 2021 - M. Long      - Revision for two reactants
+!  27 Jun 2022 - C.D. Holmes  - Simplified and added comments
 !  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
@@ -3576,44 +3585,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(FP) :: KAO, KBO, FF, denom, term1, term2
+    REAL(FP) :: minAB
 !EOC
 !------------------------------------------------------------------------------
 !
 
-    ! Ratio of volume inside to outside cloud
-    ! FF has a range [0,+inf], so cap it at 1e30
-    FF = SafeDiv( FC, ( 1.0_fp - FC ), 1e30_fp )
-    FF = MIN( FF, 1.0e30_fp )
-
-    ! Avoid div by zero for the TAUC/FF term
-    term1 = 0.0_fp
-    IF ( ff > 0.0_fp ) term1 = tauc / ff
-
-    ! Compute KAO and avoid div by zero
-    !             term 1      term 2
-    ! KAO = 1 / ( (TAUC/FF) + ( 1/(FC*KAB*B) ) ), units: 1/s
-    denom = FC * KAB * B
-    term2 = SafeDiv( 1.0_fp, denom, 0.0_fp )
-    denom = term1 + term2
-    KAO   = SafeDiv( 1.0_fp, denom, 0.0_fp )
-
-    ! Compute KBO and avoid div by zero
-    !             term 1      term 2
-    ! KBO = 1 / ( (TAUC/FF) + ( 1/(FC*KAB*A) ) ), units: 1/s
-    denom = FC * KAB * A
-    term2 = SafeDiv( 1.0_fp, denom, 0.0_fp )
-    denom = term1 + term2
-    KBO   = SafeDiv( 1.0_fp, denom, 0.0_fp )
-
-    IF ( KAO*A <= KBO*B ) THEN
-       !KX = KAO/B
-       KX = SafeDiv( KAO, B, 0.0_fp )
-    ELSE
-       !KX = KBO/A
-       KX = SafeDiv( KBO, A, 0.0_fp )
-    ENDIF
-
+    ! Eq. 7b from Holmes (2022)
+    minAB = min( A, B )
+    KX = SafeDiv( FC * kAB * minAB / tauc, minAB / tauc + (1.0_fp - FC ) * kAB * A * B, 0.0_fp ) 
+    
   END FUNCTION CloudHet2R
 !EOC
 !------------------------------------------------------------------------------
