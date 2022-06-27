@@ -19,7 +19,7 @@ function post_registration() {
     site="$3"
     git_username="$4"
     research_interest="$5"
-    curl --location --request POST "https://4uh55iovvv6v5xvpmgxkwiidxm0mdyki.lambda-url.us-east-1.on.aws/registration" \
+    curl --location --request POST "https://gc-dashboard.org/registration" \
         --header "Content-Type: text/plain" \
         --data-raw "{
             \"email\": \"${email}\",
