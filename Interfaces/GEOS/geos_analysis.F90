@@ -430,7 +430,8 @@ CONTAINS
     TYPE(ESMF_TIME)            :: fileTime
     INTEGER                    :: I, J, L, IM, JM, LM, LB, indSpc, indSpc2
     INTEGER                    :: UnitFlag, NNEG
-    REAL                       :: Spc2toSpc, wgt, tropwgt, stratwgt
+    REAL                       :: OldRatio, NewRatio 
+    REAL                       :: wgt, tropwgt, stratwgt
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc, mwSpc2
     REAL                       :: SpcAna, SpcNew
@@ -711,6 +712,8 @@ CONTAINS
              ! Eventually update second species to maintain concentration ratio of species 2 / species 1
              UpdateSpec2 = .FALSE.
              IF ( iopt%HasSpec2 ) THEN
+                ! Default is to use background field
+                Spc2Asm(I,J,L) = Spc2Bkg(I,J,L)
                 ! Use background field if in stratosphere and no adjustment to be done in stratosphere
                 IF     ( stratwgt >= 0.5 .AND. .NOT. iopt%Spec2Strat ) THEN
                    Spc2Asm(I,J,L) = Spc2Bkg(I,J,L)
@@ -719,11 +722,15 @@ CONTAINS
                    Spc2Asm(I,J,L) = Spc2Bkg(I,J,L)
                 ! Calculate Spc2/Spc1 ratio before update and maintain that ratio in assimilation field
                 ELSE    
-                   UpdateSpec2 = .TRUE.
-                   Spc2toSpc = Spc2Bkg(I,J,L) / MAX(SpcBkg(I,J,L),MinConc)
-                   ! Restrict ratio to limits specified in settings
-                   Spc2toSpc = MIN(iopt%Spec2MaxRatio,MAX(Spc2toSpc,iopt%Spec2MinRatio)) 
-                   Spc2Asm(I,J,L) = SpcAsm(I,J,L) * Spc2toSpc
+                   OldRatio = Spc2Bkg(I,J,L) / MAX(SpcBkg(I,J,L),MinConc)
+                   NewRatio = Spc2Bkg(I,J,L) / SpcAsm(I,J,L)
+                   ! Update species only if the ratio is within the specified limits. Otherwise, we assume
+                   ! that species 2 is so abundant or missing that updating it is not meaningful.
+                   IF ( ( OldRatio < iopt%Spec2MaxRatio .AND. OldRatio > iopt%Spec2MinRatio ) .OR. &
+                        ( NewRatio < iopt%Spec2MaxRatio .AND. NewRatio > iopt%Spec2MinRatio )       ) THEN
+                      Spc2Asm(I,J,L) = SpcAsm(I,J,L) * OldRatio 
+                      UpdateSpec2    = .TRUE.
+                   ENDIF
                 ENDIF
              ENDIF
  
@@ -733,7 +740,7 @@ CONTAINS
              IF( UpdateSpec2 ) THEN 
                 IF ( ASSOCIATED(DiagInc2    ) ) DiagInc2(I,J,L)     = Spc2Asm(I,J,L) - Spc2Bkg(I,J,L)
                 IF ( ASSOCIATED(DiagIncFrac2) ) DiagIncFrac2(I,J,L) = Spc2Asm(I,J,L) / MAX(Spc2Bkg(I,J,L),MinConc)
-                IF ( ASSOCIATED(DiagSpcRatio) ) DiagSpcRatio(I,J,L) = Spc2toSpc
+                IF ( ASSOCIATED(DiagSpcRatio) ) DiagSpcRatio(I,J,L) = Spc2Asm(I,J,L) / SpcAsm(I,J,L)
              ENDIF 
              IF ( ASSOCIATED(DiagMsk2d      ) ) DiagMsk2d(I,J)      = DiagMsk2d(I,J) + 1.0
              IF ( ASSOCIATED(DiagMsk3d      ) ) DiagMsk3d(I,J,L)    = 1.0 
