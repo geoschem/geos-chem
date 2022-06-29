@@ -19,7 +19,7 @@ function post_registration() {
     site="$3"
     git_username="$4"
     research_interest="$5"
-    env_name="$6"
+    env_type="$6"
     curl --location --request POST "https://gc-dashboard.org/registration" \
         --header "Content-Type: text/plain" \
         --data-raw "{
@@ -27,9 +27,9 @@ function post_registration() {
             \"affiliation\": \"${affiliation}\",
             \"site\": \"${site}\",
             \"git_username\": \"${git_username}\",
-            \"research_interest\": \"${research_interest}\"
-            \"model_type\": \"GCClassic\",
-            \"env_name\": \"${env_name}\"
+            \"research_interest\": \"${research_interest}\",
+            \"model_type\": \"gcc\",
+            \"env_type\": \"${env_type}\"
         }"
 }
 
@@ -114,9 +114,9 @@ if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
         read env_num
         valid_env=1
         if [[ ${env_num} = "1" ]]; then
-    	env_name=aws
+    	env_type="Local Cluster"
         elif [[ ${env_num} = "2" ]]; then
-    	env_name=cluster
+    	env_type=AWS
         else
             valid_env=0
     	printf "Invalid option. Try again.\n"
@@ -124,7 +124,7 @@ if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
     done
     printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
     IFS='\n' read -r research_interest
-    post_registration "$email" "$affiliation" "$site" "$git_username" "$research_interest" "$env_name"
+    post_registration "$email" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
     fi
     echo "export GC_FIRST_TIME_USER=true" >> ${HOME}/.geoschem/config
     source ${HOME}/.geoschem/config
