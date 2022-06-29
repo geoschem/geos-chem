@@ -19,6 +19,7 @@ function post_registration() {
     site="$3"
     git_username="$4"
     research_interest="$5"
+    env_name="$6"
     curl --location --request POST "https://gc-dashboard.org/registration" \
         --header "Content-Type: text/plain" \
         --data-raw "{
@@ -27,6 +28,8 @@ function post_registration() {
             \"site\": \"${site}\",
             \"git_username\": \"${git_username}\",
             \"research_interest\": \"${research_interest}\"
+            \"model_type\": \"GCClassic\",
+            \"env_name\": \"${env_name}\"
         }"
 }
 
@@ -101,11 +104,27 @@ if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
     IFS='\n' read -r affiliation
     printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
     IFS='\n' read -r site
-    printf "${thinline}If you have one, please provide your github username?${thinline}"
+    printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
     IFS='\n' read -r git_username
-    printf "${thinline}What is your application for GEOS-Chem?${thinline}"
+    printf "${thinline}How do you plan to run GEOS-Chem?${thinline}"
+    printf "   1. Local Cluster\n"
+    printf "   2. AWS\n"
+    valid_env=0
+    while [ "${valid_env}" -eq 0 ]; do
+        read env_num
+        valid_env=1
+        if [[ ${env_num} = "1" ]]; then
+    	env_name=aws
+        elif [[ ${env_num} = "2" ]]; then
+    	env_name=cluster
+        else
+            valid_env=0
+    	printf "Invalid option. Try again.\n"
+        fi
+    done
+    printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
     IFS='\n' read -r research_interest
-    post_registration "$email" "$affiliation" "$site" "$git_username" "$research_interest"
+    post_registration "$email" "$affiliation" "$site" "$git_username" "$research_interest" "$env_name"
     fi
     echo "export GC_FIRST_TIME_USER=true" >> ${HOME}/.geoschem/config
     source ${HOME}/.geoschem/config
