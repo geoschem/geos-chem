@@ -352,6 +352,10 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: ' // &
          'a RESET_HG_DEP_ARRAYS' )
 
+    ! Add Hg(0) source into State_Chm%Species [kg]
+    CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
+   IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+
     ! Convert species units back to original unit
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             OrigUnit,  RC )
