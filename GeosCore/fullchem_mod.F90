@@ -205,8 +205,8 @@ CONTAINS
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR),     Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(f4)               :: NOxTau, NOxConc, Vdotout(NVAR)
-    REAL(dp)               :: localC(NSPEC)
+    REAL(f4)               :: NOxTau, NOxConc
+    REAL(dp)               :: Vdotout(NVAR), localC(NSPEC)
 #endif
 #ifdef MODEL_WRF
     REAL(dp)               :: localC(NSPEC)
@@ -1309,14 +1309,14 @@ CONTAINS
        !
        ! NOTE: KppId is the KPP ID # for each of the prod and loss
        ! diagnostic species.  This is the value used to index the
-       ! KPP "VAR" array (in module gckpp_Global.F90).
+       ! KPP "C" array (in module gckpp_Global.F90).
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Loss ) THEN
           DO S = 1, State_Diag%Map_Loss%nSlots
              KppId = State_Diag%Map_Loss%slot2Id(S)
-             State_Diag%Loss(I,J,L,S) = VAR(KppID) / DT
+             State_Diag%Loss(I,J,L,S) = C(KppID) / DT
           ENDDO
        ENDIF
 
@@ -1324,7 +1324,7 @@ CONTAINS
        IF ( State_Diag%Archive_Prod ) THEN
           DO S = 1, State_Diag%Map_Prod%nSlots
              KppID = State_Diag%Map_Prod%slot2Id(S)
-             State_Diag%Prod(I,J,L,S) = VAR(KppID) / DT
+             State_Diag%Prod(I,J,L,S) = C(KppID) / DT
           ENDDO
        ENDIF
 

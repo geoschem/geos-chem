@@ -147,17 +147,29 @@ MODULE Chem_GridCompMod
   LOGICAL                          :: DoRATS
   LOGICAL                          :: DoANOX
 
-  ! To set ozone from PCHEM
+  ! NO2 analysis
+  LOGICAL                          :: LANANO2, LANANO, LANANO2OBSH
+  LOGICAL                          :: ANANO2FWD, LANANO2INC, LANANO2TROP
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANANO2FILE, ANANO2VAR, ANANO2VARH
+
+  ! To update ozone from external analysis field
   LOGICAL                          :: LANAO3
   LOGICAL                          :: LPCHEMO3
+  LOGICAL                          :: ANAO3FWD
+  LOGICAL                          :: ANAO3INC
   INTEGER                          :: ANAO3TROPP
   INTEGER                          :: ANAO3L1
   INTEGER                          :: ANAO3L2
   INTEGER                          :: ANAO3L3
   INTEGER                          :: ANAO3L4
   INTEGER                          :: ANAO3ERR
+  INTEGER                          :: ANAO3FREQ
+  INTEGER                          :: ANAO3HR
+  INTEGER                          :: ANAO3MIN
   REAL                             :: ANAO3FR
   CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3FILE
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3VAR
+  CHARACTER(LEN=ESMF_MAXSTR)       :: ANAO3VARUNIT
 #else
   LOGICAL                          :: isProvider ! provider to AERO, RATS, ANOX?
   LOGICAL                          :: calcOzone  ! if PTR_GCCTO3 is associated
@@ -248,11 +260,9 @@ MODULE Chem_GridCompMod
 
   ! Pointers to import, export and internal state data. Declare them as
   ! module variables so that we have to assign them only on first call.
-#if !defined( MODEL_GEOS )
   ! NOTE: Any provider-related exports (e.g. H2O_TEND) are now handled within
   ! gchp_providerservices_mod.F90. Pointers are manually declared there and
   ! those declared in the .h file included below are not used. (ewl, 11/3/2017)
-#endif
 
 #if defined( MODEL_GEOS )
 # include "GEOSCHEMCHEM_DeclarePointer___.h"
@@ -261,12 +271,6 @@ MODULE Chem_GridCompMod
 #endif
 
 #if defined( MODEL_GEOS )
-
-  ! Perturb ozone?
-  LOGICAL           :: PerturbO3
-  LOGICAL           :: PerturbCO
-  REAL              :: FIXPERT       ! Fixed perturbation
-  REAL, PARAMETER   :: MAXPERT = 0.1 ! Maximum perturbation
 
   ! Mie table
   TYPE(Chem_Mie)     :: geoschemMieTable(2)
@@ -645,6 +649,71 @@ CONTAINS
           CALL STRSPLIT( Blacklist, ',', SpcsBlacklist, nBlacklist )
        ENDIF
     ENDIF
+
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'AeroH2O_SNA',  &
+       LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
+       UNITS              = 'g/m3', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+!       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = 'GEOSCHEMCHEM',    __RC__ )
+
+!    ! Add additional internal state fields if specified so in the RC file
+!    DO II=1,11
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'KHETI_SLA_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'AeroArea_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'AeroRadi_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'WetAeroArea_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'WetAeroRadi_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    DO II=1,14
+!     WRITE ( intStr, '(I2.2)' ) II
+!     myName = 'AeroH2O_'//TRIM(IntStr)
+!     CALL AddInternal_( am_I_Root, GC, myState%myCF, myName, 3, __RC__ ) 
+!    ENDDO
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_fine'    , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeropH_coarse'  , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_fine'   , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_AeroH2O_coarse' , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_fine'  , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'Iso_chloride_coarse', 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_01'       , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_02'       , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'GammaN2O5_03'       , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_01'           , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SSAlk_02'           , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC'               , 2, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_POA'           , 2, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'OMOC_OPOA'          , 2, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLArea'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'ACLRadi'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'QLxpHCloud'         , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'pHCloud'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'isCloud'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'HSO3_AQ'            , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'SO3_AQ'             , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOCl'        , 3, __RC__ ) 
+!    CALL AddInternal_( am_I_Root, GC, myState%myCF, 'fupdateHOBr'        , 3, __RC__ ) 
 #endif
 
     ! Open geoschem_config.yml to find the sim name and transported species
@@ -669,6 +738,7 @@ CONTAINS
        EOF = IOS < 0
        IF ( EOF ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
        LINE = ADJUSTL( ADJUSTR( LINE ) )
+       IF ( INDEX( LINE, 'passive_species' ) > 0 ) EXIT
        CALL STRSPLIT( LINE, '-', SUBSTRS, N )
        IF ( INDEX( LINE, '-' ) > 0 ) THEN
           substrs(1) = ADJUSTL( ADJUSTR( substrs(1) ) )
@@ -1023,16 +1093,17 @@ CONTAINS
 !   Make sure it is friendly to ANALYSIS! In GEOS-Chem, OX is diagnosed
 !   from O3, O3P, and O1D.
      IF ( DoANOX ) THEN
-        CALL MAPL_AddInternalSpec(GC,                                    &
-           SHORT_NAME         = 'OX',                                    &
-           LONG_NAME          = 'odd_oxygen_volume_mixing_ratio',        &
-           UNITS              = 'mol mol-1',                             &
-           DIMS               = MAPL_DimsHorzVert,                       &
-           FRIENDLYTO         = 'ANALYSIS:DYNAMICS:TURBULENCE:MOIST',    &
-           RESTART            = MAPL_RestartSkip,                        &
-           VLOCATION          = MAPL_VLocationCenter,                    &
+        CALL MAPL_AddInternalSpec(GC,                                       &
+           SHORT_NAME         = 'OX',                                       &
+           LONG_NAME          = 'odd_oxygen_volume_mixing_ratio_total_air', &
+           UNITS              = 'mol mol-1',                                &
+           DIMS               = MAPL_DimsHorzVert,                          &
+           FRIENDLYTO         = 'ANALYSIS:DYNAMICS:TURBULENCE:MOIST',       &
+           RESTART            = MAPL_RestartSkip,                           &
+           VLOCATION          = MAPL_VLocationCenter,                       &
                                                   __RC__ )
         if(MAPL_am_I_Root()) write(*,*) 'OX added to internal: Friendly to: ANALYSIS, DYNAMICS, TURBULENCE'
+     ENDIF
 
         ! Add additional RATs/ANOX exports
 !        call MAPL_AddExportSpec(GC,                                  &
@@ -1043,22 +1114,21 @@ CONTAINS
 !           VLOCATION          = MAPL_VLocationCenter,                &
 !                                                     __RC__ )
 
-        call MAPL_AddExportSpec(GC,                                  &
-           SHORT_NAME         = 'O3',                                &
-           LONG_NAME          = 'ozone_mass_mixing_ratio',           &
+     call MAPL_AddExportSpec(GC,                                     &
+           SHORT_NAME         = 'GCC_O3',                            &
+           LONG_NAME          = 'ozone_mass_mixing_ratio_total_air', &
            UNITS              = 'kg kg-1',                           &
            DIMS               = MAPL_DimsHorzVert,                   &
            VLOCATION          = MAPL_VLocationCenter,                &
                                                      __RC__ )
 
-        call MAPL_AddExportSpec(GC,                                  &
-           SHORT_NAME         = 'O3PPMV',                            &
-           LONG_NAME          = 'ozone_volume_mixing_ratio',         &
-           UNITS              = 'ppmv',                              &
-           DIMS               = MAPL_DimsHorzVert,                   &
-           VLOCATION          = MAPL_VLocationCenter,                &
+     call MAPL_AddExportSpec(GC,                                       &
+           SHORT_NAME         = 'GCC_O3PPMV',                          &
+           LONG_NAME          = 'ozone_volume_mixing_ratio_total_air', &
+           UNITS              = 'ppmv',                                &
+           DIMS               = MAPL_DimsHorzVert,                     &
+           VLOCATION          = MAPL_VLocationCenter,                  &
                                                  __RC__  )
-     ENDIF
 #endif
 
 !
@@ -1446,11 +1516,121 @@ CONTAINS
     ! Diagnostics for applied ozone increment
     call MAPL_AddExportSpec(GC,                        &
        SHORT_NAME         = 'GCC_ANA_O3_INC',          &
-       LONG_NAME          = 'Applied_ozone_increment', &
+       LONG_NAME          = 'Applied_ozone_increment_in_kg_kg_total_air', &
        UNITS              = 'kg/kg',                   &
        DIMS               = MAPL_DimsHorzVert,         &
        VLOCATION          = MAPL_VLocationCenter,      &
                                                  __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_O3_INC_PPMV',     &
+       LONG_NAME          = 'Applied_ozone_increment_in_ppmv_total_air', &
+       UNITS              = 'mol/mol',                 &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+!    ! Import / export for NO2 increments
+!    CALL ESMF_ConfigGetAttribute( myState%myCF, I, &
+!             Label = "Use_ANA_NO2:", Default = 0, __RC__ )
+!    IF ( I == 1 ) THEN
+!       CALL MAPL_AddImportSpec(GC,                   &
+!          SHORT_NAME         = 'ANA_NO2',            &
+!          LONG_NAME          = 'Analysis_NO2',       &
+!          UNITS              = 'v/v',                &
+!          DIMS               = MAPL_DimsHorzVert,    &
+!          VLOCATION          = MAPL_VLocationCenter, &
+!          RESTART            = MAPL_RestartSkip,     &
+!                                               __RC__ )
+!
+!       CALL MAPL_AddImportSpec(GC,                                  &
+!             SHORT_NAME         = 'OMI_OBS_HOUR',                   &
+!             LONG_NAME          = 'OMI_observation_rounded_hour',   &
+!             UNITS              = 'hour',                           &
+!             DIMS               = MAPL_DimsHorzOnly,                &
+!             RESTART            = MAPL_RestartSkip,                 &
+!                                                               __RC__ )
+!    ENDIF
+
+    CALL MAPL_AddExportSpec(GC,                    &
+       SHORT_NAME         = 'GCC_ANA_NO2_ANA',     &
+       LONG_NAME          = 'Analysis_NO2',        &
+       UNITS              = 'v/v',                 &
+       DIMS               = MAPL_DimsHorzVert,     &
+       VLOCATION          = MAPL_VLocationCenter,  &
+                                            __RC__  )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO2_BKG',      &
+       LONG_NAME          = 'NO2_Before_Increment', &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO2_ASM',      &
+       LONG_NAME          = 'NO2_After_Increment',  &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO_BKG',       &
+       LONG_NAME          = 'NO_Before_Increment',  &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    CALL MAPL_AddExportSpec(GC,                     &
+       SHORT_NAME         = 'GCC_ANA_NO_ASM',       &
+       LONG_NAME          = 'NO_After_Increment',   &
+       UNITS              = 'v/v',                  &
+       DIMS               = MAPL_DimsHorzVert,      &
+       VLOCATION          = MAPL_VLocationCenter,   &
+                                            __RC__   )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO2_INC',         &
+       LONG_NAME          = 'Applied_NO2_increment',   &
+       UNITS              = 'v/v',                     &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO2_INCF',        &
+       LONG_NAME          = 'Applied_NO2_increment_as_fraction', &
+       UNITS              = '1',                       &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO_INC',          &
+       LONG_NAME          = 'Applied_NO_increment',    &
+       UNITS              = 'v/v',                     &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                        &
+       SHORT_NAME         = 'GCC_ANA_NO_INCF',         &
+       LONG_NAME          = 'Applied_NO_increment_as_fraction', &
+       UNITS              = '1',                       &
+       DIMS               = MAPL_DimsHorzVert,         &
+       VLOCATION          = MAPL_VLocationCenter,      &
+                                                 __RC__ )
+
+    call MAPL_AddExportSpec(GC,                             &
+       SHORT_NAME         = 'GCC_ANA_NO2_MASK',             &
+       LONG_NAME          = 'NO2_analysis_mask',            &
+       UNITS              = '1',                            &
+       DIMS               = MAPL_DimsHorzOnly,              &
+                                                 __RC__ )
+
 #else
     CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
 #endif
@@ -2321,32 +2501,6 @@ CONTAINS
     ENDIF
 #endif
 
-!#if defined( MODEL_GEOS )
-!    !=======================================================================
-!    ! Make sure that GEOS-Chem calculates chemistry tendencies of O3 and H2O
-!    ! if it is the analysis OX and RATS provider, respectively.
-!    !=======================================================================
-!    IF ( DoAnox ) THEN
-!       GCID = ind_('O3')
-!       IF ( GCID > 0 ) THEN
-!          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm,             &
-!                                 'CHEM',    __RC__ )
-!          CALL Tend_Add        ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-!                                 'CHEM',    GCID,      __RC__ )
-!       ENDIF
-!    ENDIF
-!
-!    IF ( DoRATS ) THEN
-!       GCID = ind_('H2O')
-!       IF ( GCID > 0 ) THEN
-!          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm,             &
-!                                 'CHEM',    __RC__ )
-!          CALL Tend_Add        ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-!                                 'CHEM',    GCID,      __RC__ )
-!       ENDIF
-!    ENDIF
-!#endif
-
     !=======================================================================
     ! Error trap: make sure that chemistry / emission time step are same and
     ! correspond to the chemistry step set in GEOSCHEMchem_GridComp.rc.
@@ -2485,7 +2639,56 @@ CONTAINS
        WRITE(*,*) '- Use SYNOZ: ', Input_Opt%LSYNOZ
     ENDIF
 
-    ! Overwrite strat. O3 with ANA_OZ
+    ! Do NO2 analysis? 
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_ANA_NO2:", &
+                                  Default = 0, __RC__ )
+    LANANO2      = (DoIt==1)
+    LANANO       = .TRUE.
+    LANANO2OBSH  = .TRUE.
+    LANANO2TROP  = .TRUE.
+    LANANO2INC   = .FALSE.
+    ANANO2FWD    = .TRUE.
+    IF ( LANANO2 ) THEN
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANANO2FILE, Label = "ANANO2TMPL:", &
+                                     Default = '/dev/null', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANANO2VAR, Label = "ANANO2VAR:", &
+                                     Default = 'ana_no2', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Update_NO:", &
+                                     Default = 1, __RC__ )
+       IF ( DoIt/=1) LANANO = .FALSE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_NO2_obshour:", &
+                                     Default = 1, __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANANO2VARH, Label = "ANANO2VAR_HR:", &
+                                     Default = 'ana_hour', __RC__ )
+       IF ( DoIt/=1) LANANO2OBSH = .FALSE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "ANANO2_TROPONLY:", &
+                                     Default = 1, __RC__ )
+       IF ( DoIt/=1) LANANO2TROP = .FALSE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "ANANO2INC:", &
+                                     Default = 0, __RC__ )
+       IF ( DoIt==1) LANANO2INC = .TRUE.
+       CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "ANANO2FWD:", &
+                                     Default = 1, __RC__ )
+       IF ( DoIt/=1) ANANO2FWD = .FALSE.
+    ENDIF
+
+    IF ( am_I_Root ) THEN
+       WRITE(*,*) 'Overwrite with analysis nitrogen dioxide: ',LANANO2
+       IF ( LANANO2 ) THEN 
+          WRITE(*,*) '-> Analysis file template          : ',TRIM(ANANO2FILE)
+          WRITE(*,*) '-> Analysis NO2 variable name      : ',TRIM(ANANO2VAR)
+          WRITE(*,*) '-> Also update NO?                 : ',LANANO 
+          WRITE(*,*) '-> Use NO2 observation time?       : ',LANANO2OBSH
+          IF ( LANANO2OBSH ) THEN
+           WRITE(*,*) '-> observation time variable name  : ',TRIM(ANANO2VARH)
+          ENDIF
+          WRITE(*,*) '-> Restrict analysis to troposphere: ',LANANO2TROP 
+          WRITE(*,*) '-> Use analysis increments         : ',LANANO2INC
+          WRITE(*,*) '-> Read file one timestep ahead    : ',ANANO2FWD
+       ENDIF
+    ENDIF
+
+    ! Overwrite strat. O3 with ANA_OZ 
     ! Default settings
     LANAO3  = .FALSE.
     ANAO3L1 = value_LLSTRAT
@@ -2494,6 +2697,8 @@ CONTAINS
     ANAO3L4 = LM
     ANAO3FR = 1.0
     ANAO3TROPP = 0
+    ANAO3FWD = .FALSE.
+    ANAO3INC = .FALSE.
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "Use_ANA_O3:", &
                                   Default = 0, __RC__ )
     IF ( DoIt == 1 ) THEN
@@ -2512,11 +2717,27 @@ CONTAINS
                                      Default = 1.0, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3FILE, Label = "ANAO3TMPL:", &
                                      Default = '/dev/null', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3VAR, Label = "ANAO3VAR:", &
+                                     Default = 'O3', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3VARUNIT, Label = "ANAO3VARUNIT:", &
+                                     Default = 'kg/kg', __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3FREQ, Label = "ANAO3FREQ:", &
+                                     Default = 3, __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3HR, Label = "ANAO3HR:", &
+                                     Default = 1, __RC__ )
+       CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3MIN, Label = "ANAO3MIN:", &
+                                     Default = 30, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, ANAO3ERR, Label = "ERROR_MODE:", &
                                      Default = 1, __RC__ )
        CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "Use_PCHEM_O3:", &
                                      Default = 0, __RC__ )
        LPCHEMO3 = ( I == 1 )
+       CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "ANAO3FWD:", &
+                                     Default = 1, __RC__ )
+       ANAO3FWD = ( I == 1 )
+       CALL ESMF_ConfigGetAttribute( GeosCF, I, Label = "ANAO3INC:", &
+                                     Default = 1, __RC__ )
+       ANAO3INC = ( I == 1 )
        ASSERT_(ANAO3L1 >  0)
        ASSERT_(ANAO3L1 <= LM)
        ASSERT_(ANAO3L2 >= ANAO3L1)
@@ -2531,11 +2752,15 @@ CONTAINS
        IF ( LANAO3 ) THEN
           WRITE(*,*) '-> Nudge above tropopause level  : ',ANAO3TROPP
           WRITE(*,*) '-> Use internal PCHEM field?     : ',LPCHEMO3
-          WRITE(*,*) '-> Analysis ozone bottom level 1 : ',ANAO3L1
-          WRITE(*,*) '-> Analysis ozone bottom level 2 : ',ANAO3L2
-          WRITE(*,*) '-> Analysis ozone top level 3    : ',ANAO3L3
-          WRITE(*,*) '-> Analysis ozone top level 4    : ',ANAO3L4
-          WRITE(*,*) '-> Analysis ozone blend factor   : ',ANAO3FR
+          WRITE(*,*) '-> Analysis update frequency       : ',ANAO3FREQ
+          WRITE(*,*) '-> Analysis update offset (hh/mm)  : ',ANAO3HR, ANAO3MIN
+          WRITE(*,*) '-> Apply analysis 1 time step ahead: ',ANAO3FWD
+          WRITE(*,*) '-> Apply analysis increments       : ',ANAO3INC
+          WRITE(*,*) '-> Analysis ozone bottom level 1   : ',ANAO3L1
+          WRITE(*,*) '-> Analysis ozone bottom level 2   : ',ANAO3L2
+          WRITE(*,*) '-> Analysis ozone top level 3      : ',ANAO3L3
+          WRITE(*,*) '-> Analysis ozone top level 4      : ',ANAO3L4
+          WRITE(*,*) '-> Analysis ozone blend factor     : ',ANAO3FR
        ENDIF
     ENDIF
 
@@ -2546,22 +2771,6 @@ CONTAINS
     Input_Opt%LCAPTROP = ( DoIt == 1 )
     IF ( am_I_Root ) THEN
        WRITE(*,*) '- Cap polar tropopause: ', Input_Opt%LCAPTROP
-    ENDIF
-
-    ! Check for pertubation of O3 field
-    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, &
-            Label="PERTURB_O3:", Default=0, __RC__ )
-    PerturbO3 = ( DoIt == 1 )
-    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, &
-            Label="PERTURB_CO:", Default=0, __RC__ )
-    PerturbCO = ( DoIt == 1 )
-    CALL ESMF_ConfigGetAttribute( GeosCF, Val, &
-            Label="FIX_PERT:", Default=-999.0, __RC__ )
-    FIXPERT = Val
-    IF ( am_I_Root ) THEN
-       WRITE(*,*) '- Perturb O3: ', PerturbO3
-       WRITE(*,*) '- Perturb CO: ', PerturbCO
-       WRITE(*,*) '- Fix pert  : ', FIXPERT
     ENDIF
 
     !CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%NOx_sensitivity,   &
@@ -2797,14 +3006,6 @@ CONTAINS
     USE MAPL_MemUtilsMod
     USE Olson_Landmap_Mod,       ONLY : Compute_Olson_Landmap
     USE Precision_Mod
-
-#if defined( MODEL_GEOS )
-    ! To archive selected reaction rates
-    USE GCKPP_Parameters
-    USE GCKPP_Monitor
-    USE CMN_FJX_MOD,             ONLY : JVN_
-#endif
-
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2882,7 +3083,7 @@ CONTAINS
     REAL,  ALLOCATABLE, TARGET   :: solar(:,:)    ! Solar insolation
 
     ! Pointer arrays needed to initialize from imports
-    CHARACTER(LEN=2) :: intStr ! ewl: for new internal state vars
+    CHARACTER(LEN=2)             :: intStr
     REAL, POINTER                :: Ptr2d   (:,:)   => NULL()
     REAL, POINTER                :: Ptr3d   (:,:,:) => NULL()
     REAL(ESMF_KIND_R8), POINTER  :: Ptr2d_R8(:,:)   => NULL()
@@ -2921,10 +3122,6 @@ CONTAINS
     INTEGER, SAVE                :: phms = 0         ! previous time
     INTEGER, SAVE                :: nnRewind = 0
 
-    ! Perturb O3
-    REAL                         :: Rnd(2)
-    REAL, POINTER                :: Ptr3dA(:,:,:) => NULL()
-    REAL, POINTER                :: Ptr3dB(:,:,:) => NULL()
 #else
     ! GCHP only local variables
     INTEGER                      :: trcID, RST
@@ -3046,11 +3243,6 @@ CONTAINS
     IF ( Input_Opt%LCONV .AND. Phase /= 2 ) IsRunTime = .TRUE.
     IF ( Input_Opt%LTURB .AND. Phase /= 1 ) IsRunTime = .TRUE.
     IF ( Input_Opt%LWETD .AND. Phase /= 1 ) IsRunTime = .TRUE.
-
-#if defined( MODEL_GEOS )
-    !!! always run
-    !IsRunTime = .TRUE.
-#endif
 
 #ifdef ADJOINT
     if (Input_Opt%is_adjoint .and. first) THEN
@@ -3562,23 +3754,13 @@ CONTAINS
           _ASSERT(RC==GC_SUCCESS,'Error calling Compute_Olson_Landmap')
        ENDIF
 
-#if defined( MODEL_GEOS )
-       !=======================================================================
-       ! Set ozone to values from PCHEM if this option is selected
-       !=======================================================================
-       IF ( PHASE /= 2 .AND. LANAO3 ) THEN
-          CALL SetAnaO3_( GC, Import, INTSTATE, Export, Clock, &
-                          Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ )
-       ENDIF
-#endif
-
        !=======================================================================
        ! Get total ozone column from GEOS-Chem export variable.
        ! Need to calculate from restart variables on first call!
        !=======================================================================
 #if defined( MODEL_GEOS )
        IF ( PHASE /= 1 ) THEN
-          CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, PLE, TROPP, __RC__ )
+          CALL CalcTotOzone_( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
        ENDIF
 #else
        IF ( calcOzone ) THEN
@@ -3735,9 +3917,42 @@ CONTAINS
        ! be seen by other components (moist, turbulence, ...)
        !=======================================================================
 
+#if defined( MODEL_GCHPCTM )
        CALL MAPL_TimerOn(STATE, "CP_AFTR")
+#endif
+
 #if defined( MODEL_GEOS )
+       !=======================================================================
+       ! GEOS post-run procedures
+       !=======================================================================
+       IF ( PHASE /= 1 ) THEN
+          ! Set ozone to 'analysis' fields. Do this now at the end of the second 
+          ! run phase, i.e., after GEOS-Chem has done all of its processes. This
+          ! must be done before calculating the diagnostics to make sure that all
+          ! diagnostics include the updated fields. 
+          IF ( LANAO3 ) THEN
+             CALL SetAnaO3_( GC, Import, INTSTATE, Export, Clock, &
+                             Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ ) 
+          ENDIF
+
+          IF ( LANANO2 ) THEN
+             CALL SetAnaNO2_( GC, Import, INTSTATE, Export, Clock, &
+                              Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ )
+          ENDIF
+
+          ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
+          CALL GEOS_Diagnostics_( GC, IMPORT, EXPORT, Clock, Phase, &
+                                  Input_Opt, State_Met, State_Chm, State_Diag, __RC__ )
+       ENDIF
+
+       ! Update internal state fields 
+       CALL MAPL_TimerOn(STATE, "CP_AFTR")
 #      include "Includes_After_Run.H"
+       CALL MAPL_TimerOff(STATE, "CP_AFTR")
+
+       ! Archive last active time steps
+       pymd = nymd
+       phms = nhms
 #endif
 
 #if defined( MODEL_GCHPCTM )
@@ -3760,99 +3975,10 @@ CONTAINS
           ENDDO
        ENDIF
 #endif
-
-       ! Copy certain State_Chm and State_Met arrays to internal state for inclusion in checkpoints
-       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
-          Ptr2d_R8 = State_Chm%DryDepNitrogen
-       ENDIF
-       Ptr2d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%WetDepNitrogen) ) THEN
-          Ptr2d_R8 = State_Chm%WetDepNitrogen
-       ENDIF
-       Ptr2d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
-          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%H2O2AfterChem
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%SO2AfterChem) ) THEN
-          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%SO2AfterChem
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%KPPHvalue) ) THEN
-          Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
-          Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
-             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev)
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
-          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%AeroH2O(:,:,:,NDUST+1)
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'ORVCSESQ', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%ORVCsesq) ) THEN
-          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%ORVCsesq(:,:,:)
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'STATE_PSC', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(STate_Chm%State_PSC)) THEN
-          Ptr3d(:,:,LM:1:-1) = State_Chm%State_PSC(:,:,:)
-       ENDIF
-       Ptr3D_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JNO2', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(STate_Chm%JNO2)) THEN
-          Ptr2d_R8(:,:) = State_Chm%JNO2(:,:)
-       ENDIF
-       Ptr2D_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JOH', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JOH) ) THEN
-          Ptr2d_R8(:,:) = State_Chm%JOH(:,:)
-       ENDIF
-       Ptr2D_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) ) THEN
-          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                    State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'AREA', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%AREA_M2) ) THEN
-          Ptr2d_R8 = State_Met%AREA_M2
-       ENDIF
-       Ptr2d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%BXHEIGHT) ) THEN
-          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                    State_Met%BXHEIGHT(:,:,1:State_Grid%NZ)
-       ENDIF
-       Ptr3d_R8 => NULL()
-
-       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', notFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%TropLev) ) THEN
-          Ptr2d_R8 = State_Met%TropLev
-       ENDIF
-       Ptr2d_R8 => NULL()
+       CALL MAPL_TimerOff(STATE, "CP_AFTR")
 #endif
 
-       CALL MAPL_TimerOff(STATE, "CP_AFTR")
-
+       
        ! Stop timer
        ! ----------
        CALL MAPL_TimerOff(STATE, "RUN"  )
@@ -3879,85 +4005,9 @@ CONTAINS
        ENDIF ! IsTendTime
 #endif
 
-#if defined( MODEL_GEOS )
-       !=======================================================================
-       ! Perturb O3 by random amount if specified so
-       !=======================================================================
-       IF ( PHASE /= 1 .AND. ( PerturbO3 .OR. PerturbCO ) ) THEN
-          CALL MAPL_GetPointer( INTSTATE, Ptr3DA, 'SPC_O3', NotFoundOk=.TRUE.,&
-                                 __RC__ )
-          CALL MAPL_GetPointer( INTSTATE, Ptr3DB, 'SPC_CO', NotFoundOk=.TRUE.,&
-                                 __RC__ )
-          IF ( ASSOCIATED(Ptr3DA) .OR. ASSOCIATED(Ptr3DB) ) THEN
-             DO L=1,State_Grid%NZ
-             DO J=1,State_Grid%NY
-             DO I=1,State_Grid%NX
-                IF ( FIXPERT >= 0.0 ) Rnd(1) = FIXPERT
-
-                ! O3
-                IF ( PerturbO3 ) THEN
-                   IF ( FIXPERT < 0.0 ) THEN
-                      CALL RANDOM_NUMBER(Harvest=Rnd)
-                      IF ( Rnd(2) >= 0.5 ) Rnd(1) = Rnd(1) * -1.0
-                      Rnd(1) = 1.0 + ( Rnd(1) * MAXPERT )
-                   ENDIF
-                   Ptr3DA(I,J,L) = Ptr3DA(I,J,L) * Rnd(1)
-                ENDIF
-
-                ! CO
-                IF ( PerturbCO ) THEN
-                   IF ( FIXPERT < 0.0 ) THEN
-                      CALL RANDOM_NUMBER(Harvest=Rnd)
-                      IF ( Rnd(2) >= 0.5 ) Rnd(1) = Rnd(1) * -1.0
-                      Rnd(1) = 1.0 + ( Rnd(1) * MAXPERT )
-                   ENDIF
-                   Ptr3DB(I,J,L) = Ptr3DB(I,J,L) * Rnd(1)
-                ENDIF
-
-             ENDDO
-             ENDDO
-             ENDDO
-          ENDIF
-
-          IF ( am_I_Root ) THEN
-             IF ( FIXPERT > 0.0 ) THEN
-                IF ( PerturbO3 ) write(*,*) &
-                     'GCC O3 concentrations perturbed by factor of ', Rnd(1)
-                IF ( PerturbCO ) write(*,*) &
-                     'GCC CO concentrations perturbed by factor of ', Rnd(1)
-             ELSE
-                IF ( PerturbO3 ) write(*,*) &
-                     'GCC O3 concentrations randomly perturbed'
-                IF ( PerturbCO ) write(*,*) &
-                     'GCC CO concentrations randomly perturbed'
-             ENDIF
-          ENDIF
-       ENDIF
-
-!      !=======================================================================
-!      ! Tendencies (needs more testing - ignore for now)
-!      !=======================================================================
-!      IF ( IsRunTime ) THEN
-!         CALL CalcTendencies_( am_I_Root, Input_Opt, State_Met, State_Chm,   &
-!                               IsChemTime, Phase, EXPORT, OX_TEND, H2O_TEND, &
-!                               State_Grid%NZ, __RC__ )
-!      ENDIF
-
-       ! Archive last active time steps
-       pymd = nymd
-       phms = nhms
-
-#endif
-
     ENDIF RunningGEOSChem
 
-    !=======================================================================
-    ! Diagnostics
-    !=======================================================================
-# if defined( MODEL_GEOS )
-    CALL GEOS_Diagnostics_( GC, IMPORT, EXPORT, Clock, Phase, &
-                            Input_Opt, State_Met, State_Chm, State_Diag, __RC__ )
-#else
+#if !defined( MODEL_GEOS )
     !=======================================================================
     ! If we were not doing chemistry, make sure that all tendencies are
     ! zero. We ignore the tendencies that may arise due to physical
@@ -4942,6 +4992,7 @@ CONTAINS
 
   END SUBROUTINE Extract_
 !EOC
+#if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -5020,7 +5071,6 @@ CONTAINS
                LONG_NAME          = TRIM(FieldName),      &
                UNITS              = Units_,               &
                DIMS               = DimsHorz,             &
-               PRECISION          = ESMF_KIND_R8, &
                VLOCATION          = VLocation,            &
                FRIENDLYTO         = 'GEOSCHEMCHEM',    __RC__ )
           if(am_I_Root) WRITE(*,*) 'Added to internal: '//TRIM(FieldName)
@@ -5031,13 +5081,12 @@ CONTAINS
 
   END SUBROUTINE AddInternal_ 
 !EOC
-#if defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Diagnostics_
+! !IROUTINE: GEOS_Diagnostics_ 
 !
 ! !DESCRIPTION: Wrapper routine to handle all GEOS-specific diagnostics.
 !\\
@@ -5049,6 +5098,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5085,6 +5136,7 @@ CONTAINS
     LOGICAL                      :: IsChemTime    ! Chemistry alarm proxy
     LOGICAL                      :: IsTendTime    ! Time to calculate tendencies
 
+    INTEGER                      :: indO3, indSpc
     INTEGER                      :: I,  J,  L, N, LB
     INTEGER                      :: IM, JM, LM
 
@@ -5094,7 +5146,7 @@ CONTAINS
 
     REAL, POINTER                :: Ptr2D(:,:)     => NULL()
     REAL, POINTER                :: Ptr3D(:,:,:)   => NULL()
-    REAL, POINTER                :: PTR_O3(:,:,:)  => NULL()
+    REAL(fp), POINTER            :: PTR_O3(:,:,:)  => NULL()
     REAL, POINTER                :: OX(:,:,:)      => NULL()
     REAL, POINTER                :: O3(:,:,:)      => NULL()
     REAL, POINTER                :: O3PPMV(:,:,:)  => NULL()
@@ -5103,38 +5155,31 @@ CONTAINS
     REAL, POINTER                :: PTR_O1D(:,:,:) => NULL()
     REAL, PARAMETER              :: OMW = 16.0
 
-    REAL, POINTER     :: CH4     (:,:,:) => NULL()
-    REAL, POINTER     :: N2O     (:,:,:) => NULL()
-    REAL, POINTER     :: CFC11   (:,:,:) => NULL()
-    REAL, POINTER     :: CFC12   (:,:,:) => NULL()
-    REAL, POINTER     :: HCFC22  (:,:,:) => NULL()
-
-    REAL, POINTER     :: PTR_CH4     (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_N2O     (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_CFC11   (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_CFC12   (:,:,:) => NULL()
-    REAL, POINTER     :: PTR_HCFC22  (:,:,:) => NULL()
-
     REAL(f4), POINTER            :: O3_MASS(:,:,:) => NULL()
 
     ! For AERO
     REAL                         :: GCMW, FRAC
-    INTEGER                      :: nAero, GCID
+    INTEGER                      :: nAero, nLen, GCID
     TYPE(ESMF_STATE)             :: Aero
     TYPE(ESMF_FieldBundle)       :: AeroBdl
     TYPE(ESMF_Field)             :: AeroFld
     CHARACTER(LEN=ESMF_MAXSTR)   :: GCName, AeroName
-    REAL, POINTER                :: GcPtr3d  (:,:,:) => NULL()
+    REAL(fp), POINTER            :: GcPtr3d  (:,:,:) => NULL()
     REAL, POINTER                :: AeroPtr3d(:,:,:) => NULL()
 
     ! LFR diag
-    REAL                          :: lp1, lp2      ! lightning potentials
-    TYPE(GEOSCHEM_Wrap)           :: wrap           ! Wrapper for myState
-    CHARACTER(LEN=ESMF_MAXSTR)    :: LFR_SOURCE
-    REAL, POINTER                 :: PtrEmis(:,:)  => NULL()
-    REAL, POINTER                 :: LWI(:,:)      => NULL()
-    REAL, POINTER                 :: LFR(:,:)      => NULL()
-    REAL, POINTER                 :: CNV_FRC(:,:)  => NULL()
+    REAL                         :: lp1, lp2      ! lightning potentials
+    TYPE(GEOSCHEM_Wrap)          :: wrap           ! Wrapper for myState
+    CHARACTER(LEN=ESMF_MAXSTR)   :: LFR_SOURCE 
+    REAL, POINTER                :: PtrEmis(:,:)  => NULL() 
+    REAL, POINTER                :: LWI(:,:)      => NULL()
+    REAL, POINTER                :: LFR(:,:)      => NULL()
+    REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
+
+    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+
+    INTEGER, PARAMETER           :: NRATS = 5
+    CHARACTER(LEN=15), PARAMETER :: RatsNames(NRATS) = (/ 'CH4', 'N2O', 'CFC11', 'CFC12', 'HCFC22' /) 
 
     __Iam__('GEOS_Diagnostics_')
 
@@ -5166,12 +5211,24 @@ CONTAINS
     ! Grid size
     IM = SIZE(Q,1); JM = SIZE(Q,2); LM = SIZE(Q,3)
 
+    ! Move 'regular' GEOS-Chem diagnostics from gchp_chunk_mod.F90 to here to
+    ! make sure that these diagnostics see any post-run updates.
+    ! Diagnostics routine expects units of kg/kg dry. 
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             'kg/kg dry', RC, OrigUnit=OrigUnit )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
+    CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
+                                        State_Grid, State_Met, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             OrigUnit, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
+
     !=======================================================================
     ! Dry volume mixing ratios and PM2.5 diagnostics
     !=======================================================================
     CALL CalcSpeciesDiagnostics_ ( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                                   State_Diag, IMPORT, EXPORT, IntState, &
-                                   Q, __RC__ )
+                                   State_Diag, IMPORT, EXPORT, Q, __RC__ ) 
 
     !=======================================================================
     ! Ozone diagnostics for GEOS coupling with other components. Do these
@@ -5179,7 +5236,7 @@ CONTAINS
     !=======================================================================
 
     ! PTR_O3: kg kg-1 total air
-    CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
+    !CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
 
     ! Fill ozone export states if GC is the analysis OX provider:
     !      OX: volume mixing ratio
@@ -5188,21 +5245,31 @@ CONTAINS
     ! OX_TEND: mol mol-1 s-1
     ! Get pointers to analysis OX exports
     !CALL MAPL_GetPointer ( EXPORT, OX_TEND, 'OX_TEND' , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,      OX, 'OX'      , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,      O3, 'O3'      , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,  O3PPMV, 'O3PPMV'  , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( INTSTATE,    OX, 'OX'         , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,      O3, 'GCC_O3'     , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,  O3PPMV, 'GCC_O3PPMV' , NotFoundOK=.TRUE., __RC__ )
 
     IF ( ASSOCIATED(O3) .OR. ASSOCIATED(O3PPMV) .OR. ASSOCIATED(OX) ) THEN
-       ASSERT_(ASSOCIATED(PTR_O3))
+       indO3 = -1
+       DO I=1,State_Chm%nSpecies
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
+             indO3 = I
+             EXIT
+          ENDIF
+       ENDDO
+       ASSERT_(indO3>0)
+       PTR_O3 => State_Chm%Species(indO3)%Conc(:,:,LM:1:-1)
     ENDIF
     IF ( ASSOCIATED(O3)     ) O3     = PTR_O3
     IF ( ASSOCIATED(O3PPMV) ) O3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
     IF ( ASSOCIATED(OX) ) THEN
-       CALL MAPL_GetPointer( INTSTATE, PTR_O3P, 'SPC_O'  , __RC__ )
-       CALL MAPL_GetPointer( INTSTATE, PTR_O1D, 'SPC_O1D', __RC__ )
-       OX =        PTR_O3  * MAPL_AIRMW / MAPL_O3MW
-       OX = OX + ( PTR_O3P * MAPL_AIRMW / OMW )
-       OX = OX + ( PTR_O1D * MAPL_AIRMW / OMW )
+       OX = PTR_O3  * MAPL_AIRMW / MAPL_O3MW
+       IndSpc = Ind_('O')
+       ASSERT_(IndSpc>0)
+       OX = OX + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
+       IndSpc = Ind_('O1D')
+       ASSERT_(IndSpc>0)
+       OX = OX + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
     ENDIF
 
     !=======================================================================
@@ -5210,7 +5277,7 @@ CONTAINS
     !=======================================================================
 
     ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
-    CALL CalcTotOzone_( am_I_Root, State_Met, State_Diag, INTSTATE, PLE, TROPP, __RC__ )
+    CALL CalcTotOzone_( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
 
     ! O3 mass in kg/m2
     IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN
@@ -5229,38 +5296,20 @@ CONTAINS
     ! do this via the State_Diag object but use the EXPORT state directly.
     !=======================================================================
     ! Get pointers to RATS exports
-    CALL MAPL_GetPointer ( EXPORT,      CH4, 'CH4'      , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,      N2O, 'N2O'      , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,    CFC11, 'CFC11'    , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,    CFC12, 'CFC12'    , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,   HCFC22, 'HCFC22'   , NotFoundOK=.TRUE., __RC__ )
-
-    IF ( ASSOCIATED(CH4) ) THEN
-       CALL MAPL_GetPointer( INTSTATE, PTR_CH4, 'SPC_CH4',    __RC__ )
-       CH4 = PTR_CH4 * MAPL_AIRMW /  16.00
-    ENDIF
-    IF ( ASSOCIATED(N2O) ) THEN
-       CALL MAPL_GetPointer( INTSTATE,    PTR_N2O, 'SPC_N2O',    __RC__ )
-       N2O = PTR_N2O    * MAPL_AIRMW /  44.00
-    ENDIF
-    IF ( ASSOCIATED(CFC11) ) THEN
-       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC11, 'SPC_CFC11',  __RC__ )
-       CFC11 = PTR_CFC11  * MAPL_AIRMW / 137.37
-    ENDIF
-    IF ( ASSOCIATED(CFC12) ) THEN
-       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC12, 'SPC_CFC12',  __RC__ )
-       CFC12 = PTR_CFC12  * MAPL_AIRMW / 120.91
-    ENDIF
-    IF ( ASSOCIATED(HCFC22) ) THEN
-       CALL MAPL_GetPointer( INTSTATE, PTR_HCFC22, 'SPC_HCFC22', __RC__ )
-       HCFC22 = PTR_HCFC22 * MAPL_AIRMW /  86.47
-    ENDIF
-
+    DO I=1,NRATS
+       CALL MAPL_GetPointer ( EXPORT, Ptr3D, TRIM(RatsNames(I)), NotFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) THEN
+          IndSpc = Ind_(TRIM(RatsNames(I)))
+          ASSERT_(IndSpc>0) 
+          Ptr3D = State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) &
+                * ( MAPL_AIRMW / State_Chm%SpcData(IndSpc)%Info%MW_g ) 
+       ENDIF
+    ENDDO
+  
     !=======================================================================
     ! Total and tropospheric columns
     !=======================================================================
-    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, State_Diag, &
-                       INTSTATE, PLE, TROPP, __RC__ )
+    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, __RC__ )
 
     !=======================================================================
     ! Fill AERO bundle if GEOS-Chem is the AERO provider.
@@ -5291,7 +5340,11 @@ CONTAINS
           CALL ESMF_FieldGet( AeroFld, farrayPtr=AeroPtr3D, __RC__ )
 
           ! Get pointer to GC data
-          CALL MAPL_GetPointer ( INTSTATE, GcPtr3D, TRIM(GcName), __RC__ )
+          nlen = LEN(TRIM(GcName))
+          IndSpc = Ind_(TRIM(GcName(5:nlen)))
+          ASSERT_(IndSpc>0)
+          GcPtr3D => State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) 
+          !CALL MAPL_GetPointer ( INTSTATE, GcPtr3D, TRIM(GcName), __RC__ )
 
           ! Pass GC to AERO. Convert from mol/mol to kg/kg. Only use the
           ! fraction specified during initialization (different from 1 for
@@ -5434,7 +5487,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, State_Diag, INTSTATE, PLE, TROPP, RC )
+  SUBROUTINE CalcTotOzone_ ( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -5443,9 +5496,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN)     :: am_I_Root
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met 
+    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm 
     TYPE(DgnState),   INTENT(INOUT)  :: State_Diag
-    TYPE(ESMF_STATE), INTENT(INOUT)  :: INTSTATE ! Internal state
     REAL,             POINTER        :: PLE  (:,:,:)
     REAL,             POINTER        :: TROPP(:,:)
 !
@@ -5461,8 +5514,8 @@ CONTAINS
 !BOC
 !
 ! LOCAL VARIABLES:
-!
-    REAL,     POINTER            :: O3   (:,:,:) => NULL()
+! 
+    REAL(fp), POINTER            :: O3 (:,:,:) => NULL()
     REAL(fp), POINTER            :: TO3fp(:,:) => NULL()
     REAL(f4), POINTER            :: TO3 (:,:)  => NULL()
     REAL(f4), POINTER            :: TTO3(:,:)  => NULL()
@@ -5472,6 +5525,7 @@ CONTAINS
     REAL,  ALLOCATABLE           :: wgt(:,:)      ! Layer thickness weighting
                                                   !  for total ozone
     REAL                         :: const
+    INTEGER                      :: indO3 
     INTEGER                      :: IM, JM, LM, LB, L, STATUS
     CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
 
@@ -5495,8 +5549,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get O3 from internal state
-    CALL MAPL_GetPointer ( IntState, O3, 'SPC_O3', __RC__ )
+    ! Get O3 from species array (kg/kg total)
+    indO3 = Ind_('O3')
+    O3 => State_Chm%Species(indO3)%Conc(:,:,:)
 
     ! Grid size
     IM = SIZE(O3,1)
@@ -5523,13 +5578,8 @@ CONTAINS
 
     ! Calculate total ozone
     DO L = 1,LM
-
-       DUsLayerL(:,:) = O3(:,:,L) * ((PLE(:,:,L+LB)-PLE(:,:,L+LB-1))/100.0) &
+       DUsLayerL(:,:) = O3(:,:,LM-L+1) * ((PLE(:,:,L+LB)-PLE(:,:,L+LB-1))/100.0) &
                         * const / 2.69e16 / 1000.0
-
-!       DUsLayerL(:,:) = O3(:,:,L)*(PLE(:,:,L)-PLE(:,:,L-1))               &
-!                        *(MAPL_AVOGAD/2.69E+20)/(MAPL_AIRMW*MAPL_GRAV)
-
        IF ( ASSOCIATED(TO3fp) ) TO3fp = TO3fp+DUsLayerL
        IF ( ASSOCIATED(TO3  ) ) TO3   = TO3  +DUsLayerL
        IF ( ASSOCIATED(TTO3) ) THEN
@@ -5566,8 +5616,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, State_Diag, &
-                            INTSTATE, PLE, TROPP, RC )
+  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -5579,7 +5628,6 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)         :: Input_Opt
     TYPE(ChmState),   INTENT(INOUT)         :: State_Chm
     TYPE(DgnState),   INTENT(INOUT)         :: State_Diag
-    TYPE(ESMF_STATE), INTENT(INOUT)         :: INTSTATE
     REAL,             POINTER               :: PLE  (:,:,:)
     REAL,             POINTER               :: TROPP(:,:  )
     INTEGER,          INTENT(OUT)           :: RC
@@ -5595,8 +5643,8 @@ CONTAINS
 !
     REAL,  POINTER               :: ExpTOTCOL(:,:)
     REAL,  POINTER               :: ExpTRPCOL(:,:)
-    REAL,  POINTER               :: IntSpc   (:,:,:)
-    REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer,
+    REAL(fp), POINTER            :: Spc3D    (:,:,:)
+    REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer, 
                                                   !  for total ozone
     REAL,  ALLOCATABLE           :: wgt(:,:)      ! Layer thickness weighting
                                                   !  for total ozone
@@ -5672,15 +5720,15 @@ CONTAINS
        MW    = State_Chm%SpcData(ID)%Info%MW_g
 
        ! Get species from internal state
-       CALL MAPL_GetPointer ( INTSTATE, IntSpc, 'SPC_'//TRIM(ISPEC), __RC__ )
+       Spc3D => State_Chm%Species(ID)%Conc(:,:,LM:1:-1)
 
-       ! constant
+       ! constant 
        const = MAPL_AVOGAD / ( MAPL_GRAV * MW )
 
        ! Calculate total and trop. column
        DO L = 1,LM
-          DUsLayerL(:,:) = IntSpc(:,:,L) * ( PLE(:,:,L+LB) &
-                           - PLE(:,:,L+LB-1) ) * const
+          DUsLayerL(:,:) = Spc3D(:,:,L) * ( PLE(:,:,L+LB) &
+                           - PLE(:,:,L+LB-1) ) * const 
           ! rescale: molec/m2 --> molec/cm2
           ! rescale: molec/cm2 ==> 1.0e15 molec/cm2
           DUsLayerL(:,:) = DUsLayerL(:,:) / 1.0e4 / 1.0e15
@@ -5710,216 +5758,6 @@ CONTAINS
 
   END SUBROUTINE CalcColumns_
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Model                            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: CalcTendencies_
-!!
-!! !DESCRIPTION: CalcTendencies_ computes tendencies.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE CalcTendencies_( am_I_Root, Input_Opt, State_Met, State_Chm, &
-!                              IsChemTime, Phase, EXPORT, OX_TEND, H2O_TEND, &
-!                              LM, RC )
-!!
-!! !USES:
-!!
-!!    USE TENDENCIES_MOD,          ONLY : Tend_Get
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    LOGICAL,             INTENT(IN)            :: am_I_Root
-!    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt
-!    TYPE(MetState),      INTENT(INOUT)         :: State_Met
-!    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm
-!    LOGICAL,             INTENT(IN)            :: IsChemTime
-!    INTEGER,             INTENT(IN)            :: Phase
-!    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
-!    REAL,                POINTER               :: OX_TEND(:,:,:)
-!    REAL,                POINTER               :: H2O_TEND(:,:,:)
-!    INTEGER,             INTENT(IN)            :: LM
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
-!!
-!! !REMARKS:
-!!
-!! !REVISION HISTORY:
-!!  05 Dec 2017 - C. Keller   - Initial version
-!!  See https://github.com/geoschem/geos-chem for history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! LOCAL VARIABLES:
-!!
-!    ! Objects
-!
-!    ! Scalars
-!    INTEGER                    :: STATUS
-!    INTEGER                    :: I, N, IND
-!    INTEGER                    :: Stage
-!    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
-!    CHARACTER(LEN=ESMF_MAXSTR) :: FldName
-!    REAL, POINTER              :: Ptr3D(:,:,:), Ptr2D(:,:)
-!    REAL(f4), POINTER          :: Tend(:,:,:)
-!
-!
-!    !=======================================================================
-!    ! Initialization
-!    !=======================================================================
-!
-!    ! Identify this routine to MAPL
-!    Iam = 'GCC::CalcTendencies_'
-!
-!    ! O3 tendencies due to chemistry.
-!    IF ( IsChemTime .AND. Phase==2 ) THEN
-!       CALL MAPL_GetPointer( EXPORT, Ptr3D, 'MTEND_CHEM_O3', &
-!                             NotFoundOk=.TRUE., __RC__ )
-!       IF ( ASSOCIATED(OX_TEND) .OR. ASSOCIATED(Ptr3D) ) THEN
-!
-!          ! Get O3 tracer ID
-!          IND = Ind_('O3')
-!          _ASSERT(IND>0,'O3 tracer ID is negative')
-!
-!          ! Get tracer tendency in kg/kg dry air/s
-!          CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
-!                         Tend, __RC__ )
-!          ! Fill OX_TEND (in kg/kg/s)
-!          IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-!             OX_TEND = Tend(:,:,LM:1:-1)
-!          ELSE
-!             OX_TEND = 0.0
-!          ENDIF
-!
-!          ! export as kg/m2/s:
-!          IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-!             Ptr3D(:,:,LM:1:-1) = Tend(:,:,1:LM) * ( g0_100 &
-!                                  * State_Met%DELP_DRY(:,:,LM:1:-1) )
-!          ENDIF
-!
-!          ! Cleanup
-!          Ptr3D => NULL()
-!          Tend  => NULL()
-!       ENDIF
-!    ENDIF
-!
-!    ! H2O tendencies due to chemistry.
-!    IF ( ASSOCIATED(H2O_TEND) .AND. IsChemTime .AND. Phase==2 ) THEN
-!       ! Initialize
-!       H2O_TEND = 0.0
-!       ! Get tracer ID
-!       IND = Ind_('H2O')
-!       IF ( IND > 0 ) THEN
-!          ! Get tendency due to chemistry in kg/kg/s
-!          CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
-!                         Tend, __RC__ )
-!          ! Fill H2O_TEND. Convert to kg/kg/s
-!          IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-!             H2O_TEND = Tend(:,:,LM:1:-1)
-!          ENDIF
-!
-!!          ! It looks like H2O_TEND is not preserved in the MAPL restart files,
-!!          ! which causes the time regression to fail. Force GCC H2O tendencies
-!!          ! to zero until this problem is resolved! (ckeller, 11/02/2015)
-!!          H2O_TEND = 0.0
-!!          if(am_I_Root) write(*,*) 'GCC: H2O_TEND set to zero!'
-!       ENDIF
-!       ! Cleanup
-!       Tend => NULL()
-!    ENDIF
-!
-!    ! Drydep mass tendencies
-!    ! MTEND_FLUX is a 2D diagnostics and reflects the mass flux due to dry
-!    ! deposition
-!    IF ( PHASE == 1 ) THEN
-!       DO I = 1, State_Chm%nDryDep
-!          N = State_Chm%Map_DryDep(I)
-!          FldName = 'MTEND_FLUX_'//TRIM(State_Chm%SpcData(N)%Info%Name)
-!          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName), &
-!                                NotFoundOk=.TRUE., __RC__ )
-!          IF ( ASSOCIATED(Ptr2D) ) THEN
-!             ! Tracer index
-!             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-!             _ASSERT(IND>0,'Tracer ID is negative')
-!             ! Get tracer tendency in kg/kg dry air/s
-!             CALL Tend_Get( am_I_Root, Input_Opt, 'FLUX', IND, Stage, &
-!                            Tend, __RC__ )
-!             ! Export as kg/m2/s:
-!             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-!                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100  &
-!                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
-!                Ptr2D(:,:) = SUM(Tend,DIM=3)
-!             ENDIF
-!             Ptr2D => NULL()
-!          END IF
-!       ENDDO
-!    ENDIF
-!
-!    ! Wetdep mass tendencies
-!    ! MTEND_WETD is a 2D diagnostics and reflects the mass flux due to
-!    ! large-scale wet deposition
-!    IF ( PHASE == 2 ) THEN
-!       DO I = 1, State_Chm%nWetDep
-!          N = State_Chm%Map_WetDep(I)
-!          FldName = 'MTEND_WETD_'//TRIM(State_Chm%SpcData(N)%Info%Name)
-!          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName), &
-!                                NotFoundOk=.TRUE., __RC__ )
-!          IF ( ASSOCIATED(Ptr2D) ) THEN
-!             ! Tracer index
-!             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-!             _ASSERT(IND>0,'Tracer ID is negative')
-!             ! Get tracer tendency in kg/kg dry air/s
-!             CALL Tend_Get( am_I_Root, Input_Opt, 'WETD', IND, Stage, &
-!                            Tend, __RC__ )
-!             ! Export as kg/m2/s:
-!             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-!                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100 &
-!                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
-!                Ptr2D(:,:) = SUM(Tend,DIM=3)
-!             ENDIF
-!             Ptr2D => NULL()
-!          END IF
-!       ENDDO
-!    ENDIF
-!
-!    ! Convection mass tendencies
-!    ! MTEND_CONV is a 2D diagnostics and reflects the mass flux due to
-!    ! convective wet deposition
-!    IF ( PHASE == 1 ) THEN
-!       DO I = 1, State_Chm%nWetDep
-!          N = State_Chm%Map_WetDep(I)
-!          FldName = 'MTEND_CONV_'//TRIM(State_Chm%SpcData(N)%Info%Name)
-!          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName),  &
-!                                NotFoundOk=.TRUE., __RC__ )
-!          IF ( ASSOCIATED(Ptr2D) ) THEN
-!             ! Tracer index
-!             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-!             _ASSERT(IND>0,'Tracer ID is negative')
-!             ! Get tracer tendency in kg/kg dry air/s
-!             CALL Tend_Get( am_I_Root, Input_Opt, 'CONV', IND, Stage, &
-!                            Tend, __RC__ )
-!             ! Export as kg/m2/s:
-!             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-!                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100  &
-!                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
-!                Ptr2D(:,:) = SUM(Tend,DIM=3)
-!             ENDIF
-!             Ptr2D => NULL()
-!          END IF
-!       ENDDO
-!    ENDIF
-!
-!    ! Successful return
-!    _RETURN(ESMF_SUCCESS)
-!
-!  END SUBROUTINE CalcTendencies_
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -5934,7 +5772,7 @@ CONTAINS
 !
   SUBROUTINE CalcSpeciesDiagnostics_( am_I_Root, Input_Opt, State_Met, &
                                       State_Chm, State_Diag, IMPORT, EXPORT, &
-                                      INTSTATE, Q, RC )
+                                      Q, RC )
 !
 ! !USES:
 !
@@ -5949,7 +5787,6 @@ CONTAINS
     TYPE(DgnState),      INTENT(INOUT)         :: State_Diag
     TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
     TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
-    TYPE(ESMF_STATE),    INTENT(INOUT)         :: INTSTATE
     REAL,                POINTER               :: Q(:,:,:)
 !
 ! !OUTPUT PARAMETERS:
@@ -5972,21 +5809,22 @@ CONTAINS
     ! Scalars
     INTEGER                    :: STATUS
     INTEGER                    :: I, J, N, IM, JM, LM, DryID
+    INTEGER                    :: IndSpc
     LOGICAL                    :: IsBry, IsNOy,  IsCly, IsOrgCl
     LOGICAL                    :: RunMe
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
     CHARACTER(LEN=ESMF_MAXSTR) :: FieldName, SpcName
     REAL                       :: MW
     REAL                       :: BrCoeff, ClCoeff, OrgClCoeff
-    REAL, POINTER              :: PtrTmp(:,:,:)
+    REAL(fp), POINTER          :: PtrTmp(:,:,:)
     TYPE(Species), POINTER     :: SpcInfo
     REAL(f4), POINTER          :: NOy(:,:,:) => NULL()
     REAL(f4), POINTER          :: Bry(:,:,:) => NULL()
     REAL(f4), POINTER          :: Cly(:,:,:) => NULL()
     REAL(f4), POINTER          :: OrgCl(:,:,:) => NULL()
 
-    LOGICAL, SAVE                    :: FIRST = .TRUE.
-
+    LOGICAL, SAVE              :: FIRST = .TRUE.
+ 
     !=======================================================================
     ! Routine starts here
     !=======================================================================
@@ -6106,7 +5944,7 @@ CONTAINS
 
        ! Fill exports
        IF ( RunMe ) THEN
-          FieldName = 'SPC_'//TRIM(SpcName)
+          !FieldName = 'SPC_'//TRIM(SpcName)
           MW = SpcInfo%MW_g
           IF ( MW < 0.0 ) THEN
              ! Get species and set MW to 1.0. This is ok because the internal
@@ -6122,7 +5960,7 @@ CONTAINS
                 ENDIF
              ENDIF
           ENDIF
-          CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, RC=STATUS )
+          PtrTmp => State_Chm%Species(N)%Conc(:,:,LM:1:-1)
           IF ( STATUS /= ESMF_SUCCESS ) THEN
              WRITE(*,*) 'Error reading ',TRIM(SpcName)
              VERIFY_(STATUS)
@@ -6717,31 +6555,26 @@ CONTAINS
     LOGICAL                    :: am_I_Root     ! Are we on the root PET?
     LOGICAL                    :: TimeForAna
     REAL, POINTER              :: ANAO3(:,:,:)
-    REAL, POINTER              :: O3INC(:,:,:)
+    REAL, POINTER              :: O3INC(:,:,:), O3INCPPMV(:,:,:)
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam, compName ! Gridded component name
     CHARACTER(LEN=ESMF_MAXSTR) :: SpcName
     INTEGER                    :: I, J, L, N, LR, IM, JM, LM
     INTEGER                    :: STATUS
-    REAL                       :: O3new, MW, ifrac
+    INTEGER                    :: NNEG  
+    REAL                       :: O3old, O3new, O3ana, O3diff, O3MW, ifrac
     REAL                       :: ITROPP
-    INTEGER                    :: idx
+    INTEGER                    :: UnitFlag, idx
     INTEGER                    :: LB, L0, L1, L2, L3, L4
     CHARACTER(LEN=2)           :: SL1, SL2
 
     ! To read from file
-    LOGICAL                    :: HasFile
+    LOGICAL                    :: HasFile, HasBundle 
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile
-    CHARACTER(LEN=ESMF_MAXSTR) :: VarName
     TYPE(MAPL_SimpleBundle)    :: VarBundle
     TYPE(ESMF_Grid)            :: grid
-    TYPE(ESMF_TIME)            :: currTime
-    TYPE(ESMF_TIME)            :: fileTime
-    TYPE(ESMF_Field)           :: iFld
-    INTEGER                    :: VarID, fid
-    INTEGER                    :: nymd, nhms, yy, mm, dd, h, m, s, incSecs
-    CHARACTER(LEN=4)           :: syy
-    CHARACTER(LEN=2)           :: smm, sdd, sh, sm
-
+    INTEGER                    :: VarID
+    INTEGER                    :: yy, mm, dd, h, m, s
+ 
     !=======================================================================
     ! Initialization
     !=======================================================================
@@ -6755,12 +6588,9 @@ CONTAINS
     ! Identify this routine to MAPL
     Iam = TRIM(compName)//'::SetAnaO3_'
 
-    ! Is it time to do the analysis? For now, do analysis every three hours
-    ! (middle of 3-hour time step)
-    ! Get current time
-    CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
-    CALL ESMF_TimeGet( currTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
-    IF ( m==30 .AND. MOD(h,3)==1 ) THEN
+    ! Is it time to do the analysis? 
+    CALL GetAnaTime_( Clock, ANAO3FWD, yy, mm, dd, h, m, s, __RC__ )
+    IF ( m==ANAO3MIN .AND. MOD(h,ANAO3FREQ)==ANAO3HR ) THEN
        TimeForAna = .TRUE.
     ELSE
        TimeForAna = .FALSE.
@@ -6769,11 +6599,13 @@ CONTAINS
     ! Diagnostics
     CALL MAPL_GetPointer ( Export, O3INC, 'GCC_ANA_O3_INC', NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(O3INC) ) O3INC = 0.0
+    CALL MAPL_GetPointer ( Export, O3INCPPMV, 'GCC_ANA_O3_INC_PPMV', NotFoundOk=.TRUE., __RC__ )
+    IF ( ASSOCIATED(O3INCPPMV) ) O3INCPPMV = 0.0
 
-    ! Get lower bound of PLE array
-    LB = LBOUND(PLE,3)
+    ! Initialize bundle flag
+    HasBundle = .FALSE.
 
-    ! Get target ozone field
+    ! Get target ozone field 
     IF ( TimeForAna ) THEN
 
        ! Verbose
@@ -6789,170 +6621,150 @@ CONTAINS
        ! Get analysis O3 field from import in kg/kg
        IF ( LPCHEMO3 ) THEN
           CALL MAPL_GetPointer ( IMPORT, ANAO3, 'PCHEM_O3', __RC__ )
+          HasBundle = .TRUE.
 
        ! If not PCHEM, try to read it from the specified file
        ELSE
-          !CALL MAPL_GetPointer ( IMPORT, ANAO3, 'ANA_O3', __RC__ )
-          ! Parse file name
-          ifile = ANAO3FILE
-
-          ! testing only
-          !IF ( am_I_Root ) WRITE(*,*) 'parsing '//TRIM(ifile)
-
-          write(syy,'(I4.4)') yy
-          CALL ReplaceChar ( ifile, '%y4', syy )
-          write(smm,'(I2.2)') mm
-          CALL ReplaceChar ( ifile, '%m2', smm )
-          write(sdd,'(I2.2)') dd
-          CALL ReplaceChar ( ifile, '%d2', sdd )
-          write(sh,'(I2.2)') h
-          CALL ReplaceChar ( ifile, '%h2', sh  )
-          write(sm,'(I2.2)') m
-          CALL ReplaceChar ( ifile, '%n2', sm  )
-
-          ! testing only
-          !IF ( am_I_Root ) WRITE(*,*) 'parsed file: '//TRIM(ifile)
-
-          ! Check if file exists
-          INQUIRE( FILE=ifile, EXIST=HasFile )
-          IF ( HasFile ) THEN
-             ! Try reading current time stamp on file
-             s = 0
-             call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
-             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, RC=STATUS )
-             ! Fall back if this didn't work:
-             IF ( RC /= ESMF_SUCCESS ) THEN
-                ! If error mode is 0 or 1, stop with error
-                IF ( ANAO3ERR <= 1 ) THEN
-                   IF ( am_I_Root ) THEN
-                      WRITE(*,*) 'Error: current time not found in file: ',TRIM(ifile),yy,mm,dd,h,m
-                      WRITE(*,*) 'You can get past this error by disabling ozone nudging or setting the error mode to > 1 in GEOSCHEMchem_GridComp.rc'
-                   ENDIF
-                   ASSERT_(.FALSE.)
-                ! If error mode is larger than 1, just read first variable on file. This can be dangerous!
-                ELSE
-                   IF ( am_I_Root ) THEN
-                      WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy,mm,dd,h,m
-                   ENDIF
-                   ! Get time stamp on file
-                   call GFIO_Open( ifile, 1, fid, STATUS )
-                   ASSERT_(STATUS==0)
-                   call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
-                   ASSERT_(STATUS==0)
-                   caLL GFIO_Close( fid, STATUS )
-                   ASSERT_(STATUS==0)
-                   yy = nymd/10000
-                   mm = (nymd-yy*10000) / 100
-                   dd = nymd - (10000*yy + mm*100)
-                   h  = nhms/10000
-                   m  = (nhms- h*10000) / 100
-                   s  = nhms - (10000*h  +  m*100)
-                   VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, __RC__ )
-                ENDIF
-             ENDIF
-             ! Read variable
-             VarName   =  'O3'
-             VarID     =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
-             ANAO3     => VarBundle%r3(VarID)%q
-             IF ( am_I_Root ) WRITE(*,*) 'Use analysis ozone from '//TRIM(ifile)
-          ELSE
-             ! If file not found and error mode is zero, stop with error
-             IF ( ANAO3ERR == 0 ) THEN
-                IF ( am_I_Root ) THEN
-                   WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile)
-                   WRITE(*,*) 'You can get past this error by disabling ozone nudging or setting the error mode to > 0 in GEOSCHEMchem_GridComp.rc'
-                ENDIF
-                ASSERT_(.FALSE.)
-             ! If file not found and error mode is not zero, just skip nudging
-             ELSE
-                TimeForAna = .FALSE.
-                IF ( am_I_Root ) WRITE(*,*) 'File not found - skip ozone nudging: '//TRIM(ifile)
-             ENDIF
+          CALL GetAnaBundle_( am_I_Root, ANAO3FILE, 'GCCAnaO3', yy, mm, dd, h, m, grid, VarBundle, &
+                              HasBundle, ifile=ifile, only_vars=TRIM(ANAO3VAR), err_mode=ANAO3ERR, __RC__ )
+          ! Read variable 
+          IF ( HasBundle ) THEN
+             VarID   =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(ANAO3VAR), 3, RC=STATUS, QUIET=.TRUE. )
+             ANAO3   => VarBundle%r3(VarID)%q
+             IF ( am_I_Root ) WRITE(*,*) 'Use analysis ozone ('//TRIM(ANAO3VAR)//', assumed units='//TRIM(ANAO3VARUNIT)//') from '//TRIM(ifile)
+             HasBundle = .TRUE.
           ENDIF
        ENDIF
-    ENDIF
 
-    ! Apply ozone analysis increment if it's time to do so
-    IF ( TimeForAna ) THEN
+       ! Apply increments if available 
+       IF ( HasBundle ) THEN
 
-       ! Select ozone index
-       ! Loop over all species
-       N = -1
-       DO I = 1, State_Chm%nSpecies
-          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
-             N = I
-          ENDIF
-       ENDDO
-       ASSERT_(N > 0)
+          ! Select ozone index
+          ! Loop over all species
+          O3MW = 0.0
+          N = -1
+          DO I = 1, State_Chm%nSpecies
+             IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
+                N = I
+                O3MW = State_Chm%SpcData(I)%Info%MW_g
+              ENDIF
+          ENDDO
+          ASSERT_(N > 0)
 
-       ! array dimensions
-       IM = SIZE(ANAO3,1)
-       JM = SIZE(ANAO3,2)
-       LM = SIZE(ANAO3,3)
+          ! array dimensions 
+          IM = SIZE(ANAO3,1)
+          JM = SIZE(ANAO3,2)
+          LM = SIZE(ANAO3,3)
 
-       DO J=1,JM
-       DO I=1,IM
+          ! Get lower bound of PLE array
+          LB = LBOUND(PLE,3)
 
-          ! Determine levels to loop over: upper level is always the same
-          ! Lower level may be dynamic if along tropopause. In that case
-          ! find lowest level above tropopause as reference point.
-          L3 = ANAO3L3
-          L4 = ANAO3L4
-          IF ( ANAO3TROPP > 0 ) THEN
-             ! Find first level edge above tropopause.
-             ITROPP = TROPP(I,J)
-             L0 = -1
-             DO L=1,LM
-                IF ( PLE(I,J,LM-L+LB) < ITROPP ) THEN
-                   L0 = L
-                   EXIT
+          ! Set unit flag. This is to prevent parsing the unit string within the loop below
+          SELECT CASE ( TRIM(ANAO3VARUNIT) )
+             CASE ( 'kg/kg' )
+                UnitFlag = 1
+             CASE ( 'mol/mol' )
+                UnitFlag = 2
+             CASE ( 'ppmv', 'ppm', 'PPMV', 'PPM' )
+                UnitFlag = 3
+             CASE ( 'ppbv', 'ppb', 'PPBV', 'PPB' )
+                UnitFlag = 4
+             CASE DEFAULT
+                UnitFlag = 1
+          END SELECT
+
+          ! Number of negative cells
+          NNEG = 0
+
+          DO J=1,JM
+          DO I=1,IM
+
+             ! Determine levels to loop over: upper level is always the same
+             ! Lower level may be dynamic if along tropopause. In that case 
+             ! find lowest level above tropopause as reference point. 
+             L3 = ANAO3L3
+             L4 = ANAO3L4
+             IF ( ANAO3TROPP > 0 ) THEN
+                ! Find first level edge above tropopause.
+                ITROPP = TROPP(I,J)
+                L0 = -1
+                DO L=1,LM
+                   IF ( PLE(I,J,LM-L+LB) < ITROPP ) THEN
+                      L0 = L
+                      EXIT
+                   ENDIF
+                ENDDO
+                ! Set lower nudging levels based on tropopause level L0.
+                ! The lowest level is determined based on L0 and the offset
+                ! value ANAO3TROPP (provided in GEOSCHEMchem_GridComp.rc).
+                ASSERT_(L0>0)
+                L1 = L0 - 1 + ANAO3TROPP
+                L2 = L1 + ( ANAO3L2 - ANAO3L1 )
+             ELSE
+                L1 = ANAO3L1
+                L2 = ANAO3L2
+             ENDIF
+
+             ! Loop over all relevant levels
+             DO L = L1, L4
+
+                ! LR is the reverse of L
+                LR = LM - L + 1
+
+                ! Get fraction of analysis field to be used. 
+                ! This goes gradually from 0.0 to ANAO3FR between ANAO3L1 to ANAO3L2, 
+                ! and is ANAO3FR above.
+                ifrac = 0.0
+                IF ( L >= L2 .AND. L <= L3 ) THEN
+                   ifrac = ANAO3FR
+                ELSEIF ( L < L2 ) THEN
+                   ifrac = ANAO3FR * ( (L-L1) / (L2-L1) )
+                ELSEIF ( L > L3 ) THEN
+                   ifrac = ANAO3FR * ( (L4-L) / (L4-L3) )
                 ENDIF
-             ENDDO
-             ! Set lower nudging levels based on tropopause level L0.
-             ! The lowest level is determined based on L0 and the offset
-             ! value ANAO3TROPP (provided in GEOSCHEMchem_GridComp.rc).
-             ASSERT_(L0>0)
-             L1 = L0 - 1 + ANAO3TROPP
-             L2 = L1 + ( ANAO3L2 - ANAO3L1 )
-          ELSE
-             L1 = ANAO3L1
-             L2 = ANAO3L2
+                ifrac = max(0.0,min(1.0,ifrac))
+                IF ( ifrac == 0.0 ) CYCLE
+
+                ! Get target ozone concentration in kg/kg total
+                ! Note: assume that mol/mol is in dry air, and ppmv and ppbv is in total air
+                O3ana = ANAO3(I,J,LR)
+                IF ( UnitFlag == 2 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * ( 1. - Q(I,J,LR) )
+                IF ( UnitFlag == 3 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-6
+                IF ( UnitFlag == 4 ) O3ana = O3ana * ( O3MW / MAPL_AIRMW ) * 1.0e-9
+
+                ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
+                O3old = State_Chm%Species(N)%Conc(I,J,L)
+                O3new = O3old
+                IF ( ANAO3INC ) THEN
+                   IF ( ABS(O3ana) > tiny(1.0) ) THEN
+                      O3new = O3old + O3ana
+                      IF ( O3new <= tiny(1.0) ) THEN
+                         O3new = tiny(1.0)
+                         NNEG  = NNEG + 1
+                      ENDIF
+                   ENDIF
+                ELSE
+                   IF ( O3ana > 0.0 ) THEN
+                      O3new = ( (1.0-ifrac) * O3old ) + ( ifrac * O3ana )
+                   ENDIF
+                ENDIF
+                O3diff = O3new - O3old 
+                IF ( ASSOCIATED(O3INC) )    O3INC(I,J,LR)     = O3diff
+                IF ( ASSOCIATED(O3INCPPMV)) O3INCPPMV(I,J,LR) = O3diff * ( MAPL_AIRMW / MAPL_O3MW ) * 1.0e6
+                State_Chm%Species(N)%Conc(I,J,L) = O3new
+             ENDDO ! L 
+          ENDDO
+          ENDDO
+
+          ! Print warning if at least one negative cell
+          IF ( NNEG > 0 ) THEN
+             WRITE(*,*) '*** GCC SetAnaO3 Warning: encountered negative ozone after adding increments, set concentrations to zero ',NNEG,' ***'
           ENDIF
-
-          ! Loop over all relevant levels
-          DO L = L1, L4
-
-             ! LR is the reverse of L
-             LR = LM - L + 1
-
-             ! Get fraction of analysis field to be used.
-             ! This goes gradually from 0.0 to ANAO3FR between ANAO3L1 to ANAO3L2,
-             ! and is ANAO3FR above
-             ifrac = 0.0
-             IF ( L >= L2 .AND. L <= L3 ) THEN
-                ifrac = ANAO3FR
-             ELSEIF ( L < L2 ) THEN
-                ifrac = ANAO3FR * ( (L-L1) / (L2-L1) )
-             ELSEIF ( L > L3 ) THEN
-                ifrac = ANAO3FR * ( (L4-L) / (L4-L3) )
-             ENDIF
-             ifrac = max(0.0,min(1.0,ifrac))
-             IF ( ifrac == 0.0 ) CYCLE
-
-             ! Pass to State_Chm species array. PCHEM ozone should never be zero or smaller!
-             IF ( ANAO3(I,J,LR) > 0.0 ) THEN
-                O3new = ( (1.0-ifrac) * State_Chm%Species(N)%Conc(I,J,L) ) &
-                      + (      ifrac  * ANAO3(I,J,LR)              )
-                IF ( ASSOCIATED(O3INC) ) O3INC(I,J,LR) = O3new - State_Chm%Species(N)%Conc(I,J,L) 
-                State_Chm%Species(N)%Conc(I,J,L) = O3new 
-             ENDIF
-          ENDDO ! L
-       ENDDO
-       ENDDO
+       ENDIF ! HasBundle 
 
        ! Clean up
        IF ( ASSOCIATED(ANAO3 ) ) ANAO3 => NULL()
-       IF ( .NOT. LPCHEMO3 ) CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
+       IF ( HasBundle ) CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
     ENDIF
 
     ! All done
@@ -6960,7 +6772,527 @@ CONTAINS
 
   END SUBROUTINE SetAnaO3_
 !EOC
-#if defined( MODEL_GEOS )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetAnaNO2_ 
+!
+! !DESCRIPTION: Apply NO2 analysis to GEOS-Chem fields. This should be done
+!  after the chemistry step.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SetAnaNO2_( GC, Import, Internal, Export, Clock, &
+                         Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, RC )
+!
+! !USES:
+!
+  USE MAPL_RegridMethods
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC       ! Ref. to this GridComp
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
+    TYPE(ESMF_STATE),    INTENT(INOUT)         :: Internal ! Internal state
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
+    TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock    ! ESMF Clock object
+    TYPE(OptInput)                             :: Input_Opt
+    TYPE(MetState)                             :: State_Met
+    TYPE(ChmState)                             :: State_Chm
+    REAL,                INTENT(IN)            :: Q(:,:,:)
+    REAL,                POINTER               :: PLE(:,:,:)
+    REAL,                POINTER               :: TROPP(:,:)
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  18 Mar 2017 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    ! Objects
+
+    ! Scalars
+    LOGICAL                    :: am_I_Root     ! Are we on the root PET?
+    CHARACTER(LEN=ESMF_MAXSTR) :: Iam, compName ! Gridded component name
+    REAL, POINTER              :: AnaNO2(:,:,:)
+    REAL, POINTER              :: ObsHour(:,:)
+    REAL, POINTER              :: AnaMask(:,:)
+    REAL, POINTER              :: Ptr3D(:,:,:)
+    REAL, ALLOCATABLE          :: NO2bkg(:,:,:), NO2asm(:,:,:)
+    REAL, ALLOCATABLE          :: NObkg(:,:,:),  NOasm(:,:,:)
+
+    INTEGER                    :: yy, mm, dd, h, m, s
+    REAL                       :: ThisHour
+    LOGICAL                    :: TimeForAna
+    INTEGER                    :: LB
+    INTEGER                    :: indNO, indNO2
+    REAL                       :: mwNO,  mwNO2
+    INTEGER                    :: IM, JM, LM
+    INTEGER                    :: I, J, L
+    INTEGER                    :: STATUS
+    REAL, ALLOCATABLE          :: wgt(:), IncMask(:,:,:)
+
+    ! To read from file
+    LOGICAL                    :: HasFile, HasBundle 
+    CHARACTER(LEN=ESMF_MAXSTR) :: ifile
+    TYPE(ESMF_Grid)            :: grid
+    INTEGER                    :: nymd, nhms, incSecs    
+    TYPE(MAPL_SimpleBundle)    :: VarBundle, VarBundleH
+    TYPE(ESMF_TIME)            :: fileTime
+    INTEGER                    :: VarID
+
+    !=======================================================================
+    ! Initialization
+    !=======================================================================
+
+    ! Are we on the root PET
+    am_I_Root = MAPL_Am_I_Root()
+
+    ! Set up traceback info
+    CALL ESMF_GridCompGet( GC, name=compName, grid=grid, __RC__ )
+
+    ! Identify this routine to MAPL
+    Iam = TRIM(compName)//'::SetAnaNO2_'
+
+    ! Check if it's time to do analysis
+    TimeForAna = .FALSE.
+    CALL GetAnaTime_( Clock, ANANO2FWD, yy, mm, dd, h, m, s, __RC__ )
+    ! Cast current hour as real 
+    ThisHour = real(h)
+
+    ! If using observation hours, apply analysis every (full) hour 
+    IF ( LANANO2OBSH ) THEN
+       IF ( m==0 ) TimeForAna = .TRUE.
+    ! Otherwise, apply analysis every 6 hours (middle of analysis step)
+    ELSE
+       IF ( m==0 .AND. MOD(h,6)==0 ) TimeForAna = .TRUE.
+    ENDIF
+
+    ! If it's time for analysis, check if file exists
+    HasBundle = .FALSE. 
+    IF ( TimeForAna ) THEN
+       CALL GetAnaBundle_( am_I_Root, ANANO2FILE, 'AnaNO2', yy, mm, dd, h, m, grid, &
+                           VarBundle, HasBundle, ifile=ifile, fileTime=fileTime,    &
+                           only_vars=TRIM(ANANO2VAR), err_mode=2, anatime=.TRUE., __RC__ ) 
+
+       ! Read obs time using voting regridding method 
+       IF ( HasBundle .AND. LANANO2OBSH ) THEN 
+          VarBundleH =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaNO2v', grid, fileTime, &
+                                                ONLY_VARS=TRIM(ANANO2VARH), voting=.TRUE., __RC__ )
+!                           ONLY_VARS=TRIM(ANANO2VARH), regrid_method=REGRID_METHOD_VOTE, __RC__ )
+       ENDIF
+    ENDIF
+
+    ! Apply increments if it's time to do so and if file exists
+    IF ( HasBundle ) THEN
+
+       ! Verbose
+       IF ( am_I_Root ) THEN
+          WRITE(*,100) yy,mm,dd,h,m
+100       FORMAT( "GEOS-Chem: apply NO2 increments for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+       ENDIF
+
+       ! Get imports needed to do the update
+       ! NO2 analysis 
+       !CALL MAPL_GetPointer ( Import, AnaNO2, 'ANA_NO2', __RC__ )
+       VarID   = MAPL_SimpleBundleGetIndex ( VarBundle, TRIM(ANANO2VAR), 3, RC=STATUS, QUIET=.TRUE. )
+       ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
+       AnaNO2  => VarBundle%r3(VarID)%q
+       ! OMI Observation hour
+       IF ( LANANO2OBSH ) THEN
+          !CALL MAPL_GetPointer ( Import, ObsHour, 'NO2_ANALYSIS_HOUR', __RC__ )
+          VarID   =  MAPL_SimpleBundleGetIndex ( VarBundleH, TRIM(ANANO2VARH), 2, RC=STATUS, QUIET=.TRUE. )
+          ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
+          ObsHour => VarBundleH%r2(VarID)%q
+       ENDIF
+
+       ! Select index for NO and NO2
+       ! Loop over all species
+       indNO2 = -1
+       indNO  = -1
+       DO I = 1, State_Chm%nSpecies
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'NO2' ) THEN
+             indNO2 = I
+             mwNO2  = State_Chm%SpcData(I)%Info%MW_g
+          ENDIF
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'NO'  ) THEN
+             indNO = I
+             mwNO  = State_Chm%SpcData(I)%Info%MW_g
+          ENDIF
+       ENDDO
+       ASSERT_(indNO2 > 0  )
+       ASSERT_( mwNO2 > 0.0)
+       ASSERT_(indNO > 0  )
+       ASSERT_( mwNO > 0.0)
+
+       ! array dimensions 
+       IM = SIZE(AnaNO2,1)
+       JM = SIZE(AnaNO2,2)
+       LM = SIZE(AnaNO2,3)
+
+       ! Get lower bound of PLE array
+       LB = LBOUND(PLE,3)
+
+       ! State_Chm%Species are in kg/kg total. Make local copy in v/v dry before applying increments.
+       ! Also flip vertical axis to be consistent with GEOS
+       ALLOCATE(NO2bkg(IM,JM,LM),NO2asm(IM,JM,LM)) 
+       ALLOCATE( NObkg(IM,JM,LM), NOasm(IM,JM,LM)) 
+       NO2bkg(:,:,:) = State_Chm%Species(indNO2)%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwNO2
+       NObkg(:,:,:)  = State_Chm%Species(indNO)%Conc(:,:,LM:1:-1)  / (1.-Q) * MAPL_AIRMW / mwNO 
+       NO2asm(:,:,:) = NO2bkg(:,:,:) 
+       NOasm(:,:,:)  = NObkg(:,:,:)
+
+       ! Check/initialize diagnostics 
+       ! increment mask
+       CALL MAPL_GetPointer ( Export, AnaMask, 'GCC_ANA_NO2_MASK', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(AnaMask) ) AnaMask(:,:) = 0.0
+
+       ! wgt is the weighting given to the analysis (between 0-1). Use this approach to ignore
+       ! increments in stratosphere
+       ALLOCATE(wgt(LM))
+       wgt(:) = 0.0
+ 
+       ! Mask with increments
+       ALLOCATE(IncMask(IM,JM,LM))
+       IncMask(:,:,:) = 0.0
+
+       ! Apply increments column-wise 
+       DO J=1,JM
+       DO I=1,IM
+
+          ! Move to next grid box if there was no NO2 observation in this cell for the given hour 
+          IF ( LANANO2OBSH ) THEN
+             IF ( ObsHour(I,J) /= ThisHour ) CYCLE
+          ENDIF
+
+          ! Get vertical weights.
+          IF ( LANANO2TROP ) THEN
+             wgt(:) = MAX(0.0,MIN(1.0,(PLE(I,J,(1+LB):(LM+LB))-TROPP(I,J))/(PLE(I,J,(1+LB):(LM+LB))-PLE(I,J,LB:(LM+LB-1)))))
+          ELSE
+             wgt(:) = 1.0
+          ENDIF
+
+          ! updated NO2 field
+          IF ( LANANO2INC ) THEN
+             NO2asm(I,J,:) = NO2bkg(I,J,:) + wgt(:)*AnaNO2(I,J,:)
+          ELSE 
+             NO2asm(I,J,:) = wgt(:)*AnaNO2(I,J,:) + (1.0-wgt(:))*NO2bkg(I,J,:)
+          ENDIF
+
+          ! Update analysis increment mask
+          IncMask(I,J,:) = wgt(:)
+          IF ( ASSOCIATED(AnaMask) ) AnaMask(I,J) = 1.0
+       ENDDO
+       ENDDO
+
+       ! Eventually update NO so that NO/NO2 ratio is maintained
+       IF ( LANANO ) THEN
+          WHERE ( IncMask > 0.0 ) 
+             NOasm = NO2asm * ( NObkg / NO2bkg ) 
+          END WHERE
+       ENDIF
+ 
+       ! Fill diagnostics
+       ! ----------------
+
+       ! NO2 analysis field as read through ExtData (v/v dry)
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_ANA', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = AnaNO2
+
+       ! Fields before applying increments (v/v dry)
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_BKG', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2bkg 
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_BKG', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NObkg
+
+       ! Fields after applying increments (v/v dry)
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_ASM', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2asm
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_ASM', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm
+          
+       ! Concentration increments 
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_INC', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2asm - NO2bkg
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_INC', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm - NObkg
+
+       ! Fractional changes 
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO2_INCF', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NO2asm / NO2bkg
+       CALL MAPL_GetPointer ( Export, Ptr3D, 'GCC_ANA_NO_INCF', NotFoundOk=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3D) ) Ptr3D = NOasm / NObkg
+
+       ! Pass back to State_Chm%Species array: flip vertical axis and convert v/v dry to kg/kg total
+       State_Chm%Species(indNO2)%Conc(:,:,LM:1:-1) = NO2asm(:,:,:) * (1.-Q) / MAPL_AIRMW * mwNO2
+       State_Chm%Species(indNO)%Conc(:,:,LM:1:-1)  = NOasm(:,:,:)  * (1.-Q) / MAPL_AIRMW * mwNO
+    ENDIF
+
+    ! Cleanup
+    IF ( ALLOCATED(NO2bkg))  DEALLOCATE(NO2bkg)
+    IF ( ALLOCATED(NO2asm))  DEALLOCATE(NO2asm)
+    IF ( ALLOCATED(NObkg))   DEALLOCATE(NObkg)
+    IF ( ALLOCATED(NOasm))   DEALLOCATE(NOasm)
+    IF ( ALLOCATED(wgt))     DEALLOCATE(wgt)
+    IF ( ALLOCATED(IncMask)) DEALLOCATE(IncMask)
+
+    IF ( ASSOCIATED(ObsHour) ) ObsHour => NULL()
+    IF ( ASSOCIATED(AnaNO2 ) ) AnaNO2  => NULL()
+    IF ( ASSOCIATED(AnaMask) ) AnaMask => NULL()
+
+    IF ( HasBundle ) THEN
+       CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
+       IF ( LANANO2OBSH ) CALL MAPL_SimpleBundleDestroy ( VarBundleH, __RC__ )
+    ENDIF
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE SetAnaNO2_
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetAnaTime_ 
+!
+! !DESCRIPTION: Get analysis time. This is either the current date/time or one
+! GEOS-Chem time step ahead, depending on the Fwd input argument.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetAnaTime_( Clock, Fwd, yy, mm, dd, h, m, s, RC ) 
+!
+! !USES:
+!
+    USE TIME_MOD,  ONLY : GET_TS_CHEM
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock      ! ESMF Clock object
+    LOGICAL,             INTENT(IN)            :: Fwd        ! Adjust time one time step forward?
+    INTEGER,             INTENT(OUT)           :: yy, mm, dd ! year, month, day
+    INTEGER,             INTENT(OUT)           :: h,  m,  s  ! hour, minute, second
+    INTEGER,             INTENT(OUT)           :: RC         ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  01 Mar 2022 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(ESMF_TIME)            :: currTime
+    TYPE(ESMF_TimeInterval)    :: tsChemInt
+    REAL                       :: tsChem
+
+    ! Begins here
+    __Iam__('GetAnaTime_')
+
+    ! Get current time 
+    CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
+
+    ! Eventually adjust time
+    IF ( Fwd ) THEN
+       tsChem = GET_TS_CHEM()
+    ELSE
+       tsChem = 0.0
+    ENDIF
+    CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
+    CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+    END SUBROUTINE GetAnaTime_
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetAnaBundle_ 
+!
+! !DESCRIPTION: Get analysis data bundle. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetAnaBundle_( am_I_Root, FileTmpl,  bName, yy, mm, dd, h, m, grid, &
+                            VarBundle, HasBundle, ifile, fileTime, only_vars,   &
+                            err_mode,  anatime,   RC ) 
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)            :: am_I_Root  ! Root CPU?
+    CHARACTER(LEN=*),    INTENT(IN)            :: FileTmpl   ! file template
+    CHARACTER(LEN=*),    INTENT(IN)            :: bName      ! bundle name 
+    INTEGER,             INTENT(IN)            :: yy, mm, dd ! year, month, day
+    INTEGER,             INTENT(IN)            :: h,  m      ! hour, minute, second
+    TYPE(ESMF_Grid),     INTENT(INOUT)         :: grid       ! output grid
+    TYPE(MAPL_SimpleBundle)                    :: VarBundle  ! Bundle
+    LOGICAL,             INTENT(INOUT)         :: HasBundle  ! Was bundle found?
+    CHARACTER(LEN=*),    INTENT(OUT), OPTIONAL :: ifile      ! file name 
+    TYPE(ESMF_TIME),     INTENT(OUT), OPTIONAL :: fileTime   ! file time
+    CHARACTER(LEN=*),    INTENT(IN),  OPTIONAL :: only_vars  ! variables to read
+    INTEGER,             INTENT(IN),  OPTIONAL :: err_mode   ! error mode
+    LOGICAL,             INTENT(IN),  OPTIONAL :: anatime    ! round time to analysis time? 
+    INTEGER,             INTENT(OUT), OPTIONAL :: RC         ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  01 Mar 2022 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    CHARACTER(LEN=ESMF_MAXSTR) :: ifile_
+    CHARACTER(LEN=4)           :: syy
+    CHARACTER(LEN=2)           :: smm, sdd, sh, sm    
+    INTEGER                    :: nymd, nhms, incSecs
+    INTEGER                    :: yy_, mm_, dd_, h_, m_, s_, fid
+    TYPE(ESMF_TIME)            :: currTime, fileTime_
+    TYPE(ESMF_TimeInterval)    :: tsInt
+    LOGICAL                    :: HasFile,  anatime_
+    INTEGER                    :: errmode_
+    
+    ! Begins here
+    __Iam__('GetAnaBundle_')
+
+    ! Initialize
+    HasBundle = .FALSE.
+    errmode_ = 2
+    anatime_ = .FALSE. 
+    if ( present(err_mode) ) errmode_ = err_mode   
+    if ( present(anatime ) ) anatime_ = anatime
+
+    ! Get date & time of file. These are the passed values by default 
+    yy_ = yy
+    mm_ = mm
+    dd_ = dd
+    h_  = h
+    m_  = m
+    ! If anatime is true, set time to closest analysis hour (0z, 6z, 12z, 18z)
+    IF ( anatime_ ) THEN
+       IF (     h < 3  ) THEN
+          h_ = 0
+       ELSEIF ( h < 9  ) THEN
+          h_ = 6
+       ELSEIF ( h < 15 ) THEN
+          h_ = 12
+       ELSEIF ( h < 21 ) THEN
+          h_ = 18
+       ! If 21z, get next day (but keep minutes)
+       ELSE
+          call ESMF_TimeSet(currTime, yy=yy_, mm=mm_, dd=dd_, h=23, m=m_, s=0)
+          call ESMF_TimeIntervalSet(tsInt, s_r8=real(120.0,8), __RC__ )
+          call ESMF_TimeGet( currTime+tsInt, yy=yy_, mm=mm_, dd=dd_)
+          h_ = 0 
+       ENDIF
+    ENDIF
+
+    ! Parse file name
+    ifile_ = FileTmpl 
+    write(syy,'(I4.4)') yy_
+    CALL ReplaceChar ( ifile_, '%y4', syy )
+    write(smm,'(I2.2)') mm_
+    CALL ReplaceChar ( ifile_, '%m2', smm )
+    write(sdd,'(I2.2)') dd_
+    CALL ReplaceChar ( ifile_, '%d2', sdd )
+    write(sh,'(I2.2)') h_
+    CALL ReplaceChar ( ifile_, '%h2', sh  )
+    write(sm,'(I2.2)') m_
+    CALL ReplaceChar ( ifile_, '%n2', sm  )
+       
+    ! set default file time 
+    s_ = 0
+    call ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=s_)
+
+    ! Check if file exists
+    INQUIRE( FILE=TRIM(ifile_), EXIST=HasFile )
+    IF ( HasFile ) THEN
+       IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Reading '//TRIM(ifile_)
+       ! Try reading current time stamp on file 
+       VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile_), TRIM(bname), grid, fileTime_, ONLY_VARS=only_vars, RC=STATUS )
+       IF ( STATUS == ESMF_SUCCESS ) HasBundle = .TRUE.
+       ! If current time stamp not found in file, just read the first entry (dangerous!)
+       IF ( .NOT. HasBundle ) THEN
+          ! If error mode is 0 or 1, stop with error
+          IF ( errmode_ <= 1 ) THEN
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'Error: current time not found in file: ',TRIM(ifile_),yy_,mm_,dd_,h_,m_
+                WRITE(*,*) 'You can get past this error by setting the error mode to > 1'
+             ENDIF
+             ASSERT_(.FALSE.)
+          ELSE 
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'Warning: current time not found in file - will read first time slice on file!! ',yy_,mm_,dd_,h_,m_
+             ENDIF
+             ! Get time stamp on file
+             call GFIO_Open( ifile_, 1, fid, STATUS )
+             ASSERT_(STATUS==0)
+             call GetBegDateTime ( fid, nymd, nhms, incSecs, STATUS )
+             ASSERT_(STATUS==0)
+             caLL GFIO_Close( fid, STATUS )
+             ASSERT_(STATUS==0)
+             yy_ = nymd/10000
+             mm_ = (nymd-yy_*10000) / 100
+             dd_ = nymd - (10000*yy_ + mm_*100)
+             h_  = nhms/10000
+             m_  = (nhms- h_*10000) / 100
+             s_  = nhms - (10000*h_  + m_*100)
+             call ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=s_)
+             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile_), TRIM(bname), grid, fileTime_, ONLY_VARS=only_vars, RC=STATUS )
+             IF ( STATUS==ESMF_SUCCESS ) HasBundle = .TRUE.
+          ENDIF
+       ENDIF
+    ! error handling if file not found 
+    ELSE
+       ! If file not found and error mode is zero, stop with error
+       IF ( errmode_ == 0 ) THEN
+          IF ( am_I_Root ) THEN
+             WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile_)
+             WRITE(*,*) 'You can get past this error setting the error mode to > 0'
+          ENDIF
+          ASSERT_(.FALSE.)
+       ! If file not found and error mode is not zero, just skip nudging 
+       ELSE
+          IF ( am_I_Root ) WRITE(*,*) '*** GCC warning in GetAnaBundle_, file not found: '//TRIM(ifile_)
+       ENDIF
+    ENDIF
+
+    ! Return
+    IF ( present(ifile   ) ) ifile    = ifile_    
+    IF ( present(fileTime) ) fileTime = fileTime_
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE GetAnaBundle_
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -6977,7 +7309,7 @@ CONTAINS
 !
 ! !USE:
 !
-   USE Species_Mod,      ONLY : MISSING, MISSING_R8
+   USE Precision_Mod,      ONLY : MISSING, MISSING_DBLE
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7067,11 +7399,11 @@ CONTAINS
        dhr   = 0.0 !mkelp 20210114
        ak0   = 0.0 !mkelp
        ! Henry law coefficient [mol/atm]
-       IF ( SpcInfo%Henry_K0  /= MISSING_R8 ) hstar = SpcInfo%Henry_K0
+       IF ( SpcInfo%Henry_K0  /= MISSING_DBLE ) hstar = SpcInfo%Henry_K0
        ! Temperature correction factor [K]
-       IF ( SpcInfo%Henry_CR  /= MISSING_R8 ) dhr = SpcInfo%Henry_CR
+       IF ( SpcInfo%Henry_CR  /= MISSING_DBLE ) dhr = SpcInfo%Henry_CR
        ! Acid dissociation constant Ka, compute from pKa
-       IF ( SpcInfo%Henry_pKa /= MISSING_R8 ) ak0 = SpcInfo%Henry_pKa
+       IF ( SpcInfo%Henry_pKa /= MISSING_DBLE ) ak0 = SpcInfo%Henry_pKa
        ! Temperature correction for Ka, currently ignored by GEOS-Chem
        dak   = 0.0 !mkelp
        ! Don't washout SO2 if specified so
@@ -7470,7 +7802,6 @@ CONTAINS
 
   END SUBROUTINE MetVars_For_Lightning_Run
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------

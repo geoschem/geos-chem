@@ -1,35 +1,20 @@
 #!/bin/bash
 
-#SBATCH -n 24
-#SBATCH -N 1
-#SBATCH -t 0-1:00
+#SBATCH -n 96
+#SBATCH -N 2
+#SBATCH --exclusive
+#SBATCH -t 0-8:00
 #SBATCH -p huce_cascade
-#SBATCH --mem=110000
+#SBATCH --mem=180000
 #SBATCH --mail-type=END
 
-# Resource request tips: 
-#  (1) Use #SBATCH -n 6 to request 6 cores total across all nodes
-#  (2) Use #SBATCH --exclusive to prevent other users from sharing nodes in use
-#      (ability to use --exclusive may be disabled on some clusters)
-#  (3) Use --mem=50G to request 50 Gigabytes per node
-#  (4) Performance is enhanced by requesting entire nodes and all memory
-#      even if GCHP is run on fewer cores per node than available.
-#
-# See SLURM documentation for descriptions of all possible settings.
-# Type 'man sbatch' at the command prompt to browse documentation.
-
-# Exit if an error is encountered, and log commands of this script
+# Exit if command fails, and log all commands
 set -xe
 
-# Define GEOS-Chem log file (and remove any prior log file)
-thisDir=$(pwd -P)
-root=$(dirname ${thisDir})
-runDir=$(basename ${thisDir})
-log="${root}/logs/execute.${runDir}.log"
-rm -f ${log}
-
-# Save start date string from cap_restart
+# Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
+log=gchp.${start_str}z.log
+echo "Writing output to ${log}"
 
 # Update config files, set restart symlink, load run env, and do sanity checks
 source setCommonRunSettings.sh > ${log}
@@ -37,10 +22,10 @@ source setRestartLink.sh >> ${log}
 source gchp.env >> ${log}
 source checkRunSettings.sh >> ${log}
 
-# Harvard Cannon-specific setting to avoid connection issues at high # cores
+# Cannon-specific setting to get around connection issues at high # cores
 export OMPI_MCL_btl=openib
 
-# Use SLURM to distribute tasks across nodes
+# Run GCHP and evenly distribute tasks across nodes
 NX=$( grep NX GCHP.rc | awk '{print $2}' )
 NY=$( grep NY GCHP.rc | awk '{print $2}' )
 coreCount=$(( ${NX} * ${NY} ))
@@ -61,10 +46,4 @@ else
     source setRestartLink.sh
 fi
 
-# Update the results log
-cd ..
-./intTestResults.sh
-cd ${thisDir}
-
 exit 0
-
