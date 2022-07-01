@@ -936,29 +936,15 @@ CONTAINS
        ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate ) THEN
-#ifdef MODEL_GEOS
           !---------------------------------------------------
-          ! GEOS-Chem in NASA/GEOS:
-          ! Get equation rates (Aout) and the time derivative
-          ! of variable species concentrations (Vdotout)
-          !---------------------------------------------------
-          CALL Fun( V       = C(1:NVAR),                                     &
-                    F       = C(NVAR+1:NSPEC),                               &
-                    RCT     = RCONST,                                        &
-                    Vdot    = Vloc,                                          &
-                    Aout    = Aout,                                          &
-                    Vdotout = Vdotout                                       )
-#else
-          !---------------------------------------------------
-          ! All other contexts
-          ! Get equation rates (Aout) only
+          ! Get equation rates (Aout)
           !---------------------------------------------------
           CALL Fun( V       = C(1:NVAR),                                     &
                     F       = C(NVAR+1:NSPEC),                               &
                     RCT     = RCONST,                                        &
                     Vdot    = Vloc,                                          &
                     Aout    = Aout                                          )
-#endif
+
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
