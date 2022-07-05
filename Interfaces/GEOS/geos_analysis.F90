@@ -1106,7 +1106,7 @@ CONTAINS
     AnaConfig(ispec)%InTrop = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='NonZeroIncOnly:', Default=1,     __RC__ )
     AnaConfig(ispec)%NonZeroIncOnly = ( ThisInt == 1 )
-    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarNameInc, Label='FileVarNameInc:',                __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarNameInc, Label='FileVarNameInc:', Default='N/A', __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnaL1,          Label='AnaL1:'         , Default=1,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnaL2,          Label='AnaL2:'         , Default=1,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnaL3,          Label='AnaL3:'         , Default=72,    __RC__ )
