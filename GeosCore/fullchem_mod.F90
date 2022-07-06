@@ -365,7 +365,7 @@ CONTAINS
     ! Archive concentrations before chemistry
     !=======================================================================
     IF ( State_Diag%Archive_ConcBeforeChem ) THEN
-       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       ! Point to mapping obj specific to ConcBeforeChem diagnostic collection
        mapData => State_Diag%Map_ConcBeforeChem
 
        !$OMP PARALLEL DO       &
@@ -1474,7 +1474,7 @@ CONTAINS
     ! Archive concentrations after chemistry
     !=======================================================================
     IF ( State_Diag%Archive_ConcAfterChem ) THEN
-       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       ! Point to mapping obj specific to ConcAfterChem diagnostic collection
        mapData => State_Diag%Map_ConcAfterChem
 
        !$OMP PARALLEL DO       &

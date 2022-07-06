@@ -109,9 +109,9 @@ MODULE State_Diag_Mod
 
      !%%%%%  Concentrations %%%%%
 
-     REAL(f8),           POINTER :: SpeciesConc(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_SpeciesConc
-     LOGICAL                     :: Archive_SpeciesConc
+     REAL(f8),           POINTER :: SpeciesConcVV(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesConcVV
+     LOGICAL                     :: Archive_SpeciesConcVV
 
      REAL(f8),           POINTER :: SpeciesConcMND(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SpeciesConcMND
@@ -1195,9 +1195,9 @@ CONTAINS
     State_Diag%Archive_SpeciesBC                   = .FALSE.
 
     ! v/v dry VMR of species array
-    State_Diag%SpeciesConc                         => NULL()
-    State_Diag%Map_SpeciesConc                     => NULL()
-    State_Diag%Archive_SpeciesConc                 = .FALSE.
+    State_Diag%SpeciesConcVV                       => NULL()
+    State_Diag%Map_SpeciesConcVV                   => NULL()
+    State_Diag%Archive_SpeciesConcVV               = .FALSE.
 
     ! molec/cm3 diagnostic
     State_Diag%SpeciesConcMND                      => NULL()
@@ -2250,7 +2250,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Species concentration diagnostic (v/v dry)
     !------------------------------------------------------------------------
-    diagId  = 'SpeciesConc'
+    diagId  = 'SpeciesConcVV'
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -2258,9 +2258,9 @@ CONTAINS
          State_Grid     = State_Grid,                                        &
          DiagList       = Diag_List,                                         &
          TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%SpeciesConc,                            &
-         archiveData    = State_Diag%Archive_SpeciesConc,                    &
-         mapData        = State_Diag%Map_SpeciesConc,                        &
+         Ptr2Data       = State_Diag%SpeciesConcVV,                          &
+         archiveData    = State_Diag%Archive_SpeciesConcVV,                  &
+         mapData        = State_Diag%Map_SpeciesConcVV,                      &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -9229,9 +9229,15 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'SpeciesConc',                                 &
-                   Ptr2Data = State_Diag%SpeciesConc,                        &
-                   mapData  = State_Diag%Map_SpeciesConc,                    &
+    CALL Finalize( diagId   = 'SpeciesConcVV',                               &
+                   Ptr2Data = State_Diag%SpeciesConcVV,                      &
+                   mapData  = State_Diag%Map_SpeciesConcVV,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SpeciesConcMND',                              &
+                   Ptr2Data = State_Diag%SpeciesConcMND,                     &
+                   mapData  = State_Diag%Map_SpeciesConcMND,                 &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9244,12 +9250,6 @@ CONTAINS
     CALL Finalize( diagId   = 'ConcAfterChem',                               &
                    Ptr2Data = State_Diag%ConcAfterChem,                      &
                    mapData  = State_Diag%Map_ConcAfterChem,                  &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    CALL Finalize( diagId   = 'SpeciesConcMND',                              &
-                   Ptr2Data = State_Diag%SpeciesConcMND,                     &
-                   mapData  = State_Diag%Map_SpeciesConcMND,                 &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10713,14 +10713,20 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC' ) THEN
-       IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONCVV' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 
-    ! -- Adjoint only --
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONCMND' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
 #ifdef ADJOINT
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESADJ' ) THEN
        IF ( isDesc    ) Desc  = 'Adjoint variable of species'
@@ -10729,14 +10735,6 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 #endif
-    ! -- end Adjoint only --
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONCMND' ) THEN
-       IF ( isDesc    ) Desc  = 'Concentration of species'
-       IF ( isUnits   ) Units = 'molec cm-3'
-       IF ( isRank    ) Rank  = 3
-       IF ( isTagged  ) TagId = 'ALL'
-       IF ( isSrcType ) SrcType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBEFORECHEM' ) THEN
        IF ( isDesc    ) Desc  = 'Concentration before chemistry of species'
@@ -13148,7 +13146,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -13350,7 +13348,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -13564,7 +13562,7 @@ CONTAINS
     DO N = 1, nTags
 
        ! Get the diagnostic name and description
-       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
        CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
                               State_Chm  = State_Chm,                        &
                               metadataId = metadataId,                       &
@@ -13747,7 +13745,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -13958,7 +13956,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -14173,7 +14171,7 @@ CONTAINS
     DO N = 1, nTags
 
        ! Get the diagnostic name and description
-       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
        CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
                               State_Chm  = State_Chm,                        &
                               metadataId = metadataId,                       &

@@ -108,16 +108,20 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.format:         'CFIO',
   SpeciesConc.frequency:      {FREQUENCY}
   SpeciesConc.duration:       {DURATION}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ALL?             ', 'GIGCchem',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ', 'GIGCchem',
+                              #'SpeciesConcMND_?ALL?          ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE AdvFluxVert COLLECTION %%%%%
@@ -666,9 +670,9 @@ COLLECTIONS: 'Restart',
   StratBM.frequency:      00000000 010000
   StratBM.duration:       00000001 000000
   StratBM.mode:           'time-averaged'
-  StratBM.fields:         'SpeciesConc_NO2                   ', 'GIGCchem',
-                          'SpeciesConc_O3                    ', 'GIGCchem',
-                          'SpeciesConc_ClO                   ', 'GIGCchem',
+  StratBM.fields:         'SpeciesConcVV_NO2                 ', 'GIGCchem',
+                          'SpeciesConcVV_O3                  ', 'GIGCchem',
+                          'SpeciesConcVV_ClO                 ', 'GIGCchem',
                           'Met_PSC2WET                       ', 'GIGCchem',
                           'Met_BXHEIGHT                      ', 'GIGCchem',
                           'Met_AIRDEN                        ', 'GIGCchem',
