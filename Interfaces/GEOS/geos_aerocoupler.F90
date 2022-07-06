@@ -19,6 +19,7 @@ MODULE GEOS_AeroCoupler
   ! MAPL/ESMF
   USE ESMF     
   USE MAPL_Mod 
+  USE Chem_Mod
   ! GEOS-Chem
   USE Precision_Mod
   USE ErrCode_Mod                                    ! Error numbers
@@ -34,10 +35,18 @@ MODULE GEOS_AeroCoupler
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC   :: GEOS_FillAeroBundle 
+  PUBLIC   :: GEOS_AerosolOptics
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE  :: FillAeroDP_
+!
+! !PUBLIC TYPES
+!
+  ! Mie table
+  TYPE(Chem_Mie), PUBLIC     :: geoschemMieTable(2)
+  INTEGER, PUBLIC, PARAMETER :: instanceComputational = 1
+!!  INTEGER, PUBLIC, PARAMETER :: instanceData          = 2
 !
 ! !PRIVATE TYPES:
 !
@@ -167,6 +176,244 @@ CONTAINS
     _RETURN(ESMF_SUCCESS)
 
     END SUBROUTINE GEOS_FillAeroBundle
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_AerosolOptics 
+!
+! !DESCRIPTION: Aerosol optics routine, adapted from GOCART 
+!\\
+!\\
+! !INTERFACE:
+!
+  ! Adapted from the GOCART interface
+  subroutine GEOS_AerosolOptics(state, rc)
+!
+! !USES:
+!
+!
+! !PARAMETERS:
+!
+    type(ESMF_State)     :: state
+    integer, intent(out) :: rc
+!
+! !REVISION HISTORY:
+!  06 Jul 2022 - C. Keller   - Initial version (from Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    integer                                 :: n_aerosols
+    character(len=ESMF_MAXSTR), allocatable :: aerosol_names(:)
+    type(ESMF_FieldBundle)                  :: aerosols
+
+    real, dimension(:,:,:), pointer         :: ple
+    real, dimension(:,:,:), pointer         :: rh
+    real, dimension(:,:,:), pointer         :: var
+    real, dimension(:,:,:), pointer         :: q
+    real, dimension(:,:,:,:), pointer       :: q_4d
+
+    real, dimension(:,:,:), allocatable     :: dp, f_p
+
+    character(len=ESMF_MAXSTR)              :: fld_name
+    type(ESMF_Field)                        :: fld
+
+    real, dimension(:,:,:,:), allocatable   :: ext, ssa, asy ! (lon:,lat:,lev:,band:)
+
+    integer                                 :: n
+    integer                                 :: i1, j1, i2, j2, km
+
+    integer                                 :: band, offset
+
+    integer                                 :: instance
+
+    integer                                 :: STATUS
+    character(len=ESMF_MAXSTR)              :: Iam
+
+    integer, parameter                      :: n_bands = 1
+
+    real    :: x
+    integer :: i, j, k
+
+    Iam = 'GEOSCHEMCHEM::GEOS_AerosolOptics()'
+
+    ! Mie Table instance/index
+    ! ------------------------
+    call ESMF_AttributeGet(state, name='mie_table_instance',  &
+                           value=instance, __RC__)
+
+    ! Radiation band
+    ! --------------
+    band = 0
+    call ESMF_AttributeGet(state, name='band_for_aerosol_optics',  &
+                           value=band, __RC__)
+    offset = band - n_bands
+
+    ! Pressure at layer edges
+    ! ------------------------
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', &
+                           value=fld_name, __RC__)
+    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+    km = ubound(ple, 3)
+
+    ! Relative humidity
+    ! -----------------
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', &
+                           value=fld_name, __RC__)
+    call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
+
+    i1 = lbound(rh, 1); i2 = ubound(rh, 1)
+    j1 = lbound(rh, 2); j2 = ubound(rh, 2)
+    km = ubound(rh, 3)
+
+    call ESMF_StateGet(state, 'AEROSOLS', aerosols, __RC__)
+    call ESMF_FieldBundleGet(aerosols, fieldCount=n_aerosols, __RC__)
+
+    allocate(aerosol_names(n_aerosols), __STAT__)
+
+    call ESMF_FieldBundleGet(aerosols, FieldNameList=aerosol_names, __RC__)
+
+    allocate(ext(i1:i2,j1:j2,km,n_bands), &
+         ssa(i1:i2,j1:j2,km,n_bands), &
+         asy(i1:i2,j1:j2,km,n_bands), __STAT__)
+
+    allocate(q_4d(i1:i2,j1:j2,km,n_aerosols), __STAT__)
+
+#if (0)
+    allocate(dp(i1:i2,j1:j2,km), f_p(i1:i2,j1:j2,km), __STAT__)
+
+    dp  = ple(:,:,1:km) - ple(:,:,0:km-1)
+    f_p = dp / MAPL_GRAV
+
+    do n = 1, n_aerosols
+       call ESMF_FieldBundleGet(aerosols, trim(aerosol_names(n)),  &
+                                field=fld, __RC__)
+       call ESMF_FieldGet(fld, farrayPtr=q, __RC__)
+
+       q_4d(:,:,:,n) = f_p * q
+    end do
+
+    call ESMF_AttributeGet(state, name='mie_table_instance',  &
+                           value=instance, __RC__)
+    call mie_(geoschemMieTable(instance), aerosol_names, n_bands, &
+              offset, q_4d, rh, ext, ssa, asy, __RC__)
+
+    deallocate(dp, f_p, __STAT__)
+#else
+    do n = 1, n_aerosols
+       call ESMF_FieldBundleGet(aerosols, trim(aerosol_names(n)), &
+                                field=fld, __RC__)
+       call ESMF_FieldGet(fld, farrayPtr=q, __RC__)
+
+       do k = 1, km
+          do j = j1, j2
+             do i = i1, i2
+                x = ((PLE(i,j,k) - PLE(i,j,k-1))*0.01)*(100./MAPL_GRAV)
+                q_4d(i,j,k,n) = x * q(i,j,k)
+             end do
+          end do
+       end do
+    end do
+
+    call mie_(geoschemMieTable(instance), aerosol_names, n_bands,  &
+              offset, q_4d, rh, ext, ssa, asy, __RC__)
+#endif
+
+    call ESMF_AttributeGet(state,                                            &
+                           name='extinction_in_air_due_to_ambient_aerosol',  &
+                           value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       var = ext(:,:,:,1)
+    end if
+
+    call ESMF_AttributeGet(state,                                             &
+                           name='single_scattering_albedo_of_ambient_aerosol',&
+                           value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       var = ssa(:,:,:,1)
+    end if
+
+    call ESMF_AttributeGet(state,                                         &
+                           name='asymmetry_parameter_of_ambient_aerosol', &
+                           value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       var = asy(:,:,:,1)
+    end if
+
+    deallocate(aerosol_names, ext, ssa, asy, q_4d, __STAT__)
+
+    _RETURN(ESMF_SUCCESS)
+
+  contains
+
+    subroutine mie_(mie_table, aerosol, nb, offset, q, rh, ext, ssa, asy, rc)
+
+      implicit none
+
+      type(Chem_Mie),    intent(inout):: mie_table    ! mie table
+      character(len=*),  intent(in )  :: aerosol(:)   ! list of aerosols
+      integer,           intent(in )  :: nb           ! number of bands
+      integer,           intent(in )  :: offset       ! bands offset
+      real,              intent(in )  :: q(:,:,:,:)   ! aerosol mass mixing
+                                                      ! ratio, kg kg-1
+      real,              intent(in )  :: rh(:,:,:)    ! relative humidity
+
+      real,              intent(out)  :: ext(:,:,:,:) ! extinction
+      real,              intent(out)  :: ssa(:,:,:,:) ! SSA
+      real,              intent(out)  :: asy(:,:,:,:) ! asymmetry parameter
+
+      integer,           intent(out)  :: rc
+
+      ! local
+      integer :: STATUS
+      character(len=ESMF_MAXSTR) :: Iam='aerosol_optics::mie_'
+
+      integer :: l, idx, na
+
+      real(kind=8) :: ext_(size(ext,1),size(ext,2),size(ext,3),size(ext,4))
+      real(kind=8) :: ssa_(size(ext,1),size(ext,2),size(ext,3),size(ext,4))
+      real(kind=8) :: asy_(size(ext,1),size(ext,2),size(ext,3),size(ext,4))
+
+      na = size(aerosol)
+
+      _ASSERT (na == size(q,4),'Error in number of aerosols')
+
+      ext_ = 0.0d0
+      ssa_ = 0.0d0
+      asy_ = 0.0d0
+
+      do l = 1, na
+         idx = Chem_MieQueryIdx(mie_table, trim(aerosol(l)), __RC__)
+
+         call Chem_MieQueryAllBand4D(mie_table, idx, nb, offset, &
+                                     q(:,:,:,l), rh, ext, ssa, asy, __RC__)
+
+         ext_ = ext_ +          ext     ! total extinction
+         ssa_ = ssa_ +     (ssa*ext)    ! total scattering
+         asy_ = asy_ + asy*(ssa*ext)    ! sum of (asy * sca)
+      end do
+
+      ext = ext_
+      ssa = ssa_
+      asy = asy_
+
+      _RETURN(ESMF_SUCCESS)
+
+    end subroutine mie_
+
+  end subroutine GEOS_AerosolOptics 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
