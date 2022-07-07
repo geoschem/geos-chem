@@ -72,7 +72,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
                               'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
