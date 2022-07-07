@@ -228,8 +228,6 @@ Warnings:                    1
 0 APEI_BCPO $ROOT/APEI/v2016-11/APEI.0.1x0.1.nc EC  1989-2014/1/1/0 RF xy kg/m2/s BCPO 71/1002        1 30
 0 APEI_OCPI $ROOT/APEI/v2016-11/APEI.0.1x0.1.nc OC  1989-2014/1/1/0 RF xy kg/m2/s OCPI 72/1002        1 30
 0 APEI_OCPO $ROOT/APEI/v2016-11/APEI.0.1x0.1.nc OC  1989-2014/1/1/0 RF xy kg/m2/s OCPO 73/1002        1 30
-0 APEI_POG1 -                                       -    -          -  -  -       POG1 74/76/1002     1 30
-0 APEI_POG2 -                                       -    -          -  -  -       POG2 74/77/1002     1 30
 )))APEI
 
 #==============================================================================
@@ -1054,24 +1052,14 @@ Warnings:                    1
 
 0 AF_EDGAR_OCPI_POW $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.POW.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 RF xy kg/m2/s OCPI 1201/1008/72         1 60
 0 AF_EDGAR_OCPO_POW -                                                    -       -               -  -  -       OCPO 1201/1008/73         1 60
-0 AF_EDGAR_POG1_POW -                                                    -       -               -  -  -       POG1 1201/1008/74/76      1 60
-0 AF_EDGAR_POG2_POW -                                                    -       -               -  -  -       POG2 1201/1008/74/77      1 60
 0 AF_EDGAR_OCPI_ENG $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.ENG.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 RF xy kg/m2/s OCPI 1202/1008/72         1 60
 0 AF_EDGAR_OCPO_ENG -                                                    -       -               -  -  -       OCPO 1202/1008/73         1 60
-0 AF_EDGAR_POG1_ENG -                                                    -       -               -  -  -       POG1 1202/74/1008/76      1 60
-0 AF_EDGAR_POG2_ENG -                                                    -       -               -  -  -       POG2 1202/1008/74/77      1 60
 0 AF_EDGAR_OCPI_IND $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.IND.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 RF xy kg/m2/s OCPI 1203/1008/72         1 60
 0 AF_EDGAR_OCPO_IND -                                                    -       -               -  -  -       OCPO 1203/1008/73         1 60
-0 AF_EDGAR_POG1_IND -                                                    -       -               -  -  -       POG1 1203/1008/74/76      1 60
-0 AF_EDGAR_POG2_IND -                                                    -       -               -  -  -       POG2 1203/1008/74/77      1 60
 0 AF_EDGAR_OCPI_TNG $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.TNG.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 RF xy kg/m2/s OCPI 1205/1008/72         1 60
 0 AF_EDGAR_OCPO_TNG -                                                    -       -               -  -  -       OCPO 1205/1008/73         1 60
-0 AF_EDGAR_POG1_TNG -                                                    -       -               -  -  -       POG1 1205/1008/74/76      1 60
-0 AF_EDGAR_POG2_TNG -                                                    -       -               -  -  -       POG2 1205/1008/74/77      1 60
 0 AF_EDGAR_OCPI_SWD $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.SWD.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 RF xy kg/m2/s OCPI 1211/1008/72         1 60
 0 AF_EDGAR_OCPO_SWD -                                                    -       -               -  -  -       OCPO 1211/1008/73         1 60
-0 AF_EDGAR_POG1_SWD -                                                    -       -               -  -  -       POG1 1211/1008/74/76      1 60
-0 AF_EDGAR_POG2_SWD -                                                    -       -               -  -  -       POG2 1211/1008/74/77      1 60
 
 0 AF_EDGAR_SO2_POW  $ROOT/EDGARv43/v2016-11/EDGAR_v43.SO2.POW.0.1x0.1.nc emi_so2 1970-2010/1/1/0 RF xy kg/m2/s SO2  1201/1008            1 60
 0 AF_EDGAR_SO4_POW  -                                                    -       -               -  -  -       SO4  1201/1008/63         1 60
@@ -1324,40 +1312,22 @@ Warnings:                    1
 0  EDGAR_NH3_SWD  $ROOT/EDGARv43/v2016-11/EDGAR_v43.NH3.SWD.0.1x0.1.nc emi_nh3 1970-2010/1/1/0 C xy kg/m2/s NH3  1211            1 2
 0  EDGAR_OCPI_POW $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.POW.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1201/72         1 2
 0  EDGAR_OCPO_POW -                                                    -       -               - -  -       OCPO 1201/73         1 2
-0  EDGAR_POG1_POW -                                                    -       -               - -  -       POG1 1201/74/76      1 2
-0  EDGAR_POG2_POW -                                                    -       -               - -  -       POG2 1201/74/77      1 2
 0  EDGAR_OCPI_ENG $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.ENG.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1202/72         1 2
 0  EDGAR_OCPO_ENG -                                                    -       -               - -  -       OCPO 1202/73         1 2
-0  EDGAR_POG1_ENG -                                                    -       -               - -  -       POG1 1202/74/76      1 2
-0  EDGAR_POG2_ENG -                                                    -       -               - -  -       POG2 1202/74/77      1 2
 0  EDGAR_OCPI_IND $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.IND.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1203/72         1 2
 0  EDGAR_OCPO_IND -                                                    -       -               - -  -       OCPO 1203/73         1 2
-0  EDGAR_POG1_IND -                                                    -       -               - -  -       POG1 1203/74/76      1 2
-0  EDGAR_POG2_IND -                                                    -       -               - -  -       POG2 1203/74/77      1 2
 0  EDGAR_OCPI_TRO $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.TRO.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1204/72         1 2
 0  EDGAR_OCPO_TRO -                                                    -       -               - -  -       OCPO 1204/73         1 2
-0  EDGAR_POG1_TRO -                                                    -       -               - -  -       POG1 1204/74/76      1 2
-0  EDGAR_POG2_TRO -                                                    -       -               - -  -       POG2 1204/74/77      1 2
 0  EDGAR_OCPI_TNG $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.TNG.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1205/72         1 2
 0  EDGAR_OCPO_TNG -                                                    -       -               - -  -       OCPO 1205/73         1 2
-0  EDGAR_POG1_TNG -                                                    -       -               - -  -       POG1 1205/74/76      1 2
-0  EDGAR_POG2_TNG -                                                    -       -               - -  -       POG2 1205/74/77      1 2
 0  EDGAR_OCPI_RCO $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.RCO.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1206/72         1 2
 0  EDGAR_OCPO_RCO -                                                    -       -               - -  -       OCPO 1206/73         1 2
-0  EDGAR_POG1_RCO -                                                    -       -               - -  -       POG1 1206/74/76      1 2
-0  EDGAR_POG2_RCO -                                                    -       -               - -  -       POG2 1206/74/77      1 2
 #0 EDGAR_OCPI_AWB $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.AWB.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1209/72         1 2
 #0 EDGAR_OCPO_AWB -                                                    -       -               - -  -       OCPO 1209/73         1 2
-#0 EDGAR_POG1_AWB -                                                    -       -               - -  -       POG1 1209/74/76      1 2
-#0 EDGAR_POG2_AWB -                                                    -       -               - -  -       POG2 1209/74/77      1 2
 0  EDGAR_OCPI_SWD $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.SWD.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1211/72         1 2
 0  EDGAR_OCPO_SWD -                                                    -       -               - -  -       OCPO 1211/73         1 2
-0  EDGAR_POG1_SWD -                                                    -       -               - -  -       POG1 1211/74/76      1 2
-0  EDGAR_POG2_SWD -                                                    -       -               - -  -       POG2 1211/74/77      1 2
 0  EDGAR_OCPI_FFF $ROOT/EDGARv43/v2016-11/EDGAR_v43.OC.FFF.0.1x0.1.nc  emi_oc  1970-2010/1/1/0 C xy kg/m2/s OCPI 1212/72         1 2
 0  EDGAR_OCPO_FFF -                                                    -       -               - -  -       OCPO 1212/73         1 2
-0  EDGAR_POG1_FFF -                                                    -       -               - -  -       POG1 1212/74/76      1 2
-0  EDGAR_POG2_FFF -                                                    -       -               - -  -       POG2 1212/74/77      1 2
 0  EDGAR_SO2_POW  $ROOT/EDGARv43/v2016-11/EDGAR_v43.SO2.POW.0.1x0.1.nc emi_so2 1970-2010/1/1/0 C xy kg/m2/s SO2  1201            1 2
 0  EDGAR_SO4_POW  -                                                    -       -               - -  -       SO4  1201/63         1 2
 0  EDGAR_pFe_POW  -                                                    -       -               - -  -       pFe  1201/66         1 2
