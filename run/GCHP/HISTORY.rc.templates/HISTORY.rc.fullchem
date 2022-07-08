@@ -134,11 +134,11 @@ COLLECTIONS: @#'DefaultCollection',
   DefaultCollection.frequency:      240000
   DefaultCollection.duration:       240000
   DefaultCollection.mode:           'time-averaged'
-  DefaultCollection.fields:         'SpeciesConc_O3       ', 'GCHPchem',
-                                    'SpeciesConc_NO       ', 'GCHPchem',
-                                    'SpeciesConc_NO2      ', 'GCHPchem',
-                                    'SpeciesConc_OH       ', 'GCHPchem',
-                                    'SpeciesConc_CO       ', 'GCHPchem',
+  DefaultCollection.fields:         'SpeciesConcVV_O3     ', 'GCHPchem',
+                                    'SpeciesConcVV_NO     ', 'GCHPchem',
+                                    'SpeciesConcVV_NO2    ', 'GCHPchem',
+                                    'SpeciesConcVV_OH     ', 'GCHPchem',
+                                    'SpeciesConcVV_CO     ', 'GCHPchem',
                                     'PM25                 ', 'GCHPchem',
                                     'Met_T                ', 'GCHPchem',
                                     'Met_RH               ', 'GCHPchem',
