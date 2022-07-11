@@ -8,7 +8,7 @@
 
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
-log=gchp.${start_str}z.log
+log=gchp.${start_str:0:13}z.log
 
 # Load environment
 if [ ! -L gchp.env ] || [ ! -e gchp.env ]; then

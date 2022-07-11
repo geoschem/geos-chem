@@ -25,7 +25,7 @@ set -xe
 
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
-log=gchp.${start_str}z.log
+log=gchp.${start_str:0:13}z.log
 echo "Writing output to ${log}"
 
 # Assume success until overwritten
