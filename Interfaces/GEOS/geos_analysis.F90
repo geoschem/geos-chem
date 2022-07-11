@@ -41,6 +41,15 @@ MODULE GEOS_Analysis
   ! Number of species with analysis on
   INTEGER                         :: nAnaSpec 
 
+  ! Options for dependent species 
+  TYPE Spec2Opt
+     CHARACTER(LEN=ESMF_MAXSTR)   :: Spec2Name
+     LOGICAL                      :: Spec2Strat 
+     LOGICAL                      :: Spec2Trop 
+     REAL                         :: Spec2MinRatio
+     REAL                         :: Spec2MaxRatio
+  END TYPE
+
   ! Analysis options object. A separate object will be created for each analysed species/family
   TYPE AnaOptions
      CHARACTER(LEN=ESMF_MAXSTR)   :: SpecName
@@ -73,12 +82,8 @@ MODULE GEOS_Analysis
      REAL                         :: MinConc
      LOGICAL                      :: UseObsHour
      CHARACTER(LEN=ESMF_MAXSTR)   :: ObsHourName 
-     LOGICAL                      :: HasSpec2
-     CHARACTER(LEN=ESMF_MAXSTR)   :: Spec2Name
-     LOGICAL                      :: Spec2Strat 
-     LOGICAL                      :: Spec2Trop 
-     REAL                         :: Spec2MinRatio
-     REAL                         :: Spec2MaxRatio
+     INTEGER                      :: nSpec2
+     TYPE(Spec2Opt), POINTER      :: Spec2(:) => NULL()
      INTEGER                      :: ErrorMode
   END TYPE AnaOptions
 
@@ -177,13 +182,12 @@ CONTAINS
     ! Initialize diagnostics
     IF ( nAnaSpec > 0 ) THEN
        DO N=1,nAnaSpec
-          NDIAG = 1
-          IF ( AnaConfig(N)%HasSpec2 ) NDIAG = 2 
+          NDIAG = 1 + AnaConfig(N)%nSpec2
           DO I=1,NDIAG
              IF ( I==1 ) THEN
                 SpecName = AnaConfig(N)%SpecName
              ELSE
-                SpecName = AnaConfig(N)%Spec2Name
+                SpecName = AnaConfig(N)%Spec2(I-1)%Spec2Name
              ENDIF
              CALL MAPL_AddExportSpec(GC,                                                                   &
                    SHORT_NAME         = 'GCC_ANA_INC_'//TRIM(SpecName),                                    &
@@ -215,7 +219,7 @@ CONTAINS
                       VLOCATION          = MAPL_VLocationCenter,              &
                                                                 __RC__ )
              ENDIF
-             IF ( I==2 ) THEN
+             IF ( I>1 ) THEN
                 CALL MAPL_AddExportSpec(GC,                                   &
                       SHORT_NAME         = 'GCC_ANA_RATIO_'//TRIM(SpecName)//'_TO_'//TRIM(AnaConfig(N)%SpecName),   &
                       LONG_NAME          = TRIM(SpecName)//'_to_'//TRIM(AnaConfig(N)%SpecName)//'_species_ratio_after_analysis',  &
@@ -340,7 +344,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     CHARACTER(LEN=ESMF_MAXSTR)    :: Iam
-    INTEGER                       :: STATUS 
+    INTEGER                       :: N, STATUS 
 
     !=======================================================================
     ! GEOS_AnaInit begins here 
@@ -350,7 +354,12 @@ CONTAINS
     Iam = 'GEOS_AnaFinal'
 
     ! Clean up 
-    IF ( ASSOCIATED(AnaConfig) ) DEALLOCATE( AnaConfig )
+    IF ( ASSOCIATED(AnaConfig) ) THEN
+       DO N=1,nAnaSpec
+          IF ( ASSOCIATED(AnaConfig(N)%Spec2) ) DEALLOCATE(AnaConfig(N)%Spec2)
+       ENDDO
+       DEALLOCATE( AnaConfig )
+    ENDIF
     AnaConfig => NULL()
     nAnaSpec = 0
 
@@ -420,20 +429,23 @@ CONTAINS
     REAL                       :: ThisHour
     CHARACTER(LEN=ESMF_MAXSTR) :: SpecName, Spec2Name, FldName
     REAL, POINTER              :: DiagInc(:,:,:),  DiagIncFrac(:,:,:)
-    REAL, POINTER              :: DiagInc2(:,:,:), DiagIncFrac2(:,:,:), DiagSpcRatio(:,:,:)
+    REAL, ALLOCATABLE          :: DiagInc2(:,:,:,:), DiagIncFrac2(:,:,:,:), DiagSpcRatio(:,:,:,:)
     REAL, POINTER              :: DiagMsk2d(:,:),  DiagMsk3d(:,:,:)
     REAL, POINTER              :: AnaPtr(:,:,:), IncPtr(:,:,:), ObsHour(:,:)
+    REAL, POINTER              :: Ptr2D(:,:), Ptr3D(:,:,:)
     REAL, ALLOCATABLE          :: SpcBkg(:,:,:), SpcAsm(:,:,:)
-    REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:), Spc2Asm(:,:,:)
+    REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:,:), Spc2Asm(:,:,:,:)
     TYPE(MAPL_SimpleBundle)    :: VarBundle, VarBundleH
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile, only_vars
     TYPE(ESMF_TIME)            :: fileTime
-    INTEGER                    :: I, J, L, IM, JM, LM, LB, indSpc, indSpc2
+    INTEGER                    :: I, J, L, N, IM, JM, LM, LB, indSpc
+    INTEGER, ALLOCATABLE       :: indSpc2(:)
     INTEGER                    :: UnitFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
     REAL                       :: wgt, tropwgt, stratwgt
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
-    REAL                       :: mwSpc, mwSpc2
+    REAL                       :: mwSpc
+    REAL, ALLOCATABLE          :: mwSpc2(:)
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
     LOGICAL                    :: UpdateSpec2
@@ -456,10 +468,7 @@ CONTAINS
     ! Get settings
     iopt => AnaConfig(ispec)
     SpecName = iopt%SpecName
-    IF ( iopt%HasSpec2 ) THEN
-       Spec2Name = iopt%Spec2Name 
-    ENDIF
-    MinConc   = iopt%MinConc
+    MinConc  = iopt%MinConc
 
     ! Check if it's time to do the analysis
     TimeForAna = .FALSE. 
@@ -474,7 +483,7 @@ CONTAINS
        IF ( m==iopt%AnalysisMinute .AND. MOD(h,iopt%AnalysisFreq)==iopt%AnalysisHour ) TimeForAna = .TRUE. 
     ENDIF
 
-    ! Initialize diagnostics
+    ! Initialize/reset diagnostics
     ! ----------------------
     FldName = 'GCC_ANA_INC_'//TRIM(SpecName)
     CALL MAPL_GetPointer ( Export, DiagInc, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
@@ -482,23 +491,37 @@ CONTAINS
     FldName = 'GCC_ANA_INC_FRAC_'//TRIM(SpecName)
     CALL MAPL_GetPointer ( Export, DiagIncFrac, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(DiagIncFrac) ) DiagIncFrac = 1.0 
-    IF ( iopt%HasSpec2 ) THEN
-       FldName = 'GCC_ANA_INC_'//TRIM(Spec2Name)
-       CALL MAPL_GetPointer ( Export, DiagInc2, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(DiagInc2) ) DiagInc2 = 0.0 
-       FldName = 'GCC_ANA_INC_FRAC_'//TRIM(Spec2Name)
-       CALL MAPL_GetPointer ( Export, DiagIncFrac2, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(DiagIncFrac2) ) DiagIncFrac2 = 1.0 
-       FldName = 'GCC_ANA_RATIO_'//TRIM(Spec2Name)//'_TO_'//TRIM(SpecName)
-       CALL MAPL_GetPointer ( Export, DiagSpcRatio, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(DiagIncFrac2) ) DiagSpcRatio = -999.0 
-    ENDIF
     FldName = 'GCC_ANA_MASK_VSUM_'//TRIM(SpecName)
     CALL MAPL_GetPointer ( Export, DiagMsk2d, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(DiagMsk2d) ) DiagMsk2d = 0.0 
     FldName = 'GCC_ANA_MASK_'//TRIM(SpecName)
     CALL MAPL_GetPointer ( Export, DiagMsk3d, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(DiagMsk3d) ) DiagMsk3d = 0.0 
+
+    ! Fill species 2 diagnostics
+    IF ( iopt%nSpec2 > 0 ) THEN
+       DO N=1,iopt%nSpec2
+          Spec2Name = TRIM(iopt%Spec2(N)%Spec2Name)
+          FldName = 'GCC_ANA_INC_'//TRIM(Spec2Name)
+          CALL MAPL_GetPointer ( Export, Ptr3D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) .AND. .NOT. ALLOCATED(DiagInc2) ) THEN
+             ALLOCATE(DiagInc2(SIZE(Ptr3D,1),SIZE(Ptr3D,2),SIZE(Ptr3D,3),iopt%nSpec2))
+             DiagInc2 = 0.0
+          ENDIF 
+          FldName = 'GCC_ANA_INC_FRAC_'//TRIM(Spec2Name)
+          CALL MAPL_GetPointer ( Export, Ptr3D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) .AND. .NOT. ALLOCATED(DiagIncFrac2) ) THEN
+             ALLOCATE(DiagIncFrac2(SIZE(Ptr3D,1),SIZE(Ptr3D,2),SIZE(Ptr3D,3),iopt%nSpec2))
+             DiagIncFrac2 = 1.0
+          ENDIF 
+          FldName = 'GCC_ANA_RATIO_'//TRIM(Spec2Name)//'_TO_'//TRIM(SpecName)
+          CALL MAPL_GetPointer ( Export, Ptr3D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) .AND. .NOT. ALLOCATED(DiagSpcRatio) ) THEN
+             ALLOCATE(DiagSpcRatio(SIZE(Ptr3D,1),SIZE(Ptr3D,2),SIZE(Ptr3D,3),iopt%nSpec2))
+             DiagSpcRatio = -999.0 
+          ENDIF 
+       ENDDO 
+    ENDIF
 
     ! Check if file exists (only if it's time to do the analysis
     HasBundle = .FALSE.
@@ -546,24 +569,31 @@ CONTAINS
 
        ! Select GEOS-Chem index and molecular weight for analysis species. Also get the same for 2nd species (if used) 
        indSpc   = -1
-       indSpc2  = -1
+       IF ( iopt%nSpec2 > 0 ) THEN
+          ALLOCATE(indSpc2(iopt%nSpec2))
+          ALLOCATE(mwSpc2(iopt%nSpec2))
+       ENDIF 
        DO I = 1, State_Chm%nSpecies
           IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == TRIM(SpecName) ) THEN
              indSpc = I
              mwSpc  = State_Chm%SpcData(I)%Info%MW_g
           ENDIF
-          IF ( iopt%HasSpec2 ) THEN
-             IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == TRIM(Spec2Name) ) THEN
-                indSpc2 = I
-                mwSpc2  = State_Chm%SpcData(I)%Info%MW_g
-             ENDIF
+          IF ( iopt%nSpec2 > 0 ) THEN
+             DO N=1,iopt%nSpec2
+                IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == TRIM(iopt%Spec2(N)%Spec2Name) ) THEN
+                   indSpc2(N) = I
+                   mwSpc2(N)  = State_Chm%SpcData(I)%Info%MW_g
+                ENDIF
+             ENDDO
           ENDIF
        ENDDO
        ASSERT_(indSpc > 0  )
        ASSERT_( mwSpc > 0.0)
-       IF ( iopt%HasSpec2 ) THEN
-          ASSERT_(indSpc2 > 0  )
-          ASSERT_( mwSpc2 > 0.0)
+       IF ( iopt%nSpec2 > 0 ) THEN
+          DO N=1,iopt%nSpec2
+             ASSERT_(indSpc2(N) > 0  )
+             ASSERT_( mwSpc2(N) > 0.0)
+          ENDDO
        ENDIF
 
        ! array dimensions 
@@ -592,20 +622,20 @@ CONTAINS
        ! Also flip vertical axis to be consistent with GEOS
        ALLOCATE(SpcBkg(IM,JM,LM),SpcAsm(IM,JM,LM))
        SpcBkg(:,:,:) = State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwSpc
-       ! testing only
-       !SpcBkg(:,:,:) = State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)
        SpcAsm(:,:,:) = SpcBkg(:,:,:)
-       IF ( iopt%HasSpec2 ) THEN
-          ALLOCATE(Spc2Bkg(IM,JM,LM),Spc2Asm(IM,JM,LM))
-          Spc2Bkg(:,:,:) = State_Chm%Species(indSpc2)%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwSpc2
-          Spc2Asm(:,:,:) = Spc2Bkg(:,:,:)
-          IF ( ASSOCIATED(DiagSpcRatio) ) THEN
-             WHERE ( SpcBkg > MinConc ) 
-                DiagSpcRatio = Spc2Bkg / SpcBkg
-             ELSEWHERE
-                DiagSpcRatio = Spc2Bkg / MinConc 
-             ENDWHERE
-          ENDIF
+       IF ( iopt%nSpec2 > 0 ) THEN
+          ALLOCATE(Spc2Bkg(IM,JM,LM,iopt%nSpec2),Spc2Asm(IM,JM,LM,iopt%nSpec2))
+          DO N=1,iopt%nSpec2
+             Spc2Bkg(:,:,:,N) = State_Chm%Species(indSpc2(N))%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwSpc2(N)
+             Spc2Asm(:,:,:,N) = Spc2Bkg(:,:,:,N)
+             IF ( ALLOCATED(DiagSpcRatio) ) THEN
+                WHERE ( SpcBkg > MinConc ) 
+                   DiagSpcRatio(:,:,:,N) = Spc2Bkg(:,:,:,N) / SpcBkg(:,:,:)
+                ELSEWHERE
+                   DiagSpcRatio(:,:,:,N) = Spc2Bkg(:,:,:,N) / MinConc
+                ENDWHERE
+             ENDIF
+          ENDDO
        ENDIF
  
        ! Number of negative cells
@@ -709,41 +739,44 @@ CONTAINS
              ! Update assimilated field
              SpcAsm(I,J,L) = MAX(SpcNew,MinConc)
 
-             ! Eventually update second species to maintain concentration ratio of species 2 / species 1
-             UpdateSpec2 = .FALSE.
-             IF ( iopt%HasSpec2 ) THEN
-                ! Default is to use background field
-                Spc2Asm(I,J,L) = Spc2Bkg(I,J,L)
-                ! Use background field if in stratosphere and no adjustment to be done in stratosphere
-                IF     ( stratwgt >= 0.5 .AND. .NOT. iopt%Spec2Strat ) THEN
-                   Spc2Asm(I,J,L) = Spc2Bkg(I,J,L)
-                ! Use background field if in troposphere and no adjustment to be done in troposphere
-                ELSEIF ( tropwgt  >= 0.5 .AND. .NOT. iopt%Spec2Trop  ) THEN
-                   Spc2Asm(I,J,L) = Spc2Bkg(I,J,L)
-                ! Calculate Spc2/Spc1 ratio before update and maintain that ratio in assimilation field
-                ELSE    
-                   OldRatio = Spc2Bkg(I,J,L) / MAX(SpcBkg(I,J,L),MinConc)
-                   NewRatio = Spc2Bkg(I,J,L) / SpcAsm(I,J,L)
-                   ! Update species only if the ratio is within the specified limits. Otherwise, we assume
-                   ! that species 2 is so abundant or missing that updating it is not meaningful.
-                   IF ( ( OldRatio < iopt%Spec2MaxRatio .AND. OldRatio > iopt%Spec2MinRatio ) .OR. &
-                        ( NewRatio < iopt%Spec2MaxRatio .AND. NewRatio > iopt%Spec2MinRatio )       ) THEN
-                      Spc2Asm(I,J,L) = SpcAsm(I,J,L) * OldRatio 
-                      UpdateSpec2    = .TRUE.
-                   ENDIF
-                ENDIF
-             ENDIF
- 
              ! Update diagnostics
              IF ( ASSOCIATED(DiagInc        ) ) DiagInc(I,J,L)      = SpcAsm(I,J,L) - SpcBkg(I,J,L)
              IF ( ASSOCIATED(DiagIncFrac    ) ) DiagIncFrac(I,J,L)  = SpcAsm(I,J,L) / MAX(SpcBkg(I,J,L),MinConc)
-             IF( UpdateSpec2 ) THEN 
-                IF ( ASSOCIATED(DiagInc2    ) ) DiagInc2(I,J,L)     = Spc2Asm(I,J,L) - Spc2Bkg(I,J,L)
-                IF ( ASSOCIATED(DiagIncFrac2) ) DiagIncFrac2(I,J,L) = Spc2Asm(I,J,L) / MAX(Spc2Bkg(I,J,L),MinConc)
-                IF ( ASSOCIATED(DiagSpcRatio) ) DiagSpcRatio(I,J,L) = Spc2Asm(I,J,L) / SpcAsm(I,J,L)
-             ENDIF 
              IF ( ASSOCIATED(DiagMsk2d      ) ) DiagMsk2d(I,J)      = DiagMsk2d(I,J) + 1.0
              IF ( ASSOCIATED(DiagMsk3d      ) ) DiagMsk3d(I,J,L)    = 1.0 
+
+             ! Eventually update dependent species to maintain concentration ratio of species 2 / species 1
+             IF ( iopt%nSpec2>0 ) THEN
+                DO N=1,iopt%nSpec2
+                   UpdateSpec2 = .FALSE.
+                   ! Default is to use background field
+                   Spc2Asm(I,J,L,N) = Spc2Bkg(I,J,L,N)
+                   ! Use background field if in stratosphere and no adjustment to be done in stratosphere
+                   IF     ( stratwgt >= 0.5 .AND. .NOT. iopt%Spec2(N)%Spec2Strat ) THEN
+                      CYCLE 
+                   ! Use background field if in troposphere and no adjustment to be done in troposphere
+                   ELSEIF ( tropwgt  >= 0.5 .AND. .NOT. iopt%Spec2(N)%Spec2Trop  ) THEN
+                      CYCLE
+                   ! Calculate Spc2/Spc1 ratio before update and maintain that ratio in assimilation field
+                   ELSE    
+                      OldRatio = Spc2Bkg(I,J,L,N) / MAX(SpcBkg(I,J,L),MinConc)
+                      NewRatio = Spc2Bkg(I,J,L,N) / SpcAsm(I,J,L)
+                      ! Update species only if the ratio is within the specified limits. Otherwise, we assume
+                      ! that species 2 is so abundant or missing that updating it is not meaningful.
+                      IF ( ( OldRatio<iopt%Spec2(N)%Spec2MaxRatio .AND. OldRatio>iopt%Spec2(N)%Spec2MinRatio ) .OR. &
+                           ( NewRatio<iopt%Spec2(N)%Spec2MaxRatio .AND. NewRatio>iopt%Spec2(N)%Spec2MinRatio )       ) THEN
+                         Spc2Asm(I,J,L,N) = SpcAsm(I,J,L) * OldRatio 
+                         UpdateSpec2 = .TRUE.
+                      ENDIF
+                   ENDIF
+                   ! Diagnostics
+                   IF( UpdateSpec2 ) THEN 
+                      IF ( ALLOCATED(DiagInc2    ) ) DiagInc2(I,J,L,N)     = Spc2Asm(I,J,L,N) - Spc2Bkg(I,J,L,N)
+                      IF ( ALLOCATED(DiagIncFrac2) ) DiagIncFrac2(I,J,L,N) = Spc2Asm(I,J,L,N) / MAX(Spc2Bkg(I,J,L,N),MinConc)
+                      IF ( ALLOCATED(DiagSpcRatio) ) DiagSpcRatio(I,J,L,N) = Spc2Asm(I,J,L,N) / SpcAsm(I,J,L)
+                   ENDIF
+                ENDDO
+             ENDIF
           ENDDO
        ENDDO
        ENDDO
@@ -756,26 +789,44 @@ CONTAINS
        ! Pass back to State_Chm%Species array: flip vertical axis and convert v/v dry to kg/kg total
        ! -------------------------------------------------------------------------------------------
        State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)     = SpcAsm(:,:,:)  * (1.-Q) / MAPL_AIRMW * mwSpc
-       ! testing only
-       !State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1) = SpcAsm(:,:,:)
-       IF ( iopt%HasSpec2 ) THEN
-          State_Chm%Species(indSpc2)%Conc(:,:,LM:1:-1) = Spc2Asm(:,:,:) * (1.-Q) / MAPL_AIRMW * mwSpc2
+       IF ( iopt%nSpec2 > 0 ) THEN
+          DO N=1,iopt%nSpec2 
+             State_Chm%Species(indSpc2(N))%Conc(:,:,LM:1:-1) = Spc2Asm(:,:,:,N) * (1.-Q) / MAPL_AIRMW * mwSpc2(N)
+          ENDDO
        ENDIF
 
+    ENDIF ! HasBundle
+
+    ! Fill species 2 diagnostics
+    IF ( iopt%nSpec2 > 0 ) THEN
+       DO N=1,iopt%nSpec2
+          Spec2Name = TRIM(iopt%Spec2(N)%Spec2Name)
+          FldName = 'GCC_ANA_INC_'//TRIM(Spec2Name)
+          CALL MAPL_GetPointer ( Export, Ptr3D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) ) Ptr3D(:,:,:) = DiagInc2(:,:,:,N)
+          FldName = 'GCC_ANA_INC_FRAC_'//TRIM(Spec2Name)
+          CALL MAPL_GetPointer ( Export, Ptr3D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) ) Ptr3D(:,:,:) = DiagIncFrac2(:,:,:,N)
+          FldName = 'GCC_ANA_RATIO_'//TRIM(Spec2Name)//'_TO_'//TRIM(SpecName)
+          CALL MAPL_GetPointer ( Export, Ptr3D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) ) Ptr3D(:,:,:) = DiagSpcRatio(:,:,:,N)
+       ENDDO 
     ENDIF
 
     ! Cleanup
     ! -------
-    IF ( ALLOCATED(SpcBkg ) ) DEALLOCATE(SpcBkg)
-    IF ( ALLOCATED(SpcAsm ) ) DEALLOCATE(SpcAsm)
-    IF ( ALLOCATED(Spc2Bkg) ) DEALLOCATE(Spc2Bkg)
-    IF ( ALLOCATED(Spc2Asm) ) DEALLOCATE(Spc2Asm)
+    IF ( ALLOCATED(SpcBkg      ) ) DEALLOCATE(SpcBkg)
+    IF ( ALLOCATED(SpcAsm      ) ) DEALLOCATE(SpcAsm)
+    IF ( ALLOCATED(Spc2Bkg     ) ) DEALLOCATE(Spc2Bkg)
+    IF ( ALLOCATED(Spc2Asm     ) ) DEALLOCATE(Spc2Asm)
+    IF ( ALLOCATED(DiagInc2    ) ) DEALLOCATE(DiagInc2)
+    IF ( ALLOCATED(DiagIncFrac2) ) DEALLOCATE(DiagIncFrac2)
+    IF ( ALLOCATED(DiagSpcRatio) ) DEALLOCATE(DiagSpcRatio)
+    IF ( ALLOCATED(indSpc2     ) ) DEALLOCATE(indSpc2)
+    IF ( ALLOCATED(mwSpc2      ) ) DEALLOCATE(mwSpc2)
 
     IF ( ASSOCIATED(DiagInc     ) ) DiagInc      => NULL()
     IF ( ASSOCIATED(DiagIncFrac ) ) DiagIncFrac  => NULL()
-    IF ( ASSOCIATED(DiagInc2    ) ) DiagInc2     => NULL()
-    IF ( ASSOCIATED(DiagIncFrac2) ) DiagIncFrac2 => NULL()
-    IF ( ASSOCIATED(DiagSpcRatio) ) DiagSpcRatio => NULL()
     IF ( ASSOCIATED(DiagMsk2d   ) ) DiagMsk2d    => NULL()
     IF ( ASSOCIATED(DiagMsk3d   ) ) DiagMsk3d    => NULL()
 
@@ -1063,9 +1114,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     TYPE(ESMF_Config)             :: CF
-    CHARACTER(LEN=ESMF_MAXSTR)    :: ConfigNameLabel, ConfigName
+    CHARACTER(LEN=ESMF_MAXSTR)    :: ConfigNameLabel, ConfigName, ThisStr
+    CHARACTER(LEN=ESMF_MAXSTR)    :: Spec2Name, Spec2Strat, Spec2Trop 
+    CHARACTER(LEN=ESMF_MAXSTR)    :: Spec2MinRatio, Spec2MaxRatio
     CHARACTER(LEN=3)              :: intStr
-    INTEGER                       :: ThisInt 
+    INTEGER                       :: N, IDX, nSpec2, ThisInt 
     CHARACTER(LEN=ESMF_MAXSTR)    :: Iam
     INTEGER                       :: STATUS 
 
@@ -1122,17 +1175,39 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='UseObsHour:'    , Default=0,     __RC__ )
     AnaConfig(ispec)%UseObsHour = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%ObsHourName,    Label='ObsHourName:'   , Default='ana_hour', __RC__ )
-    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='HasSpec2:'      , Default=0,     __RC__ )
-    AnaConfig(ispec)%HasSpec2 = ( ThisInt == 1 )
-    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%Spec2Name,      Label='Spec2Name:'     , Default='N/A', __RC__ )
-    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='Spec2Strat:'    , Default=1,     __RC__ )
-    AnaConfig(ispec)%Spec2Strat = ( ThisInt == 1 )
-    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='Spec2Trop:'     , Default=1,     __RC__ )
-    AnaConfig(ispec)%Spec2Trop = ( ThisInt == 1 )
-    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%Spec2MinRatio,  Label='Spec2MinRatio:' , Default=-1.0,  __RC__ )
-    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%Spec2MaxRatio,  Label='Spec2MaxRatio:' , Default=-1.0,  __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MinConc,        Label='MinConc:'       , Default=1.0e-20, __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%ErrorMode,      Label='ErrorMode:'     , Default=1   ,  __RC__ )
+
+    ! Check for "dependent" species
+    CALL ESMF_ConfigGetAttribute( CF, nSpec2,                          Label='HasSpec2:'      , Default=0,     __RC__ )
+    AnaConfig(ispec)%nSpec2 = nSpec2
+    IF ( nSpec2 > 0 ) THEN
+       ALLOCATE(AnaConfig(ispec)%Spec2(nSpec2)) 
+       ! Read parameter as string (can be different for multiple dependent species, separated by comma')
+       CALL ESMF_ConfigGetAttribute( CF, Spec2Name,       Label='Spec2Name:'     , Default='N/A',   __RC__ )
+       CALL ESMF_ConfigGetAttribute( CF, Spec2Strat,      Label='Spec2Strat:'    , Default='1',     __RC__ )
+       CALL ESMF_ConfigGetAttribute( CF, Spec2Trop,       Label='Spec2Trop:'     , Default='1',     __RC__ )
+       CALL ESMF_ConfigGetAttribute( CF, Spec2MinRatio,   Label='Spec2MinRatio:' , Default='-1.0',  __RC__ )
+       CALL ESMF_ConfigGetAttribute( CF, Spec2MaxRatio,   Label='Spec2MaxRatio:' , Default='-1.0',  __RC__ )
+       ! Assign parameter to various slots
+       DO N = 1, nSpec2
+          ! Species name
+          CALL Spec2Parse_( Spec2Name, N, ThisStr )
+          AnaConfig(ispec)%Spec2(N)%Spec2Name = ThisStr 
+          ! Use in troposphere/stratosphere?
+          CALL Spec2Parse_( Spec2Strat, N, ThisStr )
+          AnaConfig(ispec)%Spec2(N)%Spec2Strat = ( TRIM(ThisStr)=='1' )
+          CALL Spec2Parse_( Spec2Trop, N, ThisStr )
+          AnaConfig(ispec)%Spec2(N)%Spec2Trop  = ( TRIM(ThisStr)=='1' )
+          ! Minimum / maximum ratios 
+          CALL Spec2Parse_( Spec2MinRatio, N, ThisStr )
+          READ(ThisStr,*) AnaConfig(ispec)%Spec2(N)%Spec2MinRatio
+          CALL Spec2Parse_( Spec2MaxRatio, N, ThisStr )
+          READ(ThisStr,*) AnaConfig(ispec)%Spec2(N)%Spec2MaxRatio
+       ENDDO
+    ELSE
+       AnaConfig(ispec)%Spec2 => NULL()
+    ENDIF
 
     ! Some logical checks
     IF ( AnaConfig(ispec)%ApplyIncrement ) AnaConfig(ispec)%NonZeroIncOnly = .FALSE.
@@ -1175,13 +1250,15 @@ CONTAINS
           WRITE(*,*) '- Min. relative change in strat : ', AnaConfig(ispec)%MinRatioStrat
           WRITE(*,*) '- Min. relative change in trop  : ', AnaConfig(ispec)%MinRatioTrop  
           WRITE(*,*) '- Min. concentration (for ratio): ', AnaConfig(ispec)%MinConc
-          WRITE(*,*) '- Also update 2nd species       : ', AnaConfig(ispec)%HasSpec2
-          IF ( AnaConfig(ispec)%HasSpec2 ) THEN
-             WRITE(*,*) '- Name of 2nd species           : ', TRIM(AnaConfig(ispec)%Spec2Name)
-             WRITE(*,*) '- Do 2nd species in stratosphere: ', AnaConfig(ispec)%Spec2Strat
-             WRITE(*,*) '- Do 2nd species in troposphere : ', AnaConfig(ispec)%Spec2Trop 
-             WRITE(*,*) '- Minimum 2nd/1st species ratio : ', AnaConfig(ispec)%Spec2MinRatio
-             WRITE(*,*) '- Maximum 2nd/1st species ratio : ', AnaConfig(ispec)%Spec2MaxRatio
+          WRITE(*,*) '- # of dependent species        : ', AnaConfig(ispec)%nSpec2
+          IF ( AnaConfig(ispec)%nSpec2 > 0 ) THEN
+             DO N = 1, AnaConfig(ispec)%nSpec2
+                WRITE(*,*) '- Name of dependent species     : ', TRIM(AnaConfig(ispec)%Spec2(N)%Spec2Name)
+                WRITE(*,*) '- Update in stratosphere        : ', AnaConfig(ispec)%Spec2(N)%Spec2Strat
+                WRITE(*,*) '- Update in troposphere         : ', AnaConfig(ispec)%Spec2(N)%Spec2Trop 
+                WRITE(*,*) '- Minimum ratio (x/parent)      : ', AnaConfig(ispec)%Spec2(N)%Spec2MinRatio
+                WRITE(*,*) '- Maximum ratio (x/parent)      : ', AnaConfig(ispec)%Spec2(N)%Spec2MaxRatio
+             ENDDO
           ENDIF
           WRITE(*,*) '- Error mode                    : ', AnaConfig(ispec)%ErrorMode
        ENDIF ! Active 
@@ -1197,9 +1274,68 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Spec2Parse_ 
+!
+! !DESCRIPTION: Helper routine to get the Nth index of a string (separated
+!  by comma).  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Spec2Parse_( instr, N, outstr )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)    :: instr 
+    INTEGER,          INTENT(IN)    :: N 
+!                                                             
+! !INPUT/OUTPUT PARAMETERS:                                         
+!              
+    CHARACTER(LEN=*), INTENT(INOUT) :: outstr 
+!
+! !REVISION HISTORY:
+!  07 Jul 2022 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER                    :: lenstr
+    INTEGER                    :: I, LPOS, RPOS
+    CHARACTER(LEN=ESMF_MAXSTR) :: tmpstr
+
+    ! Local copy of original string
+    tmpstr = TRIM(instr)
+    lenstr = LEN(instr)
+
+    ! Check for first separator in string
+    LPOS = 0
+    RPOS = INDEX(TRIM(tmpstr),',')
+
+    ! Use full string if no separator in string 
+    IF ( RPOS>0 .AND. N>1 ) THEN
+       DO I = 2, N
+          IF(RPOS<=0) CYCLE
+          LPOS = RPOS
+          tmpstr(LPOS:LPOS) = '.'
+          RPOS = INDEX(TRIM(tmpstr),',')
+       ENDDO
+    ENDIF
+    IF ( RPOS <= 0 ) RPOS = lenstr+1 
+    outstr = TRIM(instr(LPOS+1:RPOS-1))
+
+  END SUBROUTINE Spec2Parse_ 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ReplaceChar_ 
 !
-! !DESCRIPTION: Replaces all characters in a string 
+! !DESCRIPTION: Replaces all characters in a string. 
 !\\
 !\\
 ! !INTERFACE:
