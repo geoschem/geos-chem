@@ -8,13 +8,13 @@
 # One argument: number of runs
 numRuns=${1}
 if [[ "x${numRuns}" == "x" ]]; then
-    echo "ERROR: Specify number of runs as argument, e.g. ./gchp.multirun.submit 2"
+    echo "ERROR: Specify number of runs as argument, e.g. ./gchp.submit_consecutive_jobs.sh 2"
     exit
 fi
 
 # Sanity check number of runs, start date, and duration per run
 echo "Submitting ${numRuns} jobs"
-echo "Duration:  $(grep "DURATION=" setCommonRunSettings.sh | cut -c 8- | xargs)"
+echo "Duration:  $(grep "DURATION=" setCommonRunSettings.sh | cut -c 14- | xargs)"
 echo "Start:     $(cat cap_restart)"
 
 # Submit first job   

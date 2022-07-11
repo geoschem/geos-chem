@@ -428,7 +428,7 @@ do
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
-    linkname="${rundir}/Restarts/${new_prefix}.${start_date}_000000z.c${N}.nc4"
+    linkname="${rundir}/Restarts/${new_prefix}.${start_date}_0000z.c${N}.nc4"
     ln -s ${initial_rst} ${linkname}
 done
 
@@ -508,7 +508,7 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 printf "\n  -- This run directory has been set up to start on $start_date and"
 printf "\n     restart files for this date are in the Restarts subdirectory.\n"
 printf "\n  -- Update start time in configuration file cap_restart.\n"
-printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmSSz.cN.nc4.\n"
+printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc4.\n"
 printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh."
 
 # Call function to setup configuration files with settings common between
