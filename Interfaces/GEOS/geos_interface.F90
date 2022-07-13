@@ -36,10 +36,13 @@ MODULE GEOS_Interface
 !
   PUBLIC   :: MetVars_For_Lightning_Init 
   PUBLIC   :: MetVars_For_Lightning_Run  
+  PUBLIC   :: GEOS_CheckRATSandOx
+  PUBLIC   :: GEOS_RATSandOxDiags
   PUBLIC   :: GEOS_Diagnostics 
   PUBLIC   :: GEOS_CalcTotOzone
   PUBLIC   :: GEOS_InitFromFile
   PUBLIC   :: GEOS_AddSpecInfoForMoist
+  PUBLIC   :: GEOS_PreRunChecks
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -57,6 +60,326 @@ MODULE GEOS_Interface
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_CheckRATSandOx
+!
+! !DESCRIPTION: Check if GEOS-Chem is the RATS/Ox provider and set services
+!  accordingly. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS_CheckRATSandOx( am_I_Root, GC, RC )
+!
+! !USE:
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)            :: am_I_Root ! Root CPU?
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
+    INTEGER,             INTENT(INOUT)         :: RC        ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  13 Jul 2022 - C. Keller   - Initial version (from Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(ESMF_CONFIG)                :: CF
+    CHARACTER(LEN=ESMF_MAXSTR)       :: ProviderName 
+
+    __Iam__('GEOS_CheckRATSandOx')
+
+    ! Get configuration 
+    CALL ESMF_GridCompGet( GC, CONFIG = CF, __RC__ )
+
+    ! If GEOS-Chem is the RATS provider, we need to make sure that all
+    ! RATS quantities are available to irradiation. We will get these
+    ! quantities directly from the GEOS-Chem internal state, except for
+    ! H2O_TEND that is calculated explicitly.
+    ! Since those fields are just copies of the GEOS-Chem internal
+    ! species, we add them as export specs, i.e. no physics is applied
+    ! to those fields.
+    ! ----------------------------------------------------------------
+    ! See if GC is the RATS provider
+    CALL ESMF_ConfigGetAttribute( CF, ProviderName,       &
+                                  Label="RATS_PROVIDER:", &
+                                  Default="PCHEM",        &
+                                  __RC__                   )
+
+    IF ( ProviderName == "GEOSCHEMCHEM" ) THEN 
+
+       ! verbose
+       IF ( am_I_Root ) WRITE(*,*) 'GEOS-Chem is RATS provider, set exports...'
+
+       call MAPL_AddExportSpec(GC,                                &
+          SHORT_NAME         = 'N2O',                               &
+          LONG_NAME          = 'nitrous_oxide_volume_mixing_ratio', &
+          UNITS              = 'mol mol-1',                         &
+          DIMS               = MAPL_DimsHorzVert,                   &
+          VLOCATION          = MAPL_VLocationCenter,                &
+                                                            __RC__ )
+
+       call MAPL_AddExportSpec(GC,                                &
+          SHORT_NAME         = 'CFC11',                             &
+          LONG_NAME          = 'CFC11_(CCl3F)_volume_mixing_ratio', &
+          UNITS              = 'mol mol-1',                         &
+          DIMS               = MAPL_DimsHorzVert,                   &
+          VLOCATION          = MAPL_VLocationCenter,                &
+                                                            __RC__ )
+
+       call MAPL_AddExportSpec(GC,                                &
+          SHORT_NAME         = 'CFC12',                             &
+          LONG_NAME          = 'CFC12_(CCl2F2)_volume_mixing_ratio',&
+          UNITS              = 'mol mol-1',                         &
+          DIMS               = MAPL_DimsHorzVert,                   &
+          VLOCATION          = MAPL_VLocationCenter,                &
+                                                            __RC__ )
+
+       call MAPL_AddExportSpec(GC,                                &
+          SHORT_NAME         = 'HCFC22',                            &
+          LONG_NAME          = 'HCFC22_(CHClF2)_volume_mixing_ratio', &
+          UNITS              = 'mol mol-1',                         &
+          DIMS               = MAPL_DimsHorzVert,                   &
+          VLOCATION          = MAPL_VLocationCenter,                &
+                                                            __RC__ )
+
+       call MAPL_AddExportSpec(GC,                                &
+          SHORT_NAME         = 'CH4',                               &
+          LONG_NAME          = 'methane_volume_mixing_ratio',       &
+          UNITS              = 'mol mol-1',                         &
+          DIMS               = MAPL_DimsHorzVert,                   &
+          VLOCATION          = MAPL_VLocationCenter,                &
+                                                            __RC__ )
+
+       call MAPL_AddExportSpec(GC,                                  &
+          SHORT_NAME = 'H2O_TEND',                                  &
+          LONG_NAME  = 'tendency_of_water_vapor_mixing_ratio_due_to_chemistry',&
+          UNITS      = 'kg kg-1 s-1',                               &
+          DIMS       = MAPL_DimsHorzVert,                           &
+          VLOCATION  = MAPL_VLocationCenter,                        &
+                                                            __RC__ )
+    ENDIF ! DoRATS
+
+    !================================
+    ! If Analysis OX provider
+    !================================
+    CALL ESMF_ConfigGetAttribute( CF, ProviderName,              &
+                                  Label="ANALYSIS_OX_PROVIDER:", &
+                                  Default="PCHEM",               &
+                                  __RC__                          )
+
+    IF ( ProviderName == "GEOSCHEMCHEM" ) THEN 
+       ! verbose
+       IF ( am_I_Root ) WRITE(*,*) 'GEOS-Chem is OX provider!' 
+
+!-- Add OX to the internal state if GEOS-Chem is the analysis OX provider
+        CALL MAPL_AddInternalSpec(GC,                                       &
+           SHORT_NAME         = 'OX',                                       &
+           LONG_NAME          = 'odd_oxygen_volume_mixing_ratio_total_air', &
+           UNITS              = 'mol mol-1',                                &
+           DIMS               = MAPL_DimsHorzVert,                          &
+           FRIENDLYTO         = 'ANALYSIS:DYNAMICS:TURBULENCE:MOIST',       &
+           RESTART            = MAPL_RestartSkip,                           &
+           VLOCATION          = MAPL_VLocationCenter,                       &
+                                                  __RC__ )
+        if(am_I_Root) write(*,*) 'OX added to internal: Friendly to: ANALYSIS, DYNAMICS, TURBULENCE'
+
+       call MAPL_AddExportSpec(GC,                 &
+          SHORT_NAME = 'O3',                       &
+          LONG_NAME  = 'ozone_mass_mixing_ratio',  &
+          UNITS      = 'kg kg-1',                  &
+          DIMS       = MAPL_DimsHorzVert,          &
+          VLOCATION  = MAPL_VLocationCenter,       &
+                                           __RC__ )
+
+       call MAPL_AddExportSpec(GC,                 &
+          SHORT_NAME = 'O3PPMV',                   &
+          LONG_NAME  = 'ozone_volume_mixing_ratio_in_ppm',  &
+          UNITS      = 'ppmv',                     &
+          DIMS       = MAPL_DimsHorzVert,          &
+          VLOCATION  = MAPL_VLocationCenter,       &
+                                           __RC__ )
+
+       call MAPL_AddExportSpec(GC,                 &
+          SHORT_NAME = 'OX_TEND',                  &
+          LONG_NAME  = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry',&
+          UNITS      = 'mol mol-1 s-1',            &
+          DIMS       = MAPL_DimsHorzVert,          &
+          VLOCATION  = MAPL_VLocationCenter,       &
+                                           __RC__ )
+    ENDIF !DoANOX
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE GEOS_CheckRATSandOx
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_RATSandOxDiags
+!
+! !DESCRIPTION: GEOS_RATSandOxDiags manages the diagnostics for RATS and Ox.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS_RATSandOxDiags( GC, Internal, Export, Input_Opt, State_Met, &
+                                  State_Chm, State_Grid, Q, Stage, tsChem, RC ) 
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
+    TYPE(ESMF_STATE),    INTENT(INOUT)         :: Internal  ! Internal state
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Export    ! Export State
+    TYPE(OptInput)                             :: Input_Opt
+    TYPE(MetState)                             :: State_Met
+    TYPE(ChmState)                             :: State_Chm
+    TYPE(GrdState)                             :: State_Grid
+    REAL,                INTENT(IN)            :: Q(:,:,:)
+    INTEGER,             INTENT(IN)            :: Stage 
+    REAL,                INTENT(IN)            :: tsChem 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  13 Jul 2022 - C. Keller   - Initial version (from Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER, PARAMETER           :: NRATS = 5
+    CHARACTER(LEN=15), PARAMETER :: RatsNames(NRATS) = (/ 'CH4', 'N2O', 'CFC11', 'CFC12', 'HCFC22' /)
+    REAL, PARAMETER              :: OMW = 16.0
+    ! 
+    INTEGER                      :: I, LM, IndSpc, IndO3
+    REAL, POINTER                :: Ptr3D(:,:,:)    => NULL()
+    REAL(fp), POINTER            :: PTR_O3(:,:,:)   => NULL()
+    REAL, POINTER                :: OX_TEND(:,:,:)  => NULL()
+    REAL, POINTER                :: OX(:,:,:)       => NULL()
+    REAL, POINTER                :: O3(:,:,:)       => NULL()
+    REAL, POINTER                :: O3PPMV(:,:,:)   => NULL()
+    REAL, POINTER                :: GCO3(:,:,:)     => NULL()
+    REAL, POINTER                :: GCO3PPMV(:,:,:) => NULL()
+    REAL, POINTER                :: PTR_O3P(:,:,:)  => NULL()
+    REAL, POINTER                :: PTR_O1D(:,:,:)  => NULL()
+    REAL, ALLOCATABLE            :: OXLOCAL(:,:,:)
+    LOGICAL                      :: NeedO3
+
+    __Iam__('GEOS_RATSandOxDiags')
+
+    ! Start here
+    LM = State_Grid%NZ
+
+    !=======================================================================
+    ! Fill RATS export states if GC is the RATS provider
+    ! The tracer concentrations of the RATS export states are in mol mol-1.
+    ! These fields are required for coupling with other components. Don't
+    ! do this via the State_Diag object but use the EXPORT state directly.
+    !=======================================================================
+    ! Get pointers to RATS exports
+    IF ( Stage == 2 ) THEN
+       DO I=1,NRATS
+          CALL MAPL_GetPointer ( EXPORT, Ptr3D, TRIM(RatsNames(I)), NotFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3D) ) THEN
+             IndSpc = Ind_(TRIM(RatsNames(I)))
+             ASSERT_(IndSpc>0)
+             Ptr3D = State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) &
+                   * ( MAPL_AIRMW / State_Chm%SpcData(IndSpc)%Info%MW_g )
+          ENDIF
+       ENDDO
+    ENDIF
+
+    ! Check for H2O tendency
+    CALL MAPL_GetPointer ( EXPORT, Ptr3D, 'H2O_TEND', NotFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D) ) THEN
+       IndSpc = Ind_('H2O')
+       ASSERT_(IndSpc>0)
+       IF ( Stage == 1 ) Ptr3D = State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) 
+       IF ( Stage == 2 ) Ptr3D = ( State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1)-Ptr3D ) / tsChem 
+    ENDIF 
+
+    !=======================================================================
+    ! Ozone diagnostics for GEOS coupling with other components. Do these
+    ! via the export state directly, rather than using the State_Diag obj.
+    !=======================================================================
+
+    ! PTR_O3: kg kg-1 total air
+    !CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
+
+    ! Fill ozone export states if GC is the analysis OX provider:
+    !      OX: volume mixing ratio
+    !      O3: mass mixing ratio
+    !  O3PPMV: volume mixing ratio in ppm
+    ! Get pointers to analysis OX exports
+    CALL MAPL_GetPointer ( EXPORT,  OX_TEND, 'OX_TEND'    , NotFoundOK=.TRUE., __RC__ )
+    IF ( Stage == 2 ) THEN
+       CALL MAPL_GetPointer ( INTERNAL,     OX, 'OX'         , NotFoundOK=.TRUE., __RC__ )
+       CALL MAPL_GetPointer ( EXPORT,       O3, 'O3'         , NotFoundOK=.TRUE., __RC__ )
+       CALL MAPL_GetPointer ( EXPORT,   O3PPMV, 'O3PPMV'     , NotFoundOK=.TRUE., __RC__ )
+       CALL MAPL_GetPointer ( EXPORT,     GCO3, 'GCC_O3'     , NotFoundOK=.TRUE., __RC__ )
+       CALL MAPL_GetPointer ( EXPORT, GCO3PPMV, 'GCC_O3PPMV' , NotFoundOK=.TRUE., __RC__ )
+    ENDIF
+    NeedO3 = .FALSE.
+    IF ( ASSOCIATED(OX      )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(OX_TEND )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(O3      )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(O3PPMV  )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(GCO3    )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(GCO3PPMV)) NeedO3 = .TRUE.
+    IF ( NeedO3 ) THEN
+       IndO3 = Ind_('O3')
+       ASSERT_(IndO3>0)
+       PTR_O3 => State_Chm%Species(IndO3)%Conc(:,:,LM:1:-1)
+    ENDIF
+    IF ( ASSOCIATED(O3)       ) O3       = PTR_O3
+    IF ( ASSOCIATED(GCO3)     ) GCO3     = PTR_O3
+    IF ( ASSOCIATED(O3PPMV  ) ) GCO3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(GCO3PPMV) ) O3PPMV   = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(OX) .OR. ASSOCIATED(OX_TEND) ) THEN
+       ALLOCATE(OXLOCAL(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+       OXLOCAL = PTR_O3 * MAPL_AIRMW / MAPL_O3MW
+       IndSpc = Ind_('O')
+       ASSERT_(IndSpc>0)
+       OXLOCAL = OXLOCAL + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
+       IndSpc = Ind_('O1D')
+       ASSERT_(IndSpc>0)
+       OXLOCAL = OXLOCAL + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
+       IF ( ASSOCIATED(OX) ) OX = OXLOCAL 
+       IF ( ASSOCIATED(OX_TEND) ) THEN
+          IF ( Stage==1 ) OX_TEND = OXLOCAL
+          IF ( Stage==2 ) OX_TEND = ( OXLOCAL - OX_TEND ) / tsChem 
+       ENDIF
+       DEALLOCATE(OXLOCAL)
+    ENDIF
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE GEOS_RATSandOxDiags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
@@ -222,9 +545,117 @@ CONTAINS
        ENDIF
     ENDDO
 
+    ! All done
     RETURN_(ESMF_SUCCESS)
 
   END SUBROUTINE GEOS_AddSpecInfoForMoist
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_PreRunChecks
+!
+! !DESCRIPTION: GEOS_PreRunChecks makes some pre-run checks specific for GEOS simulations 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS_PreRunChecks( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                                GeosCF, First, RC )
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    LOGICAL,             INTENT(IN)            :: am_I_Root 
+    TYPE(OptInput)                             :: Input_Opt
+    TYPE(MetState)                             :: State_Met
+    TYPE(ChmState)                             :: State_Chm
+    TYPE(ESMF_Config),   INTENT(INOUT)         :: GeosCF    ! ESMF Config obj (GEOSCHEM*.rc)
+    LOGICAL,             INTENT(IN)            :: First
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  13 Jul 2022 - C. Keller   - Initial version (from Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER                    :: N, InitZero, InitSpecs 
+
+    __Iam__('GEOS_PreRunChecks')
+
+    !=======================================================================
+    ! Error trap: make sure that PBL height is defined.
+    ! Some fields needed by GEOS-Chem are only filled after the first
+    ! GEOS-Chem run. We need to avoid that GEOS-Chem is called in these
+    ! cases, since those fields are still zero and would cause seg-faults.
+    ! The PBL height is a good proxy variable, and if those values are ok
+    ! all others seem to be fine as well.
+    ! We do this error check on every time step (not only on the first
+    ! one) to also catch the case where the time is reset to the initial
+    ! conditions (replay mode).
+    ! (ckeller, 4/24/2015).
+    !=======================================================================
+    IF ( ANY(State_Met%PBLH <= 0.0_fp) ) THEN
+       Input_Opt%haveImpRst = .FALSE.
+
+       ! Warning message
+       IF ( am_I_Root ) THEN
+          write(*,*) ' '
+          write(*,*)      &
+             'At least one PBLH value in GEOS-Chem is zero - skip time step'
+          write(*,*) ' '
+       ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! Handling of species/tracer initialization. Default practice is to take
+    ! whatever values are in the restarts. However, it is possible to
+    ! initialize everything to zero and/or to set species' concentration to
+    ! the values set in globchem.dat.rc. These options can be set in the
+    ! GEOSCHEMchem GridComp registry. (ckeller, 2/4/16)
+    !=======================================================================
+    IF ( First ) THEN 
+       ! Check if zero initialization option is selected. If so, make sure
+       ! all concentrations are initialized to zero!
+       CALL ESMF_ConfigGetAttribute( GeosCF, InitZero, Default=0, &
+                                     Label = "INIT_ZERO:", __RC__ )
+       IF ( InitZero == 1 ) THEN
+          DO N = 1, State_Chm%nSpecies
+             State_Chm%Species(N)%Conc = 0.0d0
+          ENDDO
+          IF ( am_I_Root ) THEN
+             write(*,*) ' '
+             write(*,*) ' '
+             write(*,*)     &
+              '### ALL GEOS-CHEM CONCENTRATIONS INITIALIZED TO ZERO !!! ###'
+             write(*,*) ' '
+             write(*,*) ' '
+          ENDIF
+       ENDIF
+
+       ! Check if species shall be initialized to values set in globchem.dat
+       CALL ESMF_ConfigGetAttribute( GeosCF, InitSpecs, Default=0, &
+                                     Label = "INIT_SPECS:", __RC__ )
+       IF ( InitSpecs == 1 ) Input_Opt%LINITSPEC = .TRUE.
+    ENDIF
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE GEOS_PreRunChecks
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
@@ -684,7 +1115,7 @@ CONTAINS
     LOGICAL                      :: IsChemTime    ! Chemistry alarm proxy
     LOGICAL                      :: IsTendTime    ! Time to calculate tendencies
 
-    INTEGER                      :: indO3, indSpc
+    INTEGER                      :: indSpc
     INTEGER                      :: I,  J,  L, N, LB
     INTEGER                      :: IM, JM, LM
 
@@ -695,13 +1126,6 @@ CONTAINS
     REAL, POINTER                :: Ptr2D(:,:)     => NULL()
     REAL, POINTER                :: Ptr3D(:,:,:)   => NULL()
     REAL(fp), POINTER            :: PTR_O3(:,:,:)  => NULL()
-    REAL, POINTER                :: OX(:,:,:)      => NULL()
-    REAL, POINTER                :: O3(:,:,:)      => NULL()
-    REAL, POINTER                :: O3PPMV(:,:,:)  => NULL()
-    REAL, POINTER                :: PTR_O3P(:,:,:) => NULL()
-    REAL, POINTER                :: PTR_O1D(:,:,:) => NULL()
-    REAL, PARAMETER              :: OMW = 16.0
-
     REAL(f4), POINTER            :: O3_MASS(:,:,:) => NULL()
 
     ! LFR diag
@@ -712,9 +1136,6 @@ CONTAINS
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
     CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
-
-    INTEGER, PARAMETER           :: NRATS = 5
-    CHARACTER(LEN=15), PARAMETER :: RatsNames(NRATS) = (/ 'CH4', 'N2O', 'CFC11', 'CFC12', 'HCFC22' /)
 
     __Iam__('GEOS_Diagnostics')
 
@@ -766,46 +1187,6 @@ CONTAINS
                                    State_Diag, IMPORT, EXPORT, Q, __RC__ )
 
     !=======================================================================
-    ! Ozone diagnostics for GEOS coupling with other components. Do these
-    ! via the export state directly, rather than using the State_Diag obj.
-    !=======================================================================
-
-    ! PTR_O3: kg kg-1 total air
-    !CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
-
-    ! Fill ozone export states if GC is the analysis OX provider:
-    !      OX: volume mixing ratio
-    !      O3: mass mixing ratio
-    !  O3PPMV: volume mixing ratio in ppm
-    ! Get pointers to analysis OX exports
-    CALL MAPL_GetPointer ( INTSTATE,    OX, 'OX'         , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,      O3, 'GCC_O3'     , NotFoundOK=.TRUE., __RC__ )
-    CALL MAPL_GetPointer ( EXPORT,  O3PPMV, 'GCC_O3PPMV' , NotFoundOK=.TRUE., __RC__ )
-
-    IF ( ASSOCIATED(O3) .OR. ASSOCIATED(O3PPMV) .OR. ASSOCIATED(OX) ) THEN
-       indO3 = -1
-       DO I=1,State_Chm%nSpecies
-          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == 'O3' ) THEN
-             indO3 = I
-             EXIT
-          ENDIF
-       ENDDO
-       ASSERT_(indO3>0)
-       PTR_O3 => State_Chm%Species(indO3)%Conc(:,:,LM:1:-1)
-    ENDIF
-    IF ( ASSOCIATED(O3)     ) O3     = PTR_O3
-    IF ( ASSOCIATED(O3PPMV) ) O3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
-    IF ( ASSOCIATED(OX) ) THEN
-       OX = PTR_O3  * MAPL_AIRMW / MAPL_O3MW
-       IndSpc = Ind_('O')
-       ASSERT_(IndSpc>0)
-       OX = OX + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
-       IndSpc = Ind_('O1D')
-       ASSERT_(IndSpc>0)
-       OX = OX + ( State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)*MAPL_AIRMW/State_Chm%SpcData(IndSpc)%Info%MW_g )
-    ENDIF
-
-    !=======================================================================
     ! Ozone diagnostics handled through State_Diag object
     !=======================================================================
 
@@ -816,28 +1197,15 @@ CONTAINS
     IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN
        O3_MASS => State_Diag%O3_MASS(:,:,LM:1:-1)
        LB = LBOUND(PLE,3)
+       IndSpc = Ind_('O3')
+       ASSERT_(IndSpc>0)
+       PTR_O3 => State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1)
        DO L=1,LM
           O3_MASS(:,:,L)=PTR_O3(:,:,L)*(g0_100*(PLE(:,:,L+LB)-PLE(:,:,L+LB-1)))
        ENDDO
+       PTR_O3 => NULL()
     ENDIF
     O3_MASS => NULL()
-
-    !=======================================================================
-    ! Fill RATS export states if GC is the RATS provider
-    ! The tracer concentrations of the RATS export states are in mol mol-1.
-    ! These fields are required for coupling with other components. Don't
-    ! do this via the State_Diag object but use the EXPORT state directly.
-    !=======================================================================
-    ! Get pointers to RATS exports
-    DO I=1,NRATS
-       CALL MAPL_GetPointer ( EXPORT, Ptr3D, TRIM(RatsNames(I)), NotFoundOK=.TRUE., __RC__ )
-       IF ( ASSOCIATED(Ptr3D) ) THEN
-          IndSpc = Ind_(TRIM(RatsNames(I)))
-          ASSERT_(IndSpc>0)
-          Ptr3D = State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) &
-                * ( MAPL_AIRMW / State_Chm%SpcData(IndSpc)%Info%MW_g )
-       ENDIF
-    ENDDO
 
     !=======================================================================
     ! Total and tropospheric columns
