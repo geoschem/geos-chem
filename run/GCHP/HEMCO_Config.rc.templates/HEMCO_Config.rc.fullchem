@@ -286,7 +286,6 @@ Warnings:                    1
 0 EPA16_NIT__afdustPNO3          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PNO3       2002-2020/1-12/1/0 RF xyz  kg/m2/s    NIT    26/218/255/1007        1 50
 0 EPA16_OCPI__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 RF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
 0 EPA16_OCPO__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 RF xyz  kg/m2/s    OCPO   26/222/256/1007/73     1 50
-0 EPA16_OCPI__afdustPOC          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 POC        2002-2020/1-12/1/0 RF xyz  kg/m2/s    OCPI   26/222/256/1007/72     1 50
 0 EPA16_POG1__afdustPOC          -                                                                                     -          -                  -  -    -          POG1   26/222/256/1007/74/76  1 50
 0 EPA16_POG2__afdustPOC          -                                                                                     -          -                  -  -    -          POG2   26/222/256/1007/74/77  1 50
 0 EPA16_SO4__afdustPSO4          $ROOT/NEI2016/v2021-06/2016fh_16j_afdust_adj_0pt1degree_month_$MM.ncf                 PSO4       2002-2020/1-12/1/0 RF xyz  kg/m2/s    SO4    26/219/255/1007        1 50
