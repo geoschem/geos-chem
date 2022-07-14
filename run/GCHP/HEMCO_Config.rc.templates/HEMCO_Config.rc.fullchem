@@ -2575,6 +2575,8 @@ Warnings:                    1
 0 AEIC19_DAILY_H2O  -                                                                 -        -                - -   -       H2O  241/120     20 1
 0 AEIC19_DAILY_BCPI $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
 0 AEIC19_DAILY_OCPI $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_DAILY_POG1 -                                                                 -        -                - -   -       POG1 241/74/76   20 1
+0 AEIC19_DAILY_POG2 -                                                                 -        -                - -   -       POG2 241/74/77   20 1
 0 AEIC19_DAILY_ACET $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc HC       2019/1-12/1-31/0 C xyz kg/m2/s ACET 241/114/101 20 1
 0 AEIC19_DAILY_ALD2 -                                                                 -        -                - -   -       ALD2 241/114/102 20 1
 0 AEIC19_DAILY_ALK4 -                                                                 -        -                - -   -       ALK4 241/114/103 20 1
@@ -2597,6 +2599,8 @@ Warnings:                    1
 0 AEIC19_MONMEAN_H2O  -                                                                          -        -             - -   -       H2O  241/120     20 1
 0 AEIC19_MONMEAN_BCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc BC       2019/1-12/1/0 C xyz kg/m2/s BCPI 241         20 1
 0 AEIC19_MONMEAN_OCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc OC       2019/1-12/1/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_MONMEAN_POG1 -                                                                          -        -             - -   -       POG1 241/74/76   20 1
+0 AEIC19_MONMEAN_POG2 -                                                                          -        -             - -   -       POG2 241/74/77   20 1
 0 AEIC19_MONMEAN_ACET $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HC       2019/1-12/1/0 C xyz kg/m2/s ACET 241/114/101 20 1
 0 AEIC19_MONMEAN_ALD2 -                                                                          -        -             - -   -       ALD2 241/114/102 20 1
 0 AEIC19_MONMEAN_ALK4 -                                                                          -        -             - -   -       ALK4 241/114/103 20 1
@@ -2782,7 +2786,7 @@ Warnings:                    1
 0 QFED_NO_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NO   75/311        5 2
 0 QFED_NO_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NO   75/312        5 2
 0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2  75/311        5 2
-0 QFED_pFe_FT    -                                                                 -       -                             -  -             -       pFe  75/312/66     5 2
+0 QFED_pFe_PBL   -                                                                 -       -                             -  -             -       pFe  75/311/66     5 2
 0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
 0 QFED_pFe_FT    -                                                                 -       -                             -  -             -       pF3  75/312/66     5 2
 0 QFED_C3H6_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s PRPE 75/311        5 2
