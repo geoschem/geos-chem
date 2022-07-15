@@ -1065,8 +1065,9 @@ if [[ "x${is_aws}" != "x" ]]; then
 elif [[ -f ${sample_rst} ]]; then
     cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
 else
-    printf "\n  -- No sample restart provided for this simulation."
-    printf "\n     You will need to provide an initial restart file or disable"
+    printf "\n  -- The following sample restart provided for this simulation was not found:"
+    printf "\n     ${sample_rst}"
+    printf "\n     You will need to provide this initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
 fi
