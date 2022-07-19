@@ -86,6 +86,7 @@ Diag_Collections=(SpeciesConc    \
                   RRTMG 	 \
                   StateChm	 \
                   StateMet       \
+                  StratBM        \
                   Transport	 \
                   WetLossConv    \
                   WetLossLS      \

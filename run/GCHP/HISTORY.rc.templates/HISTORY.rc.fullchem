@@ -5376,7 +5376,7 @@ COLLECTIONS: @#'DefaultCollection',
   StratBM.timestampStart: .true.
   StratBM.monthly:        1
   StratBM.frequency:      010000
-  StratBM.duration:       240000
+  StratBM.duration:       010000
   StratBM.mode:           'time-averaged'
   StratBM.fields:         'SpeciesConc_NO2 ', 'GCHPchem',
                           'SpeciesConc_O3  ', 'GCHPchem',
