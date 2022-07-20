@@ -38,7 +38,6 @@ MODULE FullChem_Mod
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
   INTEGER               :: id_PCO, id_LCH4, id_NH3
-#ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
   INTEGER               :: id_ETO2, id_LIMO2, id_MO2, id_PIO2, id_PO2
@@ -49,17 +48,14 @@ MODULE FullChem_Mod
   INTEGER               :: id_ISOPNOO1, id_ISOPNOO2, id_INO2B, id_INO2D
   INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
   INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
-#endif
   INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC ! MSL
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
   LOGICAL               :: Failed2x
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
-#ifdef MODEL_GEOS
   LOGICAL               :: Archive_O3concAfterchem
   LOGICAL               :: Archive_RO2concAfterchem
-#endif
 
   ! SAVEd scalars
   INTEGER,  SAVE        :: PrevDay   = -1
@@ -1908,14 +1904,12 @@ CONTAINS
     ! Zero the netCDF diagnostic arrays (if activated) above the
     ! tropopause or mesopause to avoid having leftover values
     ! from previous timesteps
-#ifdef MODEL_GEOS
     IF ( State_Diag%Archive_O3concAfterChem  ) THEN
        State_Diag%O3concAfterChem  = 0.0_f4
     ENDIF
     IF ( State_Diag%Archive_RO2concAfterChem ) THEN
        State_Diag%RO2concAfterChem = 0.0_f4
     ENDIF
-#endif
     IF ( State_Diag%Archive_OHconcAfterChem  ) THEN
        State_Diag%OHconcAfterChem  = 0.0_f4
     ENDIF
@@ -1952,7 +1946,6 @@ CONTAINS
             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(id_OH)%Conc(I,J,L)
             ENDIF
-#ifdef MODEL_GEOS
             IF ( State_Diag%Archive_O3concAfterChem ) THEN
                State_Diag%O3concAfterChem(I,J,L) = Spc(id_O3)%Conc(I,J,L)
             ENDIF
@@ -2072,7 +2065,6 @@ CONTAINS
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDNOO)%Conc(I,J,L)
             ENDIF
-#endif
 
          ENDIF
 
@@ -2460,9 +2452,6 @@ CONTAINS
     id_SALCAL   = Ind_( 'SALCAL'       )
     id_SO4      = Ind_( 'SO4'          )
     id_SALC     = Ind_( 'SALC'         )
-
-#ifdef MODEL_GEOS
-    ! ckeller
     id_O3       = Ind_( 'O3'           )
     id_A3O2     = Ind_( 'A3O2'         )
     id_ATO2     = Ind_( 'ATO2'         )
@@ -2500,7 +2489,6 @@ CONTAINS
     id_IHPNDOO  = Ind_( 'IHPNDOO'      )
     id_ICNOO    = Ind_( 'ICNOO'        )
     id_IDNOO    = Ind_( 'IDNOO'        )
-#endif
 
     ! Set flags to denote if each species is defined
     ok_HO2      = ( id_HO2 > 0         )
@@ -2510,10 +2498,8 @@ CONTAINS
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P = (                                               &
-#ifdef MODEL_GEOS
                                State_Diag%Archive_O3concAfterChem       .or. &
                                State_Diag%Archive_RO2concAfterChem      .or. &
-#endif
                                State_Diag%Archive_OHconcAfterChem       .or. &
                                State_Diag%Archive_HO2concAfterChem      .or. &
                                State_Diag%Archive_O1DconcAfterChem      .or. &

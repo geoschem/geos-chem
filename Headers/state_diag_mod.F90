@@ -287,6 +287,12 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: O3PconcAfterChem(:,:,:)
      LOGICAL                     :: Archive_O3PconcAfterChem
 
+     REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_O3concAfterChem
+
+     REAL(f4),           POINTER :: RO2concAfterChem(:,:,:)
+     LOGICAL                     :: Archive_RO2concAfterChem
+
      REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
      LOGICAL                     :: Archive_CH4pseudoFlux
 
@@ -1044,12 +1050,6 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppError(:,:,:)
      LOGICAL                     :: Archive_KppError
 
-     REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
-     LOGICAL                     :: Archive_O3concAfterChem
-
-     REAL(f4),           POINTER :: RO2concAfterChem(:,:,:)
-     LOGICAL                     :: Archive_RO2concAfterChem
-
      !%%%%% PM2.5 diagnostics %%%%%
 
      REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
@@ -1365,6 +1365,12 @@ CONTAINS
 
     State_Diag%O3PconcAfterChem                    => NULL()
     State_Diag%Archive_O3PconcAfterChem            = .FALSE.
+
+    State_Diag%O3concAfterChem                     => NULL()
+    State_Diag%Archive_O3concAfterChem             = .FALSE.
+
+    State_Diag%RO2concAfterChem                    => NULL()
+    State_Diag%Archive_RO2concAfterChem            = .FALSE.
 
     State_Diag%CH4pseudoflux                       => NULL()
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
@@ -2046,12 +2052,6 @@ CONTAINS
 
     State_Diag%LIGHTNINGPOTENTIAL                  => NULL()
     State_Diag%Archive_LGHTPOTENTIAL               = .FALSE.
-
-    State_Diag%O3concAfterChem                     => NULL()
-    State_Diag%Archive_O3concAfterChem             = .FALSE.
-
-    State_Diag%RO2concAfterChem                    => NULL()
-    State_Diag%Archive_RO2concAfterChem            = .FALSE.
 
     State_Diag%PM25ni                              => NULL()
     State_Diag%Archive_PM25ni                      = .FALSE.
@@ -4378,6 +4378,50 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! O3 concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       diagID  = 'O3concAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%O3concAfterChem,                     &
+            archiveData    = State_Diag%Archive_O3concAfterChem,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RO2 concentration upon exiting the FlexChem solver
+       !--------------------------------------------------------------------
+       diagID  = 'RO2concAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RO2concAfterChem,                    &
+            archiveData    = State_Diag%Archive_RO2concAfterChem,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! CH4 pseudo-flux
        !--------------------------------------------------------------------
        diagID  = 'CH4pseudoFlux'
@@ -4896,7 +4940,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 33
+       DO N = 1, 35
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -4920,50 +4964,54 @@ CONTAINS
              CASE( 10 )
                 diagID = 'O3PconcAfterChem'
              CASE( 11 )
-                diagID = 'ProdSO4fromHOBrInCloud'
+                diagID = 'O3concAfterChem'
              CASE( 12 )
-                diagID = 'ProdSO4fromSRHOBr'
+                diagID = 'RO2concAfterChem'
              CASE( 13 )
-                diagID = 'AerMassASOA'
+                diagID = 'ProdSO4fromHOBrInCloud'
              CASE( 14 )
-                diagID = 'AerMassINDIOL'
+                diagID = 'ProdSO4fromSRHOBr'
              CASE( 15 )
-                diagID = 'AerMassISN1OA'
+                diagID = 'AerMassASOA'
              CASE( 16 )
-                diagID = 'AerMassLVOCOA'
+                diagID = 'AerMassINDIOL'
              CASE( 17 )
-                diagID = 'AerMassOPOA'
+                diagID = 'AerMassISN1OA'
              CASE( 18 )
-                diagID = 'AerMassPOA'
+                diagID = 'AerMassLVOCOA'
              CASE( 19 )
-                diagID = 'AerMassSOAGX'
+                diagID = 'AerMassOPOA'
              CASE( 20 )
-                diagID = 'AerMassSOAIE'
+                diagID = 'AerMassPOA'
              CASE( 21 )
-                diagID = 'AerMassTSOA'
+                diagID = 'AerMassSOAGX'
              CASE( 22 )
-                diagID = 'BetaNO'
+                diagID = 'AerMassSOAIE'
              CASE( 23 )
-                diagID = 'TotalBiogenicOA'
+                diagID = 'AerMassTSOA'
              CASE( 24 )
-                diagID = 'OHreactivity'
+                diagID = 'BetaNO'
              CASE( 25 )
-                diagID = 'KppIntCounts'
+                diagID = 'TotalBiogenicOA'
              CASE( 26 )
-                diagID = 'KppJacCounts'
+                diagID = 'OHreactivity'
              CASE( 27 )
-                diagID = 'KppTotSteps'
+                diagID = 'KppIntCounts'
              CASE( 28 )
-                diagID = 'KppAccSteps'
+                diagID = 'KppJacCounts'
              CASE( 29 )
-                diagID = 'KppRejSteps'
+                diagID = 'KppTotSteps'
              CASE( 30 )
-                diagID = 'KppLuDecomps'
+                diagID = 'KppAccSteps'
              CASE( 31 )
-                diagID = 'KppSubsts'
+                diagID = 'KppRejSteps'
              CASE( 32 )
-                diagID = 'KppSmDecomps'
+                diagID = 'KppLuDecomps'
              CASE( 33 )
+                diagID = 'KppSubsts'
+             CASE( 34 )
+                diagID = 'KppSmDecomps'
+             CASE( 35 )
                 diagID = 'NOxTau'
           END SELECT
 
@@ -5130,46 +5178,6 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-
-#ifdef MODEL_GEOS
-       diagID  = 'O3concAfterChem'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%O3concAfterChem,                     &
-            archiveData    = State_Diag%Archive_O3concAfterChem,             &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       diagID  = 'RO2concAfterChem'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%RO2concAfterChem,                    &
-            archiveData    = State_Diag%Archive_RO2concAfterChem,            &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! Air mass -- full column and trop column
@@ -9626,6 +9634,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'O3concAfterChem',                             &
+                   Ptr2Data = State_Diag%O3concAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RO2concAfterChem',                             &
+                   Ptr2Data = State_Diag%RO2concAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
                    Ptr2Data = State_Diag%CH4pseudoFlux,                      &
                    RC       = RC                                            )
@@ -10457,16 +10475,6 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'O3concAfterChem',                             &
-                   Ptr2Data = State_Diag%O3concAfterChem,                    &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    CALL Finalize( diagId   = 'RO2concAfterChem',                             &
-                   Ptr2Data = State_Diag%RO2concAfterChem,                    &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'PM25ni',                                      &
                    Ptr2Data = State_Diag%PM25ni,                             &
                    RC       = RC                                            )
@@ -11217,18 +11225,6 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-#ifdef MODEL_GEOS
-    ELSE IF ( TRIM( Name_AllCaps ) == 'O3CONCAFTERCHEM' ) THEN
-       IF ( isDesc    ) Desc  = 'O3 concentration immediately after chemistry'
-       IF ( isUnits   ) Units = 'molec cm-3'
-       IF ( isRank    ) Rank  = 3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'RO2CONCAFTERCHEM' ) THEN
-       IF ( isDesc    ) Desc  = 'Peroxy radical concentration immediately after chemistry'
-       IF ( isUnits   ) Units = 'molec cm-3'
-       IF ( isRank    ) Rank  = 3
-#endif
-
     ELSE IF ( TRIM( Name_AllCaps ) == 'HO2CONCAFTERCHEM' )  THEN
        IF ( isDesc    ) Desc  = 'HO2 concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'mol mol-1'
@@ -11241,6 +11237,16 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'O3PCONCAFTERCHEM' ) THEN
        IF ( isDesc    ) Desc  = 'O3P concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'O3CONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'O3 concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RO2CONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Peroxy radical concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 

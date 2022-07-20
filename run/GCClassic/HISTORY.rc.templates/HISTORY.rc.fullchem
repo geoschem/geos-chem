@@ -339,6 +339,8 @@ COLLECTIONS: 'Restart',
                               'HO2concAfterChem              ',
                               'O1DconcAfterChem              ',
                               'O3PconcAfterChem              ',
+                              'O3concAfterChem               ',
+                              'RO2concAfterChem              ',
 ::
 #==============================================================================
 # %%%%% THE DryDep COLLECTION %%%%%
