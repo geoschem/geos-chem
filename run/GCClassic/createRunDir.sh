@@ -96,6 +96,7 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # registration for first time users
 # --------------------------------------------------------------
 if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
+    printf "\nInitiating User Registration: You will only need to fill this out once.\n"
     printf "${thinline}What is your email address?${thinline}"
     read email
     
