@@ -12406,18 +12406,18 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4' ) THEN
        IF ( isDesc    ) Desc  = 'TOMAS Condensation Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASH2SO4 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASH2SO4 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -12428,13 +12428,13 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOAGMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASCOAG Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOAGNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASCOAG Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -12445,24 +12445,24 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCRATEFN' ) THEN
        IF ( isDesc    ) Desc  = 'TOMAS Nucleation Rate'
-       IF ( isUnits   ) Units = 'number/cm3/s'
+       IF ( isUnits   ) Units = 'number cm-3 s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCLMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCLNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCRATENUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
-       IF ( isUnits   ) Units = 'number/cm3/s'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -12473,13 +12473,13 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASAQOXMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASAQOX Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASAQOXNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASAQOX Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -12490,121 +12490,121 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIX Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIX Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXH2SO4MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXH2SO4 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXH2SO4NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXH2SO4 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCOAGMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCOAG Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCOAGNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXAQOX Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXAQOXMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXAQOX Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXAQOXNUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCOND Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT1MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT1 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT1NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT1 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT2MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT2 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT2NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT2 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT3MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT3 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT3NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT3 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK1MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK1 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK1NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK1 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK2MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK2 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK2NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK2 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK3MASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK3 Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK3NUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK3 Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
@@ -12615,13 +12615,13 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASSOAMASS'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASSOA Rate'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'TOMASSOANUMBER'  ) THEN
        IF ( isDesc    ) Desc  = 'TOMASSOA Rate'
-       IF ( isUnits   ) Units = 'number'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId   = 'TOMASBIN'
 
