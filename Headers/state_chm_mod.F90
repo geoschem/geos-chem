@@ -2172,10 +2172,12 @@ CONTAINS
        WRITE(6,100) "N: ", N, " ", &
                   State_Chm%SpcData(N)%Info%Name, &
                   "Adv: ", State_Chm%SpcData(N)%Info%Is_Advected, &
+                  " Dd: ", State_Chm%SpcData(N)%Info%Is_DryDep, &
+                  " Wd: ", State_Chm%SpcData(N)%Info%Is_WetDep, &
                   " MW_g: ", State_Chm%SpcData(N)%Info%MW_g
     ENDDO
 
-100 FORMAT( A3, I4, A1, A12, A5, L3, A6, F10.6 )
+100 FORMAT( A3, I4, A1, A12, A5, L1, A5, L1, A5, L1, A6, F10.6 )
 
   END SUBROUTINE Print_State_Chm_Species
 !EOC
