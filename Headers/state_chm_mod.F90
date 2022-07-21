@@ -36,6 +36,7 @@ MODULE State_Chm_Mod
   PUBLIC :: Init_State_Chm
   PUBLIC :: Cleanup_State_Chm
   PUBLIC :: Get_Metadata_State_Chm
+  PUBLIC :: Print_State_Chm_Species
   PUBLIC :: Ind_
 !
 ! !PRIVATE MEMBER FUNCTIONS
@@ -2065,6 +2066,22 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Print out species to facilitate coupling.
+    ! This could be restricted to just MODEL_, but we print it in all models anyway
+    ! (on root CPU and first initialization)
+    ! Because it may be easier to get this from an existing GEOS-Chem offline simulation.
+    ! (hplin, 7/20/22)
+    CALL Print_State_Chm_Species( Input_Opt = Input_Opt,      &
+                                  State_Chm = State_Chm,      &
+                                  RC        = RC             )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Print_State_Chm_Species"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
@@ -2083,6 +2100,84 @@ CONTAINS
 120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
   END SUBROUTINE Init_State_Chm
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_State_Chm_Species
+!
+! !DESCRIPTION: Routine PRINT\_STATE\_CHM\_SPECIES prints the current species
+!  database in a human- and machine-readable format, used to obtain the runtime
+!  list of active species to facilitate coupling with other models.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_State_Chm_Species( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  20 Jul 2022 - H. P. Lin  - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: N
+
+    !========================================================================
+    ! Print_State_Chm_Species begins here!
+    !========================================================================
+
+    ! Initialize
+    RC         =  GC_SUCCESS
+
+    ! Check for rootCPU except on CESM as CESM forces IO%amIRoot = .false. to avoid
+    ! this output, but we need it
+#if !defined( MODEL_CESM )
+    IF ( .not. Input_Opt%amIRoot ) THEN
+        RETURN
+    ENDIF
+#endif
+
+    ! Only do this for the first initialization of State_Chm
+    IF ( nChmState .gt. 1 ) THEN
+        RETURN
+    ENDIF
+
+    ! We are now in the root CPU.
+    ! Go over the species information and output data in a format that
+    ! can be retrieved later.
+    WRITE(6,*) "-------- RUNTIME SPECIES INFORMATION --------"
+    WRITE(6,*) "Unit: ", State_Chm%Spc_Units
+
+    DO N = 1, State_Chm%nSpecies
+       WRITE(6,100) "N: ", N, " ", &
+                  State_Chm%SpcData(N)%Info%Name, &
+                  "Adv: ", State_Chm%SpcData(N)%Info%Is_Advected, &
+                  " MW_g: ", State_Chm%SpcData(N)%Info%MW_g
+    ENDDO
+
+100 FORMAT( A3, I4, A1, A12, A5, L3, A6, F10.6 )
+
+  END SUBROUTINE Print_State_Chm_Species
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
