@@ -38,24 +38,13 @@ MODULE FullChem_Mod
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
   INTEGER               :: id_PCO, id_LCH4, id_NH3
-  INTEGER               :: id_O3
-  INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
-  INTEGER               :: id_ETO2, id_LIMO2, id_MO2, id_PIO2, id_PO2
-  INTEGER               :: id_PRN1, id_R4N1, id_R4O2, id_TRO2, id_XRO2
-  INTEGER               :: id_IHOO1, id_IHOO4, id_IHCOO, id_ICHOO, id_IHPOO1
-  INTEGER               :: id_IHPOO2, id_IHPOO3, id_IEPOXAOO, id_IEPOXBOO
-  INTEGER               :: id_C4HVP1, id_C4HVP2, id_HPALD1OO, id_HPALD2OO
-  INTEGER               :: id_ISOPNOO1, id_ISOPNOO2, id_INO2B, id_INO2D
-  INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
-  INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
+  INTEGER               :: id_O3,  id_PRO2
   INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC ! MSL
-  LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
+  LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P, ok_O3, ok_RO2
   LOGICAL               :: Failed2x
 
   ! Diagnostic flags
-  LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
-  LOGICAL               :: Archive_O3concAfterchem
-  LOGICAL               :: Archive_RO2concAfterchem
+  LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P_RO2
 
   ! SAVEd scalars
   INTEGER,  SAVE        :: PrevDay   = -1
@@ -1427,25 +1416,23 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Archive OH, HO2, O1D, O3P concentrations after solver
+    ! Archive OH, HO2, O1D, O3P, RO2 concentrations after solver
     !=======================================================================
-    IF ( Do_Diag_OH_HO2_O1D_O3P ) THEN
+    IF ( Do_Diag_OH_HO2_O1D_O3P_RO2 ) THEN
 
-       ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
-       ! NOTE: These might not be needed for netCDF, as they will already
-       ! have been archived in State_Chm%Species%Conc output.
-       CALL Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
-                                 State_Grid, State_Met, RC )
+       ! Save OH, HO2, O1D, O3P, RO2
+       CALL Diag_OH_HO2_O1D_O3P_RO2( Input_Opt,  State_Chm, State_Diag, &
+                                     State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Diag_OH_HO2_O1D_O3P"!'
+          ErrMsg = 'Error encountered in "Diag_OH_HO2_O1D_O3P_RO2"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### Do_FullChem: after OHSAVE' )
+          CALL DEBUG_MSG( '### Do_FullChem: after Diag_OH_HO2_O1D_O3P_RO2' )
        ENDIF
     ENDIF
 
@@ -1824,15 +1811,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Diag_OH_HO2_O1D_O3P
+! !IROUTINE: Diag_OH_HO2_O1D_O3P_RO2
 !
-! !DESCRIPTION: Archives the chemical production of OH, HO2, O1D, O3P.
+! !DESCRIPTION: Archives OH, HO2, O1D, O3P, RO2 concentrations after chemistry.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
-                                  State_Grid, State_Met, RC )
+  SUBROUTINE Diag_OH_HO2_O1D_O3P_RO2( Input_Opt,  State_Chm, State_Diag, &
+                                      State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1859,16 +1846,6 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-! !REMARKS:
-!  This routine replaces both OHSAVE and DIAGOH.  Those routines were needed
-!  for SMVGEAR, when we had separate arrays for the non-advected species.
-!  But now, all species are stored in State_Chm%Species%Conc, so the various
-!  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
-!  just get values directly from State_Chm%Species%Conc.
-!
-!  Also note: for the netCDF diagnostics, we have removed multiplication by
-!  LTOH etc arrays.  These are almost always set between 0 and 24.
-!
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1878,9 +1855,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-
     ! Scalars
-    LOGICAL            :: Do_Diag
     INTEGER            :: I,       J,       L
 
     ! Strings
@@ -1891,7 +1866,7 @@ CONTAINS
     TYPE(SpcConc), POINTER  :: Spc      (:    )
 
     !=======================================================================
-    ! Diag_OH_HO2_O1D_O3P begins here!
+    ! Diag_OH_HO2_O1D_O3P_RO2 begins here!
     !=======================================================================
 
     ! Assume success
@@ -1901,15 +1876,8 @@ CONTAINS
     AirNumDen => State_Met%AirNumDen
     Spc       => State_Chm%Species
 
-    ! Zero the netCDF diagnostic arrays (if activated) above the
-    ! tropopause or mesopause to avoid having leftover values
-    ! from previous timesteps
-    IF ( State_Diag%Archive_O3concAfterChem  ) THEN
-       State_Diag%O3concAfterChem  = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_RO2concAfterChem ) THEN
-       State_Diag%RO2concAfterChem = 0.0_f4
-    ENDIF
+    ! Zero the netCDF diagnostic arrays (if activated) to avoid
+    ! having leftover values from previous timesteps
     IF ( State_Diag%Archive_OHconcAfterChem  ) THEN
        State_Diag%OHconcAfterChem  = 0.0_f4
     ENDIF
@@ -1921,6 +1889,12 @@ CONTAINS
     ENDIF
     IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
        State_Diag%O3PconcAfterChem = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_O3concAfterChem  ) THEN
+       State_Diag%O3concAfterChem  = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_RO2concAfterChem ) THEN
+       State_Diag%RO2concAfterChem = 0.0_f4
     ENDIF
 
 !$OMP PARALLEL DO        &
@@ -1941,131 +1915,9 @@ CONTAINS
          ! OH concentration [molec/cm3]
          !------------------------------------------------------------------
          IF ( ok_OH ) THEN
-
-            ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(id_OH)%Conc(I,J,L)
             ENDIF
-            IF ( State_Diag%Archive_O3concAfterChem ) THEN
-               State_Diag%O3concAfterChem(I,J,L) = Spc(id_O3)%Conc(I,J,L)
-            ENDIF
-            IF ( Archive_RO2concAfterChem ) THEN
-               IF ( id_A3O2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_A3O2)%Conc(I,J,L)
-               IF ( id_ATO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ATO2)%Conc(I,J,L)
-               IF ( id_B3O2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_B3O2)%Conc(I,J,L)
-               IF ( id_BRO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_BRO2)%Conc(I,J,L)
-               IF ( id_ETO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ETO2)%Conc(I,J,L)
-               IF ( id_HO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HO2)%Conc(I,J,L)
-               IF ( id_LIMO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_LIMO2)%Conc(I,J,L)
-               IF ( id_MO2 > 0  ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_MO2)%Conc(I,J,L)
-               IF ( id_PIO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PIO2)%Conc(I,J,L)
-               IF ( id_PO2 > 0  ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PO2)%Conc(I,J,L)
-               IF ( id_PRN1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PRN1)%Conc(I,J,L)
-               IF ( id_R4N1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_R4N1)%Conc(I,J,L)
-               IF ( id_R4O2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_R4O2)%Conc(I,J,L)
-               IF ( id_TRO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_TRO2)%Conc(I,J,L)
-               IF ( id_XRO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_XRO2)%Conc(I,J,L)
-               IF ( id_IHOO1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHOO1)%Conc(I,J,L)
-               IF ( id_IHOO4 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHOO4)%Conc(I,J,L)
-               IF ( id_ICHOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ICHOO)%Conc(I,J,L)
-               IF ( id_IHPOO1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO1)%Conc(I,J,L)
-               IF ( id_IHPOO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO2)%Conc(I,J,L)
-               IF ( id_IHPOO3 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO3)%Conc(I,J,L)
-               IF ( id_IEPOXAOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IEPOXAOO)%Conc(I,J,L)
-               IF ( id_IEPOXBOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IEPOXBOO)%Conc(I,J,L)
-               IF ( id_C4HVP1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_C4HVP1)%Conc(I,J,L)
-               IF ( id_C4HVP2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_C4HVP2)%Conc(I,J,L)
-               IF ( id_HPALD1OO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HPALD1OO)%Conc(I,J,L)
-               IF ( id_HPALD2OO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HPALD2OO)%Conc(I,J,L)
-               IF ( id_ISOPNOO1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ISOPNOO1)%Conc(I,J,L)
-               IF ( id_ISOPNOO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ISOPNOO2)%Conc(I,J,L)
-               IF ( id_INO2D > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_INO2D)%Conc(I,J,L)
-               IF ( id_INO2B > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_INO2B)%Conc(I,J,L)
-               IF ( id_IDHNBOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNBOO)%Conc(I,J,L)
-               IF ( id_IDHNDOO1 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNDOO1)%Conc(I,J,L)
-               IF ( id_IDHNDOO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNDOO2)%Conc(I,J,L)
-               IF ( id_IHPNBOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPNBOO)%Conc(I,J,L)
-               IF ( id_IHPNDOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPNDOO)%Conc(I,J,L)
-               IF ( id_ICNOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ICNOO)%Conc(I,J,L)
-               IF ( id_IDNOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDNOO)%Conc(I,J,L)
-            ENDIF
-
          ENDIF
 
          !------------------------------------------------------------------
@@ -2076,7 +1928,6 @@ CONTAINS
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(id_HO2)%Conc(I,J,L) &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
-
          ENDIF
 
          !---------------------------------------------------------------
@@ -2088,13 +1939,31 @@ CONTAINS
             ENDIF
          ENDIF
 
-
          !---------------------------------------------------------------
          ! O3P concentration [molec/cm3]
          !---------------------------------------------------------------
          IF ( ok_O3P ) THEN
             IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
                State_Diag%O3PconcAfterChem(I,J,L) = Spc(id_O3P)%Conc(I,J,L)
+            ENDIF
+         ENDIF
+
+         !------------------------------------------------------------------
+         ! O3 concentration [molec/cm3]
+         !------------------------------------------------------------------
+         IF ( ok_O3 ) THEN
+            IF ( State_Diag%Archive_O3concAfterChem ) THEN
+               State_Diag%O3concAfterChem(I,J,L) = Spc(id_O3)%Conc(I,J,L)
+            ENDIF
+
+         ENDIF
+
+         !------------------------------------------------------------------
+         ! RO2 concentration [molec/cm3]
+         !------------------------------------------------------------------
+         IF ( ok_RO2 ) THEN
+            IF ( State_Diag%Archive_RO2concAfterChem ) THEN
+               State_Diag%RO2concAfterChem(I,J,L) = Spc(id_PRO2)%Conc(I,J,L)
             ENDIF
          ENDIF
 
@@ -2107,7 +1976,7 @@ CONTAINS
       AirNumDen => NULL()
       Spc       => NULL()
 
-  END SUBROUTINE Diag_OH_HO2_O1D_O3P
+  END SUBROUTINE Diag_OH_HO2_O1D_O3P_RO2
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2453,57 +2322,21 @@ CONTAINS
     id_SO4      = Ind_( 'SO4'          )
     id_SALC     = Ind_( 'SALC'         )
     id_O3       = Ind_( 'O3'           )
-    id_A3O2     = Ind_( 'A3O2'         )
-    id_ATO2     = Ind_( 'ATO2'         )
-    id_BRO2     = Ind_( 'BRO2'         )
-    id_ETO2     = Ind_( 'ETO2'         )
-    id_LIMO2    = Ind_( 'LIMO2'        )
-    id_MO2      = Ind_( 'MO2'          )
-    id_PIO2     = Ind_( 'PIO2'         )
-    id_PO2      = Ind_( 'PO2'          )
-    id_PRN1     = Ind_( 'PRN1'         )
-    id_R4N1     = Ind_( 'R4N1'         )
-    id_R4O2     = Ind_( 'R4O2'         )
-    id_TRO2     = Ind_( 'TRO2'         )
-    id_XRO2     = Ind_( 'XRO2'         )
-    id_IHOO1    = Ind_( 'IHOO1'        )
-    id_IHOO4    = Ind_( 'IHOO4'        )
-    id_IHCOO    = Ind_( 'IHCOO'        )
-    id_IHPOO1   = Ind_( 'IHPOO1'       )
-    id_IHPOO2   = Ind_( 'IHPOO2'       )
-    id_IHPOO3   = Ind_( 'IHPOO3'       )
-    id_IEPOXAOO = Ind_( 'IEPOXAOO'     )
-    id_IEPOXBOO = Ind_( 'IEPOXBOO'     )
-    id_C4HVP1   = Ind_( 'C4HVP1'       )
-    id_C4HVP2   = Ind_( 'C4HVP2'       )
-    id_HPALD1OO = Ind_( 'HPALD1OO'     )
-    id_HPALD2OO = Ind_( 'HPALD2OO'     )
-    id_ISOPNOO1 = Ind_( 'ISOPNOO1'     )
-    id_ISOPNOO2 = Ind_( 'ISOPNOO2'     )
-    id_INO2B    = Ind_( 'INO2B'        )
-    id_INO2D    = Ind_( 'INO2D'        )
-    id_IDHNBOO  = Ind_( 'IDHNBOO'      )
-    id_IDHNDOO1 = Ind_( 'IDHNDOO1'     )
-    id_IDHNDOO2 = Ind_( 'IDHNDOO2'     )
-    id_IHPNBOO  = Ind_( 'IHPNBOO'      )
-    id_IHPNDOO  = Ind_( 'IHPNDOO'      )
-    id_ICNOO    = Ind_( 'ICNOO'        )
-    id_IDNOO    = Ind_( 'IDNOO'        )
 
     ! Set flags to denote if each species is defined
-    ok_HO2      = ( id_HO2 > 0         )
-    ok_O1D      = ( id_O1D > 0         )
-    ok_O3P      = ( id_O3P > 0         )
-    ok_OH       = ( id_OH  > 0         )
+    ok_HO2      = ( id_HO2  > 0        )
+    ok_O1D      = ( id_O1D  > 0        )
+    ok_O3P      = ( id_O3P  > 0        )
+    ok_OH       = ( id_OH   > 0        )
+    ok_O3       = ( id_O3   > 0        )
 
-    ! Should we archive OH, HO2, O1D, O3P diagnostics?
-    Do_Diag_OH_HO2_O1D_O3P = (                                               &
-                               State_Diag%Archive_O3concAfterChem       .or. &
-                               State_Diag%Archive_RO2concAfterChem      .or. &
-                               State_Diag%Archive_OHconcAfterChem       .or. &
-                               State_Diag%Archive_HO2concAfterChem      .or. &
-                               State_Diag%Archive_O1DconcAfterChem      .or. &
-                               State_Diag%Archive_O3PconcAfterChem          )
+    ! Should we archive OH, HO2, O1D, O3P, RO2 diagnostics?
+    Do_Diag_OH_HO2_O1D_O3P_RO2 = ( State_Diag%Archive_OHconcAfterChem   .or. &
+                                   State_Diag%Archive_HO2concAfterChem  .or. &
+                                   State_Diag%Archive_O1DconcAfterChem  .or. &
+                                   State_Diag%Archive_O3PconcAfterChem  .or. &
+                                   State_Diag%Archive_O3concAfterChem   .or. &
+                                   State_Diag%Archive_RO2concAfterChem  )
 
     !=======================================================================
     ! Save physical parameters from the species database into KPP arrays
@@ -2524,15 +2357,16 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    id_PCO =  -1
+    id_PCO  = -1
     id_LCH4 = -1
+    id_PRO2 = -1
 
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
     IF ( nFam > 0 ) THEN
 
-       ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
+       ! Allocate mapping array for KPP Ids
        ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'fullchem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -2549,6 +2383,10 @@ CONTAINS
           ! so that we can save output for tagged CO simulations
           IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
           IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
+          IF ( TRIM( Fam_Names(N) ) == 'PRO2' ) id_PRO2 = KppId
+
+          ! Set flag to denote if RO2 family is defined
+          ok_RO2 = ( id_PRO2 > 0 )
 
           ! Exit if an invalid ID is encountered
           IF ( KppId <= 0 ) THEN
@@ -2558,7 +2396,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! If the species ID is OK, save in ND65_Kpp_Id
+          ! If the species ID is OK, save in PL_Kpp_Id
           PL_Kpp_Id(N) = KppId
        ENDDO
 
@@ -2586,6 +2424,19 @@ CONTAINS
           RETURN
        ENDIF
 
+    ENDIF
+
+    !--------------------------------------------------------------------
+    ! If we are archiving the RO2concAfterChem, throw an error if we
+    ! cannot find RO2 production family in this KPP mechanism.
+    !--------------------------------------------------------------------
+    IF ( State_Diag%Archive_RO2concAfterChem ) THEN
+       IF ( id_PRO2 < 1 ) THEN
+          ErrMsg = 'Could not find PRO2 in list of KPP families!  This   ' // &
+                   'is needed to archive the RO2concAfterChem diagnostic!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !--------------------------------------------------------------------
