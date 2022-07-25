@@ -839,6 +839,21 @@ CONTAINS
 40  FORMAT( a30, " | ", i10    )
 
     !=======================================================================
+    ! Print metadata for only the species that are defined in this
+    ! simulation (but not the entire species database) to another YAML
+    ! file.  This facilitates coupling GEOS-Chem to external models.
+    !=======================================================================
+    IF ( TRIM( Input_Opt%SpcMetaDataOutFile ) /= "none" ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
+          CALL QFYAML_Print( yml        = yml,                              &
+                             fileName   = Input_Opt%SpcMetaDataOutFile,     &
+                             searchKeys = species_names,                    &
+                             RC         = RC                               )
+
+       ENDIF
+    ENDIF
+
+    !=======================================================================
     ! Normal exit
     !=======================================================================
 

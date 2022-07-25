@@ -534,6 +534,19 @@ CONTAINS
     Input_Opt%SpcDataBaseFile = TRIM( v_str )
 
     !------------------------------------------------------------------------
+    ! Species metadata output file
+    !------------------------------------------------------------------------
+    key   = "simulation%species_metadata_output_file"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%SpcMetaDataOutFile = TRIM( v_str )
+
+    !------------------------------------------------------------------------
     ! Turn on debug output
     !------------------------------------------------------------------------
     key    = "simulation%debug_printout"

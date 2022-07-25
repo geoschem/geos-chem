@@ -69,6 +69,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: MetField
      CHARACTER(LEN=255)          :: SimulationName
      CHARACTER(LEN=255)          :: SpcDatabaseFile
+     CHARACTER(LEN=255)          :: SpcMetaDataOutFile
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
@@ -570,6 +571,7 @@ CONTAINS
     Input_Opt%MetField               = ''
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
+    Input_Opt%SpcMetaDataOutFile     = ''
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
