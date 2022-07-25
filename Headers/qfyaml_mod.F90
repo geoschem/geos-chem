@@ -2380,16 +2380,20 @@ CONTAINS
     !========================================================================
     IF ( isFileName ) THEN
 
-       ! Open file
-       lun = 700
-       OPEN( lun, FILE=TRIM( fileName ),  STATUS='UNKNOWN',                  &
+       ! If fileName = "*", then we'll print to stdout,
+       ! Otherwise we'll send output to the file name that is specified.
+       IF ( TRIM( fileName ) /= '*' ) THEN
+          ! Open file
+          lun = 700
+          OPEN( lun, FILE=TRIM( fileName ),  STATUS='UNKNOWN',                  &
                   FORM='FORMATTED',       IOSTAT=RC                         )
 
-       ! Trap errors
-       IF ( RC /= QFYAML_SUCCESS ) THEN
-          errMsg = 'Could not open YAML file for output!'
-          CALL Handle_Error( errMsg, RC, thisLoc )
-          RETURN
+          ! Trap errors
+          IF ( RC /= QFYAML_SUCCESS ) THEN
+             errMsg = 'Could not open YAML file for output!'
+             CALL Handle_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Write YAML header
@@ -2467,14 +2471,16 @@ CONTAINS
     !========================================================================
     IF ( isFileName ) THEN
 
-       ! Close the file
-       CLOSE( LUN, IOSTAT=RC )
+       ! Close the file (but not if we print to stdout)
+       IF ( lun == 700 ) THEN
+          CLOSE( lun, IOSTAT=RC )
 
-       ! Trap errors
-       IF ( RC /= QFYAML_SUCCESS ) THEN
-          errMsg = 'Error encountered when closing YAML output file!'
-          CALL Handle_Error( errMsg, RC, thisLoc )
-          RETURN
+          ! Trap errors
+          IF ( RC /= QFYAML_SUCCESS ) THEN
+             errMsg = 'Error encountered when closing YAML output file!'
+             CALL Handle_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDIF
     ENDIF
 
