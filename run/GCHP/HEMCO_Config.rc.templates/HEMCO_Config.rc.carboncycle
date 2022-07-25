@@ -354,15 +354,6 @@ Warnings:                    1
 (((BB4MIPS
 0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_bbn           1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s    CH4     75        9 1
 )))BB4MIPS
-
-#==============================================================================
-# --- CH4: QFED2 biomass burning ---
-#
-# Use QFED v2.4r8 for CH4. The data in QFED/v2014-09 are for v2.4r5 and have
-# been found to be buggy for CH4 (same emissions on each day).
-#==============================================================================
-(((QFED2
-0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
 
 #==============================================================================

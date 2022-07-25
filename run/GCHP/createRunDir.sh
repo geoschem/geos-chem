@@ -88,6 +88,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=carboncycle
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -421,6 +423,9 @@ if [[ ${sim_name} = "fullchem" ]]; then
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     start_date='20190101'
     restart_dir='GC_13.0.0'
+elif [[ ${sim_name} = "carboncycle" ]]; then
+    start_date='20190101'
+    restart_dir='v2022-08'
 fi
 for N in 24 48 90 180 360
 do
