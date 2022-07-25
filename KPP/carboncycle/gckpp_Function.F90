@@ -88,7 +88,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout, Vdotout )
   Vdot(9) = A(3)+A(7)
   Vdot(10) = A(1)+A(2)+A(5)
 
-  !### Use Vdotout to return equation rates
+  !### Use Vdotout to return time deriv. of variable species
   IF ( PRESENT( Vdotout ) ) Vdotout = Vdot
       
 END SUBROUTINE Fun

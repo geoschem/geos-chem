@@ -16,7 +16,7 @@ v13.4 (Mar. 31, 2022)
  (1) Initial version (MSL)
 }
 
-#include atoms
+#include atoms.kpp
 
 #DEFVAR
 CO	 = IGNORE;
@@ -45,11 +45,14 @@ NMVOC_E	= IGNORE;
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 // --- TROP CHEM --- 
-CH4 + OH_E = CO	+ CO_CH4   : K_TROP(1); {PCO_CH4 or EXP() function}
-CH4 + Cl_E = DUMMY     	   : 9.60E-12*EXP(-1360.E0/TEMP)*TROP; {Kirschke et al, 2013 (Nature Geosci.)}
-CO  + OH_E = CO2 + CO2_OH  : K_TROP(2); {Use GC_OHCO(), if online rate calc}
-NMVOC_E    = CO	+ CO_NMVOC : K_TROP(3); {PCO_NMVOC_MCM3S; mcl/cm3/s}
+//
+CH4 + OH_E = CO	+ CO_CH4   : K_TROP(1);                          {PCO_CH4 or EXP() function                                 } 
+CH4 + Cl_E = DUMMY     	   : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;  {Kirschke et al, 2013 (Nature Geosci.)                     }
+CO  + OH_E = CO2 + CO2_OH  : K_TROP(2);                          {Use GC_OHCO(), if online rate calc                        }
+NMVOC_E    = CO	+ CO_NMVOC : K_TROP(3);                          {PCO_NMVOC_MCM3S; mcl/cm3/s                                }
+//
 // --- STRAT CHEM ---
-CH4        = DUMMY	   : K_STRAT(1); {CH4LOSS; Strat; 1/s}
-CH4_E 	   = CO        	   : K_STRAT(2); {From GMI_PROD_CO; mcl/cm3/s}
-CO         = CO2 + CO2_OH  : K_STRAT(3); {Stratospheric CO loss from offline rates; GMI_LOSS_CO; s-1}
+//
+CH4        = DUMMY	   : K_STRAT(1);                         {CH4LOSS; Strat; 1/s                                       }
+CH4_E 	   = CO        	   : K_STRAT(2);                         {From GMI_PROD_CO; mcl/cm3/s                               }
+CO         = CO2 + CO2_OH  : K_STRAT(3);                         {Stratospheric CO loss from offline rates; GMI_LOSS_CO; s-1}
