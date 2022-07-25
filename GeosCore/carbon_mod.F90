@@ -37,10 +37,6 @@ MODULE CARBON_MOD
 !
   ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
   PUBLIC :: BETANOSAVE
-
-  ! ORVC_SESQ needs to be public so that it can be added as a
-  ! restart variable to GEOS-5. (ckeller, 10/10/17)
-  PUBLIC :: ORVC_SESQ
 !
 ! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon
@@ -209,7 +205,6 @@ MODULE CARBON_MOD
   REAL(fp), ALLOCATABLE :: BCCONV(:,:,:)
   REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
   REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
-  REAL(fp), ALLOCATABLE :: ORVC_SESQ(:,:,:)
   REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06)
 
 #ifdef TOMAS
@@ -3430,7 +3425,7 @@ CONTAINS
    NMVOC(1) = Spc(id_MTPA)%Conc(I,J,L)
    NMVOC(2) = Spc(id_LIMO)%Conc(I,J,L)
    NMVOC(3) = Spc(id_MTPO)%Conc(I,J,L)
-   NMVOC(4) = ORVC_SESQ(I,J,L)
+   NMVOC(4) = State_Chm%ORVCsesq(I,J,L)
 
    ! Initialize DELHC so that the values from the previous
    ! time step are not carried over.
@@ -3520,7 +3515,9 @@ CONTAINS
          ! update dims and switch order (hotp 5/22/10)
          DO NOX = 1, NNOX(JSV)
          DO IPR = 1, NPROD(JSV)
+
             GM0(IPR,JSV) = GM0(IPR,JSV) + ALPHA(NOX,IPR,JHC) * DELHC(NOX)
+
          ENDDO
          ENDDO
 
@@ -3700,7 +3697,7 @@ CONTAINS
    !Spc(id_MTPA)%Conc(I,J,L) = MAX( NMVOC(1), 1.e-32_fp )
    !Spc(id_LIMO)%Conc(I,J,L) = MAX( NMVOC(2), 1.e-32_fp )
    Spc(id_MTPO)%Conc(I,J,L) = MAX( NMVOC(3), 1.e-32_fp )
-   ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
+   State_Chm%ORVCsesq(I,J,L) = MAX( NMVOC(4), 1.e-32_fp )
 
    ! Free pointer
    Spc => NULL()
@@ -4652,7 +4649,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE EMISSCARBON( Input_Opt, State_Grid, State_Met, RC )
+ SUBROUTINE EMISSCARBON( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -4662,6 +4659,7 @@ CONTAINS
    USE HCO_State_GC_Mod,      ONLY : HcoState
    USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis, LoadHcoValEmis
    USE Input_Opt_Mod,         ONLY : OptInput
+   USE State_Chm_Mod,         ONLY : ChmState
    USE State_Grid_Mod,        ONLY : GrdState
    USE State_Met_Mod,         ONLY : MetState
    USE TIME_MOD,              ONLY : GET_TS_EMIS
@@ -4669,6 +4667,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
+   TYPE(ChmState),  INTENT(IN   )  :: State_Chm   ! Chemistry State object
    TYPE(GrdState),  INTENT(IN   )  :: State_Grid  ! Grid State object
    TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
 !
@@ -4782,14 +4781,15 @@ CONTAINS
       ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
       F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
-      ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
+      ! Add sesquiterpene emissions from HEMCO to ORVCSESQ array.
       ! We assume all SESQ emissions are placed in surface level.
       IF ( SESQID > 0 ) THEN
          CALL GetHcoValEmis ( Input_Opt, State_Grid, SESQID, I, J, 1, FOUND, EMIS )
          IF ( FOUND ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
-            TMPFLX           = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
-            ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L) + ( F_OF_PBL  * TMPFLX )
+            TMPFLX = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
+            State_Chm%ORVCsesq(I,J,L) = &
+                  State_Chm%ORVCsesq(I,J,L) + ( F_OF_PBL * TMPFLX )
          ENDIF
       ENDIF
 
@@ -7766,10 +7766,6 @@ CONTAINS
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
       TCOSZ = 0e+0_fp
 
-      ALLOCATE( ORVC_SESQ(State_Grid%NX,State_Grid%NY, State_Grid%NZ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
-      ORVC_SESQ = 0e+0_fp
-
       ! diagnostic  (dkh, 11/11/06)
       ! increase last dimension by 1 to add NAP (hotp 7/22/09)
       ALLOCATE( GLOB_DARO2(State_Grid%NX,State_Grid%NY,State_Grid%NZ,2,4), &
@@ -7865,7 +7861,6 @@ CONTAINS
    IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
    IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
    IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
-   IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
    IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
    IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
    IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )

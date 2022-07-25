@@ -15,7 +15,7 @@ Comment format is
  Equations - Date modified; Reference; Developer initials
 }
 
-#include atoms
+#include atoms.kpp
 
 #DEFVAR
 Hg0        = IGNORE;

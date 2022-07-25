@@ -57,10 +57,6 @@ COLLECTIONS: 'Restart',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
                               'Met_DELPDRY                    ',
-                              'Met_PS1WET                     ',
-                              'Met_PS1DRY                     ',
-                              'Met_SPHU1                      ',
-                              'Met_TMPU1                      ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

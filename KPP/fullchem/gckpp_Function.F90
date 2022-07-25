@@ -1517,7 +1517,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot, Aout, Vdotout )
                 &+0.75*A(242)+A(281)+A(282)-A(304)+A(314)+A(315)+A(316)+2*A(798)+A(799)+A(800)+A(801)+A(803)+3*A(804)+2&
                 &*A(805)+A(806)+A(809)+A(829)+A(830)+2*A(831)+A(844)+A(847)
 
-  !### Use Vdotout to return equation rates
+  !### Use Vdotout to return time deriv. of variable species
   IF ( PRESENT( Vdotout ) ) Vdotout = Vdot
       
 END SUBROUTINE Fun

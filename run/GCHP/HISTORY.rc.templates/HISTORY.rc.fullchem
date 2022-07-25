@@ -86,7 +86,7 @@ COLLECTIONS: @#'DefaultCollection',
 # You can skip individual diagnostics by commenting out their names.
 #
 # WARNING: Frequency, duration, and mode will be over-written with
-# settings in runConfig.sh. Edit settings in that file. You can execute the
+# settings in setCommonRunSettings.sh. Edit settings in that file. You can execute the
 # script to update this file and then inspect results before submitting a
 # run. Collection names are hard-coded in that file; if you add more
 # collections then you must also add them there for auto-update, or manually
@@ -332,11 +332,11 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisRCHO_Aircraft    ', 'GCHPchem',
                           ##'EmisSESQ_Biogenic    ', 'GCHPchem',
                           'EmisSALA_Natural     ', 'GCHPchem',
-                          'EmisBrSALA_Natural   ', 'GCHPchem',
+                          ##'EmisBrSALA_Natural   ', 'GCHPchem',
                           'EmisSALAAL_Natural   ', 'GCHPchem',
                           'EmisSALACL_Natural   ', 'GCHPchem',
                           'EmisSALC_Natural     ', 'GCHPchem',
-                          'EmisBrSALC_Natural   ', 'GCHPchem',
+                          ##'EmisBrSALC_Natural   ', 'GCHPchem',
                           'EmisSALCAL_Natural   ', 'GCHPchem',
                           'EmisSALCCL_Natural   ', 'GCHPchem',
                           'EmisSO2_Total        ', 'GCHPchem',
@@ -5239,7 +5239,7 @@ COLLECTIONS: @#'DefaultCollection',
   StateChm.template:       '%y4%m2%d2_%h2%n2z.nc4',
   StateChm.format:         'CFIO',
   StateChm.timestampStart: .true.
-  StateChm.monthly:        0
+  StateChm.monthly:        1
   StateChm.frequency:      010000
   StateChm.duration:       010000
   StateChm.mode:           'time-averaged'

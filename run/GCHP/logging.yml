@@ -87,7 +87,7 @@ loggers:
    MAPL:
        handlers: [mpi_shared]
        level: WARNING
-       root_level: INFO
+       root_level: WARNING
        
    CAP.EXTDATA:
        handlers: [mpi_shared]

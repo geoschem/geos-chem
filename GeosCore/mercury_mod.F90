@@ -217,7 +217,7 @@ CONTAINS
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
     USE PRESSURE_MOD
-    USE Species_Mod,        ONLY : Species, SpcConc
+    USE Species_Mod,        ONLY : Species
     USE Time_Mod,           ONLY : Get_Ts_Chem
     USE Time_Mod,           ONLY : Get_Day
     USE Time_Mod,           ONLY : Get_Month
@@ -230,7 +230,7 @@ CONTAINS
     USE HCO_STATE_GC_MOD,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
+    USE Species_Mod,        ONLY : Species, SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -270,7 +270,6 @@ CONTAINS
     INTEGER                :: Day,       S
     REAL(fp)               :: REL_HUM,   Start,     Finish,   rtim
     REAL(fp)               :: itim,      TOUT,      T,        TIN
-    REAL(fp)               :: Hg2Sum
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -292,7 +291,7 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
-    REAL(fp),      POINTER :: TK(:,:,:)
+    REAL(fp),      POINTER :: TK(:,:,:   )
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -705,7 +704,9 @@ CONTAINS
        ! Zero all slots of RCNTRL
        RCNTRL    = 0.0_fp
 
-       ! Starting value for integration time step
+       ! Initialize Hstart (the starting value of the integration step
+       ! size with the value of Hnew (the last predicted but not yet 
+       ! taken timestep)  saved to the the restart file.
        RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
        !=====================================================================
@@ -782,19 +783,19 @@ CONTAINS
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
              !$OMP END CRITICAL
-          ENDIF
 #endif
+          ENDIF
        ENDIF
 
        !=====================================================================
        ! Continue upon successful return...
        !=====================================================================
 
-       ! Save Hnew (predicted but not taken step) for the the next
-       ! integration.  Hnew is returned in the 3rd slot of RSTATE.
-       ! Hnew is also saved to the restart file so that simulations that
-       ! are broken into multiple stages can be initialized properly.
-       !  -- Bob Yantosca (10 May 2022)
+       ! Save Hnew (the last predicted but not taken step) from the 3rd slot
+       ! of RSTATE into State_Chm so that it can be written to the restart
+       ! file.  For simulations that are broken into multiple stages,
+       ! Hstart will be initialized to the value of Hnew from the restart
+       ! file at startup (see above).
        State_Chm%KPPHvalue(I,J,L) = RSTATE(3)
 
        !=====================================================================
