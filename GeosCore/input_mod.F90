@@ -1573,15 +1573,11 @@ CONTAINS
 
     ! Split into tagged species (turn off for full-chemistry)
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-       ! There are no tagged species for fullchem
-       Input_Opt%LSPLIT = .FALSE.
-
+       Input_Opt%LSPLIT = .FALSE.                     ! No tagged species
+    ELSE IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
     ELSE
-
-       ! All other simulations: tagged if more than 1 species listed
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )
-
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ENDIF
 
     ! Initialize arrays in Input_Opt that depend on N_ADVECT
@@ -3257,7 +3253,7 @@ CONTAINS
     !========================================================================
     ! Error check settings
     !========================================================================
-
+    
     ! Turn off drydep for simulations that don't need it
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
