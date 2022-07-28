@@ -78,6 +78,7 @@ printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   4. Carbon Cycle\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
