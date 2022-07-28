@@ -52,10 +52,6 @@ operations:
   convection:
     activate: true
 
-  dry_deposition:
-    activate: true
-    diag_alt_above_sfc_in_m: 10
-
   pbl_mixing:
      activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
@@ -67,44 +63,9 @@ operations:
       iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
       - CH4
-      - CH4_OIL
-      - CH4_GAS
-      - CH4_COL
-      - CH4_LIV
-      - CH4_LDF
-      - CH4_WST
-      - CH4_RIC
-      - CH4_OTA
-      - CH4_BBN
-      - CH4_WTL
-      - CH4_SEE
-      - CH4_LAK
-      - CH4_TER
-      - CH4_SAB
       - CO
-      - COus
-      - COeur
-      - COasia
-      - COoth
-      - CObbam
-      - CObbaf
-      - CObbas
-      - CObboc
-      - CObbeu
-      - CObboth
-      - COch4
-      - COnmvoc
       - CO2
-      - CO2ff
-      - CO2oc
-      - CO2bal
-      - CO2bb
-      - CO2bf
-      - CO2nte
-      - CO2se
-      - CO2av
-      - CO2ch
-      - CO2corr
+      - OCS
 
 #============================================================================
 # Options for CH4
@@ -152,76 +113,3 @@ CO2_simulation_options:
     tag_land_fossil_fuel_CO2: 
     tag_global_ship_CO2: false
     tag_global_aircraft_CO2: false
-
-#============================================================================
-# Settings for diagnostics (other than HISTORY and HEMCO)
-#============================================================================
-extra_diagnostics:
-
-  obspack:
-    activate: false
-    quiet_logfile_output: false
-    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
-    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
-    output_species:
-      - CH4
-      - CO
-      - CO2
-
-  planeflight:
-    activate: false
-    flight_track_file: Planeflight.dat.YYYYMMDD
-    output_file: plane.log.YYYYMMDD
-
-  legacy_bpch:                #          1         2         3
-     output_menu:             # 1234567890123456789012345678901
-       schedule_output_for_JAN: 3000000000000000000000000000000
-       schedule_output_for_FEB: 30000000000000000000000000000
-       schedule_output_for_MAR: 3000000000000000000000000000000
-       schedule_output_for_APR: 300000000000000000000000000000
-       schedule_output_for_MAY: 3000000000000000000000000000000
-       schedule_output_for_JUN: 300000000000000000000000000000
-       schedule_output_for_JUL: 3000000000000000000000000000000
-       schedule_output_for_AUG: 3000000000000000000000000000000
-       schedule_output_for_SEP: 300000000000000000000000000000
-       schedule_output_for_OCT: 3000000000000000000000000000000
-       schedule_output_for_NOV: 300000000000000000000000000000
-       schedule_output_for_DEC: 3000000000000000000000000000000
-
-    gamap:
-      diaginfo_dat_file: ./diaginfo.dat
-      tracerinfo_dat_file: ./tracerinfo.dat
-
-    bpch_diagnostics:
-      TOMAS_aerosol_emissions: "0 all"
-      TOMAS_rate: "0 all"
-      TOMAS_3D_rate: "0 all"
-      ND65_prodloss:
-        activate: true
-        number_of_levels: 72
-
-    ND51_satellite:
-      activate: false
-      output_file: ts_satellite.YYYYMMDD.bpch
-      tracers:
-        - 1
-        - 2
-        - 501
-      UTC_hour_for_write: 0
-      averaging_period_in_LT: [9, 11]
-      IMIN_and_IMAX_of_region: [1, 72]
-      JMIN_and_JMAX_of_region: [1, 46]
-      LMIN_and_LMAX_of_region: [1, 1]
-
-    ND51b_satellite:
-      activate: false
-      output_file: ts_13_15_NA..YYYYMMDD.bpch
-      tracers:
-        - 1
-        - 2
-        - 501
-      UTC_hour_for_write: 1
-      averaging_period_in_LT: [13, 15]
-      IMIN_and_IMAX_of_region: [1, 72]
-      JMIN_and_JMAX_of_region: [1, 46]
-      LMIN_and_LMAX_of_region: [1, 1]

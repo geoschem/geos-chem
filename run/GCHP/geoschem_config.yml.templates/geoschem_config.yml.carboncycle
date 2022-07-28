@@ -1,6 +1,6 @@
-  ---
+---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the tagged CO mechanism.
+### Customized for simulations using the KPP "ccycle" mechanism.
 ###
 ### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
 ### parsers will confuse this with a negative "no" value.
@@ -10,36 +10,9 @@
 #============================================================================
 simulation:
   name: ${RUNDIR_SIM_NAME}
-  start_date: [${RUNDIR_SIM_START_DATE}, ${RUNDIR_SIM_START_TIME}]
-  end_date: [${RUNDIR_SIM_END_DATE}, ${RUNDIR_SIM_END_TIME}]
-  root_data_dir: ${RUNDIR_DATA_ROOT}
-  met_field: ${RUNDIR_MET}
+  chem_inputs_dir: ./ChemDir/
   species_database_file: ./species_database.yml
   debug_printout: false
-  use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
-
-#============================================================================
-# Grid settings
-#============================================================================
-grid:
-  resolution: ${RUNDIR_GRID_RES_LONG}
-  number_of_levels: ${RUNDIR_GRID_NLEV}
-  longitude:
-    range: ${RUNDIR_GRID_LON_RANGE}
-    center_at_180: ${RUNDIR_CENTER_LON_180}
-  latitude:
-    range: ${RUNDIR_GRID_LAT_RANGE}
-    half_size_polar_boxes: ${RUNDIR_GRID_HALF_POLAR}
-  nested_grid_simulation:
-    activate: ${RUNDIR_GRID_NESTED_SIM}
-    buffer_zone_NSEW: ${RUNDIR_GRID_BUFFER_ZONE}
-
-#============================================================================
-# Timesteps settings
-#============================================================================
-timesteps:
-  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
-  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
 
 #============================================================================
 # Settings for GEOS-Chem operations
@@ -57,24 +30,28 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   transport:
-    gcclassic_tpcore:                 # GEOS-Chem Classic only
-      activate: true                  # GEOS-Chem Classic only
-      fill_negative_values: true      # GEOS-Chem Classic only
-      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
     transported_species:
+      - CH4
       - CO
-      - COus
-      - COeur
-      - COasia
-      - COoth
-      - CObbam
-      - CObbaf
-      - CObbas
-      - CObboc
-      - CObbeu
-      - CObboth
-      - COch4
-      - COnmvoc
+      - CO2
+      - OCS
+
+#============================================================================
+# Options for CH4
+#============================================================================
+CH4_simulation_options:
+
+  use_observational_operators:
+    AIRS: false
+    GOSAT: false
+    TCCON: false
+
+  analytical_inversion:
+    activate: true
+    emission_perturbation: 1.0
+    state_vector_element_number: 0
+    use_emission_scale_factor: false
+    use_OH_scale_factors: false
 
 #============================================================================
 # Options for CO
@@ -83,6 +60,28 @@ operations:
 CO_simulation_options:
   use_fullchem_PCO_from_CH4: true
   use_fullchem_PCO_from_NMVOC: true
+
+#============================================================================
+# Options for CO2
+#============================================================================
+
+CO2_simulation_options:
+
+  sources:
+    fossil_fuel_emissions: true
+    ocean_exchange: true
+    balanced_biosphere_exchange: true
+    net_terrestrial_exchange: true
+    ship_emissions: true
+    aviation_emissions: true
+    3D_chemical_oxidation_source: true
+
+  tagged_species:
+    save_fossil_fuel_in_background: false
+    tag_bio_and_ocean_CO2: false
+    tag_land_fossil_fuel_CO2: 
+    tag_global_ship_CO2: false
+    tag_global_aircraft_CO2: false
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
@@ -95,9 +94,9 @@ extra_diagnostics:
     input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
+      - CH4
       - CO
-      - 'NO'
-      - O3
+      - CO2
 
   planeflight:
     activate: false
@@ -127,6 +126,9 @@ extra_diagnostics:
       TOMAS_aerosol_emissions: "0 all"
       TOMAS_rate: "0 all"
       TOMAS_3D_rate: "0 all"
+      ND65_prodloss:
+        activate: true
+        number_of_levels: 72
 
     ND51_satellite:
       activate: false
