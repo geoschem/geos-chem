@@ -210,8 +210,8 @@ CONTAINS
                      1.0e+12_fp                               )
 
           ! Save into State_diag
-          State_Diag%ReactiveGaseousHg = State_Chm%Species(:,:,:,id_Hg2)     &
-                                       * ToPptv
+          State_Diag%ReactiveGaseousHg = &
+                     State_Chm%Species(id_Hg2)%Conc(:,:,:) * ToPptv
        ENDIF
 
        !--------------------------------------------
@@ -225,8 +225,8 @@ CONTAINS
                      1.0e+12_fp                               )
 
           ! Save into State_Diag
-          State_Diag%ParticulateBoundHg = State_Chm%Species(:,:,:,id_HgP)    &
-                                        * ToPptv
+          State_Diag%ParticulateBoundHg = &
+                     State_Chm%Species(id_HgP)%Conc(:,:,:) * ToPptv
        ENDIF
     ENDIF
 
@@ -429,7 +429,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           ! Forward code
-          ! TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
+          ! TmpSpcArr(I,J,L,N) = State_Chm%Species(N)%Conc(I,J,L) *   &
           !                     ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
           TmpSpcArr(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)
        ENDDO
@@ -567,7 +567,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          TmpSpcArr(I,J,L,N) = State_Chm%Species(I,J,L,N) *       &
+          TmpSpcArr(I,J,L,N) = State_Chm%Species(N)%Conc(I,J,L) *     &
                                ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
        ENDDO
        ENDDO
@@ -646,7 +646,7 @@ CONTAINS
     !    C(Z1) is the ozone concentration at Z1.
     !
     ! Ra(Z1,Zc) is calculated to the lowest model level in drydep_mod.F90.
-    ! We recalculate Ra using Z1 using a value specified in input.geos;
+    ! We recalculate Ra using Z1 using a value specified in geoschem_config.yml;
     ! usually 10m, which is the height of the CASTNET measurement for O3.
     ! This new Ra is stored in State_Diag%DryDepRaALT1.
     !
@@ -686,7 +686,7 @@ CONTAINS
              IF ( Conv < 0.0_fp ) Conv = 1.0_fp
 
              ! Save concentration at the user-defined altitude
-             ! as defined in input.geos (usually 10m).
+             ! as defined in geoschem_config.yml (usually 10m).
              State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
 
           ENDDO
@@ -924,7 +924,8 @@ CONTAINS
 
              ! Compute mass at each grid box in the column [kg]
              DO L = 1, State_Grid%NZ
-                spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+                spcMass(L) = State_Chm%Species(N)%Conc(I,J,L) * &
+                             State_Met%AD(I,J,L)
              ENDDO
 
              ! Compute the full-atmosphere column mass [kg]
@@ -936,7 +937,12 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,1) = colSum
              ELSE
+#ifdef MODEL_GEOS
+                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep &
+                                / State_Grid%AREA_M2(I,J)
+#else
                 diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep
+#endif
              ENDIF
           ENDDO
        ENDIF
@@ -966,7 +972,8 @@ CONTAINS
 
              ! Compute mass at each grid box in the troposphere [kg]
              DO L = 1, topLev
-                spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+                spcMass(L) = State_Chm%Species(N)%Conc(I,J,L) * &
+                             State_Met%AD(I,J,L)
              ENDDO
 
              ! Compute the trop-column mass [kg]
@@ -978,7 +985,12 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,2) = colSum
              ELSE
+#ifdef MODEL_GEOS
+                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep &
+                                / State_Grid%AREA_M2(I,J)
+#else
                 diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep
+#endif
              ENDIF
           ENDDO
        ENDIF
@@ -1008,7 +1020,8 @@ CONTAINS
 
              ! Compute mass at each grid box in the column [kg]
              DO L = 1, topLev
-                spcMass(L) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+                spcMass(L) = State_Chm%Species(N)%Conc(I,J,L) * &
+                             State_Met%AD(I,J,L)
              ENDDO
 
              ! Compute column mass in PBL region [kg]
@@ -1020,7 +1033,12 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
              ELSE
+#ifdef MODEL_GEOS
+                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                               / State_Grid%AREA_M2(I,J)
+#else
                 diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+#endif
              ENDIF
           ENDDO
        ENDIF

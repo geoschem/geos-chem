@@ -45,7 +45,7 @@ PROGRAM GEOS_Chem
   USE GC_Environment_Mod    ! For allocating derived type objects
   USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
   USE Input_Opt_Mod         ! Derived type for Input Options
-  USE INPUT_MOD             ! For reading settings from "input.geos"
+  USE INPUT_MOD             ! For reading settings from geoschem_config.yml
   USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
@@ -92,6 +92,7 @@ PROGRAM GEOS_Chem
   USE HISTORY_MOD           ! Updated netCDF diagnostics
   USE OBSPACK_MOD           ! For ObsPack diagnostics
   USE GOSAT_CH4_MOD         ! For GOSAT observation operator
+  USE AIRS_CH4_MOD          ! For AIRS observation operator
   USE TCCON_CH4_MOD         ! For TCCON observation operator
   USE HCO_Interface_GC_Mod  ! Writes out HEMCO diagnostics (C. Keller)
   USE HCO_Utilities_GC_Mod  ! Utility routines for GC-HEMCO interface
@@ -791,7 +792,7 @@ PROGRAM GEOS_Chem
   ! Moved here because some of the variables are used for non-local
   ! PBL mixing BEFORE the first call of the chemistry routines
   ! (ckeller, 05/19/14).
-  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
+  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM .OR. ITS_A_MERCURY_SIM ) THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 
      ! Trap potential errors
@@ -931,6 +932,19 @@ PROGRAM GEOS_Chem
           CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Zero_Diagnostics_StartOfTimestep!"'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+
+          ! Write HISTORY ITEMS in each diagnostic collection to disk
+          ! (or skip writing if it is not the proper output time.
+          ! Appears at start of run to output instantaneous boundary conditions
+          ! at the start of the simulation with the correct time:
+          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, &
+                              State_Chm, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered before timestepping in "History_Write"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
@@ -1240,20 +1254,20 @@ PROGRAM GEOS_Chem
 
           ! Read data required for Hg2 gas-particle partitioning
           ! (H Amos, 25 Oct 2011)
-          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
-             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
-                                         MONTH,     RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( prtDebug ) THEN
-                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
-             ENDIF
-          ENDIF
+!>>          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
+!>>             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
+!>>                                         MONTH,     RC )
+!>>
+!>>             ! Trap potential errors
+!>>             IF ( RC /= GC_SUCCESS ) THEN
+!>>                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
+!>>                CALL Error_Stop( ErrMsg, ThisLoc )
+!>>             ENDIF
+!>>
+!>>             IF ( prtDebug ) THEN
+!>>                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
+!>>             ENDIF
+!>>          ENDIF
        ENDIF
 
        ! Prescribe methane surface concentrations throughout PBL
@@ -1921,9 +1935,9 @@ PROGRAM GEOS_Chem
 
           !------------------------------------------------------------------
           !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
-          !
-          ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
           !------------------------------------------------------------------
+
+          ! CH4 columns from the GOSAT instrument
           IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
@@ -1931,11 +1945,15 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
-          !------------------------------------------------------------------
-          !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
-          !
-          ! CH4 columns from the TCCON instrument (mps, 8/17/17)
-          !------------------------------------------------------------------
+          ! CH4 columns from the AIRS instrument
+          IF ( Input_Opt%AIRS_CH4_OBS ) THEN
+             IF ( ITS_A_NEW_HOUR() ) THEN
+                CALL CALC_AIRS_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
+                                          State_Met )
+             ENDIF
+          ENDIF
+
+          ! CH4 columns from the TCCON instrument
           IF ( Input_Opt%TCCON_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
@@ -1987,30 +2005,6 @@ PROGRAM GEOS_Chem
 #ifdef BPCH_DIAG
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "=> Binary punch diagnostics",  RC )
-          ENDIF
-
-          !------------------------------------------------------------------
-          !   ***** A R C H I V E   B P C H   D I A G N O S T I C S *****
-          !------------------------------------------------------------------
-          IF ( ITS_TIME_FOR_DIAG() ) THEN
-
-             IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
-
-             ! Accumulate several diagnostic quantities
-             CALL Diag1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag1"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG1' )
-
-             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
-             CALL Set_Ct_Diag( INCREMENT=.TRUE. )
-
-             ! Planeflight diagnostic moved to be after chemistry, kyu
-             IF ( prtDebug ) CALL Debug_Msg('### MAIN: a DIAGNOSTICS')
           ENDIF
 
           !------------------------------------------------------------------
@@ -2079,7 +2073,7 @@ PROGRAM GEOS_Chem
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
-          CALL History_Write( Input_Opt, State_Chm%Spc_Units, RC )
+          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, State_Chm, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -2570,7 +2564,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! FAST-J is only used for fullchem and offline aerosol, skip otherwise
-    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  ) THEN
+    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  .or. ITS_A_MERCURY_SIM ) THEN
 
        ! Only execute this if we are doing chemistry
        ! and if it we are at a chemistry timestep

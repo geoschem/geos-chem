@@ -304,7 +304,8 @@ CONTAINS
     ! To disable the HEMCO intermediate grid feature, simply set this DY, DX to
     ! equal to State_Grid%DY, State_Grid%DX (e.g. 2x2.5, 4x5, ...)
     !
-    ! TODO: Read in the grid parameters via input.geos. For now, hardcode the scale factor.
+    ! TODO: Read in the grid parameters via geoschem_config.yml. For now,
+    ! hardcode the scale factor.
     Input_Opt%IMGRID_XSCALE = 1
     Input_Opt%IMGRID_YSCALE = 1
 
@@ -683,7 +684,8 @@ CONTAINS
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux > 0 ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
-          ErrMsg = 'DustGinoux is on in HEMCO but LDUST=F in input.geos!'
+          ErrMsg = 'DustGinoux is on in HEMCO but activate dust is false ' // &
+                   ' in geoschem_config.yml!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -694,7 +696,8 @@ CONTAINS
     ! DEAD dust emissions
     IF ( ExtState%DustDead > 0 ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
-          ErrMsg = 'DustDead is on in HEMCO but LDUST=F in input.geos!'
+          ErrMsg = 'DustDead is on in HEMCO but activate dust is false ' // &
+                   'in geoschem_config.yml!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -705,7 +708,8 @@ CONTAINS
     ! Dust alkalinity
     IF ( ExtState%DustAlk > 0 ) THEN
        IF ( .not. Input_Opt%LDSTUP ) THEN
-          ErrMsg = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
+          ErrMsg = 'DustAlk is on in HEMCO but acid_uptake_on_dust is ' // &
+                   'false in geoschem_config.yml'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -1883,7 +1887,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Pointers
-    REAL(hp), POINTER  :: Trgt3D(:,:,:) => NULL()
+    REAL(hp), POINTER  :: Trgt3D(:,:,:)
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -1902,6 +1906,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
+    Trgt3d   => NULL()
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at ExtState_SetFields (in module GeosCore/hco_interface_gc_mod.F90)'
@@ -2656,7 +2661,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_O3)
+        Trgt3D => State_Chm%Species(id_O3)%Conc
         CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
                          HMRC,     FIRST,       Trgt3D )
 
@@ -2682,7 +2687,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_NO2)
+        Trgt3D => State_Chm%Species(id_NO2)%Conc
         CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
                          HMRC,     FIRST,        Trgt3D )
 
@@ -2708,7 +2713,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_NO)
+        Trgt3D => State_Chm%Species(id_NO)%Conc
         CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
                          HMRC,     FIRST,       Trgt3D )
 
@@ -2734,7 +2739,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
+        Trgt3D => State_Chm%Species(id_HNO3)%Conc
         CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
                          HMRC,     FIRST,         Trgt3D )
 
@@ -2760,7 +2765,7 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        Trgt3D => State_Chm%Species(:,:,:,id_POPG)
+        Trgt3D => State_Chm%Species(id_POPG)%Conc
         CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
                          HMRC,     FIRST,         Trgt3D )
 
@@ -2867,7 +2872,8 @@ CONTAINS
 #endif
 
     ! Not first call any more
-    FIRST = .FALSE.
+    FIRST  = .FALSE.
+    Trgt3D => NULL()
 
     ! Leave with success
     RC = GC_SUCCESS
@@ -3029,11 +3035,13 @@ CONTAINS
           ELSE
              IF ( ExtState%JNO2%DoUse ) THEN
                 ! RXN_NO2: NO2 + hv --> NO  + O
-                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
+!                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
+                JNO2(I,J) = State_Chm%JNO2(I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
                 ! RXN_O3_1: O3  + hv --> O2  + O
-                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
+!                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
+                JOH(I,J) = State_Chm%JOH(I,J)
              ENDIF
           ENDIF
 
@@ -3235,7 +3243,8 @@ CONTAINS
 
     ! O3
     IF ( id_O3 > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_O3)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%Species(id_O3)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3244,7 +3253,8 @@ CONTAINS
 
     ! NO2
     IF ( id_NO2 > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_NO2)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%Species(id_NO2)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3253,7 +3263,8 @@ CONTAINS
 
     ! NO
     IF ( id_NO > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_NO)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%Species(id_NO)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3262,7 +3273,8 @@ CONTAINS
 
     ! HNO3
     IF ( id_HNO3 > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_HNO3)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%Species(id_HNO3)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3271,7 +3283,8 @@ CONTAINS
 
     ! POPG
     IF ( id_POPG > 0 ) THEN
-      REGR_3DI(:,:,1:State_Grid%NZ) = State_Chm%Species(:,:,1:State_Grid%NZ,id_POPG)
+      REGR_3DI(:,:,1:State_Grid%NZ) = &
+                 State_Chm%Species(id_POPg)%Conc(:,:,1:State_Grid%NZ)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=State_Grid%NZ,       & ! 3D data
                            ResetRegrName=.true. )
@@ -3678,7 +3691,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
          Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
          Input_Opt%ITS_A_CO2_SIM          .or.                               &
-         Input_OPt%ITS_A_CH4_SIM          .or.                               &
+         Input_Opt%ITS_A_CH4_SIM          .or.                               &
          Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
          Input_Opt%ITS_A_POPS_SIM         .or.                               &
          Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
@@ -3966,8 +3979,8 @@ CONTAINS
 ! !IROUTINE: CheckSettings
 !
 ! !DESCRIPTION: Subroutine CheckSettings performs some sanity checks of the
-! switches provided in the HEMCO configuration file (in combination with the
-! settings specified in input.geos).
+! switches provided in the HEMCO configuration file in combination with the
+! settings specified in geoschem_config.yml.
 !\\
 !\\
 ! !INTERFACE:
@@ -4040,8 +4053,9 @@ CONTAINS
 
        IF ( Input_Opt%amIRoot ) THEN
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
-          Print*, '% Chemistry is set to false in input.geos so chemistry  %'
-          Print*, '% data will not be read by HEMCO (hco_interface_gc_mod.F90)%'
+          Print*, '% WARNING: Activate chemistry is set to false in        %'
+          Print*, '% geoschem_config.yml so chemistry data will not be     %'
+          Print*, '% read by HEMCO(hco_interface_gc_mod.F90)               %'
           Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        ENDIF
 
@@ -4197,7 +4211,7 @@ CONTAINS
     ! Ocean Hg input data (for Hg sims only)
     !
     ! If we have turned on the Ocean Mercury simulation in the
-    ! input.geos file, then we will also toggle the OCEAN_Hg
+    ! geoschem_config.yml file, then we will also toggle the OCEAN_Hg
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN ) THEN
@@ -4218,9 +4232,88 @@ CONTAINS
        ENDIF
        IF ( .not. LTMP ) THEN
           ErrMsg = 'OCEAN_Hg is set to false in HEMCO_Config.rc ' // &
-                   'but LDYNOCEAN is true in input.geos.'
+                   'but use_dynamic_ocean_Hg is true in geoschem_config.yml.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Input data for CH4 simulations only
+    !
+    ! If we have turned on CH4 options in geoschem_config.yml, then we
+    ! also need to toggle switches so that HEMCO reads the appropriate data.
+    !-----------------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+
+       IF ( Input_Opt%AnalyticalInv ) THEN
+          CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
+                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "GetExtOpt( AnalyticalInv )"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             RETURN
+          ENDIF
+          IF ( .not. FOUND ) THEN
+             ErrMsg = 'AnalyticalInv not found in HEMCO_Config.rc file!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          IF ( .not. LTMP ) THEN
+             ErrMsg = 'AnalyticalInv is set to false in HEMCO_Config.rc ' // &
+                  'but should be set to true for this simulation.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       IF ( Input_Opt%UseEmisSF ) THEN
+          CALL GetExtOpt( HcoConfig, -999, 'Emis_ScaleFactor', &
+                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "GetExtOpt( Emis_ScaleFactor )"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             RETURN
+          ENDIF
+          IF ( .not. FOUND ) THEN
+             ErrMsg = 'Emis_ScaleFactor not found in HEMCO_Config.rc file!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          IF ( .not. LTMP ) THEN
+             ErrMsg = 'Emis_ScaleFactor is set to false in HEMCO_Config.rc '// &
+                  'but should be set to true for this simulation.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       IF ( Input_Opt%UseOHSF ) THEN
+          CALL GetExtOpt( HcoConfig, -999, 'OH_ScaleFactor',           &
+                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "GetExtOpt( OH_ScaleFactor )"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             RETURN
+          ENDIF
+          IF ( .not. FOUND ) THEN
+             ErrMsg = 'OH_ScaleFactor not found in HEMCO_Config.rc file!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+          IF ( .not. LTMP ) THEN
+             ErrMsg = 'OH_ScaleFactor is set to false in HEMCO_Config.rc ' // &
+                  'but should be set to true for this simulation.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
     ENDIF
@@ -4229,7 +4322,7 @@ CONTAINS
     ! RRTMG input data
     !
     ! If we have turned on the RRTMG simulation in the
-    ! input.geos file, then we will also toggle the RRTMG
+    ! geoschem_config.yml file, then we will also toggle the RRTMG
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LRAD .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -4446,121 +4539,10 @@ CONTAINS
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! On first call, attempt to get instantaneous met fields for prior
-      ! timestep from the GEOS-Chem restart file. Otherwise, initialize
-      ! to met fields for this timestep.
-
-      !-------------
-      ! TMPU
-      !-------------
-
-      ! Define variable name
-      v_name = 'TMPU1'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%TMPU1 = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize TMPU1    from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'TMPU1    not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr3D => NULL()
-
-      !-------------
-      ! SPHU
-      !-------------
-
-      ! Define variable name
-      v_name = 'SPHU1'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%SPHU1 = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize SPHU1    from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'SPHU1    not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr3D => NULL()
-
-      !-------------
-      ! PS1_WET
-      !-------------
-
-      ! Define variable name
-      v_name = 'PS1WET'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%PS1_WET = Ptr2D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize PS1_WET  from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'PS1_WET  not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr2D => NULL()
-
-      !-------------
-      ! PS1_DRY
-      !-------------
-
-      ! Define variable name
-      v_name = 'PS1DRY'
-
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
-      IF ( FOUND ) THEN
-         State_Met%PS1_DRY = Ptr2D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize PS1_DRY  from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'PS1_DRY  not found in restart, keep as value at t=0'
-         ENDIF
-      ENDIF
-
-      ! Nullify pointer
-      Ptr2D => NULL()
-
-      !-------------
-      ! DELP_DRY
-      !-------------
-
-      ! Define variable name
+      ! Get delta pressure per grid box stored in restart file to allow
+      ! mass conservation across consecutive runs.
       v_name = 'DELPDRY'
-
-      ! Get variable from HEMCO and store in local array
       CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-
-      ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%DELP_DRY = Ptr3D
          IF ( Input_Opt%amIRoot ) THEN
@@ -4571,8 +4553,6 @@ CONTAINS
             WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
          ENDIF
       ENDIF
-
-      ! Nullify pointer
       Ptr3D => NULL()
 
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
@@ -4647,7 +4627,6 @@ CONTAINS
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
-    USE Mercury_Mod,          ONLY : HG_Emis
     USE PhysConstants
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
@@ -4720,7 +4699,6 @@ CONTAINS
                                     State_Chm%nAdvect                       )
 
     ! Pointers and Objects
-    REAL(fp),       POINTER :: spc(:,:,:)
     REAL(f4),       POINTER :: Ptr2D(:,:) => NULL()
 
     REAL(f4),       POINTER :: PNOxLoss_O3(:,:)
@@ -4736,7 +4714,6 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
-    spc     => State_Chm%Species(:,:,1,1:State_Chm%nAdvect)
     ThisSpc => NULL()
     errMsg  = ''
     thisLoc = &
@@ -4838,15 +4815,16 @@ CONTAINS
       DepSpec  = .False.
 #endif
 
-      ! If there is emissions for this species, it must be loaded into memory first.
-      ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
-      ! loop. Failure to load this will result in severe performance issues!! (hplin, 9/27/20)
+      ! If there is emissions for this species, it must be loaded into
+      ! memory first.   This is achieved by attempting to retrieve a
+      ! grid box while NOT in a parallel loop. Failure to load this will
+      ! result in severe performance issues!! (hplin, 9/27/20)
       IF ( EmisSpec ) THEN
-          CALL LoadHcoValEmis ( Input_Opt, State_Grid, NA )
+         CALL LoadHcoValEmis ( Input_Opt, State_Grid, NA )
       ENDIF
 
       IF ( DepSpec ) THEN
-          CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
+         CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
       ENDIF
 
       !$OMP PARALLEL DO                                                        &
@@ -4876,21 +4854,13 @@ CONTAINS
            !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
            eflx(I,J,NA) = CH4_EMIS(I,J,NA)
 
-        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-           ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
-           ! This is a workaround to ensure backwards compatibility.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-           eflx(I,J,NA) = HG_EMIS(I,J,NA)
-
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
            ! Compute emissions for all other simulation
            tmpFlx = 0.0_fp
            DO L = 1, topMix
-              CALL GetHcoValEmis( Input_Opt, State_Grid, NA, I, J, L, found, emis )
+              CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,           &
+                                  J,         L,          found, emis        )
               IF ( .NOT. found ) EXIT
               tmpFlx = tmpFlx + emis
            ENDDO
@@ -4908,8 +4878,9 @@ CONTAINS
         IF ( DepSpec ) THEN
           CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
           IF ( found ) THEN
-             dflx(I,J,NA) = dflx(I,J,NA)                                     &
-                          + ( dep * spc(I,J,NA) / (AIRMW / ThisSpc%MW_g)  )
+             dflx(I,J,NA) = dflx(I,J,NA) + ( dep                   &
+                            * State_Chm%Species(NA)%Conc(I,J,1) &
+                            / (AIRMW / ThisSpc%MW_g)  )
           ENDIF
         ENDIF
       ENDDO ! I
@@ -4966,9 +4937,9 @@ CONTAINS
 
           ! only use the lowest model layer for calculating drydep fluxes
           ! given that spc is in v/v
-          dflx(I,J,N) = dflx(I,J,N) &
-                      + State_Chm%DryDepFreq(I,J,ND) * spc(I,J,N)             &
-                      /  ( AIRMW                    / ThisSpc%MW_g        )
+          dflx(I,J,N) = dflx(I,J,N) + State_Chm%DryDepFreq(I,J,ND) &
+                        * State_Chm%Species(N)%Conc(I,J,1)      &
+                        /  ( AIRMW / ThisSpc%MW_g )
 
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
@@ -5070,12 +5041,12 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
-    ! WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
-    ! DO NA = 1, State_Chm%nAdvect
+    !WRITE( 6, '(a)' ) 'eflx and dflx values HEMCO [kg/m2/s]'
+    !DO NA = 1, State_Chm%nAdvect
     !   WRITE(6,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
     !   WRITE(6,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
     !   WRITE(6,*) 'sflx TRACER ', NA, ': ', SUM(State_Chm%SurfaceFlux(:,:,NA))
-    ! ENDDO
+    !ENDDO
 
     !=======================================================================
     ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]

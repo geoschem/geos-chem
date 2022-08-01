@@ -27,8 +27,8 @@ MODULE rateLawUtilFuncs
 ! !DEFINED PARAMETERS:
 !
   ! Minimum heterogeneous chemistry lifetime and reaction rate
-  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_LIFE   = 1.e-3_dp
-  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_RATE   = 1.0_dp / HET_MIN_LIFE
+  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_LIFE = 1.e-3_dp
+  REAL(dp), PRIVATE, PARAMETER :: HET_MIN_RATE = 1.0_dp / HET_MIN_LIFE
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -111,11 +111,11 @@ CONTAINS
     kIEduct = 0.0_dp
     kII     = 0.0_dp
     !
-    ! Prevent div by zero.   NOTE: Now use 1.0e-8 as the error trap for
-    ! concEduct.  100 (the previous criterion) was too large.  We should
-    ! never have have a concentration as low as 1e-8 molec/cm3, as that
-    ! will definitely blow up the division. (bmy, 11/1/21)
-    IF ( concEduct < 1.0e-8_dp                           ) RETURN
+    ! Prevent div by zero.  Now use 1.0 as the error trap for concEduct.
+    ! 100 and 1e-8 (the previous criteria) were too large and too small,
+    ! respectively.  See https://github.com/geoschem/geos-chem/issues/1115.
+    !  -- Seb Eastham, Bob Yantosca (09 Feb 2022)
+    IF ( concEduct < 1.0_dp                              ) RETURN
     IF ( .not. Is_SafeDiv( concGas*kISource, concEduct ) ) RETURN
     !
     ! Compute rates
@@ -264,6 +264,10 @@ CONTAINS
          SQRT( 1.0_dp    + ff*ff     + kk*kk                   +             &
                2.0_dp*ff + 2.0_dp*kk - 2.0_dp*ff*kk ) / 2.0_dp
 
+    ! Do not let xx go negative, as this can cause numerical instability.
+    ! See https://github.com/geoschem/geos-chem/issues/1205
+    xx = MAX( xx, 0.0_dp )
+
     ! Overall heterogeneous loss rate, grid average, 1/s
     ! kHet = kI * xx / ( 1d0 + xx )
     !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
@@ -273,6 +277,144 @@ CONTAINS
     ! Overall loss rate in a particular reaction branch, 1/s
     kHet = kHet * branch
   END FUNCTION CloudHet
+
+  SUBROUTINE Cld_Params( AD, CLDF, FRLAND, FROCEAN, QI, QL, T, H )
+    !
+    ! Returns ice and liquid cloud parameters (based on State_Met)
+    ! for cloud particles.
+    !
+    ! References:
+    !  Heymsfield, A. J., Winker, D., Avery, M., et al. (2014). Relationships
+    !   between ice water content and volume extinction coefficient from in
+    !   situ observations for temperatures from 0° to –86°C: implications
+    !   for spaceborne lidar retrievals. Journal of Applied Meteorology and
+    !   Climatology, 53(2), 479–505. https://doi.org/10.1175/JAMC-D-13-087.1
+    !
+    !  Schmitt, C. G., & Heymsfield, A. J. (2005). Total Surface Area Estimates
+    !   for Individual Ice Particles and Particle Populations. Journal of
+    !   Applied Meteorology, 44(4), 467–474. https://doi.org/10.1175/JAM2209.1
+    !
+    REAL(dp),       INTENT(IN)    :: AD          ! Air mass [kg]
+    REAL(dp),       INTENT(IN)    :: CLDF        ! Cloud fraction [1]
+    REAL(dp),       INTENT(IN)    :: FRLAND      ! Land fraction [1]
+    REAL(dp),       INTENT(IN)    :: FROCEAN     ! Ocean fraction [1]
+    REAL(dp),       INTENT(IN)    :: QI          ! Ice mixing ratio [kg/kg]
+    REAL(dp),       INTENT(IN)    :: QL          ! Liquid mixing ratio [kg/kg]
+    REAL(dp),       INTENT(IN)    :: T           ! Temperature [K]
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(HetState), INTENT(INOUT) :: H           ! Hetchem State object
+!
+! !REMARKS:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+    ! Cloud droplet radius in continental warm clouds [cm]
+    REAL(dp), PARAMETER :: CLDR_CONT = 6.0e-4_dp
+
+    ! Cloud droplet radius in marine warm clouds [cm]
+    REAL(dp), PARAMETER :: CLDR_MARI = 10.0e-4_dp
+
+    ! Ice cloud droplet radius [cm]
+    REAL(dp), PARAMETER :: CLDR_ICE  = 38.5e-4_dp
+
+    ! Density of H2O liquid [kg/cm3]
+    REAL(dp), PARAMETER :: DENS_LIQ  = 0.001_dp
+
+    ! Density of H2O ice [kg/cm3]
+    REAL(dp), PARAMETER :: DENS_ICE  = 0.91e-3_dp
+!
+! !LOCAL VARIABLES:
+!
+    REAL(dp) :: alpha, beta
+
+    !=======================================================================
+    ! CLD_PARAMS begins here!
+    !=======================================================================
+
+    ! Exit if there is no cloud
+    IF ( ( QL + QI <= 0.0_dp ) .or. ( CLDF <= 0.0_dp ) ) THEN
+       H%rLiq = CLDR_CONT
+       H%rIce = CLDR_ICE
+       H%ALiq = 0.0_dp
+       H%VLiq = 0.0_dp
+       H%AIce = 0.0_dp
+       H%VIce = 0.0_dp
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! In GC 12.0 and earlier, the liquid water volume was set to zero at
+    ! temperatures colder than 258K and over land ice (Antarctica &
+    ! Greenland). That was likely legacy code from GEOS-4, which provided
+    ! no information on cloud phase. As of GC 12.0, all met data sources
+    ! provide explicit liquid and ice condensate amounts, so we use those
+    ! as provided. (C.D. Holmes)
+    !
+    ! Liquid water clouds
+    !
+    ! Droplets are spheres, so
+    ! Surface area = 3 * Volume / Radius
+    !
+    ! Surface area density = Surface area / Grid volume
+    !-----------------------------------------------------------------------
+    IF ( FRLAND > FROCEAN ) THEN
+       H%rLiq = CLDR_CONT      ! Continental cloud droplet radius [cm]
+    ELSE
+       H%rLiq = CLDR_MARI      ! Marine cloud droplet radius [cm]
+
+    ENDIF
+
+    ! get the volume of cloud condensate [cm3(condensate)/cm3(air)]
+    ! QL is [g/g]
+    H%VLiq = QL * AD / DENS_LIQ / H%vAir
+    H%VIce = QI * AD / DENS_ICE / H%vAir
+    H%ALiq = 3.0_dp * H%vLiq / H%rLiq
+
+    !-----------------------------------------------------------------------
+    ! Ice water clouds
+    !
+    ! Surface area calculation requires information about ice crystal size
+    ! and shape, which is a function of temperature. Use Heymsfield (2014)
+    ! empirical relationships between temperature, effective radius,
+    ! surface area and ice water content.
+    !
+    ! Schmitt and Heymsfield (2005) found that ice surface area is about
+    ! 9 times its cross-sectional area.
+    !
+    ! For any shape,
+    !   Cross section area = pi * (Effective Radius)^2, so
+    !   Cross section area = 3 * Volume / ( 4 * Effective Radius ).
+    !
+    ! Thus, for ice
+    !   Surface area = 9 * Cross section area
+    !                = 2.25 * 3 * Volume / Effective Radius
+    ! (C.D. Holmes)
+    !-----------------------------------------------------------------------
+
+    ! Heymsfield (2014) ice size parameters
+    IF ( T < 202.0_dp ) THEN          ! -71 C
+       alpha = 83.3_dp
+       beta  = 0.0184_dp
+    ELSE IF ( T < 217.0_dp ) THEN     ! -56 C
+       alpha = 9.1744e+4_dp
+       beta  = 0.117_dp
+    ELSE
+       alpha = 308.4_dp
+       beta  = 0.0152_dp
+    ENDIF
+
+    ! Effective radius, cm
+    H%rIce = 0.5_dp * alpha * EXP( beta * ( T - 273.15_dp ) ) / 1e+4_dp
+
+    ! Ice surface area density, cm2/cm3
+    H%aIce = 3.0_dp * H%vIce / H%rIce * 2.25_dp
+
+  END SUBROUTINE Cld_Params
 
   !#########################################################################
   !#####         COMMON FUNCTIONS FOR COMPUTING UPTAKE RATES           #####
@@ -311,7 +453,7 @@ CONTAINS
   END FUNCTION ReactoDiff_Corr
 
   !#########################################################################
-  !#####         COMMON FUNCTIONS FOR ENFORCING SAFE DIVISION          #####
+  !#####   COMMON FUNCTIONS FOR ENFORCING SAFE NUMERICAL OPERATIONS    #####
   !#########################################################################
 
   FUNCTION SafeDiv( num, denom, alt ) RESULT( quot )
@@ -352,5 +494,29 @@ CONTAINS
     ENDIF
   END FUNCTION Is_SafeDiv
 
-END MODULE rateLawUtilFuncs
+  FUNCTION IsSafeExp( x ) RESULT( safe )
+    !
+    ! Returns TRUE if an exponential can be performed safely
+    !
+    REAL(dp), INTENT(IN) :: x
+    LOGICAL              :: safe
+    !
+    ! Note EXP( 708 ) = 8.2e+307 and EXP( -708 ) = 3.3e-308, which are
+    ! very close to the maximum representable values at double precision.
+    safe = ( ABS( x ) < 709.0_dp )
+  END FUNCTION IsSafeExp
+
+  FUNCTION SafeExp( x, alt ) RESULT( y )
+    !
+    ! Performs a "safe exponential", that is to prevent overflow, underflow,
+    ! underlow, NaN, or infinity errors when taking the value EXP( x ).  An
+    ! alternate value is returned if the exponential cannot be performed.
+    !
+    REAL(dp), INTENT(IN) :: x, alt
+    REAL(dp)             :: y
+    !
+    y = alt
+    IF ( ABS( X ) < 709.0_dp ) y = EXP( x )
+  END FUNCTION SafeExp
 !EOC
+END MODULE rateLawUtilFuncs

@@ -173,7 +173,7 @@ Comment format is
  Equations - Date modified; Reference; Developer initials
 }
 
-#include atoms
+#include atoms.kpp
 
 #DEFVAR
 
@@ -207,8 +207,8 @@ BrSALC     = IGNORE; {Br; Course sea salt bromine}
 BZCO3      = IGNORE; {benzoylperoxy radical}
 BZCO3H     = IGNORE; {perbenzoic acid}
 BZPAN      = IGNORE; {peroxybenzoyl nitrate}
-C2H2 	   = IGNORE; {C2H2; Ethyne}
-C2H4 	   = IGNORE; {Ethylene}
+C2H2       = IGNORE; {C2H2; Ethyne}
+C2H4       = IGNORE; {Ethylene}
 C2H6       = IGNORE; {C2H6; Ethane}
 C3H8       = IGNORE; {C3H8; Propane}
 C4HVP1     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
@@ -247,11 +247,11 @@ CSL        = IGNORE; {cresols and xylols}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
-ETHN 	   = IGNORE; {stable hydroxy-nitrooxy-ethane}
-ETHP 	   = IGNORE; {stable hydroxy-hydroperoxy-ethane}
+ETHN       = IGNORE; {stable hydroxy-nitrooxy-ethane}
+ETHP       = IGNORE; {stable hydroxy-hydroperoxy-ethane}
 ETNO3      = IGNORE; {C2H5ONO2; Ethyl nitrate}
-ETO	   = IGNORE; {hydroxy-alkoxy-ethane radical}
-ETOO	   = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
+ETO        = IGNORE; {hydroxy-alkoxy-ethane radical}
+ETOO       = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
 ETP        = IGNORE; {CH3CH2OOH; Ethylhydroperoxide}
 GLYC       = IGNORE; {HOCH2CHO; Glycoaldehyde}
@@ -274,7 +274,7 @@ HCOOH      = IGNORE; {HCOOH; Formic acid}
 HI         = IGNORE; {HI; Hydrogen iodide}
 HMHP       = IGNORE; {HOCH2OOH; Hydroxymethyl hydroperoxide}
 HMML       = IGNORE; {C4H6O3; Hydroxymethyl-methyl-a-lactone}
-HMS	   = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
+HMS        = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
@@ -283,7 +283,6 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
-DUMMY	   = IGNORE;
 HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
 HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
 HPALD2     = IGNORE; {HOOCH2C(CH3)=CHCH=O; d-1,4-C5-hydroperoxyaldehyde}
@@ -447,8 +446,8 @@ RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
 RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
-//SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
-//SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
+SALAAL     = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
+SALCAL     = IGNORE; {Coarse mode seasalt aerosol alkalinity}
 SALACL     = IGNORE; {Cl; Fine chloride}
 SALCCL     = IGNORE; {Cl; Coarse chloride}
 SALASO2    = IGNORE; {SO2; Fine seasalt}
@@ -457,10 +456,6 @@ SALASO3    = IGNORE; {SO3--; Fine seasalt}
 SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
 SO4        = IGNORE; {SO4; Sulfate}
-SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
-SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
-SO4H3      = IGNORE; {SO4; Sulfate produced by HOCl}
-SO4H4      = IGNORE; {SO4; Sulfate produced by HOCl}
 SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
@@ -477,31 +472,28 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
-//----------------------------------------------------------------------------
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Reactions extracted from sulfate_mod.F90 (MSL, BMY)             %%%%%
-// %%%%% Activate these later, comment out for now (bmy, 9/22/21)        %%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
-//// Seasalt
-//SO2  + SALAAL + O3  = SO4 - SALAAL  : K_MT(1);
-//HCl  + SALAAL       = SALACL        : K_MT(2);
-//HNO3 + SALAAL       = NIT           : K_MT(3);
-//SO2  + SALCAL + O3  = SO4s - SALCAL : K_MT(4);
-//HCl  + SALCAL       = SALCCL        : K_MT(5);
-//HNO3 + SALCAL       = NITs          : K_MT(6);
+// Seasalt
+SO2  + SALAAL + O3  = SO4 - SALAAL       : K_MT(1);
+HCl  + SALAAL       = SALACL             : K_MT(2);
+HNO3 + SALAAL       = NIT                : K_MT(3);
+SO2  + SALCAL + O3  = SO4s - SALCAL      : K_MT(4);
+HCl  + SALCAL       = SALCCL             : K_MT(5);
+HNO3 + SALCAL       = NITs               : K_MT(6);
 //
-//// Cloud
-//// S(IV) --> S(VI)
-//SO2 + H2O2        = SO4             : K_CLD(1);
-//SO2 + O3          = SO4             : K_CLD(2);
-//SO2 {+O2}         = SO4             : K_CLD(3);    {Mn & Fe catalysis + HET_DROP_CHEM()}
+// Cloud
+// S(IV) --> S(VI)
+SO2 + H2O2          = SO4                : K_CLD(1);
+SO2 + O3            = SO4                : K_CLD(2);
+SO2 {+O2}           = SO4                : K_CLD(3);  {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
-//// HMS
-//CH2O + SO2        = HMS             : K_CLD(4);    {Sep 2021; Moch2020; MSL}
-//HMS               = SO2 + CH2O      : K_CLD(5);    {Sep 2021; Moch2020; MSL}
-//HMS + OH          = 2SO4 + CH2O     : K_CLD(6);    {Sep 2021; Moch2020; MSL}
-//----------------------------------------------------------------------------
+// HMS
+CH2O + SO2          = HMS                : K_CLD(4);  {Sep 2021; Moch2020; MSL}
+HMS                 = SO2 + CH2O         : K_CLD(5);  {Sep 2021; Moch2020; MSL}
+HMS + OH            = 2SO4 + CH2O - SO2  : K_CLD(6);  {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Gas-phase chemistry reactions                                   %%%%%
@@ -545,7 +537,7 @@ OH + CO = HO2 + CO2 :                        GC_OHCO_a(1.50d-13);               
 OH + CH4 = MO2 + H2O :                       GCARR_ac(2.45d-12, -1775.0d0);
 MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO_B1_ac(2.80d-12, 300.0d0);                                                {2019/05/10; Fisher2018; JAF}
 MO2 + NO = MENO3 :                           GC_RO2NO_A1_ac(2.80d-12, 300.0d0);                                                {2019/05/10; Fisher2018; JAF}
-MO2 + HO2 = MP + O2 :                        GCARR_abc(4.10E-13, 0.0E+00, 750.0);
+MO2 + HO2 = MP + O2 :                        GCARR_abc(4.10d-13, 0.0d0, 750.0d0);
 MO2 + MO2 = MOH + CH2O + O2 :                GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 2.62d1, -1130.0d0);
 MO2 + MO2 = 2.000CH2O + 2.000HO2 :           GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 4.0d-2, 1130.0d0);
 MO2 + OH = 0.13MOH + 0.87CH2O + 1.74HO2 :    1.60d-10 ;                                                                        {2021/09/22; Bates2021a; KHB,MSL}
@@ -596,8 +588,8 @@ R4N1 + NO = 2.000NO2 + 0.570RCHO +
 ATO2 + NO = NO2 + CH2O + MCO3 :              GCARR_ac(2.80d-12, 300.0d0);                                                      {2017/07/27; Fix C creation; SAS,BHH,MJE}
 KO2 + NO = 0.930NO2 + 0.930ALD2 +
  0.930MCO3 + 0.070R4N2 :                     GCARR_ac(2.70d-12, 350.0d0);
-B3O2 + NO = NO2 + HO2 + ACET :               GC_RO2NO_B2_aca(2.70E-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
-B3O2 + NO = IPRNO3 :                         GC_RO2NO_A2_aca(2.70E-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
+B3O2 + NO = NO2 + HO2 + ACET :               GC_RO2NO_B2_aca(2.70d-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
+B3O2 + NO = IPRNO3 :                         GC_RO2NO_A2_aca(2.70d-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
 PRN1 + NO = 2.000NO2 + CH2O + ALD2 :         GCARR_ac(2.70d-12, 350.0d0);
 ALK4 + NO3 = HNO3 + R4O2 :                   GCARR_ac(2.80d-12, -3280.0d0);
 R4N2 + OH = R4N1 + H2O :                     1.60d-12;
@@ -883,7 +875,7 @@ Cl + C3H8 = HCl + A3O2 :                     GCARR_ac(8.12d-11, -90.0d0);       
 Cl + ACET = HCl + ATO2 :                     GCARR_ac(7.70d-11, -1000.0d0);                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Cl + ISOP = HCl + 0.5IHOO1 + 0.5IHOO4 :      GCARR_ac(7.60d-11, 500.0d0);                                                      {2019/11/06; Sherwen2016b;KHB,TS,JAS,SDE}
 Cl + ALK4 = HCl + R4O2 :                     2.05d-10;                                                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-Cl + PRPE {+M} = HCl + PO2 {+M} :            GCJPLPR_aa(4.00d-28, 2.8E-10, 0.6d0);                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+Cl + PRPE {+M} = HCl + PO2 {+M} :            GCJPLPR_aa(4.00d-28, 2.8d-10, 0.6d0);                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Br + PRPE = HBr + PO2 :                      3.60d-12;                                                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I + NO {+M} = INO {+M} :                     GCJPLPR_aba(1.80d-32, 1.0d0, 1.77d-11, 0.6d0);                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 INO + INO = I2 + 2.000NO :                   GCARR_ac(8.40d-11, -2620.0d0);                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -1516,16 +1508,14 @@ HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                      
 HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
-HOCl = SO4H3 + HCl :           HOClHetSO4H3( State_Het );                                                   {2018/11/08; XW}
-HOCl = SO4H4 + HCl :           HOClHetSO4H4( State_Het );                                                   {2018/11/08; XW}
+HOCl + SO2 = SO4s + HCl :      HOClUptkByHSO3m( State_Het ) + HOClUptkBySO3mm( State_Het );                 {2018/11/08; XW; June 6, 2021, MSL}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr = SO4H1 + HBr :           HOBrHetSO4H1( State_Het );                                                   {2017/11/15; Chen2017; QJC}
-HOBr = SO4H2 + HBr :           HOBrHetSO4H2( State_Het );                                                   {2017/11/15; Chen2017; QJC}
+HOBr + SO2 = SO4s + HBr :      HOBrUptkByHSO3m( State_Het ) + HOBrUptkBySO3mm( State_Het );                 {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
 O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}

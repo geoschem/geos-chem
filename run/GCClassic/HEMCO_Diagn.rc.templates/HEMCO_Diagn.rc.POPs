@@ -17,9 +17,9 @@
 #------------------------------------------------------------------------------
 #BOC
 # Name                Spec         ExtNr Cat Hier Dim OutUnit    LongName
-EmisPOPG              POPG_{POPs_SPC}     1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPG
-EmisPOPPOCPO          POPPOCPO_{POPs_SPC} 1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPPOCPO
-EmisPOPPBCPO          POPPBCPO_{POPs_SPC} 1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPPBCPO
+EmisPOPG              POPG_${RUNDIR_POP_SPC}     1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPG
+EmisPOPPOCPO          POPPOCPO_${RUNDIR_POP_SPC} 1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPPOCPO
+EmisPOPPBCPO          POPPBCPO_${RUNDIR_POP_SPC} 1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPPBCPO
 EmisPOPGfromSoil      -1           1002  -1  -1   2   kg/m2/s    Secondary_emission_of_POPG_from_soil
 EmisPOPGfromLake      -1           1002  -1  -1   2   kg/m2/s    Secondary_emission_of_POPG_from_lakes
 EmisPOPGfromLeaf      -1           1002  -1  -1   2   kg/m2/s    Secondary_emission_of_POPG_from_leaves

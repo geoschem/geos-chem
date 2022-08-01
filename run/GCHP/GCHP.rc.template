@@ -23,6 +23,9 @@ LM: 72
 
 GEOSChem_CTM: 1
 
+METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN: ${RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN}
+IMPORT_MASS_FLUX_FROM_EXTDATA: ${RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA}
+
 AdvCore_Advection: 1
 	DYCORE: OFF
   HEARTBEAT_DT: 600
@@ -54,6 +57,10 @@ NUM_WRITERS: 1
 # ----------------------------
 BKG_FREQUENCY: 0
 
+# Enable bootstrapping restart file fields missing from restart
+#-----------------------------------------------------------------
+MAPL_ENABLE_BOOTSTRAP: YES
+
 # Settings for production of restart files
 #---------------------------------------------------------------
 # Record frequency (HHMMSS) : Frequency of restart file write
@@ -65,18 +72,18 @@ RECORD_REF_DATE: 20000101
 RECORD_REF_TIME: 000000
 
 # Chemistry/AEROSOL Model Restart Files
-# Enter +none for GCHPchem_INTERNAL_RESTART_FILE not use an initial restart file
 # -------------------------------------
-GCHPchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_{SIMULATION}.nc
+GCHPchem_INTERNAL_RESTART_FILE:     gchp_restart.nc4
 GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
 GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
 GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
 
-DYN_INTERNAL_RESTART_FILE:    -fvcore_internal_rst
-DYN_INTERNAL_RESTART_TYPE:    pbinary
-DYN_INTERNAL_CHECKPOINT_FILE: -fvcore_internal_checkpoint
-DYN_INTERNAL_CHECKPOINT_TYPE: pbinary
-DYN_INTERNAL_HEADER:          1
+# GCHP dynamics (FV3) does not use a restart file because its internal state is empty
+#DYN_INTERNAL_RESTART_FILE:    fvcore_internal_rst
+#DYN_INTERNAL_RESTART_TYPE:    pbinary
+#DYN_INTERNAL_CHECKPOINT_FILE: fvcore_internal_checkpoint
+#DYN_INTERNAL_CHECKPOINT_TYPE: pbinary
+#DYN_INTERNAL_HEADER:          1
 
 RUN_PHASES:           1
 
@@ -109,6 +116,7 @@ EXCLUDE_ADVECTION_TRACERS: NO
 #
 # %%% Adjoint variables
 #
+# MODEL_PHASE indicates forward model (FORWARD) or adjoint model (ADJOINT)
 MODEL_PHASE: FORWARD
 # FD_TYPE:             GLOBAL
 # FD_STEP:             0

@@ -40,6 +40,7 @@ add_library(GeosCore
   STATIC EXCLUDE_FROM_ALL
   aero_drydep.F90
   aerosol_mod.F90
+  airs_ch4_mod.F90
   carbon_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
@@ -47,12 +48,9 @@ add_library(GeosCore
   co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
-  diag03_mod.F90
-  diag1.F90
   diag3.F90
   diag51b_mod.F90
   diag51_mod.F90
-  diag53_mod.F90
   drydep_mod.F90
   dust_mod.F90
   emissions_mod.F90
@@ -104,13 +102,14 @@ add_library(GeosCore
 
   # Files only included for special cases
   $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90>
-  # exchange_mod.F90 TODO: add for debug
   $<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F90>
   $<$<BOOL:${TOMAS}>:tomas_mod.F90>
   $<$<BOOL:${APM}>:apm_driv_mod.F90>
+  # exchange_mod : TODO
 )
 
-# Fixes #64: If GCC>=8.0.0 then ocean_mercury_mod.F90 should be compiled with -O1
+# Fixes #64: If GCC>=8.0.0 then ocean_mercury_mod.F90 
+# should be compiled with -O1
 if(("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU") AND NOT (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS "8.0.0") AND NOT("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
   set_source_files_properties(ocean_mercury_mod.F90
     PROPERTIES COMPILE_FLAGS -O1
@@ -119,11 +118,14 @@ endif()
 
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
-  Transport ObsPack History Isorropia KPP
-  
-  $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
-
+  Transport 
+  ObsPack 
+  History 
+  Isorropia 
+  KPP
+  $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the other TURs
   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
   $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
+
 )

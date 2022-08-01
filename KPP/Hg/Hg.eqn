@@ -1,0 +1,199 @@
+{ Hg.eqn
+
+-------------------------------------------------------------------------------
+DESCRIPTION
+-------------------------------------------------------------------------------
+
+GEOS-Chem KPP Hg chemistry file containing species and equations.
+
+===============================================================================
+NOTES
+===============================================================================
+
+Comment format is
+ Species   - Molecular formula; full name
+ Equations - Date modified; Reference; Developer initials
+}
+
+#include atoms.kpp
+
+#DEFVAR
+Hg0        = IGNORE;
+HgBr       = IGNORE;
+HgBrNO2    = IGNORE;
+HgBrHO2    = IGNORE;
+HgBrClO    = IGNORE;
+HgBrBrO    = IGNORE;
+HgBr2      = IGNORE;
+HgBrOH     = IGNORE;
+HgBrO      = IGNORE;
+HgClNO2    = IGNORE;
+HgClHO2    = IGNORE;
+HgClClO    = IGNORE;
+HgClBrO    = IGNORE;
+HgClBr     = IGNORE;
+HgClOH     = IGNORE;
+HgCl       = IGNORE;
+HgClO      = IGNORE;
+HgOHNO2    = IGNORE;
+HgOHHO2    = IGNORE;
+HgOHClO    = IGNORE;
+HgOHBrO    = IGNORE;
+HgOHOH     = IGNORE;
+HgOH       = IGNORE;
+HgOHO      = IGNORE;
+HgCl2      = IGNORE;
+Hg2ClP     = IGNORE;
+Hg2ORGP    = IGNORE;
+
+#DEFFIX
+{PRESCRIBED CONCS FROM HEMCO}
+Br         = IGNORE;
+Cl         = IGNORE;
+OH         = IGNORE;
+NO2        = IGNORE;
+NO         = IGNORE;
+O3         = IGNORE;
+HO2        = IGNORE;
+BrO        = IGNORE;
+ClO        = IGNORE;
+CO         = IGNORE;
+CH4        = IGNORE;
+
+
+#EQUATIONS
+//
+// Gas-phase reactions
+//
+{OXIDATION BY Br}
+Hg0     + Br     = HgBr :     GCARR_ab(1.46d-32, 1.86d0) * NUMDEN;
+HgBr             = Hg0 :      GCARR_abc(1.6d-9, 1.86d0, -7801.0d0) * NUMDEN;
+HgBr    + Br     = Hg0 :      3.9d-11;
+HgBr    + NO2    = Hg0 :      3.0d-12;
+HgBr    + NO2    = HgBrNO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 1.2d-10, 1.90d0, 0.6d0);
+HgBr    + HO2    = HgBrHO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + ClO    = HgBrClO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + BrO    = HgBrBrO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + OH     = HgBrOH :   GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgBr    + Br     = HgBr2 :    3.0d-11;
+HgBrO   + CH4    = HgBrOH :   GCARR_ac(4.1d-12, -856.0d0);
+HgBrO   + CO     = HgBr :     GCARR_ac(6.0d-11, -550.0d0);
+HgBr    + O3     = HgBrO :    3.0d-11;
+
+{OXIDATION BY Cl}
+Hg0     + Cl     = HgCl :     GCARR_ac(2.25d-33, 680.0d0) * NUMDEN;
+HgCl    + Cl     = Hg0 :      3.9d-11;
+HgCl    + NO2    = Hg0 :      3.0d-12;
+HgCl    + NO2    = HgClNO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 1.2d-10, 1.90d0, 0.6d0);
+HgCl    + HO2    = HgClHO2 :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgCl    + ClO    = HgClClO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgCl    + BrO    = HgClBrO :  GCJPLPR_abab(4.3d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgCl    + Br     = HgClBr :   3.0d-11;
+HgCl    + OH     = HgClOH :   3.0d-11;
+HgCl    + O3     = HgClO  :   3.0d-11;
+HgClO   + CH4    = HgClOH :   GCARR_ac(4.1d-12, -856.0d0);
+HgClO   + CO     = HgCl :     GCARR_ac(6.0d-11, -550.0d0);
+
+{OXIDATION BY OH}
+Hg0     + OH     = HgOH :     GCARR_ac(3.34d-33, 43.0d0) * NUMDEN;
+HgOH             = Hg0 :      GCARR_ac(1.22d-9, -5720.0d0) * NUMDEN;
+HgOH    + NO2    = HgOHNO2 :  GCJPLPR_abab(4.1d-30, 5.9d0, 1.2E-10, 1.90d0, 0.6d0);
+HgOH    + HO2    = HgOHHO2 :  GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + ClO    = HgOHClO :  GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + BrO    = HgOHBrO :  GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + Br     = HgBrOH :   GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + OH     = HgOHOH :   GCJPLPR_abab(4.1d-30, 5.9d0, 6.9d-11, 2.40d0, 0.6d0);
+HgOH    + O3     = HgOHO :    3.0d-11;
+HgOHO   + CH4    = HgOHOH :   GCARR_ac(4.1d-12, -856.0d0);
+HgOHO   + CO     = HgOH :     GCARR_ac(6.0d-11, -550.0d0);
+
+//
+// Heterogeneous reactions
+//
+{In liquid clouds}
+HgBrNO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrNO2) );
+HgBrHO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrHO2) );
+HgBrOH  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrOH ) );
+HgBrBrO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrBrO) );
+HgBrClO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBrClO) );
+HgBr2   = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgBr2  ) );
+HgClNO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClNO2) );
+HgClHO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClHO2) );
+HgClOH  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClOH ) );
+HgClBrO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClBrO) );
+HgClClO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClClO) );
+HgClBr  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgClBr ) );
+HgCl2   = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgCl2  ) );
+HgOHNO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHNO2) );
+HgOHHO2 = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHHO2) );
+HgOHOH  = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHOH ) );
+HgOHBrO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHBrO) );
+HgOHClO = Hg2ORGP :  Het_HgIIP_Org( State_Het, 0.1d0, SR_MW(ind_HgOHClO) );
+
+HgBrNO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrNO2) );
+HgBrHO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrHO2) );
+HgBrOH  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrOH ) );
+HgBrBrO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrBrO) );
+HgBrClO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBrClO) );
+HgBr2   = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgBr2  ) );
+HgClNO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClNO2) );
+HgClHO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClHO2) );
+HgClOH  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClOH ) );
+HgClBrO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClBrO) );
+HgClClO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClClO) );
+HgClBr  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgClBr ) );
+HgOHNO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHNO2) );
+HgOHHO2 = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHHO2) );
+HgOHOH  = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHOH ) );
+HgOHBrO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHBrO) );
+HgOHClO = Hg2ClP  :  Het_HgIIP_Inorg( State_Het, 0.1d0, SR_MW(ind_HgOHClO) );
+
+//
+// Photolysis reactions
+//
+NO2     + hv = NO + O3 :                 PHOTOL(25);
+BrO     + hv = Br + O3 :                 PHOTOL(26);
+ClO     + hv = Cl + O3 :                 PHOTOL(27);
+
+{Br}
+HgBr    + hv = Hg0 + Br :                PHOTOL(4);
+HgBrNO2 + hv = 0.9HgBrO + 0.1HgBr +
+ 0.9NO + 0.1NO2 :                        PHOTOL(7);
+HgBrHO2 + hv = 0.25HgBrO + 0.67Hg0 +
+ 0.07HgBr + 0.01HgBrOH + 0.67Br +
+  0.74HO2 + 0.26OH :                     PHOTOL(8);
+HgBrOH  + hv = 0.49Hg0 + 0.35HgOH +
+ 0.15HgBr + 0.01HgBrOH + 0.85Br +
+  0.65OH :                               PHOTOL(9);
+HgBr2   + hv = 0.4Hg0 + 0.6HgBr +
+ 1.4Br :                                 PHOTOL(10);
+HgBrBrO + hv = Hg0 + BrO :               PHOTOL(11);
+HgBrClO + hv = Hg0 + Cl + Br :           PHOTOL(12);
+
+{Cl}
+{HgCl2   + hv = Hg0 + 2Cl :               PHOTOL(5);}
+HgClNO2 + hv = 0.9HgClO + 0.1HgCl +
+ 0.9NO + 0.1NO2 :                        PHOTOL(14);
+HgClHO2 + hv = 0.25HgClO + 0.67Hg0 +
+ 0.07HgCl + 0.01HgClOH + 0.67Cl +
+  0.74HO2 + 0.26OH :                     PHOTOL(15);
+HgClOH  + hv = 0.49Hg0 + 0.35HgOH +
+ 0.15HgCl + 0.01HgClOH + 0.85Cl +
+  0.65OH :                               PHOTOL(16);
+HgClBr  + hv = HgCl + Br :               PHOTOL(17);
+HgClBrO + hv = HgCl + BrO :              PHOTOL(18);
+HgClClO + hv = HgCl + ClO :              PHOTOL(19);
+
+{OH}
+HgOH    + hv = Hg0 + OH :                PHOTOL(6);
+HgOHNO2 + hv = 0.9HgOHO + 0.1HgOH +
+ 0.9NO + 0.1NO2 :                        PHOTOL(20);
+HgOHHO2 + hv = 0.25HgOHO + 0.67Hg0 +
+ 0.07HgOH + 0.01HgOHOH + 0.67Cl +
+  0.74HO2 + 0.26OH :                     PHOTOL(21);
+HgOHOH  + hv = Hg0 + 2OH :               PHOTOL(5);
+HgOHBrO + hv = HgOH + BrO :              PHOTOL(23);
+HgOHClO + hv = HgOH + ClO :              PHOTOL(24);
+
+{ORG}
+Hg2ORGP + hv = Hg0 :                     PHOTOL(13);

@@ -120,7 +120,7 @@ Warnings:                    1
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       true
+    --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -133,7 +133,6 @@ Warnings:                    1
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
 111     GFED              : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/NAP
-    --> GFED3             :       false
     --> GFED4             :       true
     --> GFED_daily        :       false
     --> GFED_3hourly      :       false
@@ -145,22 +144,27 @@ Warnings:                    1
     --> hydrophilic OC    :       0.5
     --> fraction POG1     :       0.49
     --> CO to SOAP        :       0.013
-117     Volcano           : on    SO2/SO4
+    --> GFED_subgrid_coag :       false
+117     Volcano           : on    SO2
     --> Volcano_Source    :       AeroCom
 # use flat degassing file for ops:
 #    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 # use degassing and eruptive for reanalysis:
     --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
-    --> Scaling_SO2       :       0.95
-    --> Scaling_SO4       :       0.05
-    --> Cat_Eruptive      :       61
-    --> Cat_Degassing     :       62
+    --> Volcano_Climatology :     /discover/nobackup/ewlundgr/data/ExtData/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 120     Inorg_Iodine      : on    HOI/I2
     --> Emit HOI          :       true
     --> Emit I2           :       true
-121     CH4_WETLANDS      : off   CH4
-    --> Wetlands          :       true
-    --> Rice              :       true
+122     VFEI              : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/HNO2/HCl/ACTA/MGLY/GLYX/EOH/MOH/MTPO/ISOP/BENZ/TOLU/XYLE/SOAP/MACR/MVK/DMS
+    --> VFEI_Table        :       /discover/nobackup/cakelle2/data/VFEI/TXT/v0/Y$YYYY/vfeiv0_V1_$YYYY$MM$DD.txt
+    --> PBL_frac          :       0.65
+    --> MaxHeightM        :       5500.0
+    --> Category          :       1
+    --> Scaling_BCPO      :       0.8
+    --> Scaling_BCPI      :       0.2
+    --> Scaling_OCPO      :       0.5
+    --> Scaling_OCPI      :       0.5
+    --> Scaling_SOAP      :       0.013
 ### END SECTION EXTENSION SWITCHES 
 
 ####################################################################################
@@ -750,7 +754,6 @@ Warnings:                    1
 # CO/SOAP/PRPE/MTPA/BENZ/TOLU/XYLE/EOH/MOH
 0 QFED_CO_TF_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311/533         8 1
 0 QFED_SOAP_TF_SFC  -                                                                 -       -                     - -             -         SOAP 54/75/281/311/533     8 1
-0 QFED_PRPE_TF_SFC  -                                                                 -       -                     - -             -         PRPE 54/75/560/311/533     8 1
 0 QFED_MTPA_TF_SFC  -                                                                 -       -                     - -             -         MTPA 54/75/564/311/533     8 1
 0 QFED_BENZ_TF_SFC  -                                                                 -       -                     - -             -         BENZ 54/75/568/311/533     8 1
 0 QFED_TOLU_TF_SFC  -                                                                 -       -                     - -             -         TOLU 54/75/572/311/533     8 1
@@ -759,7 +762,6 @@ Warnings:                    1
 0 QFED_MOH_TF_SFC   -                                                                 -       -                     - -             -         MOH  54/75/584/311/533     8 1
 0 QFED_CO_TP_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311/314/534     8 1
 0 QFED_SOAP_TP_SFC  -                                                                 -       -                     - -             -         SOAP 54/75/281/311/314/534 8 1
-0 QFED_PRPE_TP_SFC  -                                                                 -       -                     - -             -         PRPE 54/75/561/311/314/534 8 1
 0 QFED_MTPA_TP_SFC  -                                                                 -       -                     - -             -         MTPA 54/75/565/311/314/534 8 1
 0 QFED_BENZ_TP_SFC  -                                                                 -       -                     - -             -         BENZ 54/75/569/311/314/534 8 1
 0 QFED_TOLU_TP_SFC  -                                                                 -       -                     - -             -         TOLU 54/75/573/311/314/534 8 1
@@ -768,7 +770,6 @@ Warnings:                    1
 0 QFED_MOH_TP_SFC   -                                                                 -       -                     - -             -         MOH  54/75/585/311/314/534 8 1
 0 QFED_CO_BO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311/315/535     8 1
 0 QFED_SOAP_BO_SFC  -                                                                 -       -                     - -             -         SOAP 54/75/281/311/315/535 8 1
-0 QFED_PRPE_BO_SFC  -                                                                 -       -                     - -             -         PRPE 54/75/562/311/315/535 8 1
 0 QFED_MTPA_BO_SFC  -                                                                 -       -                     - -             -         MTPA 54/75/566/311/315/535 8 1
 0 QFED_BENZ_BO_SFC  -                                                                 -       -                     - -             -         BENZ 54/75/570/311/315/535 8 1
 0 QFED_TOLU_BO_SFC  -                                                                 -       -                     - -             -         TOLU 54/75/574/311/315/535 8 1
@@ -777,7 +778,6 @@ Warnings:                    1
 0 QFED_MOH_BO_SFC   -                                                                 -       -                     - -             -         MOH  54/75/586/311/315/535 8 1
 0 QFED_CO_SV_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311/536         8 1
 0 QFED_SOAP_SV_SFC  -                                                                 -       -                     - -             -         SOAP 54/75/281/311/536     8 1
-0 QFED_PRPE_SV_SFC  -                                                                 -       -                     - -             -         PRPE 54/75/563/311/536     8 1
 0 QFED_MTPA_SV_SFC  -                                                                 -       -                     - -             -         MTPA 54/75/567/311/536     8 1
 0 QFED_BENZ_SV_SFC  -                                                                 -       -                     - -             -         BENZ 54/75/571/311/536     8 1
 0 QFED_TOLU_SV_SFC  -                                                                 -       -                     - -             -         TOLU 54/75/575/311/536     8 1
@@ -786,7 +786,6 @@ Warnings:                    1
 0 QFED_MOH_SV_SFC   -                                                                 -       -                     - -             -         MOH  54/75/587/311/536     8 1
 0 QFED_CO_GL_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s CO   54/75/311/536         8 1
 0 QFED_SOAP_GL_SFC  -                                                                 -       -                     - -             -         SOAP 54/75/281/311/536     8 1
-0 QFED_PRPE_GL_SFC  -                                                                 -       -                     - -             -         PRPE 54/75/563/311/536     8 1
 0 QFED_MTPA_GL_SFC  -                                                                 -       -                     - -             -         MTPA 54/75/567/311/536     8 1
 0 QFED_BENZ_GL_SFC  -                                                                 -       -                     - -             -         BENZ 54/75/571/311/536     8 1
 0 QFED_TOLU_GL_SFC  -                                                                 -       -                     - -             -         TOLU 54/75/575/311/536     8 1
@@ -795,7 +794,6 @@ Warnings:                    1
 0 QFED_MOH_GL_SFC   -                                                                 -       -                     - -             -         MOH  54/75/587/311/536     8 1
 0 QFED_CO_TF_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312/533         8 1
 0 QFED_SOAP_TF_FT   -                                                                 -       -                     - -             -         SOAP 54/75/281/312/533     8 1
-0 QFED_PRPE_TF_FT   -                                                                 -       -                     - -             -         PRPE 54/75/560/312/533     8 1
 0 QFED_MTPA_TF_FT   -                                                                 -       -                     - -             -         MTPA 54/75/564/312/533     8 1
 0 QFED_BENZ_TF_FT   -                                                                 -       -                     - -             -         BENZ 54/75/568/312/533     8 1
 0 QFED_TOLU_TF_FT   -                                                                 -       -                     - -             -         TOLU 54/75/572/312/533     8 1
@@ -804,7 +802,6 @@ Warnings:                    1
 0 QFED_MOH_TF_FT    -                                                                 -       -                     - -             -         MOH  54/75/584/312/533     8 1
 0 QFED_CO_TP_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312/314/534     8 1
 0 QFED_SOAP_TP_FT   -                                                                 -       -                     - -             -         SOAP 54/75/281/312/314/534 8 1
-0 QFED_PRPE_TP_FT   -                                                                 -       -                     - -             -         PRPE 54/75/561/312/314/534 8 1
 0 QFED_MTPA_TP_FT   -                                                                 -       -                     - -             -         MTPA 54/75/565/312/314/534 8 1
 0 QFED_BENZ_TP_FT   -                                                                 -       -                     - -             -         BENZ 54/75/569/312/314/534 8 1
 0 QFED_TOLU_TP_FT   -                                                                 -       -                     - -             -         TOLU 54/75/573/312/314/534 8 1
@@ -813,7 +810,6 @@ Warnings:                    1
 0 QFED_MOH_TP_FT    -                                                                 -       -                     - -             -         MOH  54/75/585/312/314/534 8 1
 0 QFED_CO_BO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312/315/535     8 1
 0 QFED_SOAP_BO_FT   -                                                                 -       -                     - -             -         SOAP 54/75/281/312/315/535 8 1
-0 QFED_PRPE_BO_FT   -                                                                 -       -                     - -             -         PRPE 54/75/562/312/315/535 8 1
 0 QFED_MTPA_BO_FT   -                                                                 -       -                     - -             -         MTPA 54/75/566/312/315/535 8 1
 0 QFED_BENZ_BO_FT   -                                                                 -       -                     - -             -         BENZ 54/75/570/312/315/535 8 1
 0 QFED_TOLU_BO_FT   -                                                                 -       -                     - -             -         TOLU 54/75/574/312/315/535 8 1
@@ -822,7 +818,6 @@ Warnings:                    1
 0 QFED_MOH_BO_FT    -                                                                 -       -                     - -             -         MOH  54/75/586/312/315/535 8 1
 0 QFED_CO_SV_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312/536         8 1
 0 QFED_SOAP_SV_FT   -                                                                 -       -                     - -             -         SOAP 54/75/281/312/536     8 1
-0 QFED_PRPE_SV_FT   -                                                                 -       -                     - -             -         PRPE 54/75/563/312/536     8 1
 0 QFED_MTPA_SV_FT   -                                                                 -       -                     - -             -         MTPA 54/75/567/312/536     8 1
 0 QFED_BENZ_SV_FT   -                                                                 -       -                     - -             -         BENZ 54/75/571/312/536     8 1
 0 QFED_TOLU_SV_FT   -                                                                 -       -                     - -             -         TOLU 54/75/575/312/536     8 1
@@ -831,7 +826,6 @@ Warnings:                    1
 0 QFED_MOH_SV_FT    -                                                                 -       -                     - -             -         MOH  54/75/587/312/536     8 1
 0 QFED_CO_GL_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s CO   54/75/312/536         8 1
 0 QFED_SOAP_GL_FT   -                                                                 -       -                     - -             -         SOAP 54/75/281/312/536     8 1
-0 QFED_PRPE_GL_FT   -                                                                 -       -                     - -             -         PRPE 54/75/563/312/536     8 1
 0 QFED_MTPA_GL_FT   -                                                                 -       -                     - -             -         MTPA 54/75/567/312/536     8 1
 0 QFED_BENZ_GL_FT   -                                                                 -       -                     - -             -         BENZ 54/75/571/312/536     8 1
 0 QFED_TOLU_GL_FT   -                                                                 -       -                     - -             -         TOLU 54/75/575/312/536     8 1
@@ -883,19 +877,28 @@ Warnings:                    1
 0 QFED_SO2_SV_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s SO2  75/312/552     8 1
 0 QFED_SO2_GL_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s SO2  75/312/552     8 1
 # PRPE
-
+0 QFED_PRPE_TF_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311/588     8 1
+0 QFED_PRPE_TP_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311/314/589 8 1
+0 QFED_PRPE_BO_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311/315/590 8 1
+0 QFED_PRPE_SV_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311/591     8 1
+0 QFED_PRPE_GL_SFC  $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s PRPE 75/311/591     8 1
+0 QFED_PRPE_TF_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312/588     8 1
+0 QFED_PRPE_TP_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312/314/589 8 1
+0 QFED_PRPE_BO_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312/315/590 8 1
+0 QFED_PRPE_SV_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312/591     8 1
+0 QFED_PRPE_GL_FT   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_c3h6.006.$YYYY$MM$DD.nc4 biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s PRPE 75/312/591     8 1
 # MTPA
-
+# --> approximated above using CO
 # BENZ
-
+# --> approximated above using CO
 # TOLU
-
+# --> approximated above using CO
 # XYLE
-
+# --> approximated above using CO
 # EOH
-
+# --> approximated above using CO
 # MOH
-
+# --> approximated above using CO
 )))QFED
 
 #=======================================================================================================================================
@@ -1035,17 +1038,6 @@ Warnings:                    1
 108  CLM4_PFT_CROP                ~/data/CLM4_PFT.geos.1x1.nc    PFT_CROP                2000/1/1/0    C xy 1        * - 1 1
 108  MEGAN_ORVC                   ~/data/NVOC.geos.1x1.nc        OCPI                    1990/1-12/1/0 C xy kgC/m2/s * - 1 1
 )))MEGAN
-
-#==============================================================================
-# --- CH4 wetland and rice emissions (Extension 121) 
-#==============================================================================
-121 CH4_RICE     $ROOT/CH4/v2014-09/v42_CH4.0.1x0.1.nc                 ch4_4C_4D 2004-2008/1/1/0    C xy kg/m2/s  *   - 1 1
-121 CH4_GWET_YR  $ROOT/CH4/v2014-09/$RES/GWETTOP.annual.geos5.$RES.nc  GWETTOP   2004-2011/1/1/0    C xy 1        *   - 1 1
-121 CH4_GWET_MT  $ROOT/CH4/v2014-09/$RES/GWETTOP.monthly.geos5.$RES.nc GWETTOP   2004-2011/1-12/1/0 C xy 1        *   - 1 1
-121 CH4_MEAN_T   $ROOT/CH4/v2014-09/$RES/TSKIN.annual.geos5.$RES.nc    TSKIN     2004-2011/1/1/0    C xy 1        *   - 1 1
-121 CH4_WETFRAC  $ROOT/CH4/v2014-09/$RES/Wetfrac.$RES.nc               WETFRAC   2000/1/1/0         C xy 1        *   - 1 1
-121 CH4_LITTER_C $ROOT/CH4/v2014-09/$RES/Carbon_litter.$RES.nc         CARBON    2000/1/1/0         C xy kgC/m2/s *   - 1 1
-121 CH4_SOIL_C   $ROOT/CH4/v2014-09/$RES/Carbon_soil.$RES.nc           CARBON    2000/1/1/0         C xy kgC/m2/s *   - 1 1
 
 #==============================================================================
 # --- GFED biomass burning emissions (Extension 111) 
@@ -1673,6 +1665,10 @@ Warnings:                    1
 585 QFED2_COtoMOH_TP   2.22e-2         -                -          - xy 1 1
 586 QFED2_COtoMOH_BO   1.98e-2         -                -          - xy 1 1
 587 QFED2_COtoMOH_SV   2.61e-2         -                -          - xy 1 1
+588 QFED2_PRPE_TF_SCAL 1.56            -                -          - xy 1 1
+589 QFED2_PRPE_TP_SCAL 1.02            -                -          - xy 1 1
+590 QFED2_PRPE_BO_SCAL 1.14            -                -          - xy 1 1
+591 QFED2_PRPE_SV_SCAL 1.77            -                -          - xy 1 1
 
 # Adjust NOx emission factors (in g/kg) based on Jin et al., ACP, 2021:
 # Tropical forest: target is 3.17, vs. 1.6 used by QFED (--> scale factor is 1.98)

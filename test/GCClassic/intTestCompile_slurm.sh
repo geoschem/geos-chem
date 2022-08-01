@@ -85,7 +85,7 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in default apm bpch luowd rrtmg tomas15 tomas40; do
+for dir in default apm bpch hg luowd rrtmg tomas15 tomas40; do
 
     # Define build directory
     buildDir="${root}/build/${dir}"
@@ -145,9 +145,6 @@ unset root
 unset FILL
 unset SEP_MAJOR
 unset SEP_MINOR
-unset SED_INPUT_GEOS_1
-unset SED_INPUT_GEOS_2
-unset SED_HISTORY_RC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

@@ -158,11 +158,49 @@ CONTAINS
     H%fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
     H%fupdateHOCl  = State_Chm%fupdateHOCl(I,J,L)
 
+    ! Aqueous S(IV) in cloudwater
+    !
+    ! -- This is the ratio of HSO3-/SO2, both in units of molec/cm3.
+    !    It allows the use of SO2 in the reactions with HOCl and HOBr,
+    !    and converts SO2 to HSO3- via the reaction rate constant.
+    H%HSO3m = SafeDiv( State_Chm%HSO3_aq(I,J,L) * 1.0e-3_dp *                &
+                       State_Het%AVO            *                            &
+                       State_Met%QL(I,J,L)      *                            &
+                       State_Met%AIRDEN(I,J,L)  * 1.0e-3_dp,                 &
+                       State_Met%CLDF(I,J,L),                                &
+                       0.0_dp                                               )
+
+    ! Avoid div-by-zero condition
+    H%HSO3m = SafeDiv( H%HSO3m, C(ind_SO2), 0.0_dp                          )
+
+    ! -- This is the ratio of SO3--/SO2, both in units of molec/cm3.
+    !    It allows the use of SO2 in the reactions with HOCl and HOBr,
+    !    and converts SO2 to SO3-- via the reaction rate constant.
+    H%SO3mm = SafeDiv( State_Chm%SO3_aq(I,J,L)  * 1.0e-3_dp *                &
+                       State_Het%AVO            *                            &
+                       State_Met%QL(I,J,L)      *                            &
+                       State_Met%AIRDEN(I,J,L)  * 1.0e-3_dp,                 &
+                       State_Met%CLDF(I,J,L),                                &
+                       0.0_dp                                               )
+
+    ! Avoid div-by-zero condition
+    H%SO3mm = SafeDiv( H%SO3mm, C(ind_SO2), 0.0_dp                          )
+
     ! Cloud fields
-    CALL Cld_Params( I, J, L, H, State_Met )
+    CALL Cld_Params( AD      = State_Met%AD(I,J,L),                          &
+                     CLDF    = State_Met%CLDF(I,J,L),                        &
+                     FRLAND  = State_Met%FRLAND(I,J),                        &
+                     FROCEAN = State_Met%FROCEAN(I,J),                       &
+                     QI      = State_Met%QI(I,J,L),                          &
+                     QL      = State_Met%QL(I,J,L),                          &
+                     T       = State_Met%T(I,J,L),                           &
+                     H       = H                                            )
+
+    ! Get theta for ice cloud uptake
+    CALL Get_Theta_Ice( C(ind_HNO3), C(ind_HCl), C(ind_HBr), H )
 
     ! Halide (Br- and Cl-) concentrations
-    CALL Halide_Conc( I, J, L, H )
+    CALL Halide_Conc( I, J, L, H  )
 
     !========================================================================
     ! Copy quantities for UCX into gckpp_Global variables
@@ -183,170 +221,7 @@ CONTAINS
     ! ... check if there is surface NAT at this grid box
     H%natSurface = ( H%pscBox .and. ( C(ind_NIT) > 0.0_dp )                 )
 
-
   END SUBROUTINE FullChem_SetStateHet
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Cld_Params
-!
-! !DESCRIPTION: Subroutine CLD\_PARAMS returns ice and liquid cloud
-!  parameters based on State\_Met off of cloud particles.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Cld_Params( I, J, L, H, State_Met )
-!
-! !USES:
-!
-    USE GcKpp_Global
-    USE GcKpp_Parameters
-    USE State_Met_Mod, ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)    :: I           ! Longitude (X) index
-    INTEGER,        INTENT(IN)    :: J           ! Latitude  (Y) index
-    INTEGER,        INTENT(IN)    :: L           ! Altitude  (Z) index
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-    TYPE(HetState), INTENT(INOUT) :: H           ! Hetchem State object
-!
-! !REMARKS:
-!  References:
-!   Heymsfield, A. J., Winker, D., Avery, M., et al. (2014). Relationships
-!    between ice water content and volume extinction coefficient from in
-!    situ observations for temperatures from 0° to –86°C: implications for
-!    spaceborne lidar retrievals. Journal of Applied Meteorology and
-!    Climatology, 53(2), 479–505. https://doi.org/10.1175/JAMC-D-13-087.1
-!
-!   Schmitt, C. G., & Heymsfield, A. J. (2005). Total Surface Area Estimates
-!    for Individual Ice Particles and Particle Populations. Journal of Applied
-!    Meteorology, 44(4), 467–474. https://doi.org/10.1175/JAM2209.1
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    ! Cloud droplet radius in continental warm clouds [cm]
-    REAL(dp), PARAMETER :: CLDR_CONT = 6.0e-4_dp
-
-    ! Cloud droplet radius in marine warm clouds [cm]
-    REAL(dp), PARAMETER :: CLDR_MARI = 10.0e-4_dp
-
-    ! Ice cloud droplet radius [cm]
-    REAL(dp), PARAMETER :: CLDR_ICE  = 38.5e-4_dp
-
-    ! Density of H2O liquid [kg/cm3]
-    REAL(dp), PARAMETER :: DENS_LIQ  = 0.001_dp
-
-    ! Density of H2O ice [kg/cm3]
-    REAL(dp), PARAMETER :: DENS_ICE  = 0.91e-3_dp
-!
-! !LOCAL VARIABLES:
-!
-    REAL(dp) :: alpha, beta
-
-    !=======================================================================
-    ! CLD_PARAMS begins here!
-    !=======================================================================
-
-    ! Exit if there is no cloud
-    IF ( ( State_Met%QL(I,J,L) + State_Met%QI(I,J,L) <= 0.0_dp )  .or.     &
-         ( State_Met%CLDF(I,J,L)                     <= 0.0_dp ) ) THEN
-       H%rLiq = CLDR_CONT
-       H%rIce = CLDR_ICE
-       H%ALiq = 0.0_dp
-       H%VLiq = 0.0_dp
-       H%AIce = 0.0_dp
-       H%VIce = 0.0_dp
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! In GC 12.0 and earlier, the liquid water volume was set to zero at
-    ! temperatures colder than 258K and over land ice (Antarctica &
-    ! Greenland). That was likely legacy code from GEOS-4, which provided
-    ! no information on cloud phase. As of GC 12.0, all met data sources
-    ! provide explicit liquid and ice condensate amounts, so we use those
-    ! as provided. (C.D. Holmes)
-    !
-    ! Liquid water clouds
-    !
-    ! Droplets are spheres, so
-    ! Surface area = 3 * Volume / Radius
-    !
-    ! Surface area density = Surface area / Grid volume
-    !-----------------------------------------------------------------------
-    IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
-       H%rLiq = CLDR_CONT      ! Continental cloud droplet radius [cm]
-    ELSE
-       H%rLiq = CLDR_MARI      ! Marine cloud droplet radius [cm]
-
-    ENDIF
-
-    ! get the volume of cloud condensate [cm3(condensate)/cm3(air)]
-    ! QL is [g/g]
-    H%VLiq = State_Met%QL(I,J,L) * State_Met%AD(I,J,L)               &
-           / DENS_LIQ            / H%vAir
-    H%VIce = State_Met%QI(I,J,L) * State_Met%AD(I,J,L)               &
-           / DENS_ICE            / H%vAir
-
-    H%ALiq = 3.0_dp * H%vLiq / H%rLiq
-
-    !-----------------------------------------------------------------------
-    ! Ice water clouds
-    !
-    ! Surface area calculation requires information about ice crystal size
-    ! and shape, which is a function of temperature. Use Heymsfield (2014)
-    ! empirical relationships between temperature, effective radius,
-    ! surface area and ice water content.
-    !
-    ! Schmitt and Heymsfield (2005) found that ice surface area is about
-    ! 9 times its cross-sectional area.
-    !
-    ! For any shape,
-    !   Cross section area = pi * (Effective Radius)^2, so
-    !   Cross section area = 3 * Volume / ( 4 * Effective Radius ).
-    !
-    ! Thus, for ice
-    !   Surface area = 9 * Cross section area
-    !                = 2.25 * 3 * Volume / Effective Radius
-    ! (C.D. Holmes)
-    !-----------------------------------------------------------------------
-
-    ! Heymsfield (2014) ice size parameters
-    IF ( State_Met%T(I,J,L) < 202.0_dp ) THEN          ! -71 C
-       alpha = 83.3_dp
-       beta  = 0.0184_dp
-    ELSE IF ( State_Met%T(I,J,L) < 217.0_dp ) THEN     ! -56 C
-       alpha = 9.1744e+4_dp
-       beta  = 0.117_dp
-    ELSE
-       alpha = 308.4_dp
-       beta  = 0.0152_dp
-    ENDIF
-
-    ! Effective radius, cm
-    H%rIce = 0.5_dp * alpha                                                  &
-           * EXP(beta * (State_Met%T(I,J,L) - 273.15_dp)) / 1e+4_dp
-
-    ! Ice surface area density, cm2/cm3
-    H%aIce = 3.0_dp * H%vIce / H%rIce * 2.25_dp
-
-    !=======================================================================
-    ! Get theta for ice cloud uptake
-    !=======================================================================
-    CALL Get_Theta_Ice( C(ind_HNO3), C(ind_HCl), C(ind_HBr), H )
-
-  END SUBROUTINE Cld_Params
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -608,7 +483,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(dp) :: V_tot, dr_ratio, t2l, L2G, F_L, pH
+    REAL(dp) :: V_tot, dr_ratio, t2l, F_L, L2G, pH
 
     !=================================================================
     ! Get_Halide_CldConc begins here!
@@ -634,17 +509,27 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Note from Viral Shah (06 Dec 2021):
+    !   I believe V_tot corresponds to H2OLIQ, which is the cloud liquid
+    !   water content. Whereas L2G is H_eff * H2OLIQ. Note that H_eff is
+    !   dimensionless in this equation, not in the more commonly used units
+    !   of M/atm.
+
     ! Chloride (mol/L)
-    CALL Compute_L2G_Local( 1.0_dp, 9000.0_dp, -6.3_dp,                      &
-                            TEMP,   V_tot,      L2G,    pH                  )
+    CALL Compute_L2G_Local( K0     =  1.0_dp,     CR = 9000.0_dp,            &
+                            pKa    = -6.3_dp,     TK = TEMP,                 &
+                            H2OLIQ =  V_tot,      pH = H%pHCloud,            &
+                            L2G    =  L2G                                   )
     F_L = L2G / ( 1.0_dp + L2G )
-    cl_conc = F_L * HCl / (V_tot * H%AVO * 1.0e-3_dp)
+    Cl_conc = F_L * HCl / (V_tot * H%AVO * 1.0e-3_dp)
 
     ! Bromide (mol/L)
-    CALL Compute_L2G_Local( 7.5e-1_dp, 10200.0_dp, -9.0_dp,                  &
-                            TEMP,      V_tot,       L2G,   pH               )
+    CALL Compute_L2G_Local( K0     =  7.5e-1_dp,  CR = 10200.0_dp,           &
+                            pKa    = -9.0_dp,     TK = TEMP,                 &
+                            H2OLIQ =  V_tot,      pH = H%pHCloud,            &
+                            L2G    =  L2G                                   )
     F_L = L2G / ( 1.0_dp + L2G )
-    br_conc = F_L * HBr / ( V_tot * H%AVO * 1.0e-3_dp )
+    Br_conc = F_L * HBr / ( V_tot * H%AVO * 1.0e-3_dp )
 
   END SUBROUTINE Get_Halide_CldConc
 !EOC
@@ -719,7 +604,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_L2G_Local( K0, CR, pKa, TK, H2OLIQ, L2G, pH )
+  SUBROUTINE Compute_L2G_Local( K0, CR, pKa, TK, H2OLIQ, pH, L2G )
 !
 ! !USES:
 !

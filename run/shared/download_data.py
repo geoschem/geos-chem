@@ -44,7 +44,7 @@ assert sys.version_info.major >= 3, \
 "ERROR: Python 3 is required to run download_data.py!"
 
 # Define global variables
-INPUT_GEOS_FILE = "./input.geos"
+GEOSCHEM_INPUT_FILE = "./geoschem_config.yml"
 DATA_DOWNLOAD_SCRIPT = "./auto_generated_download_script.sh"
 
 
@@ -150,7 +150,7 @@ def extract_pathnames_from_log(args):
 
 def get_run_info():
     """
-    Searches through the input.geos file for GEOS-Chem run parameters.
+    Searches through the geoschem_config.yml file for GEOS-Chem run parameters.
 
     Returns:
     -------
@@ -164,21 +164,21 @@ def get_run_info():
     run_info["tomas40"] = False
 
     try:
-        with open(INPUT_GEOS_FILE, "r") as f:
+        with open(GEOSCHEM_INPUT_FILE, "r") as f:
             for line in f:
-                if "Start YYYYMMDD" in line:
+                if "start_date" in line:
                     substr = line.split(":")[1]
                     run_info["start_date"] = (substr.split(" ")[1]).strip()
                     run_info["start_time"] = (substr.split(" ")[2]).strip()
-                elif "End   YYYYMMDD" in line:
+                elif "end_date" in line:
                     substr = line.split(":")[1]
                     run_info["end_date"] = (substr.split(" ")[1]).strip()
                     run_info["end_time"] = (substr.split(" ")[2]).strip()
-                elif "Met field" in line:
+                elif "met_field" in line:
                     run_info["met"] = (line.split(":")[1]).strip()
-                elif "Simulation name" in line:
+                elif "name" in line:
                     run_info["sim"] = (line.split(":")[1]).strip()
-                elif "Grid resolution" in line:
+                elif "resolution" in line:
                     grid = (line.split(":")[1]).strip()
 
                     # Adjust grid string to match file names
@@ -203,7 +203,7 @@ def get_run_info():
                     run_info["tomas40"] = True
             f.close()
     except FileNotFoundError:
-        msg = "Could not open " + INPUT_GEOS_FILE
+        msg = "Could not open " + GEOSCHEM_INPUT_FILE
         raise FileNotFoundError(msg)
 
     return run_info
@@ -245,6 +245,9 @@ def expand_restart_file_names(paths, args, run_info):
                     remote_rst = root + rst["tomas40"]["remote"]
                 else:
                     remote_rst = root + rst["fullchem"]["remote"]
+
+            elif "mercury" in run_info["sim"]:
+                remote_rst = root + rst["mercury"]["remote"]
 
             elif "TransportTracers" in run_info["sim"]:
                 remote_rst = root + rst["transporttracers"]["remote"]

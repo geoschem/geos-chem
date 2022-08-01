@@ -87,13 +87,24 @@ loggers:
    MAPL:
        handlers: [mpi_shared]
        level: WARNING
-       root_level: INFO
+       root_level: WARNING
        
    CAP.EXTDATA:
        handlers: [mpi_shared]
        level: WARNING
        root_level: WARNING
        propagate: false
+   
+   GCHPctmEnv:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: INFO
+
+   GCHP:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: INFO
+
        
   # Note: When enabling another logger, make sure
   #       indentation matches that of the above 

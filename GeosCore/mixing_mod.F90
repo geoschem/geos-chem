@@ -357,8 +357,7 @@ CONTAINS
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
             Input_Opt%LFD, Input_Opt%NFD)
        WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
-            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
-            Input_Opt%LFD, Input_Opt%NFD)
+            State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
     ENDIF
 #endif
     ! DO_TEND previously operated in units of kg. The species arrays are in
@@ -374,8 +373,7 @@ CONTAINS
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
             Input_Opt%LFD, Input_Opt%NFD)
        WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
-            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
-            Input_Opt%LFD, Input_Opt%NFD)
+            State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
     ENDIF
 #endif
 
@@ -459,7 +457,7 @@ CONTAINS
     ! Save the total CH4 concentration before apply soil absorption
     !-----------------------------------------------------------------------
     IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
-       total_ch4_pre_soil_absorp = State_Chm%Species(:,:,:,1)
+       total_ch4_pre_soil_absorp = State_Chm%Species(1)%Conc(:,:,:)
     ENDIF
 
     !=======================================================================
@@ -670,11 +668,11 @@ CONTAINS
                    FRAC = EXP(-RKT)
 
                    ! Loss in kg/m2
-                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(I,J,L,N)
+                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(N)%Conc(I,J,L)
 
                    ! Apply dry deposition
-                   State_Chm%Species(I,J,L,N) = FRAC *    &
-                                                State_Chm%Species(I,J,L,N)
+                   State_Chm%Species(N)%Conc(I,J,L) = FRAC *    &
+                                            State_Chm%Species(N)%Conc(I,J,L)
 
 #ifdef ADJOINT
                    if (Input_Opt%Is_Adjoint) then
@@ -686,8 +684,8 @@ CONTAINS
                    ! Make sure PARANOx loss is applied to tracers. (ckeller,
                    ! 3/29/16).
                    IF ( PNOXLOSS > 0 ) THEN
-                      State_Chm%Species(I,J,L,N) = &
-                         State_Chm%Species(I,J,L,N) - ( PNOXLOSS * TS )
+                      State_Chm%Species(N)%Conc(I,J,L) = &
+                         State_Chm%Species(N)%Conc(I,J,L) - ( PNOXLOSS * TS )
                       FLUX = FLUX + ( PNOXLOSS * TS )
                    ENDIF
 
@@ -761,7 +759,7 @@ CONTAINS
                   CALL GetHcoValEmis ( Input_Opt, State_Grid, N, I, J, L, FND, TMP, SkipCheck=.true. )
 #ifdef MODEL_CLASSIC
                 ENDIF
-#endif          
+#endif
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -781,8 +779,8 @@ CONTAINS
 #endif
 
                    ! Add to species array
-                   State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
-                                              + FLUX
+                   State_Chm%Species(N)%Conc(I,J,L) = &
+                         State_Chm%Species(N)%Conc(I,J,L) + FLUX
                 ENDIF
              ENDIF
 
@@ -811,8 +809,8 @@ CONTAINS
                          FLUX = TMP * TS
 
                          ! Apply soil absorption as loss
-                         State_Chm%Species(I,J,L,N) =                       &
-                         State_Chm%Species(I,J,L,N) - FLUX
+                         State_Chm%Species(N)%Conc(I,J,L) =        &
+                         State_Chm%Species(N)%Conc(I,J,L) - FLUX
                       ENDIF
 
                    ENDIF
@@ -822,20 +820,30 @@ CONTAINS
              ENDIF
 
              ! Check for negative concentrations
-             ! KLUDGE: skip the warning message for CH4_SAB, which can be 
-             ! negative (it's a soil absorption flux).  The TagCH4 simulation
-             ! is not used regularly as of Feb 2021 -- fix this later if
-             ! need by. (bmy, 2/25/21)
-             IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+             IF ( State_Chm%Species(N)%Conc(I,J,L) < 0.0_fp ) THEN
+#ifdef TOMAS
+                ! For TOMAS simulations only, look for negative and reset
+                ! to small positive.  This prevents the run from dying,
+                ! while we look for the root cause of the issue.
+                !  -- Betty Croft, Bob Yantosca (21 Jan 2022)
+                print *, 'Found negative ', N, State_Chm%Species(N)%Conc(I,J,L)
+                State_Chm%Species(N)%Conc(I,J,L) = 1e-26_fp
+#else
+
+                ! KLUDGE: skip the warning message for CH4_SAB, which can be
+                ! negative (it's a soil absorption flux).  The TagCH4
+                ! simulation is not used regularly as of Feb 2021 -- fix this
+                ! later if need by. (bmy, 2/25/21)
                 IF ( N /= id_CH4_SAB ) THEN
                  Print*, 'WARNING: Negative concentration for species ',     &
-                          TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L 
+                          TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
                  ErrorMsg = 'Negative species concentations encountered.' // &
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
-                            ' the transport time step.'  
+                            ' the transport time step.'
                  RC = GC_FAILURE
                 ENDIF
+#endif
              ENDIF
 
           ENDDO !L
@@ -876,28 +884,28 @@ CONTAINS
 
                 ! Apply soil absorption to each tagged CH4 species
                 ! (Xueying Yu, 12/08/2017)
-                State_Chm%Species(I,J,L,N) =                    &
-                     SAFE_DIV(State_Chm%Species(I,J,L,N),       &
-                              total_ch4_pre_soil_absorp(I,J,L), &
-                              0.e+0_fp) *                       &
-                     State_Chm%Species(I,J,L,1)
+                State_Chm%Species(N)%Conc(I,J,L) =              &
+                     SAFE_DIV(State_Chm%Species(N)%Conc(I,J,L), &
+                              total_ch4_pre_soil_absorp(I,J,L),    &
+                              0.e+0_fp) *                          &
+                     State_Chm%Species(1)%Conc(I,J,L)
 
              ENDIF
 
              ! Check for negative concentrations
-             ! KLUDGE: skip the warning message for CH4_SAB, which can be 
+             ! KLUDGE: skip the warning message for CH4_SAB, which can be
              ! negative (it's a soil absorption flux).  The TagCH4 simulation
              ! is not used regularly as of Feb 2021 -- fix this later if
              ! need by. (bmy, 2/25/21)
-             IF ( State_Chm%Species(I,J,L,N) < 0.0_fp ) THEN
+             IF ( State_Chm%Species(N)%Conc(I,J,L) < 0.0_fp ) THEN
                 IF ( N /= id_CH4_SAB ) THEN
                  Print*, 'WARNING: Negative concentration for species ',     &
                          TRIM( State_Chm%SpcData(N)%Info%Name),              &
-                         ' at (I,J,L) = ', I, J, L 
+                         ' at (I,J,L) = ', I, J, L
                  ErrorMsg = 'Negative species concentations encountered.' // &
                             ' This may be fixed by increasing the'        // &
                             ' background concentration or by shortening'  // &
-                            ' the transport time step.'  
+                            ' the transport time step.'
                  RC = GC_FAILURE
                 ENDIF
              ENDIF
@@ -922,8 +930,7 @@ CONTAINS
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
             Input_Opt%LFD, Input_Opt%NFD)
        WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
-            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
-            Input_Opt%LFD, Input_Opt%NFD)
+            State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
     ENDIF
 
 #endif
@@ -941,8 +948,7 @@ CONTAINS
             State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
             Input_Opt%LFD, Input_Opt%NFD)
        WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
-            State_Chm%Species(Input_Opt%IFD, Input_Opt%JFD, &
-            Input_Opt%LFD, Input_Opt%NFD)
+            State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
     ENDIF
 
 #endif
