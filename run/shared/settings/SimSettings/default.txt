@@ -1,0 +1,279 @@
+RUNDIR_GC_MODE='GCHP'
+RUNDIR_DATA_ROOT=/storage1/fs1/rvmartin/Active/GEOS-Chem-shared/ExtData
+RUNDIR_SIM_NAME=fullchem
+RUNDIR_SIM_EXTRA_OPTION=none
+RUNDIR_COMPLEX_SOA='false'
+RUNDIR_SVPOA='false'
+RUNDIR_DUSTALK_EXT='off'
+RUNDIR_ACID_UPTAKE='false'
+RUNDIR_MARINE_POA='false'
+RUNDIR_RRTMG_OPTS='false'
+RUNDIR_USE_RRTMG='false'
+RUNDIR_USE_NLPBL='true'
+RUNDIR_USE_ONLINE_O3='true'
+RUNDIR_VOLC_CLIMATOLOGY='$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'
+RUNDIR_VOLC_TABLE='$ROOT/VOLCANO/v2021-09/$YYYY/$MM/so2_volcanic_emissions_Carns..rc'
+RUNDIR_MET='MERRA2'
+RUNDIR_MET_LOWERCASE='merra2'
+RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/MERRA2"
+RUNDIR_MET_DIR_NATIVE="${RUNDIR_DATA_ROOT}/GEOS_0.5x0.625/MERRA2"
+
+RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN=.false.
+RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA=.false.
+RUNDIR_MET_RES='05x0625'
+RUNDIR_MET_NATIVE_RES='0.5x0.625'
+RUNDIR_MET_LAT_RES='05'
+RUNDIR_MET_LON_RES='0625'
+RUNDIR_MET_EXT='nc4'
+
+RUNDIR_MET_CN_YR=2015
+RUNDIR_MET_PRES_UNIT='Pa '
+RUNDIR_MET_PRES_SCALE='0.01'
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+#
+# --- 2D variables, 1-hr averaged ---
+ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+EFLUX    1 N Y F0;003000 none none EFLUX    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+EVAP     1 N Y F0;003000 none none EVAP     ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+FRSEAICE 1 N Y F0;003000 none none FRSEAICE ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+FRSNO    1 N Y F0;003000 none none FRSNO    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+GRN      1 N Y F0;003000 none none GRN      ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+HFLUX    1 N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+LAI      1 N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+LWI      1 N Y F0;003000 none none LWI      ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+RADLWG   1 N Y F0;003000 none none LWGNT    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PARDF    1 N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PARDR    1 N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PBLH     1 N Y F0;003000 none none PBLH     ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PRECANV  1 N Y F0;003000 none none PRECANV  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PRECCON  1 N Y F0;003000 none none PRECCON  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PRECLSC  1 N Y F0;003000 none none PRECLSC  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PRECSNO  1 N Y F0;003000 none none PRECSNO  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+PRECTOT  1 N Y F0;003000 none none PRECTOT  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+QV2M     1 N Y F0;003000 none none QV2M     ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE00 1 N Y F0;003000 none none SEAICE00 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE10 1 N Y F0;003000 none none SEAICE10 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE20 1 N Y F0;003000 none none SEAICE20 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE30 1 N Y F0;003000 none none SEAICE30 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE40 1 N Y F0;003000 none none SEAICE40 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE50 1 N Y F0;003000 none none SEAICE50 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE60 1 N Y F0;003000 none none SEAICE60 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE70 1 N Y F0;003000 none none SEAICE70 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE80 1 N Y F0;003000 none none SEAICE80 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SEAICE90 1 N Y F0;003000 none none SEAICE90 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+SLP Pa  N Y F0;003000 none 0.01 SLP ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+SNODP  1 N Y F0;003000 none none SNODP  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+SNOMAS 1 N Y F0;003000 none none SNOMAS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+RADSWG 1 N Y F0;003000 none none SWGDN  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+TO3 dobson N Y F0;003000 none none TO3 ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+TROPP Pa  N Y F0;003000 none 0.01 TROPPT ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+TSKIN 1 N Y F0;003000 none none TS    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+TS    1 N Y F0;003000 none none T2M   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+USTAR 1 N Y F0;003000 none none USTAR ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+U10M m_s-1 N Y F0;003000 none none U10M ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
+#
+# --- Surface pressure, 3-hr instantaneous ---
+PS1 Pa  N Y 0        none 0.01 PS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+PS2 Pa  N Y 0;001000 none 0.01 PS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+#
+# --- 3D variables, 3-hr instantaneous ---
+SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+#
+TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+#
+# --- 3D variables, 3-hr averaged ---
+QI     1 N Y F0;013000 none none QI       ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
+QL     1 N Y F0;013000 none none QL       ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
+TAUCLI 1 N Y F0;013000 none none TAUCLI   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
+TAUCLW 1 N Y F0;013000 none none TAUCLW   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
+OPTDEP 1 N Y F0;013000 none none OPTDEPTH ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
+CLDF   1 N Y F0;013000 none none CLOUD    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
+DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
+#
+OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
+#
+RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
+#
+UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
+#
+DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4
+DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4
+REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4
+REEVAPLS 1 N Y F0;013000 none none REEVAPLS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4
+CMFMC    1 N Y F0;013000 none none CMFMC    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstE.05x0625.nc4
+PFICU    1 N Y F0;013000 none none PFICU    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstE.05x0625.nc4
+PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstE.05x0625.nc4
+PFLCU    1 N Y F0;013000 none none PFLCU    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstE.05x0625.nc4
+PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstE.05x0625.nc4
+#
+# --- Fixed variables, from constants file ---
+FRLAKE   1 N Y - none none FRLAKE   ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FRLAND   1 N Y - none none FRLAND   ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FRLANDIC 1 N Y - none none FRLANDIC ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+FROCEAN  1 N Y - none none FROCEAN  ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+#
+PHIS m2_s-2 N Y - none none PHIS ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
+"""
+
+RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""
+"""
+RUNDIR_SIM_DUR_YYYYMMDD='00000100'
+RUNDIR_SIM_DUR_HHmmSS='000000'
+RUNDIR_HIST_TIME_AVG_DUR='010000'
+RUNDIR_HIST_TIME_AVG_FREQ='010000'
+RUNDIR_HIST_INST_DUR='010000'
+RUNDIR_HIST_INST_FREQ='010000'
+RUNDIR_HIST_MONTHLY_DIAG='1'
+RUNDIR_NUM_CORES='96'
+RUNDIR_NUM_NODES='2'
+RUNDIR_CORES_PER_NODE='48'
+RUNDIR_CS_RES='24'
+RUNDIR_SEASALT_EXT='off'
+RUNDIR_TOMAS_SEASALT='off'
+RUNDIR_OFFLINE_SEASALT='true '
+RUNDIR_TOMAS_DUSTDEAD='off'
+RUNDIR_OFFLINE_DUST='true '
+RUNDIR_DUSTDEAD_EXT='off'
+RUNDIR_SOILNOX_EXT='off'
+RUNDIR_OFFLINE_BIOVOC='true '
+RUNDIR_OFFLINE_SOILNOX='true '
+RUNDIR_GFED_EXT='on '
+RUNDIR_USE_CEDS='true '
+RUNDIR_USE_TSC2H6='true '
+RUNDIR_USE_XIAOC3H8='true '
+RUNDIR_USE_AEIC='true '
+RUNDIR_USE_GMDCH4='true '
+RUNDIR_USE_SFCVMR='true '
+RUNDIR_CMIP6_FIELDS='false'
+RUNDIR_GCAP2_VERTRES='47'
+
+RUNDIR_Bry_DIR='STRAT/v2015-01/Bry'
+RUNDIR_GMI_DIR='GMI/v2015-02'
+RUNDIR_UCX_DIR='UCX/v2018-02'
+RUNDIR_GLOBAL_ACTA='* GLOBAL_ACTA    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_ACTA  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_Br_GC='* Br_GC          $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_Br    2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_BrO_GC='* BrO_GC         $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_BrO   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+
+RUNDIR_GLOBAL_CH4='* GLOBAL_CH4     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_CH4   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_Cl='* GLOBAL_Cl      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_Cl    2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_ClO='* GLOBAL_ClO     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_ClO   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_CO='* GLOBAL_CO      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_CO    2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_HCl='* GLOBAL_HCl     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_HCl   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_HCOOH='* GLOBAL_HCOOH   $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_HCOOH 2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_HNO3='* GLOBAL_HNO3    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_HNO3  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_HO2='* GLOBAL_HO2     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_HO2   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_HOCl='* GLOBAL_HOCl    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_HOCl  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_NIT='* GLOBAL_NIT     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_NIT   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_NO='* GLOBAL_NO      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_NO    2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_NO2='* GLOBAL_NO2     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_NO2   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_NO3='* GLOBAL_NO3     $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_NO3   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_O3='* GLOBAL_O3      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_O3    2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_OH='* GLOBAL_OH      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_OH    2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_PM25='* GLOBAL_PM25    $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.AerosolMass.$YYYY$MM$DD_0000z.nc4      PM25              2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_SO4='* AERO_SO4       $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_SO4   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_NH4='* AERO_NH4       $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_NH4   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_NIT='* AERO_NIT       $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_NIT   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_BCPI='* AERO_BCPI      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_BCPI  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_BCPO='* AERO_BCPO      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_BCPO  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_OCPI='* AERO_OCPI      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_OCPI  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_OCPO='* AERO_OCPO      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_OCPO  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_AERO_DST1='* AERO_DST1      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM$DD_0000z.nc4      SpeciesConc_DST1  2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_OA='* GLOBAL_OA      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.AerosolMass.$YYYY$MM$DD_0000z.nc4      TotalOA           2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_PCO_CH4='* PCO_CH4        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         ProdCOfromCH4     2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_PCO_NMVOC='* PCO_NMVOC      $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         ProdCOfromNMVOC   2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_PH2O2='* PH2O2          $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         Prod_H2O2         2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_O3_PROD='* O3_PROD        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         Prod_Ox           2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_O3_LOSS='* O3_LOSS        $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.ProdLoss.$YYYY$MM$DD_0000z.nc4         Loss_Ox           2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_JBrO='* JBrO           $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4          Jval_BrO          2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_JH2O2='* JH2O2          $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4          Jval_H2O2         2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_JNO2='* JNO2           $ROOT/GCClassic_Output/13.0.0/$YYYY/GEOSChem.JValues.$YYYY$MM$DD_0000z.nc4          Jval_NO2          2010-2019/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_CH4_LOSS='* CH4_LOSS       $ROOT/CH4/v2014-09/4x5/gmi.ch4loss.geos5_47L.4x5.nc                                 CH4loss           1985/1-12/1/0      C xyz s-1      * - 1 1'
+RUNDIR_CO2_COPROD='* CO2_COPROD     $ROOT/CO2/v2019-02/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc                            LCO               2004-2009/1-12/1/0 C xyz kgC/m3/s * - 1 1'
+RUNDIR_Br_TOMCAT='* Br_TOMCAT      $ROOT/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.nc                                  LBRO2N                 1985/1-12/1/0 C xyz pptv     * - 1 1'
+RUNDIR_BrO_TOMCAT='* BrO_TOMCAT     $ROOT/MERCURY/v2014-09/BrOx/BrOx.GMI.geos5.2x25.nc                                  LBRO2H                 1985/1-12/1/0 C xyz pptv     * - 1 1'
+RUNDIR_GLOBAL_OC='1002 GLOBAL_OC   $ROOT/POPs/v2015-08/OCPO.$met.$RES.nc                                               OCPO              2005-2009/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_GLOBAL_BC='1002 GLOBAL_BC   $ROOT/POPs/v2015-08/BCPO.$met.$RES.nc                                               BCPO              2005-2009/1-12/1/0 C xyz 1        * - 1 1'
+RUNDIR_TES_CLIM_CCL4='* TES_CLIM_CCL4  $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  CCl4                   2000/1/1/0    C xyz ppbv     * - 1 1'
+RUNDIR_TES_CLIM_CFC11='* TES_CLIM_CFC11 $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  CFC11                  2000/1/1/0    C xyz ppbv     * - 1 1'
+RUNDIR_TES_CLIM_CFC12='* TES_CLIM_CFC12 $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  CFC12                  2000/1/1/0    C xyz ppbv     * - 1 1'
+RUNDIR_TES_CLIM_CFC22='* TES_CLIM_CFC22 $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  CFC22                  2000/1/1/0    C xyz ppbv     * - 1 1'
+RUNDIR_TES_CLIM_CH4='* TES_CLIM_CH4   $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  CH4                    2000/1/1/0    C xyz ppbv     * - 1 1'
+RUNDIR_TES_CLIM_N2O='* TES_CLIM_N2O   $ROOT/RRTMG/v2018-11/species_clim_profiles.2x25.nc                                  N2O                    2000/1/1/0    C xyz ppbv     * - 1 1'
+RUNDIR_GMI_LOSS_CO='* GMI_LOSS_CO    $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc                                        loss                   2005/1-12/1/0 C xyz s-1     CO - 1 1'
+RUNDIR_GMI_PROD_CO='* GMI_PROD_CO    $ROOT/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc                                        prod                   2005/1-12/1/0 C xyz v/v/s   CO - 1 1'
+RUNDIR_OCEAN_MASK='1000 OCEAN_MASK  $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC                                         FROCEAN           2000/1/1/0 C xy 1 1       -180/-90/180/90'
+
+
+RUNDIR_Hg_GLOBAL_Br='* GLOBAL_Br    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  Br           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_BrO='* GLOBAL_BrO   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  BrO          2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_CH4='* GLOBAL_CH4   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  CH4          2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_Cl='* GLOBAL_Cl    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  Cl           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_ClO='* GLOBAL_ClO   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  ClO          2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_CO='* GLOBAL_CO    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  CO           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_HO2='* GLOBAL_HO2   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  HO2          2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_NO='* GLOBAL_NO    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  NO           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_NO2='* GLOBAL_NO2   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  NO2          2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_O3='* GLOBAL_O3    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  O3           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_OH='* GLOBAL_OH    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  OH           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_fOA='* GLOBAL_fOA   $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  fOA          2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_OCEAN='* GLOBAL_OCEAN $ROOT/MERCURY/v2018-04/ocean_fixed.nc                ocean_conc   2007/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_PM25='* GLOBAL_PM25  $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  PM25         2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RH='* GLOBAL_RH    $ROOT/MERCURY/v2022-04/Oxidants_for_Hg_sim_2016.nc4  RH           2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_BC='* AOD_BC       $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_BC       2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_BGSULF='* AOD_BGSULF   $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_BGSULF   2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST1='* AOD_DST1     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST1     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST2='* AOD_DST2     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST2     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST3='* AOD_DST3     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST3     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST4='* AOD_DST4     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST4     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST5='* AOD_DST5     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST5     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST6='* AOD_DST6     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST6     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_DST7='* AOD_DST7     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_DST7     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_ICEI='* AOD_ICEI     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_ICEI     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_OC='* AOD_OC       $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_OC       2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_SO4='* AOD_SO4      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_SO4      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_SSA='* AOD_SSA      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_SSA      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AOD_SSC='* AOD_SSC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  AOD_SSC      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_BC='* Area_BC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_BC      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_BGSULF='* Area_BGSULF  $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_BGSULF  2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST1='* Area_DST1    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST1    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST2='* Area_DST2    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST2    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST3='* Area_DST3    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST3    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST4='* Area_DST4    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST4    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST5='* Area_DST5    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST5    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST6='* Area_DST6    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST6    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_DST7='* Area_DST7    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_DST7    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_ICEI='* Area_ICEI    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_ICEI    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_OC='* Area_OC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_OC      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_SO4='* Area_SO4     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_SO4     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_SSA='* Area_SSA     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_SSA     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_AREA_SSC='* Area_SSC     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Area_SSC     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_BC='* Radi_BC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_BC      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_BGSULF='* Radi_BGSULF  $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_BGSULF  2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST1='* Radi_DST1    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST1    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST2='* Radi_DST2    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST2    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST3='* Radi_DST3    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST3    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST4='* Radi_DST4    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST4    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST5='* Radi_DST5    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST5    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST6='* Radi_DST6    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST6    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_DST7='* Radi_DST7    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_DST7    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_ICEI='* Radi_ICEI    $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_ICEI    2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_OC='* Radi_OC      $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_OC      2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_SO4='* Radi_SO4     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_SO4     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_SSA='* Radi_SSA     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_SSA     2016/1-12/1/0 C xyz 1  * - 1 1'
+RUNDIR_Hg_GLOBAL_RADI_SSC='* Radi_SSC     $ROOT/MERCURY/v2022-04/Aerosols_for_Hg_sim_2016.nc4  Radi_SSC     2016/1-12/1/0 C xyz 1  * - 1 1'
+

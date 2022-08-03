@@ -71,6 +71,13 @@ RECORD_FREQUENCY: 1680000
 RECORD_REF_DATE: 20000101
 RECORD_REF_TIME: 000000
 
+# Setting for checkpoint and frequency
+#---------------------------------------
+#Periodic_Checkpoint: on or off
+#Checkpoint_Freq: how often a checkpoint is generated
+Periodic_Checkpoint: ${RUNDIR_PERIODIC_CHECKPOINT}
+Checkpoint_Freq: ${RUNDIR_CHECKPOINT_FREQUENCY}
+
 # Chemistry/AEROSOL Model Restart Files
 # -------------------------------------
 GCHPchem_INTERNAL_RESTART_FILE:     gchp_restart.nc4

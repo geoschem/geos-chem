@@ -94,8 +94,8 @@ Diag_Collections=(SpeciesConc    \
 #------------------------------------------------------------
 #    MID-RUN CHECKPOINT FILES
 #------------------------------------------------------------
-Periodic_Checkpoint=OFF
-Checkpoint_Freq="1680000"
+Periodic_Checkpoint=${RUNDIR_PERIODIC_CHECKPOINT}
+Checkpoint_Freq=${RUNDIR_CHECKPOINT_FREQUENCY}
 
 # Instructions for configuring restart output before end of run:
 #  1. Set Periodic_Checkpoint=ON

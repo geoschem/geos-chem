@@ -1,0 +1,2 @@
+RUNDIR_RRTMG_OPTS='true'
+RUNDIR_USE_RRTMG='true'
