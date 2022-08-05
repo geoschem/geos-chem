@@ -67,63 +67,58 @@ operations:
     transported_species:
       -  Rn222
       -  Pb210
-      -  Pb210Strat
+      -  Pb210s
       -  Be7
-      -  Be7Strat
+      -  Be7s
       -  Be10
-      -  Be10Strat
-      -  PassiveTracer
-      -  CLOCK
-      -  SF6Tracer
-      -  CH3ITracer
-      -  COAnthroEmis25dayTracer
-      -  COAnthroEmis50dayTracer
-      -  COUniformEmis25dayTracer
-      -  GlobEmis90dayTracer
-      -  NHEmis90dayTracer
-      -  SHEmis90dayTracer
+      -  Be10s
+      -  aoa
+      -  aoa_bl
+      -  aoa_nh
+      -  SF6
+      -  CH3I
+      -  CO_25
+      -  CO_50
+      -  e90
+      -  e90_n
+      -  e90_s
+      -  nh_50
+      -  nh_5
+      -  st80_25
+      -  stOX
     passive_species:
-      PassiveTracer:
-        long_name: Passive_tracer_for_mass_conservation_evaluation
-        mol_wt_in_g: 1.0
-        lifetime_in_s: -1
-        default_bkg_conc_in_vv: 1.0e-7
-      SF6Tracer:
+
+      SF6:
         long_name: Sulfur_hexafluoride
         mol_wt_in_g: 146.0
         lifetime_in_s: -1
         default_bkg_conc_in_vv: 1.0e-20
-      CH3ITracer:
+      CH3I:
         long_name: Methyl_iodide
         mol_wt_in_g: 142.0
         lifetime_in_s: 4.32e5
         default_bkg_conc_in_vv: 1.0e-20
-      COAnthroEmis25dayTracer:
+      CO_25:
         long_name: Anthropogenic_CO_with_25day_lifetime
         mol_wt_in_g: 28.0
         lifetime_in_s: 2.16e6
         default_bkg_conc_in_vv: 1.0e-20
-      COAnthroEmis50dayTracer:
+      CO_50:
         long_name: Anthropogenic_CO_with_50day_lifetime
         mol_wt_in_g: 28.0
         lifetime_in_s: 4.32e6
         default_bkg_conc_in_vv: 1.0e-20
-      COUniformEmis25dayTracer:
-        long_name: CO_with_uniform_emission_and_25day_lifetime
-        mol_wt_in_g: 28.0
-        lifetime_in_s: 2.16e6
-        default_bkg_conc_in_vv: 1.0e-20  
-      GlobEmis90dayTracer:
+      e90:
         long_name: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
         mol_wt_in_g: 1.0
         lifetime_in_s: 7.776e6
         default_bkg_conc_in_vv: 1.0e-20  
-      NHEmis90dayTracer:
+      e90_n:
         long_name: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
         mol_wt_in_g: 1.0
         lifetime_in_s: 7.776e6
         default_bkg_conc_in_vv: 1.0e-20  
-      SHEmis90dayTracer:
+      e90_s:
         long_name: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
         mol_wt_in_g: 1.0
         lifetime_in_s: 7.776e6

@@ -324,20 +324,20 @@ Be10:
   Formula: Be10
   FullName: Beryllium-10 isotope
   MW_g: 10.0
-Be10Strat:
+Be10s:
   << : *Beproperties
   Formula: Be10
-  FullName: Beryllium-10 isotope in stratosphere
+  FullName: Beryllium-10 isotope strat-source tracer
   MW_g: 10.0
 Be7:
   << : *Beproperties
   Formula: Be7
   FullName: Beryllium-7 isotope
   MW_g: 7.0
-Be7Strat:
+Be7s:
   << : *Beproperties
   Formula: Be7
-  FullName: Beryllium-7 isotope in stratosphere
+  FullName: Beryllium-7 isotope strat-source tracer
   MW_g: 7.0
 BENZ:
   Formula: C6H6
@@ -3619,9 +3619,9 @@ Pb210_PROP: &Pbproperties
 Pb210:
   << : *Pbproperties
   FullName: Lead-210 isotope
-Pb210Strat:
+Pb210s:
   << : *Pbproperties
-  FullName: Lead-210 isotope in stratosphere
+  FullName: Lead-210 isotope strat-source tracer
 PbF1:
   << : *DST1properties
   Formula: Pb
