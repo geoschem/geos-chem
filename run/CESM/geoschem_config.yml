@@ -10,6 +10,8 @@
 #============================================================================
 simulation:
   name: fullchem
+  start_date: 20000101 000000
+  end_date: 20000101 010000
   chem_inputs_dir: ./
   species_database_file: ./species_database.yml
   debug_printout: false
@@ -67,6 +69,7 @@ operations:
     all_sky_flux: false
 
   transport:
+    activate: true
     transported_species:
       - ACET
       - ACTA
