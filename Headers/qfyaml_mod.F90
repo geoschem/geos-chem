@@ -2349,6 +2349,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=3)             :: crlf
+    CHARACTER(LEN=QFYAML_NamLen) :: display
     CHARACTER(LEN=QFYAML_NamLen) :: varName
     CHARACTER(LEN=QFYAML_StrLen) :: errMsg
     CHARACTER(LEN=QFYAML_StrLen) :: thisLoc
@@ -2408,6 +2409,7 @@ CONTAINS
        ! Initialize loop variables
        c       = 0
        c0      = 0
+       display = ''
        stack   = ''
        varName = yml%vars(i)%var_name
 
@@ -2457,10 +2459,20 @@ CONTAINS
        !---------------------------------------------------------------------
        DO d = 1, varDepth
           IF ( TRIM( stack(d) ) /= TRIM( lastStack(d) ) ) THEN
-             WRITE( lun, '(a,a)' ) REPEAT( QFYAML_indent, d-1 ),             &
-                                   TRIM( stack(d)             )
+
+             ! Place quotes around "NO" or "no", as this is a
+             ! synonym for "false" (bmy, 09 Aug 2022)
+             display = stack(d)
+             IF ( d == 1 ) THEN
+                IF ( display(1:3) == "NO:" ) display = "'NO':"
+                IF ( display(1:3) == "no:" ) display = "'no':"
              ENDIF
-          ENDDO
+
+             ! Print YAML to screen or file
+             WRITE( lun, '(a,a)' ) REPEAT( QFYAML_indent, d-1 ),             &
+                                   TRIM( display              )
+          ENDIF
+       ENDDO
 
        ! Save a copy of stack for next iteration
        lastStack = stack
