@@ -840,8 +840,7 @@ CONTAINS
 
     !=======================================================================
     ! Print metadata for only the species that are defined in this
-    ! simulation (but not the entire species database) to another YAML
-    ! file.  This facilitates coupling GEOS-Chem to external models.
+    ! simulation (but not the entire species database) to a YAML file.
     !
     ! Also note: Input_Opt%amIRoot is always set to False in MODEL_CESM
     ! so we will need to block out the test for it for CESM only.
