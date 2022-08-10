@@ -823,9 +823,6 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Debug printout
-       IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
-
        ! Free pointer
        ThisSpc => NULL()
     ENDDO
@@ -849,14 +846,10 @@ CONTAINS
 #ifndef MODEL_CESM
        IF ( Input_Opt%amIRoot ) THEN
 #endif
-          ! Disable printout in debugging mode, since we already have
-          ! output from Spc_Print above (Bob Yantosca, 27 Jul 2022)
-          IF ( .not. prtDebug ) THEN
-             CALL QFYAML_Print( yml        = yml,                           &
-                                fileName   = Input_Opt%SpcMetaDataOutFile,  &
-                                searchKeys = species_names,                 &
-                                RC         = RC                            )
-          ENDIF
+          CALL QFYAML_Print( yml        = yml,                               &
+                             fileName   = Input_Opt%SpcMetaDataOutFile,      &
+                             searchKeys = species_names,                     &
+                             RC         = RC                                )
 
 #ifndef MODEL_CESM
        ENDIF
