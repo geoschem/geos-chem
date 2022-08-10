@@ -411,6 +411,10 @@ fi
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
+# Create build directory
+mkdir ${rundir}/build
+printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
+
 #--------------------------------------------------------------------
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
@@ -505,6 +509,7 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
 
+printf "\n  See ${rundir_config}/rundir_vars.txt for run directory settings.\n\n"
 printf "\n  -- This run directory has been set up to start on $start_date and"
 printf "\n     restart files for this date are in the Restarts subdirectory.\n"
 printf "\n  -- Update start time in configuration file cap_restart.\n"
