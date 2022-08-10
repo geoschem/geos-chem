@@ -30,7 +30,7 @@ ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
 GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
 GCAP2VERTRES:                ${RUNDIR_GCAP2_VERTRES}
-Logfile:                     HEMCO.log
+Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
