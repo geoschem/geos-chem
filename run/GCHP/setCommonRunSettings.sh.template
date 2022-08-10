@@ -566,7 +566,7 @@ if [[ ${Periodic_Checkpoint} == "ON" ]]; then
     uncomment_line RECORD_REF_DATE  GCHP.rc
     uncomment_line RECORD_REF_TIME  GCHP.rc
     replace_val RECORD_FREQUENCY "${Checkpoint_Freq}" GCHP.rc
-    start_str=$(echo cap_restart)
+    start_str=$(cat cap_restart)
     Checkpoint_Ref_Date="${start_str:0:8}"
     Checkpoint_Ref_Time="${start_str:9:6}"
     replace_val RECORD_REF_DATE "${Checkpoint_Ref_Date}" GCHP.rc
