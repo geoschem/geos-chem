@@ -1320,25 +1320,25 @@ Warnings:                    1
 0 CEDS_SOAP_WST   -                                                                    -                 -                  - -  -       SOAP  26/280    1 5
 
 0 CEDS_SO2_AGR    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_agr           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_AGR    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_AGR    -                                                                    -                 -                  - -  -       so4_a1   8902        1 5
 0 CEDS_pFe_AGR    -                                                                    -                 -                  - -  -       pFe   66        1 5
 0 CEDS_SO2_ENE    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_ene           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_ENE    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_ENE    -                                                                    -                 -                  - xyL=100m:300m  -       so4_a1   8907        1 5
 0 CEDS_pFe_ENE    -                                                                    -                 -                  - -  -       pFe   66        1 5
 0 CEDS_SO2_IND    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_ind           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_IND    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_IND    -                                                                    -                 -                  - xyL=100m:300m  -       so4_a1   8908        1 5
 0 CEDS_pFe_IND    -                                                                    -                 -                  - -  -       pFe   66        1 5
 0 CEDS_SO2_TRA    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_tra           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_TRA    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_TRA    -                                                                    -                 -                  - -  -       so4_a1   8906        1 5
 0 CEDS_pFe_TRA    -                                                                    -                 -                  - -  -       pFe   66        1 5
 0 CEDS_SO2_RCO    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_rco           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_RCO    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_RCO    -                                                                    -                 -                  - -  -       so4_a1   8905        1 5
 0 CEDS_pFe_RCO    -                                                                    -                 -                  - -  -       pFe   66        1 5
 0 CEDS_SO2_SLV    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_slv           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_SLV    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_SLV    -                                                                    -                 -                  - -  -       so4_a1   8904        1 5
 0 CEDS_pFe_SLV    -                                                                    -                 -                  - -  -       pFe   66        1 5
 0 CEDS_SO2_WST    $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc           SO2_wst           1750-2019/1-12/1/0 C xy kg/m2/s SO2   -         1 5
-0 CEDS_SO4_WST    -                                                                    -                 -                  - -  -       SO4   63        1 5
+0 CEDS_SO4_WST    -                                                                    -                 -                  - -  -       so4_a1   8903        1 5
 0 CEDS_pFe_WST    -                                                                    -                 -                  - -  -       pFe   66        1 5
 
 0 CEDS_NH3_AGR    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_agr           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
@@ -1349,47 +1349,67 @@ Warnings:                    1
 0 CEDS_NH3_SLV    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_slv           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
 0 CEDS_NH3_WST    $ROOT/CEDS/v2021-06/$YYYY/NH3-em-anthro_CMIP_CEDS_$YYYY.nc           NH3_wst           1750-2019/1-12/1/0 C xy kg/m2/s NH3   -         1 5
 
-0 CEDS_BCPI_AGR   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_agr            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_AGR   -                                                                    -                 -                  - -  -       BCPO  71        1 5
-0 CEDS_BCPI_ENE   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_ene            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_ENE   -                                                                    -                 -                  - -  -       BCPO  71        1 5
-0 CEDS_BCPI_IND   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_ind            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_IND   -                                                                    -                 -                  - -  -       BCPO  71        1 5
-0 CEDS_BCPI_TRA   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_tra            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_TRA   -                                                                    -                 -                  - -  -       BCPO  71        1 5
-0 CEDS_BCPI_RCO   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_rco            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_RCO   -                                                                    -                 -                  - -  -       BCPO  71        1 5
-0 CEDS_BCPI_SLV   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_slv            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_SLV   -                                                                    -                 -                  - -  -       BCPO  71        1 5
-0 CEDS_BCPI_WST   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_wst            1750-2019/1-12/1/0 C xy kg/m2/s BCPI  70        1 5
-0 CEDS_BCPO_WST   -                                                                    -                 -                  - -  -       BCPO  71        1 5
+#-----------------------------------------------------
+# AEROSOL NUMBER EMISSIONS FOR CEDS in CESM - hplin 8/11/22
+# note shp emiss in ship section
+#-----------------------------------------------------
+0 CEDS_SO4n_AGR   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_agr          1750-2019/1-12/1/0 C xy              kg/m2/s num_a1  8902/8014    1 5
+0 CEDS_SO4n_WST   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_wst          1750-2019/1-12/1/0 C xy              kg/m2/s num_a1  8903/8014    1 5
+0 CEDS_SO4n_SLV   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_slv          1750-2019/1-12/1/0 C xy              kg/m2/s num_a1  8904/8014    1 5
+0 CEDS_SO4n_TRA   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_tra          1750-2019/1-12/1/0 C xy              kg/m2/s num_a2  8906/8022    1 5
+0 CEDS_SO4n_RCO   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_rco          1750-2019/1-12/1/0 C xy              kg/m2/s num_a2  8905/8022    1 5
+0 CEDS_SO4n_ENE   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_ene          1750-2019/1-12/1/0 C xyL=100m:300m   kg/m2/s num_a1  8907/8011    1 5
+0 CEDS_SO4n_IND   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_ind          1750-2019/1-12/1/0 C xyL=100m:300m   kg/m2/s num_a1  8908/8011    1 5
 
-0 CEDS_OCPI_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_agr            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_AGR   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+# BC emiss are classified as a4 for all anthro
+0 CEDS_BCn_AGR    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_agr           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_BCn_WST    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_wst           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_BCn_SLV    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_slv           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_BCn_TRA    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_tra           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_BCn_RCO    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_rco           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_BCn_ENE    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_ene           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_BCn_IND    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_ind           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+
+# OC emiss are classified as a4 for all anthro
+0 CEDS_OCn_AGR    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_agr           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+0 CEDS_OCn_WST    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_wst           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+0 CEDS_OCn_SLV    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_slv           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+0 CEDS_OCn_TRA    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_tra           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+0 CEDS_OCn_RCO    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_rco           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+0 CEDS_OCn_ENE    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_ene           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+0 CEDS_OCn_IND    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_ind           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8930/8042    1 5
+
+#-----------------------------------------------------
+# // end AEROSOL NUMBER EMISSIONS FOR CEDS in CESM
+#-----------------------------------------------------
+
+0 CEDS_BCPI_AGR   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_agr            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+0 CEDS_BCPI_ENE   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_ene            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+0 CEDS_BCPI_IND   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_ind            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+0 CEDS_BCPI_TRA   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_tra            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+0 CEDS_BCPI_RCO   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_rco            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+0 CEDS_BCPI_SLV   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_slv            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+0 CEDS_BCPI_WST   $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc            BC_wst            1750-2019/1-12/1/0 C xy kg/m2/s bc_a4 8920       1 5
+
+0 CEDS_OCPI_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_agr            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_AGR   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_AGR   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
-0 CEDS_OCPI_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_ene            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_ENE   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_ene            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_ENE   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_ENE   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
-0 CEDS_OCPI_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_ind            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_IND   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_ind            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_IND   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_IND   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
-0 CEDS_OCPI_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_tra            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_TRA   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_tra            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_TRA   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_TRA   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
-0 CEDS_OCPI_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_rco            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_RCO   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_rco            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_RCO   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_RCO   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
-0 CEDS_OCPI_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_slv            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_SLV   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_slv            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_SLV   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_SLV   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
-0 CEDS_OCPI_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_wst            1750-2019/1-12/1/0 C xy kg/m2/s OCPI  72        1 5
-0 CEDS_OCPO_WST   -                                                                    -                 -                  - -  -       OCPO  73        1 5
+0 CEDS_OCPI_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc            OC_wst            1750-2019/1-12/1/0 C xy kg/m2/s pom_a4 8930      1 5
 0 CEDS_POG1_WST   -                                                                    -                 -                  - -  -       POG1  73/74/76  1 5
 0 CEDS_POG2_WST   -                                                                    -                 -                  - -  -       POG2  73/74/77  1 5
 
@@ -2375,6 +2395,17 @@ Warnings:                    1
 0 CEDS_ALD2_SHP   $ROOT/CEDS/v2021-06/$YYYY/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_shp          1750-2019/1-12/1/0 C xy kg/m2/s ALD2  26     10 5
 0 CEDS_MEK_SHP    $ROOT/CEDS/v2021-06/$YYYY/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_shp           1750-2019/1-12/1/0 C xy kg/m2/s MEK   26     10 5
 0 CEDS_HCOOH_SHP  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_shp         1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 5
+
+#-----------------------------------------------------
+# AEROSOL NUMBER EMISSIONS FOR CEDS in CESM - hplin 8/11/22
+#-----------------------------------------------------
+0 CEDS_SO4n_SHP   $ROOT/CEDS/v2021-06/$YYYY/SO2-em-anthro_CMIP_CEDS_$YYYY.nc            SO2_shp          1750-2019/1-12/1/0 C xy              kg/m2/s num_a1  8909/8013    1 5
+0 CEDS_BCn_SHP    $ROOT/CEDS/v2021-06/$YYYY/BC-em-anthro_CMIP_CEDS_$YYYY.nc             BC_shp           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+0 CEDS_OCn_SHP    $ROOT/CEDS/v2021-06/$YYYY/OC-em-anthro_CMIP_CEDS_$YYYY.nc             OC_shp           1750-2019/1-12/1/0 C xy              kg/m2/s num_a4  8920/8041    1 5
+#-----------------------------------------------------
+# // end AEROSOL NUMBER EMISSIONS FOR CEDS in CESM
+#-----------------------------------------------------
+
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
@@ -2501,10 +2532,13 @@ Warnings:                    1
 0 AEIC19_DAILY_CO   $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s CO   241         20 1
 0 AEIC19_DAILY_SOAP -                                                                 -        -                - -   -       SOAP 241/280     20 1
 0 AEIC19_DAILY_SO2  $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
-0 AEIC19_DAILY_SO4  -                                                                 -        -                - -   -       SO4  241/112     20 1
+0 AEIC19_DAILY_SO4  -                                                                 -        -                - -   -       so4_a1  241/112  20 1
+0 AEIC19_DAILY_SO4n -                                                                 -        -                - -   -       num_a1  8011/241/112     20 1
 0 AEIC19_DAILY_H2O  -                                                                 -        -                - -   -       H2O  241/120     20 1
-0 AEIC19_DAILY_BCPI $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
-0 AEIC19_DAILY_OCPI $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_DAILY_BC   $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s bc_a4 241        20 1
+0 AEIC19_DAILY_BCn  -                                                                 -        -                - -   -       num_a4 8041/241  20 1
+0 AEIC19_DAILY_OC   $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s pom_a4 241       20 1
+0 AEIC19_DAILY_OCn  -                                                                 -        -                - -   -       num_a4 8042/241  20 1
 0 AEIC19_DAILY_ACET $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc HC       2019/1-12/1-31/0 C xyz kg/m2/s ACET 241/114/101 20 1
 0 AEIC19_DAILY_ALD2 -                                                                 -        -                - -   -       ALD2 241/114/102 20 1
 0 AEIC19_DAILY_ALK4 -                                                                 -        -                - -   -       ALK4 241/114/103 20 1
@@ -2522,10 +2556,13 @@ Warnings:                    1
 0 AEIC19_MONMEAN_CO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc CO       2019/1-12/1/0 C xyz kg/m2/s CO   241         20 1
 0 AEIC19_MONMEAN_SOAP -                                                                          -        -             - -   -       SOAP 241/280     20 1
 0 AEIC19_MONMEAN_SO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc FUELBURN 2019/1-12/1/0 C xyz kg/m2/s SO2  241/111     20 1
-0 AEIC19_MONMEAN_SO4  -                                                                          -        -             - -   -       SO4  241/112     20 1
+0 AEIC19_MONMEAN_SO4  -                                                                          -        -             - -   -       so4_a1  241/112  20 1
+0 AEIC19_MONMEAN_SO4n -                                                                          -        -             - -   -       num_a1  8011/241/112  20 1
 0 AEIC19_MONMEAN_H2O  -                                                                          -        -             - -   -       H2O  241/120     20 1
-0 AEIC19_MONMEAN_BCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc BC       2019/1-12/1/0 C xyz kg/m2/s BCPI 241         20 1
-0 AEIC19_MONMEAN_OCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc OC       2019/1-12/1/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_MONMEAN_BC   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc BC       2019/1-12/1/0 C xyz kg/m2/s bc_a4 241        20 1
+0 AEIC19_MONMEAN_BCn  -                                                                          -        -             - -   -       num_a4 8041/241  20 1
+0 AEIC19_MONMEAN_OC   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc OC       2019/1-12/1/0 C xyz kg/m2/s pom_a4 241       20 1
+0 AEIC19_MONMEAN_OCn  -                                                                          -        -             - -   -       num_a4 8042/241  20 1
 0 AEIC19_MONMEAN_ACET $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HC       2019/1-12/1/0 C xyz kg/m2/s ACET 241/114/101 20 1
 0 AEIC19_MONMEAN_ALD2 -                                                                          -        -             - -   -       ALD2 241/114/102 20 1
 0 AEIC19_MONMEAN_ALK4 -                                                                          -        -             - -   -       ALK4 241/114/103 20 1
@@ -4106,6 +4143,105 @@ Warnings:                    1
 616 SSChloride   0.5504  - - - xy 1 1
 617 BrContent    2.11e-3 - - - xy 1 1
 )))OFFLINE_SEASALT
+
+#==============================================================================
+# --- CEDS to CAM-Chem scale factors ---
+#
+# NOTES:
+#  Reference: Table S4. Emmons, L. K., Schwantes, R. H., Orlando, J. J.,
+#    Tyndall, G., Kinnison, D., Lamarque, J.‐F., et al. (2020).
+#    The Chemistry Mechanism in the Community Earth System Model version 2 (CESM2).
+#    Journal of Advances in Modeling Earth Systems, 12, e2019MS001882.
+#    https://doi.org/10.1029/2019MS001882
+#
+# CEDS sectors: (from CEDS readme)
+# sector    Description                                                              SO4_aX SF#         SO4_NUM SF#     BC_NUM SF#    POM_NUM SF#
+#   0: AGR  Non-combustion agricultural sector                                          8902                8014
+#   1: ENE  Energy transformation and extraction                                        8907                8011
+#   2: IND  Industrial combustion and processes                                         8908                8011
+#   3: TRA  Surface Transportation (Road, Rail, Other)                                  8906                8022         --8041--      --8042--
+#   4: RCO  Residential, commercial, and other                                          8905                8022
+#   5: SLV  Solvents                                                                    8904                8014
+#   6: WST  Waste disposal and handling                                                 8903                8014
+#   7: SHP  International shipping (including VOCs from oil tanker loading/leakage)     8909                8013
+#=============================================================================
+8902 CESM_SO4a1_AGR  0.025    - - - xy 1 1
+8903 CESM_SO4a1_WST  0.025    - - - xy 1 1
+8904 CESM_SO4a1_SLV  0.025    - - - xy 1 1
+8905 CESM_SO4a2_RCO  0.025    - - - xy 1 1
+8906 CESM_SO4a2_TRA  0.025    - - - xy 1 1
+8907 CESM_SO4a1_ENE  0.025    - - - xy 1 1
+8908 CESM_SO4a1_IND  0.025    - - - xy 1 1
+8909 CESM_SO4a1_SHP  0.025    - - - xy 1 1
+
+8910 CESM_CH3CHOCH3  0.2      - - - xy 1 1
+8911 CESM_MEK        0.8      - - - xy 1 1
+8912 CESM_HCOOH      0.5      - - - xy 1 1
+8913 CESM_CH3COOH    0.5      - - - xy 1 1
+
+# BC/OC
+8920 CESM_BCa4_ANTH  1.0      - - - xy 1 1
+8921 CESM_BCa4_BB    1.0      - - - xy 1 1
+8922 CESM_BCa4_AIR   1.0      - - - xy 1 1
+
+8930 CESM_POMa4_ANTH 1.4      - - - xy 1 1
+8931 CESM_POMa4_BB   1.4      - - - xy 1 1
+
+# Does not seem to be in CEDS, have to look closer later (hplin, 8/6/20)
+8985 CESM_SO4a1_BB   0.025    - - - xy 1 1
+8986 CESM_SO4a1_VOL  0.5      - - - xy 1 1
+8987 CESM_SO4a2_VOL  0.5      - - - xy 1 1
+
+# Convert CEDS total alcohols to methanol and ethanol following Emmons et al. (2020, JAMES)
+8990 CESM_VOC1toMOH 0.15 - - - xy 1 1
+8991 CESM_VOC1toEOH 0.85 - - - xy 1 1
+
+#-----------------------------------------
+# AEROSOL NUMBER EMISSIONS FOR CEDS
+# Based on Emmons et al., 2020 CESM2
+#-----------------------------------------
+# sector    Description
+#   0: AGR  Non-combustion agricultural sector
+#   1: ENE  Energy transformation and extraction
+#   2: IND  Industrial combustion and processes
+#   3: TRA  Surface Transportation (Road, Rail, Other)
+#   4: RCO  Residential, commercial, and other
+#   5: SLV  Solvents
+#   6: WST  Waste disposal and handling
+#   7: SHP  International shipping (including VOCs from oil tanker loading/leakage)
+# The scaling is performed ON TOP of original bins to convert aerosol mass to aerosol number
+#
+#     Enumber = Emass * (1 / ( pi/6 * rho * D_emit^3 ))
+#
+#              kg/m2/s               kg/m3   um^3=10^-18 m^3
+#             =  1/m2/s
+#
+# where pi = 3.1415926
+#       rho = specdens_amode(SM,M) --> species corresponding to the given aerosol mode
+#       D_emit is dependent by sector
+#
+#  WARNING: THE FOLLOWING FACTORS ARE APPLIED ON TOP OF THE EXISTING CESM SCALE FACTORS FOR CEDS (i.e. 0.025)
+#  THUS THEY SHOULD ALWAYS BE USED IN COMBINATION, e.g., 908/8001
+#
+# Refer to the parameter table in Emmons et al., 2020 SUPPLEMENT
+#
+#     1/(3.1415926/6*1770*(0.261e-6)**3)
+8011  CESM_SO4a1toNUM_ENE_IND 6.068853e16  - - - xy 1 1
+8013  CESM_SO4a1toNUM_SHP     6.068853e16  - - - xy 1 1
+#     1/(3.1415926/6*1770*(0.134e-6)**3)
+#  BB, Volcano, Agr, Wst, Solvents
+8013  CESM_SO4a1toNUM_BB_VOL  4.484497e17  - - - xy 1 1
+8014  CESM_SO4a1toNUM_AG_WS   4.484497e17  - - - xy 1 1
+#     1/(3.1415926/6*1770*(0.0504e-6)**3)
+8021  CESM_SO4a2toNUM_VOL     8.428233e18  - - - xy 1 1
+#     1/(3.1415926/6*1770*(0.0504e-6)**3)
+8022  CESM_SO4a2toNUM_RES_TRA 8.428233e18  - - - xy 1 1
+
+# BC total anthro, BB, aircraft
+#     1/(3.1415926/6*1770*(0.134e-6)**3)
+8041  CESM_BCa4toNUM          4.484497e17  - - - xy 1 1
+#     1/(3.1415926/6*1000*(0.134e-6)**3)
+8042  CESM_OCa4toNUM          7.937559e17  - - - xy 1 1
 
 )))EMISSIONS
 
