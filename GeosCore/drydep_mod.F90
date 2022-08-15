@@ -1294,7 +1294,7 @@ CONTAINS
 
     IF ( id_NK1 > 0 ) THEN
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
-                         SIZ_DIA, SIZ_DEN, RC )
+                         State_Diag, SIZ_DIA, SIZ_DEN, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in call to "AERO_DIADEN"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

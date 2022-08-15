@@ -373,7 +373,7 @@ CONTAINS
 
 #ifdef TOMAS
     INTEGER            :: I, J
-    REAL*4             :: BOXVOL, TEMPTMS, PRES
+    REAL*4             :: BOXVOL, TEMPTMS, PRES, BOXMASS
 #endif
 
     ! Pointers
@@ -788,7 +788,7 @@ CONTAINS
 
 #ifdef TOMAS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, 'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
       CALL AGING_CARB( id_ECIL1, id_ECOB1, State_Grid, State_Chm )
@@ -809,22 +809,25 @@ CONTAINS
 
 #ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                    State_Met, 'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
       !$OMP PARALLEL DO       &
       !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
+      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
          NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+         BOXMASS  = State_Met%AD(I,J,L)  !kg
          TEMPTMS = State_Met%T(I,J,L)
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
+             !print*, 'NEWSOA ', NEWSOA,i,j,l,BOXVOL, TEMPTMS, PRES
+             !        !     State_Chm, State_Grid, RC
             !sfarina16: SOAP -> size Resolved TOMAS SOA
-            CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
-                          State_Chm, State_Grid, RC)
+            CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS, &
+                          State_Chm, State_Grid, State_Diag, RC)
          ENDIF
          Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
          Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
@@ -4317,8 +4320,13 @@ CONTAINS
    REAL(fp)  :: MDIST(IBINS,ICOMP)
    REAL(fp)  :: NDIST2(IBINS)
    REAL(fp)  :: MDIST2(IBINS,ICOMP)
+<<<<<<< HEAD
    REAL*4    :: BOXVOL, TEMP, PRES
    INTEGER   :: I, J, L, K, C, N, PBL_MAX
+=======
+   REAL*4    :: BOXVOL, TEMP, PRES, BOXMASS
+   INTEGER   :: I, J, L, K, C, PBL_MAX
+>>>>>>> BettyFork/feature/TOMAS
    REAL(fp)  :: F_OF_PBL
    LOGICAL   :: ERRORSWITCH, PDBUG
    REAL*4    :: N0(State_Grid%NZ,IBINS)
@@ -4409,6 +4417,7 @@ CONTAINS
          ENDIF
 
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+         BOXMASS  = State_Met%AD(I,J,L) !kg
          TEMP    = State_Met%T(I,J,L)
          PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
 
@@ -4841,13 +4850,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE EMISSCARBONTOMAS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+ SUBROUTINE EMISSCARBONTOMAS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               State_Diag, RC )
 !
 ! !USES:
 !
    USE ErrCode_Mod
    USE ERROR_MOD
    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+   USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
    USE HCO_Interface_Common, ONLY : GetHcoDiagn! TOMAS: HEMCO diags (not IMGrid ready)
    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
@@ -4855,6 +4866,7 @@ CONTAINS
    USE State_Chm_Mod,        ONLY : ChmState
    USE State_Grid_Mod,       ONLY : GrdState
    USE State_Met_Mod,        ONLY : MetState
+   USE State_Diag_Mod,       ONLY : DgnState
    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
    USE PRESSURE_MOD,         ONLY : GET_PCENTER
    USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
@@ -4870,6 +4882,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4890,6 +4903,7 @@ CONTAINS
    REAL(fp)                 :: DTSRCE, AREA_M2
    REAL(fp)                 :: CO_ANTH_TOTAL
    REAL*4                   :: BOXVOL  ! calculated from State_Met
+   REAL*4                   :: BOXMASS  ! calculated from State_Met
    REAL*4                   :: TEMPTMS ! calculated from State_Met
    REAL*4                   :: PRES    ! calculated from State_Met
    REAL(fp)                 :: OC2OM = 1.8d0
@@ -4986,8 +5000,9 @@ CONTAINS
          emis2d  => OCPO_ANTH_BULK
       END SELECT
 
-      CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
-                        ERR, Ptr3D=Ptr3D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+      !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
+      !                  ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
                            ERR, THISLOC=LOC )
@@ -5015,7 +5030,9 @@ CONTAINS
    !end 3d emis
 
    DgnName = 'BCPI_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5025,7 +5042,9 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'BCPO_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5035,7 +5054,9 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPI_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5045,7 +5066,10 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPO_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                       ERR, THISLOC=LOC)
@@ -5155,7 +5179,9 @@ CONTAINS
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()
    DgnName = 'BIOGENIC_SOAS'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                       StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
+   !CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
       RETURN
@@ -5166,17 +5192,18 @@ CONTAINS
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES )
+   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
       CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &
-                    State_Met, 'CHECKMN from emisscarbontomas', RC)
+         State_Met, State_Diag,'CHECKMN from emisscarbontomas', RC)
       IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
+         BOXMASS  = State_Met%AD(I,J,1)  ! kg
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
-         CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, &
-                       State_Chm, State_Grid, RC )
+         CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, BOXMASS,&
+                       State_Chm, State_Grid, State_Diag, RC )
       END IF
    END DO
    END DO

@@ -645,7 +645,8 @@ CONTAINS
        ! to tomas_mod.F90 in the future, but for now it still needs to get
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
        !-----------------------------------------------------------------
-       CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                          State_Diag, RC )
        IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
 #endif
 
@@ -7836,7 +7837,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            State_Diag, RC )
 !
 ! !USES:
 !
@@ -7846,6 +7848,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
@@ -7858,6 +7861,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7910,7 +7914,7 @@ CONTAINS
 
        SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
                  / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g )
-
+       !print*,'SO4OXID is ',SO4OXID, I,J,L
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
@@ -7935,7 +7939,8 @@ CONTAINS
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
           CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, RC )
+                       State_Chm, State_Grid, State_Met, &
+                       State_Diag, RC )
        ENDIF
     ENDDO
     ENDDO

@@ -350,11 +350,12 @@ CONTAINS
     ENDIF
 
     ! Do TOMAS aerosol microphysics
-    CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+    CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                   State_Diag, RC )
 
     !print *, 'call checkmn in tomas_mod:222'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met,'Before Aerodrydep', RC)
+                  State_Met, State_Diag,'Before Aerodrydep', RC)
 
     ! in kg
 
@@ -368,7 +369,7 @@ CONTAINS
 
     !print *, 'call checkmn in tomas_mod:229'
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met, 'Before exiting DO_TOMAS', RC )
+                  State_Met, State_Diag,'Before exiting DO_TOMAS', RC )
 
   END SUBROUTINE DO_TOMAS
 !EOC
@@ -385,7 +386,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                       State_Diag, RC )
 !
 ! !USES:
 !
@@ -400,6 +402,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -411,6 +414,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -545,6 +549,7 @@ CONTAINS
     nucrate(:,:)  = 0.e+0_fp
     nucrate1(:,:) = 0.e+0_fp
 
+    !remove BPCH diagnostics
     ! First-time setup
     if (firsttime) then
 
@@ -555,18 +560,18 @@ CONTAINS
        ! with the family name PSO4 and SO4 as its one member. (win, 9/30/08)
        !====================================================================
 
-       DO N = 1, Input_Opt%NFAM
-          ! If family name 'PSO4' is found, then skip error-stop
-          IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1
-       ENDDO
-       ! Family name 'PSO4' not found... exit with error message
-       write(*,*)'-----------------------------------------------'
-       write(*,*)' Need to setup ND65 family PSO4 with SO4 as '
-       write(*,*)' a member to have H2SO4RATE array '
-       write(*,*)'  ... need H2SO4RATE for nucl & cond in TOMAS'
-       write(*,*)'-----------------------------------------------'
-       CALL ERROR_STOP('AEROPHYS','Enter microphys')
-1      CONTINUE
+!       DO N = 1, Input_Opt%NFAM
+!          ! If family name 'PSO4' is found, then skip error-stop
+!          IF ( Input_Opt%FAM_NAME(N) == 'PSO4') GOTO 1
+!       ENDDO
+!       ! Family name 'PSO4' not found... exit with error message
+!       write(*,*)'-----------------------------------------------'
+!       write(*,*)' Need to setup ND65 family PSO4 with SO4 as '
+!       write(*,*)' a member to have H2SO4RATE array '
+!       write(*,*)'  ... need H2SO4RATE for nucl & cond in TOMAS'
+!       write(*,*)'-----------------------------------------------'
+!       CALL ERROR_STOP('AEROPHYS','Enter microphys')
+!1      CONTINUE
 
        write(*,*) 'AEROPHYS: This run uses coupled condensation-', &
                   'nucleation scheme with pseudo-steady state H2SO4'
@@ -702,10 +707,12 @@ CONTAINS
        ENDIF
 
        ! Give it the pseudo-steady state value instead later (win,9/30/08)
-       !GC(SRTSO4) = Spc(id_H2SO4)%Conc(I,J,L)
-
-
+       !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
+       
        H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
+        !  if (H2SO4_RATE(I,J,L) > 0.e+0_fp) then
+        !  print*,'H2SO4 is ',H2SO4_RATE(I,J,L), I, J, L
+        !  endif  
        ! Pengfei Liu add 2018/04/18, debug
        IF ( H2SO4rate_o .lt. 0.e0 ) THEN
           Print*, 'Debug TOMAS: H2SO4RATE = ', H2SO4rate_o, 'I = ', I, &
@@ -755,12 +762,17 @@ CONTAINS
           CALL ERROR_STOP('AEROPHYS-MNFIX (1)','Enter microphys')
        ENDIF
 
-       MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-       ENDIF
-#endif
+       !MPNUM = 5
+       MPNUM = 11
+!removed
+!#ifdef BPCH_DIAG
+       !IF ( ND60 > 0 ) THEN 
+           IF ( State_Diag%Archive_TomasMNFIXezwat1mass .or. &
+                State_Diag%Archive_TomasMNFIXezwat1number )  &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+            State_Diag )
+       !ENDIF
+!#endif
 
        !IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
        !   CALL DEBUGPRINT( Nk, Mk, I, J, L, 'After mnfix before cond/nucl' )
@@ -787,7 +799,9 @@ CONTAINS
        !-------------------------------------
        ! Condensation and nucleation (coupled)
        !-------------------------------------
-       IF ( COND .AND. NUCL ) THEN
+!
+!       IF ( COND .AND. NUCL ) THEN
+       IF ( COND .AND. NUCL .AND. H2SO4rate_o > 0.e0_fp) THEN
 
           !if(printdebug .and. i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE.
 
@@ -858,20 +872,23 @@ CONTAINS
           ENDDO
 
           MPNUM = 3
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
+           IF ( State_Diag%Archive_TomasNUCLmass .or. &
+                State_Diag%Archive_TomasNUCLnumber )  &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           MPNUM = 7
-#ifdef BPCH_DIAG
-          IF ( ND61 > 0 )  THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+!#ifdef BPCH_DIAG
+!          IF ( ND61 > 0 )  THEN
+           IF ( State_Diag%Archive_TomasNUCRATEnumber) &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           IF ( printdebug.and.i==iob .and. j==job .and. l==lob )  THEN
              CALL DEBUGPRINT( Nk, Mk, I, J, L,'After nucleation' )
@@ -889,12 +906,14 @@ CONTAINS
           Gc(srtso4)=Gcout(srtso4)
 
           MPNUM = 1
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
+           IF ( State_Diag%Archive_TomasNUCLmass .or. &
+                State_Diag%Archive_TomasNUCLnumber )  &
+              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
              CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
@@ -903,7 +922,12 @@ CONTAINS
           nucrate(j,l)=nucrate(j,l)+fn
           nucrate1(j,l)=nucrate1(j,l)+fn1
 
-          ! Write nucleation rate to diagnostric ND61 (win, 10/6/08)
+          ! replaces old ND61 diagnostic!
+          IF ( State_Diag%Archive_TomasNUCRATEFN ) THEN
+           State_Diag%TomasNUCRATEFN(I,J,L) = fn
+          ENDIF
+
+
 #ifdef BPCH_DIAG
           IF ( ND61 > 0 ) THEN
              IF ( L <= LD61 ) AD61(I,J,L,2) = AD61(I,J,L,2) + fn
@@ -920,7 +944,7 @@ CONTAINS
              ENDDO
           ENDDO
 
-       ENDIF
+       ENDIF ! end of cond and nuc !
 
        ! nitrogen and sulfur mass checks
        ! get the total mass of N
@@ -948,13 +972,16 @@ CONTAINS
           ENDIF
        ENDIF
 
-       MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                         State_Grid )
-       ENDIF
-#endif
+       !MPNUM = 5
+        MPNUM = 14
+!#ifdef BPCH_DIAG
+!       IF ( ND60 > 0 ) THEN
+           IF ( State_Diag%Archive_TomasMNFIXh2so4mass .or. &
+                State_Diag%Archive_TomasMNFIXh2so4number )  &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                         State_Grid, State_Diag )
+!       ENDIF
+!#endif
 
        !-----------------------------
        ! Coagulation
@@ -974,12 +1001,14 @@ CONTAINS
           !    CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
           MPNUM = 2
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
+           IF ( State_Diag%Archive_TomasCOAGmass .or. &
+                State_Diag%Archive_TomasCOAGnumber )  &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
 
           !Fix any inconsistency after coagulation (win, 4/18/06)
           CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
@@ -998,13 +1027,16 @@ CONTAINS
              ENDIF
           ENDIF
 
-          MPNUM = 5
-#ifdef BPCH_DIAG
-          IF ( ND60 > 0 ) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                            State_Grid )
-          ENDIF
-#endif
+!          MPNUM = 5
+          MPNUM = 15
+!#ifdef BPCH_DIAG
+!          IF ( ND60 > 0 ) THEN
+           IF ( State_Diag%Archive_TomasMNFIXcoagmass .or. &
+                State_Diag%Archive_TomasMNFIXcoagnumber )  &
+             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                            State_Grid, State_Diag )
+!          ENDIF
+!#endif
        ENDIF  ! Coagulation
 
        ! Do water eqm at appropriate times
@@ -1036,13 +1068,16 @@ CONTAINS
        ENDIF
 
        ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
-       MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, &
-                         State_Grid )
-       ENDIF
-#endif
+       !MPNUM = 5
+       MPNUM = 12
+!#ifdef BPCH_DIAG
+!       IF ( ND60 > 0 ) THEN
+           IF ( State_Diag%Archive_TomasMNFIXezwat2mass .or. &
+                State_Diag%Archive_TomasMNFIXezwat2number )  &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
+                         State_Grid, State_Diag )
+!       ENDIF
+!#endif
 
        ! Swap Nk, Mk, and Gc arrays back to Spc
        DO N = 1, IBINS
@@ -1745,7 +1780,7 @@ CONTAINS
        Kn      = 2.0 * l_ab / Dpk(k)     !S&Pv2 chapter 12 - Kn for Dahneke correction factor
        beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )   !S&P eqn 11.35
     enddo
-
+    
     ! get condensation sink
     CS = 0.e+0_fp
     surf_area = 0.e+0_fp
@@ -1753,11 +1788,20 @@ CONTAINS
        CS = CS + Dpk(k)*Nko(k)*beta(k)
        surf_area = surf_area+Nko(k)*pi*(Dpk(k)*1.0e+6_fp)**2
     enddo
+!bc 21/01/2022 - check if divide by zero below -added 2 if 
     do k=1,ibins
+       if (CS > 0.e-0_fp) then
        sinkfrac(k) = Dpk(k)*Nko(k)*beta(k)/CS
+       else
+       sinkfrac(k) = 0.e-0_fp
+       endif
     enddo
-    CS = 2.e+0_fp*pi*dble(Di)*CS/(dble(boxvol)*1e-6_fp)
+    CS = 2.e+0_fp*pi*dble(Di)*CS/(dble(boxvol)*1.e-6_fp)
+    if (CS  > 0.e-0_fp) then
     surf_area = surf_area/(dble(boxvol))
+    else
+    surf_area = 0.e-0_fp
+    endif
     
     return
 
@@ -3571,7 +3615,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE AQOXID( MOXID, KMIN, I, J, L, Input_Opt, &
-                     State_Chm, State_Grid, State_Met, RC )
+                     State_Chm, State_Grid, State_Met, &
+                     State_Diag, RC )
 !
 ! !USES:
 !
@@ -3585,6 +3630,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -3598,6 +3644,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3627,6 +3674,7 @@ CONTAINS
     REAL(fp)                 :: Gc(ICOMP - 1)
     REAL(fp)                 :: Gcd(ICOMP - 1)
     REAL*4                   :: BOXVOL
+    REAL*4                   :: BOXMASS
     REAL*4                   :: thresh
     CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
     LOGICAL                  :: UNITCHANGE_KGM2
@@ -3665,6 +3713,7 @@ CONTAINS
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
 
     BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+    BOXMASS  = State_Met%AD(I,J,L) ! in kg
     ! Update aerosol water from the current RH
     DO K = 1, IBINS
        CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm, RC )
@@ -3707,11 +3756,16 @@ CONTAINS
        CALL ERROR_STOP('Found bad error in MNFIX', &
                        'Beginning AQOXID after MNFIX' )
     ENDIF
-    MPNUM = 5
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+    !MPNUM = 5 
+    MPNUM = 13
+!#ifdef BPCH_DIAG
+!    IF ( ND60 > 0 ) &
+         IF ( State_Diag%Archive_TomasMNFIXezwat3mass .or. &
+                State_Diag%Archive_TomasMNFIXezwat3number ) &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+             State_Diag )
+!         ENDIF
+!#endif
     CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) &
@@ -3840,10 +3894,14 @@ CONTAINS
 
     ! Save changes to diagnostic
     MPNUM = 4
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+!    IF ( ND60 > 0 ) &
+         IF ( State_Diag%Archive_TomasAQOXmass .or. &
+                State_Diag%Archive_TomasAQOXnumber ) &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+            State_Diag )
+!         ENDIF
+!#endif
 
     ! Fix any inconsistencies in M/N distribution
     CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
@@ -3854,11 +3912,15 @@ CONTAINS
        CALL ERROR_STOP('Found bad error in MNFIX', &
                        'End of AQOXID after MNFIX' )
     ENDIF
-    MPNUM = 5
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!    MPNUM = 5
+    MPNUM = 16
+!#ifdef BPCH_DIAG
+!    IF ( ND60 > 0 ) &
+           IF ( State_Diag%Archive_TomasMNFIXaqoxmass .or. &
+                State_Diag%Archive_TomasMNFIXaqoxnumber )  &
+         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+            State_Diag )
+!#endif
 
     ! Swap Nk and Mk arrays back to Spc
     DO K = 1, IBINS
@@ -3906,8 +3968,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOACOND( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
-                      State_Chm, State_Grid, RC )
+  SUBROUTINE SOACOND( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS,&
+                      State_Chm, State_Grid, State_Diag, RC )
 !
 ! !USES:
 !
@@ -3919,17 +3981,19 @@ CONTAINS
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
     REAL(fp)                      :: MSOA
     INTEGER,        INTENT(IN)    :: I, J, L
-    REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES
+    REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES, BOXMASS
     TYPE(GrdState), INTENT(IN)    :: State_Grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4027,7 +4091,6 @@ CONTAINS
     ! Establish an 30-bin array and accculate the total
     ! of the absorbing media.  The choices can be:
     ! organic mass, surface area, organic+inorganic. (win, 3/5/08)
-
     MEDTOT = 0.e+0_fp
     MED = 0.e+0_fp
     mtot = 0.e+0_fp
@@ -4051,11 +4114,13 @@ CONTAINS
     ENDDO
 
     ! Fraction to each bin for mass partitioning
+
+    if (MEDTOT > 0.e+0_fp) then  !bc, 20/01/2022, skip this if no absorbing media
+
     do k = 1,IBINS
        partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per
                                      ! total absorbing media)
     enddo
-
     ! Fraction to each bin for surface condensation
     call getCondSink(Nk,Mk,srtocil,CS,sinkfrac,surf_area, &
                      BOXVOL,TEMPTMS, PRES)
@@ -4069,6 +4134,13 @@ CONTAINS
     do k = 1, ibins
        ntot = ntot + Nk(k)
     enddo
+
+!bc 21/01/2021 - prevent divide by zero as a test
+    if (Ntot .LE. 0.e+0_fp) then ! set to some small negative
+      print *, 'negative Ntot found', Ntot
+      Ntot = 1.e-35_fp
+      print *, 'new Ntot ', Ntot
+    endif
 
     IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS+1) / thresh ) THEN
        IF ( .not. SPINUP(14.0) ) THEN
@@ -4154,14 +4226,33 @@ CONTAINS
        ENDDO
     ENDDO
 
+    elseif ( .not. SPINUP(60.0) ) THEN
+           
+!          WRITE(*,*) 'Location: ',I,J,L
+!          WRITE(*,*) 'Mtot: ',Mtot
+          IF ( MSOA > 5e+0_fp ) THEN
+             CALL ERROR_STOP('Too few no. for SOAcond','SOACOND:10')
+          ENDIF
+    else
+          ! Put a limit on the amount of screen warnings that we get 
+          ! to keep logfile sizes low (bmy, 9/30/19)
+          SOACOND_WARNING_CT = SOACOND_WARNING_CT + 1
+          IF ( SOACOND_WARNING_CT < SOACOND_WARNING_MAX ) THEN
+             WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
+          ENDIF
+    endif ! bc, 13/01/22 medtot can be low on spinup
+
 30  CONTINUE
 
     ! Save changes to diagnostic
     MPNUM = 6
-#ifdef BPCH_DIAG
-    IF ( ND60 > 0 ) &
-       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+!#ifdef BPCH_DIAG
+    !IF ( ND60 > 0 ) &
+           IF ( State_Diag%Archive_TomasSOAmass .or. &
+                State_Diag%Archive_TomasSOAnumber ) &
+       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+              State_Diag )
+!#endif
 
     ! Fix any inconsistencies in M/N distribution
     !this never happened?
@@ -4176,6 +4267,8 @@ CONTAINS
        ENDDO
        Spc(id_AW1-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
     ENDDO
+
+
 
     ! Free pointer memory
     Spc => NULL()
@@ -6018,7 +6111,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
+  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, State_Diag )
 !
 ! !USES:
 !
@@ -6030,19 +6123,23 @@ CONTAINS
 #endif
     USE ERROR_MOD,      ONLY : IT_IS_NAN
     USE State_Grid_Mod, ONLY : GrdState
+    USE State_Diag_Mod, ONLY : DgnState
     USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN) :: PTYPE    ! Number assigned to each dianostic
     INTEGER ,       INTENT(IN) :: I, J, L  ! Grid box indices
+!    INTEGER ,       INTENT(IN) :: LD61   ! removed
     REAL(fp),       INTENT(IN) :: Nk(IBINS)
     REAL(fp),       INTENT(IN) :: Nkd(IBINS)
     REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
     REAL(fp),       INTENT(IN) :: Mkd(IBINS,ICOMP)
-    REAL*4,         INTENT(IN) :: BOXVOL
+    REAL*4,         INTENT(IN) :: BOXMASS
     TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
+! !INPUT/OUTPUT PARAMETERS:   
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
@@ -6051,7 +6148,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: K, JS
+    INTEGER               :: K, JS, S
     REAL*4                :: ADXX(IBINS*(ICOMP-IDIAG+1))
     REAL*4,    SAVE       :: ACCUN, ACCUM(2)
     LOGICAL,   SAVE       :: FIRST = .TRUE.
@@ -6061,25 +6158,43 @@ CONTAINS
     !=================================================================
     ! AERODIAG begins here!
     !=================================================================
-#ifdef BPCH_DIAG
+!removed
+!#ifdef BPCH_DIAG
+!LD61 = State_Grid%NZ
 
-    ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1
-    !  Note: This is created to look at 3-D rate for a selected process
-    !        Right now (5/21/08) I created this to watch NUCLEATION rate
-    !        We can't afford to save all 30-bin and all mass component
-    !        in all (I,J,L), thus this is created. (win, 5/21/08)
-    IF ( PTYPE == 7 ) THEN
-       IF ( L <= LD61 ) THEN
-          DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
-          AD61(I,J,L,1) = AD61(I,J,L,1)  + ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
-          AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
+       State_Diag%TomasH2SO4=1.e+0_fp
+       State_Diag%TomasCOAG=2.e+0_fp
+       State_Diag%TomasNUCL=3.e+0_fp
+       State_Diag%TomasAQOX=4.e+0_fp
+       State_Diag%TomasMNFIX=5.e+0_fp
+       State_Diag%TomasSOA=6.e+0_fp
 
-          !IF(i==39 .and. j==29 ) then
-          !if ( AD61_INST(I,J,L) .gt. 1e18)  write(6,*) '*********', &
-          !               'AD61_INST(',I,J,L,')', AD61_INST(I,J,L)
-          !endif
+       DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
+
+       IF ( PTYPE == 1 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasH2SO4mass(I,J,L,K) = 0.e+0_fp
+           State_Diag%TomasH2SO4number(I,J,L,K) = 0.e+0_fp
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasH2SO4mass ) THEN
+             S = State_Diag%Map_TomasH2SO4mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasH2SO4mass(I,J,L,K) = & 
+                  State_Diag%TomasH2SO4mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS)) / &
+                       DTCHEM / BOXMASS  ! kg/kg air/sec                   
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasH2SO4number ) THEN
+             S = State_Diag%Map_TomasH2SO4number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasH2SO4number(I,J,L,K) = & 
+                  State_Diag%TomasH2SO4number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
        ENDIF
-    ELSE ! PTYPE = 1-6 is for ND60
 
        ADXX(:) = 0e+0_fp
        IF ( FIRST ) THEN
@@ -6096,68 +6211,328 @@ CONTAINS
        !   print *, '   NaCl   :',ACCUM(2)
        !ENDIF
 
-       IF ( L <= LD60 ) THEN
+       IF ( PTYPE == 11 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat1number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXezwat1mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat1mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat1mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXezwat1number ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat1number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXezwat1number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat1number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          SELECT CASE ( PTYPE )
-          CASE ( 1 )                ! Condensation diagnostic
-             ADXX(:) = AD60_COND(1,J,L,:)
+       IF ( PTYPE == 12 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat2number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXezwat2mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat2mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat2mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXezwat2number ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat2number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXezwat2number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat2number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          CASE ( 2 )                ! Coagulation diagnostic
-             ADXX(:) = AD60_COAG(1,J,L,:)
+       IF ( PTYPE == 13 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXezwat3number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXezwat3mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat3mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat3mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXezwat3number ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat3number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXezwat3number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXezwat3number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          CASE ( 3 )                ! Nucleation diagnostic
-             ADXX(:) = AD60_NUCL(1,J,L,:)
+       IF ( PTYPE == 14 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXh2so4number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXh2so4mass ) THEN
+             S = State_Diag%Map_TomasMNFIXh2so4mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXh2so4mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXh2so4number ) THEN
+             S = State_Diag%Map_TomasMNFIXh2so4number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXh2so4number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXh2so4number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          CASE ( 4 )                ! Aqueous oxidation diagnostic
-             ADXX(:) = AD60_AQOX(1,J,L,:)
+       IF ( PTYPE == 15 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXcoagmass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXcoagmass ) THEN
+             S = State_Diag%Map_TomasMNFIXcoagmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcoagmass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcoagmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXcoagnumber ) THEN
+             S = State_Diag%Map_TomasMNFIXcoagnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcoagnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          CASE ( 5 )                ! Error fudging diagnostic
-             ADXX(:) = AD60_ERROR(1,J,L,:)
+       IF ( PTYPE == 16 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXaqoxmass ) THEN
+             S = State_Diag%Map_TomasMNFIXaqoxmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXaqoxmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXaqoxnumber ) THEN
+             S = State_Diag%Map_TomasMNFIXaqoxnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          CASE ( 6 )                ! SOA condensation diagnostic
-             ADXX(:) = AD60_SOA(1,J,L,:)
-          END SELECT
+       IF ( PTYPE == 17 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck1number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXcheck1mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck1mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck1mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXcheck1number ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck1number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcheck1number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck1number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          ! Change of aerosol number
-          DO K = 1, IBINS
-             ADXX(K) =  ADXX(K) + NK(K) - NKD(K)
-             !IF ( PTYPE == 2 ) ACCUN = ACCUN + NK(K) - NKD(K)
-          ENDDO
-          IF ( IT_IS_NAN(ACCUN)) print *,'AERODIAG: Nan',I,J,L
+       IF ( PTYPE == 18 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck2number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXcheck2mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck2mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck2mass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXcheck2number ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck2number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcheck2number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck2number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no./kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
 
-          ! Change of aerosol mass
-          DO JS = 1, ICOMP-IDIAG
-             tempsum = 0e0
-             DO K = 1, IBINS
-                ADXX(JS*IBINS+K) = ADXX(JS*IBINS+K) + MK(K,JS) - MKD(K,JS)
-                !tempsum = tempsum + MK(K,JS) - MKD(K,JS)
-                !IF (PTYPE == 2 ) ACCUM(JS) = ACCUM(JS) + MK(K,JS) - MKD(K,JS)
-             ENDDO
-          ENDDO
+       IF ( PTYPE == 19 ) THEN
+       DO K=1,IBINS
+           State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = 0.e+0_fp  
+           State_Diag%TomasMNFIXcheck3number(I,J,L,K) = 0.e+0_fp  
+       DO JS = 1, ICOMP-IDIAG
+       IF ( State_Diag%Archive_TomasMNFIXcheck3mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck3mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck3mass(I,J,L,K) +( MK(K,JS) - MKD(K,JS))/ &
+                         DTCHEM / BOXMASS  ! kg/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXcheck3number ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck3number%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXcheck3number(I,J,L,K) = & 
+                  State_Diag%TomasMNFIXcheck3number(I,J,L,K) + (NK(K) - NKD(K))/ &
+                         DTCHEM / BOXMASS  ! no/kg air/sec                      
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDIF
+
+
+    ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1
+    !  Note: This is created to look at 3-D rate for a selected process
+    !        Right now (5/21/08) I created this to watch NUCLEATION rate
+    !        We can't afford to save all 30-bin and all mass component
+    !        in all (I,J,L), thus this is created. (win, 5/21/08)
+!    IF ( PTYPE == 7 ) THEN
+      ! IF ( L <= LD61 ) THEN
+!removed 
+         ! DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
+         ! AD61(I,J,L,1) = AD61(I,J,L,1)  + ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
+         ! AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
+
+          !IF(i==39 .and. j==29 ) then
+          !if ( AD61_INST(I,J,L) .gt. 1e18)  write(6,*) '*********', &
+          !               'AD61_INST(',I,J,L,')', AD61_INST(I,J,L)
+          !endif
+      ! ENDIF
+!    ELSE ! PTYPE = 1-6 is for ND60
+
+!       ADXX(:) = 0e+0_fp
+!       IF ( FIRST ) THEN
+!          ACCUN = 0e0
+!          ACCUM(:) = 0e0
+!          FIRST = .FALSE.
+!       ENDIF
+
+       ! Debug: check error fixed accumulated at each step
+       !IF ( I == 1 .and. J == 1 .and. L == 1 .and. PTYPE == 2) then
+       !   print *, 'Accumulated diagnostic for ND60 #',PTYPE,' at',i,j,l
+       !   print *, '   Number :',ACCUN
+       !   print *, '   Sulf   :',ACCUM(1)
+       !   print *, '   NaCl   :',ACCUM(2)
+       !ENDIF
+
+!
+!       IF ( L <= LD60 ) THEN
+
+!          SELECT CASE ( PTYPE )
+!          CASE ( 1 )                ! Condensation diagnostic
+!             ADXX(:) = TOMASCOND(1,J,L,:)
+!
+!          CASE ( 2 )                ! Coagulation diagnostic
+!             ADXX(:) = TOMASCOAG(1,J,L,:)
+!
+!          CASE ( 3 )                ! Nucleation diagnostic
+!             ADXX(:) = TOMASNUCL(1,J,L,:)
+!
+!          CASE ( 4 )                ! Aqueous oxidation diagnostic
+!             ADXX(:) = TOMASAQOX(1,J,L,:)!
+!
+!          CASE ( 5 )                ! Error fudging diagnostic
+!             ADXX(:) = TOMASERROR(1,J,L,:)!
+!
+!          CASE ( 6 )                ! SOA condensation diagnostic
+!             ADXX(:) = TOMASSOA(1,J,L,:)
+!          END SELECT!
+!
+!          ! Change of aerosol number
+!          DO K = 1, IBINS
+!             ADXX(K) =  ADXX(K) + NK(K) - NKD(K)
+!             !IF ( PTYPE == 2 ) ACCUN = ACCUN + NK(K) - NKD(K)
+!          ENDDO
+!          IF ( IT_IS_NAN(ACCUN)) print *,'AERODIAG: Nan',I,J,L
+!
+!          ! Change of aerosol mass
+!          DO JS = 1, ICOMP-IDIAG
+!             tempsum = 0e0
+!             DO K = 1, IBINS
+!                ADXX(JS*IBINS+K) = ADXX(JS*IBINS+K) + MK(K,JS) - MKD(K,JS)
+!                !tempsum = tempsum + MK(K,JS) - MKD(K,JS)
+!                !IF (PTYPE == 2 ) ACCUM(JS) = ACCUM(JS) + MK(K,JS) - MKD(K,JS)
+!             ENDDO
+!          ENDDO
           !IF ( IT_IS_NAN(ACCUM(1))) print *,'ADIAG: Nan',I,J,L
 
           ! Put the updated values back into the diagnostic arrays
-          SELECT CASE ( PTYPE )
-          CASE ( 1 )                ! Condensation diagnostic
-             AD60_COND(1,J,L,:) = ADXX(:)
+!          SELECT CASE ( PTYPE )
+!          CASE ( 1 )                ! Condensation diagnostic
+!!             TOMASCOND(1,J,L,:) = ADXX(:)
+!          CASE ( 2 )                ! Coagulation diagnostic
+!             TOMASCOAG(1,J,L,:) = ADXX(:)
+!
+!          CASE ( 3 )                ! Nucleation diagnostic
+!             TOMASNUCL(1,J,L,:) = ADXX(:)
+!
+!          CASE ( 4 )                ! Aqueous oxidation diagnostic
+!             TOMASAQOX(1,J,L,:) = ADXX(:)!
+!
+!          CASE ( 5 )                ! Error fudging diagnostic
+!             TOMASERROR(1,J,L,:) = ADXX(:)
+!
+!          CASE ( 6 )                ! SOA condensation diagnostic
+!             TOMASSOA(1,J,L,:) = ADXX(:)
+!          END SELECT
 
-          CASE ( 2 )                ! Coagulation diagnostic
-             AD60_COAG(1,J,L,:) = ADXX(:)
-
-          CASE ( 3 )                ! Nucleation diagnostic
-             AD60_NUCL(1,J,L,:) = ADXX(:)
-
-          CASE ( 4 )                ! Aqueous oxidation diagnostic
-             AD60_AQOX(1,J,L,:) = ADXX(:)
-
-          CASE ( 5 )                ! Error fudging diagnostic
-             AD60_ERROR(1,J,L,:) = ADXX(:)
-
-          CASE ( 6 )                ! SOA condensation diagnostic
-             AD60_SOA(1,J,L,:) = ADXX(:)
-          END SELECT
-
-       ENDIF
+!       ENDIF
        ! Debug: check error fixed accumulated at each step
        !IF ( I == 3 .and. J == 41 .and. L == 30 .and. PTYPE == 5) then
        !   print *, 'Accumulated diagnostic for ND60 #',PTYPE,' at',i,j,l
@@ -6173,18 +6548,18 @@ CONTAINS
        !ENDIF
 
        ! Debug: check error fixed accumulated at each step
-       IF ( I == State_Grid%NX .and. J == State_Grid%NY .and. &
-            L == State_Grid%NZ .and. PTYPE == 2 ) then
-          !print *, 'Accumulated diagnostic for ND60 #',PTYPE,' at',i,j,l
-          print *, ' Accumulated Coagulation'
-          print *, '   Number :',ACCUN
-          print *, '   Sulf   :',ACCUM(1)
-          print *, '   NaCl   :',ACCUM(2)
-       ENDIF
+!      IF ( I == State_Grid%NX .and. J == State_Grid%NY .and. &
+!           L == State_Grid%NZ .and. PTYPE == 2 ) then
+!         !print *, 'Accumulated diagnostic for ND60 #',PTYPE,' at',i,j,l
+!         print *, ' Accumulated Coagulation'
+!          print *, '   Number :',ACCUN
+!          print *, '   Sulf   :',ACCUM(1)
+!          print *, '   NaCl   :',ACCUM(2)
+!       ENDIF
+!
+!    ENDIF ! If (PTYPE == 7)
 
-    ENDIF ! If (PTYPE == 7)
-
-#endif
+!#endif
 
   END SUBROUTINE AERODIAG
 !EOC
@@ -7152,7 +7527,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE AERO_DIADEN( LEV, Input_Opt, State_Chm, State_Grid, State_Met, &
-                          DIA, DENSITY, RC )
+                          State_Diag, DIA, DENSITY, RC )
 !
 ! !USES:
 !
@@ -7163,6 +7538,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
@@ -7175,6 +7551,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),    INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7243,7 +7620,8 @@ CONTAINS
     MDUST = 0e+0_fp
 
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met, 'AERO_DIADEN called from DEPVEL', RC )
+                  State_Met, State_Diag, &
+                  'AERO_DIADEN called from DEPVEL', RC )
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -7329,7 +7707,8 @@ CONTAINS
 !
 
   SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm, &
-                      State_Grid, State_Met, LOCATION, RC )
+                      State_Grid, State_Met, State_Diag, &
+                      LOCATION, RC )
 !
 ! !USES:
 !
@@ -7343,6 +7722,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -7356,6 +7736,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7384,6 +7765,7 @@ CONTAINS
     REAL(fp)            :: Gc(ICOMP - 1)
     REAL(fp)            :: Gcd(ICOMP - 1)
     REAL*4              :: BOXVOL
+    REAL*4              :: BOXMASS
     REAL(fp)            :: XFER(IBINS)
 
     ! For values from Input_Opt
@@ -7434,7 +7816,7 @@ CONTAINS
     !$OMP PARALLEL DO        &
     !$OMP DEFAULT( SHARED )  &
     !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL ) &
+    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL, BOXMASS ) &
     !$OMP PRIVATE( GC, GCd, ERRORSWITCH ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO I = I1, I2
@@ -7442,6 +7824,7 @@ CONTAINS
     DO L = L1, L2
 
        BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+       BOXMASS  = State_Met%AD(I,J,L) !kg
 
        ! Swap GEOSCHEM variables into aerosol algorithm variables
        DO K = 1, IBINS
@@ -7489,11 +7872,34 @@ CONTAINS
        ENDIF
 
        ! Save the error fixing to diagnostic AERO-FIX
-       MPNUM = 5
-#ifdef BPCH_DIAG
-       IF ( ND60 > 0 ) &
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
-#endif
+
+       IF ( LOCATION .eq.  'Before Aerodrydep') THEN
+         MPNUM = 17 
+           IF ( State_Diag%Archive_TomasMNFIXcheck1mass .or. &
+                State_Diag%Archive_TomasMNFIXcheck1number )  &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+            State_Diag )
+       ELSEIF ( LOCATION .eq.  'Before exiting DO_TOMAS') THEN
+         MPNUM = 18 
+           IF ( State_Diag%Archive_TomasMNFIXcheck2mass .or. &
+                State_Diag%Archive_TomasMNFIXcheck2number )  &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+            State_Diag )
+       ELSEIF ( LOCATION .eq. 'AERO_DIADEN called from DEPVEL' ) THEN
+         MPNUM = 19 
+           IF ( State_Diag%Archive_TomasMNFIXcheck3mass .or. &
+                State_Diag%Archive_TomasMNFIXcheck3number )  &
+          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Grid, &
+            State_Diag )
+       ENDIF
+!       MPNUM = 5
+!#ifdef BPCH_DIAG
+!       IF ( ND60 > 0 ) &
+!           IF ( State_Diag%Archive_TomasERRORmass .or. &
+!                State_Diag%Archive_TomasERRORnumber )  &
+!          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid, &
+!            State_Diag )
+!#endif
 
        ! Swap Nk and Mk arrays back to Spc
        DO K = 1, IBINS

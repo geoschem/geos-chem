@@ -216,7 +216,7 @@
 
        ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
-                         SIZ_DIA, SIZ_DEN, RC )
+                         State_Diag, SIZ_DIA, SIZ_DEN, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP('CALL AERO_DIADEN', 'AERO_DRYDEP in aero_drydep.F')
        ENDIF
