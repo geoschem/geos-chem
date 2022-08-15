@@ -170,6 +170,7 @@ MODULE Chem_GridCompMod
   ! This option can be used to initialize a simulation using a restart file
   ! from a 'GEOS-Chem classic' CTM simulation.
   LOGICAL                          :: InitFromFile
+  LOGICAL                          :: SkipReplayGCC
 #endif
 
   ! Pointers to import, export and internal state data. Declare them as
@@ -1431,11 +1432,6 @@ CONTAINS
        ! Get tracer ID
        Int2Spc(I)%ID = IND_( TRIM(Int2Spc(I)%Name) )
 
-       ! testing only
-       !if(MAPL_am_I_Root())then
-       ! write(*,*) 'Int2Spc setup: ',I,TRIM(SpcInfo%Name),Int2Spc(I)%ID,SpcInfo%ModelID
-       !endif
-
        ! If tracer ID is not valid, make sure all vars are at least defined.
        IF ( Int2Spc(I)%ID <= 0 ) THEN
           Int2Spc(I)%Internal => NULL()
@@ -1728,6 +1724,11 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "INIT_SPC_FROM_FILE:", &
                                   Default = 0, __RC__ )
     InitFromFile = ( DoIt == 1 )
+
+    ! Skip GCC during replay predictor step
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "SkipReplayGCC:", &
+                                  Default = 0, __RC__ )
+    SkipReplayGCC = ( DoIt == 1 )
 
     ! Always set stratospheric H2O
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, &
@@ -2070,6 +2071,10 @@ CONTAINS
     INTEGER, SAVE                :: phms = 0         ! previous time
     INTEGER, SAVE                :: nnRewind = 0
 
+    ! For skipping GCC during predictor step                                                  
+    TYPE(ESMF_Alarm)             :: PredictorAlarm  ! skip GCC during replay
+    LOGICAL                      :: PredictorActive ! skip GCC during replay
+
 #else
     ! GCHP only local variables
     INTEGER                      :: trcID, RST
@@ -2191,6 +2196,24 @@ CONTAINS
     IF ( Input_Opt%LCONV .AND. Phase /= 2 ) IsRunTime = .TRUE.
     IF ( Input_Opt%LTURB .AND. Phase /= 1 ) IsRunTime = .TRUE.
     IF ( Input_Opt%LWETD .AND. Phase /= 1 ) IsRunTime = .TRUE.
+
+    !=======================================================================
+    ! Skip GCC during replay, predictor step (posturm and cakelle2)
+    !=======================================================================
+#if defined( MODEL_GEOS )
+    IF ( SkipReplayGCC ) THEN
+       CALL ESMF_ClockGetAlarm(CLOCK, "PredictorActive", PredictorAlarm, RC=STATUS)
+       VERIFY_(STATUS)
+
+       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, RC=STATUS )
+       VERIFY_(STATUS)
+
+       IF ( PredictorActive ) THEN
+          IsRunTime = .FALSE.
+          IF ( am_I_root ) write(*,*) '  --- Skipping GCC during Predictor Step '
+       END IF
+    END IF
+#endif
 
 #ifdef ADJOINT
     if (Input_Opt%is_adjoint .and. first) THEN
@@ -2320,6 +2343,26 @@ CONTAINS
 #if !defined( MODEL_GEOS )
        ! MSL - shift from 0 - 360 to -180 - 180 degree grid
        where (lonCtr .gt. MAPL_PI ) lonCtr = lonCtr - 2*MAPL_PI
+#endif
+
+#if defined( MODEL_GEOS )
+       ! Check if this time is before the datetime of the prev timestep, e.g.
+       ! if this is after a clock rewind
+       AFTERREWIND = .FALSE.
+       FIRSTREWIND = .FALSE.
+       IF ( nymd < pymd ) THEN
+          AFTERREWIND = .TRUE.
+       ELSEIF ( (nymd == pymd) .AND. (nhms < phms) ) THEN
+          AFTERREWIND = .TRUE.
+       ENDIF
+
+       ! If this is after a rewind, check if it's the first rewind. In this
+       ! case, we need to re-do some first-time assignments to make sure that
+       ! we reset all variables to the initial state!
+       IF ( AFTERREWIND ) THEN
+          nnRewind = nnRewind + 1
+          IF ( nnRewind == 1 ) FIRSTREWIND = .TRUE.
+       ENDIF
 #endif
 
        ! Pass grid area [m2] obtained from dynamics component to State_Grid
@@ -2824,6 +2867,7 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
+
        !=======================================================================
        ! GEOS post-run procedures
        !=======================================================================
