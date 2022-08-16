@@ -739,6 +739,7 @@ PROGRAM GEOS_Chem
 
   ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
   ! and restart file fields
+  TimeForEmis = .FALSE.
   CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid,  &
                       State_Met, TimeForEmis, 0,          RC )
 
