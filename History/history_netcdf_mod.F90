@@ -93,7 +93,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(MetaHIstItem), POINTER :: Current
+    TYPE(MetaHistItem), POINTER :: Current
 
     !=======================================================================
     ! Initialize
@@ -176,6 +176,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod,      ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,           ONLY : HistItem,      HistItem_Print
+    USE HistItem_Mod,           ONLY : HistItem_Destroy
     USE History_Util_Mod
     USE Input_Opt_Mod,          ONLY : OptInput
     USE JulDay_Mod,             ONLY : CalDate
@@ -1677,6 +1678,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Free Item now that we have added it to IndexVarList
+       DEALLOCATE( Item )
+       Item => NULL()
     ENDDO
 
   END SUBROUTINE IndexVarList_Create
