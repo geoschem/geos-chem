@@ -176,7 +176,6 @@ CONTAINS
     USE ErrCode_Mod
     USE HistContainer_Mod,      ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,           ONLY : HistItem,      HistItem_Print
-    USE HistItem_Mod,           ONLY : HistItem_Destroy
     USE History_Util_Mod
     USE Input_Opt_Mod,          ONLY : OptInput
     USE JulDay_Mod,             ONLY : CalDate
