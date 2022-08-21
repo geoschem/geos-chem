@@ -1079,7 +1079,7 @@ CONTAINS
        IF ( notDryRun ) THEN
           ! Set fields either as pointer targets or else.
           ! Regrid those for ImGrid.
-          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Met, &
+          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, &
                                    HcoState,  ExtState,  HMRC )
 
           ! Trap potential errors
@@ -1854,13 +1854,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Met, HcoState, ExtState, RC )
+  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, HcoState, ExtState, RC )
 !
 ! !USES:
 !
     USE Hcox_State_Mod, ONLY : ExtDat_Set
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE Drydep_Mod,     ONLY : DryCoeff
@@ -1873,6 +1874,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
     TYPE(EXT_STATE),  POINTER        :: ExtState   ! HEMCO ext. state
     INTEGER,          INTENT(INOUT)  :: RC         ! Return code
@@ -1891,6 +1893,9 @@ CONTAINS
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+#if defined ( MODEL_WRF )
+    LOGICAL, DIMENSION(1:8), SAVE      :: FIRST_PERID = .TRUE.
+#endif
 
     ! Scalars
     INTEGER            :: HMRC
@@ -1921,6 +1926,11 @@ CONTAINS
     ! directly from State_Met.
     ! To avoid code duplication, in GEOS-Chem classic data is also loaded
     ! directly from HEMCO met pointers, when possible.
+
+#if defined( MODEL_WRF )
+    ! For WRF-GC, the FIRST call needs to be domain-ID specific.
+    FIRST = FIRST_PERID(State_Grid%ID)
+#endif
 
     !-----------------------------------------------------------------------
     ! Pointers to local module arrays
@@ -2873,6 +2883,9 @@ CONTAINS
 
     ! Not first call any more
     FIRST  = .FALSE.
+#if defined( MODEL_WRF )
+    FIRST_PERID(State_Grid%ID) = .FALSE.
+#endif
     Trgt3D => NULL()
 
     ! Leave with success
