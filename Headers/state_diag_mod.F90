@@ -11520,7 +11520,7 @@ CONTAINS
        ! and are currently kg/s for other specialty simulations.
        ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem .or. IsHg. or IsCarbonCycle ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
