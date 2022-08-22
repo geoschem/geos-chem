@@ -243,3 +243,23 @@ OH:
   FullName: Hydroxyl radical
   Is_Gas: true
   MW_g: 17.01
+PHg2:
+  FullName: Gross production of gaseous oxidized Hg
+  Is_Gas: true
+  MW_g: 200.59
+PHg0:
+  FullName: Gross production of Hg2
+  Is_Gas: true
+  MW_g: 200.59
+PHg2Br:
+  FullName: Gaseous oxidized Hg production from Br
+  Is_Gas: true
+  MW_g: 200.59
+PHg2OH:
+  FullName: Gaseous oxidized Hg production from OH
+  Is_Gas: true
+  MW_g: 200.59
+PHg2Cl:
+  FullName: Gaseous oxidized Hg production from Cl
+  Is_Gas: true
+  MW_g: 200.59
