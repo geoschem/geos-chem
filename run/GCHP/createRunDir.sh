@@ -77,17 +77,22 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 printf "${thinline}Choose simulation type:${thinline}"
 
 #create a list of simulation types
-SIM_TYPE=("Full chemistry" 
-          "TransportTracers" 
-          "CO2 w/ CMS-Flux emissions")
+SIM_TYPE=("Full chemistry" #0
+          "TransportTracers" #1
+          "CO2 w/ CMS-Flux emissions") #2
 # Prompt user to select simulation type
 for i in "${!SIM_TYPE[@]}"; do
-  printf '  %s: %s\n' "i+1" "${SIM_TYPE[i]}"
+  printf '  %s: %s\n' "i" "${SIM_TYPE[i]}"
 done
-read response
+read type
 ## do we want user to input number or name? if number, then .txt file names will be numbers?
 # Add rundir vars
-RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_TYPE[response]}.txt)\n"
+if [[type="0"]]||[[type="1"]]||[[type="2"]]; then
+    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_TYPE[type]}.txt)\n"
+else
+    printf "Invalid simulation option. Try again.\n"
+fi
+done
 
 #printf "   1. Full chemistry\n"
 #printf "   2. TransportTracers\n"
@@ -121,42 +126,43 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "${thinline}Choose additional simulation option:${thinline}"
 
     #create a list of simulation options
-    SIM_OPTION=("Standard" 
-                "Benchmark" 
-                "ComputexSOA"
-                "MarinePOA"
-                "AcidUptakeOnDust"
-                "TOMAS"
-                "APM"
-                "RRTMG")
+    SIM_OPTION=("Standard" #0
+                "Benchmark" #1
+                "ComputexSOA" #2
+                "MarinePOA" #3
+                "AcidUptakeOnDust" #4
+                "TOMAS" #5
+                "APM" #6
+                "RRTMG") #7
     # Prompt user to select simulation option
     for i in "${!SIM_OPTION[@]}"; do
-      printf '  %s: %s\n' "i+1" "${SIM_OPTION[i]}"
+      printf '  %s: %s\n' "i" "${SIM_OPTION[i]}"
     done
-    read response
+    read option
     ## do we want user to input number or name? if number, then .txt file names will be numbers?
     #assuming numbers were used
-    if [[response="2"]]||[[response="4"]]||[[response="5"]]||[[response="7"]]||[[response="8"]]; then
+    if [[option="1"]]||[[option="3"]]||[[option="4"]]||[[option="6"]]||[[option="7"]]; then
         # Add rundir vars
-        RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[response]}.txt)\n"
-    elif [[response="3"]]; then
+        RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[option]}.txt)\n"
+    elif [[option="2"]]; then
         printf "${thinline}Choose complex SOA option:${thinline}"
 	    printf "  1. Complex SOA\n"
 	    printf "  2. Complex SOA with semivolatile POA\n"
         read soa_option
         if [[soa_option="1"]]||[[soa_option="2"]]; then
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[soa_option]}.txt)\n" #need to work on naming
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[option]_[soa_option]}.txt)\n" 
         else
             printf "Invalid complex SOA option.Try again.\n"
         fi
         done
-    elif [[response="6"]]; then
+    ## tomas15 and tomas40 have not been called later, not sure why specify here
+    elif [[option="5"]]; then
         printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
 	    printf "  2. TOMAS with 40 bins\n"
         read tomas_option
         if [[tomas_option="1"]]||[[tomas_option="2"]]; then
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[tomas_option]}.txt)\n" #need to work on naming
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[option]_[tomas_option]}.txt)\n" 
         else
             printf "Invalid TOMAS option. Try again.\n"
         fi
@@ -286,7 +292,8 @@ if [[ ${sim_name} = "fullchem" ]]; then
 #fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
-if [[ "x${sim_name}" == "xfullchem" ]]; then
+## what does x do here? change to if [[SIM_TYPE[type]=="full chemistry"]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then 
     RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
 
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
@@ -384,6 +391,7 @@ done
 #-----------------------------------------------------------------
 # Ask user to define run directory name if not passed as argument
 #-----------------------------------------------------------------
+## need to change
 if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:\n\n"
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
