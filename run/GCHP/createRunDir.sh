@@ -75,26 +75,40 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # Ask user to select simulation type
 #-----------------------------------------------------------------
 printf "${thinline}Choose simulation type:${thinline}"
-printf "   1. Full chemistry\n"
-printf "   2. TransportTracers\n"
-printf "   3. CO2 w/ CMS-Flux emissions\n"
-valid_sim=0
-while [ "${valid_sim}" -eq 0 ]; do
-    read sim_num
-    valid_sim=1
-    if [[ ${sim_num} = "1" ]]; then
-	sim_name=fullchem
-    elif [[ ${sim_num} = "2" ]]; then
-	sim_name=TransportTracers
-    elif [[ ${sim_num} = "3" ]]; then
-	sim_name=CO2
-    else
-        valid_sim=0
-	printf "Invalid simulation option. Try again.\n"
-    fi
-done
 
-RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
+#create a list of simulation types
+SIM_TYPE=("Full chemistry" 
+          "TransportTracers" 
+          "CO2 w/ CMS-Flux emissions")
+# Prompt user to select simulation type
+for i in "${!SIM_TYPE[@]}"; do
+  printf '  %s: %s\n' "i+1" "${SIM_TYPE[i]}"
+done
+read response
+## do we want user to input number or name? if number, then .txt file names will be numbers?
+# Add rundir vars
+RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_TYPE[response]}.txt)\n"
+
+#printf "   1. Full chemistry\n"
+#printf "   2. TransportTracers\n"
+#printf "   3. CO2 w/ CMS-Flux emissions\n"
+#valid_sim=0
+#while [ "${valid_sim}" -eq 0 ]; do
+#    read sim_num
+#    valid_sim=1
+#    if [[ ${sim_num} = "1" ]]; then
+#	sim_name=fullchem
+#    elif [[ ${sim_num} = "2" ]]; then
+#	sim_name=TransportTracers
+#    elif [[ ${sim_num} = "3" ]]; then
+#	sim_name=CO2
+#    else
+#        valid_sim=0
+#	printf "Invalid simulation option. Try again.\n"
+#    fi
+#done
+
+#RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -105,123 +119,171 @@ sim_extra_option=none
 if [[ ${sim_name} = "fullchem" ]]; then
 
     printf "${thinline}Choose additional simulation option:${thinline}"
-    printf "  1. Standard\n"
-    printf "  2. Benchmark\n"
-    printf "  3. Complex SOA\n"
-    printf "  4. Marine POA\n"
-    printf "  5. Acid uptake on dust\n"
-    printf "  6. TOMAS\n"
-    printf "  7. APM\n"
-    printf "  8. RRTMG\n"
-    valid_sim_option=0
-    while [ "${valid_sim_option}" -eq 0 ]; do
-	read sim_option
-	valid_sim_option=1
-	if [[ ${sim_option} = "1" ]]; then
-	    sim_extra_option=none
-	elif [[ ${sim_option} = "2" ]]; then
-	    sim_extra_option="benchmark"
-	elif [[ ${sim_option} = "3" ]]; then
-	    printf "${thinline}Choose complex SOA option:${thinline}"
+
+    #create a list of simulation options
+    SIM_OPTION=("Standard" 
+                "Benchmark" 
+                "ComputexSOA"
+                "MarinePOA"
+                "AcidUptakeOnDust"
+                "TOMAS"
+                "APM"
+                "RRTMG")
+    # Prompt user to select simulation option
+    for i in "${!SIM_OPTION[@]}"; do
+      printf '  %s: %s\n' "i+1" "${SIM_OPTION[i]}"
+    done
+    read response
+    ## do we want user to input number or name? if number, then .txt file names will be numbers?
+    #assuming numbers were used
+    if [[response="2"]]||[[response="4"]]||[[response="5"]]||[[response="7"]]||[[response="8"]]; then
+        # Add rundir vars
+        RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[response]}.txt)\n"
+    elif [[response="3"]]; then
+        printf "${thinline}Choose complex SOA option:${thinline}"
 	    printf "  1. Complex SOA\n"
 	    printf "  2. Complex SOA with semivolatile POA\n"
-	    valid_soa=0
-	    while [ "${valid_soa}" -eq 0 ]; do
-		read soa_option
-		valid_soa=1
-		if [[ ${soa_option} = "1" ]]; then
-		    sim_extra_option="complexSOA"
-		elif [[ ${soa_option} = "2" ]]; then
-		    sim_extra_option="complexSOA_SVPOA"
-		else
-		    valid_soa=0
-		    printf "Invalid complex SOA option.Try again.\n"
-		fi
-	    done
-	elif [[ ${sim_option} = "4" ]]; then
-	    sim_extra_option="marinePOA"
-	elif [[ ${sim_option} = "5" ]]; then
-	    sim_extra_option="aciduptake"
-	elif [[ ${sim_option} = "6" ]]; then
-	    printf "${thinline}Choose TOMAS option:${thinline}"
+        read soa_option
+        if [[soa_option="1"]]||[[soa_option="2"]]; then
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[soa_option]}.txt)\n" #need to work on naming
+        else
+            printf "Invalid complex SOA option.Try again.\n"
+        fi
+        done
+    elif [[response="6"]]; then
+        printf "${thinline}Choose TOMAS option:${thinline}"
 	    printf "  1. TOMAS with 15 bins\n"
 	    printf "  2. TOMAS with 40 bins\n"
-	    valid_tomas=0
-	    while [ "${valid_tomas}" -eq 0 ]; do
-		read tomas_option
-		valid_tomas=1
-		if [[ ${tomas_option} = "1" ]]; then
-		    sim_extra_option="TOMAS15"
-		elif [[ ${tomas_option} = "2" ]]; then
-		    sim_extra_option="TOMAS40"
-		else
-		    valid_tomas=0
-		    printf "Invalid TOMAS option. Try again.\n"
-		fi
-	    done
-	elif [[ ${sim_option} = "7" ]]; then
-	    sim_extra_option="APM"
-	elif [[ ${sim_option} = "8" ]]; then
-	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
-	else
-	    valid_sim_option=0
-	    printf "Invalid simulation option. Try again.\n"
-	fi
+        read tomas_option
+        if [[tomas_option="1"]]||[[tomas_option="2"]]; then
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/${SIM_OPTION[tomas_option]}.txt)\n" #need to work on naming
+        else
+            printf "Invalid TOMAS option. Try again.\n"
+        fi
+        done
+    else
+        printf "Invalid simulation option. Try again.\n"
+    fi
     done
 
+    #printf "  1. Standard\n"
+    #printf "  2. Benchmark\n"
+    #printf "  3. Complex SOA\n"
+    #printf "  4. Marine POA\n"
+    #printf "  5. Acid uptake on dust\n"
+    #printf "  6. TOMAS\n"
+    #printf "  7. APM\n"
+    #printf "  8. RRTMG\n"
+    #valid_sim_option=0
+    #while [ "${valid_sim_option}" -eq 0 ]; do
+	#read sim_option
+	#valid_sim_option=1
+	#if [[ ${sim_option} = "1" ]]; then
+	#    sim_extra_option=none
+	#elif [[ ${sim_option} = "2" ]]; then
+	#    sim_extra_option="benchmark"
+	#elif [[ ${sim_option} = "3" ]]; then
+	#    printf "${thinline}Choose complex SOA option:${thinline}"
+	#    printf "  1. Complex SOA\n"
+	#    printf "  2. Complex SOA with semivolatile POA\n"
+	#    valid_soa=0
+	#    while [ "${valid_soa}" -eq 0 ]; do
+	#	read soa_option
+	#	valid_soa=1
+	#	if [[ ${soa_option} = "1" ]]; then
+	#	    sim_extra_option="complexSOA"
+	#	elif [[ ${soa_option} = "2" ]]; then
+	#	    sim_extra_option="complexSOA_SVPOA"
+	#	else
+	#	    valid_soa=0
+	#	    printf "Invalid complex SOA option.Try again.\n"
+	#	fi
+	#    done
+	#elif [[ ${sim_option} = "4" ]]; then
+	#    sim_extra_option="marinePOA"
+	#elif [[ ${sim_option} = "5" ]]; then
+	#    sim_extra_option="aciduptake"
+	#elif [[ ${sim_option} = "6" ]]; then
+	#    printf "${thinline}Choose TOMAS option:${thinline}"
+	#    printf "  1. TOMAS with 15 bins\n"
+	#    printf "  2. TOMAS with 40 bins\n"
+	#    valid_tomas=0
+	#    while [ "${valid_tomas}" -eq 0 ]; do
+	#	read tomas_option
+	#	valid_tomas=1
+	#	if [[ ${tomas_option} = "1" ]]; then
+	#	    sim_extra_option="TOMAS15"
+	#	elif [[ ${tomas_option} = "2" ]]; then
+	#	    sim_extra_option="TOMAS40"
+	#	else
+	#	    valid_tomas=0
+	#	    printf "Invalid TOMAS option. Try again.\n"
+	#	fi
+	#    done
+	#elif [[ ${sim_option} = "7" ]]; then
+	#    sim_extra_option="APM"
+	#elif [[ ${sim_option} = "8" ]]; then
+	#    sim_extra_option="RRTMG"
+    #        printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
+	#else
+	#    valid_sim_option=0
+	#    printf "Invalid simulation option. Try again.\n"
+	#fi
+    #done
+#
 
 # Currently no transport tracer extra options
-elif [[ ${sim_name} = "TransportTracers" ]]; then
-    sim_extra_option=none
-fi
-
-RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
+#elif [[ ${sim_name} = "TransportTracers" ]]; then
+#    sim_extra_option=none
+#fi
+#
+#RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
 
 # Determine settings based on simulation type
-if [[ ${sim_extra_option} == "benchmark"  ]] || \
-   [[ ${sim_extra_option} =~ "complexSOA" ]] || \
-   [[ ${sim_extra_option} == "APM"        ]]; then
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='true'\n"
-    if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
-	RUNDIR_VARS+="RUNDIR_SVPOA='true'\n"
-    else
-	RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
-    fi
-else
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='false'\n"
-    RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
-fi
+## have merged this section into previous options in txt files, so no need to add variables
+#if [[ ${sim_extra_option} == "benchmark"  ]] || \
+#   [[ ${sim_extra_option} =~ "complexSOA" ]] || \
+#   [[ ${sim_extra_option} == "APM"        ]]; then
+#    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='true'\n"
+#    if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
+#	RUNDIR_VARS+="RUNDIR_SVPOA='true'\n"
+#    else
+#	RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
+#    fi
+#else
+#    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='false'\n"
+#    RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
+#fi
 
-if [[ ${sim_extra_option} == "aciduptake" ]]; then
-    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='true'\n"
-else
-    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='false'\n"
-fi
+#if [[ ${sim_extra_option} == "aciduptake" ]]; then
+#    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
+#    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='true'\n"
+#else
+#    RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
+#    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='false'\n"
+#fi
 
-if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='true'\n"
-else
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='false'\n"
-fi
+#if [[ ${sim_extra_option} == "marinePOA" ]]; then
+#    RUNDIR_VARS+="RUNDIR_MARINE_POA='true'\n"
+#else
+#    RUNDIR_VARS+="RUNDIR_MARINE_POA='false'\n"
+#fi
 
-if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='true'\n"
-    RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
-else
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='false'\n"
-    RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
-fi
+#if [[ ${sim_extra_option} == "RRTMG" ]]; then
+#    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='true'\n"
+#    RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
+#else
+#    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='false'\n"
+#    RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
+#fi
 
-if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
-else
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true'\n"
-fi
+#if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+#    RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
+#    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
+#else
+#    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true'\n"
+#    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true'\n"
+#fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
 if [[ "x${sim_name}" == "xfullchem" ]]; then
@@ -398,6 +460,8 @@ chmod 744 ${rundir}/checkRunSettings.sh
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
+
+## haven't modified code here, no sim_extra option anymore
 cp -r ${gcdir}/run/shared/species_database.yml   ${rundir}
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     cat ${gcdir}/run/shared/species_database_tomas.yml >> ${rundir}/species_database.yml
@@ -436,6 +500,8 @@ done
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
 cd ${rundir}
+## All set up in default.txt, but currently default is sim_type1 and sim_option1, need to separate out.
+## ideally, just add default.txt here
 
 RUNDIR_VARS+="RUNDIR_SIM_DUR_YYYYMMDD='00000100'\n"
 RUNDIR_VARS+="RUNDIR_SIM_DUR_HHmmSS='000000'\n"
