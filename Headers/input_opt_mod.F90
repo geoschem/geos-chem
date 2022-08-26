@@ -78,6 +78,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: ITS_A_TRACEMETAL_SIM
      LOGICAL                     :: LPRT
      LOGICAL                     :: useTimers
 
@@ -181,12 +182,11 @@ MODULE Input_Opt_Mod
      ! CHEMISTRY MENU fields
      !----------------------------------------
      LOGICAL                     :: LCHEM
-     LOGICAL                     :: LSCHEM
+     LOGICAL                     :: LINEAR_CHEM
      LOGICAL                     :: LLINOZ
      LOGICAL                     :: LSYNOZ
      INTEGER                     :: TS_CHEM
      REAL(fp)                    :: GAMMA_HO2
-     LOGICAL                     :: LUCX
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LINITSPEC
      LOGICAL                     :: USE_ONLINE_O3
@@ -365,7 +365,13 @@ MODULE Input_Opt_Mod
      ! CH4 MENU fields
      !----------------------------------------
      LOGICAL                     :: GOSAT_CH4_OBS
+     LOGICAL                     :: AIRS_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
+     LOGICAL                     :: AnalyticalInv
+     REAL(fp)                    :: PerturbEmis
+     INTEGER                     :: StateVectorElement
+     LOGICAL                     :: UseEmisSF
+     LOGICAL                     :: UseOHSF
 
      !----------------------------------------
      ! POPS MENU fields
@@ -575,6 +581,7 @@ CONTAINS
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
+    Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%useTimers              = .FALSE.
 
@@ -694,7 +701,7 @@ CONTAINS
     ! CHEMISTRY MENU fields
     !----------------------------------------
     Input_Opt%LCHEM                  = .FALSE.
-    Input_Opt%LSCHEM                 = .FALSE.
+    Input_Opt%LINEAR_CHEM            = .FALSE.
     Input_Opt%LLINOZ                 = .FALSE.
     Input_Opt%LSYNOZ                 = .FALSE.
 #ifdef MODEL_GEOS
@@ -702,7 +709,6 @@ CONTAINS
 #endif
     Input_Opt%TS_CHEM                = 0
     Input_Opt%GAMMA_HO2              = 0e+0_fp
-    Input_Opt%LUCX                   = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
     Input_Opt%USE_ONLINE_O3          = .FALSE.
@@ -912,7 +918,13 @@ CONTAINS
     ! CH4 MENU fields
     !----------------------------------------
     Input_Opt%GOSAT_CH4_OBS          = .FALSE.
+    Input_Opt%AIRS_CH4_OBS           = .FALSE.
     Input_Opt%TCCON_CH4_OBS          = .FALSE.
+    Input_Opt%AnalyticalInv          = .FALSE.
+    Input_Opt%PerturbEmis            = 1.0
+    Input_Opt%StateVectorElement     = 0
+    Input_Opt%UseEmisSF              = .FALSE.
+    Input_Opt%UseOHSF                = .FALSE.
 
     !----------------------------------------
     ! POPS MENU fields

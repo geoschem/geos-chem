@@ -64,11 +64,11 @@ PROGRAM GEOS_Chem
   USE AEROSOL_MOD,     ONLY : Set_AerMass_Diagnostic
   USE CARBON_MOD            ! For SOA simulation
   USE CHEMISTRY_MOD         ! Driver routines for chemistry
+  USE LINEAR_CHEM_MOD       ! For linearized chemistry above chem grid
   USE MERCURY_MOD           ! For offline Hg simulation (driver)
   USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
-  USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
   USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
-  USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
+  USE UCX_MOD               ! For unified trop-strat chemistry
   USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
   USE SET_GLOBAL_CH4_MOD    ! For setting global CH4 concentrations
 
@@ -92,6 +92,7 @@ PROGRAM GEOS_Chem
   USE HISTORY_MOD           ! Updated netCDF diagnostics
   USE OBSPACK_MOD           ! For ObsPack diagnostics
   USE GOSAT_CH4_MOD         ! For GOSAT observation operator
+  USE AIRS_CH4_MOD          ! For AIRS observation operator
   USE TCCON_CH4_MOD         ! For TCCON observation operator
   USE HCO_Interface_GC_Mod  ! Writes out HEMCO diagnostics (C. Keller)
   USE HCO_Utilities_GC_Mod  ! Utility routines for GC-HEMCO interface
@@ -207,11 +208,10 @@ PROGRAM GEOS_Chem
   LOGICAL                  :: LLINOZ
   LOGICAL                  :: LNLPBL
   LOGICAL                  :: LSTDRUN
-  LOGICAL                  :: LSCHEM
+  LOGICAL                  :: LINEAR_CHEM
   LOGICAL                  :: LSETH2O
   LOGICAL                  :: LTRAN
   LOGICAL                  :: LTURB
-  LOGICAL                  :: LUCX
   LOGICAL                  :: LWETD
   LOGICAL                  :: prtDebug
   LOGICAL                  :: TimeForEmis
@@ -356,7 +356,7 @@ PROGRAM GEOS_Chem
      CALL Timer_Add( "  -> OH reactivity diag",      RC )
      CALL Timer_Add( "=> FAST-JX photolysis",        RC )
      CALL Timer_Add( "=> Aerosol chem",              RC )
-     CALL Timer_Add( "=> Linearized strat chem",     RC )
+     CALL Timer_Add( "=> Linearized chem",           RC )
      CALL Timer_Add( "Transport",                    RC )
      CALL Timer_Add( "Convection",                   RC )
      CALL Timer_Add( "Boundary layer mixing",        RC )
@@ -459,12 +459,11 @@ PROGRAM GEOS_Chem
   LGTMM               =  Input_Opt%LGTMM
   LLINOZ              =  Input_Opt%LLINOZ
   LNLPBL              =  Input_Opt%LNLPBL
-  LSCHEM              =  Input_Opt%LSCHEM
+  LINEAR_CHEM         =  Input_Opt%LINEAR_CHEM
   LSETH2O             =  Input_Opt%LSETH2O
   LSTDRUN             =  Input_Opt%LSTDRUN
   LTRAN               =  Input_Opt%LTRAN
   LTURB               =  Input_Opt%LTURB
-  LUCX                =  Input_Opt%LUCX
   LWETD               =  Input_Opt%LWETD
 
   ! Set a flag to denote if we should print ND70 debug output
@@ -668,7 +667,7 @@ PROGRAM GEOS_Chem
   ENDIF
 
   !--------------------------------------------------------------------------
-  ! Added to read input file for linoz strat chem
+  ! Added to read input file for Linoz O3
   !--------------------------------------------------------------------------
   IF ( LLINOZ ) THEN
      CALL Linoz_Read( Input_Opt, RC )
@@ -701,7 +700,8 @@ PROGRAM GEOS_Chem
 
   ! Initialize the GEOS-Chem history component
   ! (for dry-run, enter routine to print out HISTORY.rc status)
-  CALL History_Init( Input_Opt,  State_Met, State_Chm, State_Diag, RC )
+  CALL History_Init( Input_Opt,  State_Met,  State_Chm,                      &
+                     State_Diag, State_Grid, RC                             )
 
   ! Trap error
   IF ( RC /= GC_SUCCESS ) THEN
@@ -792,7 +792,7 @@ PROGRAM GEOS_Chem
   ! Moved here because some of the variables are used for non-local
   ! PBL mixing BEFORE the first call of the chemistry routines
   ! (ckeller, 05/19/14).
-  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
+  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM .OR. ITS_A_MERCURY_SIM ) THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 
      ! Trap potential errors
@@ -806,19 +806,17 @@ PROGRAM GEOS_Chem
   !            *****  I N I T I A L   C O N D I T I O N S *****
   !==========================================================================
 
-  ! Initialize the UCX module
-  IF ( LUCX ) THEN
-     CALL INIT_UCX( Input_Opt, State_Chm, State_Diag, State_Grid )
-     IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
-  ENDIF
+  ! Initialize the UCX routines
+  CALL INIT_UCX( Input_Opt, State_Chm, State_Diag, State_Grid )
+  IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
   ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-  IF ( LSCHEM .and. notDryRun ) THEN
-     CALL Init_Strat_Chem( Input_Opt,  State_Chm, State_Met, State_Grid, RC )
+  IF ( LINEAR_CHEM .and. notDryRun ) THEN
+     CALL Init_Linear_Chem( Input_Opt,  State_Chm, State_Met, State_Grid, RC )
 
      ! Trap potential errors
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Init_Strat_Chem"!'
+        ErrMsg = 'Error encountered in "Init_Linear_Chem"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
   ENDIF
@@ -1176,14 +1174,14 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
-          ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity
+          ! if LSETH2O=F and LACTIVEH2O=T, update specific humidity
           ! in the stratosphere
           !
           ! NOTE: Specific humidity may change in SET_H2O_TRAC and
           ! therefore this routine may call AIRQNT again to update
           ! air quantities and tracer concentrations (ewl, 10/28/15)
           IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
-             CALL Set_H2O_Trac( ( ( .not. LUCX ) .or. LSETH2O ), &
+             CALL Set_H2O_Trac( LSETH2O, &
                                 Input_Opt, State_Chm, State_Grid, &
                                 State_Met, RC )
 
@@ -1193,8 +1191,8 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             ! Only force strat once if using UCX
-             IF (LSETH2O) LSETH2O = .FALSE.
+             ! Only force strat once
+             IF ( LSETH2O ) LSETH2O = .FALSE.
           ENDIF
 
           ! Compute the cosine of the solar zenith angle array
@@ -1243,20 +1241,20 @@ PROGRAM GEOS_Chem
 
           ! Read data required for Hg2 gas-particle partitioning
           ! (H Amos, 25 Oct 2011)
-          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
-             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
-                                         MONTH,     RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( prtDebug ) THEN
-                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
-             ENDIF
-          ENDIF
+!>>          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
+!>>             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
+!>>                                         MONTH,     RC )
+!>>
+!>>             ! Trap potential errors
+!>>             IF ( RC /= GC_SUCCESS ) THEN
+!>>                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
+!>>                CALL Error_Stop( ErrMsg, ThisLoc )
+!>>             ENDIF
+!>>
+!>>             IF ( prtDebug ) THEN
+!>>                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
+!>>             ENDIF
+!>>          ENDIF
        ENDIF
 
        ! Prescribe methane surface concentrations throughout PBL
@@ -1599,7 +1597,7 @@ PROGRAM GEOS_Chem
 
              ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
              IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
-                CALL Set_H2O_Trac( (.not. LUCX), &
+                CALL Set_H2O_Trac( .FALSE., &
                                    Input_Opt , State_Chm,    &
                                    State_Grid, State_Met, RC )
 
@@ -1719,7 +1717,7 @@ PROGRAM GEOS_Chem
           !
           ! RRTMG outputs (scheduled in HISTORY.rc):
           !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
-          !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+          !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST
           !
           ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
           ! to how it is populated from HISTORY.rc diaglist_mod.F90.
@@ -1924,9 +1922,9 @@ PROGRAM GEOS_Chem
 
           !------------------------------------------------------------------
           !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
-          !
-          ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
           !------------------------------------------------------------------
+
+          ! CH4 columns from the GOSAT instrument
           IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
@@ -1934,11 +1932,15 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
-          !------------------------------------------------------------------
-          !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
-          !
-          ! CH4 columns from the TCCON instrument (mps, 8/17/17)
-          !------------------------------------------------------------------
+          ! CH4 columns from the AIRS instrument
+          IF ( Input_Opt%AIRS_CH4_OBS ) THEN
+             IF ( ITS_A_NEW_HOUR() ) THEN
+                CALL CALC_AIRS_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
+                                          State_Met )
+             ENDIF
+          ENDIF
+
+          ! CH4 columns from the TCCON instrument
           IF ( Input_Opt%TCCON_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
@@ -2573,7 +2575,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! FAST-J is only used for fullchem and offline aerosol, skip otherwise
-    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  ) THEN
+    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  .or. ITS_A_MERCURY_SIM ) THEN
 
        ! Only execute this if we are doing chemistry
        ! and if it we are at a chemistry timestep
@@ -2777,7 +2779,7 @@ CONTAINS
     WRITE( U, 100 ) '!!! You will NOT get output for this run!'
     WRITE( U, 100 ) '!!! Use this command to validate a '         // &
                     'GEOS-Chem run configuration:'
-    WRITE( U, 100 ) '!!!   ./gcclassi --dryrun > log'
+    WRITE( U, 100 ) '!!!   ./gcclassic --dryrun > log'
     WRITE( U, 100 ) '!!!'
     WRITE( U, 100 ) '!!! REMOVE THE --dryrun ARGUMENT FROM THE '   // &
                     'COMMAND LINE'

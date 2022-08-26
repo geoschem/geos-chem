@@ -80,7 +80,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
-    USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Grid_Mod,     ONLY : GrdState
@@ -143,16 +142,6 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
-
-    ! Set dimensions in CMN_SIZE
-    CALL Init_CMN_SIZE( Input_Opt, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_SIZE"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt, State_Grid, RC )
@@ -732,7 +721,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Main mercury module
-       CALL Init_Mercury( Input_Opt, State_Chm, State_Grid, RC )
+       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

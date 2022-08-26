@@ -144,7 +144,7 @@ contains
     end if
 
     if (b_idx > 0) then
-       this%buckets(h)%entries(b_idx)%key = k
+       this%buckets(h)%entries(b_idx)%key = trim(k)
        this%buckets(h)%entries(b_idx)%value = v
     end if
 
@@ -236,7 +236,7 @@ contains
     h = this%djb2(k) + 1
 
     b_idx = this%buckets(h)%find(k)
-
+ 
     if ( (b_idx == BUCKET_EMPTY) .or. &
          (b_idx == BUCKET_ENTRY_NOT_FOUND) ) then
 !!%%%BMY

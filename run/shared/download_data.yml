@@ -1,0 +1,55 @@
+---
+#
+# Configuration file for the download_data.py script.
+# You should not have to modify this file unless a new data mirror
+# comes online, or the default restart files are updated.
+#
+mirrors:
+  amazon:
+    short_name: aws
+    s3_bucket: True
+    remote: s3://gcgrid
+    command: 'aws s3 cp --request-payer=requester '
+    quote: ""
+  computecanada:
+    short_name: cc
+    s3_bucket: False
+    remote: http://geoschemdata.computecanada.ca/ExtData
+    command:  'wget -r -np -nH -R "*.html" -N -P @PATH@ '
+    quote: '"'
+  rochester:
+    short_name: ur
+    s3_bucket: False
+    remote: http://atmos.earth.rochester.edu/input/gc/ExtData
+    command: 'wget -r -np -nH -R "*.html" -N --cut-dirs=2 -P @PATH@ '
+    quote: '"'
+  washu:
+    short_name: wu
+    s3_bucket: False
+    remote: http://geoschemdata.wustl.edu/ExtData
+    command: 'wget -r -np -nH -R "*.html" -N -P @PATH@ '
+    quote: '"'
+
+restarts:
+  root: GEOSCHEM_RESTARTS/
+  aerosol:
+    remote: v2021-09/GEOSChem.Restart.fullchem.20190101_0000z.nc4
+    local: GEOSChem.Restart.20190101_0000z.nc4
+  fullchem:
+    remote: v2021-09/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    local: GEOSChem.Restart.20190701_0000z.nc4
+  mercury:
+    remote: v2021-12/GEOSChem.Restart.Hg.20190101_0000z.nc4
+    local: GEOSChem.Restart.20190101_0000z.nc4
+  tomas15:
+    remote: v2021-12/GEOSChem.Restart.TOMAS15.20190701_0000z.nc4
+    local: GEOSChem.Restart.20190701_0000z.nc4
+  tomas40:
+    remote: v2021-12/GEOSChem.Restart.TOMAS40.20190701_0000z.nc4
+    local: GEOSChem.Restart.20190701_0000z.nc4
+  transporttracers:
+    remote: GC_13.0.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+    local: GEOSChem.Restart.20190101_0000z.nc4
+  other:
+    remote: v2020-02/initial_GEOSChem_rst.2x25_@SUFFIX@
+    local: GEOSChem.Restart.20190701_0000z.nc4

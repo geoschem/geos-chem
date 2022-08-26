@@ -43,9 +43,9 @@
 #------------------------------------------------
 #   Compute resources
 #------------------------------------------------
-TOTAL_CORES={TotalCores}
-NUM_NODES={NumNodes}
-NUM_CORES_PER_NODE={NumCoresPerNode}
+TOTAL_CORES=${RUNDIR_NUM_CORES}
+NUM_NODES=${RUNDIR_NUM_NODES}
+NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 # Set number of cores, number of nodes, and number of cores per node.
 # Total cores must be divisible by 6. Cores per node must equal number
 # of cores divided by number of nodes. Make sure you have these
@@ -54,7 +54,7 @@ NUM_CORES_PER_NODE={NumCoresPerNode}
 #------------------------------------------------
 #   Run grid resolution
 #------------------------------------------------
-CS_RES={GridRes}
+CS_RES=${RUNDIR_CS_RES}
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
@@ -69,9 +69,9 @@ TARGET_LON=170.0
 #------------------------------------------------
 #    Simulation start, end, duration
 #------------------------------------------------
-Start_Time="{DATE1} {TIME1}"
-End_Time="{DATE2} {TIME2}"
-Duration="{dYYYYMMDD} {dHHmmss}"
+Start_Time="${RUNDIR_SIM_START_DATE} ${RUNDIR_SIM_START_TIME}"
+End_Time="${RUNDIR_SIM_END_DATE} ${RUNDIR_SIM_END_TIME}"
+Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 #
 # Duration should be less than or equal to the difference between start
 # and end time. If end time is past start time plus duration, the simulation
@@ -88,7 +88,7 @@ Duration="{dYYYYMMDD} {dHHmmss}"
 #------------------------------------------------
 #    Initial restart file
 #------------------------------------------------
-INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_{SIMULATION}.nc
+INITIAL_RESTART=initial_GEOSChem_rst.c${CS_RES}_${RUNDIR_SIM_NAME}.nc
 #
 # By default the linked restart files in the run directories will be 
 # used. You can specify a custom initial restart file by overwriting the
@@ -153,11 +153,14 @@ Turn_on_Base_Emissions=true
 AutoUpdate_Diagnostics=ON
 
 # Monthly diagnostics: '0' for off; '1' for on
-timeAvg_monthly="{AvgMonthly}"
+# NOTE: fullchem "DefaultCollection" excludes monthly option
+# in HISTORY.rc by default to allow greater output frequency
+# when other collections are monthly.
+timeAvg_monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
 
 # Frequency and duration (ignored if monthly diagnostics on)
-timeAvg_freq="{AvgFreq}"
-timeAvg_dur="{AvgDur}"
+timeAvg_freq="${RUNDIR_HIST_TIME_AVG_FREQ}"
+timeAvg_dur="${RUNDIR_HIST_TIME_AVG_DUR}"
 
 # Time-averaged HISTORY.rc collections to auto-update
 timeAvg_collections=(SpeciesConc    \
@@ -167,6 +170,7 @@ timeAvg_collections=(SpeciesConc    \
                      CloudConvFlux  \
                      ConcAfterChem  \
                      DryDep         \
+                     DefaultCollection \
                      Emissions      \
                      JValues        \
                      KppDiags       \
@@ -183,8 +187,8 @@ timeAvg_collections=(SpeciesConc    \
 )
 
 # Instantaneous collection settings to auto-update (monthly diag does not apply)
-inst_freq="{InstFreq}"
-inst_dur="{InstDur}"
+inst_freq="${RUNDIR_HIST_INST_FREQ}"
+inst_dur="${RUNDIR_HIST_INST_DUR}"
 inst_collections=(ConcAboveSfc      \
 )
 # Set frequency and duration for time-averaged and instantaneous collections.
@@ -229,11 +233,16 @@ inst_collections=(ConcAboveSfc      \
 #    LESS FREQUENTLY CHANGED SETTINGS
 ########################################################
 
+CS_RES_EFFECTIVE=${CS_RES}
+if [[ ${STRETCH_GRID} == 'ON' ]]; then
+    CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
+fi
+
 #------------------------------------------------
 #    Timesteps
 #------------------------------------------------
 # WARNING: these settings will override settings in input.geos!
-if [[ $CS_RES -lt 180 ]]; then
+if [[ $CS_RES_EFFECTIVE -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
     TransConv_Timestep_HHMMSS=001000
@@ -260,6 +269,10 @@ RRTMG_Timestep_sec=10800
 dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc)
 dustSetting=(${dustEntry// / })
 if [[ ${dustSetting[3]} = "on" ]]; then
+    if [[ ${STRETCH_GRID} == 'ON' ]]; then
+        echo "WARNING: Online dust (DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
+    fi 
+
     if [[ $CS_RES -eq 24 ]]; then
         Dust_SF=6.0e-4
     elif [[ $CS_RES -eq 48 ]]; then
@@ -547,15 +560,19 @@ replace_val NY            ${NY}                 GCHP.rc
 replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 
 #### If # cores exceeds 1000 then write restart via o-server
-if [ ${TOTAL_CORES} -gt 1000 ]; then
-   print_msg "WARNING: write restarts by o-server is enabled since >1000 cores"
+if [ ${TOTAL_CORES} -ge 1000 ]; then
+   print_msg "WARNING: write restarts by o-server is enabled since >=1000 cores"
    replace_val WRITE_RESTART_BY_OSERVER   YES   GCHP.rc
+else
+   print_msg "WARNING: write restarts by o-server is disabled since <1000 cores"
+   replace_val WRITE_RESTART_BY_OSERVER   NO    GCHP.rc
 fi
 
 ### Uncomment out Adjoint collection in HISTORY.rc. It's not 
 ### needed for forward run, but we need it now
-sed -i "s/^\([\t ]*\)#[\t #]*'Adjoint',/\1'#Adjoint',/" HISTORY.rc
-sed -i "s/^\([\t ]*\)#[\t #]*'SFEmissions',/\1'#SFEmissions',/" HISTORY.rc
+print_msg "Removing adjoint history collections"
+sed -i "s/^\([\t ]*\)'Adjoint',/\1#'Adjoint',/" HISTORY.rc
+sed -i "s/^\([\t ]*\)'SFEmissions',/\1#'SFEmissions',/" HISTORY.rc
 replace_val SFEmissions.backwards 0 HISTORY.rc
 sed -i -e "s/^[ \t]*\(SFEmis.*\)$/#\1/" HEMCO_Diagn.rc
 
@@ -725,5 +742,3 @@ else
     print_msg "ERROR: unknown setting for AutoUpdate_Diagnostics. Must be ON or OFF."
     exit 1
 fi
-
-

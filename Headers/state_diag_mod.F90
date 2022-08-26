@@ -113,6 +113,15 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SpeciesConc
      LOGICAL                     :: Archive_SpeciesConc
 
+     !%%%%%  ML diagnostics %%%%%
+     REAL(f8),           POINTER :: ConcBeforeChem(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ConcBeforeChem
+     LOGICAL                     :: Archive_ConcBeforeChem
+
+     REAL(f8),           POINTER :: ConcAfterChem(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_ConcAfterChem
+     LOGICAL                     :: Archive_ConcAfterChem
+
 #ifdef ADJOINT
      ! Adjoint variables for diagnostic output
      REAL(f8),           POINTER :: SpeciesAdj(:,:,:,:)
@@ -278,6 +287,9 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: O3PconcAfterChem(:,:,:)
      LOGICAL                     :: Archive_O3PconcAfterChem
 
+     REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
+     LOGICAL                     :: Archive_CH4pseudoFlux
+
      REAL(f4),           POINTER :: Loss(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_Loss
      LOGICAL                     :: Archive_Loss
@@ -285,6 +297,11 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: Prod(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_Prod
      LOGICAL                     :: Archive_Prod
+
+#ifdef MODEL_GEOS
+     REAL(f4),           POINTER :: NOxTau(:,:,:)
+     LOGICAL                     :: Archive_NOxTau
+#endif
 
      !%%%%% Aerosol characteristics %%%%%
 
@@ -381,6 +398,9 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: AerMassBC(:,:,:)
      LOGICAL                     :: Archive_AerMassBC
 
+     REAL(f4),           POINTER :: AerMassHMS(:,:,:)
+     LOGICAL                     :: Archive_AerMassHMS
+
      REAL(f4),           POINTER :: AerMassINDIOL(:,:,:)
      LOGICAL                     :: Archive_AerMassINDIOL
 
@@ -422,6 +442,10 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: PM25(:,:,:)
      LOGICAL                     :: Archive_PM25
+
+     !zhaisx
+     REAL(f4),           POINTER :: PM10(:,:,:)
+     LOGICAL                     :: Archive_PM10
 
      REAL(f4),           POINTER :: TotalOA(:,:,:)
      LOGICAL                     :: Archive_TotalOA
@@ -489,14 +513,14 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: ProdOCPIfromOCPO(:,:,:)
      LOGICAL                     :: Archive_ProdOCPIfromOCPO
 
-     ! Sulfur aerosols prod & loss
+     !%%%%%  Sulfur aerosols prod & loss %%%%%
      REAL(f4),           POINTER :: ProdSO2fromDMSandOH(:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMSandOH
 
      REAL(f4),           POINTER :: ProdSO2fromDMSandNO3(:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMSandNO3
 
-     REAL(f4),           POINTER :: ProdSO2fromDMS(:,:,:)
+     REAL(f4),           POINTER :: ProdSO2fromDMS (:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMS
 
      REAL(f4),           POINTER :: ProdMSAfromDMS(:,:,:)
@@ -540,6 +564,15 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: LossHNO3onSeaSalt(:,:,:)
      LOGICAL                     :: Archive_LossHNO3onSeaSalt
+
+     REAL(f4),           POINTER :: ProdHMSfromSO2andHCHOinCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdHMSfromSO2andHCHOinCloud
+
+     REAL(f4),           POINTER :: ProdSO2andHCHOfromHMSinCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO2andHCHOfromHMSinCloud
+
+     REAL(f4),           POINTER :: ProdSO4fromHMSinCloud(:,:,:)
+     LOGICAL                     :: Archive_ProdSO4fromHMSinCloud
 
      !%%%%% O3 and HNO3 at a given height above the surface %%%%%
 
@@ -823,6 +856,37 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: ReactiveGaseousHg(:,:,:)
      LOGICAL                     :: Archive_ReactiveGaseousHg
 
+     ! From Viral Shah (MSL, 7.1.21)
+     REAL(f4), POINTER :: HgBrAfterChem            (:,:,:)
+     LOGICAL :: Archive_HgBrAfterChem
+
+     REAL(f4), POINTER :: HgClAfterChem            (:,:,:)
+     LOGICAL :: Archive_HgClAfterChem
+
+     REAL(f4), POINTER :: HgOHAfterChem            (:,:,:)
+     LOGICAL :: Archive_HgOHAfterChem
+
+     REAL(f4), POINTER :: HgBrOAfterChem           (:,:,:)
+     LOGICAL :: Archive_HgBrOAfterChem
+
+     REAL(f4), POINTER :: HgClOAfterChem           (:,:,:)
+     LOGICAL :: Archive_HgClOAfterChem
+
+     REAL(f4), POINTER :: HgOHOAfterChem           (:,:,:)
+     LOGICAL :: Archive_HgOHOAfterChem
+
+     REAL(f4), POINTER :: Hg2GToHg2P               (:,:,:)
+     LOGICAL :: Archive_Hg2GToHg2P
+
+     REAL(f4), POINTER :: Hg2PToHg2G               (:,:,:)
+     LOGICAL :: Archive_Hg2PToHg2G
+
+     REAL(f4), POINTER :: Hg2GasToHg2StrP          (:,:,:)
+     LOGICAL :: Archive_Hg2GasToHg2StrP
+
+     REAL(f4), POINTER :: Hg2GasToSSA              (:,:,:)
+     LOGICAL :: Archive_Hg2GasToSSA
+
      !%%%%% Simulation with RRTMG %%%%%
 
      INTEGER                     :: nRadOut
@@ -986,9 +1050,6 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RO2concAfterChem(:,:,:)
      LOGICAL                     :: Archive_RO2concAfterChem
 
-     REAL(f4),           POINTER :: CH4pseudoFlux(:,:)
-     LOGICAL                     :: Archive_CH4pseudoFlux
-
      !%%%%% PM2.5 diagnostics %%%%%
 
      REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
@@ -1076,11 +1137,6 @@ MODULE State_Diag_Mod
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
 !
-! !PRIVATE TYPES:
-!
-  ! Shadow variables from Input_Opt
-  LOGICAL :: Is_UCX
-!
 ! !DEFINED PARAMETERS:
 !
   CHARACTER(LEN=5), PARAMETER :: UVFlux_Tag_Names(18) =                    (/&
@@ -1137,6 +1193,14 @@ CONTAINS
     State_Diag%SpeciesConc                         => NULL()
     State_Diag%Map_SpeciesConc                     => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
+
+    State_Diag%ConcBeforeChem                      => NULL()
+    State_Diag%Map_ConcBeforeChem                  => NULL()
+    State_Diag%Archive_ConcBeforeChem              = .FALSE.
+
+    State_Diag%ConcAfterChem                       => NULL()
+    State_Diag%Map_ConcAfterChem                   => NULL()
+    State_Diag%Archive_ConcAfterChem               = .FALSE.
 
 #ifdef ADJOINT
     State_Diag%SpeciesAdj                          => NULL()
@@ -1302,6 +1366,9 @@ CONTAINS
     State_Diag%O3PconcAfterChem                    => NULL()
     State_Diag%Archive_O3PconcAfterChem            = .FALSE.
 
+    State_Diag%CH4pseudoflux                       => NULL()
+    State_Diag%Archive_CH4pseudoflux               = .FALSE.
+
     State_Diag%Loss                                => NULL()
     State_Diag%Map_Loss                            => NULL()
     State_Diag%Archive_Loss                        = .FALSE.
@@ -1309,6 +1376,11 @@ CONTAINS
     State_Diag%Prod                                => NULL()
     State_Diag%Map_Prod                            => NULL()
     State_Diag%Archive_Prod                        = .FALSE.
+
+#ifdef MODEL_GEOS
+    State_Diag%NOxTau                              => NULL()
+    State_Diag%Archive_NOxTau                      = .FALSE.
+#endif
 
     !%%%%% Aerosol hygroscopic growth diagnostics %%%%%
 
@@ -1404,6 +1476,9 @@ CONTAINS
     State_Diag%AerMassBC                           => NULL()
     State_Diag%Archive_AerMassBC                   = .FALSE.
 
+    State_Diag%AerMassHMS                          => NULL()
+    State_Diag%Archive_AerMassHMS                  = .FALSE.
+
     State_Diag%AerMassINDIOL                       => NULL()
     State_Diag%Archive_AerMassINDIOL               = .FALSE.
 
@@ -1445,6 +1520,10 @@ CONTAINS
 
     State_Diag%PM25                                => NULL()
     State_Diag%Archive_PM25                        = .FALSE.
+
+    !zhaisx
+    State_Diag%PM10                                => NULL()
+    State_Diag%Archive_PM10                        = .FALSE.
 
     State_Diag%TotalOA                             => NULL()
     State_Diag%Archive_TotalOA                     = .FALSE.
@@ -1563,6 +1642,15 @@ CONTAINS
 
     State_Diag%LossHNO3onSeaSalt                   => NULL()
     State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE.
+
+    State_Diag%ProdSO4fromHMSinCloud               => NULL()
+    State_Diag%Archive_ProdSO4fromHMSinCloud       = .FALSE.
+
+    State_Diag%ProdHMSfromSO2andHCHOinCloud        => NULL()
+    State_Diag%Archive_ProdHMSfromSO2andHCHOinCloud= .FALSE.
+
+    State_Diag%ProdSO2andHCHOfromHMSinCloud        => NULL()
+    State_Diag%Archive_ProdSO2andHCHOfromHMSinCloud= .FALSE.
 
     !%%%%% O3 and HNO3 at a given height above the surface %%%%%
 
@@ -1863,6 +1951,29 @@ CONTAINS
     State_Diag%Archive_ParticulateBoundHg          = .FALSE.
     State_Diag%Archive_ReactiveGaseousHg           = .FALSE.
 
+    ! From Viral Shah (MSL, 7.1.21)
+    State_Diag%HgBrAfterChem                       => NULL()
+    State_Diag%HgClAfterChem                       => NULL()
+    State_Diag%HgOHAfterChem                       => NULL()
+    State_Diag%HgBrOAfterChem                      => NULL()
+    State_Diag%HgClOAfterChem                      => NULL()
+    State_Diag%HgOHOAfterChem                      => NULL()
+    State_Diag%Hg2GToHg2P                          => NULL()
+    State_Diag%Hg2PToHg2G                          => NULL()
+    State_Diag%Hg2GasToHg2StrP                     => NULL()
+    State_Diag%Hg2GasToSSA                         => NULL()
+
+    State_Diag%Archive_HgBrAfterChem               = .FALSE.
+    State_Diag%Archive_HgClAfterChem               = .FALSE.
+    State_Diag%Archive_HgOHAfterChem               = .FALSE.
+    State_Diag%Archive_HgBrOAfterChem              = .FALSE.
+    State_Diag%Archive_HgClOAfterChem              = .FALSE.
+    State_Diag%Archive_HgOHOAfterChem              = .FALSE.
+    State_Diag%Archive_Hg2GToHg2P                  = .FALSE.
+    State_Diag%Archive_Hg2PToHg2G                  = .FALSE.
+    State_Diag%Archive_Hg2GasToHg2StrP             = .FALSE.
+    State_Diag%Archive_Hg2GasToSSA                 = .FALSE.
+
     ! ObsPack diagnostic quantities
     State_Diag%Do_ObsPack                          = .FALSE.
     State_Diag%ObsPack_fId                         =  0
@@ -1941,9 +2052,6 @@ CONTAINS
 
     State_Diag%RO2concAfterChem                    => NULL()
     State_Diag%Archive_RO2concAfterChem            = .FALSE.
-
-    State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%Archive_CH4pseudoflux               = .FALSE.
 
     State_Diag%PM25ni                              => NULL()
     State_Diag%Archive_PM25ni                      = .FALSE.
@@ -2061,7 +2169,6 @@ CONTAINS
     TmpWL     = ''
     TmpHt     = AltAboveSfc
     am_I_Root = Input_Opt%amIRoot
-    Is_UCX    = Input_Opt%LUCX
 
     ! Nullify pointer fields and set logical fields to false
     CALL Zero_State_Diag( State_Diag, RC )
@@ -2144,6 +2251,48 @@ CONTAINS
          Ptr2Data       = State_Diag%SpeciesConc,                            &
          archiveData    = State_Diag%Archive_SpeciesConc,                    &
          mapData        = State_Diag%Map_SpeciesConc,                        &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagId  = 'ConcBeforeChem'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%ConcBeforeChem,                         &
+         archiveData    = State_Diag%Archive_ConcBeforeChem,                 &
+         mapData        = State_Diag%Map_ConcBeforeChem,                     &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagId  = 'ConcAfterChem'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%ConcAfterChem,                          &
+         archiveData    = State_Diag%Archive_ConcAfterChem,                  &
+         mapData        = State_Diag%Map_ConcAfterChem,                      &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -2671,30 +2820,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    !------------------------------------------------------------------------
-    ! Species concentration diagnostic
-    !------------------------------------------------------------------------
-    diagId  = 'SpeciesConc'
-    CALL Init_and_Register(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Diag     = State_Diag,                                        &
-         State_Grid     = State_Grid,                                        &
-         DiagList       = Diag_List,                                         &
-         TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%SpeciesConc,                            &
-         archiveData    = State_Diag%Archive_SpeciesConc,                    &
-         mapData        = State_Diag%Map_SpeciesConc,                        &
-         diagId         = diagId,                                            &
-         diagFlag       = 'S',                                               &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     ! High-level logical for wet deposition budget
     IF ( State_Diag%Archive_BudgetWetDepFull .OR. &
          State_Diag%Archive_BudgetWetDepTrop .OR. &
@@ -2955,7 +3080,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! O3_MASS 
+    ! O3_MASS
     !-----------------------------------------------------------------------
     diagID  = 'O3_MASS'
     CALL Init_and_Register(                                                  &
@@ -2977,7 +3102,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! GCCTO3 
+    ! GCCTO3
     !-----------------------------------------------------------------------
     diagID  = 'GCCTO3'
     CALL Init_and_Register(                                                  &
@@ -2999,7 +3124,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! GCCTTO3 
+    ! GCCTTO3
     !-----------------------------------------------------------------------
     diagID  = 'GCCTTO3'
     CALL Init_and_Register(                                                  &
@@ -3021,7 +3146,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! CHEMTOP 
+    ! CHEMTOP
     !-----------------------------------------------------------------------
     diagID  = 'CHEMTOP'
     CALL Init_and_Register(                                                  &
@@ -3043,7 +3168,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! CHEMTROPP 
+    ! CHEMTROPP
     !-----------------------------------------------------------------------
     diagID  = 'CHEMTROPP'
     CALL Init_and_Register(                                                  &
@@ -3065,7 +3190,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! CONVCLDTOP 
+    ! CONVCLDTOP
     !-----------------------------------------------------------------------
     diagID  = 'CONVCLDTOP'
     CALL Init_and_Register(                                                  &
@@ -3929,7 +4054,7 @@ CONTAINS
     ! ALL FULL-CHEMISTRY SIMULATIONS
     ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
@@ -3976,6 +4101,29 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+#ifdef MODEL_GEOS
+       !--------------------------------------------------------------------
+       ! NOx lifetime 
+       !--------------------------------------------------------------------
+       diagID  = 'NOxTau'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%NOxTau,                              &
+            archiveData    = State_Diag%Archive_NOxTau,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+#endif
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
@@ -4049,7 +4197,7 @@ CONTAINS
        ! Noontime J-values
        !
        ! NOTE: Dimension array nPhotol+2 to archive special photolysis
-       ! reactions for O3_O1D, O3_O3P (with UCX) or O3, POH (w/o UCX)
+       ! reactions for O3_O1D and O3_O3P
        !--------------------------------------------------------------------
        diagID  = 'JNoon'
        CALL Init_and_Register(                                               &
@@ -4220,6 +4368,28 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%O3PconcAfterChem,                    &
             archiveData    = State_Diag%Archive_O3PconcAfterChem,            &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CH4 pseudo-flux
+       !--------------------------------------------------------------------
+       diagID  = 'CH4pseudoFlux'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%CH4pseudoFlux,                       &
+            archiveData    = State_Diag%Archive_CH4pseudoFlux,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -4691,30 +4861,6 @@ CONTAINS
           RETURN
        ENDIF
 
-#ifdef MODEL_GEOS
-       !--------------------------------------------------------------------
-       ! CH4 pseudo-flux
-       !--------------------------------------------------------------------
-       diagID  = 'CH4pseudoFlux'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%CH4pseudoFlux,                       &
-            archiveData    = State_Diag%Archive_CH4pseudoFlux,               &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-#endif
-
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
        ! KPP error flag
@@ -4750,13 +4896,13 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 32
+       DO N = 1, 33
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
                 diagID = 'RxnRate'
-             CASE( 2  )
-                diagID = 'Jval'
+!             CASE( 2  )
+!                diagID = 'Jval'
              CASE( 3  )
                 diagID = 'JNoon'
              CASE( 4  )
@@ -4817,6 +4963,8 @@ CONTAINS
                 diagID = 'KppSubsts'
              CASE( 32 )
                 diagID = 'KppSmDecomps'
+             CASE( 33 )
+                diagID = 'NOxTau'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6010,6 +6158,75 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Production of HMS from aqueous reaction of SO2 in cloud
+       ! (jmm, 06/29/18)
+       !--------------------------------------------------------------------
+       diagID  = 'ProdHMSfromSO2andHCHOinCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdHMSfromSO2andHCHOinCloud,        &
+            archiveData    = State_Diag%Archive_ProdHMSfromSO2andHCHOinCloud,&
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO2 and HCHO from aqueous reaction of HMS in cloud
+       ! (jmm, 06/29/18)
+       !--------------------------------------------------------------------
+       diagID  = 'ProdSO2andHCHOfromHMSinCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO2andHCHOfromHMSinCloud,        &
+            archiveData    = State_Diag%Archive_ProdSO2andHCHOfromHMSinCloud,&
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of SO4 from aqueous oxidation of HMS in cloud
+       ! (jmm, 06/29/18)
+       !--------------------------------------------------------------------
+       diagID  = 'ProdSO4fromHMSinCloud'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdSO4fromHMSinCloud,               &
+            archiveData    = State_Diag%Archive_ProdSO4fromHMSinCloud,       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Loss of HNO3 on sea salt
        !--------------------------------------------------------------------
        diagID = 'LossHNO3onSeaSalt'
@@ -6142,6 +6359,29 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
+       ! Aerosol mass of HMS [ug/m3]
+       ! (jmm, 06/29/18)
+       !-------------------------------------------------------------------
+       diagID  = 'AerMassHMS'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AerMassHMS,                          &
+            archiveData    = State_Diag%Archive_AerMassHMS,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
        ! PM2.5, aka prticulate matter with (r < 2.5 um) [ug/m3]
        !-------------------------------------------------------------------
        diagID = 'PM25'
@@ -6154,6 +6394,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%PM25,                                &
             archiveData    = State_Diag%Archive_PM25,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !zhaisx
+       !-------------------------------------------------------------------
+       ! PM10, aka prticulate matter with (r < 10 um) [ug/m3]
+       !-------------------------------------------------------------------
+       diagID = 'PM10'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM10,                                &
+            archiveData    = State_Diag%Archive_PM10,                        &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -6331,7 +6594,7 @@ CONTAINS
             mapData        = State_Diag%Map_TotCol,                          &
             diagId         = diagId,                                         &
             diagFlag       = 'S',                                            &
-            RC             = RC                                             ) 
+            RC             = RC                                             )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -6413,7 +6676,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 21
+       DO N = 1, 25
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -6462,6 +6725,14 @@ CONTAINS
                 diagID = 'TotalOA'
              CASE( 21 )
                 diagID = 'TotalOC'
+             CASE( 22 ) ! (jmm, 06/29/18)
+                diagID = 'ProdSO4fromHMSinCloud'
+             CASE( 23 ) ! (jmm, 06/29/18)
+                diagID = 'ProdHMSfromSO2andHCHOinCloud'
+             CASE( 24 ) ! (jmm, 06/29/18)
+                diagID = 'AerMassHMS'
+             CASE( 25 ) ! (jmm, 06/29/18)
+                diagID = 'ProdSO2andHCHOfromHMSinCloud'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6643,7 +6914,7 @@ CONTAINS
     !
     ! and THE TAGGED O3 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or.                                   &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM .or. &
          Input_Opt%ITS_A_TAGCO_SIM    .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
        !--------------------------------------------------------------------
@@ -7895,6 +8166,227 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! From Viral Shah (MSL, 7.1.21)
+       !-------------------------------------------------------------------
+       ! HgBr concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgBrAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgBrAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgBrAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgCl concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgClAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgClAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgClAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgOH concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgOHAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgOHAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgOHAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgBrO concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgBrOAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgBrOAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgBrOAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgClO concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgClOAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgClOAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgClOAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! HgOHO concentration after chemistry
+       !-------------------------------------------------------------------
+       diagID  = 'HgOHOAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%HgOHOAfterChem,                       &
+            archiveData    = State_Diag%Archive_HgOHOAfterChem,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2Gas transferred to Hg2P
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2GToHg2P'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2GToHg2P,                          &
+            archiveData    = State_Diag%Archive_Hg2GToHg2P,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2P transferred to Hg2Gas
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2PToHg2G'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2PToHg2G,                          &
+            archiveData    = State_Diag%Archive_Hg2PToHg2G,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2Gas transferred to Hg2StrP
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2GasToHg2StrP'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2GasToHg2StrP,                     &
+            archiveData    = State_Diag%Archive_Hg2GasToHg2StrP,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2Gas taken up by sea salt aerosols
+       !-------------------------------------------------------------------
+       diagID  = 'Hg2GasToSSA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%Hg2GasToSSA,                         &
+            archiveData    = State_Diag%Archive_Hg2GasToSSA,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        !----------------------------------------------------------------
        ! Br concentration
        !----------------------------------------------------------------
@@ -8471,14 +8963,6 @@ CONTAINS
     ! Format statement
 20  FORMAT( 1x, a32, ' is registered as: ', a )
 
-    !-----------------------------------------------------------------
-    ! TODO:
-    ! 1. Hydroscopic growth - (:,:,:,N) where N is one of five hygro spc
-    ! 2. Optical depth for each of five hygro spc, for each wavelength
-    ! 3+ UCX-only strat diags - 5 or 7 total (hard-code)
-    ! 4? isoprene optical depth??? check if AD21(:,:,:,58) is actually set
-    !-----------------------------------------------------------------
-
     !!-------------------------------------------------------------------
     !! Template for adding more diagnostics arrays
     !! Search and replace 'xxx' with array name
@@ -8566,11 +9050,13 @@ CONTAINS
                                    State_Diag%Archive_AerMassPOA        .or. &
                                    State_Diag%Archive_AerMassSAL        .or. &
                                    State_Diag%Archive_AerMassSO4        .or. &
+                                   State_Diag%Archive_AerMassHMS        .or. &  !(jmm, 06/29/18)
                                    State_Diag%Archive_AerMassSOAGX      .or. &
                                    State_Diag%Archive_AerMassSOAIE      .or. &
                                    State_Diag%Archive_AerMassTSOA       .or. &
                                    State_Diag%Archive_BetaNO            .or. &
                                    State_Diag%Archive_PM25              .or. &
+                                   State_Diag%Archive_PM10              .or. &
                                    State_Diag%Archive_TotalOA           .or. &
                                    State_Diag%Archive_TotalOC           .or. &
                                    State_Diag%Archive_TotalBiogenicOA       )
@@ -8712,6 +9198,18 @@ CONTAINS
     CALL Finalize( diagId   = 'SpeciesConc',                                 &
                    Ptr2Data = State_Diag%SpeciesConc,                        &
                    mapData  = State_Diag%Map_SpeciesConc,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcBeforeChem',                              &
+                   Ptr2Data = State_Diag%ConcBeforeChem,                     &
+                   mapData  = State_Diag%Map_ConcBeforeChem,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ConcAfterChem',                               &
+                   Ptr2Data = State_Diag%ConcAfterChem,                      &
+                   mapData  = State_Diag%Map_ConcAfterChem,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -8908,6 +9406,13 @@ CONTAINS
                    Ptr2Data = State_Diag%OHreactivity,                       &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+#ifdef MODEL_GEOS
+    CALL Finalize( diagId   = 'NOxTau',                                      &
+                   Ptr2Data = State_Diag%NOxTau,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     CALL Finalize( diagId   = 'UvFluxDiffuse',                               &
                    Ptr2Data = State_Diag%UvFluxDiffuse,                      &
@@ -9121,6 +9626,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
+                   Ptr2Data = State_Diag%CH4pseudoFlux,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'AODdust',                                     &
                    Ptr2Data = State_Diag%AODdust,                            &
                    RC       = RC                                            )
@@ -9260,6 +9770,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'ProdHMSfromSO2andHCHOinCloud',                &
+                   Ptr2Data = State_Diag%ProdHMSfromSO2andHCHOinCloud,       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'ProdSO2fromDMSandOH',                         &
                    Ptr2Data = State_Diag%ProdSO2fromDMSandOH,                &
                    RC       = RC                                            )
@@ -9340,6 +9855,17 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'ProdSO4fromHMSinCloud',                       &
+                   Ptr2Data = State_Diag%ProdSO4fromHMSinCloud,              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdSO2andHCHOfromHMSinCloud',                &
+                   Ptr2Data = State_Diag%ProdSO2andHCHOfromHMSinCloud,       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
     CALL Finalize( diagId   = 'LossHNO3onSeaSalt',                           &
                    Ptr2Data = State_Diag%LossHNO3onSeaSalt,                  &
                    RC       = RC                                            )
@@ -9347,6 +9873,11 @@ CONTAINS
 
     CALL Finalize( diagId   = 'AerMassASOA',                                 &
                    Ptr2Data = State_Diag%AerMassASOA,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AerMassHMS',                                  &
+                   Ptr2Data = State_Diag%AerMassHMS,                         &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -9423,6 +9954,12 @@ CONTAINS
     CALL Finalize( diagId   = 'PM25',                                        &
                    Ptr2Data = State_Diag%PM25,                               &
                    RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+!zhaisx
+    CALL Finalize( diagId   = 'PM10',                                        &     
+                   Ptr2Data = State_Diag%PM10,                               &     
+                   RC       = RC                                            )     
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'TotalOA',                                     &
@@ -9965,11 +10502,6 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'CH4pseudoFlux',                               &
-                   Ptr2Data = State_Diag%CH4pseudoFlux,                      &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'TotCol',                                      &
                    Ptr2Data = State_Diag%TotCol,                             &
                    mapData  = State_Diag%Map_TotCol,                         &
@@ -10148,159 +10680,132 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 
+#ifdef ADJOINT
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESADJ' ) THEN
+       IF ( isDesc    ) Desc  = 'Adjoint variable of species'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
+#endif
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBEFORECHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration before chemistry of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration after chemistry of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'FRACOFTIMEINTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of time spent in the troposphere'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for emissions and dry deposition'
+    ELSE IF ( INDEX( Name_AllCaps, 'BUDGET' ) == 1 ) THEN
+
+       ! All budget diagnostics have common units, rank, and tag
+#ifdef MODEL_GEOS
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+#else
        IF ( isUnits   ) Units = 'kg s-1'
+#endif
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for emissions and '  // &
-                                'dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                'in column for emissions and dry '    // &
-                                'deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for transport'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for transport'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for transport'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for dry deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for mixing'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for mixing'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for mixing'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for convection'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for convection'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for convection'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                ' for chemistry'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for chemistry'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for chemistry'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
-       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for wet deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'WET'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
-       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for wet deposition'
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'WET'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
-       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for wet deposition '
-       IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'WET'
+ 
+       ! Set description based on diagnostic name
+       IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for emissions and dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for emissions and '  // &
+                                   'dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   'in column for emissions and dry '    // &
+                                   'deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for convection'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for convection'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for convection'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   ' for chemistry'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for chemistry'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for chemistry'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for wet deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for wet deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for wet deposition '
+       ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
@@ -10340,7 +10845,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'NOY' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates' 
+            'Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates'
        IF ( isUnits   ) Units = 'mol mol-1'
        IF ( isRank    ) Rank  = 3
 
@@ -10357,7 +10862,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'O3_MASS' ) THEN
-       IF ( isDesc    ) Desc  = 'O3_grid_cell_mass_per_area' 
+       IF ( isDesc    ) Desc  = 'O3_grid_cell_mass_per_area'
        IF ( isUnits   ) Units = 'kg m-2'
        IF ( isRank    ) Rank  = 3
 
@@ -10441,6 +10946,13 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
 
+#ifdef MODEL_GEOS
+    ELSE IF ( TRIM( Name_AllCaps ) == 'NOXTAU' ) THEN
+       IF ( isDesc    ) Desc  = 'NOx (NO+NO2+NO3+2xN2O5+ClNO2+HNO2+HNO4) lifetime'
+       IF ( isUnits   ) Units = 'h'
+       IF ( isRank    ) Rank  = 3
+#endif
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
        IF ( isDesc    ) Desc  = 'Diffuse UV flux in bin'
        IF ( isUnits   ) Units = 'W m-2'
@@ -10506,7 +11018,11 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONV' ) THEN
        IF ( isDesc    ) Desc  = &
             'Loss of soluble species in convective updrafts'
+#ifdef MODEL_GEOS
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+#else
        IF ( isUnits   ) Units = 'kg s-1'
+#endif
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
@@ -10728,12 +11244,10 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-#ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'CH4PSEUDOFLUX' ) THEN
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-#endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
@@ -10898,6 +11412,12 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+!zhaisx
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM10' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 10 um'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
@@ -11466,6 +11986,59 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  2
 
+    ! From Viral Shah (MSL - 7.1.21)
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGBRAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgBr concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGCLAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgCl concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGOHAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgOH concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGBROAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgBrO concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGCLOAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgClO concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HGOHOAFTERCHEM' )  THEN
+       IF ( isDesc    ) Desc  = 'HgOHO concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2GTOHG2P' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2 gas transferred to Hg2P'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2PTOHG2G' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2P transferred to Hg2 gas'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2GASTOHG2STRP' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2 gas transferred to Hg2StrP'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'HG2GASTOSSA ' )  THEN
+       IF ( isDesc    ) Desc  = 'Hg2 gas transferred to SSA'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+! MSL
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBR' ) THEN
        IF ( isDesc    ) Desc  = 'Br concentration'
        IF ( isUnits   ) Units = 'molec cm-3'
@@ -11668,6 +12241,40 @@ CONTAINS
        IF ( isRank    ) Rank  =  2
        IF ( isSrcType ) SrcType  = KINDVAL_F8
        IF ( isOutType ) OutType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMHMSINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
+                                'oxidation of HMS in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHMSFROMSO2ANDHCHOINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of HMS from aqueous ' // &
+                                'reaction of SO2 and HCHO in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2ANDHCHOFROMHMSINCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO2 and HCHO from ' // &
+                                'aqueous reaction of HS and OH- in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INCLOUD' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
+                                'oxidation of O3 in clouds'
+       IF ( isUnits   ) Units = 'kg S s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSHMS' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of hydroxymethanesulfonate aerosol'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAGX' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase glyoxal'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
 
    ELSE
 
@@ -13643,7 +14250,7 @@ CONTAINS
     ! index corresponding to each flux output type is:
     !
     !   0=BASE  1=O3  2=ME  3=SU   4=NI   5=AM
-    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST (11 is UCX only)
+    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -13685,14 +14292,7 @@ CONTAINS
           CASE( 'PM' )
              State_Diag%RadOutInd(N) = 10
           CASE( 'ST' )
-             IF ( Input_Opt%LUCX ) THEN
-                State_Diag%RadOutInd(N) = 11
-             ELSE
-                ErrMsg = 'RRTMG flux output "NOST (no strat aerosol is '  // &
-                         'selected, but the UCX mechanism is off!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
+             State_Diag%RadOutInd(N) = 11
           CASE DEFAULT
              ! Nothing
        END SELECT
@@ -13980,7 +14580,7 @@ CONTAINS
              mapData%slot2id(TagItem%index) = index
 
           ELSE
-             
+
              ! Otherwise, this is a defined species.
              ! Call Ind_() to get the proper index
              mapData%slot2id(TagItem%index) = Ind_( TagItem%name, indFlag )

@@ -7,7 +7,7 @@
 # EXPID allows you to specify the beginning of the file path corresponding
 # to each diagnostic collection.  For example:
 #
-#   EXPID: ./GEOSChem 
+#   EXPID: ./GEOSChem
 #      Will create netCDF files whose names begin "GEOSChem",
 #      in this run directory.
 #
@@ -28,15 +28,14 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
-             #'MercuryEmis',
              #'MercuryChem',
              #'MercuryOcean',
              'SpeciesConc',
              #'Budget',
              #'CloudConvFlux',
              #'DryDep',
-             #'LevelEdgeDiags',      
-             #'StateMet',      
+             #'LevelEdgeDiags',
+             #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
              #'BoundaryConditions',
@@ -60,11 +59,14 @@ COLLECTIONS: 'Restart',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Chem_KPPHvalue                 ',
                               'Met_DELPDRY                    ',
                               'Met_PS1WET                     ',
                               'Met_PS1DRY                     ',
                               'Met_SPHU1                      ',
                               'Met_TMPU1                      ',
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
                               #'Chem_OceanHg0                  ',
                               #'Chem_OceanHg2                  ',
                               #'Chem_OceanHgP                  ',
@@ -81,8 +83,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.frequency:      {FREQUENCY}
-  SpeciesConc.duration:       {DURATION}
+  SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
 ::
@@ -96,27 +98,27 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.frequency:    {FREQUENCY}
-  Budget.duration:     {DURATION}
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
-  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
-                       'BudgetEmisDryDepTrop_?ADV?           ',  
-                       'BudgetEmisDryDepPBL_?ADV?            ',  
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
                        'BudgetChemistryFull_?ADV?            ',
                        'BudgetChemistryTrop_?ADV?            ',
-                       'BudgetChemistryPBL_?ADV?             ',  
+                       'BudgetChemistryPBL_?ADV?             ',
                        'BudgetTransportFull_?ADV?            ',
                        'BudgetTransportTrop_?ADV?            ',
-                       'BudgetTransportPBL_?ADV?             ',  
+                       'BudgetTransportPBL_?ADV?             ',
                        'BudgetMixingFull_?ADV?               ',
                        'BudgetMixingTrop_?ADV?               ',
-                       'BudgetMixingPBL_?ADV?                ',  
+                       'BudgetMixingPBL_?ADV?                ',
                        'BudgetConvectionFull_?ADV?           ',
                        'BudgetConvectionTrop_?ADV?           ',
-                       'BudgetConvectionPBL_?ADV?            ',  
+                       'BudgetConvectionPBL_?ADV?            ',
                        'BudgetWetDepFull_?WET?               ',
                        'BudgetWetDepTrop_?WET?               ',
-                       'BudgetWetDepPBL_?WET?                ',  
+                       'BudgetWetDepPBL_?WET?                ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -126,8 +128,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.frequency:    {FREQUENCY}
-  CloudConvFlux.duration:     {DURATION}
+  CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CloudConvFlux.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   CloudConvFlux.mode:         'time-averaged'
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
 ::
@@ -139,8 +141,8 @@ COLLECTIONS: 'Restart',
 # Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  DryDep.frequency:           {FREQUENCY}
-  DryDep.duration:            {DURATION}
+  DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
+  DryDep.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   DryDep.mode:                'time-averaged'
   DryDep.fields:              'DryDepVel_?DRY?               ',
                               'DryDep_?DRY?                  ',
@@ -155,8 +157,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   {FREQUENCY}
-  LevelEdgeDiags.duration:    {DURATION}
+  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
   LevelEdgeDiags.mode:        'time-averaged'
   LevelEdgeDiags.fields:      'Met_CMFMC                     ',
                               'Met_PEDGE                     ',
@@ -167,31 +169,6 @@ COLLECTIONS: 'Restart',
                               'Met_PFLLSAN                   ',
 ::
 #==============================================================================
-# %%%%% THE MercuryEmis COLLECTION %%%%%
-#
-# Diagnostics for mercury emissions
-# (mostly from HEMCO manual diagnostic outputs)
-#
-# Available for the Hg and tagged Hg simulations
-#==============================================================================
-  MercuryEmis.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  MercuryEmis.frequency:      {FREQUENCY}
-  MercuryEmis.duration:       {DURATION}
-  MercuryEmis.mode:           'time-averaged'
-  MercuryEmis.fields:         'EmisHg0anthro                 ',
-                              'EmisHg0biomass                ',
-                              'EmisHg0geogenic               ',
-                              'EmisHg0land                   ',
-                              'EmisHg0ocean                  ',
-                              'EmisHg0soil                   ',
-                              'EmisHg0snow                   ',
-                              'EmisHg0vegetation             ',
-                              'EmisHg2HgPanthro              ',
-                              'EmisHg2snowToOcean            ',
-                              'EmisHg2rivers                 ',
-                              'FluxHg2HgPfromAirToSnow       ',
-::
-#==============================================================================
 # %%%%% THE MercuryChem COLLECTION %%%%%
 #
 # Concentration and prod/loss diagnostics for mercury species
@@ -199,30 +176,19 @@ COLLECTIONS: 'Restart',
 # Available for the Hg and tagged Hg simulations
 #==============================================================================
   MercuryChem.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  MercuryChem.frequency:      {FREQUENCY}
-  MercuryChem.duration:       {DURATION}
+  MercuryChem.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  MercuryChem.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   MercuryChem.mode:           'time-averaged'
-  MercuryChem.fields:         'ConcBr                        ',
-                              'ConcBrO                       ',
-                              'LossHg2bySeaSalt              ',
-                              'LossRateHg2bySeaSalt          ',
-                              'PolarConcBr                   ',
-                              'PolarConcBrO                  ',
-                              'PolarConcO3                   ',
-			      'ProdHg2fromBr                 ',
-                              'ProdHg2fromBrY                ',
-                              'ProdHg2fromClY                ',
-                              'ProdHg2fromHg0                ',
-                              'ProdHg2fromHgBrPlusBr2        ',
-                              'ProdHg2fromHgBrPlusBrBrO      ',
-                              'ProdHg2fromHgBrPlusBrClO      ',
-                              'ProdHg2fromHgBrPlusBrHO2      ',
-                              'ProdHg2fromHgBrPlusBrNO2      ',
-                              'ProdHg2fromHgBrPlusBrOH       ',
-                              'ProdHg2fromO3                 ',
-                              'ProdHg2fromOH                 ',
-                              'ParticulateBoundHg            ',
-                              'ReactiveGaseousHg             ',
+  MercuryChem.fields:         'HgBrAfterChem                 ',
+                              'HgClAfterChem                 ',
+                              'HgOHAfterChem                 ',
+                              'HgBrOAfterChem                ',
+                              'HgClOAfterChem                ',
+                              'HgOHOAfterChem                ',
+                              'Hg2GToHg2P                    ',
+                              'Hg2PToHg2G                    ',
+                              'Hg2GasToHg2StrP               ',
+                              'Hg2GasToSSA                   ',
 ::
 #==============================================================================
 # %%%%% THE MercuryOcean COLLECTION %%%%%
@@ -232,8 +198,8 @@ COLLECTIONS: 'Restart',
 # Available for the Hg and tagged Hg simulations
 #==============================================================================
   MercuryOcean.template:      '%y4%m2%d2_%h2%n2z.nc4',
-  MercuryOcean.frequency:     {FREQUENCY}
-  MercuryOcean.duration:      {DURATION}
+  MercuryOcean.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
+  MercuryOcean.duration:      ${RUNDIR_HIST_TIME_AVG_DUR}
   MercuryOcean.mode:          'time-averaged'
   MercuryOcean.fields:        'FluxHg0fromAirToOcean         ',
                               'FluxHg0fromOceanToAir         ',
@@ -253,8 +219,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet.frequency:         {FREQUENCY}
-  StateMet.duration:          {DURATION}
+  StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMet.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   StateMet.mode:              'time-averaged'
   StateMet.fields:            'Met_AD                        ',
                               'Met_AIRDEN                    ',
@@ -344,8 +310,8 @@ COLLECTIONS: 'Restart',
 # Available for all simulations that have soluble species
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.frequency:      {FREQUENCY}
-  WetLossConv.duration:       {DURATION}
+  WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossConv.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   WetLossConv.mode:           'time-averaged'
   WetLossConv.fields:         'WetLossConv_?WET?             ',
                               'WetLossConvFrac_?WET?         ',
@@ -359,8 +325,8 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # Loss due to rainout and washout (per deposited species)
   WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossLS.frequency:        {FREQUENCY}
-  WetLossLS.duration:         {DURATION}
+  WetLossLS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossLS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
   WetLossLS.mode:             'time-averaged'
   WetLossLS.fields:           'WetLossLS_?WET?               ',
 ::

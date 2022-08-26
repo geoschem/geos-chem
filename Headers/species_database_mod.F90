@@ -116,15 +116,29 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                     :: found_dd_dvzaersnow_luo
+    LOGICAL                     :: found_dd_dvzminval_luo
+    LOGICAL                     :: found_henry_cr_luo
+    LOGICAL                     :: found_henry_k0_luo
+    LOGICAL                     :: found_wd_convfaci2g_luo
+    LOGICAL                     :: found_wd_kcscalefac_luo
+    LOGICAL                     :: found_wd_liqandgas_luo
+    LOGICAL                     :: found_wd_rainouteff_luo
+    LOGICAL                     :: found_wd_retfactor_luo
+    LOGICAL                     :: no_luo
     LOGICAL                     :: prtDebug
     LOGICAL                     :: v_bool
-    LOGICAL                     :: wd_kcscalefac_luo_found
-    LOGICAL                     :: wd_rainouteff_luo_found
+    LOGICAL                     :: wd_liqandgas_luo
     INTEGER                     :: v_int
     INTEGER                     :: nSpecies
     INTEGER                     :: N
     INTEGER                     :: S
     REAL(f4)                    :: v_real
+    REAL(f4)                    :: dd_dvzaersnow_luo
+    REAL(f4)                    :: henry_cr_luo
+    REAL(f4)                    :: henry_k0_luo
+    REAL(f4)                    :: wd_convfaci2g_luo
+    REAL(f4)                    :: wd_retfactor_luo
 
     ! Strings
     CHARACTER(LEN=14)           :: tag
@@ -137,11 +151,12 @@ CONTAINS
     ! Arrays
     REAL(f4)                    :: a_real_2(2)
     REAL(f4)                    :: a_real_3(3)
+    REAL(f4)                    :: dd_dvzminval_luo(2)
     REAL(f4)                    :: wd_kcscalefac_luo(3)
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(41)
+    CHARACTER(LEN=17)           :: tags(48)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
@@ -168,8 +183,10 @@ CONTAINS
     SpcCount%nKppVar  = 0
     SpcCount%nKppFix  = 0
     SpcCount%nKppSpc  = 0
+    SpcCount%nOmitted = 0
     SpcCount%nPhotol  = 0
     SpcCount%nRadNucl = 0
+    SpcCount%nRealSpc = 0
     SpcCount%nWetDep  = 0
     SpcCount%nHg0     = 0
     SpcCount%nHg2     = 0
@@ -180,7 +197,9 @@ CONTAINS
              "DD_AeroDryDep    ",  &
              "DD_DustDryDep    ",  &
              "DD_DvzAerSnow    ",  &
+             "DD_DvzAerSnow_Luo",  &
              "DD_DvzMinVal     ",  &
+             "DD_DvzMinVal_Luo ",  &
              "DD_F0            ",  &
              "DD_Hstar         ",  &
              "DD_KOA           ",  &
@@ -199,7 +218,9 @@ CONTAINS
              "Is_RadioNuclide  ",  &
              "Is_WetDep        ",  &
              "Henry_CR         ",  &
+             "Henry_CR_Luo     ",  &
              "Henry_K0         ",  &
+             "Henry_K0_Luo     ",  &
              "Henry_pKa        ",  &
              "MP_SizeResAer    ",  &
              "MP_SizeResNum    ",  &
@@ -208,15 +229,18 @@ CONTAINS
              "WD_AerScavEff    ",  &
              "WD_CoarseAer     ",  &
              "WD_ConvFacI2G    ",  &
-             "WD_KcScaleFac_Luo",  &
+             "WD_ConvFacI2G_Luo",  &
              "WD_KcScaleFac    ",  &
+             "WD_KcScaleFac_Luo",  &
              "WD_Is_H2SO4      ",  &
              "WD_Is_HNO3       ",  &
              "WD_Is_SO2        ",  &
              "WD_LiqAndGas     ",  &
-             "WD_RainoutEff_Luo",  &
+             "WD_LiqAndGas_Luo ",  &
              "WD_RainoutEff    ",  &
-             "WD_RetFactor     "   /)
+             "WD_RainoutEff_Luo",  &
+             "WD_RetFactor     ",  &
+             "WD_RetFactor_Luo "   /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -259,15 +283,30 @@ CONTAINS
     ! Loop over the number of species
     DO S = 1, nSpecies
 
-       ! Look up this species in the species database
-       ThisSpc => SpcData(S)%Info
+       ! Species name
+       spc = species_names(S)
 
        !--------------------------------------------------------------------
-       ! Set the Name and ModelID tags
-       !-------------------------------------------------------------------
-       spc             = species_names(S)
-       ThisSpc%Name    = TRIM( spc )
-       ThisSpc%ModelId = S
+       ! If the species is a "dummy" species (i.e. used for bookkeeping in
+       ! KPP rxns), then flag it as such and skip to the next species
+       !--------------------------------------------------------------------
+       v_bool = MISSING_BOOL
+       key    =  TRIM( spc ) // "%Is_Omitted"
+       CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+       IF ( v_bool ) THEN
+          SpcCount%nOmitted = SpcCount%nOmitted + 1
+          CYCLE
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Look up this species in the database, and assign its name to the
+       ! modelId field.  Subtract # of omitted species from the modelId.
+       !--------------------------------------------------------------------
+       N                 =  S - SpcCount%nOmitted
+       ThisSpc           => SpcData(N)%Info
+       ThisSpc%ModelId   =  N
+       ThisSpc%Name      =  TRIM( spc )
+       SpcCount%nRealSpc =  SpcCount%nRealSpc + 1
 
        !--------------------------------------------------------------------
        ! Set the Is_Advected tag (check against Input_Opt%AdvecSpc list)
@@ -312,8 +351,15 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Initialize found flags
        !-------------------------------------------------------------------
-       wd_kcscalefac_luo_found = .FALSE.
-       wd_rainouteff_luo_found = .FALSE.
+       found_dd_dvzaersnow_luo = .FALSE.
+       found_dd_dvzminval_luo  = .FALSE.
+       found_henry_cr_luo      = .FALSE.
+       found_henry_k0_luo      = .FALSE.
+       found_wd_convfaci2g_luo = .FALSE.
+       found_wd_kcscalefac_luo = .FALSE.
+       found_wd_liqandgas_luo  = .FALSE.
+       found_wd_rainouteff_luo = .FALSE.
+       found_wd_retfactor_luo  = .FALSE.
 
        !--------------------------------------------------------------------
        ! Loop over the remaining tags in the species database and
@@ -334,6 +380,9 @@ CONTAINS
           ! Create search key for each variable
           key = TRIM( spc ) // '%' // TRIM( tags(N) )
 
+          ! Set a flag if "Luo" is not found in the key 
+          no_luo = ( INDEX( key, "Luo" ) <= 0 )
+          
           ! Save into the proper field of the species database
           ! NOTE: Attempt to round off values to 2 decimal places,
           ! unless the values can be either too large or too small
@@ -354,16 +403,33 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_DustDryDep = v_bool
 
-          ELSE IF ( INDEX( key, "%DD_DvzAerSnow" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%DD_DvzAerSnow" ) >  0  .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_DvzAerSnow = Cast_and_RoundOff( v_real )
 
-          ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%DD_DvzAerSnow_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             dd_dvzaersnow_luo = Cast_and_RoundOff( v_real )
+             IF ( dd_dvzaersnow_luo /= MISSING_R4 ) THEN
+                found_dd_dvzaersnow_luo = .TRUE.
+             ENDIF             
+             
+          ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_DvzMinVal(1) = Cast_and_RoundOff( a_real_2(1) )
              ThisSpc%DD_DvzMinVal(2) = Cast_and_RoundOff( a_real_2(2) )
+
+          ELSE IF ( INDEX( key, "%DD_DvzMinVal_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             dd_dvzminval_luo(1) = Cast_and_RoundOff( a_real_2(1) )
+             dd_dvzminval_luo(2) = Cast_and_RoundOff( a_real_2(2) )
+             IF ( dd_dvzminval_luo(1) /= MISSING_R4 ) THEN
+                found_dd_dvzminval_luo = .TRUE.
+             ENDIF  
 
           ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
@@ -395,15 +461,31 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%FullName = TRIM( v_str )
 
-          ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Henry_CR = DBLE( v_real )       ! Don't round off
 
-          ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%Henry_CR_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             henry_cr_luo = DBLE( v_real )           ! Don't round off
+             IF ( henry_cr_luo /= MISSING_R4 ) THEN
+                found_henry_cr_luo = .TRUE.
+             ENDIF
+
+          ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Henry_K0 = DBLE( v_real )       ! Don't round off
+
+          ELSE IF ( INDEX( key, "%Henry_K0_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             henry_k0_luo = DBLE( v_real )           ! Don't round off
+             IF ( henry_k0_luo /= MISSING_R4 ) THEN
+                found_henry_k0_luo = .TRUE.
+             ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Aerosol" ) > 0  ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -426,7 +508,7 @@ CONTAINS
           ELSE IF ( INDEX( key, "%Is_DryDep" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( v_bool ) THEN
+             IF ( v_bool .AND. ThisSpc%Is_Advected ) THEN
                 SpcCount%nDryDep  = SpcCount%nDryDep + 1
                 ThisSpc%DryDepId  = SpcCount%nDryDep
                 ThisSpc%Is_DryDep = v_bool
@@ -534,10 +616,25 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_CoarseAer = v_bool
 
-          ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_ConvFacI2G = DBLE( v_real )  ! Don't round off
+
+          ELSE IF ( INDEX( key, "%WD_ConvFacI2G_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             wd_convfaci2g_luo = DBLE( v_real )      ! Don't round off
+             IF ( wd_convfaci2g_luo /= MISSING_R4 ) THEN
+                found_wd_convfaci2g_luo = .TRUE.
+             ENDIF
+
+          ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0  .and. no_luo ) THEN
+             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1) )
+             ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2) )
+             ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3) )
 
           ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
@@ -546,16 +643,8 @@ CONTAINS
              wd_kcscalefac_luo(2) = Cast_and_RoundOff( a_real_3(2) )
              wd_kcscalefac_luo(3) = Cast_and_RoundOff( a_real_3(3) )
              IF ( wd_kcscalefac_luo(1) /= MISSING_R4 ) THEN
-                wd_kcscalefac_luo_found = .TRUE.
+                found_wd_kcscalefac_luo = .TRUE.
              ENDIF
-
-          ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 .AND. &
-                    INDEX( key, "Luo" ) <= 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1) )
-             ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2) )
-             ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3) )
 
           ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -572,10 +661,23 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_Is_SO2 = v_bool
 
-          ELSE IF ( INDEX( key, "%WD_LiqAndGas" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%WD_LiqAndGas" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_LiqAndGas = v_bool
+
+          ELSE IF ( INDEX( key, "%WD_LiqAndGas_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             wd_liqandgas_luo = v_bool
+             found_wd_liqandgas_luo = wd_liqandgas_luo
+
+          ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 .and. no_luo ) THEN
+             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1) )
+             ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2) )
+             ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3) )
 
           ELSE IF ( INDEX( key, "%WD_RainoutEff_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
@@ -584,21 +686,21 @@ CONTAINS
              wd_rainouteff_luo(2) = Cast_and_RoundOff( a_real_3(2) )
              wd_rainouteff_luo(3) = Cast_and_RoundOff( a_real_3(3) )
              IF ( wd_rainouteff_luo(1) /= MISSING_R4 ) THEN
-                wd_rainouteff_luo_found = .TRUE.
+                found_wd_rainouteff_luo = .TRUE.
              ENDIF
 
-          ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 .AND. &
-                    INDEX( key, "Luo" ) <= 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1) )
-             ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2) )
-             ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3) )
-
-          ELSE IF ( INDEX( key, "%WD_RetFactor" ) > 0 ) THEN
+          ELSE IF ( INDEX( key, "%WD_RetFactor" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_RetFactor = Cast_and_RoundOff( v_real )
+
+          ELSE IF ( INDEX( key, "%WD_RetFactor_Luo" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             wd_retfactor_luo = Cast_and_RoundOff( v_real )
+             IF ( wd_retfactor_luo /= MISSING_R4 ) THEN
+                found_wd_retfactor_luo = .TRUE.
+             ENDIF
 
           ELSE
              ! Pass
@@ -606,20 +708,6 @@ CONTAINS
           ENDIF
 
        ENDDO
-
-#ifdef LUO_WETDEP
-       ! Overwrite with special values if present in file
-       IF ( wd_kcscalefac_luo_found ) THEN
-          ThisSpc%WD_KcScaleFac(1) = wd_kcscalefac_luo(1)
-          ThisSpc%WD_KcScaleFac(2) = wd_kcscalefac_luo(2)
-          ThisSpc%WD_KcScaleFac(3) = wd_kcscalefac_luo(3)
-       ENDIF
-       IF ( wd_rainouteff_luo_found ) THEN
-          ThisSpc%WD_RainoutEff(1) = wd_rainouteff_luo(1)
-          ThisSpc%WD_RainoutEff(2) = wd_rainouteff_luo(2)
-          ThisSpc%WD_RainoutEff(3) = wd_rainouteff_luo(3)
-       ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! SANITY CHECKS
@@ -634,7 +722,9 @@ CONTAINS
        ENDIF
 
        ! Is_Gas and Is_Aero tags cannot both be FALSE at the same time
-       IF ( ( .not. ThisSpc%Is_Gas ) .and. ( .not. ThisSpc%Is_Aerosol ) ) THEN
+       IF ( ( .not. ThisSpc%Is_Gas     )   .and.                             &
+            ( .not. ThisSpc%Is_Aerosol )   .and.                             &
+            ( .not. ThisSpc%Is_Omitted ) ) THEN
 
           ! Check if this is a KPP species, is so set Is_Gas to TRUE, otherwise
           ! return with an error. This will account for P/L families not
@@ -683,9 +773,56 @@ CONTAINS
           ThisSpc%WD_LiqAndGas  = MISSING_BOOL
        ENDIF
 
+#ifdef LUO_WETDEP
+       !--------------------------------------------------------------------
+       ! For Luo et al 2020 wetdep
+       ! Overwrite with special values if present in file
+       !--------------------------------------------------------------------
+       IF ( found_dd_dvzaersnow_luo ) THEN
+          ThisSpc%DD_DvzAerSnow = dd_dvzaersnow_luo
+       ENDIF
+
+       IF ( found_dd_dvzminval_luo ) THEN
+          ThisSpc%DD_DvzMinVal(1) = dd_dvzminval_luo(1)
+          ThisSpc%DD_DvzMinVal(2) = dd_dvzminval_luo(2)
+       ENDIF
+
+       IF ( found_henry_cr_luo ) THEN
+          ThisSpc%Henry_CR = henry_cr_luo
+       ENDIF
+
+       IF ( found_henry_k0_luo ) THEN
+          ThisSpc%Henry_K0 = henry_k0_luo
+       ENDIF
+
+       IF ( found_wd_convfaci2g_luo ) THEN
+          ThisSpc%WD_ConvFacI2G = wd_convfaci2g_luo
+       ENDIF
+
+       IF ( found_wd_liqandgas_luo ) THEN
+          ThisSpc%WD_LiqAndGas = wd_liqandgas_luo
+       ENDIF
+
+       IF ( found_wd_kcscalefac_luo ) THEN
+          ThisSpc%WD_KcScaleFac(1) = wd_kcscalefac_luo(1)
+          ThisSpc%WD_KcScaleFac(2) = wd_kcscalefac_luo(2)
+          ThisSpc%WD_KcScaleFac(3) = wd_kcscalefac_luo(3)
+       ENDIF
+
+       IF ( found_wd_rainouteff_luo ) THEN
+          ThisSpc%WD_RainoutEff(1) = wd_rainouteff_luo(1)
+          ThisSpc%WD_RainoutEff(2) = wd_rainouteff_luo(2)
+          ThisSpc%WD_RainoutEff(3) = wd_rainouteff_luo(3)
+       ENDIF
+
+       IF ( found_wd_retfactor_luo ) THEN
+          ThisSpc%WD_RetFactor = wd_retfactor_luo
+       ENDIF
+#endif
+
        ! Debug printout
        IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
-
+       
        ! Free pointer
        ThisSpc => NULL()
     ENDDO
@@ -966,6 +1103,8 @@ CONTAINS
     USE Input_Opt_Mod,    ONLY : OptInput
     USE GcKpp_Monitor,    ONLY : Spc_Names
     USE GcKpp_Parameters, ONLY : NFIX, NSPEC, NVAR
+!    USE GcKpp_Monitor,    ONLY : Hg_Spc_Names => Spc_Names
+!    USE GcKpp_Parameters, ONLY : HgNFIX => NFIX, HgNSPEC => NSPEC, HgNVAR => NVAR
     USE Species_Mod,      ONLY : MISSING_INT
 !
 ! !INPUT PARAMETERS:
@@ -1019,10 +1158,10 @@ CONTAINS
     nSpecies = nAdvect
 
     !=======================================================================
-    ! For full-chemistry simulations with KPP, get the list of all of
+    ! For full-chemistry and Hg simulations with KPP, get the list of all of
     ! species names in the KPP mechanism, and their indices
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Allocate a temporary array large enough to hold all of the
        ! advected species listed in input.geos as well as all of the
@@ -1130,6 +1269,65 @@ CONTAINS
              ENDIF
           ENDDO
        ENDDO
+
+!    ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+!       ! Repeated for the Hg KPP mechanism just as for FULLCHEM
+!       ! Commented deleted for compactcity ;-). Refer above. (MSL)
+!       ALLOCATE( Tmp( nAdvect + NSPEC ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:Tmp', 0 , RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       Tmp = ''
+!
+!       DO S = 1, nSpecies
+!          Tmp(S) = Input_Opt%AdvectSpc_Name(S)
+!       ENDDO
+!
+!       DO K = 1, HgNSPEC
+!          SpcName = ADJUSTL( Spc_Names(K) )
+!          IF ( SpcName(1:2) == 'RR' ) CYCLE
+!          IF ( .not. ANY( Input_Opt%AdvectSpc_Name == Hg_Spc_Names(K) ) ) THEN
+!             nSpecies      = nSpecies + 1
+!             Tmp(nSpecies) = Hg_Spc_Names(K)
+!          ENDIF
+!       ENDDO
+!
+!       ALLOCATE( Species_Names( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:Species_Names', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       Species_Names = Tmp(1:nSpecies )
+!
+!       IF ( ALLOCATED( Tmp ) ) DEALLOCATE( Tmp )
+!
+!       ALLOCATE( KppSpcId( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:KppSpcId', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       KppSpcId = MISSING_INT
+!
+!       ALLOCATE( KppFixId( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:KppFixId', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       KppFixId = MISSING_INT
+!
+!       ALLOCATE( KppVarId( nSpecies ), STAT=RC )
+!       CALL GC_CheckVar( 'species_database_mod.F90:KppVarId', 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       KppVarId = MISSING_INT
+!
+!       DO S = 1, nSpecies
+!          DO K = 1, HgNSPEC
+!             SpcName = ADJUSTL( Hg_Spc_Names(K) )
+!             IF ( SpcName(1:2) == 'RR' ) CYCLE
+!             IF ( Species_Names(S) == Hg_Spc_Names(K) ) THEN
+!                KppSpcId(S) = K
+!                IF ( K <= HgNVAR ) THEN
+!                   KppVarId(S) = K
+!                ELSE
+!                   KppFixId(S) = K - HgNVAR
+!                ENDIF
+!                EXIT
+!             ENDIF
+!          ENDDO
+!       ENDDO
 
     !=======================================================================
     ! For specialty simulations, we do not have KPP species.  Thus, the

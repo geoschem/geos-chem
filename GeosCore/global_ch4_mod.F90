@@ -46,10 +46,8 @@ MODULE GLOBAL_CH4_MOD
 !
   !========================================================================
   ! Module Variables:
-  ! BOH        : Array for OH values                        [v/v]
+  ! BOH        : Array for OH values                        [molec/cm3]
   ! BCl        : Array for Cl values                        [v/v]
-  ! COPROD     : Array for zonal mean P(CO)                 [v/v/s]
-  ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
   ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
   ! CH4_EMIS   : Array for CH4 Emissions                    [kg/m2/s]
   !========================================================================
@@ -60,7 +58,6 @@ MODULE GLOBAL_CH4_MOD
 !
 ! !LOCAL VARIABLES:
 !
-
   ! Scalars
   INTEGER               :: id_CH4
   REAL(fp)              :: TROPOCH4
@@ -68,7 +65,6 @@ MODULE GLOBAL_CH4_MOD
   ! Various arrays
   REAL(fp), ALLOCATABLE :: BOH(:,:,:)
   REAL(fp), ALLOCATABLE :: BCl(:,:,:)
-
 
 CONTAINS
 !EOC
@@ -89,7 +85,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE ErrCode_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
@@ -99,8 +95,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -125,21 +121,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                  :: I, J, N
-    REAL(fp)                 :: DTSRCE, AREA_M2
+    INTEGER            :: I, J, N
 
     ! Strings
-    CHARACTER(LEN= 63)       :: DgnName
-    CHARACTER(LEN=255)       :: ErrMsg
-    CHARACTER(LEN=255)       :: ThisLoc
+    CHARACTER(LEN= 63) :: DgnName
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
 
     ! For fields from Input_Opt
-    LOGICAL                  :: ITS_A_CH4_SIM
-    LOGICAL                  :: prtDebug
-    LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL            :: ITS_A_CH4_SIM
+    LOGICAL            :: prtDebug
+    LOGICAL, SAVE      :: FIRST = .TRUE.
+
+    ! Arrays of state vector elements for applying emissions perturbations
+    REAL(fp)           :: STATE_VECTOR(State_Grid%NX,State_Grid%NY)
+
+    ! Array of scale factors for emissions (from HEMCO)
+    REAL(fp)           :: EMIS_SF(State_Grid%NX,State_Grid%NY)
 
     ! Pointers
-    REAL(f4),        POINTER :: Ptr2D(:,:)
+    REAL(f4), POINTER  :: Ptr2D(:,:)
 
     !=================================================================
     ! EMISSCH4 begins here!
@@ -159,18 +160,36 @@ CONTAINS
     ! Do we have to print debug output?
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
-    ! Exit with error if we can't find the HEMCO state object
-    IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
-       ErrMsg = 'The HcoState object is undefined!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Emission timestep
-    DTSRCE = HcoState%TS_EMIS
-
     IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
        print*,'BEGIN SUBROUTINE: EMISSCH4'
+    ENDIF
+
+    ! =================================================================
+    ! Get fields for CH4 analytical inversions if needed
+    ! =================================================================
+    IF ( Input_Opt%AnalyticalInv ) THEN
+
+       ! Evaluate the state vector field from HEMCO
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_STATE_VECTOR', &
+                         STATE_VECTOR, RC)
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'CH4_STATE_VECTOR not found in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF
+
+    IF ( Input_Opt%UseEmisSF ) THEN
+
+       ! Evaluate CH4 emissions scale factors from HEMCO
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'EMIS_SF', EMIS_SF, RC)
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'EMIS_SF not found in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     ! =================================================================
@@ -185,11 +204,6 @@ CONTAINS
     ! (especially the diagnostics). It is also used to ensure that
     ! in a multi-species simulation, species 1 (total CH4) is properly
     ! defined.
-    !
-    ! NOTE: the ND60 diagnostics (wetland fraction) is currently not
-    ! written. To support this diagnostics, create a manual diagnostics
-    ! in the wetland extension (HEMCO/Extensions/hcox_ch4wetland_mod.F90),
-    ! activate it in hcoi\_gc\_diagn\_mod.F90 and import it here.
     !
     !                                              (ckeller, 9/12/2013)
     ! =================================================================
@@ -487,6 +501,59 @@ CONTAINS
        WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS(:,:,15))
     ENDIF
 
+    ! =================================================================
+    ! Do scaling for analytical inversion
+    ! =================================================================
+    IF ( Input_Opt%AnalyticalInv  .or. &
+         Input_Opt%UseEmisSF      .or. &
+         Input_Opt%UseOHSF        ) THEN
+
+       ! Don't optimize for soil absorption so remove from the total
+       ! emissions array
+       CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) + CH4_EMIS(:,:,15)
+
+       ! Rescale emissions
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J)	 
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+
+          !------------------------------------------------------------
+          ! For applying scale factors from analytical inversion
+          !------------------------------------------------------------
+          IF ( Input_Opt%UseEmisSF ) THEN
+             ! Scale total emissions
+             CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * EMIS_SF(I,J)
+          ENDIF
+
+          !------------------------------------------------------------
+          ! Perturb emissions for analytical inversion
+          !------------------------------------------------------------
+          IF ( Input_Opt%AnalyticalInv ) THEN
+
+             ! Only apply emission perturbation to current state vector
+             ! element number
+             IF ( Input_Opt%StateVectorElement .GT. 0 ) THEN
+                IF ( STATE_VECTOR(I,J) == Input_Opt%StateVectorElement ) THEN
+                   CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * Input_Opt%PerturbEmis
+                   !Print*, 'Analytical Inversion: Scaled state vector element ', &
+                   !        Input_Opt%StateVectorElement, ' by ', &
+                   !        Input_Opt%PerturbEmis
+                ENDIF
+             ENDIF
+          ENDIF
+
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Now that we've done the emission factor scaling, add soil absorption
+       ! back to the total emissions array
+       CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) - CH4_EMIS(:,:,15)
+
+    ENDIF
+
     IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
        print*,'END SUBROUTINE: EMISSCH4'
     ENDIF
@@ -513,11 +580,11 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Met_Mod,    ONLY : MetState
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -628,7 +695,7 @@ CONTAINS
     ! HISTORY (aka netCDF diagnostics)
     ! OH concentration in [molec/cm3] after chemistry
     !
-    ! BOH from HEMCO is in mol/mol, convert to molec/cm3
+    ! BOH from HEMCO is in kg/m3, convert to molec/cm3
     !=================================================================
     IF ( State_Diag%Archive_OHconcAfterChem ) THEN
        DO L = 1, State_Grid%NZ
@@ -636,7 +703,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
              State_Diag%OHconcAfterChem(I,J,L) = &
-                  ( BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L) )
+                  ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
           ELSE
              State_Diag%OHconcAfterChem(I,J,L) = 0.0_f4
           ENDIF
@@ -728,13 +795,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
-    USE TIME_MOD,       ONLY : GET_TS_CHEM
-    USE TIME_MOD,       ONLY : GET_MONTH
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
+    USE TIME_MOD,             ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -767,13 +835,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I,  J,    L
-    REAL(fp)          :: DT, GCH4, Spc2GCH4
-    REAL(fp)          :: KRATE, C_OH
-    REAL(fp)          :: KRATE_Cl, C_Cl
-
+    INTEGER            :: I,  J,    L
+    REAL(fp)           :: DT, GCH4, Spc2GCH4
+    REAL(fp)           :: KRATE, C_OH
+    REAL(fp)           :: KRATE_Cl, C_Cl
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    REAL(fp), POINTER  :: Spc(:,:,:,:)
+
+    ! Array of scale factors for OH (from HEMCO)
+    REAL(fp)           :: OH_SF(State_Grid%NX,State_Grid%NY)
 
     !=================================================================
     ! CH4_DECAY begins here!
@@ -787,6 +859,21 @@ CONTAINS
 
     ! Point to the chemical species array
     Spc => State_Chm%Species
+
+    ! =================================================================
+    ! Get fields for CH4 analytical inversions if needed
+    ! =================================================================
+    IF ( Input_Opt%UseOHSF ) THEN
+
+       ! Evaluate OH scale factors from HEMCO
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'OH_SF', OH_SF, RC)
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'OH_SF not found in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF
 
     !=================================================================
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -843,15 +930,21 @@ CONTAINS
           GCH4 = Spc(I,J,L,1) * Spc2GCH4
 
           ! OH in [molec/cm3]
-          ! BOH from HEMCO in units of mol/mol, convert to molec/cm3
-          C_OH = BOH(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+          ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
+          C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+
+          ! Apply scale factors from analytical inversion
+          IF ( Input_Opt%UseOHSF ) THEN
+             C_OH = C_OH * OH_SF(I,J)
+             !Print*, 'Applying scale factor to OH: ', OH_SF(I,J)
+          ENDIF
 
           ! Cl in [molec/cm3]
           ! BCl from HEMCO in units of mol/mol, convert to molec/cm3
           C_Cl = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
-          TROPOCH4=TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
-                            + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
+          TROPOCH4 = TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
+                              + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
 
           !-----------------------------------------------------------
           ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -907,8 +1000,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CH4_Metrics( Input_Opt,  State_Chm, State_Diag,                  &
-                         State_Grid, State_Met, RC                          )
+  SUBROUTINE CH4_Metrics( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1072,8 +1165,8 @@ CONTAINS
           CH4conc_mcm3 = CH4conc_kgm3 / MCM3toKGM3_CH4
 
           ! OH concentration [kg m-3] and [molec cm-3]
-          OHconc_mcm3  = BOH(I,J,L)  * State_Met%AIRNUMDEN(I,J,L)
-          OHconc_kgm3  = OHconc_mcm3 * MCM3toKGM3_OH
+          OHconc_kgm3  = BOH(I,J,L)
+          OHconc_mcm3  = OHconc_kgm3 /  MCM3toKGM3_OH
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
           OHmassWgt    = airmass_kg * OHconc_kgm3
@@ -1201,12 +1294,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE State_Grid_Mod,   ONLY : GrdState
-    USE State_Met_Mod,    ONLY : MetState
-    USE TIME_MOD,         ONLY : GET_TS_CHEM
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !

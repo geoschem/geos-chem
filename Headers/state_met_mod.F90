@@ -109,6 +109,7 @@ MODULE State_Met_Mod
                                                 !  end of timestep [hPa]
      REAL(fp), POINTER :: PSC2_DRY      (:,:  ) ! Dry interpolated surface
                                                 !  pressure [hPa]
+     REAL(fp), POINTER :: QV2M          (:,:  ) ! Specific Humidity at 2m [kg/kg]
      REAL(fp), POINTER :: SEAICE00      (:,:  ) ! Sea ice coverage 00-10%
      REAL(fp), POINTER :: SEAICE10      (:,:  ) ! Sea ice coverage 10-20%
      REAL(fp), POINTER :: SEAICE20      (:,:  ) ! Sea ice coverage 20-30%
@@ -396,6 +397,7 @@ CONTAINS
     State_Met%PS1_DRY        => NULL()
     State_Met%PS2_DRY        => NULL()
     State_Met%PSC2_DRY       => NULL()
+    State_Met%QV2M           => NULL()
     State_Met%SEAICE00       => NULL()
     State_Met%SEAICE10       => NULL()
     State_Met%SEAICE20       => NULL()
@@ -1421,6 +1423,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%PSC2_DRY,                                    &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !-------------------------
+    ! QV2M [kg/kg]
+    !-------------------------
+    metId = 'QV2M'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%QV2M,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3557,6 +3577,13 @@ CONTAINS
        State_Met%PSC2_DRY => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%QV2M ) ) THEN
+       DEALLOCATE( State_Met%QV2M, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%QV2M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%QV2M => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%SEAICE00 ) ) THEN
        DEALLOCATE( State_Met%SEAICE00, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SEAICE00', 2, RC )
@@ -4748,6 +4775,11 @@ CONTAINS
        CASE ( 'SEAICE00' )
           IF ( isDesc  ) Desc  = 'Sea ice coverage 00-10%'
           IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'QV2M' )
+          IF ( isDesc  ) Desc  = 'Specific humidity at 2 m'
+          IF ( isUnits ) Units = 'kg kg-1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'SEAICE10' )

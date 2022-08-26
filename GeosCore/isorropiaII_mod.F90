@@ -181,8 +181,10 @@ CONTAINS
 !
     ! SAVEd scalars
     LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL, SAVE            :: IS_HMS = .FALSE.
     INTEGER, SAVE            :: id_HNO3, id_NH3,  id_NH4
     INTEGER, SAVE            :: id_NIT,  id_SALA, id_SO4
+    INTEGER, SAVE            :: id_HMS ! jmm 12/5/18
     INTEGER, SAVE            :: id_SALACL, id_HCL, id_SALCCL
     INTEGER, SAVE            :: id_SO4s, id_NITs, id_SALC
     INTEGER, SAVE            :: id_SALAAL, id_SALCAL
@@ -281,6 +283,7 @@ CONTAINS
        id_NIT    = Ind_('NIT'   )
        id_SALA   = Ind_('SALA'  )
        id_SO4    = Ind_('SO4'   )
+       id_HMS    = Ind_('HMS'   )
        id_SALACL = Ind_('SALACL')
        id_HCL    = Ind_('HCl'   )
        id_SALC   = Ind_('SALC'  )
@@ -291,9 +294,17 @@ CONTAINS
        id_SALAAL = Ind_('SALAAL')
        id_SALCAL = Ind_('SALCAL')
 
+       ! Set a flag if HMS is defined
+       IS_HMS    = ( id_HMS > 0 )
+
        ! Make sure certain tracers are defined
        IF ( id_SO4 <= 0 ) THEN
           ErrMsg = 'SO4 is an undefined species!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( id_HMS <= 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          ErrMsg = 'HMS is an undefined species!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -583,8 +594,15 @@ CONTAINS
           IF ( N == 1 ) THEN
 
              ! Total SO4 [mole/m3], also consider SO4s in SALA
-             TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08_fp*AlkR) *   &
-                    1.e+3_fp / ( 96.0_fp * VOL)
+             IF ( IS_HMS ) THEN
+                TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08_fp*AlkR) * &
+                     1.e+3_fp / ( 96.0_fp * VOL)                             &
+                     + Spc(I,J,L,id_HMS) * 0.5e+3_fp / ( 111.0_fp * VOL )
+             ELSE
+                TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08_fp*AlkR) * &
+                     1.e+3_fp / ( 96.0_fp * VOL)
+             ENDIF
+
 
              ! Total NH3 [mole/m3]
              TNH3 = Spc(I,J,L,id_NH4) * 1.0e+3_fp / (18.0_fp * VOL) +       &
@@ -593,9 +611,9 @@ CONTAINS
           ELSE
 
              ! Total SO4 [mole/m3], also consider SO4s in SALC
-             TSO4 = Spc(I,J,L,id_SO4s) *                                    &
-                    1.e+3_fp * AlkR / (31.4_fp * VOL) +                     &
-                    Spc(I,J,L,id_SALC) * 0.08_fp *                          &
+             TSO4 = Spc(I,J,L,id_SO4s) *                                     &
+                    1.e+3_fp * AlkR / (31.4_fp * VOL) +                      &
+                    Spc(I,J,L,id_SALC) * 0.08_fp *                           &
                     1.e+3_fp * AlkR / (96.0_fp * VOL)
 
              ! Total NH3 [mole/m3]
@@ -933,16 +951,26 @@ CONTAINS
              State_Chm%IsorropBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
              State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
 
-          NUM_SAV    = ( Spc(I,J,L,id_NH3)  / 17.0_fp                        &
+             NUM_SAV = ( Spc(I,J,L,id_NH3)  / 17.0_fp                        &
                      +   Spc(I,J,L,id_NH4)  / 18.0_fp                        &
                      +   Spc(I,J,L,id_SALA) * 0.3061_fp / 23.0_fp           )
 
-          DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp             &
-                     +   Spc(I,J,L,id_NIT)  / 62.0_fp                        &
-                     +   HNO3_DEN           / 63.0_fp                        &
-                     +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp          )
-       ENDIF
+             ! HMS is only defined for fullchem is simulations,
+             ! so skip it if it is not a defined species
+             IF ( IS_HMS ) THEN
+                DEN_SAV = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp          &
+                        +   Spc(I,J,L,id_HMS)  / 111.0_fp                    &
+                        +   Spc(I,J,L,id_NIT)  / 62.0_fp                     &
+                        +   HNO3_DEN           / 63.0_fp                     &
+                        +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp       )
+             ELSE
+                DEN_SAV = ( Spc(I,J,L,id_SO4)  / 96.0_fp   * 2.0_fp          &
+                        +   Spc(I,J,L,id_NIT)  / 62.0_fp                     &
+                        +   HNO3_DEN           / 63.0_fp                     &
+                        +   Spc(I,J,L,id_SALA) * 0.55_fp   / 35.45_fp       )
+             ENDIF
 
+          ENDIF
        ENDDO
 
        IF ( id_HCl > 0 ) THEN

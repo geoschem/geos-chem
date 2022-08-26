@@ -2,9 +2,9 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-16:00
+#SBATCH -t 0-03:00
 #SBATCH -p huce_cascade
-#SBATCH --mem=60000
+#SBATCH --mem=90000
 #SBATCH --mail-type=END
 
 #------------------------------------------------------------------------------
@@ -20,10 +20,6 @@
 #\\
 # !CALLING SEQUENCE:
 #  sbatch intTestExecute_slurm.sh
-#
-# !REVISION HISTORY:
-#  03 Nov 2020 - R. Yantosca - Initial version
-#  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC

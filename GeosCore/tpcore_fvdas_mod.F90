@@ -417,6 +417,7 @@ CONTAINS
     USE PhysConstants
     USE ErrCode_Mod
     USE State_Diag_Mod, ONLY : DgnState
+    USE error_mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -528,6 +529,7 @@ CONTAINS
     INTEGER            :: js (km)
     INTEGER            :: il, ij, ik, iq, k, j, i, Kflip
     INTEGER            :: num, k2m1, S
+    INTEGER            :: north, south
 
     REAL(fp)           :: dap   (km)
     REAL(fp)           :: dbk   (km)
@@ -655,8 +657,8 @@ CONTAINS
     enddo
 
 !$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IK, IQ, I, J )
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( IK, IQ  )
     do ik=1,km
 
   ! ====================
@@ -779,124 +781,145 @@ CONTAINS
     ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
     ps = ak(1)+sum(delp2,dim=3)
 
-!--------------------------------------------------------
-! For time optimization : we parallelize over tracers and
-! we loop over the levels outside horizontal transport
-! subroutines. (ccc, 4/1/09)
-!--------------------------------------------------------
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
+!----------------------------------------------------------------------------
+! For time optimization : we parallelize over tracers and we loop over the
+! levels outside horizontal transport subroutines. (ccc, 4/1/09)
+!
+! Also zeroed PRIVATE variables within the loop, and set jn(ik) and js(ik)
+! to PRIVATE loop variables.  This seems to avoid small diffs in output.
+!   -- Bob Yantosca (04 Jan 2022)
+!---------------------------------------------------------------------------
+!$OMP PARALLEL DO                                                     &
+!$OMP DEFAULT( SHARED                                               ) &
+!$OMP PRIVATE( iq, dq1, ik, adx, ady, ptr_Q, qqu, qqv, north, south )
     do iq = 1, nq
+
+       ! Zero 3-D arrays for each species
+       dq1 = 0.0_fp
 
        do ik = 1, km
 
-       !.sds.. convert to "mass"
-       dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
+          ! Zero PRIVATE variables for safety's sake
+          adx   =  0.0_fp
+          ady   =  0.0_fp
+          ptr_Q => NULL()
+          qqu   =  0.0_fp
+          qqv   =  0.0_fp
 
-     ! ===========================
-       call Calc_Advec_Cross_Terms  &
-     ! ===========================
-            (jn(ik), js(ik), q(:,:,ik,iq), qqu, qqv, &
-            ua(:,:,ik), va(:,:,ik), &
-            j1p, j2p, im, 1, jm, 1, im, 1, jm, &
-            1, im, 1, jm, CROSS)
+          ! Northernmost and southernmost latitude indices by level
+          north = jn(ik)
+          south = js(ik)
 
-       !.sds.. notes on arrays
-       !  q (in)    - species mixing ratio
-       !  qqu (out) - concentration contribution from E-W
-       !             advection cross terms(mixing ratio)
-       !  qqv (out) - concentration contribution from N-S
-       !             advection cross terms(mixing ratio)
-       !  ua  (in)  - average of Courant numbers from il and il+1
-       !  va  (in)  - average of Courant numbers from ij and ij+1
+          !.sds.. convert to "mass"
+          dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
 
-     ! ----------------------------------------------------
-     !  Add advective form E-W operator for E-W cross terms.
-     ! ----------------------------------------------------
+        ! ===========================
+          call Calc_Advec_Cross_Terms                                        &
+        ! ===========================
+               ( north,      south,      q(:,:,ik,iq), qqu, qqv,             &
+                 ua(:,:,ik), va(:,:,ik), j1p,          j2p, im,              &
+                 1,          jm,         1,            im,  1,               &
+                 jm,         1,          im,           1,   jm,              &
+                 CROSS                                                      )
 
-     ! ==============
-       call Xadv_Dao2  &
-     ! ==============
-            (2, jn(ik), js(ik), adx, qqv, &
-            ua(:,:,ik), &
-            1, im, 1, jm, 1, jm, j1p, j2p, &
-            1, im, 1, jm)
-       !.sds notes on output arrays
-       !  adx (out)- cross term due to E-W advection (mixing ratio)
-       !  qqv (in) - concentration contribution from N-S
-       !             advection (mixing ratio)
-       !  ua  (in) - average of Courant numbers from il and il+1
-       !.sds
+          !.sds.. notes on arrays
+          !  q   (in)  - species mixing ratio
+          !  qqu (out) - concentration contribution from E-W
+          !               advection cross terms(mixing ratio)
+          !  qqv (out) - concentration contribution from N-S
+          !               advection cross terms(mixing ratio)
+          !  ua  (in)  - average of Courant numbers from il and il+1
+          !  va  (in)  - average of Courant numbers from ij and ij+1
 
-     ! ----------------------------------------------------
-     ! Add advective form N-S operator for N-S cross terms.
-     ! ----------------------------------------------------
+          ! ----------------------------------------------------
+          !  Add advective form E-W operator for E-W cross terms.
+          ! ----------------------------------------------------
 
-     ! ==============
-       call Yadv_Dao2  &
-     ! ==============
-            (2, ady, qqu, va(:,:,ik), &
-            1, im, 1, jm, &
-            j1p, j2p, 1, im, 1, jm, 1, im, 1, jm)
+        ! ==============
+          call Xadv_Dao2                                                     &
+        ! ==============
+               ( 2,   north, south, adx, qqv,  ua(:,:,ik),                   &
+                 1,   im,    1,     jm,  1,    jm,                           &
+                 j1p, j2p,   1,     im,  1,    jm                           )
 
-       !.sds notes on output arrays
-       !  ady (out)- cross term due to N-S advection (mixing ratio)
-       !  qqu (in) - concentration contribution from N-S advection
-       !             (mixing ratio)
-       !  va  (in) - average of Courant numbers from il and il+1
-       !.sds
-       !
-       !.bmy notes: use a polar cap of 2 boxes (i.e. the "2" as
-       ! the first argument to YADV_DAO2.  The older TPCORE only had
-       ! a polar cap of 1 box (just the Pole itself).  Claire figured
-       ! this out.  (bmy, 12/11/08)
+          !.sds notes on output arrays
+          !  adx (out)- cross term due to E-W advection (mixing ratio)
+          !  qqv (in) - concentration contribution from N-S
+          !             advection (mixing ratio)
+          !  ua  (in) - average of Courant numbers from il and il+1
+          !.sds
 
-       !... update constituent array qq1 by adding in cross terms
-       !           - use in fzppm
-       q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
+          ! ----------------------------------------------------
+          ! Add advective form N-S operator for N-S cross terms.
+          ! ----------------------------------------------------
+
+        ! ==============
+          call Yadv_Dao2                                                     &
+        ! ==============
+               ( 2,   ady, qqu, va(:,:,ik), 1,  im, 1,  jm,                  &
+                 j1p, j2p, 1,   im,         1,  jm, 1,  im,                  &
+                 1,   jm                                                    )
+
+          !.sds notes on output arrays
+          !  ady (out)- cross term due to N-S advection (mixing ratio)
+          !  qqu (in) - concentration contribution from N-S advection
+          !             (mixing ratio)
+          !  va  (in) - average of Courant numbers from il and il+1
+          !.sds
+          !
+          !.bmy notes: use a polar cap of 2 boxes (i.e. the "2" as
+          ! the first argument to YADV_DAO2.  The older TPCORE only had
+          ! a polar cap of 1 box (just the Pole itself).  Claire figured
+          ! this out.  (bmy, 12/11/08)
+
+          !... update constituent array qq1 by adding in cross terms
+          !           - use in fzppm
+          q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
 
 
-     ! ========
-       call Xtp  &
-     ! ========
-            (ilmt, jn(ik), js(ik), pu(:,:,ik), cx(:,:,ik), &
-            dq1(:,:,ik), qqv, xmass(:,:,ik), fx(:,:,ik,iq), &
-            j1p, j2p, im, 1, jm, 1, im, 1, jm, &
-            1, im, 1, jm, IORD)
+        ! ========
+          call Xtp                                                           &
+        ! ========
+               ( ilmt,          north,       south,  pu(:,:,ik),             &
+                 cx(:,:,ik),    dq1(:,:,ik), qqv,    xmass(:,:,ik),          &
+                 fx(:,:,ik,iq), j1p,         j2p,    im,                     &
+                 1,             jm,          1,      im,                     &
+                 1,             jm,          1,      im,                     &
+                 1,             jm,          IORD                           )
 
-       !.sds notes on output arrays
-       !  pu  (in)    - pressure at edges in "u" (mb)
-       !  crx (in)    - Courant number in E-W direction
-       !  dq1 (inout) - species density (mb) - updated with the E-W flux
-       !                fx in Xtp)
-       !  qqv (inout) - concentration contribution from N-S advection
-       !                (mixing ratio)
-       !  xmass(in)   - horizontal mass flux in E-W direction (mb)
-       !  fx  (out)   - species E-W mass flux
-       !.sds
+          !.sds notes on output arrays
+          !  pu  (in)    - pressure at edges in "u" (mb)
+          !  crx (in)    - Courant number in E-W direction
+          !  dq1 (inout) - species density (mb) - updated with the E-W flux
+          !                fx in Xtp)
+          !  qqv (inout) - continue oncentration contribution from N-S advection
+          !                (mixing ratio)
+          !  xmass(in)   - horizontal mass flux in E-W direction (mb)
+          !  fx  (out)   - species E-W mass flux
+          !.sds
 
-     ! ========
-       call Ytp  &
-     ! ========
-            (jlmt, geofac_pc, geofac, cy(:,:,ik), dq1(:,:,ik), &
-            qqu, qqv, ymass(:,:,ik), fy(:,:,ik,iq), &
-            j1p, j2p, 1, im, 1, jm, im, &
-            1, im, 1, jm, 1, im, 1, jm, jord)
+        ! ========
+          call Ytp                                                           &
+        ! ========
+               ( jlmt, geofac_pc, geofac,        cy(:,:,ik),    dq1(:,:,ik), &
+                 qqu,  qqv,       ymass(:,:,ik), fy(:,:,ik,iq), j1p,         &
+                 j2p,  1,         im,            1,             jm,          &
+                 im,   1,         im,            1,             jm,          &
+                 1,    im,        1,             jm,            JORD        )
 
-       !.sds notes on output arrays
-       !  cy (in)     - Courant number in N-S direction
-       !  dq1 (inout) - species density (mb) - updated with the N-S flux
-       !                (fy in Ytp)
-       !  qqu (in)    - concentration contribution from E-W advection
-       !                (mixing ratio)
-       !  qqv (inout) - concentration contribution from N-S advection
-       !                (mixing ratio)
-       !  ymass(in)   - horizontal mass flux in E-W direction (mb)
-       !  fy  (out)   - species N-S mass flux (need to mult by geofac)
-       !.sds
+          !.sds notes on output arrays
+          !  cy (in)     - Courant number in N-S direction
+          !  dq1 (inout) - species density (mb) - updated with the N-S flux
+          !                (fy in Ytp)
+          !  qqu (in)    - concentration contribution from E-W advection
+          !                (mixing ratio)
+          !  qqv (inout) - concentration contribution from N-S advection
+          !                (mixing ratio)
+          !  ymass(in)   - horizontal mass flux in E-W direction (mb)
+          !  fy  (out)   - species N-S mass flux (need to mult by geofac)
+          !.sds
 
-        end do
+       end do  ! IK
 
        qtemp(:,:,:,iq) = q(:,:,:,iq)
 
@@ -905,14 +928,14 @@ CONTAINS
        ptr_Q => q(:,:,:,iq)
 
      ! ==========
-       call Fzppm  &
+       call Fzppm                                                            &
      ! ==========
-            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
-            j1p, 1, jm, 1, im, 1, jm, &
-            im, km, 1, im, 1, jm, 1, km)
+            ( klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), j1p,                &
+              1,    jm,    1,  im,  1,     jm,           im,                 &
+              km,   1,     im, 1,   jm,    1,            km                 )
 
        ! Free pointer memory (bmy, 6/5/13)
-       NULLIFY( ptr_Q )
+       ptr_Q => NULL()
 
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux
@@ -924,11 +947,9 @@ CONTAINS
 
        if (FILL) then
         ! ===========
-          call Qckxyz  &
+          call Qckxyz                                                        &
         ! ===========
-               (dq1, &
-               j1p, j2p, 1, jm, &
-               1, im, 1, jm, 1, im, 1, jm, 1, km)
+               (dq1, j1p, j2p, 1, jm, 1, im, 1, jm, 1, im, 1, jm, 1, km     )
        end if
 
        q(:,:,:,iq) =  &
@@ -955,7 +976,7 @@ CONTAINS
     WHERE ( Q < 0.0_fp )
        Q = 1.0e-26_fp
     ENDWHERE
-       
+
     !======================================================================
     ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
     !
@@ -974,7 +995,7 @@ CONTAINS
     !
     !======================================================================
     IF ( State_Diag%Archive_AdvFluxZonal ) THEN
-         
+
        ! Calculate fluxes for diag. (ccc, 11/20/08)
        JS2G0  = MAX( J1P, JFIRST )     !  No ghosting
        JN2G0  = MIN( J2P, JLAST  )     !  No ghosting

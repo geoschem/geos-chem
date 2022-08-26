@@ -78,13 +78,6 @@ RUN_PHASES:        2
 #
 KPP_STOP_IF_FAIL:  0
 
-#
-# %%% Compute vertical updraft velocity (used for
-# %%% wet scavenging) from online values. If set to
-# %%% false (default), a value of 5 m/s and 10 m/s
-# %%% is used over water and land, respectively.
-#
-Calc_VUD_online: 0
 
 #
 # %%% HEMCO configuration file %%%
@@ -106,6 +99,16 @@ INIT_ZERO:            0
 # %%% Use archived convection fields? %%% 
 #
 ARCHIVED_CONV:        0
+
+# %%% Use MOIST module for convective transport (including washout)
+# Make species friendly to moist? If turned on, convection must be turned off in input.geos
+Species_friendly_to_moist: 0
+# Turn off washout for SO2?
+TurnOff_SO2_washout: 1
+# Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
+Online_CLDLIQ: 1
+# Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
+Online_VUD: 1
 
 #
 # %%% Tuning parameter to reduce washout efficiency 
@@ -133,12 +136,27 @@ Use_ozonopause: -999.0
 #
 Prescribe_strat_H2O: 1
 
+# %%% Settings for excluding species from being transported
+Reduce_transport_species: 0
+Transport_blacklist: CFC115,CFC114,N2O,CFC12,H1301,CFC113,CFC11,CCl4,H2O,H2402,H1211,HCFC142b,HCFC22,HCFC141b,CH3CCl3,CH3Br,CH3Cl,HCFC123
+
+#
+# %%% Include short-lived species in internal restart file?
+#
+Shortlived_species_in_restart: 1
+
 #
 # %%% Read initial conditions from external file
 # %%% instead of internal state
 #
 INIT_SPC_FROM_FILE: 0
-INIT_SPC_FILE: /discover/nobackup/cakelle2/GEOS_CF/v11-02e/GC_v1102e/21_v11-02e_UCX_PL/GEOSChem_restart.201308010000.edit.nc 
+INIT_SPC_FILE: /discover/nobackup/cakelle2/GCC_Restarts/v13.1.0-beta.1/GEOSChem.Restart.20190801_0000z.edit.incHEMCO.nc4
+ONLY_SHORTLIVED_SPECIES: 0
+UNIFORM_IF_MISSING: 1.0e-12
+DATA_IS_IN_PPBV: 1
+ONLY_ON_FIRST_STEP: 1
+DATA_ON_GEOS_LEVELS: 1
+DO_NOT_OVERWRITE_ABOVE_LEVEL: 59
 
 USE_GMI_MESO: 0
 GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf.nc
@@ -151,23 +169,32 @@ Use_GMI_O3_PL:        0
 # Options to nudge O3 between level ANAO3L1 and ANAO3L4. If the flag Use_ANA_O3 is set to 1, GEOS-Chem ozone is nudged to 
 # the analysis field taken from the file specified in ANAO3TMPL. Nudging is performed between levels ANAO3L1 and ANAO3L4
 # (level numbers go from 1 = surface to top of atmosphere).
-# As 'blending factor' it uses the value specified in ANAO3FR, with a smooth vertical transition between zero and full nudging 
-# between levels ANAO3L1 to ANAO3L2 (lower boundary), and ANAO3L3 to ANAO3L4 (upper boundary), respectively. If the flag 
-# 'Use_PCHEM_O3' is enabled, it will use the internal PCHEM O3 to do the nudging instead of the field provided in ANAO3TMPL. 
-# Use_ANA_O3 must still be enabled in this case.
+# The value specified in ANAO3FR is used as the 'blending factor', with a smooth vertical transition between zero and full 
+# nudging between levels ANAO3L1 to ANAO3L2 (lower boundary), and ANAO3L3 to ANAO3L4 (upper boundary), respectively. If 
+# NUDGE_RELATIVE_TO_TROPOPAUSE is set to a value above 0, the lower boundary will be determined based on the tropopause and
+# nudging will be performed from the nearest model level below tropopause plus NUDGE_RELATIVE_TO_TROPOPAUSE. For instance,
+# when set to a value of 1, nudging will start on the first level above the tropopause. If set to 3, nudging will begin from
+# the 3rd level above tropopause upwards. Vertical smoothing is determined based on the difference between ANAO3L1 and ANAO3L2. 
+# If the flag 'Use_PCHEM_O3' is enabled, it will use the internal PCHEM O3 to do the nudging instead of the field provided 
+# in ANAO3TMPL. Use_ANA_O3 must still be enabled in this case.
 # A nuding attempt is made every three hours (0130, 0430, ...) at the beginning of phase one of GEOS-Chem. If using ANAO3TMPL,
 # it will look for variable 'O3' in that file, and the units of the field are assumed to be kg/kg (total air). This field
 # must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
-# If no file is found for a given time step, nudging is skipped. Diagnostics 'ANA_O3_INC' outputs the ozone increments added to 
-# the GEOS-Chem ozone field.
+# If no file is found for a given time step, nudging is skipped. Diagnostics 'GCC_ANA_O3_INC' outputs the ozone increments 
+# added to the GEOS-Chem ozone field.
+# The error mode flag determines what happens if (a) the file is not found or (b) the current time is not found on file. Error
+# mode of 0 exits with an error in all cases, 1 skips nudging (default), and 2 skips nudging if file not found and uses the 
+# first time slice on file if file is found but the current time stamp is not on file. 
 Use_ANA_O3: 0
 ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
+NUDGE_RELATIVE_TO_TROPOPAUSE: 1
 ANAO3L1: 38
 ANAO3L2: 40
 ANAO3L3: 72
 ANAO3L4: 72
 ANAO3FR: 0.2
 Use_PCHEM_O3: 0
+ERROR_MODE: 1
 
 #
 # NOx lightning met inputs
@@ -175,8 +202,17 @@ Use_PCHEM_O3: 0
 # Input source for flash rates: If set to 'LFR' or 'LFR_GCC', the corresponding MOIST export is used. If set to any other
 # name, will search for that name in the import state. For instance, set it to 'LFR_OFFLINE' and then define an import via
 # ExtData to use LFR values from a file. Default is LFR_GCC. All values expected in [flashes km-2 s-1].
+# Scale factors can be defined to adjust the imported LFR field for the southern extratropics (<23S), tropics (23S-23N), and
+# the northern extratropics (>23N). In addition, a global scale factor can be set to rescale the overall LFR.
+# These factors can be used to better match the expected global annual average flash rate of 46 flashes s-1, and a distribution
+# of ~65% in the tropics and ~23% in the N extratropics.
 #
 LIGHTNING_FLASH_RATE_SOURCE: LFR_GCC
+LFR_SCALING_SOUTHERN_TROP:   2.0
+LFR_SCALING_NORTHERN_TROP:   1.1
+LFR_SCALING_TROPICS:         0.4
+LFR_SCALING_GLOBAL:          2.0
+
 #
 # Input source for convective height: If set to 'CNV_MFC', will compute the convective height from convective mass fluxes
 # (default). If set to 'BYNCY', will compute it from the buoyancy and convective fraction. For all other cases, will look

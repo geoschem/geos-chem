@@ -704,37 +704,33 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL'          .and. &
-         TRIM(Sim) /= 'CH4'              .and. &
-         TRIM(Sim) /= 'CO2'              .and. &
-         TRIM(Sim) /= 'FULLCHEM'         .and. &
-         TRIM(Sim) /= 'HG'               .and. &
-         TRIM(Sim) /= 'POPS'             .and. &
-         TRIM(Sim) /= 'TRANSPORTTRACERS' .and. &
-         TRIM(Sim) /= 'TAGCO'            .and. &
-         TRIM(Sim) /= 'TAGCH4'           .and. &
-         TRIM(Sim) /= 'TAGHG'            .and. &
-         TRIM(Sim) /= 'TAGO3'            ) THEN
-       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      // &
-                ' valid simulation. Supported simulations are:'     // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'           // &
+    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
+         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
+         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
+         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
+         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
+         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
+       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
+                ' valid simulation. Supported simulations are:'           // &
+                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
                 ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
-    Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'              .or. &
-                                     TRIM(Sim) == 'TAGCH4'           )
-    Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              )
-    Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'FULLCHEM'         )
-    Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'               .or. &
-                                     TRIM(Sim) == 'TAGHG'            )
-    Input_Opt%ITS_A_POPS_SIM     = ( TRIM(Sim) == 'POPS'             )
-    Input_Opt%ITS_A_RnPbBe_SIM   = ( TRIM(Sim) == 'TRANSPORTTRACERS' )
-    Input_Opt%ITS_A_TAGO3_SIM    = ( TRIM(Sim) == 'TAGO3'            )
-    Input_Opt%ITS_A_TAGCO_SIM    = ( TRIM(Sim) == 'TAGCO'            )
-    Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOL'          )
+    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
+                                       TRIM(Sim) == 'TAGCH4'                )
+    Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
+    Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
+    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
+                                       TRIM(Sim) == 'TAGHG'                 )
+    Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
+    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
+    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
+    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
+    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
 
     !-----------------------------------------------------------------
     ! Species database file
@@ -1130,7 +1126,7 @@ CONTAINS
                         TRIM( State_Grid%GridRes )
        WRITE( 6, 110 ) 'Min/max longitude           : ', &
                         State_Grid%XMin, State_Grid%XMax
-       WRITE( 6, 110 ) 'Min/max longitude           : ', &
+       WRITE( 6, 110 ) 'Min/max latitude            : ', &
                         State_Grid%YMin, State_Grid%YMax
        WRITE( 6, 120 ) 'X grid dimension            : ', &
                         State_Grid%NX
@@ -1433,7 +1429,13 @@ CONTAINS
     ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Need Hg0, Hg2, HgP for tagged Mercury
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 3 )
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 25 )
+
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+
+       ! O3 and O3Strat are always present; more than that
+       ! indicate an extended tagged O3 simulation
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 2 )
 
     ELSE
 
@@ -2215,15 +2217,15 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LCHEM
 
-    ! Turn on stratospheric chemistry?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSCHEM', RC )
+    ! Turn on linearized chemistry above chemistry grid?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LINEAR_CHEM', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LSCHEM
+    READ( SUBSTRS(1:N), * ) Input_Opt%LINEAR_CHEM
 
-    ! Use Linoz for stratospheric ozone? (Otherwise, Synoz is used)
+    ! Use Linoz for ozone above chemistry grid? (Otherwise, Synoz is used)
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LLINOZ', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2233,14 +2235,6 @@ CONTAINS
 
     ! Use Synoz if Linoz is turned off
     IF ( .not. Input_Opt%LLINOZ ) Input_Opt%LSYNOZ = .TRUE.
-
-    ! Turn on unified strat-trop chemistry?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LUCX', RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%LUCX
 
     ! Turn on online stratospheric H2O?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LACTIVEH2O', RC )
@@ -2310,24 +2304,19 @@ CONTAINS
 
 #ifndef MODEL_GEOS
     ! Cannot use Synoz with linearized mesospheric chemistry
-    IF ( Input_Opt%LUCX .and. Input_Opt%LSCHEM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LINEAR_CHEM ) THEN
        IF (.not.Input_Opt%LLINOZ) THEN
-          ErrMsg = 'Cannot use Synoz with linearized meso. chem.!'
+          ErrMsg = 'Cannot use Synoz with linearized mesospheric chem.!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 #endif
 
-    ! Cannot have active H2O without stratospheric chemistry
-    IF ( .not.Input_Opt%LUCX ) THEN
-       Input_Opt%LACTIVEH2O   = .FALSE.
-       Input_Opt%LStaticH2OBC = .FALSE.
-    ENDIF
-
     ! FAST-JX is only used for fullchem and offline aerosol
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM  ) THEN
+         Input_Opt%ITS_AN_AEROSOL_SIM  .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  ) THEN
 
        ! Make sure either O3 from met or TOMS is selected
        IF ( .not. Input_Opt%USE_O3_FROM_MET .and. &
@@ -2374,12 +2363,10 @@ CONTAINS
        WRITE( 6, '(  a)' ) '--------------'
        WRITE( 6, 100     ) 'Turn on chemistry?          : ', &
                             Input_Opt%LCHEM
-       WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', &
-                            Input_Opt%LSCHEM
+       WRITE( 6, 100     ) 'Use linear. mesospheric chem: ', &
+                            Input_Opt%LINEAR_CHEM
        WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', &
                             Input_Opt%LLINOZ
-       WRITE( 6, 100     ) 'Enable UCX?                 : ', &
-                            Input_Opt%LUCX
        WRITE( 6, 100     ) 'Online strat. H2O?          : ', &
                             Input_Opt%LACTIVEH2O
        WRITE( 6, 100     ) 'Use robust strat H2O BC?    : ', &
@@ -3474,7 +3461,6 @@ CONTAINS
 #endif
 
     !--------------------------
-    ! ND60: Wetland Fraction
     ! ND60: TOMAS rate
     !--------------------------
     CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND60', RC )
@@ -3870,6 +3856,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
+	USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3952,7 +3939,26 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+	
+    IF ( N > 85 .AND. Input_Opt%amIRoot) THEN 
+	   WRITE( 6, '(/,a)' ) 'OBSPACK_MENU'
+       WRITE( 6, '(  a)' ) '----------------'
+       WRITE( 6, '(a)') 'WARNING: Too many ObsPack individual output species detected on one line input.'
+       WRITE( 6, '(a)') 'Consider using wildcard SpeciesConc_?ALL? to track all advected species.'  
+       CALL GEOS_CHEM_STOP
+    ENDIF
 
+    ! Test if there is an "?ALL" wildcard present as the FIRST substring
+    ! argument to the ObsPack output Species Line. 
+    IF ( N==1 .AND. INDEX( SUBSTRS(1) , '?ALL' ) >  0)  THEN
+      ! If wildcard for all species is requested then update the 
+      ! list of species to track to be the list of advected species 
+      SUBSTRS= Input_Opt%AdvectSpc_Name
+
+      ! And update the number of species to track with ObsPack as the # of advected species.  
+      N =Input_Opt%N_ADVECT			
+    ENDIF  
+	
     ! Populate the ObsPack species name list
     Input_Opt%ObsPack_nSpc = N
     DO S = 1, Input_Opt%ObsPack_nSpc
@@ -4799,6 +4805,14 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
 
+    ! Use AIRS CH4 observation operator?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'AIRS_CH4_OBS', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%AIRS_CH4_OBS
+
     ! Use TCCON CH4 observation operator?
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TCCON_CH4_OBS', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4806,6 +4820,46 @@ CONTAINS
        RETURN
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%TCCON_CH4_OBS
+
+    ! Do analytical inversion?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'AnalyticalInv', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%AnalyticalInv
+
+    ! Emission perturbation
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'PerturbEmis', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%PerturbEmis
+
+    ! Current state vector element number
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'StateVectorElement', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%StateVectorElement
+
+    ! Use emission scale factors?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'UseEmisSF', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%UseEmisSF
+
+    ! Use OH scale factors?
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'UseOHSF', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%UseOHSF
 
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
@@ -4820,14 +4874,28 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) 'CH4 MENU'
        WRITE( 6, '(  a)' ) '-----------'
-       WRITE( 6, 100     ) 'Use GOSAT obs operator: ', &
+       WRITE( 6, 100     ) 'Use GOSAT obs operator   : ', &
                             Input_Opt%GOSAT_CH4_OBS
-       WRITE( 6, 100     ) 'Use TCCON obs operator: ', &
-            Input_Opt%TCCON_CH4_OBS
+       WRITE( 6, 100     ) 'Use AIRS obs operator    : ', &
+                            Input_Opt%AIRS_CH4_OBS
+       WRITE( 6, 100     ) 'Use TCCON obs operator   : ', &
+                            Input_Opt%TCCON_CH4_OBS
+       WRITE( 6, 100     ) 'Do analytical inversion  : ', &
+                            Input_Opt%AnalyticalInv
+       WRITE( 6, 110     ) 'Emission perturbation    : ', &
+                            Input_Opt%PerturbEmis
+       WRITE( 6, 120     ) 'Current state vector elem: ', &
+                            Input_Opt%StateVectorElement
+       WRITE( 6, 100     ) 'Use emis scale factors   : ', &
+                            Input_Opt%UseEmisSF
+       WRITE( 6, 100     ) 'Use OH scale factors     : ', &
+                            Input_Opt%UseOHSF 
     ENDIF
 
     ! FORMAT statements
-100 FORMAT( A, L5  )
+100 FORMAT( A, L5   )
+110 FORMAT( A, f6.2 )
+120 FORMAT( A, I5   )
 
     ! Return success
     RC = GC_SUCCESS
@@ -5421,7 +5489,7 @@ CONTAINS
        TS_DYN  = TS_DYN  * -1
        TS_RAD  = TS_RAD  * -1
     endif
-         
+
 
     ! NUNIT is time step in minutes for unit conversion
     TS_UNIT = -1
@@ -5750,6 +5818,7 @@ CONTAINS
         MAX( Ind_('SO2' ,'A'), 0 ) + &
         MAX( Ind_('SO4' ,'A'), 0 ) + &
         MAX( Ind_('SO4s','A'), 0 ) + &
+        MAX( Ind_('HMS' ,'A'), 0 ) + &! (jmm, 07/2/18)        
         MAX( Ind_('MSA' ,'A'), 0 ) + &
         MAX( Ind_('NH3' ,'A'), 0 ) + &
         MAX( Ind_('NH4' ,'A'), 0 ) + &
@@ -5975,16 +6044,12 @@ CONTAINS
     !=================================================================
     ! Error check stratospheric H2O
     !=================================================================
-    IF ( Input_Opt%LUCX .and. Input_Opt%LSETH2O ) THEN
-       IF (Ind_('H2O') < 0 ) THEN
-          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-          WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F90: ' &
-               // 'H2O is set but H2O species is undefined.'
-          Input_Opt%LSETH2O = .FALSE.
-          WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-       ENDIF
-    ELSE
+    IF ( Input_Opt%LSETH2O .and. Ind_('H2O') < 0 ) THEN
+       WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
+       WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F90: ' &
+            // 'H2O is set but H2O species is undefined.'
        Input_Opt%LSETH2O = .FALSE.
+       WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
     ENDIF
 
   END SUBROUTINE DO_ERROR_CHECKS

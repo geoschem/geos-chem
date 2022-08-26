@@ -416,7 +416,7 @@ CONTAINS
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+       ErrMsg = 'Incorrect species units in Set_SpcAdj_Diags_VVDry!' // trim( State_Chm%Spc_Units)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -444,7 +444,7 @@ CONTAINS
     IF ( Input_Opt%Is_Adjoint ) THEN
 
        ! Point to mapping obj specific to SpeciesConc diagnostic collection
-       mapData => State_Diag%Map_SpeciesConc
+       mapData => State_Diag%Map_SpeciesAdj
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -936,7 +936,12 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,1) = colSum
              ELSE
+#ifdef MODEL_GEOS
+                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep &
+                                / State_Grid%AREA_M2(I,J)
+#else
                 diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep
+#endif
              ENDIF
           ENDDO
        ENDIF
@@ -978,7 +983,12 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,2) = colSum
              ELSE
+#ifdef MODEL_GEOS
+                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep &
+                                / State_Grid%AREA_M2(I,J)
+#else
                 diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep
+#endif
              ENDIF
           ENDDO
        ENDIF
@@ -1020,7 +1030,12 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
              ELSE
+#ifdef MODEL_GEOS
+                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                               / State_Grid%AREA_M2(I,J)
+#else
                 diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+#endif
              ENDIF
           ENDDO
        ENDIF
