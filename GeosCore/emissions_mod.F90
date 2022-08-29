@@ -292,7 +292,8 @@ CONTAINS
     ! This will get the individual CH4 emission terms in the same way
     ! as done for the CH4 simulation above.
     IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
-       CALL Emiss_CarbonCycle( Input_Opt, State_Grid, State_Met, RC )
+       CALL Emiss_CarbonCycle( Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

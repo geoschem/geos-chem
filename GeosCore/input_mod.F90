@@ -242,8 +242,8 @@ CONTAINS
     ! Get settings for specialty simulations from the YAML Config object
     !========================================================================
 
-    ! CH4 simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim ) THEN
+    ! CH4/carboncycle simulation settings
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_CarbonCycle_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -255,7 +255,7 @@ CONTAINS
     ENDIF
 
     ! CO simulation settings
-    IF ( Input_Opt%Its_A_TagCO_Sim ) THEN
+    IF ( Input_Opt%Its_A_TagCO_Sim .or. Input_Opt%Its_A_CarbonCycle_Sim ) THEN
        CALL Config_CO( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO"!'
@@ -267,8 +267,8 @@ CONTAINS
     ENDIF
 
 
-    ! CO2 simulation settings
-    IF ( Input_Opt%Its_A_CO2_Sim ) THEN
+    ! CO2/carboncycle simulation settings
+    IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_CarbonCycle_Sim ) THEN
        CALL Config_CO2( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO2"!'
