@@ -154,6 +154,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
      REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
      REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
+     REAL(fp),          POINTER :: SoilDust   (:,:,:,:) ! Soil dust [kg/m3]
      REAL(fp),          POINTER :: ORVCsesq     (:,:,:) ! Sesquiterpenes mass [kg/box]
 
      !-----------------------------------------------------------------------
@@ -426,7 +427,8 @@ CONTAINS
     State_Chm%KHETI_SLA         => NULL()
     State_Chm%ACLArea           => NULL()
     State_Chm%ACLRadi           => NULL()
-    State_Chm%HSO3_AQ          => NULL()
+    State_Chm%SoilDust          => NULL()
+    State_Chm%HSO3_AQ           => NULL()
     State_Chm%SO3_AQ            => NULL()
     State_Chm%fupdateHOBr       => NULL()
     State_Chm%fupdateHOCl       => NULL()
@@ -982,6 +984,36 @@ CONTAINS
                nSlots     = State_Chm%nAeroType,                             &
                nCat       = N,                                               &
                RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! SoilDust, tmf 10/26/21
+       !---------------------------------------------------------------------
+       fieldId(1) = 'SoilDUST1'
+       fieldId(2) = 'SoilDUST2'
+       fieldId(3) = 'SoilDUST3'
+       fieldId(4) = 'SoilDUST4'
+       fieldId(5) = 'SoilDUST5'
+       fieldId(6) = 'SoilDUST6'
+       fieldId(7) = 'SoilDUST7'
+
+       ! Allocate and register each field individually
+       DO N = 1, NDUST
+          CALL Init_and_Register(                                               &
+               Input_Opt  = Input_Opt,                                          &
+               State_Chm  = State_Chm,                                          &
+               State_Grid = State_Grid,                                         &
+               chmId      = TRIM( fieldId(N) ),                                 &
+               Ptr2Data   = State_Chm%SoilDust,                                 &
+               nSlots     = NDUST,                                              &
+               nCat       = N,                                                  &
+               RC         = RC                                                 )
 
           IF ( RC /= GC_SUCCESS ) THEN
              errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
@@ -2878,6 +2910,13 @@ CONTAINS
        State_Chm%AClRadi => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%SoilDust ) ) THEN
+       DEALLOCATE( State_Chm%SoilDust, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SoilDust', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SoilDust => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%WetAeroArea ) ) THEN
        DEALLOCATE( State_Chm%WetAeroArea, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 2, RC )
@@ -3816,6 +3855,41 @@ CONTAINS
                                 // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
+
+       CASE ( 'SOILDUST1' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 1'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SOILDUST2' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 2'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SOILDUST3' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 3'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SOILDUST4' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 4'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SOILDUST5' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 5'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SOILDUST6' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 6'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SOILDUST7' )
+          IF ( isDesc  ) Desc  = 'Dust aerosol concentration in bin 7'
+          IF ( isUnits ) Units = 'kg/m3'
+          IF ( isRank  ) Rank  =  3
 
        CASE ( 'GAMMAN2O5OVERALL' )
           IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma N2O5 overall'

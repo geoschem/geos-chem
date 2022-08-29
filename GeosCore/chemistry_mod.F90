@@ -64,7 +64,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,     ONLY : RDAER
-    USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
@@ -291,9 +290,7 @@ CONTAINS
 
           !==================================================================
           ! If LDUST is turned on, then we have online dust aerosol in
-          ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
-          ! compute aerosol optical depth for FAST-JX, etc.
-          !
+          ! GEOS-CHEM.
           ! If LDUST is turned off, then we do not have online dust aerosol
           ! in GEOS-CHEM...so read monthly-mean dust files from disk.
           ! (rjp, tdf, bmy, 4/1/04)
@@ -304,7 +301,6 @@ CONTAINS
                                 State_Diag = State_Diag,                     &
                                 State_Grid = State_Grid,                     &
                                 State_Met  = State_Met,                      &
-                                dust       = soilDust,                       &
                                 odSwitch   = waveLength,                     &
                                 RC         = RC                             )
 
@@ -837,9 +833,13 @@ CONTAINS
 
              ! Compute dust OD's & surface areas
              WAVELENGTH = 0
-             CALL Rdust_Online( Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, SOILDUST,   &
-                                WAVELENGTH, RC )
+             CALL Rdust_Online( Input_Opt  = Input_Opt,                   &
+                                State_Chm  = State_Chm,                   &
+                                State_Diag = State_Diag,                  &
+                                State_Grid = State_Grid,                  &
+                                State_Met  = State_Met,                   &
+                                ODswitch   = waveLength,                  &
+                                RC         = RC                          )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1121,7 +1121,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,    ONLY : RDAER
-    USE AEROSOL_MOD,    ONLY : SOILDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : Debug_Msg
@@ -1227,9 +1226,7 @@ CONTAINS
 
              !===============================================================
              ! If LDUST is turned on, then we have online dust aerosol in
-             ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order
-             ! to compute aerosol optical depth for FAST-JX, etc.
-             !
+             ! GEOS-CHEM.
              ! If LDUST is turned off, then we don't have online dust
              ! aerosol in GEOS-CHEM...so read monthly-mean dust files
              ! from disk. (rjp, tdf, bmy, 4/1/04)
@@ -1240,7 +1237,6 @@ CONTAINS
                                    State_Diag = State_Diag,                  &
                                    State_Grid = State_Grid,                  &
                                    State_Met  = State_Met,                   &
-                                   dust       = soilDust,                    &
                                    ODswitch   = waveLength,                  &
                                    RC         = RC                          )
 

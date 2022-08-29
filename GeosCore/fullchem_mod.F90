@@ -92,7 +92,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_FJX_MOD
-    USE DUST_MOD,                 ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX

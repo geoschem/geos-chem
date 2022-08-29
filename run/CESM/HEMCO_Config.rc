@@ -23,7 +23,6 @@
 #BOC
 ###############################################################################
 ### BEGIN SECTION SETTINGS
-###############################################################################
 
 ROOT:                        /glade/p/univ/umit0034/ExtData/HEMCO
 METDIR:                      /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/GEOS_2x2.5/MERRA2
@@ -2506,9 +2505,14 @@ Warnings:                    1
 0 CEDS_NO_SHP $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc       NO_shp 1750-2019/1-12/1/0 C xy kg/m2/s NO 25   10 5
 )))CEDSv2_SHIP
 
-(((CEDS_GBDMAPS_SHIP
-0 CEDS_NO_SHP $ROOT/CEDS/v2020-08/$YYYY/NO-em-total-anthro_CEDS_$YYYY.nc      NO_shp 1970-2017/1-12/1/0 C xy kg/m2/s NO 25   10 5
-)))CEDS_GBDMAPS_SHIP
+(((CMIP6_SHIP
+102 CMIP6_NO_SHP $ROOT/CMIP6/v2021-01/$SCENARIO/$SCENARIO_$YYYY.nc4            NO_shp            1750-2100/1-12/1/0 C xy kg/m2/s    NO    25        10 5
+)))CMIP6_SHIP
+
+(((NEI2011_SHIP_HOURLY
+0 NEI11_C3MARINE_NO    $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc NO     2006-2013/1-12/1-31/*  C xy kg/m2/s  NO   251/1007 10 50
+0 NEI11_C3MARINE_NO2   $ROOT/NEI2011/v2015-03/$MM/NEI11_0.1x0.1_2011$MM$DD_c3marine.nc NO2    2006-2013/1-12/1-31/*  C xy kg/m2/s  NO2  251/1007 10 50
+)))NEI2011_SHIP_HOURLY
 
 (((CMIP6_SHIP
 102 CMIP6_NO_SHP $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 NO_shp 1750-2100/1-12/1/0 C xy kg/m2/s NO 25   10 5
