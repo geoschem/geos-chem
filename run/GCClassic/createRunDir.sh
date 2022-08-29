@@ -326,45 +326,55 @@ if [[ ${met} = "ModelE2.1" ]]; then
 	valid_scen=1
 	if [[ ${scen_num} = "1" ]]; then
 	    scenario="HIST"
-            runid="E213f10aF40oQ40"
+	    runid="E213f10aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1851-1860; 2001-2014'\n"
 	elif [[ ${scen_num} = "2" ]]; then
 	    scenario="HIST"
-            runid="E213f10aF40oQ40nudge"
-	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014"
+	    runid="E213f10aF40oQ40nudge"
+	    vertres="F40"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014'\n"
 	elif [[ ${scen_num} = "3" ]]; then
 	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    runid="E213SSP119aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "4" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP126"
+	    runid="E213SSP126aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "5" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP434"
+	    runid="E213SSP434aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "6" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP245"
+	    runid="E213SSP245aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "7" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP460"
+	    runid="E213SSP460aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "8" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP370"
+	    runid="E213SSP370aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "9" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP585"
+	    runid="E213SSP585aF40oQ40"
+	    vertres="F40"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	else
   	    valid_scen=0
 	    printf "Invalid GCAP 2.0 scenario. Try again.\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='$scenario'\n"
+	RUNDIR_VARS+="RUNDIR_GCAP2_VERTRES='$vertres'\n"
 	RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='$runid'\n"
     done
 
@@ -389,6 +399,7 @@ if [[ ${met} = "ModelE2.1" ]]; then
 
 else
     RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GCAP2_VERTRES='not_used'\n"
     RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='not_used'\n"
     RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1980-2021'\n"
 
@@ -562,32 +573,24 @@ if [[ ${met} = "ModelE2.1" ]]; then
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00243979'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00276896'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00254319'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
   	fi
     else
         if [[ "$grid_res" ==  "4x5" ]]; then
             RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.03564873'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01050036'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01340854'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01066495'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
