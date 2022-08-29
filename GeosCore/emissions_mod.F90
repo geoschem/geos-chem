@@ -287,7 +287,10 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Carbon cycle simulation (e.g. CO2-CO-CH4-OCS)
+    ! Carbon cycle simulation (e.g. CO2-CO-CH4-OCS via KPP)
+    !
+    ! This will get the individual CH4 emission terms in the same way
+    ! as done for the CH4 simulation above.
     IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
        CALL Emiss_CarbonCycle( Input_Opt, State_Grid, State_Met, RC )
 
