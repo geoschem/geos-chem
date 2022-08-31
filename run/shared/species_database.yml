@@ -730,6 +730,10 @@ CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
   FullName: Methane
+CH4_E:
+  << : *CH4properties
+  Background_VV: 1.8e-6
+  FullName: Methane (external input for carboncycle mechanism)
 CH4_BBN:
   << : *CH4properties
   Background_VV: 1.0e-20
@@ -805,6 +809,12 @@ CHCl3:
 Cl:
   Formula: Cl
   FullName: Atomic chlorine
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 35.45
+Cl_E:
+  Formula: Cl
+  FullName: Atomic chlorine (external input for carboncycle mechanism)
   Is_Advected: true
   Is_Gas: true
   MW_g: 35.45
@@ -926,6 +936,10 @@ CO2se:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
+CO2_OH:
+  << : *CO2properties
+  Background_VV: 1.0e-20
+  FullName: Carbon dioxide loss by OH (carboncycle mechanism)
 CO_PROP: &COproperties
   Formula: CO
   Is_Advected: true
@@ -1015,6 +1029,14 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
+CO_CH4:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from methane oxidation (carboncycle mechanism)
+CO_NMVOC:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from non-methane VOCs oxidation (carboncycle mechanism)
 CSL:
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
@@ -1068,6 +1090,10 @@ DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
   MW_g: 29.0
+DUMMY:
+  FullName: Dummy species (carboncycle mechanism)
+  Is_Gas: true
+  MW_g: 1.0
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -3316,6 +3342,10 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
+NMVOC_E:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from NMVOC oxidation (external input for carboncycle mechanism)
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -3510,6 +3540,12 @@ OH:
   Background_VV: 4.0e-15
   Formula: OH
   FullName: Hydroxyl radical
+  Is_Gas: true
+  MW_g: 17.01
+OH_E:
+  Background_VV: 4.0e-15
+  Formula: OH
+  FullName: Hydroxyl radical (external input for carboncycle mechanism)
   Is_Gas: true
   MW_g: 17.01
 OIO:
