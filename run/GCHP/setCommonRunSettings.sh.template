@@ -96,13 +96,14 @@ Diag_Collections=(SpeciesConc    \
 #    MID-RUN CHECKPOINT FILES
 #------------------------------------------------------------
 Periodic_Checkpoint=OFF
-Checkpoint_Freq="1680000"
+Checkpoint_Freq=monthly
 
 # Instructions for configuring restart output before end of run:
 #  1. Set Periodic_Checkpoint=ON
-#  2. Set Checkpoint_Freq to a string of format HHmmss. More than 2 digits for
-#     hours string is permitted, e.g. 168000 for 7 days.
-#  NOTE: Frequency of output will be measured from start datetime in cap_restart
+#  2. Set Checkpoint_Freq to either monthly or a string of format HHmmss
+#     where HHmmss is frequency hours, minutes, and seconds.
+#     More than 2 digits for hours is permitted, e.g. "1680000" for 7 days.
+#  NOTE: Frequency of output will be measured from start date set in cap_restart.
 
 ###################################################################
 #    INFREQUENTLY CHANGED SETTINGS
