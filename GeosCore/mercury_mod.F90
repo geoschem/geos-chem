@@ -3108,7 +3108,6 @@ CONTAINS
     ! INIT_MERCURY begins here!
     !========================================================================
 
-    ! Initialize
     ! Assume success
     RC = GC_SUCCESS
 
