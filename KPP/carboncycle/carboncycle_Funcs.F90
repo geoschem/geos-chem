@@ -30,49 +30,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_InitMw
-!
-! !DESCRIPTION: Initializes the KPP MW and SR_MW arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE carboncycle_InitKPPVars( State_Chm )
-!
-! !USES:
-!
-    USE State_Chm_Mod, ONLY : ChmState
-!
-! !INPUT PARAMETERS: 
-!
-    TYPE(ChmState), INTENT(IN) :: State_Chm
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: N, S
-    
-    ! Loop over species
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get the KPP index
-       S = State_Chm%Map_KppSpc(N)
-       IF ( S > 0 ) THEN
-          MW(S)    = State_Chm%SpcData(N)%Info%MW_g
-          SR_MW(S) = SQRT( MW(S) ) 
-          print*, N, S, MW(S), TRIM( State_Chm%SpcData(N)%Info%Name )
-       ENDIF
-    ENDDO
-
-  END SUBROUTINE carboncycle_InitKPPVars
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: carboncycle_ConvertKgToMolecCm3
 !
 ! !DESCRIPTION: Converts species from kg to molec/cm3 and stores into
@@ -162,10 +119,9 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE carboncycle_ComputeRateConstants(                               &
-             I,        J,        L,           bAirDens,    bCl,              &
-             bOH,      CH4loss,  GMI_Prod_CO, GMI_Loss_CO, PCO_nmVOC,        &
-             PCO_CH4,  LPCO_CH4, dtChem,      tCosZ,       State_Chm,        &
-             State_Met                                                      )
+             I,        J,            L,          bCl,        bOH,            &
+             CH4loss,  GMI_Prod_CO, GMI_Loss_CO, PCO_nmVOC,  PCO_CH4,        &
+             LPCO_CH4, dtChem,      tCosZ,       State_Chm,  State_Met      )
 !
 ! !USES:
 !
@@ -176,7 +132,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN) :: I, J, L
-    REAL(fp),       INTENT(IN) :: bAirDens
     REAL(fp),       INTENT(IN) :: bCl
     REAL(fp),       INTENT(IN) :: bOH
     REAL(fp),       INTENT(IN) :: CH4loss

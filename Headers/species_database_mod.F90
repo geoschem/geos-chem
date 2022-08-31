@@ -1111,10 +1111,12 @@ CONTAINS
     nSpecies = nAdvect
 
     !=======================================================================
-    ! For full-chemistry and Hg simulations with KPP, get the list of all of
+    ! For KPP-based simulations, get the list of all of
     ! species names in the KPP mechanism, and their indices
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                             &
+         Input_Opt%ITS_A_MERCURY_SIM       .or.                             &
+         Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
        ! Allocate a temporary array large enough to hold all of the
        ! advected species listed in geoschem_config.yml as well as all of the

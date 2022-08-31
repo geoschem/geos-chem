@@ -1457,15 +1457,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CarbonCycle_Mod,ONLY : Init_CarbonCycle
     USE ErrCode_Mod
-    USE FAST_JX_MOD,    ONLY : Init_FJX
-    USE FullChem_Mod,   ONLY : Init_FullChem
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Chm_Mod,  ONLY : Ind_
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Grid_Mod, ONLY : GrdState
+    USE FAST_JX_MOD,       ONLY : Init_FJX
+    USE FullChem_Mod,      ONLY : Init_FullChem
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Chm_Mod,     ONLY : ChmState
+    USE State_Chm_Mod,     ONLY : Ind_
+    USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Grid_Mod,    ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1524,6 +1523,9 @@ CONTAINS
 
           !-----------------------------------------------------------------
           ! Initialize the fullchem mechanism (skip if it is a dry-run)
+          !
+          ! NOTE: We might be able to move this to GC_Init_Extra
+          !  -- Bob Yantosca (31 Aug 2022)
           !-----------------------------------------------------------------
           IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
              CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
@@ -1535,26 +1537,18 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
-             
-          !------------------------------------------------------------------
-          ! Initialize the carboncycle mechanism (skip if it is a dry-run)
-          !------------------------------------------------------------------
-          IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
-             CALL Init_CarbonCycle( Input_Opt  = Input_Opt,                  &
-                                    State_Chm  = State_Chm,                  &
-                                    State_Diag = State_Diag,                 &
-                                    State_Grid = State_Grid,                 &
-                                    RC         = RC                         )
-          ENDIF
-
        ENDIF
 
        !--------------------------------------------------------------------
        ! Initialize Fast-JX photolysis
+       ! (except for carboncycle, which has no photolysis)
+       !
        ! NOTE: we need to call this for a dry-run so that we can get
        ! a list of all of the lookup tables etc. that FAST-JX reads
        !--------------------------------------------------------------------
-       CALL Init_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       IF ( .not. Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+          CALL Init_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       ENDIF
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

@@ -10,16 +10,6 @@ MODULE carboncycle_Funcs
   !
 CONTAINS
   !
-  SUBROUTINE carboncycle_InitKppVars( State_Chm )
-    !
-    ! Stub routine for carboncycle_InitKppVars,
-    ! needed to satisfy compile-time dependencies
-    !
-    USE State_Chm_Mod, ONLY : ChmState
-    !
-    TYPE(ChmState), INTENT(IN) :: State_Chm
-  END SUBROUTINE carboncycle_InitKppVars
-  !
   SUBROUTINE carboncycle_ConvertKgToMolecCm3(I,         J,          L&
        &,          id_CH4,     id_CO, id_CO2,    xnumol_CH4,&
        & xnumol_CO2, xnumol_CO,  State_Chm, State_Met                &

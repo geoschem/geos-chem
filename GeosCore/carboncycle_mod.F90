@@ -776,6 +776,7 @@ CONTAINS
        fac_Diurnal    = 0.0_dp                   ! Diurnal scaling factor [1]
        K_STRAT        = 0.0_dp                   ! Rate in stratosphere [1/s]
        K_TROP         = 0.0_dp                   ! Rate in troposphere  [1/s]
+       NUMDEN         = State_Met%AIRNUMDEN(I,J,L)
        TROP           = 0.0_dp                   ! Toggle
        TEMP           = State_Met%T(I,J,L)       ! Temperature [K]
        INV_TEMP       = 1.0_dp / TEMP            ! 1/T  term for equations
@@ -1228,12 +1229,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE gckpp_Global,    ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
+    USE gckpp_Global,      ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
     USE ErrCode_Mod
-    USE Input_Opt_Mod,   ONLY : OptInput
-    USE State_Chm_Mod,   ONLY : ChmState, Ind_
-    USE State_Diag_Mod,  ONLY : DgnState
-    USE State_Grid_Mod,  ONLY : GrdState
+    USE Input_Opt_Mod,     ONLY : OptInput
+    USE State_Chm_Mod,     ONLY : ChmState, Ind_
+    USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Grid_Mod,    ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
