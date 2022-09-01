@@ -1547,6 +1547,8 @@ CONTAINS
                  RSURFC(K,LDT) = 10000.0_f8
              ELSE
                 ! Check latitude and longitude, alter F0 only for Amazon rainforest for Hg0
+                ! (see reference: Feinberg et al., ESPI, 2022: Evaluating atmospheric mercury (Hg) uptake by vegetation in a
+                ! chemistry-transport model)
                 IF (N_SPC .EQ. ID_Hg0) THEN ! Check for Hg0
                    IF ( II .EQ. 6 .AND. & ! if rainforest land type
                         State_Grid%XMid(I,J) > -82 .AND. & ! bounding box of Amazon
