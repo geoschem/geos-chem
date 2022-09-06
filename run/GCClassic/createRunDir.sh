@@ -756,13 +756,15 @@ while [ "${valid_rundir}" -eq 0 ]; do
     fi
 done
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/rundirConfig
-
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
+
 mkdir -p ${rundir}
+mkdir -p ${rundir}/Restarts
+
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/CreateRunDirLogs
 mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
@@ -927,17 +929,20 @@ rundir_config_log=${rundir_config}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 #sort -o ${rundir_config_log} ${rundir_config_log}
 
-# Call init_rd.sh
+# Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
-printf "\n  See rundirConfig/rundir_vars.txt for run directory settings.\n\n"
 
-printf "\n  -- This run directory has been set up for $startdate - $enddate."
-printf "\n     You may modify these settings in geoschem_config.yml.\n"
+printf "\n  See ${rundir_config}/rundir_vars.txt for run directory settings.\n\n"
 
+printf "\n  -- This run directory has been set up to start on $state_date and"
+printf "\n     restart files for this date are in the Restarts subdirectory.\n" 
+printf "\n  -- Update start and end dates in geoschem_config.yml.\n"
+
+printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.nc4.\n"
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
@@ -1061,12 +1066,13 @@ fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
 if [[ "x${is_aws}" != "x" ]]; then
-    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
+    ${s3_cp} ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
 elif [[ -f ${sample_rst} ]]; then
-    cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+    cp ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4
 else
-    printf "\n  -- No sample restart provided for this simulation."
-    printf "\n     You will need to provide an initial restart file or disable"
+    printf "\n  -- The following sample restart provided for this simulation was not found:"
+    printf "\n     ${sample_rst}"
+    printf "\n     You will need to provide this initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
 fi
@@ -1176,9 +1182,6 @@ mv tmp.txt ${rundir_config_log}
 
 # Remove the version log
 rm -rf ${version_log}
-
-# Remove a few blanks spaces
-
 
 # Save the updated rundir_vars file to the git repo
 if [[ "x${enable_git}" == "xy" ]]; then

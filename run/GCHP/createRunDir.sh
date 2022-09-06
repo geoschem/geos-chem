@@ -230,7 +230,7 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
     else
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
     fi
 fi
 
@@ -411,6 +411,10 @@ fi
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
+# Create build directory
+mkdir ${rundir}/build
+printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
+
 #--------------------------------------------------------------------
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
@@ -501,16 +505,6 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 # Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
-#--------------------------------------------------------------------
-# Print run direcory setup info to screen
-#--------------------------------------------------------------------
-
-printf "\n  -- This run directory has been set up to start on $start_date and"
-printf "\n     restart files for this date are in the Restarts subdirectory.\n"
-printf "\n  -- Update start time in configuration file cap_restart.\n"
-printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc4.\n"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh."
-
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
@@ -577,6 +571,18 @@ done
 #-----------------------------------------------------------------
 # Done!
 #-----------------------------------------------------------------
-printf "\nCreated ${rundir}\n"
+
+printf "\n${thinline}Created ${rundir}\n"
+printf "\n  -- This run directory is set up for simulation start date $start_date"
+printf "\n  -- Restart files for this date at different grid resolutions are in the"
+printf "\n     Restarts subdirectory"
+printf "\n  -- To update start time, edit configuration file cap_restart and"
+printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+printf "\n     where YYYYMMDD_HHmm is start date and time"
+printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
+printf "\n  -- See build/README for compilation instructions"
+printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
+printf "\n  -- For more information visit the GCHP user guide at"
+printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
 exit 0

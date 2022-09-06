@@ -6,9 +6,9 @@
 #
 # Example usage: ./archiveRun.sh 1mon_24hrDiag
 #
-# The output data (OutputDir/*.nc4) is moved but everything else is copied, 
-# including log files (*.log, slurm-*), config files (*.rc, *.yml), 
-# run files (*.run), and restarts (GEOSChem.Restart.*, HEMCO_restart.*). 
+# All output files are copied, including output data (OutputDir/*.nc4), 
+# log files (*.log, slurm-*), config files (*.rc, *.yml), 
+# run files (*.run, *.env, setCommonRunSettings.sh), and restarts. 
 # Files are stored in subdirectories within the archive directory.
 #
 # NOTE: Clean the run directory AFTER archiving with './cleanupRunDir.sh'
@@ -62,7 +62,7 @@ copyfiles () {
    for file in $1; do
       if [ -e $file ]; then
          echo "   -> $2/$file"
-         cp -t $2 $file
+         cp -rt $2 $file
       else
          echo "   Warning: $file not found"
       fi
@@ -72,32 +72,23 @@ copyfiles () {
 # Make Archive directory
 echo "Archiving files to directory $1"
 mkdir -p ${archivedir}
-mkdir -p ${archivedir}/OutputDir
-mkdir -p ${archivedir}/BenchmarkResults
 mkdir -p ${archivedir}/Logs
-mkdir -p ${archivedir}/Config
-mkdir -p ${archivedir}/Restarts
-mkdir -p ${archivedir}/Build
 
-# Move large files rather than copy (except initial restart)
-echo "Moving files and directories..."
-movefiles "BenchmarkResults" ${archivedir}/BenchmarkResults
-movefiles "OutputDir" ${archivedir}/OutputDir FILLER
-
-# Copy everything else
+# Copy files
 echo "Copying files..."
-copyfiles "*.dat"              ${archivedir}/OutputDir
-copyfiles "*.yml"              ${archivedir}/Config
-copyfiles "rundir.version"     ${archivedir}/Config
-copyfiles "*.rc"               ${archivedir}/Config
-copyfiles "*.run"              ${archivedir}/Config
-copyfiles "*.env"              ${archivedir}/Config
+copyfiles "*.yml"              ${archivedir}
+copyfiles "*.rc"               ${archivedir}
+copyfiles "*.run"              ${archivedir}
+copyfiles "*.sh"               ${archivedir}
+copyfiles "*.env"              ${archivedir}
 copyfiles "*.log"              ${archivedir}/Logs
 copyfiles "slurm-*"            ${archivedir}/Logs
-copyfiles "GEOSChem.Restart.*" ${archivedir}/Restarts
-copyfiles "HEMCO_restart.*"    ${archivedir}/Restarts
-copyfiles "build_info/*"       ${archivedir}/Build
+copyfiles "build_info/"        ${archivedir}
+copyfiles "BenchmarkResults/"  ${archivedir}
+copyfiles "OutputDir/"         ${archivedir}
+copyfiles "CreateRunDirLogs/"  ${archivedir}
 
+printf "WARNING: Restart files are not archived. Copy manually if you would like to store restarts in the archive directory."
 printf "Complete!\n"
 
 exit 0
