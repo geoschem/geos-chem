@@ -4640,7 +4640,9 @@ CONTAINS
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
+#if !defined( MODEL_CESM )
     USE Mercury_Mod,          ONLY : Hg_Emis
+#endif
     USE PhysConstants
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
@@ -4880,10 +4882,12 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
+#if !defined( MODEL_CESM )
            ! For Hg simulations, also add Hg emissions not handled by HEMCO
            IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
               eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
            ENDIF
+#endif
 
         ENDIF
 
