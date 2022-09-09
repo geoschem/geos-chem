@@ -63,11 +63,11 @@ MAPL_ENABLE_BOOTSTRAP: YES
 
 # Settings for production of restart files
 #---------------------------------------------------------------
-# Record frequency (HHMMSS) : Frequency of restart file write
-#                             Can exceed 24 hours (e.g. 1680000 for 7 days)
+# Record frequency (HHMMSS, or monthly) : Frequency of restart file write
+#                                         Can exceed 24 hours (e.g. 1680000 for 7 days)
 # Record ref date (YYYYMMDD): Reference date; set to before sim start date
 # Record ref time (HHMMSS)  : Reference time 
-RECORD_FREQUENCY: 1680000
+RECORD_FREQUENCY: 240000
 RECORD_REF_DATE: 20000101
 RECORD_REF_TIME: 000000
 
