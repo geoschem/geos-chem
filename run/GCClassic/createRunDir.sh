@@ -97,7 +97,7 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # --------------------------------------------------------------
 # registration for first time users
 # --------------------------------------------------------------
-if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
+if [[ -z "${GC_USER_REGISTERED}" ]]; then
     printf "\nInitiating User Registration: You will only need to fill this out once.\n"
     printf "${thinline}What is your email address?${thinline}"
     read email
@@ -131,7 +131,7 @@ if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
     IFS='\n' read -r research_interest
     post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
     fi
-    echo "export GC_FIRST_TIME_USER=true" >> ${HOME}/.geoschem/config
+    echo "export GC_USER_REGISTERED=true" >> ${HOME}/.geoschem/config
     source ${HOME}/.geoschem/config
 fi
 
