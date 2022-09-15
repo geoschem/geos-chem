@@ -11,6 +11,7 @@
 # Usage: ./createRunDir.sh [rundirname]
 #
 # Initial version: E. Lundgren,10/5/2018
+# Add tagged O3 simulation. Xingpei Ye, 03/13/2022
 
 srcrundir=$(pwd -P)
 cd ${srcrundir}
@@ -78,6 +79,8 @@ printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   4. Tagged O3\n"
+
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -88,6 +91,12 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
+	sim_name_long=${sim_name}
+	sim_type=${sim_name}
+    elif [[ ${sim_num} = "4" ]]; then
+    sim_name=tagO3
+    sim_name_long=${sim_name}
+    sim_type=${sim_name}
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -379,11 +388,24 @@ cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
-
-# Copy file to auto-update common settings. Use adjoint version for CO2.
-cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
-
-if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+cp ./GCHP.rc.template                 ${rundir}/GCHP.rc
+cp ./CAP.rc.template                  ${rundir}/CAP.rc
+cp ./runConfig.sh.template            ${rundir}/runConfig.sh
+# Only copy adjoint for CO2 simulation (for now)
+if [ "${sim_name}" == "CO2" ]; then
+    cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
+fi
+cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
+cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
+cp ./ExtData.rc.templates/ExtData.rc.${sim_name}            ${rundir}/ExtData.rc
+cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
+# Some simulations (like tagO3) do not have a HEMCO_Diagn.rc file,
+# so skip copying it unless the file exists
+if [[ -f ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name} ]]; then
+    cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
+fi
+cp -r ./utils ${rundir}
+if [[ ${sim_name} = "fullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -415,21 +437,30 @@ ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
-if [[ ${sim_name} = "fullchem" ]]; then
-    start_date='20190701'
-    restart_dir='v2021-09'
-elif [[ ${sim_name} = "TransportTracers" ]]; then
-    start_date='20190101'
-    restart_dir='GC_13.0.0'
-fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
-    new_prefix="GEOSChem.Restart"
-    echo "${start_date} 000000" > ${rundir}/cap_restart
-    initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
-    linkname="${rundir}/Restarts/${new_prefix}.${start_date}_0000z.c${N}.nc4"
-    ln -s ${initial_rst} ${linkname}
+    src_prefix="GCHP.Restart.${sim_name}."
+    src_suffix=".c${N}.nc4"
+    target_name=initial_GEOSChem_rst.c${N}_${sim_name}.nc
+    if [[ ${sim_name} = "fullchem" ]]; then
+        start_date="20190701_0000z"
+        src_name="${src_prefix}${start_date}${src_suffix}"
+	#----------------------------------------------------------------------
+	# NOTE: We must now link restart files from v2021-09, since these will
+	# have extra species such as HMS, C2H2, C2H4, etc. (bmy, 9/23/21)
+        #ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+	#----------------------------------------------------------------------
+        ln -s ${restarts}/v2021-09/${src_name} ${rundir}/${target_name}
+    elif [[ ${sim_name} = "TransportTracers" ]]; then
+        start_date="20190101_0000z"
+        src_name="${src_prefix}${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+    # For tagO3, use the same restart file as fullchem's
+    elif [[ ${sim_name} = "tagO3" ]]; then
+        start_date="20190701_0000z"
+        src_name="GCHP.Restart.fullchem.${start_date}${src_suffix}"
+        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
+    fi
 done
 
 #--------------------------------------------------------------------
@@ -437,6 +468,7 @@ done
 #--------------------------------------------------------------------
 cd ${rundir}
 
+<<<<<<< HEAD
 RUNDIR_VARS+="RUNDIR_SIM_DUR_YYYYMMDD='00000100'\n"
 RUNDIR_VARS+="RUNDIR_SIM_DUR_HHmmSS='000000'\n"
 
@@ -487,6 +519,147 @@ else
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
+=======
+# Replace token strings in certain files
+sed -i -e "s|{SIMULATION}|${sim_name}|"       GCHP.rc
+sed -i -e "s|{SIMULATION}|${sim_name}|"       runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{SIMULATION}|${sim_name}|"   runConfig_adj.sh
+fi
+sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    input.geos
+sed -i -e "s|{MET}|${met_name}|"              input.geos
+sed -i -e "s|{SIM}|${sim_name}|"              input.geos
+sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"    HEMCO_Config.rc
+sed -i -e "s|{NATIVE_RES}|${met_native}|"     HEMCO_Config.rc
+sed -i -e "s|{LATRES}|${met_latres}|"         HEMCO_Config.rc
+sed -i -e "s|{LONRES}|${met_lonres}|"         HEMCO_Config.rc
+sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 1st in line
+sed -i -e "s|{MET_SOURCE}|${met_name}|"       ExtData.rc # 2nd in line
+sed -i -e "s|{MET_RES}|${met_resolution}|"    ExtData.rc
+sed -i -e "s|{NATIVE_RES}|${met_native}|"     ExtData.rc
+sed -i -e "s|{LATRES}|${met_latres}|"         ExtData.rc
+sed -i -e "s|{LONRES}|${met_lonres}|"         ExtData.rc
+sed -i -e "s|{MET_EXT}|${met_extension}|"     ExtData.rc
+sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"     ExtData.rc # 1st in line
+sed -i -e "s|{MET_CN_YR}|${met_cn_year}|"     ExtData.rc # 2nd in line
+sed -i -e "s|{PRES_UNIT}|${pressure_unit}|"   ExtData.rc
+sed -i -e "s|{PRES_SCALE}|${pressure_scale}|" ExtData.rc
+
+# Special handling for start/end date based on simulation so that
+# start year/month/day matches default initial restart file.
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+    startdate="20190701"
+    enddate="20190801"
+elif [[ ${sim_name} = "fullchem" ]]; then
+    startdate="20190701"
+    enddate="20190701"
+elif [ "${sim_type}" == "CO2" ]; then
+    startdate="20140901"
+    enddate="20140901"
+elif [ "${sim_type}" == "tagO3" ]; then
+     startdate="20190701"
+     enddate="20190801"
+else
+    startdate="20190101"
+    enddate="20190201"
+fi
+sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
+sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{DATE1}|${startdate}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE2}|${enddate}|"   ${rundir}/runConfig_adj.sh
+fi
+sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
+sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
+
+# Special handling for benchmark simulation
+if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
+    total_cores=96
+    num_nodes=2
+    num_cores_per_node=48
+    grid_res=48
+    timeAvg_monthly="1"
+    timeAvg_freq="7440000"
+    inst_freq="7440000"
+    start_time="000000"
+    end_time="000000"
+    dYYYYMMDD="00000100"
+    dHHmmSS="000000"
+    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
+    printf "\n  -- Monthly time-averaged diagnostics are enabled in HISTORY.rc."
+elif [ "${sim_type}" == "CO2" ]; then
+    total_cores=48
+    num_nodes=2
+    num_cores_per_node=24
+    grid_res=24
+    diag_freq="010000"
+    inst_freq="010000"
+    inst_dur="010000"
+    timeAvg_monthly=0
+    timeAvg_dur="010000"
+    timeAvg_freq="010000"
+    start_time="000000"
+    end_time="060000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="060000"
+elif [ "${sim_type}" == "tagO3" ]; then
+    total_cores=24
+    num_nodes=1
+    num_cores_per_node=24
+    grid_res=24
+    timeAvg_monthly=0
+    timeAvg_freq="010000"
+    inst_freq="010000"
+    start_time="000000"
+    end_time="000000"
+    dYYYYMMDD="00000100"
+    dHHmmSS="000000"
+else
+    total_cores=24
+    num_nodes=1
+    num_cores_per_node=24
+    grid_res=24
+    timeAvg_monthly=0
+    timeAvg_freq="010000"
+    inst_freq="010000"
+    start_time="000000"
+    end_time="010000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="010000"
+    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
+    printf "\n  -- The default diagnostic frequency, duration, and mode is hourly average."
+fi
+printf "\n  -- You may modify these settings in runConfig.sh.\n"
+timeAvg_dur=${timeAvg_freq}
+inst_dur=${inst_freq}
+sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig.sh
+sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
+sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig.sh
+sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
+sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
+sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
+sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig_adj.sh
+>>>>>>> xpyeFork/gchp-tagO3
 fi
 RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 
@@ -501,15 +674,125 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 # Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
-#--------------------------------------------------------------------
-# Print run direcory setup info to screen
-#--------------------------------------------------------------------
+# Special handling for start/end date based on simulation so that
+# start year/month/day matches default initial restart file.
+if [[ ${sim_extra_option} = "benchmark" ]]; then
+    startdate="20190701"
+    enddate="20190801"
+elif [[ ${sim_name} = "fullchem" ]]; then
+    startdate="20190701"
+    enddate="20190701"
+elif [ "${sim_type}" == "CO2" ]; then
+    startdate="20140901"
+    enddate="20140901"
+elif [ "${sim_type}" == "tagO3" ]; then
+     startdate="20190701"
+     enddate="20190801"
+else
+    startdate="20190101"
+    enddate="20190201"
+fi
+sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/runConfig.sh
+sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{DATE1}|${startdate}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{DATE2}|${enddate}|"   ${rundir}/runConfig_adj.sh
+fi
+sed -i -e "s|{DATE1}|${startdate}|"     ${rundir}/CAP.rc
+sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 
-printf "\n  -- This run directory has been set up to start on $start_date and"
-printf "\n     restart files for this date are in the Restarts subdirectory.\n"
-printf "\n  -- Update start time in configuration file cap_restart.\n"
-printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc4.\n"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh."
+# Special handling for benchmark simulation
+if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
+    total_cores=96
+    num_nodes=2
+    num_cores_per_node=48
+    grid_res=48
+    timeAvg_monthly="1"
+    timeAvg_freq="7440000"
+    inst_freq="7440000"
+    start_time="000000"
+    end_time="000000"
+    dYYYYMMDD="00000100"
+    dHHmmSS="000000"
+    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
+    printf "\n  -- Monthly time-averaged diagnostics are enabled in HISTORY.rc."
+elif [ "${sim_type}" == "CO2" ]; then
+    total_cores=48
+    num_nodes=2
+    num_cores_per_node=24
+    grid_res=24
+    diag_freq="010000"
+    inst_freq="010000"
+    inst_dur="010000"
+    timeAvg_monthly=0
+    timeAvg_dur="010000"
+    timeAvg_freq="010000"
+    start_time="000000"
+    end_time="060000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="060000"
+elif [ "${sim_type}" == "tagO3" ]; then
+    total_cores=24
+    num_nodes=1
+    num_cores_per_node=24
+    grid_res=24
+    timeAvg_monthly=0
+    timeAvg_freq="010000"
+    inst_freq="010000"
+    start_time="000000"
+    end_time="000000"
+    dYYYYMMDD="00000100"
+    dHHmmSS="000000"
+else
+    total_cores=24
+    num_nodes=1
+    num_cores_per_node=24
+    grid_res=24
+    timeAvg_monthly=0
+    timeAvg_freq="010000"
+    inst_freq="010000"
+    start_time="000000"
+    end_time="010000"
+    dYYYYMMDD="00000000"
+    dHHmmSS="010000"
+    printf "\n  -- This run directory has been set up for $startdate $start_time - $enddate $end_time."
+    printf "\n  -- The default diagnostic frequency, duration, and mode is hourly average."
+fi
+printf "\n  -- You may modify these settings in runConfig.sh.\n"
+timeAvg_dur=${timeAvg_freq}
+inst_dur=${inst_freq}
+sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig.sh
+sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig.sh
+sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig.sh
+sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig.sh
+sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig.sh
+sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig.sh
+sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig.sh
+sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig.sh
+sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig.sh
+if [ "${sim_name}" == "CO2" ]; then
+    sed -i -e "s|{TotalCores}|${total_cores}|"             ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumNodes}|${num_nodes}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{NumCoresPerNode}|${num_cores_per_node}|" ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{GridRes}|${grid_res}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstFreq}|${inst_freq}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{InstDur}|${inst_dur}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgMonthly}|${timeAvg_monthly}|"         ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgFreq}|${timeAvg_freq}|"               ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{AvgDur}|${timeAvg_dur}|"                 ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/runConfig_adj.sh
+    sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/runConfig_adj.sh
+fi
+sed -i -e "s|{TIME1}|${start_time}|"                   ${rundir}/CAP.rc
+sed -i -e "s|{TIME2}|${end_time}|"                     ${rundir}/CAP.rc
+sed -i -e "s|{dYYYYMMDD}|${dYYYYMMDD}|"                ${rundir}/CAP.rc
+sed -i -e "s|{dHHmmss}|${dHHmmSS}|"                    ${rundir}/CAP.rc
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
