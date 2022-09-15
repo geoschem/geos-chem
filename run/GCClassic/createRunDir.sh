@@ -15,15 +15,17 @@
 # post registration details to api
 function post_registration() {
     email="$1"
-    affiliation="$2"
-    site="$3"
-    git_username="$4"
-    research_interest="$5"
-    env_type="$6"
+    name="$2"
+    affiliation="$3"
+    site="$4"
+    git_username="$5"
+    research_interest="$6"
+    env_type="$7"
     curl --location --request POST "https://gc-dashboard.org/registration" \
         --header "Content-Type: text/plain" \
-        --data-raw "{
+        -d "{
             \"email\": \"${email}\",
+            \"name\": \"${name}\",
             \"affiliation\": \"${affiliation}\",
             \"site\": \"${site}\",
             \"git_username\": \"${git_username}\",
@@ -101,6 +103,8 @@ if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
     read email
     
     if [[ ${email} != "" ]]; then
+    printf "${thinline}What is your name?${thinline}"
+    IFS='\n' read -r name
     printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
     IFS='\n' read -r affiliation
     printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
@@ -125,7 +129,7 @@ if [[ -z "${GC_FIRST_TIME_USER}" ]]; then
     done
     printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
     IFS='\n' read -r research_interest
-    post_registration "$email" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
+    post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
     fi
     echo "export GC_FIRST_TIME_USER=true" >> ${HOME}/.geoschem/config
     source ${HOME}/.geoschem/config
