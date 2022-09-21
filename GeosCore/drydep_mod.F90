@@ -159,7 +159,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: NUMDEP,   NWATER
   INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
   INTEGER                        :: id_ACET,  id_ALD2,  id_O3
-  INTEGER                        :: id_MENO3, id_ETNO3
+  INTEGER                        :: id_MENO3, id_ETNO3, id_MOH
   INTEGER                        :: id_NK1
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
   INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
@@ -566,6 +566,18 @@ CONTAINS
           ! For ETNO3, we need to only do drydep over the land
           ! and not over the oceans.
           IF ( N == id_ETNO3 ) THEN
+             IF ( .not. State_Met%IsLand(I,J) ) THEN
+                DVZ = 0e+0_f8
+             ENDIF
+          ENDIF
+
+          !-----------------------------------------------------------
+          ! Special treatment for MOH
+          !-----------------------------------------------------------
+
+          ! For MOH, we need to only do drydep over the land
+          ! and not over the oceans.
+          IF ( N == id_MOH ) THEN
              IF ( .not. State_Met%IsLand(I,J) ) THEN
                 DVZ = 0e+0_f8
              ENDIF
@@ -4490,6 +4502,7 @@ CONTAINS
     id_ALD2   = 0
     id_MENO3  = 0
     id_ETNO3  = 0
+    id_MOH    = 0
     id_HNO3   = Ind_('HNO3'  )
     id_PAN    = Ind_('PAN'   )
     id_IHN1   = Ind_('IHN1'  )
@@ -4659,6 +4672,10 @@ CONTAINS
              CASE( 'ETNO3' )
                 ! Flag the species ID of ETNO3 for use above.
                 id_ETNO3 = SpcInfo%ModelId
+
+             CASE( 'MOH' )
+                ! Flag the species ID of MOH for use above.
+                id_MOH = SpcInfo%ModelId
 
              CASE( 'NITs', 'NITS' )
                 ! DEPNAME for NITs has to be in all caps, for
