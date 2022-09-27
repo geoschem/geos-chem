@@ -62,6 +62,7 @@ MODULE GEOS_Analysis
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileTemplate 
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarName
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
+     INTEGER                      :: FileVarDry
      LOGICAL                      :: ApplyIncrement
      LOGICAL                      :: NonZeroIncOnly
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarNameInc
@@ -440,7 +441,7 @@ CONTAINS
     TYPE(ESMF_TIME)            :: fileTime
     INTEGER                    :: I, J, L, N, IM, JM, LM, LB, indSpc
     INTEGER, ALLOCATABLE       :: indSpc2(:)
-    INTEGER                    :: UnitFlag, NNEG
+    INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
     REAL                       :: wgt, tropwgt, stratwgt
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
@@ -604,18 +605,26 @@ CONTAINS
        ! Get lower bound of PLE array
        LB = LBOUND(PLE,3)
 
+       ! Set dry flag
+       DryFlag = iopt%FileVarDry
+
        ! Set unit flag. This is to prevent parsing the unit string within the loop below
        SELECT CASE ( TRIM(iopt%FileVarUnit) )
           CASE ( 'kg/kg' )
              UnitFlag = 1
+             IF ( DryFlag < 0 ) DryFlag = 0 ! assume kg/kg is total, not dry
           CASE ( 'mol/mol', 'v/v' )
              UnitFlag = 2
+             IF ( DryFlag < 0 ) DryFlag = 1 ! assume is dry 
           CASE ( 'ppmv', 'ppm', 'PPMV', 'PPM' )
              UnitFlag = 3
+             IF ( DryFlag < 0 ) DryFlag = 1 ! assume dry 
           CASE ( 'ppbv', 'ppb', 'PPBV', 'PPB' )
              UnitFlag = 4
+             IF ( DryFlag < 0 ) DryFlag = 1 ! assume dry 
           CASE DEFAULT
              UnitFlag = 1
+             IF ( DryFlag < 0 ) DryFlag = 0 ! assume kg/kg is total, not dry
        END SELECT
 
        ! State_Chm%Species are in kg/kg total. Make local copy in v/v dry before applying increments.
@@ -685,9 +694,10 @@ CONTAINS
 
              ! Get target concentration in v/v dry
              SpcAna = AnaPtr(I,J,L)
-             IF ( UnitFlag == 1 ) SpcAna = SpcAna * ( MAPL_AIRMW / mwSpc ) / ( 1. - Q(I,J,L) )
+             IF ( UnitFlag == 1 ) SpcAna = SpcAna * ( MAPL_AIRMW / mwSpc )
              IF ( UnitFlag == 3 ) SpcAna = SpcAna * 1.0e-6
              IF ( UnitFlag == 4 ) SpcAna = SpcAna * 1.0e-9
+             IF ( DryFlag  == 0 ) SpcAna = SpcAna / ( 1. - Q(I,J,L) )
 
              ! Update field
              SpcNew = SpcBkg(I,J,L)
@@ -1151,6 +1161,7 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileTemplate,   Label='FileTemplate:'  ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarName,    Label='FileVarName:'   ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarUnit,    Label='FileVarUnit:'   , Default='v/v', __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarDry,     Label='FileVarDry:'    , Default=-1,    __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ApplyIncrement:', Default=0,     __RC__ )
     AnaConfig(ispec)%ApplyIncrement = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InStrat:'       , Default=1,     __RC__ )
@@ -1227,6 +1238,7 @@ CONTAINS
           WRITE(*,*) '- File template                 : ', TRIM(AnaConfig(ispec)%FileTemplate)
           WRITE(*,*) '- Variable name on file         : ', TRIM(AnaConfig(ispec)%FileVarName)
           WRITE(*,*) '- Variable unit on file         : ', TRIM(AnaConfig(ispec)%FileVarUnit)
+          WRITE(*,*) '- Dry air flag (0=dry, 1=total) : ', AnaConfig(ispec)%FileVarDry 
           IF ( AnaConfig(ispec)%UseObsHour ) THEN
              WRITE(*,*) '- Observation hour name on file : ', TRIM(AnaConfig(ispec)%ObsHourName)
           ENDIF
