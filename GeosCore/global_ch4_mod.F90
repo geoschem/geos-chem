@@ -1582,10 +1582,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    State_Chm%BOH = 0e+0_fp
-    State_Chm%BCl = 0e+0_fp
-    State_Chm%CH4_EMIS = 0e+0_fp
-
     ! Initialize tropoch4 (counts total decay of CH4 due to OH)
     TROPOCH4 = 0e+0_fp
 

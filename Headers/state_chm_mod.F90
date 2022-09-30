@@ -2073,7 +2073,6 @@ CONTAINS
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%CH4_EMIS,                                 &
             nSlots     = 15,                                                 &
-            noRegister = .TRUE.,                                             &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2104,7 +2103,7 @@ CONTAINS
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%BOH,                                      &
+            Ptr2Data   = State_Chm%BCl,                                      &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2937,7 +2936,7 @@ CONTAINS
        DEALLOCATE( State_Chm%Species )
        CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Species => NULL()    
+       State_Chm%Species => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
@@ -3311,7 +3310,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BCl ) ) THEN
-       DEALLOCATE( State_Chm%BOH, STAT=RC )
+       DEALLOCATE( State_Chm%BCl, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%BCl', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%BCl => NULL()
