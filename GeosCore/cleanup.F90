@@ -26,7 +26,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE ERROR_MOD,               ONLY : DEBUG_MSG
   USE FullChem_MOD,            ONLY : Cleanup_FullChem
   USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
-  USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
   USE Input_Opt_Mod,           ONLY : OptInput
@@ -151,13 +150,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL Cleanup_FullChem( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_FlexChem"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  CALL Cleanup_Global_CH4( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Global_CH4"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
