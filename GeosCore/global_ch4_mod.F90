@@ -148,7 +148,7 @@ CONTAINS
     ITS_A_CH4_SIM  = Input_Opt%ITS_A_CH4_SIM
 
     ! Do we have to print debug output?
-    prtDebug = Input_Opt%LPRT
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
        print*,'BEGIN SUBROUTINE: EMISSCH4'
