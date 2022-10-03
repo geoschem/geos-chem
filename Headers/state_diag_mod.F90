@@ -9228,14 +9228,18 @@ CONTAINS
                                    State_Diag%Archive_DryDepRaALT1     .and. &
                                    State_Diag%Archive_DryDepVelForALT1      )
 
-    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts    .or.  &
-                                    State_Diag%Archive_KppJacCounts    .or.  &
-                                    State_Diag%Archive_KppTotSteps     .or.  &
-                                    State_Diag%Archive_KppAccSteps     .or.  &
-                                    State_Diag%Archive_KppRejSteps     .or.  &
-                                    State_Diag%Archive_KppLuDecomps    .or.  &
-                                    State_Diag%Archive_KppSubsts       .or.  &
-                                    State_Diag%Archive_KppSmDecomps    .or.  &
+    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts       .or. &
+                                    State_Diag%Archive_KppJacCounts       .or. &
+                                    State_Diag%Archive_KppTotSteps        .or. &
+                                    State_Diag%Archive_KppAccSteps        .or. &
+                                    State_Diag%Archive_KppRejSteps        .or. &
+                                    State_Diag%Archive_KppLuDecomps       .or. &
+                                    State_Diag%Archive_KppSubsts          .or. &
+                                    State_Diag%Archive_KppSmDecomps       .or. &
+                                    State_Diag%Archive_KppAutoReducerNVAR .or. &
+                                    State_Diag%Archive_KppAutoReduceThres .or. &
+                                    State_Diag%Archive_KppcNONZERO        .or. &
+                                    State_Diag%Archive_KppTime            .or. &
                                     State_Diag%Archive_KppDiags             )
 
     State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
