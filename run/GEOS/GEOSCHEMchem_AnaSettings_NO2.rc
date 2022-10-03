@@ -1,5 +1,5 @@
 SpeciesName: NO2
-Active: 1
+Active: 0
 AnalysisFreq: 6
 AnalysisHour: 6
 AnalysisMinute: 0 
@@ -8,6 +8,7 @@ ReadAnaTime: 1
 FileTemplate: ana_no2.after_gsi.%y4%m2%d2_%h200z.nc4
 FileVarName: ana_no2
 FileVarUnit: v/v
+FileVarDry: 1
 UseObsHour: 1
 ObsHourName: ana_hour
 ApplyIncrement: 0

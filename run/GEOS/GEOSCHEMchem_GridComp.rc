@@ -168,7 +168,7 @@ Use_GMI_O3_PL:        0
 
 # Analysis options 
 ANAPHASE: 2
-Analysis_nSpecies: 0
+Analysis_nSpecies: 2
 Analysis_Settings_Spec001: GEOSCHEMchem_AnaSettings_O3.rc
 Analysis_Settings_Spec002: GEOSCHEMchem_AnaSettings_NO2.rc
 
