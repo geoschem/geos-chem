@@ -4,7 +4,7 @@ AnalysisFreq: 6
 AnalysisHour: 0
 AnalysisMinute: 0
 ForwardLooking: 1
-FileTemplate: <AddModelRun>.ana.eta.after_gsi.%y4%m2%d2_%h200z.nc4
+FileTemplate: >>>EXPID<<<.ana.eta.after_gsi.%y4%m2%d2_%h200z.nc4
 FileVarName: ozone
 NonZeroIncOnly: 0
 FileVarNameInc: ozone
