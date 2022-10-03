@@ -620,6 +620,19 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
 
+     !%%%%% KPP auto-reduce solver diagnostics %%%%%
+     REAL(f4),           POINTER :: KppAutoReducerNVAR(:,:,:)
+     LOGICAL                     :: Archive_KppAutoReducerNVAR
+
+     REAL(f4),           POINTER :: KppAutoReduceThres(:,:,:)
+     LOGICAL                     :: Archive_KppAutoReduceThres
+
+     REAL(f4),           POINTER :: KppTime(:,:,:)
+     LOGICAL                     :: Archive_KppTime
+
+     REAL(f4),           POINTER :: KppcNONZERO(:,:,:)
+     LOGICAL                     :: Archive_KppcNONZERO
+
      LOGICAL                     :: Archive_KppDiags
 
      !%%%%% Chemistry metrics (e.g. mean OH, MCF lifetime, CH4 lifetime) %%%%%
@@ -1694,6 +1707,18 @@ CONTAINS
 
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
+
+    State_Diag%KppAutoReducerNVAR                  => NULL()
+    State_Diag%Archive_KppAutoReducerNVAR          = .FALSE.
+
+    State_Diag%KppAutoReduceThres                  => NULL()
+    State_Diag%Archive_KppAutoReduceThres          = .FALSE.
+
+    State_Diag%KppcNONZERO                         => NULL()
+    State_Diag%Archive_KppcNONZERO                 = .FALSE.
+
+    State_Diag%KppTime                             => NULL()
+    State_Diag%Archive_KppTime                     = .FALSE.
 
     State_Diag%Archive_KppDiags                    = .FALSE.
 
@@ -4879,6 +4904,94 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%KppSmDecomps,                        &
             archiveData    = State_Diag%Archive_KppsmDecomps,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReducerNVAR'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReducerNVAR,                  &
+            archiveData    = State_Diag%Archive_KppAutoReducerNVAR,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Computed reduction threshold (molec cm-3 s-1)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReduceThres'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReduceThres,                  &
+            archiveData    = State_Diag%Archive_KppAutoReduceThres,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Number of nonzero entries in LU decomp (cNONZERO)
+       !-------------------------------------------------------------------
+       diagID = 'KppcNONZERO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppcNONZERO,                         &
+            archiveData    = State_Diag%Archive_KppcNONZERO,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! CPU time spent in grid box for KPP
+       !-------------------------------------------------------------------
+       diagID = 'KppTime'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppTime,                             &
+            archiveData    = State_Diag%Archive_KppTime,                     &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
