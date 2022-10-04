@@ -5107,6 +5107,14 @@ CONTAINS
                 diagID = 'NOxTau'
              CASE( 34 )
                 diagID = 'TropNOxTau'
+             CASE( 35 )
+                diagID = 'KppAutoReducerNVAR'
+             CASE( 36 )
+                diagID = 'KppTime'
+             CASE( 37 )
+                diagID = 'KppcNONZERO'
+             CASE( 38 )
+                diagID = 'KppAutoReduceThres'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -11910,6 +11918,26 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
        IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPAUTOREDUCERNVAR' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of species in auto-reduced mechanism'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPAUTOREDUCETHRES' ) THEN
+       IF ( isDesc    ) Desc  = 'Auto-reduction threshold'
+       IF ( isUnits   ) Units = 'molecules cm-3 s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPCNONZERO' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of nonzero elements in LU decomposition AR only'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPTIME' ) THEN
+       IF ( isDesc    ) Desc  = 'Time KPP spent in grid box'
+       IF ( isUnits   ) Units = 's'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPOCPOBYGASPHASE' ) THEN
