@@ -2491,7 +2491,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AUTOREDUCE_TUNING_OH = Cast_and_RoundOff( v_str, places=2 )
+    Input_Opt%AUTOREDUCE_TUNING_OH = Cast_and_RoundOff( v_str )
 
     key   = "operations%chemistry%autoreduce_solver%use_target_threshold%no2_tuning_factor"
     v_str = MISSING_STR
@@ -2501,7 +2501,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AUTOREDUCE_TUNING_NO2 = Cast_and_RoundOff( v_str, places=2 )
+    Input_Opt%AUTOREDUCE_TUNING_NO2 = Cast_and_RoundOff( v_str )
 
     ! If not target species, absolute rate threshold
     key   = "operations%chemistry%autoreduce_solver%use_absolute_threshold%absolute_threshold"
@@ -2512,7 +2512,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AUTOREDUCE_THRESHOLD = Cast_and_RoundOff( v_str, places=2 )
+    Input_Opt%AUTOREDUCE_THRESHOLD = Cast_and_RoundOff( v_str )
 
     ! Would this absolute threshold be scaled by pressure?
     key   = "operations%chemistry%autoreduce_solver%use_absolute_threshold%scale_by_pressure"
