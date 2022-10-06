@@ -83,7 +83,7 @@ fi
 
 #=============================================================================
 # Replace the "REQUESTED_PARTITION" string with the specified partition
-# in the intTestCompile_slurm.sh and intTestExecute_slurm.sh
+# in the intTestCompile_slurm.sh and intTestExecute_slurm.sh scripts
 #=============================================================================
 sed_ie s/REQUESTED_PARTITION/${PARTITION}/ intTestCompile_slurm.sh
 sed_ie s/REQUESTED_PARTITION/${PARTITION}/ intTestExecute_slurm.sh

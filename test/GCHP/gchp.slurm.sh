@@ -3,7 +3,7 @@
 #SBATCH -n 24
 #SBATCH -N 1
 #SBATCH -t 0-1:00
-#SBATCH -p huce_cascade
+#SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=110000
 #SBATCH --mail-type=END
 
