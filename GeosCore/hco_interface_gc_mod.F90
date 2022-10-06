@@ -2308,23 +2308,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! WLI (LWI)
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%WLI, 'LWI', &
-                     HMRC,     FIRST=FIRST )
-#else
-    CALL ExtDat_Set( HcoState, ExtState%WLI, 'WLI_FOR_EMIS', &
-                     HMRC,     FIRST,        State_Met%LWI )
-#endif
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( WLI_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     ! T2M
 #if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M', &
