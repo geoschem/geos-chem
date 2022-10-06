@@ -2230,7 +2230,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: I,     J,     K,       spcId
+    INTEGER             :: I,     J,     K,       spcId,     SfcTypeIndex(1)
     REAL(f8)            :: coeff, Hplus, inv_tAq, Ks1,  Ks2, tAq, t298_taq
 !
 ! !DEFINED PARAMETERS:
@@ -2273,16 +2273,20 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Pick the proper Hplus value based on surface
-             !----------------------------------------------------------------
-             ! NOTE: Should be using these but the original code used LWI.
-             ! Leave this comment here for now (bmy, 08 Jul 2021)
-             !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
-             !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
-             !IF ( State_Met%IsIce(I,J)   ) Hplus = HPLUS_ice
-             !----------------------------------------------------------------
-             IF ( State_Met%LWI(I,J) == 0 ) Hplus = HPLUS_ocn
-             IF ( State_Met%LWI(I,J) == 1 ) Hplus = HPLUS_lnd
-             IF ( State_Met%LWI(I,J) == 2 ) Hplus = HPLUS_ice
+             ! The surface type category definitions are based on the GMAO
+             ! definition for land-water-ice index (LWI), with ice being
+             ! defined only over ocean.
+             SfcTypeIndex = MAXLOC( (/                            &
+                State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J), &
+                State_Met%FRLAND(I,J) + State_Met%FRLANDIC(I,J)   &
+                + State_Met%FRLAKE(I,J),                          &
+                State_Met%FRSEAICE(I,J)                           &
+             /) )
+
+             ! are predominantly lake (todo)
+             IF ( SfcTypeIndex(1) == 1 ) Hplus = HPLUS_ocn
+             IF ( SfcTypeIndex(1) == 2 ) Hplus = HPLUS_lnd
+             IF ( SfcTypeIndex(1) == 3 ) Hplus = HPLUS_ice
 
              ! Temperature terms
              tAq      = MAX( 253.0_f8, State_Met%TS(I,J) )
