@@ -1028,13 +1028,13 @@ PROGRAM GEOS_Chem
           CALL SET_DIAGe( TAU )
 
           ! Write bpch file
-          IF ( DO_DIAG_WRITE ) THEN
+          IF ( Input_Opt%DO_DIAG_WRITE ) THEN
              ! Write data to the "trac_avg." bpch file
              CALL DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
              ! Flush file units
-             CALL CTM_FLUSH()
-          ENDIF
+            CALL CTM_FLUSH()
+         ENDIF
 
           ! Set time at beginning of next diagnostic timestep
           CALL SET_DIAGb( TAU )
