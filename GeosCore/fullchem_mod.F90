@@ -949,9 +949,9 @@ CONTAINS
                                         State_Met = State_Met,               &
                                         State_Chm = State_Chm               )
 
-             ! Add result as an enhancement to O2 metal catalysis rate
+             ! Add result as an enhancement to O3 rate
              ! as a 1st order reaction
-             K_CLD(3) = K_CLD(3) + SR
+             K_CLD(2) = K_CLD(2) + SR
           ENDIF
 
           ! Stop timer

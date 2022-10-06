@@ -757,7 +757,7 @@ CONTAINS
           ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
           ! -- SR is dSO4/timestep (v/v) continue onvert
           !    to 1st order rate
-          SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
+          SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * C(ind_O3) * CVF * DT )
        ENDIF
     ENDIF
 
