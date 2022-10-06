@@ -10,10 +10,10 @@ MODULE carboncycle_Funcs
   !
 CONTAINS
   !
-  SUBROUTINE carboncycle_ConvertKgToMolecCm3(I,         J,          L&
-       &,          id_CH4,     id_CO, id_CO2,    xnumol_CH4,&
-       & xnumol_CO2, xnumol_CO,  State_Chm, State_Met                &
-       &                                      )
+  SUBROUTINE carboncycle_ConvertKgToMolecCm3(                                &
+             I,        J,          L,          id_CH4,    id_CO,             &
+             id_CO2,   xnumol_CH4, xnumol_CO2, xnumol_CO, State_Chm,         &
+             State_Met                                                      )
     !
     ! Stub routine for carboncycle_ConvertKgToMolecCm3,
     ! needed to satisfy compile-time dependencies
@@ -33,10 +33,9 @@ CONTAINS
   END SUBROUTINE carboncycle_ConvertKgToMolecCm3
   !
   SUBROUTINE carboncycle_ComputeRateConstants(                               &
-             I,        J,        L,           bAirDens,    bCl,              &
-             bOH,      CH4loss,  GMI_Prod_CO, GMI_Loss_CO, PCO_nmVOC,        &
-             PCO_CH4,  LPCO_CH4, dtChem,      tCosZ,       State_Chm,        &
-             State_Met                                                      )
+             I,        J,           L,           bCl,       bOH,             &
+             CH4loss,  GMI_Prod_CO, GMI_Loss_CO, PCO_nmVOC, PCO_CH4,         &
+             LPCO_CH4, dtChem,      tCosZ,       State_Chm, State_Met       )
     !
     ! Stub for routine carboncycle_ComputeRateConstants,
     ! needed to satisfy compile-time dependencies
@@ -45,7 +44,6 @@ CONTAINS
     USE State_Met_Mod, ONLY : MetState
     !
     INTEGER,        INTENT(IN)    :: I, J, L
-    REAL(fp),       INTENT(IN)    :: bAirDens
     REAL(fp),       INTENT(IN)    :: bCl
     REAL(fp),       INTENT(IN)    :: bOH
     REAL(fp),       INTENT(IN)    :: CH4loss

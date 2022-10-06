@@ -329,11 +329,12 @@ CONTAINS
           ! Total CO2 [kg/kg dry air]
           Spc(id_CO2)%Conc(I,J,L) = Spc(id_CO2)%Conc(I,J,L) + E_CO2
 
-          ! %%% TAGGED SPECIES HANDLING %%%
-          ! Add chemical source of CO into the COchem species
-          IF ( Input_Opt%LSPLIT .and. id_CO2ch > 0 ) THEN
-             Spc(id_CO2ch)%Conc(I,J,L) = Spc(id_CO2ch)%Conc(I,J,L) + E_CO2
-          ENDIF
+!%%% For now comment out tagged species handling (Bob Yantosca, 06 Oct 2022)
+!%%%          ! %%% TAGGED SPECIES HANDLING %%%
+!%%%          ! Add chemical source of CO into the COchem species
+!%%%          IF ( Input_Opt%LSPLIT .and. id_CO2ch > 0 ) THEN
+!%%%             Spc(id_CO2ch)%Conc(I,J,L) = Spc(id_CO2ch)%Conc(I,J,L) + E_CO2
+!%%%          ENDIF
 
        ENDDO
        ENDDO
@@ -849,53 +850,54 @@ CONTAINS
             State_Met    = State_Met,                                      &
             State_Chm    = State_Chm                                      )
 
-       !===================================================================
-       ! TAGGED SPECIES HANDLING
-       ! Handle trop loss by OH for regional CO species
-       !===================================================================
-       IF ( Input_Opt%LSPLIT .and. id_CO > 0 ) THEN
-
-          !%%% NOTE: Un-hardwire the species IDs!
-          ! Loop over regional CO species
-          DO NA = 16, State_Chm%nAdvect-11
-
-             ! Advected species ID
-             N = State_Chm%Map_Advect(NA)
-
-             !-----------------------------------------------------
-             ! NOTE: The proper order should be:
-             !   (1) Calculate CO loss rate
-             !   (2) Update AD65 array
-             !   (3) Update the SPC array using the loss rate
-             !
-             ! Therefore, we have now moved the computation of the
-             ! ND65 diagnostic before we apply the loss to the
-             ! tagged CO concentrations stored in the SPC array.
-             !
-             !    -- Jenny Fisher (27 Mar 2017)
-             !-----------------------------------------------------
-
-             ! Update regional species
-           !<<Not   SUBROUTINE re if this is correct - MSL>>
-             IF (NA .ne. 16)                                     &
-                  Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) *      &
-                  ( 1e+0_fp - K_TROP(2) * C(ind_OH_E) * DTCHEM )
-
-             !-----------------------------------------------------
-             ! HISTORY (aka netCDF diagnostics)
-             !
-             ! Loss of CO by OH for "tagged" species
-             !-----------------------------------------------------
-
-             ! Units: [kg/s]
-             IF ( State_Diag%Archive_Loss ) THEN
-                State_Diag%Loss(I,J,L,N) = Spc(N)%Conc(I,J,L) * K_TROP(2) &
-                     * C(ind_OH_E) * DTCHEM
-                !   C(ind_CO2_OH) / DTCHEM  &
-                !   * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-             ENDIF
-          ENDDO
-       ENDIF
+!%%% For now, comment out tagged species handling (Bob Yantosca, 06 Oct 2022)
+!%%%       !===================================================================
+!%%%       ! TAGGED SPECIES HANDLING
+!%%%       ! Handle trop loss by OH for regional CO species
+!%%%       !===================================================================
+!%%%       IF ( Input_Opt%LSPLIT .and. id_CO > 0 ) THEN
+!%%%
+!%%%          !%%% NOTE: Un-hardwire the species IDs!
+!%%%          ! Loop over regional CO species
+!%%%          DO NA = 16, State_Chm%nAdvect-11
+!%%%
+!%%%             ! Advected species ID
+!%%%             N = State_Chm%Map_Advect(NA)
+!%%%
+!%%%             !-----------------------------------------------------
+!%%%             ! NOTE: The proper order should be:
+!%%%             !   (1) Calculate CO loss rate
+!%%%             !   (2) Update AD65 array
+!%%%             !   (3) Update the SPC array using the loss rate
+!%%%             !
+!%%%             ! Therefore, we have now moved the computation of the
+!%%%             ! ND65 diagnostic before we apply the loss to the
+!%%%             ! tagged CO concentrations stored in the SPC array.
+!%%%             !
+!%%%             !    -- Jenny Fisher (27 Mar 2017)
+!%%%             !-----------------------------------------------------
+!%%%
+!%%%             ! Update regional species
+!%%%           !<<Not   SUBROUTINE re if this is correct - MSL>>
+!%%%             IF (NA .ne. 16)                                     &
+!%%%                  Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) *      &
+!%%%                  ( 1e+0_fp - K_TROP(2) * C(ind_OH_E) * DTCHEM )
+!%%%
+!%%%             !-----------------------------------------------------
+!%%%             ! HISTORY (aka netCDF diagnostics)
+!%%%             !
+!%%%             ! Loss of CO by OH for "tagged" species
+!%%%             !-----------------------------------------------------
+!%%%
+!%%%             ! Units: [kg/s]
+!%%%             IF ( State_Diag%Archive_Loss ) THEN
+!%%%                State_Diag%Loss(I,J,L,N) = Spc(N)%Conc(I,J,L) * K_TROP(2) &
+!%%%                     * C(ind_OH_E) * DTCHEM
+!%%%                !   C(ind_CO2_OH) / DTCHEM  &
+!%%%                !   * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
+!%%%             ENDIF
+!%%%          ENDDO
+!%%%       ENDIF
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
@@ -927,12 +929,12 @@ CONTAINS
              carboncycle_Get_CO_NMVOC_Flux( dtChem )
        ENDIF
 
-! For now, comment out tagged species handling (Bob Yantosca, 30 Aug 2022)
-!       ! Loss of CO by OH -- tagged species
-!       ! Units: [kg/s]
-!       IF ( State_Diag%Archive_Loss ) THEN
-!          State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
-!       ENDIF
+!%%% For now, comment out tagged species handling (Bob Yantosca, 06 Oct 2022)
+!%%%       ! Loss of CO by OH -- tagged species
+!%%%       ! Units: [kg/s]
+!%%%       IF ( State_Diag%Archive_Loss ) THEN
+!%%%          State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
+!%%%       ENDIF
 
     ENDDO
     ENDDO
@@ -945,14 +947,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    !========================================================================
-    ! TAGGED SPECIES HANDLING
-    ! Allocate the CH4 chemistry sink to different tagged CH4 species
-    !========================================================================
-    IF ( Input_Opt%LSPLIT .and. id_CH4 > 0 ) THEN
-       CALL CH4_Distrib_CarbonCycle( PREVCH4,   Input_Opt,                   &
-                                     State_Chm, State_Grid )
-    ENDIF
+!%%% For now, comment out tagged species handling (Bob Yantosca, 06 Oct 2022)
+!%%%    !========================================================================
+!%%%    ! TAGGED SPECIES HANDLING
+!%%%    ! Allocate the CH4 chemistry sink to different tagged CH4 species
+!%%%    !========================================================================
+!%%%    IF ( Input_Opt%LSPLIT .and. id_CH4 > 0 ) THEN
+!%%%       CALL CH4_Distrib_CarbonCycle( PREVCH4,   Input_Opt,                   &
+!%%%                                     State_Chm, State_Grid )
+!%%%    ENDIF
 
   END SUBROUTINE Chem_CarbonCycle
 !EOC
