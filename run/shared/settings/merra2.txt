@@ -29,7 +29,6 @@ GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1
 GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
 HFLUX    1 N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
 LAI      1 N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
-LWI      1 N Y F0;003000 none none LWI      ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
 RADLWG   1 N Y F0;003000 none none LWGNT    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
 PARDF    1 N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
 PARDR    1 N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
