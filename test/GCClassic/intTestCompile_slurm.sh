@@ -47,8 +47,8 @@ fi
 # Load common functions for tests
 . ${root}/commonFunctionsForTests.sh
 
-# Count the number of tests to be done = number of run directories
-numTests=$(ls -1 "${root}/build" | wc -l)
+# Count the number of tests to be done
+numTests=${#EXE_BUILD_LIST[@]}
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"

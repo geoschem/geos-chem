@@ -18,7 +18,7 @@
 #BOC
 
 # Global variables
-FILL=$(printf '.%.0s' {1..44})
+FILL=$(printf '.%.0s' {1..47})
 SEP_MAJOR=$(printf '=%.0s' {1..78})
 SEP_MINOR=$(printf '\055%.0s' {1..78})
 SED_CONFIG_1='s/end_date: \[20110201, 000000\]/end_date: \[20110101, 010000\]/'
@@ -40,11 +40,11 @@ SED_RUN_CONFIG_3='s/20190201 000000/20190101 010000/'
 SED_RUN_CONFIG_4='s/00000100 000000/00000000 010000/'
 SED_RUN_CONFIG_5='s/7440000/010000/'
 SED_RUN_CONFIG_6='s/1680000/010000/'
-CMP_PASS_STR='Configure & Build......PASS'
-CMP_FAIL_STR='Configure & Build......FAIL'
-EXE_PASS_STR='Execute Simulation.....PASS'
-EXE_FAIL_STR='Execute Simulation.....FAIL'
-EXE_TBD_STR='Execute Simulation.....TBD'
+CMP_PASS_STR='Configure & Build.....PASS'
+CMP_FAIL_STR='Configure & Build.....FAIL'
+EXE_PASS_STR='Execute Simulation....PASS'
+EXE_FAIL_STR='Execute Simulation....FAIL'
+EXE_TBD_STR='Execute Simulation....TBD'
 EXE_BUILD_LIST=("default" "apm"   "carboncycle" "hg"       \
                 "luowd"   "rrtmg" "tomas15"     "tomas40" )
 
