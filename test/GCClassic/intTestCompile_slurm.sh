@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -t 0-01:00
+#SBATCH -t 0-00:30
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=8000
 #SBATCH --mail-type=END
