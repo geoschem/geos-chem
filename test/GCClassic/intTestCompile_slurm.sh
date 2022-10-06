@@ -2,7 +2,7 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-00:30
+#SBATCH -t 0-01:00
 #SBATCH -p huce_cascade
 #SBATCH --mem=8000
 #SBATCH --mail-type=END

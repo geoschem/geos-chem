@@ -84,9 +84,9 @@ MODULE DiagList_Mod
   CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
   CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)    ! Names of RRTMG outputs (tags)
   INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: isCarbonCycle ! Is this a carbon cycle sim?
-  LOGICAL,           PUBLIC  :: isFullChem    ! Is this a fullchem simulation?
-  LOGICAL,           PUBLIC  :: isMercury     ! Is this a mercury simulation?
+  LOGICAL,           PUBLIC  :: IsFullChem    ! Is it a fullchem simulation?
+  LOGICAL,           PUBLIC  :: IsHg          ! Is it a Hg simulation?
+  LOGICAL,           PUBLIC  :: IsCarbonCycle ! Is it a carboncycle sim?
   CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
@@ -227,9 +227,9 @@ CONTAINS
     RadWL           =  ''
     RadOut          =  ''
     nRadOut         =  0
-    isCarbonCycle   = .FALSE.
-    isFullChem      = .FALSE.
-    isMercury       = .FALSE.
+    IsFullChem      = .FALSE.
+    IsHg            = .FALSE.
+    IsCarbonCycle   = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
     Name            =  ''
@@ -268,22 +268,9 @@ CONTAINS
        CALL QFYAML_CleanUp( ConfigAnchored  )
        RETURN
     ENDIF
-
-    ! Set flags to denote the type of simulation
-    ! so that we can set the appropriate metadata
-    isCarbonCycle = .FALSE.
-    isFullChem    = .FALSE.
-    isMercury     = .FALSE.
-    SELECT CASE( To_UpperCase( v_str ) )
-       CASE ( 'CARBONCYCLE'  )
-          isCarbonCycle = .TRUE.
-       CASE( 'FULLCHEM'      )
-          isFullChem    = .TRUE.
-       CASE( 'HG', 'MERCURY' )
-          isMercury     = .TRUE.
-       CASE DEFAULT
-          ! Nothing
-    END SELECT
+    IsFullChem    = ( To_UpperCase( v_str ) == "FULLCHEM"    )
+    IsHg          = ( To_UpperCase( v_str ) == "HG"          )
+    IsCarbonCycle = ( To_UpperCase( v_str ) == "CARBONCYCLE" )
 
     ! Read the altitude above the surface in meters for drydep diags
     key   = "operations%dry_deposition%diag_alt_above_sfc_in_m"

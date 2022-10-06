@@ -150,6 +150,7 @@ CONTAINS
     USE GLOBAL_CH4_MOD,        ONLY : EmissCH4
     USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
     USE Input_Opt_Mod,         ONLY : OptInput
+    USE Mercury_Mod,           ONLY : EmissMercury
     USE Precision_Mod
     USE State_Chm_Mod,         ONLY : ChmState
     USE State_Diag_Mod,        ONLY : DgnState
@@ -298,6 +299,19 @@ CONTAINS
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Emiss_CarbonCycle"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! For mercury, use old emissions code for now
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       CALL EmissMercury( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissMercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

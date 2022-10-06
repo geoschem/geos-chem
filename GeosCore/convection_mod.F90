@@ -1290,12 +1290,9 @@ CONTAINS
                 ! Wet scavenged Hg(II) in [kg]
                 WET_Hg2 = ( T0_SUM * AREA_M2 )
 
-                ! Category # for this Hg2 species
-                Hg_Cat  = SpcInfo%Hg_Cat
-
                 ! Pass to "ocean_mercury_mod.f"
-                CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, &
+                CALL ADD_Hg2_WD      ( I, J, WET_Hg2  )
+                CALL ADD_Hg2_SNOWPACK( I, J, WET_Hg2, &
                                        State_Met, State_Chm, State_Diag )
              ENDIF
 
@@ -1307,12 +1304,9 @@ CONTAINS
                 ! Wet scavenged Hg(P) in [kg]
                 WET_HgP = ( T0_SUM * AREA_M2 )
 
-                ! Category # for this Hg2 species
-                Hg_Cat  = SpcInfo%Hg_Cat
-
                 ! Pass to "ocean_mercury_mod.f"
-                CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, &
+                CALL ADD_HgP_WD      ( I, J, WET_HgP  )
+                CALL ADD_Hg2_SNOWPACK( I, J, WET_HgP, &
                                        State_Met, State_Chm, State_Diag )
              ENDIF
           ENDIF
