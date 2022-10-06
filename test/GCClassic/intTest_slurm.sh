@@ -48,7 +48,7 @@ if [[ "x${PARTITION}" == "x" ]]; then
 fi
 
 # 4th argument: Run a short integration test (for development)?
-SHORT=${3}
+SHORT=${4}
 
 #=============================================================================
 # Load file with utility functions to setup configuration files
