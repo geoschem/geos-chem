@@ -746,7 +746,7 @@ CONTAINS
        ! additional sulfate production that can be
        ! attributed to ozone [ug/m3/timestep]
        ! Don't allow SR to be negative
-       SR = MAX( ( DSVI - B ), 0.0_dp )
+       SR = MAX( ( DSVI - B ), 0.0_dp ) ! I need to change this
 
        ! Skip further computation if SR = 0
        IF ( SR > 0.0_dp ) THEN
