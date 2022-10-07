@@ -695,7 +695,7 @@ if [[ ${met} = "geosfp" ]] || [[ ${met} = "merra2" ]]; then
         fi
     done
 fi
-f
+
 if [[ ${met} = "ModelE2.1" ]]; then
     printf "  1. 40 (native)\n"
     valid_lev=0
