@@ -29,7 +29,8 @@
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
 GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
-Logfile:                     HEMCO.log
+GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
+Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
@@ -40,6 +41,7 @@ Negative values:             2
 Only unitless scale factors: false
 Verbose:                     0
 Warnings:                    1
+Mask fractions:              false
 
 ### END SECTION SETTINGS ###
 
@@ -56,7 +58,8 @@ Warnings:                    1
     --> USE_CO_DATA            :       true
     --> USE_CO2_DATA           :       true
 # ----- RESTART FIELDS --------------------------------------------------------
-    --> GC_RESTART             :       true
+    --> GC_RESTART             :       false
+    --> HEMCO_RESTART          :       false
 # ----- NESTED GRID FIELDS ----------------------------------------------------
     --> GC_BCs                 :       ${RUNDIR_USE_BCs}
 # ----- CH4 INVENTORIES AND DATA ----------------------------------------------
@@ -128,7 +131,7 @@ Warnings:                    1
     --> GLOBAL_OH              :       true     # 2010-2019
     --> GLOBAL_OH_GCv5         :       true     # 1985 (GCv5 OH, need for IMI)
 # -----------------------------------------------------------------------------
-108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
+108     MEGAN                  : on    ISOP/ACET/MTPA/MTPO/LIMO
     --> Isoprene scaling       :       1.0
     --> CO2 inhibition         :       true
     --> CO2 conc (ppmv)        :       390.0
@@ -138,7 +141,7 @@ Warnings:                    1
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : off   CH4/CO2/CO2bb
+111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
     --> GFED_daily             :       true
     --> GFED_3hourly           :       false
@@ -147,7 +150,7 @@ Warnings:                    1
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
     --> fraction POG1          :       0.49
-# -----------------------------------------------------------------------------
+
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -354,6 +357,15 @@ Warnings:                    1
 (((BB4MIPS
 0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4                   CH4_bbn           1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s    CH4     75        9 1
 )))BB4MIPS
+
+#==============================================================================
+# --- CH4: QFED2 biomass burning ---
+#
+# Use QFED v2.4r8 for CH4. The data in QFED/v2014-09 are for v2.4r5 and have
+# been found to be buggy for CH4 (same emissions on each day).
+#==============================================================================
+(((QFED2
+0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
 
 #==============================================================================
@@ -1141,8 +1153,6 @@ Warnings:                    1
 
 )))USE_CO2_DATA
 
-)))EMISSIONS
-
 ###############################################################################
 ### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
 ###
@@ -1152,8 +1162,6 @@ Warnings:                    1
 ### extensions by field name.  The name given here must match the name used
 ### in the extension's source code.
 ###############################################################################
-
-(((EMISSIONS
 
 #==============================================================================
 # --- MEGAN biogenic emissions (Extension 108)
@@ -1170,11 +1178,11 @@ Warnings:                    1
 (((USE_CO_DATA
 (((MEGAN
 (((HEMCO_RESTART
-108  T_DAVG                       ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  T_PREVDAY                    ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  LAI_PREVDAY                  ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
-108  PARDR_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
-108  PARDF_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  T_DAVG                       ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc            T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  T_PREVDAY                    ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc            T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  LAI_PREVDAY                  ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc            LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
+108  PARDR_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc            PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  PARDF_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc            PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
 )))HEMCO_RESTART
 108  MEGAN_AEF_ISOP               $ROOT/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc      AEF_ISOPRENE            1985/1/1/0        C xy kgC/m2/s * 61 1 1
 108  MEGAN_AEF_MBOX               $ROOT/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc      AEF_MBO                 1985/1/1/0        C xy kgC/m2/s * 64 1 1
@@ -1259,12 +1267,12 @@ Warnings:                    1
 # --- GEOS-Chem restart file ---
 #==============================================================================
 (((GC_RESTART
-* SPC_           ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
-* TMPU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_TMPU1           $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
-* SPHU1          ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_SPHU1           $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
-* PS1DRY         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1DRY          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
-* PS1WET         ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1WET          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
-* DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
+* SPC_     ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?  $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
+* TMPU1    ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_TMPU1         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
+* SPHU1    ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_SPHU1         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
+* PS1DRY   ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1DRY        $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* PS1WET   ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_PS1WET        $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* DELPDRY  ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY       $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
 )))GC_RESTART
 
 #==============================================================================
@@ -1567,9 +1575,11 @@ ${RUNDIR_GMI_PROD_CO}
 # --- Recommended for use in forward modelling ---
 # --- Optional for inversion/assimilation --------
 (((USE_CO2_DATA
+
 (((CO2_COPROD
 ${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
+
 )))USE_CO2_DATA
 
 )))CHEMISTRY_INPUT
