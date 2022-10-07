@@ -345,6 +345,7 @@ CONTAINS
        Spc => NULL()
     ENDIF
 
+
     ! Free pointers for safety's sake
     Spc   => NULL()
     Ptr2D => NULL()
@@ -387,9 +388,8 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState, Ind_
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
-    USE TIME_MOD,             ONLY : GET_TS_CHEM,     GET_TS_EMIS
-    USE TIME_MOD,             ONLY : GET_MONTH,       GET_YEAR
-    USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+    USE Time_Mod,             ONLY : Get_Ts_Chem
+    USE Timers_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -436,7 +436,7 @@ CONTAINS
     LOGICAL                  :: failed,          found
     INTEGER                  :: HcoID,           I,            J
     INTEGER                  :: L,               NA,           N
-    INTEGER                  :: NN,              MONTH,        YEAR
+    INTEGER                  :: NN
     INTEGER                  :: IERR
     REAL(fp)                 :: DTCHEM,          FAC_DIURNAL,  kgs_to_atomsC
     REAL(fp)                 :: Emis,            DTEMIS,       kgm3_to_mcm3OH
@@ -487,6 +487,14 @@ CONTAINS
     REAL(fp),      POINTER   :: AIRVOL(:,:,:)
     REAL(fp),      POINTER   :: T(:,:,:)
     TYPE(SpcConc), POINTER   :: Spc(:)
+
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
+    ! For GEOS-Chem Classic timers
+    INTEGER                  :: Thread
+    INTEGER,       EXTERNAL  :: OMP_GET_THREAD_NUM
+#endif
+#endif
 
     !========================================================================
     ! Chem_Carboncycle begins here!
@@ -652,7 +660,9 @@ CONTAINS
     ENDIF
 
     ! Save OH concentrations [molec/cm3] for metrics
-    CALL CH4_OhSave_CarbonCycle( State_Met, State_Chm, State_Grid, BOH )
+    IF ( id_CH4 > 0 ) THEN
+       CALL CH4_OhSave_CarbonCycle( State_Met, State_Chm, State_Grid, BOH )
+    ENDIF 
 
     !========================================================================
     ! TAGGED SPECIES HANDLING
@@ -662,6 +672,7 @@ CONTAINS
 
        ! If there are multiple CH4 species, store the total CH4 concentration
        ! so that we can distribute the sink after the chemistry.
+       PrevCH4 = 0.0_fp
        IF ( id_CH4 > 0 ) THEN
           PrevCH4 = Spc(id_CH4)%Conc
        ENDIF
@@ -676,7 +687,7 @@ CONTAINS
        ! Also note, skip this section if emissions are turned off,
        ! which will keep the SUM*CO arrays zeroed out.
        !---------------------------------------------------------------------
-       IF ( Input_Opt%DoEmissions .and. id_CO > 0 ) THEN
+       IF ( id_CO > 0 ) THEN
 
           ! Conversion factor from [kg/s] --> [atoms C]
           ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
@@ -739,7 +750,6 @@ CONTAINS
           ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
           SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val ! kgC/s
           SUMMONOCO = SUMMONOCO * kgs_to_atomsC ! atoms C
-
        ENDIF
     ENDIF
 
@@ -765,6 +775,11 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, N, FAC_DIURNAL                                  )&
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
+    !$OMP PRIVATE( Thread                                                   )&
+#endif
+#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -772,32 +787,63 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Initialize PRIVATE and THREADPRIVATE variables
-       C              = 0.0_dp                   ! Species conc. [molec/cm3]
-       CFACTOR        = 1.0_dp                   ! Not used, set = 1
-       fac_Diurnal    = 0.0_dp                   ! Diurnal scaling factor [1]
-       K_STRAT        = 0.0_dp                   ! Rate in stratosphere [1/s]
-       K_TROP         = 0.0_dp                   ! Rate in troposphere  [1/s]
-       NUMDEN         = State_Met%AIRNUMDEN(I,J,L)
-       TROP           = 0.0_dp                   ! Toggle
-       TEMP           = State_Met%T(I,J,L)       ! Temperature [K]
-       INV_TEMP       = 1.0_dp / TEMP            ! 1/T  term for equations
-       TEMP_OVER_K300 = TEMP / 300.0_dp          ! T/300 term for equations
-       K300_OVER_TEMP = 300.0_dp / TEMP          ! 300/T term for equations
-       SUNCOS         = State_Met%SUNCOSmid(I,J) ! Cos(SZA) ) [1]
+       C              = 0.0_dp                    ! Species conc. [molec/cm3]
+       CFACTOR        = 1.0_dp                    ! Not used, set = 1
+       fac_Diurnal    = 0.0_dp                    ! Diurnal scaling factor [1]
+       K_STRAT        = 0.0_dp                    ! Rate in stratosphere [1/s]
+       K_TROP         = 0.0_dp                    ! Rate in troposphere  [1/s]
+       NUMDEN         = State_Met%AIRNUMDEN(I,J,L)! Air density [molec/cm3]
+       TROP           = 0.0_dp                    ! Toggle
+       TEMP           = State_Met%T(I,J,L)        ! Temperature [K]
+       INV_TEMP       = 1.0_dp / TEMP             ! 1/T  term for equations
+       TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
+       K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
+       SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
+#ifdef MODEL_CLASSIC
+#ifndef NO_OMP
+       Thread         = OMP_GET_THREAD_NUM() + 1  ! OpenMP thread number
+#endif
+#endif
 
+       !=====================================================================
+       ! Start KPP main timer
+       !=====================================================================
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( TimerName = "  -> KPP",                          &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
+       ENDIF
+
+       !=====================================================================
        ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
-       CALL carboncycle_ConvertKgtoMolecCm3(                               &
-            I          = I,                                                &
-            J          = J,                                                &
-            L          = L,                                                &
-            id_CH4     = id_CH4,                                           &
-            id_CO      = id_CO,                                            &
-            id_CO2     = id_CO2,                                           &
-            xnumol_CO  = xnumol_CO,                                        &
-            xnumol_CH4 = xnumol_CH4,                                       &
-            xnumol_CO2 = xnumol_CO2,                                       &
-            State_Met  = State_Met,                                        &
-            State_Chm  = State_Chm                                        )
+       !=====================================================================
+
+       ! Convert units
+       CALL carboncycle_ConvertKgtoMolecCm3(                                 &
+            I          = I,                                                  &
+            J          = J,                                                  &
+            L          = L,                                                  &
+            id_CH4     = id_CH4,                                             &
+            id_CO      = id_CO,                                              &
+            id_CO2     = id_CO2,                                             &
+            xnumol_CO  = xnumol_CO,                                          &
+            xnumol_CH4 = xnumol_CH4,                                         &
+            xnumol_CO2 = xnumol_CO2,                                         &
+            State_Met  = State_Met,                                          &
+            State_Chm  = State_Chm                                          )
+
+       !===================================================================
+       ! Update reaction rates
+       !===================================================================
+
+       ! Start timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( TimerName = "     RCONST",                     &
+                            InLoop    = .TRUE.,                            &
+                            ThreadNum = Thread,                            &
+                            RC        =  RC                               )
+       ENDIF
 
        ! Compute the rate constants that will be used
        ! return the diurnal factor
@@ -818,37 +864,123 @@ CONTAINS
             State_Met    = State_Met,                                      &
             State_Chm    = State_Chm                                      )
 
-       !===================================================================
-       ! Update reaction rates
-       !===================================================================
-
        ! Update the array of rate constants for the KPP solver
        CALL Update_RCONST( )
 
+       ! Stop timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( TimerName = "     RCONST",                         &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        =  RC                                   )
+       ENDIF
+
+       !=====================================================================
        ! Call the KPP integrator
+       !=====================================================================
+
+       ! Start timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( TimerName = "     Integrate 1",                  &
+                            InLoop    =  .TRUE.,                             &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
+       ENDIF
+
+       ! Integrate the mechanism forward in time
        CALL Integrate( TIN      = TIN,                                     &
                        TOUT     = TOUT,                                    &
                        ICNTRL_U = ICNTRL,                                  &
                        IERR_U   = IERR                                    )
 
+       ! Stop timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( TimerName = "     Integrate 1",                    &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        = RC                                    )
+       ENDIF
+
        ! Trap potential errors
        IF ( IERR /= 1 ) failed = .TRUE.
 
+       !=====================================================================
+       ! HISTORY: Archive KPP solver diagnostics
+       !=====================================================================
+       IF ( State_Diag%Archive_KppDiags ) THEN
+
+          ! # of integrator calls
+          IF ( State_Diag%Archive_KppIntCounts ) THEN
+             State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
+          ENDIF
+
+          ! # of times Jacobian was constructed
+          IF ( State_Diag%Archive_KppJacCounts ) THEN
+             State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
+          ENDIF
+
+          ! # of internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
+          ENDIF
+
+          ! # of accepted internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
+          ENDIF
+
+          ! # of rejected internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
+          ENDIF
+
+          ! # of LU-decompositions
+          IF ( State_Diag%Archive_KppLuDecomps ) THEN
+             State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
+          ENDIF
+
+          ! # of forward and backwards substitutions
+          IF ( State_Diag%Archive_KppSubsts ) THEN
+             State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
+          ENDIF
+
+          ! # of singular-matrix decompositions
+          IF ( State_Diag%Archive_KppSmDecomps ) THEN
+             State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
+          ENDIF
+       ENDIF
+
        ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
-       CALL carboncycle_ConvertMolecCm3ToKg(                               &
-            I            = I,                                              &
-            J            = J,                                              &
-            L            = L,                                              &
-            id_CH4       = id_CH4,                                         &
-            id_CO        = id_CO,                                          &
-            id_COch4     = id_COch4,                                       &
-            id_COnmvoc   = id_COnmvoc,                                     &
-            id_CO2       = id_CO2,                                         &
-            xnumol_CO    = xnumol_CO,                                      &
-            xnumol_CH4   = xnumol_CH4,                                     &
-            xnumol_CO2   = xnumol_CO2,                                     &
-            State_Met    = State_Met,                                      &
-            State_Chm    = State_Chm                                      )
+       CALL carboncycle_ConvertMolecCm3ToKg(                                 &
+            I            = I,                                                &
+            J            = J,                                                &
+            L            = L,                                                &
+            id_CH4       = id_CH4,                                           &
+            id_CO        = id_CO,                                            &
+            id_COch4     = id_COch4,                                         &
+            id_COnmvoc   = id_COnmvoc,                                       &
+            id_CO2       = id_CO2,                                           &
+            xnumol_CO    = xnumol_CO,                                        &
+            xnumol_CH4   = xnumol_CH4,                                       &
+            xnumol_CO2   = xnumol_CO2,                                       &
+            State_Met    = State_Met,                                        &
+            State_Chm    = State_Chm                                        )
+
+       IF ( Input_Opt%useTimers ) THEN
+
+          ! Stop main KPP timer
+          CALL Timer_End( TimerName  = "  -> KPP",                           &
+                          InLoop     = .TRUE.,                               &
+                          ThreadNum  = Thread,                               &
+                          RC         = RC                                   )
+
+          ! Start Prod/Loss timer
+          CALL Timer_Start( TimerName = "  -> Prod/loss diags",              &
+                            InLoop    = .TRUE.,                              &
+                            ThreadNum = Thread,                              &
+                            RC        = RC                                  )
+
+       ENDIF
 
 !%%% For now, comment out tagged species handling (Bob Yantosca, 06 Oct 2022)
 !%%%       !===================================================================
@@ -936,6 +1068,14 @@ CONTAINS
 !%%%          State_Diag%Loss(I,J,L,16) = ( CO_OH / STTCO / DTCHEM )
 !%%%       ENDIF
 
+       ! Stop Prod/Loss timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( TimerName =  "  -> Prod/loss diags",               &
+                          InLoop    = .TRUE.,                                &
+                          ThreadNum = Thread,                                &
+                          RC        = RC                                    )
+       ENDIF
+
     ENDDO
     ENDDO
     ENDDO
@@ -1000,11 +1140,13 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: I,       J,           L
+    INTEGER                :: Thread
     REAL(fp)               :: MASST,   AREA_M2
     REAL(fp)               :: KCLO,    LOSS,        OHMASS
     REAL(fp)               :: KCH4,    CH4LOSE,     CH4MASS
     REAL(fp)               :: CH4EMIS, CH4TROPMASS, BOXVL
-    REAL(fp)               :: C_OH, DT, FAC_DIURNAL, SUNCOS
+    REAL(fp)               :: C_OH,    DT,          FAC_DIURNAL
+    REAL(fp)               :: SUNCOS
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
