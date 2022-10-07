@@ -3727,9 +3727,10 @@ CONTAINS
           nSpc = nSpc + 1
        ENDIF
 
-       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       !%%%%% FOR THE CARBONCYCLE OR TAGGED CO SIMULATIONS %%%%%
        ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO
-       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+       IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM   .or.                           &
+            Input_Opt%ITS_A_TAGCO_SIM       ) THEN
           nSpc = nSpc + 5
        ENDIF
 
@@ -3797,7 +3798,8 @@ CONTAINS
           ! Add the non-advected species ISOP, ACET, MTPA, LIMO, MTPO
           ! in the last 5 species slots (bmy, ckeller, 6/1/16)
           !------------------------------------------------------------------
-          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+          IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM   .or.                        &
+               Input_Opt%ITS_A_TAGCO_SIM       ) THEN
 
              ! Add 5 additional species
              DO L = 1, 5
