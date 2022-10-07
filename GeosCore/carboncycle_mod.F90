@@ -664,93 +664,84 @@ CONTAINS
        CALL CH4_OhSave_CarbonCycle( State_Met, State_Chm, State_Grid, BOH )
     ENDIF 
 
-    !========================================================================
-    ! TAGGED SPECIES HANDLING
-    ! Store total CH4 and update chemically-produced CO arrays
-    !========================================================================
-    IF ( Input_Opt%LSPLIT ) THEN
+!%%% Comment out tagged species handling for now (Bob Yantosca, 07 Oct 2022)
+!%%%    !========================================================================
+!%%%    ! TAGGED SPECIES HANDLING
+!%%%    ! If there are multiple CH4 species, store the total CH4 concentration
+!%%%    ! so that we can distribute the sink after the chemistry.
+!%%%    !========================================================================
+!%%%    IF ( Input_Opt%LSPLIT .and. id_CH4 > 0 ) THEN
+!%%%       PrevCH4 = Spc(id_CH4)%Conc
+!%%%    ENDIF
 
-       ! If there are multiple CH4 species, store the total CH4 concentration
-       ! so that we can distribute the sink after the chemistry.
-       PrevCH4 = 0.0_fp
-       IF ( id_CH4 > 0 ) THEN
-          PrevCH4 = Spc(id_CH4)%Conc
+    !========================================================================
+    ! Because HEMCO returns 3-D emissions, we need to sum the
+    ! SUMACETCO, SUMISOPCO, and SUMMONOCO arrays in the vertical.
+    !
+    ! Also note, skip this section if emissions are turned off,
+    ! which will keep the SUM*CO arrays zeroed out.
+    !========================================================================
+    IF ( id_CO > 0 .and. Input_Opt%DoEmissions ) THEN
+
+       ! Conversion factor from [kg/s] --> [atoms C]
+       ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
+       kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
+
+       ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
+       HcoId = HCO_GetHcoId( 'ACET', HcoState )
+       IF ( HcoId > 0 ) THEN
+          SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    !kgC/m2/s
+          SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     !kgC/s
+          SUMACETCO = SUMACETCO * kgs_to_atomsC                 !atoms
+       ELSE
+          ErrMsg = 'ACET not turned on in MEGAN!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
-       !---------------------------------------------------------------------
-       ! Update the chemically-produced tagged CO species, which are
-       ! COch4, COisop, COacet, COch4, COnmvoc.
-       !
-       ! Because HEMCO returns 3-D emissions, we need to sum the
-       ! SUMACETCO, SUMISOPCO, and SUMMONOCO arrays in the vertical.
-       !
-       ! Also note, skip this section if emissions are turned off,
-       ! which will keep the SUM*CO arrays zeroed out.
-       !---------------------------------------------------------------------
-       IF ( id_CO > 0 ) THEN
-
-          ! Conversion factor from [kg/s] --> [atoms C]
-          ! (atoms C /mole C) / (kg C /mole C) * chemistry timestep [s]
-          kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
-
-          ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
-          HcoId = HCO_GetHcoId( 'ACET', HcoState )
-          IF ( HcoId > 0 ) THEN
-             SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    !kgC/m2/s
-             SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     !kgC/s
-             SUMACETCO = SUMACETCO * kgs_to_atomsC                 !atoms
-
-          ELSE
-             ErrMsg = 'ACET not turned on in the MEGAN!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
-          HcoId = HCO_GetHcoID( 'ISOP', HcoState )
-          IF ( HcoId > 0 ) THEN
-             SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    !kgC/m2/s
-             SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     !kgC/s
-             SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 !atoms
-
-          ELSE
-             ErrMsg = 'ISOP not turned on in MEGAN!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
-          HcoId = HCO_GetHcoId( 'MTPA', HcoState )
-          IF ( HcoId > 0 ) THEN
-             ! kgC/m2/s
-             SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
-          ELSE
-             ErrMsg = 'MTPA not turned on in Megan_Mono !'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          HcoId = HCO_GetHcoId( 'LIMO', HcoState )
-          IF ( HcoId > 0 ) THEN
-             ! kgC/m2/s
-             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
-          ELSE
-             ErrMsg = 'LIMO not turned on in Megan_Mono !'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          HcoId = HCO_GetHcoId( 'MTPO', HcoState )
-          IF ( HcoId > 0 ) THEN
-             ! kgC/m2/s
-             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
-          ELSE
-             ErrMsg = 'MTPO not turned on in Megan_Mono !'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
-          SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val ! kgC/s
-          SUMMONOCO = SUMMONOCO * kgs_to_atomsC ! atoms C
+       ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
+       HcoId = HCO_GetHcoID( 'ISOP', HcoState )
+       IF ( HcoId > 0 ) THEN
+          SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    !kgC/m2/s
+          SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     !kgC/s
+          SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 !atoms
+       ELSE
+          ErrMsg = 'ISOP not turned on in MEGAN!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
+
+       ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
+       HcoId = HCO_GetHcoId( 'MTPA', HcoState )
+       IF ( HcoId > 0 ) THEN
+          ! kgC/m2/s
+          SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
+       ELSE
+          ErrMsg = 'MTPA not turned on in Megan_Mono !'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       HcoId = HCO_GetHcoId( 'LIMO', HcoState )
+       IF ( HcoId > 0 ) THEN
+          ! kgC/m2/s
+          SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
+       ELSE
+          ErrMsg = 'LIMO not turned on in Megan_Mono !'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       HcoId = HCO_GetHcoId( 'MTPO', HcoState )
+       IF ( HcoId > 0 ) THEN
+          ! kgC/m2/s
+          SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
+       ELSE
+          ErrMsg = 'MTPO not turned on in Megan_Mono !'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
+       SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val ! kgC/s
+       SUMMONOCO = SUMMONOCO * kgs_to_atomsC ! atoms C
     ENDIF
 
     !%%%%% TIMESTEPS %%%%%
