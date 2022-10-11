@@ -12,4 +12,7 @@
 
 ## For help with GEOS-Chem Classic, see:
 
+  - https://geos-chem.readthedocs.io/en/latest/reference/SUPPORT.html
+
   - https://geos-chem.readthedocs.io/en/latest/reference/CONTRIBUTING.html
+
