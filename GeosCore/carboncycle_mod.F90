@@ -437,7 +437,7 @@ CONTAINS
     INTEGER                  :: HcoID,           I,            J
     INTEGER                  :: L,               NA,           N
     INTEGER                  :: NN
-    INTEGER                  :: IERR
+    INTEGER                  :: IERR,            Thread
     REAL(fp)                 :: DTCHEM,          FAC_DIURNAL,  kgs_to_atomsC
     REAL(fp)                 :: Emis,            DTEMIS,       kgm3_to_mcm3OH
     REAL(fp)                 :: kgm3_to_mcm3sCO, TIN,          TOUT
@@ -491,7 +491,6 @@ CONTAINS
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
     ! For GEOS-Chem Classic timers
-    INTEGER                  :: Thread
     INTEGER,       EXTERNAL  :: OMP_GET_THREAD_NUM
 #endif
 #endif
