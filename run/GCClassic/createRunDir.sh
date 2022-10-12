@@ -1089,7 +1089,7 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 
 	# For carboncycle, point to the restarts in v2022-08
 	sample_rst=${rst_root}/v2022-08/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
-   
+
     else
 
 	# For other specialty simulations, use previoiusly saved restarts
@@ -1156,6 +1156,7 @@ if [[ "x${sim_extra_option}" == "xaciduptake"       ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
       "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xcarboncycle"      ||
       "x${sim_name}"         == "xPOPs"             ||
       "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xtagO3"        ]]; then
