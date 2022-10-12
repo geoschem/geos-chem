@@ -1510,31 +1510,6 @@ CONTAINS
        ! Adjust first flag
        FIRST  = .FALSE.
 
-       ! Define species ID's
-       id_DST1 = Ind_( 'DST1' )
-       id_NK1  = Ind_( 'NK1'  )
-
-       ! Skip for dry-run simulations
-       IF ( .not. Input_Opt%DryRun ) THEN
-
-          !-----------------------------------------------------------------
-          ! Initialize the fullchem mechanism (skip if it is a dry-run)
-          !
-          ! NOTE: We might be able to move this to GC_Init_Extra
-          !  -- Bob Yantosca (31 Aug 2022)
-          !-----------------------------------------------------------------
-          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-             CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Init_FlexChem"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-          ENDIF
-       ENDIF
-
        !--------------------------------------------------------------------
        ! Initialize Fast-JX photolysis
        ! (except for carboncycle, which has no photolysis)
