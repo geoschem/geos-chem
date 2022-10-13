@@ -72,6 +72,9 @@ Diag_Collections=(SpeciesConc    \
                   AerosolMass    \
                   Aerosols       \
                   Budget         \
+                  CH4            \
+                  CO             \
+                  CO2            \
                   CloudConvFlux  \
                   ConcAfterChem  \
                   DryDep         \
