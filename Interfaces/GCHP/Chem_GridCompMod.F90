@@ -552,6 +552,7 @@ CONTAINS
        EOF = IOS < 0
        IF ( EOF ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
        LINE = ADJUSTL( ADJUSTR( LINE ) )
+       IF ( INDEX( LINE, 'passive_species' ) > 0 ) EXIT
        CALL STRSPLIT( LINE, '-', SUBSTRS, N )
        IF ( INDEX( LINE, '-' ) > 0 ) THEN
           substrs(1) = ADJUSTL( ADJUSTR( substrs(1) ) )

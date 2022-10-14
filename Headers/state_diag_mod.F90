@@ -10605,8 +10605,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,         ONLY : StrSplit, To_UpperCase
-    USE DiagList_Mod,        ONLY : IsFullChem
+    USE Charpak_Mod,         ONLY : StrSplit,   To_UpperCase
+    USE DiagList_Mod,        ONLY : IsFullChem, IsCarbonCycle, IsHg
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -11539,11 +11539,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'LOS'
 
-       ! NOTE: Units are different depending on simulation, due to historical
-       ! baggage.  Maybe clean this up at a later point to use the same units
-       ! regardless of simulation type. (bmy, 12/4/17)
+       ! NOTE: Prod/Loss units for simulations with KPP are molec/cm3/s,
+       ! and are currently kg/s for other specialty simulations.
+       ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11555,11 +11555,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PRD'
 
-       ! NOTE: Units are different depending on simulation, due to historical
-       ! baggage.  Maybe clean this up at a later point to use the same units
-       ! regardless of simulation type. (bmy, 12/4/17)
+       ! NOTE: Prod/Loss units for simulations with KPP are molec/cm3/s,
+       ! and are currently kg/s for other specialty simulations.
+       ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'

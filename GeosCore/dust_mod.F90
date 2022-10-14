@@ -1193,7 +1193,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE RDUST_ONLINE(  Input_Opt, State_Chm, State_Diag, State_Grid, &
-                            State_Met, DUST,      ODSWITCH,   RC )
+                            State_Met, ODSWITCH,   RC                    )
 !
 ! !USES:
 !
@@ -1210,8 +1210,6 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
     TYPE(GrdState), INTENT(IN)  :: State_Grid    ! Grid State object
     TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State object
-    REAL(fp),       INTENT(IN)  :: DUST(State_Grid%NX,State_Grid%NY, &
-                                        State_Grid%NZ,NDUST) !Dust [kg/m3]
     INTEGER,        INTENT(IN)  :: ODSWITCH
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1252,6 +1250,7 @@ CONTAINS
     REAL(fp), POINTER :: TAREA(:,:,:,:)
     REAL(fp), POINTER :: WERADIUS(:,:,:,:)
     REAL(fp), POINTER :: WTAREA(:,:,:,:)
+    REAL(fp), POINTER :: DUST(:,:,:,:)
 
     !=================================================================
     ! RDUST_ONLINE begins here!
@@ -1265,6 +1264,7 @@ CONTAINS
     TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
     WERADIUS  => State_Chm%WetAeroRadi  ! Wet Aerosol Radius [cm]
     WTAREA    => State_Chm%WetAeroArea  ! Wet Aerosol Area   [cm2/cm3]
+    DUST      => State_Chm%SoilDust     ! Dust aerosol Conc. [kg/m3]
 
     ! Index for dust in ODAER and LUT arrays
     IDST      = 8
@@ -1538,6 +1538,7 @@ CONTAINS
     TAREA    => NULL()
     WERADIUS => NULL()
     WTAREA   => NULL()
+    DUST     => NULL()
 
   END SUBROUTINE RDUST_ONLINE
 !EOC

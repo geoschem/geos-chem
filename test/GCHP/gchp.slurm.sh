@@ -18,6 +18,9 @@
 # See SLURM documentation for descriptions of all possible settings.
 # Type 'man sbatch' at the command prompt to browse documentation.
 
+# Exit if an error is encountered, and log commands of this script
+set -xe
+
 # Define GEOS-Chem log file (and remove any prior log file)
 thisDir=$(pwd -P)
 root=$(dirname ${thisDir})
@@ -25,66 +28,37 @@ runDir=$(basename ${thisDir})
 log="${root}/logs/execute.${runDir}.log"
 rm -f ${log}
 
-# Always remove cap_restart if not doing a multi-segmented run.
-if [[ -e cap_restart ]]; then
-   rm cap_restart
-fi
+# Save start date string from cap_restart
+start_str=$(sed 's/ /_/g' cap_restart)
 
-# Update runConfig.sh to use 24 cores
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/"               ./runConfig.sh
-sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/"                     ./runConfig.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ./runConfig.sh
+# Update config files, set restart symlink, load run env, and do sanity checks
+source setCommonRunSettings.sh > ${log}
+source setRestartLink.sh >> ${log}
+source gchp.env >> ${log}
+source checkRunSettings.sh >> ${log}
 
-# Sync all config files with settings in runConfig.sh                           
-source runConfig.sh > ${log}
-if [[ $? == 0 ]]; then
+# Harvard Cannon-specific setting to avoid connection issues at high # cores
+export OMPI_MCL_btl=openib
 
-    # Source your environment file. This requires first setting the gchp.env
-    # symbolic link using script setEnvironment in the run directory. 
-    # Be sure gchp.env points to the same file for both compilation and run.
-    gchp_env=$(readlink -f gchp.env)
-    if [ ! -f ${gchp_env} ] 
-    then
-       echo "ERROR: gchp.env symbolic link is not set!"
-       echo "Set symbolic link to env file using setEnvironment.sh."
-       echo "Exiting."
-       exit 1
-    fi
-    echo " " >> ${log}
-    echo "WARNING: You are using environment settings in ${gchp_env}" >> ${log}
-    source ${gchp_env} >> ${log}
-
-    # Use SLURM to distribute tasks across nodes
-    NX=$( grep NX GCHP.rc | awk '{print $2}' )
-    NY=$( grep NY GCHP.rc | awk '{print $2}' )
-    coreCount=$(( ${NX} * ${NY} ))
-    planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
-    if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
+# Use SLURM to distribute tasks across nodes
+NX=$( grep NX GCHP.rc | awk '{print $2}' )
+NY=$( grep NY GCHP.rc | awk '{print $2}' )
+coreCount=$(( ${NX} * ${NY} ))
+planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
+if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
 	${planeCount}=$(( ${planeCount} + 1 ))
-    fi
+fi
+time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
-    # Echo info from computational cores to log file for displaying results
-    echo "# of CPUs : ${coreCount}" >> ${log}
-    echo "# of nodes: ${SLURM_NNODES}" >> ${log}
-    echo "-m plane  : ${planeCount}" >> ${log}
-    echo ' ' >> ${log}
-
-    # Harvard Cannon-specific setting to get around connection issues at high # cores
-    export OMPI_MCL_btl=openib
-
-    # Start the simulation
-    echo '===> Run started at' `date` >> ${log}
-    time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
-    echo '===> Run ended at' `date` >> ${log}
-
-    # Rename the restart (checkpoint) file to include datetime
-    if [ -f cap_restart ]; then
-       restart_datetime=$(echo $(cat cap_restart) | sed 's/ /_/g')
-       mv gcchem_internal_checkpoint gcchem_internal_checkpoint.restart.${restart_datetime}.nc4
-    fi
-
+# Rename and move restart file and update restart symlink if new start time ok
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: cap_restart either did not change or is empty."
+   exit 1
 else
-    cat ${log}
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh
 fi
 
 # Update the results log

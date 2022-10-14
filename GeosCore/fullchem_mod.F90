@@ -92,7 +92,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_FJX_MOD
-    USE DUST_MOD,                 ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
@@ -346,6 +345,7 @@ CONTAINS
     ENDIF
 
     ! Do Photolysis
+    WAVELENGTH = 0
     CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm,                         &
                   State_Diag, State_Grid, State_Met, RC                     )
 
@@ -1329,14 +1329,14 @@ CONTAINS
        !
        ! NOTE: KppId is the KPP ID # for each of the prod and loss
        ! diagnostic species.  This is the value used to index the
-       ! KPP "VAR" array (in module gckpp_Global.F90).
+       ! KPP "C" array (in module gckpp_Global.F90).
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Loss ) THEN
           DO S = 1, State_Diag%Map_Loss%nSlots
              KppId = State_Diag%Map_Loss%slot2Id(S)
-             State_Diag%Loss(I,J,L,S) = VAR(KppID) / DT
+             State_Diag%Loss(I,J,L,S) = C(KppID) / DT
           ENDDO
        ENDIF
 
@@ -1344,7 +1344,7 @@ CONTAINS
        IF ( State_Diag%Archive_Prod ) THEN
           DO S = 1, State_Diag%Map_Prod%nSlots
              KppID = State_Diag%Map_Prod%slot2Id(S)
-             State_Diag%Prod(I,J,L,S) = VAR(KppID) / DT
+             State_Diag%Prod(I,J,L,S) = C(KppID) / DT
           ENDDO
        ENDIF
 

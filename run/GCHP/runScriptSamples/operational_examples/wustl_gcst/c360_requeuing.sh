@@ -48,7 +48,7 @@ export I_MPI_SHM_HEAP_VSIZE=512  # Might fix: Assertion failed in file ../../src
 RESTART_DATE=SIM_START
 if [ ! -f CONTINUE_SEM ] ; then  # start simulation from time=0
     rm -f cap_restart #gcchem* 
-    ./runConfig.sh
+    ./setCommonRunSettings.sh
     touch CONTINUE_SEM
 else                             # start simulation from the last checkpoint's date
     RESTART_FILE=$(last_checkpoint)
