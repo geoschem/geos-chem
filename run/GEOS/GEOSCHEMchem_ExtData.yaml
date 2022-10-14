@@ -237,15 +237,15 @@ Collections:
   GEOSCHEMchem_gmi.clim.OH:
     template: /discover/nobackup/cakelle2/data/GMI/gmi.clim.OH.geos5.2x25.esmf.nc
   GEOSCHEMchem_surface_VMRs_WMO2018:
-    template: /discover/nobackup/cakelle2/data/SfcFix/v2019-12/WMO_2018/surface_VMRs_WMO2018_%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/WMO_2018/v2019-12/surface_VMRs_WMO2018_x360_y180_%y4.nc 
     valid_range: "2010-01-01T00:00/2020-12-01T00:00"
   GEOSCHEMchem_CMIP6_GHG_surface_VMR:
-    template: /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2020-03/CMIP6_GHG_surface_VMR_%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/CMIP6/v2020-03/sfc/CMIP6_GHG_surface_VMR_x360_y180_%y4.nc
     valid_range: "2010-01-01T00:00/2014-12-01T00:00"
   GEOSCHEMchem_surface_VMR_H2:
-    template: /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/SfcFix/v2019-12/surface_VMR_H2_x360_y180.nc
   GEOSCHEMchem_surface_VMR_OCS:
-    template: /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/SfcFix/v2019-12/surface_VMR_OCS_x360_y180.nc
   GEOSCHEMchem_timezones:
     template: /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc
   GEOSCHEMchem_uvalbedo:
