@@ -58,12 +58,11 @@ COLLECTIONS: 'Restart',
   Restart.frequency:    ${RUNDIR_HIST_INST_FREQ}
   Restart.duration:     ${RUNDIR_HIST_INST_DUR}
   Restart.mode:         'instantaneous'
-  Restart.fields:       'SpeciesRst_?ALL?',
-                        'Met_DELPDRY     ',
-                        'Met_PS1WET      ',
-                        'Met_PS1DRY      ',
-                        'Met_SPHU1       ',
-                        'Met_TMPU1       ',
+  Restart.fields:       'SpeciesRst_?ALL?                     ',
+                        'Chem_KPPHvalue                       ',
+                        'Met_DELPDRY                          ',
+                        'Met_BXHEIGHT                         ',
+                        'Met_TropLev                          ',
 ::
 #==============================================================================
 # %%%%% THE Metrics COLLECTION %%%%%
