@@ -98,6 +98,8 @@ CONTAINS
 
     ! Initialize externally-read species (denoted by _E) to 1 molec/cm3
     C(ind_CH4_E)    = 1.0_dp
+    C(ind_Cl_E)     = 1.0_dp
+    C(ind_OH_E)     = 1.0_dp
     C(ind_NMVOC_E)  = 1.0_dp
 
     ! Free pointer
@@ -125,7 +127,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE PhysConstants, ONLY : AVO
+    USE PhysConstants, ONLY : AVO, AIRMW
     USE State_Chm_Mod, ONLY : ChmState
     USE State_Met_Mod, ONLY : MetState
 !
@@ -171,13 +173,13 @@ CONTAINS
 
     IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
-       !---------------------------------------------------------------------
+       !=====================================================================
        ! Grid box (I,J.L) is in the troposphere
-       !---------------------------------------------------------------------
+       !=====================================================================
 
-       ! Strat rate
-       K_STRAT = 0.d0
-       TROP    = 1.0_dp  ! Toggle
+       ! Set toggle that we are in the tropopshere
+       ! (used for CH4 + Cl_E = DUMMY reaction)
+       trop = 1.0_dp
 
        ! Scaling factor for diurnal cycles - zero at night
        IF ( State_Met%SUNCOSmid(I,J) > 0.0_fp .and. tCosZ > 0.0_fp ) THEN
@@ -185,44 +187,70 @@ CONTAINS
                      * ( 86400.0_fp               / dtChem )
        ENDIF
 
-       ! Trop Rates
-       ! State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
+       !%%% TAGGED SPECIES HANDLING -- comment out for now
+       !%%% State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
 
        ! Conversion factor from kg/s CO to molec/cm3/s CO
        kgs_to_mcm3sCO = ( AVO                                                &
                       / ( mw_CO_kg_mol * State_Met%AIRVOL(I,J,L) ) )         &
                       * 1.0e-6_fp
 
-       ! P(CO) from CH4
-       k_Trop(1) = PCO_CH4     * facDiurnal
-       IF ( .not. LPCO_CH4 ) THEN
-          k_Trop(1) = 2.45E-12_dp * EXP( -1775.E0_dp /TEMP )  ! JPL 1997
-       ENDIF
-       K_TROP(2)    = GC_OHCO()
-       K_TROP(3)    = PCO_NMVOC * facDiurnal
+       !-------------------------------------------------------------------
+       ! k_Trop(1): Rate [1/s] for rxn: CH4 + OH_E = CO + CO_CH4
+       !-------------------------------------------------------------------
 
        ! OH concentration, as read from disk [molec/cm3]
        C(ind_OH_E) = bOH * State_Met%AIRNUMDEN(I,J,L) * facDiurnal
 
-       ! Cl continue oncentration, as read from disk [molec/cm3]
+       ! Cl concentration, as read from disk [molec/cm3]
        C(ind_Cl_E) = bCl * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
        ! CH4 + offline OH reaction rate [1/s]
+       ! Rate [1/s] for CH4 + OH_E = CO + CO_CH4 (aka P(CO) from CH4)
        IF ( LPCO_CH4 ) THEN
-          k_Trop(1) = safediv( k_trop(1), ( C(ind_CH4) *C(ind_OH_E) ), 0.0_dp )
+          k_Trop(1) = PCO_CH4 * facDiurnal
+          k_Trop(1) = safediv( k_trop(1), ( C(ind_CH4)*C(ind_OH_E) ), 0.0_dp )
+       ELSE
+          k_Trop(1) = 2.45E-12_dp * EXP( -1775.E0_dp /TEMP )  ! JPL 1997
        ENDIF
+
+       !-------------------------------------------------------------------
+       ! k_Trop(2): Rate [1/s] for CO      + OH_E = CO2 + CO2_OH
+       ! k_Trop(3): Rate [1/s] for NMVOC_E        = CO  + CO_NMVOC
+       !-------------------------------------------------------------------
+       k_Trop(2) = GC_OHCO()
+       k_Trop(3) = PCO_NMVOC * facDiurnal
 
     ELSE
 
-       !---------------------------------------------------------------------
+       !=====================================================================
        ! Grid box (I,J.L) is in the stratosphere
+       !=====================================================================
+
        !---------------------------------------------------------------------
+       ! k_Strat(1): Loss rate [1/s] for CH4 -> DUMMY
+       ! k_Strat(3): Loss rate [1/s] for CO  -> CO2 + CO2_OH
+       !---------------------------------------------------------------------
+       k_Strat(1) = CH4LOSS
+       k_Strat(3) = GMI_LOSS_CO
 
-       ! Strat Rates [1/s]
-       K_STRAT(1) = CH4LOSS                                  ! [1/s]
-       K_STRAT(2) = GMI_PROD_CO * State_Met%AIRNUMDEN(I,J,L) ! [molec/cm3/s]
-       K_STRAT(3) = GMI_LOSS_CO                              ! [1/s]
-
+       !---------------------------------------------------------------------
+       ! k_Strat(2): Loss rate [molec/cm3/s] for CH4_E -> CO
+       !
+       ! NOTE: This reaction rate is in molec/cm3/s instead of 1/s because
+       ! of the way the reaction is written.  CH4_E is a "dummy" species
+       ! that is set to 1, so the result of the integration (using the
+       ! forward Euler scheme) is
+       !
+       ! CO = k_Strat(2)  * CH4_E * DT
+       !    = molec/cm3/s * 1     * s
+       !    = molec/cm3
+       !---------------------------------------------------------------------
+       k_Strat(2) = GMI_PROD_CO                                              &
+                  * AVO                                                      &
+                  / ( AIRMW * 1.0e-3_dp )                                    &
+                  * State_Met%AirDen(I,J,L)                                  &
+                  * 1.0e-6_dp
     ENDIF
 
   END SUBROUTINE carboncycle_ComputeRateConstants
@@ -309,6 +337,7 @@ CONTAINS
        Spc(id_CO2)%Conc(I,J,L)     = C(ind_CO2)      * airvol_cm3 / xnumol_CO2
     ENDIF
 
+    ! Free pointer
     Spc => NULL()
 
   END SUBROUTINE carboncycle_ConvertMolecCm3ToKg
@@ -464,6 +493,7 @@ CONTAINS
     fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
     kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
     k      = kco1 + kco2
+
   END FUNCTION GC_OHCO
 
 END MODULE carboncycle_Funcs

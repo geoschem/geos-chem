@@ -970,12 +970,13 @@ CONTAINS
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
 
+          ! Do carboncycle chemistry
           CALL Chem_CarbonCycle( Input_Opt  = Input_Opt,                     &
                                  State_Met  = State_Met,                     &
                                  State_Chm  = State_Chm,                     &
                                  State_Grid = State_Grid,                    &
                                  State_Diag = State_Diag,                    &
-                                 RC         = RC                                 )
+                                 RC         = RC                            )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
