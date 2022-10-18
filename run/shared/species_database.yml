@@ -725,7 +725,7 @@ CH4_PROP: &CH4properties
   Formula: CH4
   Is_Advected: true
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -2621,7 +2621,7 @@ LBRO2N:
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
