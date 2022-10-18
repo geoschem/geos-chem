@@ -223,7 +223,13 @@ CONTAINS
     REAL(kind=dp) :: Ydot(NVAR)
 
     !~~~> Compute equation rates and time derivative of variable species
-    CALL Fun( Y, VAR, RCONST, Ydot )
+    !### KLUDGE: FIX must be the 2nd argument to FUN
+    !### See https://github.com/KineticPreProcessor/KPP/issues/60
+    !### We will fix this locally in the KPP-2.5.0 generated code
+    !### but a final fix will be made in KPP 3.0.0.
+    !###   -- Bob Yantosca (18 Oct 2022)
+    !###CALL Fun( Y, VAR, RCONST, Ydot )
+    CALL Fun( Y, FIX, RCONST, Ydot )
 
   END SUBROUTINE FunTemplate
 
