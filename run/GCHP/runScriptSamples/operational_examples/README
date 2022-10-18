@@ -1,0 +1,11 @@
+This directory contains example run scripts and environment files
+for several compute clusters that are actively being used for GCHP
+simulations and development. Contact information is included in the
+README within each subdirectory.
+
+If you have multiple users on your compute cluster then please do
+consider submitting the run and environment files for your compute
+cluster to include in this directory. To propose including your
+files in an upcoming version you may create an issue on the
+GEOS-Chem GitHub issues page:
+https://github.com/geoschem/geos-chem/issues/
