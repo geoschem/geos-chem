@@ -540,7 +540,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHg0  = SpcCount%nHg0 + 1
-                ThisSpc%Hg_Cat = SpcCount%nHg0
                 ThisSpc%Is_Hg0 = v_bool
              ENDIF
 
@@ -549,7 +548,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHg2  = SpcCount%nHg2 + 1
-                ThisSpc%Hg_Cat = SpcCount%nHg2
                 ThisSpc%Is_Hg2 = v_bool
              ENDIF
 
@@ -558,7 +556,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHgP  = SpcCount%nHgP + 1
-                ThisSpc%Hg_Cat = SpcCount%nHgP
                 ThisSpc%Is_HgP = v_bool
              ENDIF
 
