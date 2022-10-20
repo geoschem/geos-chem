@@ -68,6 +68,7 @@ COLLECTIONS: @#'DefaultCollection',
              #'JValues',
              #'Metrics',
              @#'KppDiags',
+             @##'KppARDiags',
              @#'LevelEdgeDiags',
              @#'ProdLoss',
              @##'RRTMG',
@@ -4665,6 +4666,24 @@ COLLECTIONS: @#'DefaultCollection',
                           'KppLuDecomps                  ', 'GCHPchem',
                           'KppSubsts                     ', 'GCHPchem',
                           'KppSmDecomps                  ', 'GCHPchem',
+::
+#==============================================================================
+# %%%%% THE KppARDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver when auto-reduction solver is used.
+#
+# Available for full-chemistry simulations only if auto-reduce is enabled.
+#==============================================================================
+  KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  KppDiags.format:            'CFIO',
+  KppDiags.timestampStart:    .true.
+  KppDiags.monthly:           1
+  KppDiags.frequency:         010000
+  KppDiags.duration:          010000
+  KppDiags.mode:              'time-averaged'
+  KppARDiags.fields:          'KppAutoReducerNVAR            ',
+                              'KppAutoReduceThres            ',
+                              'KppcNONZERO                   ',
 ::
 #==============================================================================
 # %%%%% THE Metrics COLLECTION %%%%%
