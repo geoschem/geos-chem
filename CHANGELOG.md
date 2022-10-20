@@ -1,42 +1,45 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+This file documents all notable changes to the GEOS-Chem repository since version 13.4.1, including all GEOS-Chem Classic and GCHP run directory updates.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased 14.0.0]
 ### Added
-- Register first time users with dynamodb database feature
-- Add Hg simulation with KPP
-- Save boundary conditions on first timestep
-- Convert input.geos to YAML format; new file is geoschem_config.yml
-- Add native GEOS-FP and mass fluxes options in GCHP run directory creation
-- Add GEOS-Chem updates for GEOS from GMAO
-- Add GEOS-Chem updates for CESM
+- Added user registration with dynamodb database during run directory creation
+- Added Hg simulation with KPP
+- Added yaml-format config file geoschem_config.yml which replaces input.geos
+- Added native GEOS-FP and mass fluxes options to GCHP run directory creation
+- Added cap_restart file to GCHP run directories to set simulation start time
+- Added updates for compatibility with CESM, GEOS, and WRF-GC
 
 ### Fixed
-- Specify AOD wavelength 999 nm for use in Fast-JX
-- Add missing entries for POG1, POG2, and pFe to HEMCO_Config.rc
-- Revert GC-Classic pressure fixer to v13.3
-- Add special treatment for MOH in dry deposition if not over land
-- Fix issues in creating run directory for GCAP2
-- Remove duplicate species for SO4 in aciduptake.eqn bug
-- Update CEDS_CO2_SHP emissions in HEMCO_Config.rc file for CO2 simulation
-- Fix Volcano_Table in HEMCO config template for GCHP
-- Fix transport tracers simulation in GCHP
-- Avoid divide-by-zerio in routine MMR_Compute_FLux
-- Fix HEMCO diagnostic counter zero warnings in full chemistry simulation
-- Fix bug in totalOC diagnostic
-- Fix bugs to remove GCHP diffs if splitting up simulations in time
+- Fixed missing output boundary conditions on first timestep of run
+- Added missing entries for POG1, POG2, and pFe to HEMCO_Config.rc
+- Reverted GC-Classic pressure fixer to v13.3 to fix bug in v13.4
+- Fixed dry deposition of methanol over oceans
+- Fixed issues in creating run directory for GCAP2
+- Removed duplicate species for SO4 in aciduptake.eqn
+- Fixed CEDS_CO2_SHP emissions in HEMCO_Config.rc file for CO2 simulation
+- Fixed Volcano_Table entry in HEMCO config template for GCHP
+- Fixed transport tracers simulation in GCHP
+- Applied fix to avoid divide-by-zero in routine MMR_Compute_FLux
+- Fixed HEMCO diagnostic counter zero warnings in full chemistry simulation
+- Fixed bug in totalOC diagnostic
+- Fixed bugs causing differences when splitting up GC-Classic and GCHP simulations in time
+- Fixed bug setting GEOS-FP meteorology in GCHP run directories
 
 ### Changed
-- Update GCHP run directory files to easily segment runs in time
-- Update to KPP 2.5.0
-- Change GCHP restart filename convention to exclude seconds
-- Update offline biogenic VOC and soil NOx emissions
-- Reduce root logging level for MAPL to WARNING
-- Change 4D State_Chm%Species array to vector of 3D concentration arrays feature
+- Updated KPP to version 2.5.0
+- Updated GCHP run scripts to easily segment runs in time
+- Changed GCHP restart filename convention to exclude seconds
+- Updated offline biogenic VOC and soil NOx emissions
+- Reduced root logging level for MAPL from INFO to WARNING
+- Changed 4D State_Chm%Species array to vector of 3D concentration arrays
+- Renamed GCHP config file runConfig.sh to setCommonRunSettings.sh
+- Moved restart file location in run directory to Restarts subdirectory
 
 ### Removed
-- Remove TMPU1, SPHU1, PS1_WET, and PS1_DRY from GC-Classic restart file
+- Removed TMPU1, SPHU1, PS1_WET, and PS1_DRY from GC-Classic restart file
+- Removed input.geos; replaced with geoschem_config.yml
+- Removed HEMCO.log output file; HEMCO log info now sent to main GEOS-Chem log
