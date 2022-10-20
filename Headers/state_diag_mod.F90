@@ -4967,13 +4967,13 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 34
+       DO N = 1, 36
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
                 diagID = 'RxnRate'
-!             CASE( 2  )
-!                diagID = 'Jval'
+             CASE( 2  )
+                diagID = 'JVal'
              CASE( 3  )
                 diagID = 'JNoon'
              CASE( 4  )
@@ -5040,7 +5040,7 @@ CONTAINS
                 diagID = 'KppSmDecomps'
              CASE( 35 )
                 diagID = 'NOxTau'
-             CASE( 34 )
+             CASE( 36 )
                 diagID = 'TropNOxTau'
              CASE DEFAULT
                 ! Nothing

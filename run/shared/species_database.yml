@@ -3983,6 +3983,10 @@ PRN1:
   FullName: Peroxy radical from propene + NO3
   Is_Gas: true
   MW_g: 136.09
+PRO2:
+  FullName: Dummy species to track production rate of RO2
+  Is_Gas: true
+  MW_g: 146.98
 PROPNN:
   DD_F0: 1.0
   DD_Hstar: 5.0e+5
