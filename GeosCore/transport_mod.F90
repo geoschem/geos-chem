@@ -112,6 +112,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+    INTEGER            :: BUFF_SIZE, I0_W1, J0_W1, IM_W1, JM_W1
     INTEGER            :: TS_Dyn
     REAL(f8)           :: DT_Dyn
 
@@ -165,7 +166,7 @@ CONTAINS
        IF ( State_Grid%NestedGrid ) THEN
 
           ! All nested grid simulations
-          CALL INIT_WINDOW_TRANSPORT( Input_Opt, State_Diag, State_Grid, RC )
+          CALL INIT_WINDOW_TRANSPORT( Input_Opt, State_Grid, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -177,7 +178,7 @@ CONTAINS
        ELSE
 
           ! All global simulations
-          CALL INIT_TRANSPORT( Input_Opt, State_Diag, State_Grid, RC )
+          CALL INIT_TRANSPORT( Input_Opt, State_Grid, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -198,8 +199,20 @@ CONTAINS
     !========================================================================
     IF ( State_Grid%NestedGrid ) THEN
 
+       ! Set buffer size
+       BUFF_SIZE   =  2
+
+       ! (lzh, 09/01/2014)
+       IM_W1       =  ( State_Grid%NX - State_Grid%WestBuffer - &
+                        State_Grid%EastBuffer  ) + 2 * BUFF_SIZE
+       JM_W1       =  ( State_Grid%NY - State_Grid%SouthBuffer - &
+                        State_Grid%NorthBuffer ) + 2 * BUFF_SIZE
+       I0_W1       =  State_Grid%WestBuffer  - BUFF_SIZE
+       J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
+
        ! Nested-grid simulation with GEOS-FP/MERRA2 met
-       CALL DO_WINDOW_TRANSPORT( Input_Opt,  State_Chm, State_Diag, &
+       CALL DO_WINDOW_TRANSPORT( I0_W1, IM_W1, J0_W1, JM_W1,        &
+                                 Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
 
        ! Trap potential errors
@@ -336,7 +349,6 @@ CONTAINS
     LOGICAL            :: prtDebug
     INTEGER            :: IORD, JORD, KORD
     INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
-    INTEGER            :: ND24x, ND25x, ND26x
     REAL(fp)           :: D_DYN
 
     ! Arrays
@@ -351,10 +363,6 @@ CONTAINS
     REAL(fp),  POINTER :: p_VWND (:,:,:  )
     REAL(fp),  POINTER :: p_XMASS(:,:,:  )
     REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-    REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
-    REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
-    REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
-    REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
     !=================================================================
     ! DO_GLOBAL_ADV begins here!
@@ -370,18 +378,10 @@ CONTAINS
     JORD        =  Input_Opt%TPCORE_JORD
     KORD        =  Input_Opt%TPCORE_KORD
     nAdvect     =  State_Chm%nAdvect
-    p_MFLEW     => NULL()
-    p_MFLNS     => NULL()
-    p_MFLUP     => NULL()
 
     ! Dynamic timestep [s]
     N_DYN       =  GET_TS_DYN()
     D_DYN       =  REAL( N_DYN, fp )
-
-    ! Define shadow variables for ND24, ND25, ND26
-    ND24x       = 0
-    ND25x       = 0
-    ND26x       = 0
 
     !=================================================================
     ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -446,31 +446,21 @@ CONTAINS
     ! the advected species are listed first.  This may change in the
     ! future, but we'll worry about that later.  The units of p_SPC
     ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
-    p_Spc     => State_Chm%Species(:,:,State_Grid%NZ:1:-1,1:nAdvect)
 
     ! Do the advection
-    CALL TPCORE_FVDAS( D_DYN,     Re, &
-                       State_Grid%NX, &
-                       State_Grid%NY, &
-                       State_Grid%NZ, &
-                       JFIRST,    JLAST,    NG, &
-                       MG,        nAdvect,  Ap,       Bp,    &
-                       p_UWND,    p_VWND,   P_TP1,    P_TP2, &
-                       P_TEMP,    p_Spc,    IORD,     JORD,  &
-                       KORD,      N_ADJ,    p_XMASS,  p_YMASS, &
-                       LFILL,     &
-                       A_M2,      ND24x,    ND25x,    ND26x, &
-                       State_Diag                            )
+    CALL TPCORE_FVDAS( D_DYN,         Re,        State_Grid%NX, State_Grid%NY, &
+                       State_Grid%NZ, JFIRST,    JLAST,         NG,            &
+                       MG,            nAdvect,   Ap,            Bp,            &
+                       p_UWND,        p_VWND,    P_TP1,         P_TP2,         &
+                       P_TEMP,        IORD,      JORD,          KORD,          &
+                       N_ADJ,         p_XMASS,   p_YMASS,       LFILL,         &
+                       A_M2,          State_Chm, State_Diag                   )
 
     ! Free pointer memory
     p_UWND  => NULL()
     p_VWND  => NULL()
     p_XMASS => NULL()
     p_YMASS => NULL()
-    p_Spc   => NULL()
-    p_MFLEW => NULL()
-    p_MFLNS => NULL()
-    p_MFLUP => NULL()
 
     !=================================================================
     ! Reset surface pressure and ensure mass conservation
@@ -513,7 +503,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_WINDOW_TRANSPORT( Input_Opt,  State_Chm, State_Diag, &
+  SUBROUTINE DO_WINDOW_TRANSPORT( I0,    IM,    J0,     JM,         &
+                                  Input_Opt, State_Chm, State_Diag, &
                                   State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -534,6 +525,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+    INTEGER,        INTENT(IN)    :: I0
+    INTEGER,        INTENT(IN)    :: IM
+    INTEGER,        INTENT(IN)    :: J0
+    INTEGER,        INTENT(IN)    :: JM
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -569,10 +564,9 @@ CONTAINS
     LOGICAL            :: LFILL
     LOGICAL            :: prtDebug
     INTEGER            :: IORD,  JORD,  KORD
-    INTEGER            :: I0,    J0,    NA,    nAdvect, N_DYN
-    INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1,   BUFF_SIZE
+    INTEGER            :: IA, IB, JA, JB
+    INTEGER            :: NA,    nAdvect, N_DYN
     INTEGER            :: I,     J,     L,     L2,      N
-    INTEGER            :: ND24x, ND25x, ND26x
     REAL(fp)           :: D_DYN
 
     ! Arrays
@@ -581,6 +575,7 @@ CONTAINS
     REAL(fp),  TARGET  :: P_TEMP(State_Grid%NX,State_Grid%NY)
     REAL(fp),  TARGET  :: XMASS (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp),  TARGET  :: YMASS (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(fp),  TARGET  :: Q_Spc (IM,JM,State_Grid%NZ,State_Chm%nAdvect)
 
     ! Pointers
     REAL(fp),  POINTER :: p_A_M2  (  :    )
@@ -591,9 +586,6 @@ CONTAINS
     REAL(fp),  POINTER :: p_VWND  (:,:,:  )
     REAL(fp),  POINTER :: p_XMASS (:,:,:  )
     REAL(fp),  POINTER :: p_YMASS (:,:,:  )
-    REAL(fp),  POINTER :: p_MFLEW (:,:,:,:)
-    REAL(fp),  POINTER :: p_MFLNS (:,:,:,:)
-    REAL(fp),  POINTER :: p_MFLUP (:,:,:,:)
     REAL(fp),  POINTER :: p_Spc   (:,:,:,:)
 
     !=================================================================
@@ -620,32 +612,22 @@ CONTAINS
     p_VWND      => NULL()
     p_XMASS     => NULL()
     p_YMASS     => NULL()
-    p_MFLEW     => NULL()
-    p_MFLNS     => NULL()
-    p_MFLUP     => NULL()
     p_Spc       => NULL()
-
-    ! Get nested-grid lon/lat offsets [# boxes]
-    I0          =  State_Grid%XMinOffset
-    J0          =  State_Grid%YMinOffset
 
     ! Dynamic timestep [s]
     N_DYN       =  GET_TS_DYN()
     D_DYN       =  N_DYN
 
-    ! (lzh, 09/01/2014)
-    BUFF_SIZE   =  2
-    IM_W1       =  ( State_Grid%NX - State_Grid%WestBuffer - &
-                     State_Grid%EastBuffer  ) + 2 * BUFF_SIZE
-    JM_W1       =  ( State_Grid%NY - State_Grid%SouthBuffer - &
-                     State_Grid%NorthBuffer ) + 2 * BUFF_SIZE
-    I0_W1       =  State_Grid%WestBuffer  - BUFF_SIZE
-    J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
+    ! Set start and end indices for the window
+    IA = I0 + 1
+    IB = I0 + IM
+    JA = J0 + 1
+    JB = J0 + JM
 
-    ! Define shadow variables for ND24, ND25, ND26
-    ND24x       = 0
-    ND25x       = 0
-    ND26x       = 0
+    ! Set local array for species concentrations in window
+    DO N = 1, State_Chm%nAdvect
+       Q_Spc(:,:,:,N)= State_Chm%Species(N)%Conc(IA:IB,JA:JB,:)
+    ENDDO
 
     !=================================================================
     ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -699,52 +681,30 @@ CONTAINS
     IF ( prtDebug ) CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
 
     ! Flip array indices in the vertical using pointer storage
-
     ! Exclude the buffer zone (lzh, 4/1/2015)
-    p_UWND  => State_Met%U( I0_W1+1 : I0_W1+IM_W1, &
-                            J0_W1+1 : J0_W1+JM_W1, &
-                            State_Grid%NZ:1:-1 )
-
-    p_VWND  => State_Met%V( I0_W1+1 : I0_W1+IM_W1, &
-                            J0_W1+1 : J0_W1+JM_W1, &
-                            State_Grid%NZ:1:-1  )
-
-    ! NOTE: For now, so as to avoid having to rewrite the internals
-    ! of the TPCORE routines, just point to 1:nAdvect entries of
-    ! State_Chm%Species.  This is OK for now, as of July 2016, all of
-    ! the advected species are listed first.  This may change in the
-    ! future, but we'll worry about that later. (bmy, 7/13/16)
-    p_Spc => State_Chm%Species( I0_W1+1 : I0_W1+IM_W1, &
-                                J0_W1+1 : J0_W1+JM_W1, &
-                                State_Grid%NZ:1:-1,    &
-                                1:nAdvect )
-
-    p_XMASS  => XMASS( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1, &
-                       State_Grid%NZ:1:-1 )
-
-    p_YMASS  => YMASS( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1, &
-                       State_Grid%NZ:1:-1 )
-
-    p_P_TP1  => P_TP1( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1 )
-
-    p_P_TP2  => P_TP2( I0_W1+1 : I0_W1+IM_W1, &
-                       J0_W1+1 : J0_W1+JM_W1)
-
-    p_P_TEMP => P_TEMP( I0_W1+1 : I0_W1+IM_W1, &
-                        J0_W1+1 : J0_W1+JM_W1 )
-
-    p_A_M2   => A_M2( J0_W1+1 : J0_W1+JM_W1 )
+    p_A_M2   => A_M2       ( JA:JB                               )
+    p_P_TP1  => P_TP1      ( IA:IB, JA:JB                        )
+    p_P_TP2  => P_TP2      ( IA:IB, JA:JB                        )
+    p_P_TEMP => P_TEMP     ( IA:IB, JA:JB                        )
+    p_UWND   => State_Met%U( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_VWND   => State_Met%V( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_XMASS  => XMASS      ( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_YMASS  => YMASS      ( IA:IB, JA:JB, State_Grid%NZ:1:-1    )
+    p_Spc    => Q_Spc      ( :,     :,     State_Grid%NZ:1:-1, : )
 
     ! Do the advection
-    CALL TPCORE_WINDOW(D_DYN,   Re,       IM_W1,   JM_W1,   State_Grid%NZ, &
-                       JFIRST,  JLAST,    NG,      MG,      nAdvect,       &
-                       Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1,       &
-                       p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD,          &
-                       KORD,    N_ADJ,    p_XMASS, p_YMASS,                &
-                       p_A_M2,  ND24x,    ND25x,   ND26x )
+    CALL TPCORE_WINDOW(D_DYN,   Re,        IM,      JM,      State_Grid%NZ, &
+                       JFIRST,  JLAST,     NG,      MG,      nAdvect,       &
+                       Ap,      Bp,        p_UWND,  p_VWND,  p_P_TP1,       &
+                       p_P_TP2, p_P_TEMP,  p_Spc,   IORD,    JORD,          &
+                       KORD,    N_ADJ,     p_XMASS, p_YMASS,                &
+                       p_A_M2,  State_Chm, State_Diag )
+
+
+    ! Update species concentrations from local array
+    DO N = 1, State_Chm%nAdvect
+       State_Chm%Species(N)%Conc(IA:IB,JA:JB,:) = Q_Spc(:,:,:,N)
+    ENDDO
 
     ! Free pointer memory
     p_UWND   => NULL()
@@ -756,9 +716,6 @@ CONTAINS
     p_P_TP2  => NULL()
     p_P_TEMP => NULL()
     p_A_M2   => NULL()
-    p_MFLEW  => NULL()
-    p_MFLNS  => NULL()
-    p_MFLUP  => NULL()
 
     !=================================================================
     ! Reset surface pressure and ensure mass conservation
@@ -800,14 +757,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_TRANSPORT( Input_Opt, State_Diag, State_Grid, RC )
+  SUBROUTINE INIT_TRANSPORT( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE ERROR_MOD,        ONLY : ALLOC_ERR
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
     USE PhysConstants          ! Re
     USE TIME_MOD,         ONLY : GET_TS_DYN
@@ -816,7 +772,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
     TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
@@ -909,7 +864,7 @@ CONTAINS
     ! Call INIT routine from "tpcore_fvdas_mod.f"
     CALL INIT_TPCORE( State_Grid%NX, State_Grid%NY,  State_Grid%NZ, &
                       JFIRST, JLAST, NG, MG,         REAL_N_DYN,    &
-                      Re,    YMID_R, State_Diag, RC          )
+                      Re,    YMID_R, RC                            )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -934,7 +889,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_WINDOW_TRANSPORT( Input_Opt, State_Diag, State_Grid, RC )
+  SUBROUTINE INIT_WINDOW_TRANSPORT( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -942,16 +897,13 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants            ! Re
-    USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE TIME_MOD,           ONLY : GET_TS_DYN
-    USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
     USE TPCORE_WINDOW_MOD,  ONLY : INIT_WINDOW
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
     TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:

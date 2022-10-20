@@ -101,7 +101,7 @@ INIT_ZERO:            0
 ARCHIVED_CONV:        0
 
 # %%% Use MOIST module for convective transport (including washout)
-# Make species friendly to moist? If turned on, convection must be turned off in input.geos
+# Make species friendly to moist? If turned on, convection must be turned off in in geoschem_config.yml
 Species_friendly_to_moist: 0
 # Turn off washout for SO2?
 TurnOff_SO2_washout: 1
@@ -166,35 +166,11 @@ GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf
 #
 Use_GMI_O3_PL:        0
 
-# Options to nudge O3 between level ANAO3L1 and ANAO3L4. If the flag Use_ANA_O3 is set to 1, GEOS-Chem ozone is nudged to 
-# the analysis field taken from the file specified in ANAO3TMPL. Nudging is performed between levels ANAO3L1 and ANAO3L4
-# (level numbers go from 1 = surface to top of atmosphere).
-# The value specified in ANAO3FR is used as the 'blending factor', with a smooth vertical transition between zero and full 
-# nudging between levels ANAO3L1 to ANAO3L2 (lower boundary), and ANAO3L3 to ANAO3L4 (upper boundary), respectively. If 
-# NUDGE_RELATIVE_TO_TROPOPAUSE is set to a value above 0, the lower boundary will be determined based on the tropopause and
-# nudging will be performed from the nearest model level below tropopause plus NUDGE_RELATIVE_TO_TROPOPAUSE. For instance,
-# when set to a value of 1, nudging will start on the first level above the tropopause. If set to 3, nudging will begin from
-# the 3rd level above tropopause upwards. Vertical smoothing is determined based on the difference between ANAO3L1 and ANAO3L2. 
-# If the flag 'Use_PCHEM_O3' is enabled, it will use the internal PCHEM O3 to do the nudging instead of the field provided 
-# in ANAO3TMPL. Use_ANA_O3 must still be enabled in this case.
-# A nuding attempt is made every three hours (0130, 0430, ...) at the beginning of phase one of GEOS-Chem. If using ANAO3TMPL,
-# it will look for variable 'O3' in that file, and the units of the field are assumed to be kg/kg (total air). This field
-# must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
-# If no file is found for a given time step, nudging is skipped. Diagnostics 'GCC_ANA_O3_INC' outputs the ozone increments 
-# added to the GEOS-Chem ozone field.
-# The error mode flag determines what happens if (a) the file is not found or (b) the current time is not found on file. Error
-# mode of 0 exits with an error in all cases, 1 skips nudging (default), and 2 skips nudging if file not found and uses the 
-# first time slice on file if file is found but the current time stamp is not on file. 
-Use_ANA_O3: 0
-ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-NUDGE_RELATIVE_TO_TROPOPAUSE: 1
-ANAO3L1: 38
-ANAO3L2: 40
-ANAO3L3: 72
-ANAO3L4: 72
-ANAO3FR: 0.2
-Use_PCHEM_O3: 0
-ERROR_MODE: 1
+# Analysis options 
+ANAPHASE: 2
+Analysis_nSpecies: 0
+Analysis_Settings_Spec001: GEOSCHEMchem_AnaSettings_O3.rc
+Analysis_Settings_Spec002: GEOSCHEMchem_AnaSettings_NO2.rc
 
 #
 # NOx lightning met inputs
@@ -233,3 +209,4 @@ TurnOffHetRates: 1
 # Enable Bry and Cly family transport
 #
 Bry_Cly_Family_Transport: 1
+

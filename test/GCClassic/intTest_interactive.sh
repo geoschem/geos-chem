@@ -114,9 +114,6 @@ unset THIS_DIR
 unset FILL
 unset SEP_MAJOR
 unset SEP_MINOR
-unset SED_INPUT_GEOS_1
-unset SED_INPUT_GEOS_2
-unset SED_HISTORY_RC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

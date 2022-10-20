@@ -53,16 +53,12 @@ COLLECTIONS: 'Restart',
 #
 # Available for all simulations
 #==============================================================================
-  Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          'End',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
                               'Met_DELPDRY                    ',
-                              'Met_PS1WET                     ',
-                              'Met_PS1DRY                     ',
-                              'Met_SPHU1                      ',
-                              'Met_TMPU1                      ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

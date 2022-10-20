@@ -239,6 +239,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Hco_Utilities_GC_Mod, ONLY : Hco_GC_EvalFld
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE Species_Mod,          ONLY : SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
@@ -276,7 +277,7 @@ CONTAINS
     REAL(fp)           :: LO3_hco(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Strings
     CHARACTER(LEN=255) :: thisLoc
@@ -393,11 +394,11 @@ CONTAINS
        !=====================================================================
 
        ! Add P(O3) [kg] to the total O3 species
-       Spc(I,J,L,id_O3) = Spc(I,J,L,id_O3) + PO3_kg
+       Spc(id_O3)%Conc(I,J,L) = Spc(id_O3)%Conc(I,J,L) + PO3_kg
 
        ! Add P(O3) [kg] to the stratospheric O3 species
        IF ( State_Met%InStratosphere(I,J,L) ) THEN
-          Spc(I,J,L,id_O3Strat) = Spc(I,J,L,id_O3Strat) + PO3_kg
+          Spc(id_O3Strat)%Conc(I,J,L) = Spc(id_O3Strat)%Conc(I,J,L) + PO3_kg
        ENDIF
 
        ! Add P(O3) to extended tagged O3 species
@@ -409,14 +410,14 @@ CONTAINS
           ! Also, do not apply
           N = GeoMask(I,J,L)
           IF ( N > 0 ) THEN
-             Spc(I,J,L,N) = Spc(I,J,L,N) + PO3_kg
+             Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) + PO3_kg
           ENDIF
 
           ! Add P(O3) [kg] to the O3usa species, if we are within
           ! the continental USA and below the tropopause.
           N = UsaMask(I,J,L)
           IF ( N == id_O3usa ) THEN
-             Spc(I,J,L,N) = Spc(I,J,L,N) + PO3_kg
+             Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) + PO3_kg
           ENDIF
        ENDIF
 
@@ -457,10 +458,10 @@ CONTAINS
           IF ( N /= id_O3init ) THEN
 
              ! Apply chemical loss [kg]
-             Spc(I,J,L,N) = Spc(I,J,L,N) - LO3_kg
+             Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) - LO3_kg
 
              ! Prevent denormal values
-             IF ( Spc(I,J,L,N) < 1.0e-30_fp ) Spc(I,J,L,N) = 0.0_fp
+             IF ( Spc(N)%Conc(I,J,L) < 1.0e-30_fp ) Spc(N)%Conc(I,J,L) = 0.0_fp
 
              !---------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
