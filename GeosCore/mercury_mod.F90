@@ -691,7 +691,6 @@ CONTAINS
     REAL(dp)               :: Vloc(NVAR)
     REAL(dp)               :: Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(dp)               :: Vdotout(NVAR)
     REAL(dp)               :: localC(NSPEC)
 #endif
 
@@ -952,9 +951,6 @@ CONTAINS
     !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
     !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
     !$OMP PRIVATE( Vloc,     Aout,     NN                                   )&
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( Vdotout                                                  )&
-#endif
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -1065,7 +1061,7 @@ CONTAINS
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Archive KPP equation rates (Aout).  For GEOS-Chem in GEOS, also
-       ! archive the time derivative of variable species (Vdotout).
+       ! archive the time derivative of variable species (Vdot).
        !
        ! NOTE: Replace VAR with C(1:NVAR) and FIX with C(NVAR+1:NSPEC),
        ! because VAR and FIX are now local to the integrator
@@ -1081,8 +1077,7 @@ CONTAINS
                      F       = C(NVAR+1:NSPEC),                              &
                      RCT     = RCONST,                                       &
                      Vdot    = Vloc,                                         &
-                     Aout    = Aout,                                         &
-                     Vdotout = Vdotout                                      )
+                     Aout    = Aout )
 #else
           !------------------------------------------
           ! All other contexts: Get Aout only
