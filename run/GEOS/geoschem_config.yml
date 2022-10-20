@@ -41,7 +41,7 @@ operations:
       append_in_internal_timestep: false
 
   convection:
-    activate: true
+    activate: false
 
   dry_deposition:
     activate: true
