@@ -208,7 +208,7 @@ CONTAINS
     REAL(f4)               :: TROP_NOx_Tau
     REAL(f4)               :: TROPv_NOx_tau(State_Grid%NX,State_Grid%NY)
     REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
-    REAL(dp)               :: Vdotout(NVAR), localC(NSPEC)
+    REAL(dp)               :: localC(NSPEC)
 #endif
 #ifdef MODEL_WRF
     REAL(dp)               :: localC(NSPEC)
@@ -526,7 +526,7 @@ CONTAINS
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc,  Vdotout, localC                    )&
+    !$OMP PRIVATE( NOxTau,     NOxConc, localC                              )&
     !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
 #endif
 #ifdef MODEL_WRF
@@ -1436,11 +1436,14 @@ CONTAINS
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
        IF ( State_Diag%Archive_NoxTau .OR. State_Diag%Archive_TropNOxTau ) THEN
-          CALL Fun( C(1:NVAR), C(NVAR+1:NSPEC), RCONST,                          &
-                    Vloc,      Aout=Aout,       Vdotout=Vdotout )
-          NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
-                 + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
-                 + Vdotout(ind_HNO4)
+          CALL Fun( V       = C(1:NVAR),                                     &
+                    F       = C(NVAR+1:NSPEC),                               &
+                    RCT     = RCONST,                                        &
+                    Vdot    = Vloc,                                          &
+                    Aout    = Aout                                          )
+          NOxTau = Vloc(ind_NO) + Vloc(ind_NO2) + Vloc(ind_NO3)         &
+                 + 2.*Vloc(ind_N2O5) + Vloc(ind_ClNO2) + Vloc(ind_HNO2) &
+                 + Vloc(ind_HNO4)
           NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
                   + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
           ! NOx chemical lifetime per grid cell
