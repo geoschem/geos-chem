@@ -81,11 +81,13 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)   ! Names of RRTMG outputs (tags)
-  INTEGER,           PUBLIC  :: nRadOut      ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
-  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
+  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)    ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
+  LOGICAL,           PUBLIC  :: IsFullChem    ! Is it a fullchem simulation?
+  LOGICAL,           PUBLIC  :: IsHg          ! Is it a Hg simulation?
+  LOGICAL,           PUBLIC  :: IsCarbonCycle ! Is it a carboncycle sim?
+  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
   ! Derived type for Collections List
@@ -226,6 +228,8 @@ CONTAINS
     RadOut          =  ''
     nRadOut         =  0
     IsFullChem      = .FALSE.
+    IsHg            = .FALSE.
+    IsCarbonCycle   = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
     Name            =  ''
@@ -264,7 +268,9 @@ CONTAINS
        CALL QFYAML_CleanUp( ConfigAnchored  )
        RETURN
     ENDIF
-    IsFullChem = ( To_UpperCase( v_str ) == "FULLCHEM" )
+    IsFullChem    = ( To_UpperCase( v_str ) == "FULLCHEM"    )
+    IsHg          = ( To_UpperCase( v_str ) == "HG"          )
+    IsCarbonCycle = ( To_UpperCase( v_str ) == "CARBONCYCLE" )
 
     ! Read the altitude above the surface in meters for drydep diags
     key   = "operations%dry_deposition%diag_alt_above_sfc_in_m"
