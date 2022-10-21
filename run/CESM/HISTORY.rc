@@ -65,7 +65,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
-  Restart.format:             'CFIO',
   Restart.frequency:          'End',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
@@ -96,7 +95,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry and CH4 simulations only.
 #==============================================================================
   Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
-  Metrics.format:             'CFIO',
   Metrics.frequency:          'End',
   Metrics.duration:           'End',
   Metrics.mode:               'time-averaged'
@@ -116,7 +114,6 @@ COLLECTIONS: 'Restart',
 #                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.format:         'CFIO',
   SpeciesConc.frequency:      {FREQUENCY}
   SpeciesConc.duration:       {DURATION}
   SpeciesConc.mode:           'time-averaged'
@@ -131,7 +128,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  AdvFluxVert.format:         'CFIO',
   AdvFluxVert.frequency:      {FREQUENCY}
   AdvFluxVert.duration:       {DURATION}
   AdvFluxVert.mode:           'time-averaged'
@@ -145,7 +141,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry and aerosol-only simulations
 #==============================================================================
   AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  AerosolMass.format:         'CFIO',
   AerosolMass.frequency:      {FREQUENCY}
   AerosolMass.duration:       {DURATION}
   AerosolMass.mode:           'time-averaged'
@@ -176,7 +171,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry or aerosol-only simulations
 #==============================================================================
   Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  Aerosols.format:            'CFIO',
   Aerosols.frequency:         {FREQUENCY}
   Aerosols.duration:          {DURATION}
   Aerosols.mode:              'time-averaged'
@@ -273,7 +267,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.format:       'CFIO',
   Budget.frequency:    {FREQUENCY}
   Budget.duration:     {DURATION}
   Budget.mode:         'time-averaged'
@@ -304,7 +297,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  CloudConvFlux.format:       'CFIO',
   CloudConvFlux.frequency:    {FREQUENCY}
   CloudConvFlux.duration:     {DURATION}
   CloudConvFlux.mode:         'time-averaged'
@@ -323,7 +315,6 @@ COLLECTIONS: 'Restart',
 # (3) This collection is best used with mode "instantaneous".
 #==============================================================================
   ConcAboveSfc.template:      '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAboveSfc.format:        'CFIO',
   ConcAboveSfc.frequency:     {FREQUENCY}
   ConcAboveSfc.duration:      {DURATION}
   ConcAboveSfc.mode:          'instantaneous'
@@ -342,7 +333,6 @@ COLLECTIONS: 'Restart',
 # O1D, O3P: Availalbe for full-chemistry simulations using UCX mechanism
 #==============================================================================
   ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAfterChem.format:       'CFIO',
   ConcAfterChem.frequency:    {FREQUENCY}
   ConcAfterChem.duration:     {DURATION}
   ConcAfterChem.mode:         'time-averaged'
@@ -359,7 +349,6 @@ COLLECTIONS: 'Restart',
 # Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  DryDep.format:              'CFIO',
   DryDep.frequency:           {FREQUENCY}
   DryDep.duration:            {DURATION}
   DryDep.mode:                'time-averaged'
@@ -376,7 +365,6 @@ COLLECTIONS: 'Restart',
 # Available for all full-chemistry simulations
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
-  JValues.format:             'CFIO',
   JValues.frequency:          {FREQUENCY}
   JValues.duration:           {DURATION}
   JValues.mode:               'time-averaged'
@@ -395,7 +383,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry simulations (all variations)
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  KppDiags.format:            'CFIO',
   KppDiags.frequency:         {FREQUENCY}
   KppDiags.duration:          {DURATION}
   KppDiags.mode:              'time-averaged'
@@ -416,7 +403,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:      'CFIO',
   LevelEdgeDiags.frequency:   {FREQUENCY}
   LevelEdgeDiags.duration:    {DURATION}
   LevelEdgeDiags.mode:        'time-averaged'
@@ -436,7 +422,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  ProdLoss.format:            'CFIO',
   ProdLoss.frequency:         {FREQUENCY}
   ProdLoss.duration:          {DURATION}
   ProdLoss.mode:              'time-averaged'
@@ -476,7 +461,6 @@ COLLECTIONS: 'Restart',
 # (4) Optics diagnostics have a reduced set of output species (no BASE, O3, ME)
 #==============================================================================
   RRTMG.template:             '%y4%m2%d2_%h2%n2z.nc4',
-  RRTMG.format:               'CFIO',
   RRTMG.frequency:            {FREQUENCY}
   RRTMG.duration:             {DURATION}
   RRTMG.mode:                 'time-averaged'
@@ -535,7 +519,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry and aerosols-only simulations
 #==============================================================================
   StateChm.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateChm.format:            'CFIO',
   StateChm.frequency:         {FREQUENCY}
   StateChm.duration:          {DURATION}
   StateChm.mode:              'time-averaged'
@@ -570,7 +553,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  StateMet.format:            'CFIO',
   StateMet.frequency:         {FREQUENCY}
   StateMet.duration:          {DURATION}
   StateMet.mode:              'time-averaged'
@@ -666,7 +648,6 @@ COLLECTIONS: 'Restart',
 # Available for full-chemistry simulations
 #==============================================================================
   StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  StratBM.format:         'CFIO',
   StratBM.frequency:      00000000 010000
   StratBM.duration:       00000001 000000
   StratBM.mode:           'time-averaged'
@@ -686,7 +667,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations that have soluble species
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.format:         'CFIO',
   WetLossConv.frequency:      {FREQUENCY}
   WetLossConv.duration:       {DURATION}
   WetLossConv.mode:           'time-averaged'
@@ -702,7 +682,6 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # Loss due to rainout and washout (per deposited species)
   WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossLS.format:           'CFIO',
   WetLossLS.frequency:        {FREQUENCY}
   WetLossLS.duration:         {DURATION}
   WetLossLS.mode:             'time-averaged'
@@ -716,7 +695,6 @@ COLLECTIONS: 'Restart',
 # Available for all simulations
 #==============================================================================
   BoundaryConditions.template:   '%y4%m2%d2_%h2%n2z.nc4',
-  BoundaryConditions.format:     'CFIO',
   BoundaryConditions.frequency:  00000000 030000
   BoundaryConditions.duration:   00000001 000000
   BoundaryConditions.mode:       'instantaneous'

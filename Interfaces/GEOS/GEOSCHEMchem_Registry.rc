@@ -181,7 +181,7 @@
 #======================
 #  O3PPMV	                  | ppmv	   | xyz | C |    |   |   |	| ozone_volume_mixing_ratio_in_ppm
 #  OX_TEND	                  | kg kg-1 s-1    | xyz | C |    |   |   |	| tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry
-  H2O_TEND                       | kg kg-1 s-1    | xyz | C |    |   |   |     | Tendency_of_water_vapor_mixing_ratio_due_to_chemistry
+#  H2O_TEND                       | kg kg-1 s-1    | xyz | C |    |   |   |     | Tendency_of_water_vapor_mixing_ratio_due_to_chemistry
 #===========	                  
 # GCHP only:	                  
 #===========	                  

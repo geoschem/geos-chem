@@ -8,7 +8,7 @@
 
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
-log=gchp.${start_str}z.log
+log=gchp.${start_str:0:13}z.log
 
 # Load environment
 if [ ! -L gchp.env ] || [ ! -e gchp.env ]; then
@@ -38,7 +38,7 @@ if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str}z.c${N}.nc4
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh 2>&1 | tee -a ${log}
 fi
 

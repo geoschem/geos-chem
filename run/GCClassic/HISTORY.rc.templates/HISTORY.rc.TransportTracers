@@ -53,7 +53,7 @@ COLLECTIONS: 'Restart',
 #
 # Available for all simulations
 #==============================================================================
-  Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          'End',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'

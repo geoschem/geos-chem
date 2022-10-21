@@ -92,7 +92,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_FJX_MOD
-    USE DUST_MOD,                 ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
@@ -205,7 +204,10 @@ CONTAINS
     REAL(fp)               :: OHreact
     REAL(dp)               :: Vloc(NVAR),     Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(f4)               :: NOxTau, NOxConc
+    REAL(f4)               :: NOxTau, NOxConc, NOx_weight, NOx_tau_weighted
+    REAL(f4)               :: TROP_NOx_Tau
+    REAL(f4)               :: TROPv_NOx_tau(State_Grid%NX,State_Grid%NY)
+    REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
     REAL(dp)               :: Vdotout(NVAR), localC(NSPEC)
 #endif
 #ifdef MODEL_WRF
@@ -273,6 +275,15 @@ CONTAINS
        ENDWHERE
     ENDIF
 
+#if defined( MODEL_GEOS )
+    IF ( State_Diag%Archive_NoxTau     ) State_Diag%NoxTau(:,:,:) = 0.0_f4
+    IF ( State_Diag%Archive_TropNOxTau ) THEN
+       State_Diag%TropNOxTau(:,:) = 0.0_f4
+       TROPv_NOx_mass(:,:) = 0.0_f4
+       TROPv_NOx_tau(:,:)  = 0.0_f4
+    ENDIF
+#endif
+
     !========================================================================
     ! Zero out certain species:
     !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
@@ -334,6 +345,7 @@ CONTAINS
     ENDIF
 
     ! Do Photolysis
+    WAVELENGTH = 0
     CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm,                         &
                   State_Diag, State_Grid, State_Met, RC                     )
 
@@ -483,7 +495,8 @@ CONTAINS
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,   NOxConc,  Vdotout, localC                      )&
+    !$OMP PRIVATE( NOxTau,     NOxConc,  Vdotout, localC                    )&
+    !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
 #endif
 #ifdef MODEL_WRF
     !$OMP PRIVATE( localC                                                   )&
@@ -522,7 +535,7 @@ CONTAINS
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
 #endif
-#if defined( MODEL_GEOS ) && defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        localC    = 0.0_dp                   ! Local backup array for C
 #endif
 
@@ -923,29 +936,15 @@ CONTAINS
        ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate ) THEN
-#ifdef MODEL_GEOS
           !---------------------------------------------------
-          ! GEOS-Chem in NASA/GEOS:
-          ! Get equation rates (Aout) and the time derivative
-          ! of variable species concentrations (Vdotout)
-          !---------------------------------------------------
-          CALL Fun( V       = C(1:NVAR),                                     &
-                    F       = C(NVAR+1:NSPEC),                               &
-                    RCT     = RCONST,                                        &
-                    Vdot    = Vloc,                                          &
-                    Aout    = Aout,                                          &
-                    Vdotout = Vdotout                                       )
-#else
-          !---------------------------------------------------
-          ! All other contexts
-          ! Get equation rates (Aout) only
+          ! Get equation rates (Aout)
           !---------------------------------------------------
           CALL Fun( V       = C(1:NVAR),                                     &
                     F       = C(NVAR+1:NSPEC),                               &
                     RCT     = RCONST,                                        &
                     Vdot    = Vloc,                                          &
                     Aout    = Aout                                          )
-#endif
+
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
@@ -1285,7 +1284,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
-       IF ( State_Diag%Archive_NoxTau ) THEN
+       IF ( State_Diag%Archive_NoxTau .OR. State_Diag%Archive_TropNOxTau ) THEN
           CALL Fun( C(1:NVAR), C(NVAR+1:NSPEC), RCONST,                          &
                     Vloc,      Aout=Aout,       Vdotout=Vdotout )
           NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
@@ -1293,11 +1292,32 @@ CONTAINS
                  + Vdotout(ind_HNO4)
           NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
                   + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
-          NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
-          IF ( NoxTau > 0.0_f4 ) THEN
-             State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
-          ELSE
-             State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+          ! NOx chemical lifetime per grid cell
+          IF ( State_Diag%Archive_NoxTau ) THEN
+             NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
+             IF ( NoxTau > 0.0_f4 ) THEN
+                State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
+             ELSE
+                State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+             ENDIF
+          ENDIF
+          ! NOx chemical lifetime per trop. column
+          IF ( State_Diag%Archive_TropNOxTau ) THEN
+             NOx_weight = ( NOxConc )*State_Met%AIRDEN(I,J,L)*State_Met%DELP_DRY(I,J,L)
+             NOx_tau_weighted = ( NOxConc / ( -1.0_f4*NOxTau*3600.0_f4 ) )*NOx_weight
+             IF ( ABS(NOx_tau_weighted) < 1.0e8 ) THEN
+               NOx_tau_weighted = ( NINT(NOx_tau_weighted)*1.0e6 )*1.0e-6_f4
+             ELSE
+                IF ( NOx_tau_weighted > 0.0 ) THEN
+                   NOx_tau_weighted = 1.0e8
+                ELSE
+                   NOx_tau_weighted = -1.0e8
+                ENDIF
+             ENDIF
+             IF ( State_Met%InTroposphere(I,J,L) ) THEN
+               TROPv_NOx_mass(I,J) = TROPv_NOx_mass(I,J) + NOx_weight
+               TROPv_NOx_tau(I,J)  = TROPv_NOx_tau(I,J) + NOx_tau_weighted
+             ENDIF
           ENDIF
        ENDIF
 #endif
@@ -1429,6 +1449,14 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+#if defined( MODEL_GEOS )
+    IF ( State_Diag%Archive_TropNOxTau ) THEN
+       WHERE (TROPv_NOx_mass > 0.0_f4 )
+          State_Diag%TropNOxTau = TROPv_NOx_tau / TROPv_NOx_mass
+       END WHERE
+    ENDIF
+#endif
 
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after solver

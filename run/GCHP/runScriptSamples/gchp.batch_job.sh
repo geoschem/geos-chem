@@ -111,7 +111,7 @@ module list
 
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
-log=gchp.${start_str}z.log
+log=gchp.${start_str:0:13}z.log
 
 # Update config files, set restart symlink, and do sanity checks
 source setCommonRunSettings.sh
@@ -129,15 +129,15 @@ source checkRunSettings.sh
 #
 # Example 1: PBS
 #
-#    mpiexec -n 48 ./gchp > runlog.txt   
+#    mpiexec -n 48 ./gchp > ${log}
 #
 # Example 2: LSF
 #
-#    mpiexec -n 72 ./gchp > runlog.txt
+#    mpiexec -n 72 ./gchp > ${log}
 #
 # Example 3: SLURM
 #
-#    srun -n 48 -N 2 -m plane=24 --mpi=pmix ./gchp
+#    srun -n 48 -N 2 -m plane=24 --mpi=pmix ./gchp > ${log}
 #
 
 #################################################################
@@ -152,6 +152,6 @@ if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str}z.c${N}.nc4
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh
 fi

@@ -1098,9 +1098,6 @@ CONTAINS
     ! Set a flag if any timeseries diagnostics are turned on
     DO_TIMESERIES = ( Input_Opt%DO_ND51 .or. Input_Opt%DO_ND51b )
 
-    ! Save the # of tagHg categories in a local variable
-    N_Hg_CATS = State_Chm%N_Hg_CATS
-
     ! Number of total species
     nSpecies  = State_Chm%nSpecies
 
