@@ -2440,13 +2440,13 @@ CONTAINS
     IF ( ALLOCATED( ml2 ) ) THEN
        DEALLOCATE( ml2, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:ML2', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( qmincg ) ) THEN
        DEALLOCATE( qmincg, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:QMINCG', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
   END SUBROUTINE Cleanup_Vdiff
