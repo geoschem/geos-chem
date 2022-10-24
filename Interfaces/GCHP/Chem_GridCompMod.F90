@@ -2681,7 +2681,7 @@ CONTAINS
           IF ( Input_Opt%haveImpRst ) THEN
 #endif
 
-#if !defined( MDOEL_GEOS )
+#if !defined( MODEL_GEOS )
              ! Optional memory prints (level >= 2)
              if ( MemDebugLevel > 0 ) THEN
                 call ESMF_VMBarrier(vm, RC=STATUS)
