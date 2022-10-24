@@ -55,9 +55,6 @@ MODULE Chem_GridCompMod
   USE Input_Opt_Mod                                  ! Input Options obj
   USE GCHP_Chunk_Mod                                 ! GCHP IRF methods
   USE GCHP_HistoryExports_Mod
-#if !defined( MODEL_GEOS )
-  USE GCHP_ProviderServices_Mod
-#endif
   USE ErrCode_Mod                                    ! Error numbers
   USE State_Chm_Mod                                  ! Chemistry State obj
   USE State_Diag_Mod                                 ! Diagnostics State obj
@@ -147,9 +144,6 @@ MODULE Chem_GridCompMod
 
   ! When to do the analysis
   INTEGER                          :: ANAPHASE
-#else
-  LOGICAL                          :: isProvider ! provider to AERO, RATS, ANOX?
-  LOGICAL                          :: calcOzone  ! if PTR_GCCTO3 is associated
 #endif
 
   ! Number of run phases, 1 or 2. Set in the rc file; else default is 2.
@@ -174,9 +168,6 @@ MODULE Chem_GridCompMod
 
   ! Pointers to import, export and internal state data. Declare them as
   ! module variables so that we have to assign them only on first call.
-  ! NOTE: Any provider-related exports (e.g. H2O_TEND) are now handled within
-  ! gchp_providerservices_mod.F90. Pointers are manually declared there and
-  ! those declared in the .h file included below are not used. (ewl, 11/3/2017)
 
 #if defined( MODEL_GEOS )
 # include "GEOSCHEMCHEM_DeclarePointer___.h"
@@ -954,8 +945,6 @@ CONTAINS
     ! Analysis options
     CALL GEOS_AnaInit( am_I_Root, GC, myState%myCF, ANAPHASE, __RC__ )
 
-#else
-    CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
 #endif
 
     ! OLSON
@@ -1398,11 +1387,6 @@ CONTAINS
        CALL GEOS_AeroInit( GC, MaplCF, INTSTATE, EXPORT, Grid, __RC__ )
     ENDIF
 
-#else
-    IF ( isProvider ) THEN
-       CALL Provider_Initialize( am_I_Root, State_Chm, State_Grid, &
-                                 INTSTATE,  EXPORT,    __RC__ )
-    ENDIF
 #endif
 
     !=======================================================================
@@ -2231,11 +2215,6 @@ CONTAINS
        call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
        !ENDIF
 
-       ! Set up pointers if GEOS-Chem is a provider
-       !IF ( isProvider ) THEN
-       CALL Provider_SetPointers( am_I_Root, EXPORT, calcOzone, __RC__ )
-       !ENDIF
-
        ! Pass IMPORT/EXPORT object to HEMCO state object
        !CALL GetHcoState( HcoState )
        _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
@@ -2665,13 +2644,6 @@ CONTAINS
        IF ( PHASE /= 1 ) THEN
           CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
        ENDIF
-#else
-       IF ( calcOzone ) THEN
-          IF ( FIRST ) THEN
-             CALL CalcTotalOzone( am_I_Root, PLE, GCCTROPP, __RC__ )
-          ENDIF
-          CALL SetStateMetTO3( am_I_Root, State_Met, __RC__ )
-       ENDIF
 #endif
 
        !=======================================================================
@@ -2984,40 +2956,7 @@ CONTAINS
        ! ----------
        CALL MAPL_TimerOff(STATE, "RUN"  )
 
-#if !defined( MODEL_GEOS )
-       ! Fill bundles only on chemistry time steps and after phase 2
-       ! -----------------------------------------------------------
-       IF ( IsTendTime ) THEN
-
-          IF ( isProvider ) THEN
-             CALL Provider_FillBundles( am_I_Root, tsChem,    PLE, GCCTROPP, &
-                                        STATE,     Input_Opt, GC,  EXPORT,   &
-                                        __RC__ )
-          ENDIF
-
-          IF ( calcOzone ) THEN
-             !================================================================
-             ! Total ozone and total tropospheric ozone for export [dobsons].
-             ! 2.69E+20 per dobson.
-             !================================================================
-             CALL CalcTotalOzone( am_I_Root, PLE, GCCTROPP, __RC__ )
-          ENDIF
-
-       ENDIF ! IsTendTime
-#endif
-
     ENDIF RunningGEOSChem
-
-#if !defined( MODEL_GEOS )
-    !=======================================================================
-    ! If we were not doing chemistry, make sure that all tendencies are
-    ! zero. We ignore the tendencies that may arise due to physical
-    ! processes covered by GEOS-Chem (e.g. convection).
-    !=======================================================================
-    IF ( .NOT. IsTendTime ) THEN
-       CALL Provider_ZeroTendencies( am_I_Root, __RC__ )
-    ENDIF
-#endif
 
     !=======================================================================
     ! Copy HISTORY.rc diagnostic data to exports. Includes HEMCO emissions
@@ -3374,11 +3313,6 @@ CONTAINS
 
     ! Deallocate the history interface between GC States and ESMF Exports
     CALL Destroy_HistoryConfig( am_I_Root, HistoryConfig, RC )
-
-#if !defined( MODEL_GEOS )
-    ! Deallocate provide pointers and arrays
-    CALL Provider_Finalize( am_I_Root, __RC__ )
-#endif
 
 #if defined( MODEL_GEOS )
     ! Cleanup GEOS analysis module
