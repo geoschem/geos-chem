@@ -478,7 +478,7 @@ elif [[ ${sim_name} = "TransportTracers" ]]; then
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${sim_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
