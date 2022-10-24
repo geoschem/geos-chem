@@ -67,8 +67,6 @@ MODULE Species_Mod
   TYPE, PUBLIC :: SpcConc
 #if defined( MODEL_GCHPCTM )
      REAL(ESMF_KIND_R8), POINTER :: Conc(:,:,:)
-#elif defined( MODEL_GEOS )
-     REAL, POINTER :: Conc(:,:,:)
 #else
      REAL(fp), POINTER :: Conc(:,:,:)
 #endif
