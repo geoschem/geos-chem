@@ -2868,12 +2868,11 @@ CONTAINS
     IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
        DO N = 1, State_Chm%nSpecies
           IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
-#if defined( MODEL_GCHPCTM )
-             State_Chm%Species(N)%Conc => NULL()
-#else
+#if !defined( MODEL_GCHPCTM )
              DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
              IF ( RC /= GC_SUCCESS ) RETURN
 #endif
+             State_Chm%Species(N)%Conc => NULL()
           ENDIF
        ENDDO
        DEALLOCATE( State_Chm%Species )
