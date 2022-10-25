@@ -830,7 +830,7 @@ cp ${gcdir}/run/shared/download_data.py     ${rundir}
 cp ${gcdir}/run/shared/download_data.yml    ${rundir}
 cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
-cp ./README                                 ${rundir}
+cp ./README.md                              ${rundir}
 cp ./gitignore                              ${rundir}/.gitignore
 
 # Use data downloader that points to GCAP2 restart files

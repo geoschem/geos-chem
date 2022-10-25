@@ -424,7 +424,7 @@ mkdir -p ${rundir_config}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
+cp ./README.md                        ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
