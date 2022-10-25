@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository since versio
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.0.0]
+## [14.0.0] - 2022-10-25
 ### Added
 - Added user registration with dynamodb database during run directory creation
 - Added Hg simulation with KPP
@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed 4D State_Chm%Species array to vector of 3D concentration arrays
 - Renamed GCHP config file runConfig.sh to setCommonRunSettings.sh
 - Moved restart file location in run directory to Restarts subdirectory
+- Updated sample restart files copied to run directories to 14.0.0 1-year benchmark output
 
 ### Removed
 - Removed TMPU1, SPHU1, PS1_WET, and PS1_DRY from GC-Classic restart file
