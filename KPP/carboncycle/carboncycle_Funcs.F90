@@ -96,11 +96,12 @@ CONTAINS
        C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
     ENDIF
 
-    ! Initialize externally-read species (denoted by _E) to 1 molec/cm3
-    C(ind_CH4_E)    = 1.0_dp
-    C(ind_Cl_E)     = 1.0_dp
-    C(ind_OH_E)     = 1.0_dp
-    C(ind_NMVOC_E)  = 1.0_dp
+    ! Initialize fixed species to 1 molec/cm3
+    ! Some of these will later be set to values read via HEMCO
+    C(ind_FixedCH4)   = 1.0_dp
+    C(ind_FixedCl)    = 1.0_dp
+    C(ind_FixedOH)    = 1.0_dp
+    C(ind_FixedNMVOC) = 1.0_dp
 
     ! Free pointer
     Spc => NULL()
@@ -178,7 +179,7 @@ CONTAINS
        !=====================================================================
 
        ! Set toggle that we are in the tropopshere
-       ! (used for CH4 + Cl_E = DUMMY reaction)
+       ! (used for CH4 + FixedCl = DUMMY reaction)
        trop = 1.0_dp
 
        ! Scaling factor for diurnal cycles - zero at night
@@ -200,23 +201,23 @@ CONTAINS
        !-------------------------------------------------------------------
 
        ! OH concentration, as read from disk [molec/cm3]
-       C(ind_OH_E) = bOH * State_Met%AIRNUMDEN(I,J,L) * facDiurnal
+       C(ind_FixedOH) = bOH * State_Met%AIRNUMDEN(I,J,L) * facDiurnal
 
        ! Cl concentration, as read from disk [molec/cm3]
-       C(ind_Cl_E) = bCl * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
+       C(ind_FixedCl) = bCl * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
 
        ! CH4 + offline OH reaction rate [1/s]
-       ! Rate [1/s] for CH4 + OH_E = CO + CO_CH4 (aka P(CO) from CH4)
+       ! Rate [1/s] for CH4 + FixedOH = CO + COfrom_CH4 (aka P(CO) from CH4)
        IF ( LPCO_CH4 ) THEN
           k_Trop(1) = PCO_CH4 * facDiurnal
-          k_Trop(1) = safediv( k_trop(1), ( C(ind_CH4)*C(ind_OH_E) ), 0.0_dp )
+          k_Trop(1) = safediv( k_trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
        ELSE
           k_Trop(1) = 2.45E-12_dp * EXP( -1775.E0_dp /TEMP )  ! JPL 1997
        ENDIF
 
        !-------------------------------------------------------------------
-       ! k_Trop(2): Rate [1/s] for CO      + OH_E = CO2 + CO2_OH
-       ! k_Trop(3): Rate [1/s] for NMVOC_E        = CO  + CO_NMVOC
+       ! k_Trop(2): Rate [1/s] for CO + FixedOH = CO2 + CO2fromOH
+       ! k_Trop(3): Rate [1/s] for FixedNMVOC   = CO  + COfromNMVOC
        !-------------------------------------------------------------------
        k_Trop(2) = GC_OHCO()
        k_Trop(3) = PCO_NMVOC * facDiurnal
@@ -301,7 +302,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL(fp)               :: airvol_cm3
+    REAL(fp)               :: airvol_cm3, convfac_CH4
+    REAL(fp)               :: convfac_CO, convfac_CO2
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -314,27 +316,30 @@ CONTAINS
     Spc => State_Chm%Species
 
     ! Grid box volume [cm3]
-    airvol_cm3 = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp
+    airvol_cm3    = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp
+    convfac_CH4      = airvol_cm3 / xnumol_CH4
+    convfac_CO       = airvol_cm3 / xnumol_CO
+    convfac_CO2      = airvol_cm3 / xnumol_CO2
 
     ! Send species from molec/cm3 to kg
     IF ( id_CH4 > 0 ) THEN
-       Spc(id_CH4)%Conc(I,J,L)     = C(ind_CH4)      * airvol_cm3 / xnumol_CH4
+       Spc(id_CH4)%Conc(I,J,L)     = C(ind_CH4)         * convfac_CH4
     ENDIF
 
     IF ( id_CO > 0 ) THEN
-       Spc(id_CO)%Conc(I,J,L)      = C(ind_CO)       * airvol_cm3 / xnumol_CO
+       Spc(id_CO)%Conc(I,J,L)      = C(ind_CO)          * convfac_CO
     ENDIF
 
     IF ( id_COch4 > 0 ) THEN
-       Spc(id_COch4)%Conc(I,J,L)   = C(ind_CO_CH4)   * airvol_cm3 / xnumol_CO
+       Spc(id_COch4)%Conc(I,J,L)   = C(ind_COfromCH4)   * convfac_CO
     ENDIF
 
     IF ( id_COnmvoc > 0 ) THEN
-       Spc(id_COnmvoc)%Conc(I,J,L) = C(ind_CO_NMVOC) * airvol_cm3 / xnumol_CO
+       Spc(id_COnmvoc)%Conc(I,J,L) = C(ind_COfromNMVOC) * convfac_CO
     ENDIF
 
     IF ( id_CO2 > 0 ) THEN
-       Spc(id_CO2)%Conc(I,J,L)     = C(ind_CO2)      * airvol_cm3 / xnumol_CO2
+       Spc(id_CO2)%Conc(I,J,L)     = C(ind_CO2)         * convfac_CO2
     ENDIF
 
     ! Free pointer
@@ -354,7 +359,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carboncycle_Get_CO_CH4_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carboncycle_Get_COfromCH4_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -367,23 +372,23 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_CO_CH4) / dtChem        ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_COfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION carboncycle_Get_CO_CH4_Flux
+  END FUNCTION carboncycle_Get_COfromCH4_Flux
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_get_co_nmvoc_flux
+! !IROUTINE: carboncycle_get_cofromnmvoc_flux
 !
 ! !DESCRIPTION: Returns the flux of CO_NMVOC in molec/cm3/s for diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carboncycle_Get_CO_NMVOC_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carboncycle_Get_COfromNMVOC_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -397,23 +402,23 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_CO_NMVOC) / dtChem      ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_COfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION carboncycle_Get_CO_NMVOC_Flux
+  END FUNCTION carboncycle_Get_COfromNMVOC_Flux
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_get_co2_oh_flux
+! !IROUTINE: carboncycle_get_co2fromoh_flux
 !
 ! !DESCRIPTION: Returns the flux of CO2_OH in molec/cm3/s for diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carboncycle_Get_CO2_OH_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carboncycle_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -427,9 +432,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_CO2_OH) / dtChem        ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_CO2fromOH) / dtChem     ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION carboncycle_Get_CO2_OH_Flux
+  END FUNCTION carboncycle_Get_CO2fromOH_Flux
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -443,7 +448,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ccarboncycle_Get_OH_E_Flux( dtChem ) RESULT ( flux )
+  FUNCTION ccarboncycle_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -457,9 +462,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_OH_E) / dtChem          ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_FixedOH) / dtChem       ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION ccarboncycle_Get_OH_E_Flux
+  END FUNCTION ccarboncycle_Get_FixedOH_Flux
 
 
   !==========================================================================

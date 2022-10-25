@@ -730,10 +730,6 @@ CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
   FullName: Methane
-CH4_E:
-  << : *CH4properties
-  Background_VV: 1.8e-6
-  FullName: Methane (external input for carboncycle mechanism)
 CH4_BBN:
   << : *CH4properties
   Background_VV: 1.0e-20
@@ -809,12 +805,6 @@ CHCl3:
 Cl:
   Formula: Cl
   FullName: Atomic chlorine
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 35.45
-Cl_E:
-  Formula: Cl
-  FullName: Atomic chlorine (external input for carboncycle mechanism)
   Is_Advected: true
   Is_Gas: true
   MW_g: 35.45
@@ -936,7 +926,7 @@ CO2se:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
-CO2_OH:
+CO2fromOH:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide loss by OH (carboncycle mechanism)
@@ -1029,11 +1019,11 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
-CO_CH4:
+COfromCH4:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from methane oxidation (carboncycle mechanism)
-CO_NMVOC:
+COfromNMVOC:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from non-methane VOCs oxidation (carboncycle mechanism)
@@ -1200,6 +1190,26 @@ FeF2:
   Formula: Fe
   Fullname: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
+FixedCH4:
+  << : *CH4properties
+  Background_VV: 1.8e-6
+  FullName: Methane (external input for carboncycle mechanism)
+FixedCl:
+  Formula: Cl
+  FullName: Atomic chlorine (external input for carboncycle mechanism)
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 35.45
+FixedNMVOC:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from NMVOC oxidation (external input for carboncycle mechanism)
+FixedOH:
+  Background_VV: 4.0e-15
+  Formula: OH
+  FullName: Hydroxyl radical (external input for carboncycle mechanism)
+  Is_Gas: true
+  MW_g: 17.01
 GlobEmis90dayTracer:
   FullName: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
   Is_Advected: true
@@ -3342,10 +3352,6 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
-NMVOC_E:
-  << : *COproperties
-  Background_VV: 1.0e-20
-  FullName: CO produced from NMVOC oxidation (external input for carboncycle mechanism)
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -3540,12 +3546,6 @@ OH:
   Background_VV: 4.0e-15
   Formula: OH
   FullName: Hydroxyl radical
-  Is_Gas: true
-  MW_g: 17.01
-OH_E:
-  Background_VV: 4.0e-15
-  Formula: OH
-  FullName: Hydroxyl radical (external input for carboncycle mechanism)
   Is_Gas: true
   MW_g: 17.01
 OIO:
