@@ -133,13 +133,21 @@ cd ${runDir}
 # TransportTracers run directories
 #=============================================================================
 
+# TODO: this section and the next for other run directories should
+# be combined in a loop to avoid duplicate code.
+
 dir="gchp_TransportTracers_geosfp_c24"
 create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
-cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
-sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/runConfig.sh
-sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Standard run directories
@@ -149,8 +157,14 @@ dir="gchp_fullchem_standard_merra2_c24"
 create_rundir "1\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
-cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
-sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Benchmark run directories
@@ -160,9 +174,14 @@ dir="gchp_fullchem_benchmark_merra2_c48"
 create_rundir "1\n2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
-cp ${testDir}/gchp.lsf.sh   ${root}/${dir}/gchp.lsf.sh
-sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/runConfig.sh
-sed -i -e "s/timeAvg_monthly=\"1\".*/timeAvg_monthly=\"0\"/" ${root}/${dir}/runConfig.sh
+sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
 # Cleanup and quit

@@ -40,6 +40,7 @@ COLLECTIONS: 'Restart',
              ##'DryDep',
              #'JValues',
              ##'KppDiags',
+             ##'KppARDiags',
              ##'LevelEdgeDiags',
              ##'ProdLoss',
              ##'RRTMG',
@@ -65,7 +66,7 @@ COLLECTIONS: 'Restart',
 #
 # Available for all simulations
 #==============================================================================
-  Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          ${RUNDIR_HIST_INST_FREQ}
   Restart.duration:           ${RUNDIR_HIST_INST_DUR}
   Restart.mode:               'instantaneous'
@@ -393,6 +394,22 @@ COLLECTIONS: 'Restart',
                               'KppLuDecomps                  ',
                               'KppSubsts                     ',
                               'KppSmDecomps                  ',
+                              'KppTime                       ',
+::
+#==============================================================================
+# %%%%% THE KppARDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver when auto-reduction solver is used.
+#
+# Available for full-chemistry simulations only if auto-reduce is enabled.
+#==============================================================================
+  KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  KppARDiags.frequency:       ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppARDiags.duration:        ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppARDiags.mode:            'time-averaged'
+  KppARDiags.fields:          'KppAutoReducerNVAR            ',
+                              'KppAutoReduceThres            ',
+                              'KppcNONZERO                   ',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%

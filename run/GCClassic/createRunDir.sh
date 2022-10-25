@@ -12,6 +12,29 @@
 #
 # Initial version: M. Sulprizio, 6/24/2020 (based off GCHP/createRunDir.sh)
 
+# post registration details to api
+function post_registration() {
+    email="$1"
+    name="$2"
+    affiliation="$3"
+    site="$4"
+    git_username="$5"
+    research_interest="$6"
+    env_type="$7"
+    curl --location --request POST "https://gc-dashboard.org/registration" \
+        --header "Content-Type: text/plain" \
+        -d "{
+            \"email\": \"${email}\",
+            \"name\": \"${name}\",
+            \"affiliation\": \"${affiliation}\",
+            \"site\": \"${site}\",
+            \"git_username\": \"${git_username}\",
+            \"research_interest\": \"${research_interest}\",
+            \"model_type\": \"gcc\",
+            \"env_type\": \"${env_type}\"
+        }"
+}
+
 srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
@@ -70,6 +93,33 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 fi
 
 RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
+
+# --------------------------------------------------------------
+# registration for first time users
+# --------------------------------------------------------------
+if [[ -z "${GC_USER_REGISTERED}" ]]; then
+    printf "\nInitiating User Registration: You will only need to fill this out once.\n"
+    printf "${thinline}What is your email address?${thinline}"
+    read email
+    
+    if [[ ${email} != "" ]]; then
+    printf "${thinline}What is your name?${thinline}"
+    IFS='\n' read -r name
+    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
+    IFS='\n' read -r affiliation
+    printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
+    IFS='\n' read -r site
+    printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
+    IFS='\n' read -r git_username
+    printf "${thinline}Where do you plan to run GEOS-Chem (e.g. local compute cluster, AWS, other supercomputer)?${thinline}"
+    IFS='\n' read -r env_type
+    printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
+    IFS='\n' read -r research_interest
+    post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
+    fi
+    echo "export GC_USER_REGISTERED=true" >> ${HOME}/.geoschem/config
+    source ${HOME}/.geoschem/config
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -326,71 +376,86 @@ if [[ ${met} = "ModelE2.1" ]]; then
 	valid_scen=1
 	if [[ ${scen_num} = "1" ]]; then
 	    scenario="HIST"
-            runid="E213f10aF40oQ40"
+	    runid="E213f10aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1851-1860; 2001-2014'\n"
 	elif [[ ${scen_num} = "2" ]]; then
 	    scenario="HIST"
-            runid="E213f10aF40oQ40nudge"
-	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014"
+	    runid="E213f10aF40oQ40nudge"
+            gissres="F40"
+	    vertres="40L"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014'\n"
 	elif [[ ${scen_num} = "3" ]]; then
 	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    runid="E213SSP119aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "4" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP126"
+	    runid="E213SSP126aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "5" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP434"
+	    runid="E213SSP434aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "6" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP245"
+	    runid="E213SSP245aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "7" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP460"
+	    runid="E213SSP460aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "8" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP370"
+	    runid="E213SSP370aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "9" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP585"
+	    runid="E213SSP585aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	else
   	    valid_scen=0
 	    printf "Invalid GCAP 2.0 scenario. Try again.\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='$scenario'\n"
+        RUNDIR_VARS+="RUNDIR_GISS_RES='$gissres'\n"
+	RUNDIR_VARS+="RUNDIR_GCAP2_VERTRES='$vertres'\n"
 	RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='$runid'\n"
     done
 
-    if [[ "x${sim_name}" == "xfullchem" ]] || \
-       [[ "x${sim_name}" == "xaerosol" ]]; then
-	printf "${thinline}Choose a fixed year for volcanic emissions (1978-2020)\n or -1 for year of simulation (assuming year exists):${thinline}"
-	valid_volc=0
-	while [ "${valid_volc}" -eq 0 ]; do
-	    read volc_year
-	    valid_volc=1
-	    echo $volc_year
-	    if [[ $volc_year -ge 1978 ]] && [[ $volc_year -le 2020 ]]; then
-		RUNDIR_VARS+="RUNDIR_VOLC_YEAR='$volc_year'\n"
-            elif [[ $volc_year -eq -1 ]]; then
-		RUNDIR_VARS+="RUNDIR_VOLC_YEAR='$YYYY'\n"
-	    else
-  		valid_volc=0
-		printf "Invalid volcano year. Try again.\n"
-            fi
-	done
+    RUNDIR_VARS+="RUNDIR_USE_AEIC='false'\n"
+
+    # Define the volcano paths for the HEMCO_Config.rc file
+    # NOTE: Benchmark simulations always use the climatological emissions!
+    if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
+       [[ "x${sim_name}" == "xaerosol"  ]]; then
+        RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+        RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
     fi
 
 else
     RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GCAP2_VERTRES='not_used'\n"
     RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='not_used'\n"
     RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1980-2021'\n"
+
+    RUNDIR_VARS+="RUNDIR_USE_AEIC='true'\n"
 
     # Define the volcano paths for the HEMCO_Config.rc file
     # NOTE: Benchmark simulations always use the climatological emissions!
@@ -562,32 +627,24 @@ if [[ ${met} = "ModelE2.1" ]]; then
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00243979'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00276896'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00254319'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
   	fi
     else
         if [[ "$grid_res" ==  "4x5" ]]; then
             RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.03564873'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01050036'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01340854'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01066495'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
@@ -756,13 +813,15 @@ while [ "${valid_rundir}" -eq 0 ]; do
     fi
 done
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/rundirConfig
-
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
+
 mkdir -p ${rundir}
+mkdir -p ${rundir}/Restarts
+
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/CreateRunDirLogs
 mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
@@ -773,6 +832,11 @@ cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
 cp ./README                                 ${rundir}
 cp ./gitignore                              ${rundir}/.gitignore
+
+# Use data downloader that points to GCAP2 restart files
+if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
+  cp ${gcdir}/run/shared/download_data.gcap2.40L.yml ${rundir}/download_data.yml
+fi
 
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
@@ -840,7 +904,7 @@ else
     enddate='20190801'
 fi
 if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
-    if [[ "x$scenario" == "HIST" ]]; then
+    if [[ "$scenario" == "HIST" ]]; then
 	startdate='20050701'
 	enddate='20050801'
     else
@@ -876,6 +940,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_hemco.txt)\n"
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
@@ -927,17 +993,20 @@ rundir_config_log=${rundir_config}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 #sort -o ${rundir_config_log} ${rundir_config_log}
 
-# Call init_rd.sh
+# Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
-printf "\n  See rundirConfig/rundir_vars.txt for run directory settings.\n\n"
 
-printf "\n  -- This run directory has been set up for $startdate - $enddate."
-printf "\n     You may modify these settings in geoschem_config.yml.\n"
+printf "\n  See ${rundir_config}/rundir_vars.txt for run directory settings.\n\n"
 
+printf "\n  -- This run directory has been set up to start on $state_date and"
+printf "\n     restart files for this date are in the Restarts subdirectory.\n" 
+printf "\n  -- Update start and end dates in geoschem_config.yml.\n"
+
+printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.nc4.\n"
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
@@ -1061,12 +1130,13 @@ fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
 if [[ "x${is_aws}" != "x" ]]; then
-    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
+    ${s3_cp} ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
 elif [[ -f ${sample_rst} ]]; then
-    cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+    cp ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4
 else
-    printf "\n  -- No sample restart provided for this simulation."
-    printf "\n     You will need to provide an initial restart file or disable"
+    printf "\n  -- The following sample restart provided for this simulation was not found:"
+    printf "\n     ${sample_rst}"
+    printf "\n     You will need to provide this initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
 fi
@@ -1099,6 +1169,8 @@ fi
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
+
+#
 
 #--------------------------------------------------------------------
 # Navigate back to source code directory
@@ -1176,9 +1248,6 @@ mv tmp.txt ${rundir_config_log}
 
 # Remove the version log
 rm -rf ${version_log}
-
-# Remove a few blanks spaces
-
 
 # Save the updated rundir_vars file to the git repo
 if [[ "x${enable_git}" == "xy" ]]; then

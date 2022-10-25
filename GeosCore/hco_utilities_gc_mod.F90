@@ -1551,7 +1551,6 @@ CONTAINS
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
 #endif
-   USE Ocean_Mercury_Mod, ONLY : Check_Ocean_Mercury
 !
 ! !INPUT PARAMETERS:
 !
@@ -1628,23 +1627,6 @@ CONTAINS
 
    ! Set pointer to species concentrations
    Spc => State_Chm%Species
-
-   !=================================================================
-   ! If running Hg simulation, set Hg-specific local variables
-   !=================================================================
-   IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-      ! Set the # of tagHg categories from State_Chm
-      Num_Hg_Categories   =  State_Chm%N_Hg_CATS
-
-      ! Set variable storing names for each of the Hg categories
-      Hg_Cat_Name => State_Chm%Hg_Cat_Name
-
-      ! Set Hg species index corresponding to a given Hg category number;
-      ! total is always the first category
-      Total_Hg_Id   =  State_Chm%Hg0_Id_List(1)
-
-   ENDIF
 
    !=================================================================
    ! Open GEOS-Chem restart file
@@ -2286,18 +2268,18 @@ CONTAINS
 
             ! Assign ocean mercury data and write total mass to log file
             SELECT CASE( M )
-            CASE ( 1 )
-               State_Chm%OceanHg0(:,:,Total_Hg_Id) = Ptr2D
-               WRITE( 6, 240 ) TRIM( v_name ), &
-                            SUM( State_Chm%OceanHg0(:,:,Total_Hg_Id) ), 'kg'
-            CASE ( 2 )
-               State_Chm%OceanHg2(:,:,Total_Hg_Id) = Ptr2D
-               WRITE( 6, 240 ) TRIM( v_name ),  &
-                            SUM( State_Chm%OceanHg2(:,:,Total_Hg_Id) ), 'kg'
-            CASE ( 3 )
-               State_Chm%OceanHgP(:,:,Total_Hg_Id) = Ptr2D
-               WRITE( 6, 240 ) TRIM( v_name ),  &
-                            SUM( State_Chm%OceanHgP(:,:,Total_Hg_Id) ), 'kg'
+               CASE ( 1 )
+                  State_Chm%OceanHg0 = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                                  SUM( State_Chm%OceanHg0 ), 'kg'
+               CASE ( 2 )
+                  State_Chm%OceanHg2 = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                                  SUM( State_Chm%OceanHg2 ), 'kg'
+               CASE ( 3 )
+                  State_Chm%OceanHgP = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                                  SUM( State_Chm%OceanHgP ), 'kg'
             END SELECT
 
          ELSE
@@ -2309,78 +2291,13 @@ CONTAINS
 
       ENDDO
 
-!-----------------------------------------------------------------------------
-! Tagged Hg simulation has been disabled in 13.4.0 -- the Hg mechanism
-! generated via KPP does not use these species any longer:
-! -- Bob Yantosca (08 Apr 2022)
-!      !--------------------------------------------------------------
-!      ! Additional tagged ocean Hg species
-!      !--------------------------------------------------------------
-!      IF ( Input_Opt%LSPLIT ) THEN
-!         DO M = 1, 3
-!            DO N = 2, Num_Hg_Categories
-!
-!               ! Define variable name. Include appended region.
-!               SELECT CASE( M )
-!               CASE ( 1 )
-!                  HgSpc = 'Hg0'
-!               CASE ( 2 )
-!                  HgSpc = 'Hg2'
-!               CASE ( 3 )
-!                  HgSpc = 'HgP'
-!               END SELECT
-!               v_name = 'OCEAN_' // TRIM( HgSpc ) //  &
-!                        '_'      // TRIM( Hg_Cat_Name(N) )
-!
-!               ! Get variable from HEMCO and store in local array
-!               CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), &
-!                                Ptr2D, RC, FOUND=FOUND )
-!
-!               ! Check if variable is in file
-!               IF ( FOUND ) THEN
-!
-!                  ! Assign ocean mercury data and write total mass to log
-!                  SELECT CASE( M )
-!                  CASE ( 1 )
-!                     State_Chm%OceanHg0(:,:,N) = Ptr2D
-!                     WRITE( 6, 240 ) TRIM( v_name ),  &
-!                                     SUM( State_Chm%OceanHg0(:,:,N) ), 'kg'
-!                  CASE ( 2 )
-!                     State_Chm%OceanHg2(:,:,N) = Ptr2D
-!                     WRITE( 6, 240 ) TRIM( v_name ),  &
-!                                     SUM( State_Chm%OceanHg2(:,:,N) ), 'kg'
-!                  CASE ( 3 )
-!                     State_Chm%OceanHgP(:,:,N) = Ptr2D
-!                     WRITE( 6, 240 ) TRIM( v_name ),  &
-!                                     SUM( State_Chm%OceanHgP(:,:,N) ), 'kg'
-!                  END SELECT
-!
-!               ELSE
-!                  WRITE( 6, 230 ) TRIM( v_name )
-!               ENDIF
-!
-!               ! Nullify pointer
-!               Ptr2D => NULL()
-!
-!            ENDDO
-!         ENDDO
-!
-!         ! Make sure tagged & total species sum up
-!         IF ( Input_Opt%USE_CHECKS ) THEN
-!            CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
-!                                      'end of READ_GC_RESTART' )
-!         ENDIF
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       !--------------------------------------------------------------
       ! Hg snowpack on land and ocean
       !--------------------------------------------------------------
       DO M = 1, 4
-         DO N = 1, Num_Hg_Categories
 
-            ! Define variable name prefix
-            SELECT CASE( M )
+         ! Define variable name prefix
+         SELECT CASE( M )
             CASE ( 1 )
                Prefix = 'SNOW_HG_OCEAN'        ! Reducible on ocean
             CASE ( 2 )
@@ -2389,51 +2306,41 @@ CONTAINS
                Prefix = 'SNOW_HG_LAND'         ! Reducible on land
             CASE ( 4 )
                Prefix = 'SNOW_HG_LAND_STORED'  ! Non-reducible on land
-            END SELECT
+         END SELECT
 
-            IF ( N == 1 ) THEN
-               v_name = TRIM( Prefix )
-            ELSE
-               ! Append category name if tagged
-               v_name = TRIM( Prefix         ) // '_' // &
-                        TRIM( Hg_Cat_Name(N) )
-            ENDIF
+         v_name = TRIM( Prefix )
 
-            ! Get variable from HEMCO and store in local array
-            CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),       &
-                                Ptr2D,     RC,         FOUND=FOUND          )
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),          &
+                             Ptr2D,     RC,         FOUND=FOUND             )
 
-            ! Check if variable is in file
-            IF ( FOUND ) THEN
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
 
-               ! Assign ocean mercury data and write total mass to file
-               SELECT CASE( M )
+            ! Assign ocean mercury data and write total mass to file
+            SELECT CASE( M )
                CASE ( 1 )
-                  State_Chm%SnowHgOcean(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgOcean(:,:,N) ), 'kg'
+                  State_Chm%SnowHgOcean = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgOcean       ), 'kg'
                CASE ( 2 )
-                  State_Chm%SnowHgOceanStored(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgOceanStored(:,:,N) ),'kg'
+                  State_Chm%SnowHgOceanStored = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgOceanStored ),'kg'
                CASE ( 3 )
-                  State_Chm%SnowHgLand(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgLand(:,:,N) ), 'kg'
+                  State_Chm%SnowHgLand = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgLand        ), 'kg'
                CASE ( 4 )
-                  State_Chm%SnowHgLandStored(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgLandStored(:,:,N) ), 'kg'
+                  State_Chm%SnowHgLandStored = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgLandStored  ), 'kg'
                END SELECT
 
-            ELSE
-               WRITE( 6, 230 ) TRIM( v_name )
-            ENDIF
+         ELSE
+            WRITE( 6, 230 ) TRIM( v_name )
+         ENDIF
 
-            ! Nullify pointer
-            Ptr2D => NULL()
-
-         ENDDO
       ENDDO
 
       ! Format strings

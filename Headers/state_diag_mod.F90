@@ -620,6 +620,19 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
 
+     !%%%%% KPP auto-reduce solver diagnostics %%%%%
+     REAL(f4),           POINTER :: KppAutoReducerNVAR(:,:,:)
+     LOGICAL                     :: Archive_KppAutoReducerNVAR
+
+     REAL(f4),           POINTER :: KppAutoReduceThres(:,:,:)
+     LOGICAL                     :: Archive_KppAutoReduceThres
+
+     REAL(f4),           POINTER :: KppTime(:,:,:)
+     LOGICAL                     :: Archive_KppTime
+
+     REAL(f4),           POINTER :: KppcNONZERO(:,:,:)
+     LOGICAL                     :: Archive_KppcNONZERO
+
      LOGICAL                     :: Archive_KppDiags
 
      !%%%%% Chemistry metrics (e.g. mean OH, MCF lifetime, CH4 lifetime) %%%%%
@@ -1694,6 +1707,18 @@ CONTAINS
 
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
+
+    State_Diag%KppAutoReducerNVAR                  => NULL()
+    State_Diag%Archive_KppAutoReducerNVAR          = .FALSE.
+
+    State_Diag%KppAutoReduceThres                  => NULL()
+    State_Diag%Archive_KppAutoReduceThres          = .FALSE.
+
+    State_Diag%KppcNONZERO                         => NULL()
+    State_Diag%Archive_KppcNONZERO                 = .FALSE.
+
+    State_Diag%KppTime                             => NULL()
+    State_Diag%Archive_KppTime                     = .FALSE.
 
     State_Diag%Archive_KppDiags                    = .FALSE.
 
@@ -4888,6 +4913,94 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReducerNVAR'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReducerNVAR,                  &
+            archiveData    = State_Diag%Archive_KppAutoReducerNVAR,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Computed reduction threshold (molec cm-3 s-1)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReduceThres'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReduceThres,                  &
+            archiveData    = State_Diag%Archive_KppAutoReduceThres,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Number of nonzero entries in LU decomp (cNONZERO)
+       !-------------------------------------------------------------------
+       diagID = 'KppcNONZERO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppcNONZERO,                         &
+            archiveData    = State_Diag%Archive_KppcNONZERO,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! CPU time spent in grid box for KPP
+       !-------------------------------------------------------------------
+       diagID = 'KppTime'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppTime,                             &
+            archiveData    = State_Diag%Archive_KppTime,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
        ! KPP error flag
@@ -4994,6 +5107,14 @@ CONTAINS
                 diagID = 'NOxTau'
              CASE( 34 )
                 diagID = 'TropNOxTau'
+             CASE( 35 )
+                diagID = 'KppAutoReducerNVAR'
+             CASE( 36 )
+                diagID = 'KppTime'
+             CASE( 37 )
+                diagID = 'KppcNONZERO'
+             CASE( 38 )
+                diagID = 'KppAutoReduceThres'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -9115,14 +9236,18 @@ CONTAINS
                                    State_Diag%Archive_DryDepRaALT1     .and. &
                                    State_Diag%Archive_DryDepVelForALT1      )
 
-    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts    .or.  &
-                                    State_Diag%Archive_KppJacCounts    .or.  &
-                                    State_Diag%Archive_KppTotSteps     .or.  &
-                                    State_Diag%Archive_KppAccSteps     .or.  &
-                                    State_Diag%Archive_KppRejSteps     .or.  &
-                                    State_Diag%Archive_KppLuDecomps    .or.  &
-                                    State_Diag%Archive_KppSubsts       .or.  &
-                                    State_Diag%Archive_KppSmDecomps    .or.  &
+    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts       .or. &
+                                    State_Diag%Archive_KppJacCounts       .or. &
+                                    State_Diag%Archive_KppTotSteps        .or. &
+                                    State_Diag%Archive_KppAccSteps        .or. &
+                                    State_Diag%Archive_KppRejSteps        .or. &
+                                    State_Diag%Archive_KppLuDecomps       .or. &
+                                    State_Diag%Archive_KppSubsts          .or. &
+                                    State_Diag%Archive_KppSmDecomps       .or. &
+                                    State_Diag%Archive_KppAutoReducerNVAR .or. &
+                                    State_Diag%Archive_KppAutoReduceThres .or. &
+                                    State_Diag%Archive_KppcNONZERO        .or. &
+                                    State_Diag%Archive_KppTime            .or. &
                                     State_Diag%Archive_KppDiags             )
 
     State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
@@ -10605,8 +10730,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,         ONLY : StrSplit, To_UpperCase
-    USE DiagList_Mod,        ONLY : IsFullChem
+    USE Charpak_Mod,         ONLY : StrSplit,   To_UpperCase
+    USE DiagList_Mod,        ONLY : IsFullChem, IsCarbonCycle, IsHg
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -11539,11 +11664,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'LOS'
 
-       ! NOTE: Units are different depending on simulation, due to historical
-       ! baggage.  Maybe clean this up at a later point to use the same units
-       ! regardless of simulation type. (bmy, 12/4/17)
+       ! NOTE: Prod/Loss units for simulations with KPP are molec/cm3/s,
+       ! and are currently kg/s for other specialty simulations.
+       ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11555,11 +11680,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PRD'
 
-       ! NOTE: Units are different depending on simulation, due to historical
-       ! baggage.  Maybe clean this up at a later point to use the same units
-       ! regardless of simulation type. (bmy, 12/4/17)
+       ! NOTE: Prod/Loss units for simulations with KPP are molec/cm3/s,
+       ! and are currently kg/s for other specialty simulations.
+       ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -11793,6 +11918,26 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
        IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPAUTOREDUCERNVAR' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of species in auto-reduced mechanism'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPAUTOREDUCETHRES' ) THEN
+       IF ( isDesc    ) Desc  = 'Auto-reduction threshold'
+       IF ( isUnits   ) Units = 'molecules cm-3 s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPCNONZERO' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of nonzero elements in LU decomposition AR only'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPTIME' ) THEN
+       IF ( isDesc    ) Desc  = 'Time KPP spent in grid box'
+       IF ( isUnits   ) Units = 's'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPOCPOBYGASPHASE' ) THEN

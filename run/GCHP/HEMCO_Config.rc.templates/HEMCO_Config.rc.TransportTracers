@@ -28,7 +28,7 @@
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      not_used
-Logfile:                     HEMCO.log
+Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly

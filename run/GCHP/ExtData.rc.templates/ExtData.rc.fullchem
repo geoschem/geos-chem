@@ -1538,20 +1538,19 @@ EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./HcoDir/OFFLINE
 #==============================================================================
 # --- Offline biogenic VOC emissions (OFFLINE_BIOGENICVOC) ---
 #==============================================================================
-BIOGENIC_ACET kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ACET_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_ALD2 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ALD2_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_C2H4 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none C2H4_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_EOH  kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EOH_MEGAN  ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_ISOP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ISOP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_PRPE kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none PRPE_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_SOAP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_SOAS kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAS_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_MTPA kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPA_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_MTPO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_LIMO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none LIMO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-BIOGENIC_SESQ kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SESQ_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
-#
-BIOGENIC_CO   kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BIOGENIC_CO ./HcoDir/OFFLINE_BIOVOC/v2019-10/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_ACET kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ACET_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_ALD2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ALD2_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_C2H4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none C2H4_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_EOH  kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EOH_MEGAN  ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_ISOP kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ISOP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_PRPE kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none PRPE_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_SOAP kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAP_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_SOAS kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAS_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_MOH  kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MOH_MEGAN  ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_MTPA kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPA_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_MTPO kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_LIMO kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none LIMO_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+BIOGENIC_SESQ kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SESQ_MEGAN ./HcoDir/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/biovoc_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 #==============================================================================
 # --- Offline sea salt emissions (OFFLINE_SEASALT) ---
@@ -1566,7 +1565,7 @@ SEASALT_SALC kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALC_TOTAL ./HcoDir/OFF
 #==============================================================================
 # --- Offline soil NOx emissions (OFFLINE_SOILNOX) ---
 #==============================================================================
-SOILNOX_NO kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./HcoDir/OFFLINE_SOILNOX/v2019-01/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/soilnox_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
+SOILNOX_NO kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./HcoDir/OFFLINE_SOILNOX/v2021-12/${RUNDIR_MET_NATIVE_RES}/%y4/%m2/soilnox_${RUNDIR_MET_LAT_RES}.%y4%m2%d2.nc
 #
 ###############################################################################
 ###
