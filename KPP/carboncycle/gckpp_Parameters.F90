@@ -62,13 +62,13 @@ MODULE gckpp_Parameters
 ! Index declaration for variable species in C and VAR
 !   VAR(ind_spc) = C(ind_spc)
 
-  INTEGER, PARAMETER :: ind_COfromCH4 = 1 
-  INTEGER, PARAMETER :: ind_COfromNMVOC = 2 
+  INTEGER, PARAMETER :: ind_CH4 = 1 
+  INTEGER, PARAMETER :: ind_CO = 2 
   INTEGER, PARAMETER :: ind_CO2 = 3 
-  INTEGER, PARAMETER :: ind_CO2fromOH = 4 
-  INTEGER, PARAMETER :: ind_CH4 = 5 
-  INTEGER, PARAMETER :: ind_CO = 6 
-  INTEGER, PARAMETER :: ind_DUMMY = 7 
+  INTEGER, PARAMETER :: ind_COfromCH4 = 4 
+  INTEGER, PARAMETER :: ind_COfromNMVOC = 5 
+  INTEGER, PARAMETER :: ind_CO2fromOH = 6 
+  INTEGER, PARAMETER :: ind_Dummy = 7 
   INTEGER, PARAMETER :: ind_PCO = 8 
   INTEGER, PARAMETER :: ind_LCO = 9 
   INTEGER, PARAMETER :: ind_LCH4 = 10 
@@ -78,16 +78,16 @@ MODULE gckpp_Parameters
 
   INTEGER, PARAMETER :: ind_FixedOH = 11 
   INTEGER, PARAMETER :: ind_FixedCl = 12 
-  INTEGER, PARAMETER :: ind_FixedCH4 = 13 
-  INTEGER, PARAMETER :: ind_FixedNMVOC = 14 
+  INTEGER, PARAMETER :: ind_DummyCH4 = 13 
+  INTEGER, PARAMETER :: ind_DummyNMVOC = 14 
 
 ! Index declaration for fixed species in FIX
 !    FIX(indf_spc) = C(ind_spc) = C(NVAR+indf_spc)
 
   INTEGER, PARAMETER :: indf_FixedOH = 1 
   INTEGER, PARAMETER :: indf_FixedCl = 2 
-  INTEGER, PARAMETER :: indf_FixedCH4 = 3 
-  INTEGER, PARAMETER :: indf_FixedNMVOC = 4 
+  INTEGER, PARAMETER :: indf_DummyCH4 = 3 
+  INTEGER, PARAMETER :: indf_DummyNMVOC = 4 
 
 END MODULE gckpp_Parameters
 

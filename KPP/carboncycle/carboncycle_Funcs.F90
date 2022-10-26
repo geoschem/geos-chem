@@ -96,12 +96,14 @@ CONTAINS
        C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
     ENDIF
 
+    ! Initialize placeholder species to 1 molec/cm3
+    C(ind_DummyCH4)   = 1.0_dp
+    C(ind_DummyNMVOC) = 1.0_dp
+
     ! Initialize fixed species to 1 molec/cm3
     ! Some of these will later be set to values read via HEMCO
-    C(ind_FixedCH4)   = 1.0_dp
-    C(ind_FixedCl)    = 1.0_dp
-    C(ind_FixedOH)    = 1.0_dp
-    C(ind_FixedNMVOC) = 1.0_dp
+    C(ind_FixedCl) = 1.0_dp
+    C(ind_FixedOH) = 1.0_dp
 
     ! Free pointer
     Spc => NULL()
@@ -138,11 +140,11 @@ CONTAINS
     REAL(fp),       INTENT(IN) :: bCl
     REAL(fp),       INTENT(IN) :: bOH
     REAL(fp),       INTENT(IN) :: CH4loss
-    REAL(fp),       INTENT(IN) :: GMI_Prod_CO
+    REAL(fp),       INTENT(IN) :: GMI_Prod_CO   !
     REAL(fp),       INTENT(IN) :: GMI_Loss_CO
     REAL(fp),       INTENT(IN) :: PCO_NMVOC
     LOGICAL,        INTENT(IN) :: LPCO_CH4
-    REAL(fp),       INTENT(IN) :: PCO_CH4
+    REAL(fp),       INTENT(IN) :: PCO_CH4       ! P(CO) from CH4 (kg/s)
     REAL(fp),       INTENT(IN) :: dtChem
     REAL(fp),       INTENT(IN) :: tCosZ
     TYPE(ChmState), INTENT(IN) :: State_Chm     ! Chemistry State object
@@ -200,19 +202,19 @@ CONTAINS
        ! k_Trop(1): Rate [1/s] for rxn: CH4 + OH_E = CO + CO_CH4
        !-------------------------------------------------------------------
 
-       ! OH concentration, as read from disk [molec/cm3]
-       C(ind_FixedOH) = bOH * State_Met%AIRNUMDEN(I,J,L) * facDiurnal
+       ! OH concentration [molec/cm3]
+       C(ind_FixedOH) = bOH * facDiurnal
 
-       ! Cl concentration, as read from disk [molec/cm3]
-       C(ind_FixedCl) = bCl * State_Met%AIRNUMDEN(I,J,L) * 1e-9_fp
+       ! Cl concentration [molec/cm3]
+       C(ind_FixedCl) = bCl
 
-       ! CH4 + offline OH reaction rate [1/s]
-       ! Rate [1/s] for CH4 + FixedOH = CO + COfrom_CH4 (aka P(CO) from CH4)
+       ! CH4 + offline OH reaction rate [cm3/molec/s]
+       ! This is a pseudo-2nd order rate appropriate for CH4 + OH
        IF ( LPCO_CH4 ) THEN
           k_Trop(1) = PCO_CH4 * facDiurnal
-          k_Trop(1) = safediv( k_trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
+          k_Trop(1) = SafeDiv( k_Trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
        ELSE
-          k_Trop(1) = 2.45E-12_dp * EXP( -1775.E0_dp /TEMP )  ! JPL 1997
+          k_Trop(1) = 2.45E-12_dp * EXP( -1775.0E+0_dp /TEMP )  ! JPL 1997
        ENDIF
 
        !-------------------------------------------------------------------
@@ -316,10 +318,10 @@ CONTAINS
     Spc => State_Chm%Species
 
     ! Grid box volume [cm3]
-    airvol_cm3    = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp
-    convfac_CH4      = airvol_cm3 / xnumol_CH4
-    convfac_CO       = airvol_cm3 / xnumol_CO
-    convfac_CO2      = airvol_cm3 / xnumol_CO2
+    airvol_cm3  = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp
+    convfac_CH4 = airvol_cm3 / xnumol_CH4
+    convfac_CO  = airvol_cm3 / xnumol_CO
+    convfac_CO2 = airvol_cm3 / xnumol_CO2
 
     ! Send species from molec/cm3 to kg
     IF ( id_CH4 > 0 ) THEN
