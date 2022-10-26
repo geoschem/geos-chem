@@ -111,7 +111,7 @@ Mask fractions:              false
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
 # ..... Ship emissions ...............
     --> CEDSv2_SHIP            :       true     # 1750-2017
-    --> CEDS_GBDMAPS_SHIP      :       true     # 1970-2017
+    --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
     --> ICOADS_SHIP            :       false    # 2004
 # ----- FUTURE EMISSIONS ------------------------------------------------------
@@ -123,12 +123,8 @@ Mask fractions:              false
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
     --> GLOBAL_OH              :       true     # 2010-2019
-    --> GLOBAL_OH_GCv5         :       true     # 1985 (GCv5 OH, need for IMI)
+    --> GLOBAL_OH_GCv5         :       false    # 1985 (GCv5 OH, need for IMI)
 # -----------------------------------------------------------------------------
-108     MEGAN                  : on    ISOP/ACET/MTPA/MTPO/LIMO
-    --> Isoprene scaling       :       1.0
-    --> CO2 inhibition         :       true
-    --> CO2 conc (ppmv)        :       390.0
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
     --> GFED_daily             :       true
