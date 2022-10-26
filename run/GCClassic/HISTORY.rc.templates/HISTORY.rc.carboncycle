@@ -31,9 +31,7 @@ COLLECTIONS: 'Restart',
              'Metrics',
              'SpeciesConc',
              #'Budget',
-             #'CH4',
-             #'CO',
-             #'CO2',
+	     #'CarbonCycle',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
@@ -133,48 +131,18 @@ COLLECTIONS: 'Restart',
                               'BudgetWetDepPBL_?WET?         ',
 ::
 #==============================================================================
-# %%%%% THE CH4 COLLECTION %%%%%
+# %%%%% THE CarbonCycle COLLECTION %%%%%
 #
-# Cloud convective flux (default = advected species)
-#
-# Available for all simulations
+# Production and loss fields from the carboncycle simulation via KPP
 #==============================================================================
-  CH4.template:               '%y4%m2%d2_%h2%n2z.nc4',
-  CH4.frequency:              ${RUNDIR_HIST_TIME_AVG_FREQ}
-  CH4.duration:               ${RUNDIR_HIST_TIME_AVG_DUR}
-  CH4.mode:                   'time-averaged'
-  CH4.fields:                 'OHconcAfterChem               ',
-                              'LossCH4byClinTrop             ',
-                              'LossCH4byOHinTrop             ',
-                              'LossCH4inStrat                ',
-::
-#==============================================================================
-# %%%%% THE CO COLLECTION %%%%%
-#
-# Diagnostics for the CO specialty simulation. CO prodcution from CH4 and NMVOC 
-#
-# Only available for the CO specialty simulation
-#=============================+=================================================
-  CO.template:                '%y4%m2%d2_%h2%n2z.nc4',
-  CO.frequency:               ${RUNDIR_HIST_TIME_AVG_FREQ}
-  CO.duration:                ${RUNDIR_HIST_TIME_AVG_DUR}
-  CO.mode:                    'time-averaged'
-  CO.fields:                  'ProdCOfromCH4                 ', 
+  CarbonCycle.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  CarbonCycle.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CarbonCycle.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  CarbonCycle.mode:           'time-averaged'
+  CarbonCycle.fields:         'OHconcAfterChem               ',
+                              'ProdCOfromCH4                 ', 
                               'ProdCOfromNMVOC               ', 
-::
-#==============================================================================
-# %%%%% THE CO2 COLLECTION %%%%%
-#
-# Diagnostics for the CO2 specialty simulation.  (NOTE: Several other relevant
-# CO2 specialty-simulation diagnostics are sent to the HEMCO diagnostics.)
-#
-# Only available for the CO2 specialty simulation only
-#==============================================================================
-  CO2.template:               '%y4%m2%d2_%h2%n2z.nc4',
-  CO2.frequency:              ${RUNDIR_HIST_TIME_AVG_FREQ}
-  CO2.duration:               ${RUNDIR_HIST_TIME_AVG_DUR}
-  CO2.mode:                   'time-averaged'
-  CO2.fields:                 'ProdCO2fromCO                 ',  
+                              'ProdCO2fromCO                 ',  
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%

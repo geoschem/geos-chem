@@ -56,9 +56,7 @@ COLLECTIONS: 'Emissions',
              'Metrics',
              'SpeciesConc',
              #'Budget',
-             #'CH4',
-             #'CO',
-             #'CO2',
+             #'CarbonCycle',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
@@ -167,41 +165,18 @@ COLLECTIONS: 'Emissions',
                               'BudgetConvectionPBL_OCS ', 'GCHPchem',
 ::
 #==============================================================================
-# Cloud convective flux (default = advected species)
-  CH4.template:               '%y4%m2%d2_%h2%n2z.nc4',
-  CH4.format:                 'CFIO',
-  CH4.timestampStart:         .true.
-  CH4.monthly:                1
-  CH4.frequency:              010000
-  CH4.duration:               010000
-  CH4.mode:                   'time-averaged'
-  CH4.fields:                 'OHconcAfterChem   ', 'GCHPchem',
-                              'LossCH4byClinTrop ', 'GCHPchem',
-                              'LossCH4byOHinTrop ', 'GCHPchem',
-                              'LossCH4inStrat    ', 'GCHPchem',
-::
-#==============================================================================
-# CO production from CH4 and NMVOC
-  CO.template:                '%y4%m2%d2_%h2%n2z.nc4',
-  CO.format:                  'CFIO',
-  CO.timestampStart:          .true.
-  CO.monthly:                 1
-  CO.frequency:               010000
-  CO.duration:                010000
-  CO.mode:                    'time-averaged'
-  CO.fields:                  'ProdCOfromCH4  ', 'GCHPchem',
-                              'ProdCOfromNMVOC', 'GCHPchem',
-::
-#==============================================================================
-# Production of CO2 from CO
-  CO2.template:               '%y4%m2%d2_%h2%n2z.nc4',
-  CO2.format:                 'CFIO',
-  CO2.timestampStart:         .true.
-  CO2.monthly:                1
-  CO2.frequency:              010000
-  CO2.duration:               010000
-  CO2.mode:                   'time-averaged'
-  CO2.fields:                 'ProdCO2fromCO', 'GCHPchem',
+# Prod and loss terms from the carboncycle simulation (plus OH conc)
+  CarbonCycle.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  CarbonCycle.format:          'CFIO',
+  CarbonCycle.timestampStart:  .true.
+  CarbonCycle.monthly:         1
+  CarbonCycle.frequency:       010000
+  CarbonCycle.duration:        010000
+  CarbonCycle.mode:            'time-averaged'
+  CarbonCycle.fields:          'OHconcAfterChem', 'GCHPchem',
+                               'ProdCOfromCH4  ', 'GCHPchem',
+                               'ProdCOfromNMVOC', 'GCHPchem',
+                               'ProdCO2fromCO  ', 'GCHPchem',
 ::
 #===============================================================================
 # Cloud convective fluxes
