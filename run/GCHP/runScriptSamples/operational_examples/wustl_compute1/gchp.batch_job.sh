@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Template file to adapt for running a GCHP batch job. Examples are
-# provided for 3 job schedulers: PBS, LSF, and SLURM. Uncomment the
-# code for your system and further adapt as needed.
-
-#####################################################################
-# -----------------
-# Example 2: LSF
-# 
 #BSUB -q rvmartin
 #BSUB -n 24
 #BSUB -W 168:00
@@ -15,35 +7,9 @@
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt
 #
-# DESCRIPTION      Sample GCHP batch job script for Compute1 (Docker-based environments)
-# SCHEDULER        LSF
-# DATE             2021-02-19
-# SIMULATION       C90, 2019-01-01 to 2019-01-02
-# RESOURCES        2 nodes, 36 processes per node
-# SEE ALSO         bsub man pages, http://gchp.rtfd.io/
 #
-#
-# LOAD LIBRARIES - 2 options
-#
-# Option 1: Define environment settings in external file, link to it from
-#           run directory symlink gchp.env, and source it here.
-# 
-#    source gchp.env
-#
-# Option 2: Define environment settings directly in this file. Two
-#           examples are below.
-# 
-#    Example 1: PBS on NASA Pleiades
-#
-#       module purge
-#       module use /nobackup/lbindle/modulefiles
-#       module load gchp-env/2021.06-gnu
-#
-#    Example 2: LSF on WashU Compute 1 (uses docker containers)
-#
+# source bashrc
       . /etc/bashrc
-#      . /opt/spack/setup-env.sh
-#      module load openmpi-4.0.1-gcc-9-sdj47y5
 #
 
 #################################################################
@@ -82,24 +48,10 @@ source checkRunSettings.sh
 
 #################################################################
 #
-# LAUNCH GCHP - 3 examples
+# LAUNCH GCHP 
 #
-# There are several commands that may work to execute GCHP,
-# and the provided examples may not be appropriate for your system.
-# Check with your system administrator or online documentation about
-# the appropriate way to submit jobs for your scheduler and MPI.
-#
-# Example 1: PBS
-#
-#    mpiexec -n 48 ./gchp > ${log}
-#
-# Example 2: LSF
 #
     mpiexec -n 24 ./gchp > ${log}
-#
-# Example 3: SLURM
-#
-#    srun -n 48 -N 2 -m plane=24 --mpi=pmix ./gchp > ${log}
 #
 
 #################################################################
