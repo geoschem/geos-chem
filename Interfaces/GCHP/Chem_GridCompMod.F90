@@ -2143,16 +2143,6 @@ CONTAINS
     ! Get Internal state
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
 
-#if defined( MODEL_GCHPCTM )
-    ! Vertically flip internal state species values to match GEOS-Chem
-    ! level convention of surface=1
-    DO I = 1, SIZE(Int2Spc,1)
-       IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-       Int2Spc(I)%Internal(:,:,1:State_Grid%NZ) = &
-                            Int2Spc(I)%Internal(:,:,State_Grid%NZ:1:-1)
-    ENDDO
-#endif
-
     ! ----------------------------------------------------------------------
     ! Check if we need to call the GEOS-Chem driver. The GEOS-Chem driver
     ! contains routines for the following processes:
@@ -2384,7 +2374,7 @@ CONTAINS
        !=======================================================================
        DO I = 1, SIZE(Int2Spc,1)
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-          State_Chm%Species(Int2Spc(I)%ID)%Conc => Int2Spc(I)%Internal
+          State_Chm%Species(Int2Spc(I)%ID)%Conc => Int2Spc(I)%Internal(:,:,State_Grid%NZ:1:-1)
        ENDDO
 
 #ifdef ADJOINT
@@ -2977,16 +2967,13 @@ CONTAINS
 
 #if defined( MODEL_GCHPCTM )
     !=======================================================================
-    ! Nullify GEOS-Chem species concentration pointers and flip internal state
-    ! back to GMAO level convention of 1=TOA
+    ! Nullify GEOS-Chem species concentration pointers
     !=======================================================================
     DO I = 1, SIZE(Int2Spc,1)
        IF ( Int2Spc(I)%ID <= 0 ) CYCLE
        IF ( ASSOCIATED( State_Chm%Species(Int2Spc(I)%ID)%Conc ) ) THEN
           State_Chm%Species(Int2Spc(I)%ID)%Conc => NULL()
        ENDIF
-       Int2Spc(I)%Internal(:,:,1:State_Grid%NZ) = &
-             Int2Spc(I)%Internal(:,:,State_Grid%NZ:1:-1)
     ENDDO
 #endif
 
