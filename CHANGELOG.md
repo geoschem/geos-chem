@@ -9,9 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Corrected units in metadata for State_Met%AirNumDen and State_Met%PHIS
 - Fixed file path for AEIC2019_DAILY emissions for aerosol-only simulations
 - Fixed GCHP bug to populate non-species data in mid-run restart files
+- Fixed typo preventing ND51 satellite diagnostic from turning on
 
 ### Changed
 - Documented and cleaned up GCHP run script operational examples
+- Updated README.md and AUTHORS.txt
 
 ## [14.0.0] - 2022-10-25
 ### Added
