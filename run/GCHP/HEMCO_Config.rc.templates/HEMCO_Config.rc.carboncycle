@@ -1337,8 +1337,8 @@ Mask fractions:              false
 # --- GEOS-Chem restart file ---
 #==============================================================================
 (((GC_RESTART
-* SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
-* DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
+* SPC_           ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
+* DELPDRY        ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
 )))GC_RESTART
 
 #==============================================================================
@@ -1566,12 +1566,12 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 (((GLOBAL_OH
 
-# --- OH from GEOS-Chem v5-07 ---
+# --- OH from GEOS-Chem v5-07 [kg/m3] ---
 (((GLOBAL_OH_GCv5
 * GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH_GCv5
 
-# --- OH from the last 10-yr benchmark
+# --- OH from the last 10-yr benchmark [mol/mol dry air] ---
 (((.not.GLOBAL_OH_GCv5
 ${RUNDIR_GLOBAL_OH}
 ))).not.GLOBAL_OH_GCv5
@@ -1583,11 +1583,12 @@ ${RUNDIR_GLOBAL_OH}
 #------------------------------------------------------------------------------
 (((USE_CH4_DATA
 
-# --- Global CH4 loss, Cl fields for CH4 simulation -----------
+# --- Global CH4 loss, Cl fields for CH4 simulation [1/s] -----------
 (((GMI_CH4_LOSS
 ${RUNDIR_CH4_LOSS}
 )))GMI_CH4_LOSS
 
+# --- Cl from the last 10-yr benchmark [mol/mol dry air] ---
 (((GLOBAL_CL
 ${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL
@@ -1610,7 +1611,7 @@ ${RUNDIR_GLOBAL_Cl}
 #------------------------------------------------------------------------------
 (((USE_CO_DATA
 
-# -- P(CO) from CH4 and NMVOC ---
+# -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [kg/s] ---
 (((PROD_CO_CH4
 ${RUNDIR_PCO_CH4}
 )))PROD_CO_CH4
@@ -1619,6 +1620,7 @@ ${RUNDIR_PCO_NMVOC}
 )))PROD_CO_NMVOC
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
+$ --- Units: prod [v/v/s]; loss [1/s]                         ---
 (((GMI_PROD_LOSS
 ${RUNDIR_GMI_LOSS_CO}
 ${RUNDIR_GMI_PROD_CO}
