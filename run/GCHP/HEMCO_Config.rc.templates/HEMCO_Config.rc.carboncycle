@@ -1611,7 +1611,7 @@ ${RUNDIR_GLOBAL_Cl}
 #------------------------------------------------------------------------------
 (((USE_CO_DATA
 
-# -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [kg/s] ---
+# -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [molec/cm3/s] ---
 (((PROD_CO_CH4
 ${RUNDIR_PCO_CH4}
 )))PROD_CO_CH4
