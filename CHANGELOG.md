@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Documented and cleaned up GCHP run script operational examples
 - Updated README.md and AUTHORS.txt
+- Set species concentration arrays as pointers to internal state in GCHP
 
 ## [14.0.0] - 2022-10-25
 ### Added
