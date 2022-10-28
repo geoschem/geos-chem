@@ -53,6 +53,7 @@ MODULE CarbonCycle_Mod
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   ! Scalars
+  LOGICAL               :: useGlobOH,  useGlobOHv5
   INTEGER               :: id_CH4,     id_CO,      id_COch4,   id_COnmvoc
   INTEGER               :: id_COisop,  id_COch3oh, id_COmono,  id_COacet
   INTEGER               :: id_CO2,     id_CO2ch,   id_OCS,     id_OH
@@ -226,13 +227,13 @@ CONTAINS
 
           ! Trap potential errors
           IF ( RC /= HCO_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM(CH4diag(N))
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM(CH4diag(N))
+             CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
           IF ( .not. ASSOCIATED( Ptr2D ) ) THEN
-             ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM(CH4diag(N))
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM(CH4diag(N))
+             CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
 
@@ -285,8 +286,8 @@ CONTAINS
        CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, 'CO2_COPROD',            &
                             PCO2_fr_CO, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'CO_COPROD not found in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          errMsg = 'CO_COPROD not found in HEMCO data list!'
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
 
@@ -372,15 +373,14 @@ CONTAINS
 !
     USE carboncycle_Funcs
     USE gckpp_Global
-    USE gckpp_Integrator,     ONLY : INTEGRATE
-    USE gckpp_Monitor,        ONLY : SPC_NAMES
+    USE gckpp_Integrator,     ONLY : Integrate
+   !USE gckpp_Monitor,        ONLY : Spc_Names
     USE gckpp_Parameters
-    USE gckpp_precision
-    USE gckpp_Rates,          ONLY : UPDATE_RCONST
+    USE gckpp_Precision
+    USE gckpp_Rates,          ONLY : Update_Rconst
     USE ErrCode_Mod
     USE HCO_State_Mod,        ONLY : Hco_GetHcoId
-    USE HCO_State_GC_Mod,     ONLY : HcoState
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_HcoStateOK
     USE Input_Opt_Mod,        ONLY : OptInput
     USE rateLawUtilFuncs,     ONLY : SafeDiv
     USE Species_Mod,          ONLY : SpcConc
@@ -432,8 +432,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
+    LOGICAL                :: first = .TRUE.
+
     ! Scalars
-    LOGICAL                :: failed,   found
+    LOGICAL                :: failed
     INTEGER                :: HcoID,    I
     INTEGER                :: J,        L
     INTEGER                :: NA,       N
@@ -442,9 +445,8 @@ CONTAINS
     REAL(fp)               :: tsPerDay
 
     ! Strings
-    CHARACTER(LEN=63)      :: DgnName
-    CHARACTER(LEN=255)     :: ErrMsg
-    CHARACTER(LEN=255)     :: ThisLoc
+    CHARACTER(LEN=255)     :: errMsg
+    CHARACTER(LEN=255)     :: thisLoc
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -489,15 +491,30 @@ CONTAINS
     dtChem   =  Get_Ts_Chem()
     tsPerDay =  86400.0_fp / dtChem
     Spc      => State_Chm%Species
-    ErrMsg   = ''
-    ThisLoc  = &
+    errMsg   = ''
+    thisLoc  = &
      ' -> at Chem_CarbonCycle (in module GeosCore/carboncycle_mod.F90)'
 
-    ! Exit with error if the HEMCO state object has not been initialized
-    IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-       ErrMsg = 'HcoState object is not associated!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    ! First-time only safety checks
+    IF ( first ) THEN
+
+       ! Exit if the HEMCO state object has not yet been initialized
+       IF ( .not. HCO_GC_HcoStateOK() ) THEN
+          errMsg = 'HcoState object is not associated!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Determine which OH oxidant field we are using
+       CALL InquireGlobalOHversion( Input_Opt, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "InquireGlobalOHversion"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Reset first-time flag
+       first = .FALSE.
     ENDIF
 
     !========================================================================
@@ -520,109 +537,22 @@ CONTAINS
        State_Diag%ProdCOfromNMVOC = 0.0_f4
     ENDIF
 
+
     !========================================================================
-    ! Get fields that were archived from a fullchem simulation via HEMCO
+    ! Read chemical inputs (oxidant fields, concentrations) via HEMCO
     !========================================================================
-
-    !------------------------------------------------------------------------
-    ! Loss frequencies of CH4
-    ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
-    !------------------------------------------------------------------------
-    DgnName = 'CH4_LOSS'
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, LCH4_by_OH, RC     )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Cl concentration:
-    ! Input via HEMCO ("SpeciesConc" collection) as [mol/mol dry]
-    ! Convert to [molec/cm3] below
-    !------------------------------------------------------------------------
-    DgnName = 'GLOBAL_Cl'
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, Global_Cl, RC      )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Convert orignal units [mol/mol dry air] to [molec/cm3]
-    Global_Cl = ( Global_Cl * State_Met%AirDen ) * toMolecCm3
-
-    !------------------------------------------------------------------------
-    ! OH concentration:
-    ! Input via HEMCO ("SpeciesConc" collection) as [kg/m3] or [mol/mol dry]
-    ! Convert to [molec/cm3] below
-    !------------------------------------------------------------------------
-    DgnName = 'GLOBAL_OH'
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, Global_OH, RC      )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! If GC_OHv5 is true, convert [kg/m3] to [molec/cm3]
-    ! add this conversion later
-
-    ! Otherwise, convert [mol/mol dry air] to [molec/cm3]
-    Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
-
-    !-----------------------------------------------------------------------
-    ! P(CO) from GMI:
-    ! Input via HEMCO ("GMI_PROD_CO" field) as [v/v/s]
-    ! Units will be converted in carboncycle_ComputeRateConstants
-    !-----------------------------------------------------------------------
-    DgnName = 'GMI_PROD_CO'
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, PCO_in_Strat, RC  )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Cannot get pointer to ' // TRIM( DgnName )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! L(CO) from GMI
-    ! Input via HEMCO ("GMI_LOSS_CO" field) as [1/s]
-    !------------------------------------------------------------------------
-    DgnName = 'GMI_LOSS_CO'
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, LCO_in_Strat, RC   )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! P(CO) from CH4
-    ! Input via HEMCO ("ProdCOfromCH4 field") as [molec/cm3/s]
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%LPCO_CH4 ) THEN
-       DgnName = 'PCO_CH4'
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, PCO_fr_CH4, RC  )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! P(CO) from NMVOC
-    ! Input via HEMCO ("ProdCOfromNMVOC" field) as [molec/cm3/s]
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%LPCO_NMVOC ) THEN
-       DgnName = 'PCO_NMVOC'
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName, PCO_fr_NMVOC, RC)
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
+    CALL ReadChemInputFields(                                                &
+         Input_Opt    = Input_Opt,                                           &
+         State_Grid   = State_Grid,                                          &
+         State_Met    = State_Met,                                           &
+         Global_OH    = Global_OH,                                           &
+         Global_Cl    = Global_Cl,                                           &
+         LCH4_by_OH   = LCH4_by_OH,                                          &
+         LCO_in_Strat = LCO_in_Strat,                                        &
+         PCO_in_Strat = PCO_in_Strat,                                        &
+         PCO_fr_CH4   = PCO_fr_CH4,                                          &
+         PCO_fr_NMVOC = PCO_fr_NMVOC,                                        &
+         RC           = RC                                                  )
 
     !========================================================================
     ! Compute OH diurnal cycle scaling factor
@@ -896,8 +826,9 @@ CONTAINS
             xnumol_CO    = xnumol_CO,                                        &
             xnumol_CH4   = xnumol_CH4,                                       &
             xnumol_CO2   = xnumol_CO2,                                       &
-            State_Met    = State_Met,                                        &
-            State_Chm    = State_Chm
+            State_Chm    = State_Chm,                                        &
+            State_Met    = State_Met                                        )
+
        IF ( Input_Opt%useTimers ) THEN
 
           ! Stop main KPP timer
@@ -1045,6 +976,216 @@ CONTAINS
     Spc => NULL()
 
   END SUBROUTINE Chem_CarbonCycle
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ReadChemInputFields
+!
+! !DESCRIPTION: Calls HCO_EvalFld to read the various oxidant and other
+!  non-emissions fields needed for the carboncycle simulation
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ReadChemInputFields( Input_Opt,    State_Grid,   State_Met,     &
+                                  Global_OH,    Global_Cl,    LCH4_by_OH,    &
+                                  LCO_in_Strat, PCO_in_Strat, PCO_fr_CH4,    &
+                                  PCO_fr_NMVOC, RC                          )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt        ! Input Options object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid       ! Grid State object
+    TYPE(MetState), INTENT(IN)  :: State_Met        ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(fp),       INTENT(OUT) :: Global_OH(                                &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! OH conc
+    REAL(fp),       INTENT(OUT) :: Global_Cl(                                &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! Cl conc
+    REAL(fp),       INTENT(OUT) :: LCH4_by_OH(                               &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! L(CH4) by OH
+    REAL(fp),       INTENT(OUT) :: LCO_in_Strat(                             &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! L(CO) in strat
+    REAL(fp),       INTENT(OUT) :: PCO_in_Strat(                             &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! P(CO) in strat
+    REAL(fp),       INTENT(OUT) :: PCO_fr_CH4(                               &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! P(CO) from CH4
+    REAL(fp),       INTENT(OUT) :: PCO_fr_NMVOC(                             &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! P(CO) from NMVOC
+    INTEGER,        INTENT(OUT) :: RC               ! Success/failure
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: found
+
+    ! Strings
+    CHARACTER(LEN=63)  :: dgnName
+    CHARACTER(LEN=255) :: thisLoc
+    CHARACTER(LEN=512) :: errMsg
+
+    !========================================================================
+    !  ReadChemInputFields begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    found   = .FALSE.
+    dgnName = ''
+    errMsg  = ''
+    thisLoc = &
+     ' -> at ReadInputChemFields (in module GeosCore/carboncycle_mod.F90)'
+
+    !------------------------------------------------------------------------
+    ! Loss frequencies of CH4
+    ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
+    !------------------------------------------------------------------------
+    DgnName = 'CH4_LOSS'
+    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                    &
+                         LCH4_by_OH, RC,         found=found                )
+    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Cl concentration:
+    ! Input via HEMCO ("SpeciesConc" collection) as [mol/mol dry]
+    ! Convert to [molec/cm3] below
+    !------------------------------------------------------------------------
+    DgnName = 'GLOBAL_Cl'
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,                     &
+                         Global_Cl, RC,         found=found                 )
+    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Convert orignal units [mol/mol dry air] to [molec/cm3]
+    Global_Cl = ( Global_Cl * State_Met%AirDen ) * toMolecCm3
+
+    !------------------------------------------------------------------------
+    ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
+    !------------------------------------------------------------------------
+    IF ( useGlobOH ) THEN
+
+       ! NOTE: Container name is GLOBAL_OH for both data sets!
+       DgnName = 'GLOBAL_OH'
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,               &
+                            Global_OH, RC,         found=found           )
+       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( useGlobOHv5 ) THEN
+
+          ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
+          ! methane simulations) then convert OH from [kg/m3] to [molec/cm3]
+          Global_OH = Global_OH * xnumol_OH / CM3perM3
+
+       ELSE
+
+          ! If we are using OH from a 10-year benchmark ("SpeciesConc")
+          ! then convert OH [mol/mol dry air] to [molec/cm3]
+          Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
+
+       ENDIF
+
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! P(CO) from GMI:
+    ! Input via HEMCO ("GMI_PROD_CO" field) as [v/v/s]
+    ! Units will be converted in carboncycle_ComputeRateConstants
+    !------------------------------------------------------------------------
+    DgnName = 'GMI_PROD_CO'
+    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
+                         PCO_in_Strat, RC,         found=found              )
+    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+       errMsg = 'Cannot get pointer to ' // TRIM( DgnName )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! L(CO) from GMI
+    ! Input via HEMCO ("GMI_LOSS_CO" field) as [1/s]
+    !------------------------------------------------------------------------
+    DgnName = 'GMI_LOSS_CO'
+    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
+                         LCO_in_Strat, RC,         found=found              )
+    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! P(CO) from CH4
+    ! Input via HEMCO ("ProdCOfromCH4 field") as [molec/cm3/s]
+    !------------------------------------------------------------------------
+    IF ( Input_Opt%LPCO_CH4 ) THEN
+       DgnName = 'PCO_CH4'
+       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                  &
+                            PCO_fr_CH4, RC,         found=found              )
+       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! P(CO) from NMVOC
+    ! Input via HEMCO ("ProdCOfromNMVOC" field) as [molec/cm3/s]
+    !------------------------------------------------------------------------
+    IF ( Input_Opt%LPCO_NMVOC ) THEN
+       DgnName = 'PCO_NMVOC'
+       CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,               &
+                            PCO_fr_NMVOC, RC,         found=found           )
+       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE ReadChemInputFields
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1312,12 +1453,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE gckpp_Global,      ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
+    USE gckpp_Global,   ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
     USE ErrCode_Mod
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod,     ONLY : ChmState, Ind_
-    USE State_Diag_Mod,    ONLY : DgnState
-    USE State_Grid_Mod,    ONLY : GrdState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState, Ind_
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1342,11 +1483,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: KppId, N
+    INTEGER            :: KppId,  N
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg
-    CHARACTER(LEN=255) :: ThisLoc
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
 
     !========================================================================
     ! Initialize
@@ -1356,8 +1497,8 @@ CONTAINS
     xnumol_CO  = 1.0_fp
     xnumol_CO2 = 1.0_fp
     xnumol_OH  = 1.0_fp
-    ErrMsg     = ''
-    ThisLoc    = &
+    errMsg     = ''
+    thisLoc    = &
      ' -> at Init_CarbonCycle (in module GeosCore/ccyclechem_mod.F90)'
 
     !========================================================================
@@ -1665,5 +1806,94 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE Calc_Diurnal
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InquireGlobalOHversion
+!
+! !DESCRIPTION: Determines if we are using global OH from a GEOS-Chem 10-year
+!  benchmark, or from GEOS-Chem v5 (needed for IMI & methane simulations).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InquireGlobalOHversion( Input_Opt, RC )
+!
+! !USES:
+!
+    USE CharPak_Mod,          ONLY : To_UpperCase
+    USE ErrCode_Mod
+    USE Hco_Utilities_Gc_Mod, ONLY : HCO_GC_GetOption
+    USE Input_Opt_Mod,        ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC   ! Success or failure
+!
+! !REMARKS:
+!  This has to be called on the first chemistry timestep, because the HEMCO
+!  Configuration file (HEMCO_Config.rc) will not have been read when
+!  Init_CarbonCycle is called.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: isOHon, isOHv5on
+
+    ! Strings
+    CHARACTER(LEN=255) :: optVal
+    CHARACTER(LEN=255) :: thisLoc
+    CHARACTER(LEN=512) :: errMsg
+
+    !========================================================================
+    ! InquireGlobalOHversion begins here!
+    !========================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    errMsg   = ''
+    thisLoc  = &
+     ' -> at InquireGlobalOHversion (in module GeosCore/carboncycle_mod.F90)'
+
+    ! Test if any Global OH option is on
+    optVal   = HCO_GC_GetOption( "GLOBAL_OH", extNr=0 )
+    isOHon   = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
+
+    ! Test for GEOS-Chem v5 OH
+    ! =T
+    optVal   = HCO_GC_GetOption( "GLOBAL_OH_GCv5", extNr=0 )
+    isOHv5On = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
+
+    ! Set a global variable to determine which OH to use
+    useGlobOH   = isOHon
+    useGlobOHv5 = isOHv5on
+
+    IF ( Input_Opt%amIRoot ) THEN
+       IF ( useGlobOH ) THEN
+          IF ( useGlobOHv5 ) THEN
+             WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
+          ELSE
+             WRITE( 6, 100 ) 'GLOBAL_OH'
+          ENDIF
+ 100   FORMAT( 'CarbonCycle: Using global OH oxidant field option: ', a )
+
+       ELSE
+          WRITE( 6, 110 )
+ 110      FORMAT( 'CarbonCycle: Global OH is set to zero!' )
+       ENDIF
+
+    ENDIF
+
+  END SUBROUTINE InquireGlobalOHversion
 !EOC
 END MODULE CarbonCycle_Mod
