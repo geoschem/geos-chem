@@ -41,6 +41,7 @@ MODULE HCO_Utilities_GC_Mod
   PUBLIC   :: HCO_GC_EvalFld     ! Shim interface for HCO_EvalFld
   PUBLIC   :: HCO_GC_GetPtr      ! Shim interface for HCO_GetPtr
   PUBLIC   :: HCO_GC_GetDiagn    ! Shim interface for GetHcoDiagn
+  PUBLIC   :: HCO_GC_GetOption   ! Shin interface for HCO_GetOpt
 
 #if defined( MODEL_CLASSIC )
   !=========================================================================
@@ -2917,4 +2918,41 @@ CONTAINS
   END SUBROUTINE Init_IMGrid
 !EOC
 #endif
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_GetOption
+!
+! !DESCRIPTION: Shim interface for HCO_GetOpt.  Used to return a value
+!  from the HEMCO config file into GEOS-Chem.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_GC_GetOption( optName, extNr ) RESULT( optVal )
+!
+! !USES:
+!
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_ExtList_Mod,  ONLY : HCO_GetOpt
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: optName
+    INTEGER,          INTENT(IN) :: extNr
+!
+! !RETURN VALUE:
+!
+    CHARACTER(LEN=255)           :: optVal
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    optVal = HCO_GetOpt( HcoState%Config%ExtList, optName, extNr=extNr )
+
+  END FUNCTION HCO_GC_GetOption
+!EOC
+
 END MODULE HCO_Utilities_GC_Mod
