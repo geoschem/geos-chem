@@ -51,13 +51,15 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem restart file fields
 #
 # Available for all simulations
+#
+# NOTE: Chem_KPPHvalue isn't needed since the carboncycle simulation uses
+# the forward Euler solver instead of Rosenbrock.
 #==============================================================================
   Restart.filename:     './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:    ${RUNDIR_HIST_INST_FREQ}
   Restart.duration:     ${RUNDIR_HIST_INST_DUR}
   Restart.mode:         'instantaneous'
   Restart.fields:       'SpeciesRst_?ALL?                     ',
-                        'Chem_KPPHvalue                       ',
                         'Met_DELPDRY                          ',
                         'Met_BXHEIGHT                         ',
                         'Met_TropLev                          ',
