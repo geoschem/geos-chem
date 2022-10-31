@@ -350,7 +350,8 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( Container%Operation      == COPY_FROM_SOURCE            .and.    &
             Container%UpdateIvalSec  == Container%FileCloseIvalSec  .and.    &
-            Container%FileCloseAlarm == 0.0                        ) THEN
+            Container%FileCloseAlarm == 0.0                         .and.    &
+            TRIM(Container%Name) .ne. 'BoundaryConditions' )  THEN
           RETURN
 
        ELSE

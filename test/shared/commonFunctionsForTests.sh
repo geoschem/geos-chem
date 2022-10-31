@@ -219,16 +219,16 @@ function update_config_files() {
     sed_ie "${SED_HISTORY_RC_2}" "${root}/${runDir}/HISTORY.rc"
 
     #------------------------------------------------------------------------
-    # Replace text in runConfig.sh (GCHP_only)
+    # Replace text in setCommonRunSettings.sh (GCHP_only)
     #------------------------------------------------------------------------
     expr=$(is_gchp_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-	sed_ie "${SED_RUN_CONFIG_1}" ${root}/${runDir}/runConfig.sh
-	sed_ie "${SED_RUN_CONFIG_2}" ${root}/${runDir}/runConfig.sh
-	sed_ie "${SED_RUN_CONFIG_3}" ${root}/${runDir}/runConfig.sh
-	sed_ie "${SED_RUN_CONFIG_4}" ${root}/${runDir}/runConfig.sh
-	sed_ie "${SED_RUN_CONFIG_5}" ${root}/${runDir}/runConfig.sh
-	sed_ie "${SED_RUN_CONFIG_6}" ${root}/${runDir}/runConfig.sh
+	sed_ie "${SED_RUN_CONFIG_1}" ${root}/${runDir}/setCommonRunSettings.sh
+	sed_ie "${SED_RUN_CONFIG_2}" ${root}/${runDir}/setCommonRunSettings.sh
+	sed_ie "${SED_RUN_CONFIG_3}" ${root}/${runDir}/setCommonRunSettings.sh
+	sed_ie "${SED_RUN_CONFIG_4}" ${root}/${runDir}/setCommonRunSettings.sh
+	sed_ie "${SED_RUN_CONFIG_5}" ${root}/${runDir}/setCommonRunSettings.sh
+	sed_ie "${SED_RUN_CONFIG_6}" ${root}/${runDir}/setCommonRunSettings.sh
     fi
 }
 
@@ -560,15 +560,10 @@ function submit_gchp_slurm_job() {
 
     # Remove any leftover files in the run dir
     # (similar to createRunDir.sh, but do not ask user to confirm)
-    rm -f cap_restart
     rm -f gcchem*
     rm -f *.rcx
     rm -f *~
-    rm -f gchp.log
-    rm -f HEMCO.log
-    rm -f PET*.log
-    rm -f multirun.log
-    rm -f GC*.log
+    rm -f *.log
     rm -f log.dryrun*
     rm -f logfile.000000.out
     rm -f slurm-*

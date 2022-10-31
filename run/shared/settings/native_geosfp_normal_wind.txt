@@ -1,0 +1,9 @@
+RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA=.false.
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION="""
+UA;VA     m_s-1         N Y F0;013000 none  none U;V        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+PS1       Pa            N Y  0        none  0.01 PS         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:00:00P03:00
+PS2       Pa            N Y  0;001000 none  0.01 PS         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:00:00P03:00
+SPHU1     kg_kg-1       N Y  0        none  none QV         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:00:00P03:00
+SPHU2     kg_kg-1       N Y  0;001000 none  none QV         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:00:00P03:00
+"""

@@ -876,8 +876,12 @@ CONTAINS
     ! Pre-Run assignments
     !-------------------------------------------------------------------------
 
-    ! Zero out certain State_Diag arrays
-    CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+    ! Zero out certain State_Diag arrays. This should not be done in a phase 2
+    ! call since this can erase diagnostics filled during phase 1 (e.g., drydep) 
+    ! (ckeller, 1/21/2022).
+    IF ( Phase /= 2 ) THEN
+       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+    ENDIF
 
     ! Pass time values obtained from the ESMF environment to GEOS-Chem
     CALL Accept_External_Date_Time( value_NYMD     = nymd,       &
@@ -1488,9 +1492,14 @@ CONTAINS
 
     ! Set certain diagnostics dependent on state at end of step. This
     ! includes species concentration and dry deposition flux.
+    ! For GEOS, this is now done in Chem_GridCompMod.F90. This makes sure
+    ! that the diagnostics include any post-run updates (e.g., if assimilation
+    ! increments are being applied (ckeller, 2/7/22).
+#if !defined( MODEL_GEOS )
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
+#endif
 
     ! Archive aerosol mass and PM2.5 diagnostics
     IF ( State_Diag%Archive_AerMass ) THEN

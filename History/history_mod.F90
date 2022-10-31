@@ -120,15 +120,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt
-    TYPE(ChmState),   INTENT(IN)  :: State_Chm
-    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag
-    TYPE(GrdState),   INTENT(IN)  :: State_Grid
-    TYPE(MetState),   INTENT(IN)  :: State_Met
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Option object
+    TYPE(ChmState),   INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT) :: RC
+    INTEGER,          INTENT(OUT)   :: RC           ! Success or failure
 !
 ! !REMARKS:
 !  Calls internal routines History_ReadCollectionNames and
@@ -159,8 +162,8 @@ CONTAINS
     ! ("collection" = a netCDF file with a specific update frequency)
     !=======================================================================
     IF ( .not. Input_Opt%DryRun ) THEN
-       CALL History_ReadCollectionNames( Input_Opt,  State_Chm, &
-                                         State_Diag, State_Met, RC )
+       CALL History_ReadCollectionNames( Input_Opt,  State_Chm,             &
+                                         State_Diag, State_Met, RC         )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2603,6 +2606,12 @@ CONTAINS
        ! Test if the "UpdateAlarm" is ringing
        DoUpdate = ( ( Container%UpdateAlarm - Container%ElapsedSec ) < EPS )
 
+       IF ( TRIM(Container%Name) .eq. 'BoundaryConditions'   .and.   &
+            Container%ElapsedSec .eq. 0.0 ) THEN
+          Container%UpdateAlarm = 0.0
+          DoUpdate = .TRUE.
+       ENDIF
+
        ! Skip to next collection if it isn't
        IF ( .not. DoUpdate ) THEN
           Container  => NULL()
@@ -2796,7 +2805,7 @@ CONTAINS
        ! Prepare to go to the next collection
        !------------------------------------------------------------------
 
-       ! Recompute the update alarm interval if it 1 month or longer,
+       ! Recompute the update alarm interval if it is 1 month or longer,
        ! as we will have to take into account leap years, etc.
        IF ( Container%UpdateYmd >= 000100 ) THEN
           CALL HistContainer_UpdateIvalSet( Input_Opt, Container, RC )
@@ -2840,7 +2849,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Write( Input_Opt, State_Diag, Spc_Units, RC )
+  SUBROUTINE History_Write( Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2853,13 +2862,16 @@ CONTAINS
     USE State_Diag_Mod,        ONLY : DgnState
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
+    USE PhysConstants,         ONLY : AIRMW
     USE Registry_Params_Mod
+    USE State_Chm_Mod,         ONLY : ChmState
+    USE State_Diag_Mod,        ONLY : DgnMap, DgnState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(DgnState),   INTENT(IN)  :: State_Diag ! Diagnostics state obj
-    CHARACTER(LEN=*), INTENT(IN)  :: Spc_Units   ! Units of SC%Species array
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),   INTENT(IN)  :: State_Diag  ! Diagnsotics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2881,6 +2893,8 @@ CONTAINS
     ! Scalars
     LOGICAL                          :: DoClose
     LOGICAL                          :: DoWrite
+    INTEGER                          :: S, N
+
 
     ! Strings
     CHARACTER(LEN=20)                :: TmpUnits
@@ -2891,6 +2905,7 @@ CONTAINS
     TYPE(MetaHistContainer), POINTER :: Collection
     TYPE(HistContainer),     POINTER :: Container
     TYPE(MetaHistItem),      POINTER :: Current
+    TYPE(DgnMap),            POINTER :: mapData
 
     !=======================================================================
     ! Initialize
@@ -2917,6 +2932,17 @@ CONTAINS
        ! Point to the HISTORY CONTAINER object in this COLLECTION
        Container => Collection%Container
 
+       ! Force define write alarm for creating and saving boundary
+       ! conditions to ensure first file of the simulation has the
+       ! correct file name and number of entries.
+       IF ( Container%ElapsedSec .eq. 0.0 ) THEN
+          IF ( TRIM(Container%Name) .eq. 'BoundaryConditions' ) THEN
+             Container%FileWriteAlarm = 0.0
+          ELSE
+             RETURN
+          ENDIF
+       ENDIF             
+
        !====================================================================
        ! Test if it is time to close/repopen the file or to write data
        !====================================================================
@@ -2927,6 +2953,33 @@ CONTAINS
        ! Test if the "FileWriteAlarm" is ringing
        DoWrite = ( ( Container%FileWriteAlarm - Container%ElapsedSec ) < EPS )
 
+       ! If it's the first timestep of the simulation, map SpeciesConc
+       ! values to BC diagnostic values to output instantaneous values
+       ! at start of simulation.
+       IF ( Container%ElapsedSec .eq. 0.0 .and. &
+            TRIM(Container%Name) .eq. 'BoundaryConditions' ) THEN
+
+          ! Point to mapping obj specific to species boundary conditions
+          mapData => State_Diag%Map_SpeciesBC
+
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( N, S   )
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:) &
+                                 * ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+          ENDDO
+          !$OMP END PARALLEL DO
+
+          ! Free pointer
+          mapData => NULL()
+
+          ! Update each HISTORY ITEM from its data source
+          CALL History_Update( Input_Opt, RC )
+
+       ENDIF
+          
        !====================================================================
        ! %%% GEOS-Chem "Classic" %%%
        !
@@ -2937,7 +2990,7 @@ CONTAINS
           ! Save the units of State_Chm%Species(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
-          TmpUnits            = Spc_Units
+          TmpUnits            = State_Chm%Spc_Units
           Container%Spc_Units = TmpUnits
 
           !-----------------------------------------------------------------
@@ -2974,7 +3027,7 @@ CONTAINS
           ! Update "FileClose" alarm for next interval
           !-----------------------------------------------------------------
 
-          ! Recompute the file close alarm interval if it 1 month or longer,
+          ! Recompute the file close alarm interval if it is 1 month or longer,
           ! as we will have to take into account leap years, etc.
           IF ( Container%FileCloseYmd >= 000100 ) THEN
              CALL HistContainer_FileCloseIvalSet( Input_Opt, Container, RC )
@@ -3012,7 +3065,7 @@ CONTAINS
           ! Update "FileWrite" alarm for next interval
           !-----------------------------------------------------------------
 
-          ! Recompute the file write alarm interval if it 1 month or longer,
+          ! Recompute the file write alarm interval if it's 1 month or longer,
           ! as we will have to take into account leap years, etc.
           IF ( Container%FileWriteYmd >= 000100 ) THEN
              CALL HistContainer_FileWriteIvalSet( Input_Opt, Container, RC )
