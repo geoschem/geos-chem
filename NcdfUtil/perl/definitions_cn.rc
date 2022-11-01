@@ -73,7 +73,7 @@ FROCEAN:gamap_category  = GMAO-2D
 #-
 PHIS                    = REAL*4::lon,lat,time
 PHIS:long_name          = Surface geopotential
-PHIS:units              = m2 s-2
+PHIS:units              = m
 PHIS:gamap_category     = GMAO-2D
 
 #EOP

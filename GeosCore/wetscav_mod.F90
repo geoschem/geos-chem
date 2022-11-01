@@ -3751,23 +3751,17 @@ CONTAINS
              ! Check if it is a gaseous Hg2 tag
              IF ( SpcInfo%Is_Hg2 ) THEN
 
-                ! Get the category # for this Hg2 species
-                Hg_Cat = SpcInfo%Hg_Cat
-
                 ! Archive wet-deposited Hg2
-                CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, &
+                CALL ADD_Hg2_WD      ( I, J, DEP_HG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, DEP_HG, &
                                        State_Met, State_Chm, State_Diag )
 
              ! Check if it is a HgP tag
              ELSE IF ( SpcInfo%Is_HgP ) THEN
 
-                ! Get the category # for this HgP species
-                Hg_Cat = SpcInfo%Hg_Cat
-
                 ! Archive wet-deposited HgP
-                CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, &
+                CALL ADD_HgP_WD      ( I, J, DEP_HG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, DEP_HG, &
                                        State_Met, State_Chm, State_Diag )
 
              ENDIF

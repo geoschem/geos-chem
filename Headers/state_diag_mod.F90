@@ -335,6 +335,9 @@ MODULE State_Diag_Mod
 #ifdef MODEL_GEOS
      REAL(f4),           POINTER :: NOxTau(:,:,:)
      LOGICAL                     :: Archive_NOxTau
+
+     REAL(f4),           POINTER :: TropNOxTau(:,:)
+     LOGICAL                     :: Archive_TropNOxTau
 #endif
 
      !%%%%% Aerosol characteristics %%%%%
@@ -1534,6 +1537,9 @@ CONTAINS
 #ifdef MODEL_GEOS
     State_Diag%NOxTau                              => NULL()
     State_Diag%Archive_NOxTau                      = .FALSE.
+
+    State_Diag%TropNOxTau                          => NULL()
+    State_Diag%Archive_TropNOxTau                  = .FALSE.
 #endif
 
     !%%%%% Aerosol hygroscopic growth diagnostics %%%%%
@@ -5025,6 +5031,27 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! Trop. NOx lifetime 
+       !--------------------------------------------------------------------
+       diagID  = 'TropNOxTau'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TropNOxTau,                          &
+            archiveData    = State_Diag%Archive_TropNOxTau,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 #endif
 
        !--------------------------------------------------------------------
@@ -5888,7 +5915,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 33
+       DO N = 1, 34
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -5957,6 +5984,8 @@ CONTAINS
                 diagID = 'KppSmDecomps'
              CASE( 33 )
                 diagID = 'NOxTau'
+             CASE( 34 )
+                diagID = 'TropNOxTau'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -10486,6 +10515,11 @@ CONTAINS
                    Ptr2Data = State_Diag%NOxTau,                             &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TropNOxTau',                                  &
+                   Ptr2Data = State_Diag%NOxTau,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
     CALL Finalize( diagId   = 'SatDiagnOHreactivity',                        &
@@ -11787,8 +11821,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,         ONLY : StrSplit, To_UpperCase
-    USE DiagList_Mod,        ONLY : IsFullChem
+    USE Charpak_Mod,         ONLY : StrSplit,   To_UpperCase
+    USE DiagList_Mod,        ONLY : IsFullChem, IsCarbonCycle, IsHg
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -12198,9 +12232,14 @@ CONTAINS
 
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'NOXTAU' ) THEN
-       IF ( isDesc    ) Desc  = 'NOx (NO+NO2+NO3+2xN2O5+ClNO2+HNO2+HNO4) lifetime'
+       IF ( isDesc    ) Desc  = 'NOx (NO+NO2+NO3+2xN2O5+ClNO2+HNO2+HNO4) chemical lifetime'
        IF ( isUnits   ) Units = 'h'
        IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TROPNOXTAU' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropospheric NOx (NO+NO2+NO3+2xN2O5+ClNO2+HNO2+HNO4) chemical lifetime'
+       IF ( isUnits   ) Units = 'h'
+       IF ( isRank    ) Rank  = 2
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNOHREACTIVITY' ) THEN
@@ -12900,11 +12939,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'LOS'
 
-       ! NOTE: Units are different depending on simulation, due to historical
-       ! baggage.  Maybe clean this up at a later point to use the same units
-       ! regardless of simulation type. (bmy, 12/4/17)
+       ! NOTE: Prod/Loss units for simulations with KPP are molec/cm3/s,
+       ! and are currently kg/s for other specialty simulations.
+       ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'
@@ -12932,11 +12971,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PRD'
 
-       ! NOTE: Units are different depending on simulation, due to historical
-       ! baggage.  Maybe clean this up at a later point to use the same units
-       ! regardless of simulation type. (bmy, 12/4/17)
+       ! NOTE: Prod/Loss units for simulations with KPP are molec/cm3/s,
+       ! and are currently kg/s for other specialty simulations.
+       ! This will need to be cleaned up later (Bob Yantosca, 22 Aug 2020).
        IF ( isUnits   ) THEN
-          IF ( IsFullChem ) THEN
+          IF ( IsFullChem .or. IsHg .or. IsCarbonCycle ) THEN
              Units = 'molec cm-3 s-1'
           ELSE
              Units = 'kg s-1'

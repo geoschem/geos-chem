@@ -546,7 +546,7 @@ CONTAINS
     ENDIF
     Input_Opt%LPRT = v_bool
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     !========================================================================
     !          %%%%%%% GCHP and NASA/GEOS (with ESMF & MPI) %%%%%%%
     !
@@ -749,6 +749,7 @@ CONTAINS
     ENDIF
     Input_Opt%MetField = TRIM( v_str )
 
+#if !defined( MODEL_CESM )
     ! Make sure a valid met field is specified
     Met = To_UpperCase( TRIM( Input_Opt%MetField ) )
     SELECT CASE( TRIM( Met ) )
@@ -768,6 +769,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     END SELECT
+#endif
 
     !------------------------------------------------------------------------
     ! Turn on timers
@@ -3866,7 +3868,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on ND51 diagnostic
     !------------------------------------------------------------------------
-    key    = "extra_diagnostics%ND51_satellite%activate"
+    key    = "extra_diagnostics%legacy_bpch%ND51_satellite%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -5274,12 +5276,14 @@ CONTAINS
     ! Skip for dry-runs
     IF ( Input_Opt%DryRun ) RETURN
 
+#if !defined( MODEL_CESM )
     ! Check directories
     CALL Check_Directory( Input_Opt, Input_Opt%DATA_DIR, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+#endif
 
     CALL Check_Directory( Input_Opt, Input_Opt%CHEM_INPUTS_DIR, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -5287,11 +5291,13 @@ CONTAINS
        RETURN
     ENDIF
 
+#if !defined( MODEL_CESM )
     CALL Check_Directory( Input_Opt, Input_Opt%RUN_DIR, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+#endif
 
   END SUBROUTINE Validate_Directories
 !EOC

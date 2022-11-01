@@ -1079,7 +1079,7 @@ CONTAINS
        IF ( notDryRun ) THEN
           ! Set fields either as pointer targets or else.
           ! Regrid those for ImGrid.
-          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Met, &
+          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, &
                                    HcoState,  ExtState,  HMRC )
 
           ! Trap potential errors
@@ -1854,13 +1854,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Met, HcoState, ExtState, RC )
+  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, HcoState, ExtState, RC )
 !
 ! !USES:
 !
     USE Hcox_State_Mod, ONLY : ExtDat_Set
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE Drydep_Mod,     ONLY : DryCoeff
@@ -1873,6 +1874,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
     TYPE(EXT_STATE),  POINTER        :: ExtState   ! HEMCO ext. state
     INTEGER,          INTENT(INOUT)  :: RC         ! Return code
@@ -1891,6 +1893,9 @@ CONTAINS
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+#if defined ( MODEL_WRF )
+    LOGICAL, DIMENSION(1:8), SAVE      :: FIRST_PERID = .TRUE.
+#endif
 
     ! Scalars
     INTEGER            :: HMRC
@@ -1921,6 +1926,11 @@ CONTAINS
     ! directly from State_Met.
     ! To avoid code duplication, in GEOS-Chem classic data is also loaded
     ! directly from HEMCO met pointers, when possible.
+
+#if defined( MODEL_WRF )
+    ! For WRF-GC, the FIRST call needs to be domain-ID specific.
+    FIRST = FIRST_PERID(State_Grid%ID)
+#endif
 
     !-----------------------------------------------------------------------
     ! Pointers to local module arrays
@@ -2873,6 +2883,9 @@ CONTAINS
 
     ! Not first call any more
     FIRST  = .FALSE.
+#if defined( MODEL_WRF )
+    FIRST_PERID(State_Grid%ID) = .FALSE.
+#endif
     Trgt3D => NULL()
 
     ! Leave with success
@@ -4627,6 +4640,9 @@ CONTAINS
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
+#if !defined( MODEL_CESM )
+    USE Mercury_Mod,          ONLY : Hg_Emis
+#endif
     USE PhysConstants
     USE Species_Mod,          ONLY : Species,  SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
@@ -4812,7 +4828,13 @@ CONTAINS
       ThisSpc => State_Chm%SpcData(N)%Info
 
       ! Check if there is emissions or deposition for this species
+#if !defined( MODEL_CESM )
       CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
+#else
+      ! Do not apply for MODEL_CESM as its handled by HEMCO-CESM independently
+      EmisSpec = .False.
+      DepSpec  = .False.
+#endif
 
       ! If there is emissions for this species, it must be loaded into
       ! memory first.   This is achieved by attempting to retrieve a
@@ -4836,6 +4858,7 @@ CONTAINS
       ! Below emissions. Do not apply for MODEL_CESM as its handled by
       ! HEMCO-CESM independently
 #ifndef MODEL_CESM
+
         ! PBL top level [integral model levels]
         topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
@@ -4868,20 +4891,27 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
-! Temporarily disable this code, it causes segmentation faults
-! Investigate later on -- Bob Yantosca, 23 May 2022
-!           ! Compute column emission fluxes for satellite diagnostics
-!           IF ( State_Diag%Archive_SatDiagn ) THEN
-!              tmpFlx = 0.0_fp
-!              DO L = 1, State_Grid%NZ
-!                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
-!                                     J,         L,          found, emis     )
-!                 IF ( .NOT. found ) EXIT
-!                 tmpFlx = tmpFlx + emis
-!              ENDDO
-!              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
-!           ENDIF
+           ! Compute column emission fluxes for satellite diagnostics
+           IF ( State_Diag%Archive_SatDiagn ) THEN
+              tmpFlx = 0.0_fp
+              DO L = 1, State_Grid%NZ
+                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
+                                     J,         L,          found, emis     )
+                 IF ( .NOT. found ) EXIT
+                 tmpFlx = tmpFlx + emis
+              ENDDO
 
+              !$OMP CRITICAL
+              ! Try placing this reduction into a critical block
+              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+              !$OMP END CRITICAL
+           ENDIF
+
+        ENDIF
+
+        ! For Hg simulations, also add Hg emissions not handled by HEMCO
+        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+           eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
         ENDIF
 #endif
 
@@ -5070,22 +5100,16 @@ CONTAINS
 
              IF ( ThisSpc%Is_Hg2 ) THEN
 
-                ! Get the category number for this Hg2 tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
                 ! Archive dry-deposited Hg2
-                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                CALL ADD_Hg2_DD      ( I, J, dep                            )
+                CALL ADD_Hg2_SNOWPACK( I, J, dep,                    &
                                        State_Met, State_Chm, State_Diag     )
 
              ELSE IF ( ThisSpc%Is_HgP ) THEN
 
-                ! Get the category number for this HgP tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
                 ! Archive dry-deposited HgP
-                CALL ADD_HgP_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                CALL ADD_HgP_DD      ( I, J, dep                            )
+                CALL ADD_Hg2_SNOWPACK( I, J, dep,                            &
                                        State_Met, State_Chm, State_Diag     )
 
              ENDIF
