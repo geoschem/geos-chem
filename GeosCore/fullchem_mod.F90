@@ -947,7 +947,7 @@ CONTAINS
                     Aout    = Aout                                          )
 
           ! Archive the RxnRate diagnostic collection
-          IF ( State_Diag%Archive%RxnRate ) THEN
+          IF ( State_Diag%Archive_RxnRate ) THEN
              DO S = 1, State_Diag%Map_RxnRate%nSlots
                 N = State_Diag%Map_RxnRate%slot2Id(S)
                 State_Diag%RxnRate(I,J,L,S) = Aout(N)
