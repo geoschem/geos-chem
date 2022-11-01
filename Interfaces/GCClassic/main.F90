@@ -937,8 +937,7 @@ PROGRAM GEOS_Chem
           ! (or skip writing if it is not the proper output time.
           ! Appears at start of run to output instantaneous boundary conditions
           ! at the start of the simulation with the correct time:
-          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, &
-                              State_Chm, RC )
+          CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

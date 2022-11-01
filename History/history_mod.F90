@@ -2976,7 +2976,7 @@ CONTAINS
           mapData => NULL()
 
           ! Update each HISTORY ITEM from its data source
-          CALL History_Update( Input_Opt, RC )
+          CALL History_Update( Input_Opt, State_Diag, RC )
 
        ENDIF
           
