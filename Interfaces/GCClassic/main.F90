@@ -2724,11 +2724,18 @@ CONTAINS
     ! Initialize
     RC = GC_SUCCESS
 
-    ! For dry-run simulations, Write the dry-run header to
-    ! stdout (aka GEOS-Chem log file) and the HEMCO log file.
+    ! Skip if not a dry-run simulation
     IF ( Input_Opt%DryRun ) THEN
+
+       ! Print dry-run header to stdout
+       ! (which is usually redirected to the dryrun log file)
        CALL Print_Dry_Run_Warning( 6 )
-       CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
+
+       ! Print dry-run header to HEMCO.log file
+       ! (if HEMCO output is not already being sent to stdout)
+       IF ( HcoState%Config%Err%LUN > 0 ) THEN
+          CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
+       ENDIF
     ENDIF
 
   END SUBROUTINE Cleanup_Dry_Run
