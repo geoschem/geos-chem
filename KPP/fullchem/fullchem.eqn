@@ -87,6 +87,8 @@ Version 13.y.z (actual version TBA) (Dec 2020 onward)
 14.1.0
 ------
   (1) Added MO2 + NO3 reaction (IUPAC ROO_19)
+  (2) Bug fix: the "a" coefficient in rxn ETO = HO2 + 2.000CH2O was changed
+      from 9.5d-13 (incorrect) to 9.5d+13.  See geoschem/geos-chem #1274.
 
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
@@ -1391,7 +1393,7 @@ ETOO + NO = 0.995ETO +
 ETOO + NO3 = ETO + NO2 :                     2.3d-12;                                                                          {2021/09/22; Kwon2020; KHB,MSL}
 ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O +
  0.2MOH + 0.2ETHP + 0.2GLYC :                6.00d-13;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
-ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d-13, 0.0d0, -5988.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
+ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d+13, 0.0d0, -5988.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
 ETO + O2 = GLYC + HO2 :                      GCARR_abc(2.5d-14, 0.0d0, -300.0d0);                                              {2021/09/22; Kwon2020; KHB,MSL}
 ETHN + OH = GLYC + NO2 :                     8.40d-13;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
 ETHP + OH = ETOO :                           GCARR_abc(1.90d-12, 0.0d+00, 190.0d0);                                            {2021/09/22; Kwon2020; KHB,MSL}
