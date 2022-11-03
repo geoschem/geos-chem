@@ -437,6 +437,13 @@ CONTAINS
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
+#ifdef MODEL_CLASSIC
+#ifdef BPCH_DIAG
+    ! NOTE: Restore this call until we can remove TOMAS BPCH diagnostics
+    !  -- Bob Yantosca (03 Nov 2022)
+    USE Gamap_Mod,          ONLY : Do_Gamap
+#endif
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -760,6 +767,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef MODEL_CLASSIC
 #ifdef BPCH_DIAG
     !=================================================================
     ! These routines are only needed when compiling GEOS-Chem
@@ -773,7 +781,6 @@ CONTAINS
     ! Allocate and initialize variables
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
-#if defined( MODEL_CLASSIC )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
