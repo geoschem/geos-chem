@@ -114,7 +114,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     TYPE(SpcConc),     POINTER :: Species (:      ) ! Vector for species
+     TYPE(SpcConc),     POINTER :: Species (:      )    ! Vector for species
                                                         ! concentrations
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
@@ -763,14 +763,18 @@ CONTAINS
     !========================================================================
     ! Allocate and initialize chemical species fields
     !========================================================================
-
-    ! Allocate the array
     ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
+#if defined ( MODEL_GCHPCTM )
+       ! Species concentration array pointers will be set to point to MAPL internal state
+       ! every timestep when intstate level values are flipped to match GEOS-Chem standard
+       State_Chm%Species(N)%Conc => NULL()
+#else
        ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
                                             State_Grid%NY, &
                                             State_Grid%NZ ), STAT=RC )
        State_Chm%Species(N)%Conc = 0.0_f8
+#endif
     ENDDO
 
 #ifdef ADJOINT
@@ -2869,8 +2873,10 @@ CONTAINS
     IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
        DO N = 1, State_Chm%nSpecies
           IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
+#if !defined( MODEL_GCHPCTM )
              DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
              IF ( RC /= GC_SUCCESS ) RETURN
+#endif
              State_Chm%Species(N)%Conc => NULL()
           ENDIF
        ENDDO

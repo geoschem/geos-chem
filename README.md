@@ -14,19 +14,19 @@ This repository contains the __GEOS-Chem science codebase__.  Included in this r
 
 ### Version 12.9.3 and prior
 
-GEOS-Chem 12.9.3 was the last version in which this "Science Codebase" repository was used in a standalone manner.  For this reason, the latest release is frozen at 12.9.3. 
+GEOS-Chem 12.9.3 was the last version in which this "Science Codebase" repository was used in a standalone manner.
 
 ### Version 13.0.0 and later
 
 GEOS-Chem 13.0.0 and later versions use this "Science Codebase" repository as a  submodule within the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) repositories.
 
-Releases for GEOS-Chem 13.0.0 and later versions will be issued at the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) Github repositories.
+Releases for GEOS-Chem 13.0.0 and later versions will be issued at the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) Github repositories. We will also tag and release the corresponding versions at this repository for the sake of completeness.
 
 ## User Manuals
 
 Each implementation of GEOS-Chem has its own manual page.  For more information, please see:
 
-* __GEOS-Chem "Classic":__ [http://wiki.geos-chem.org/Getting_Started_with_GEOS-Chem](http://wiki.geos-chem.org/Getting_Started_with_GEOS-Chem)
+* __GEOS-Chem "Classic":__ [https://geos-chem.readthedocs.io](https://geos-chem.readthedocs.io)
 
 * __GCHP:__ [https://gchp.readthedocs.io](https://gchp.readthedocs.io)
 

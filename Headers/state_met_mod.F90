@@ -4951,7 +4951,7 @@ CONTAINS
 
        CASE ( 'AIRNUMDEN' )
           IF ( isDesc  ) Desc  = 'Dry air density'
-          IF ( isUnits ) Units = 'm-3'
+          IF ( isUnits ) Units = 'molec cm-3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
