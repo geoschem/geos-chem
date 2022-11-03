@@ -84,6 +84,10 @@ Version 13.y.z (actual version TBA) (Dec 2020 onward)
   (4) Added sulfur reactions for future development (commented out)
   (5) Added aromatic SOA reactions (Bates2021b)
 
+14.1.0
+------
+  (1) Added MO2 + NO3 reaction (IUPAC ROO_19)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
@@ -141,6 +145,7 @@ REFERENCES (alphabetical order)
 * Jacobs2014:   Jacobs et al., Atmos. Chem. Phys., doi:10.5194/acp-14-8933-2014, 2014.
 * Jenkin2015:   Jenkin et al., Atmos. Chem. Phys., doi:10.5194/acp-15-11433-2015, 2015.
 * Kasibhatla2018: Kasibhatla et al., Atmos. Chem. Phys., doi:10.5194/acp-18-11185-2018, 2018
+* IUPAC ROO_19: https://iupac-aeris.ipsl.fr/htdocs/datasheets/pdf/ROO_19_CH3O2_NO3.pdf
 * JPL 10-6:     JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
 * JPL 15-10:    JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
 * Kwon2020:     Kwon et al, Elementa, https://doi.org/10.1525/elementa.2021.00109, 2020.
@@ -1472,6 +1477,7 @@ TRO2 + HO2 = HO2 + LTRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0)
 TRO2 + NO  = NO + LTRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 XRO2 + HO2 = HO2 + LXRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 XRO2 + NO  = NO + LXRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+MO2  + NO3 = NO2 + CH2O + HO2 :              1.20d-12;                                                                         {2022/10/18: IUPAC ROO_19; KHB,BMY}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Heterogeneous chemistry reactions                               %%%%%

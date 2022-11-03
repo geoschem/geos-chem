@@ -41,7 +41,7 @@ REORDER  - ON
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 4 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 913 
+  INTEGER, PARAMETER :: NREACT = 914 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
