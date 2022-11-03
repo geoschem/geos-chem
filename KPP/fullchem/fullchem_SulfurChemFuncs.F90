@@ -205,7 +205,7 @@ CONTAINS
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
        K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%Species(I,J,L,id_SALAAL)
+               / C(ind_SALAAL)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -261,7 +261,7 @@ CONTAINS
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
        K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%Species(I,J,L,id_SALCAL)
+               / C(ind_SALCAL)
     ENDIF
 
     !------------------------------------------------------------------------
