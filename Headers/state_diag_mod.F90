@@ -3127,8 +3127,10 @@ CONTAINS
     ! but do not register individual fields unless they are in HISTORY.rc
     !------------------------------------------------------------------------
 
-    ! Check if the "DryDep" diagnostic is in the DiagList
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', forceDefine, RC )
+    ! Check if "DryDep" or "SatDiagnDryDep" diagnostics are in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', forceDefine,   RC )
+    CALL Check_DiagList( am_I_Root, Diag_List, 'SatDiagnDryDep', found, RC )
+    forceDefine = ( forceDefine .or. found )
 
     ! Check if the "DryDepChm" diagnostic is also in the DiagList
     CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepChm', found, RC )
@@ -3746,7 +3748,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! SatDiagn Diagnostic: Loss of soluble species in large-scale rainout/washout
+    ! SatDiagn: Loss of soluble species in large-scale rainout/washout
     !-----------------------------------------------------------------------
     diagID  = 'SatDiagnWetLossLS'
     CALL Init_and_Register(                                                  &
@@ -3960,7 +3962,8 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Satellite diagnostic: Total Surface Fluxes [kg/m2/s] [eflx (emis)- dflx (drydep)]
+    ! Satellite diagnostic: Total Surface Fluxes [kg/m2/s]
+    !                       [eflx (emis)- dflx (drydep)]
     ! From Surface to Top of the PBL; For Advected Species
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnSurfFlux'
@@ -17782,9 +17785,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:
+! !IROUTINE: Init_NoRegister_DryDepChemMix
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Initializes but does not register the DryDepChm and DryDepMix
+!  arrays.  These are needed for the DryDep or SatDiagnDryDep diagnostics.
 !\\
 !\\
 ! !INTERFACE:
@@ -17823,95 +17827,141 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    LOGICAL :: initChm, initMix
-    INTEGER :: NX,      NY,     NW
-    INTEGER :: nSlots,  nIds
+    LOGICAL :: initChm,  initMix
+    LOGICAL :: isDryDep, isSatDgn
+    INTEGER :: NX,       NY,       NW
+    INTEGER :: nSlots,   nIds
+
+    !========================================================================
+    ! Init_NoRegister_DryDepChmMix begins here!
+    !========================================================================
 
     ! Initialize
-    RC     = GC_SUCCESS
-    NX     = SIZE( State_Diag%DryDep, 1 )
-    NY     = SIZE( State_Diag%DryDep, 2 )
-    NW     = SIZE( State_Diag%DryDep, 3 )
-    nSlots = State_Diag%Map_DryDep%nSlots
-    nIds   = State_Diag%Map_DryDep%nIds
+    RC        = GC_SUCCESS
+    initChm   = .FALSE.
+    initMix   = .FALSE.
+    isDryDep  = State_Diag%Archive_DryDep
+    isSatDgn  = State_Diag%Archive_SatDiagnDryDep
 
-    ! Initialize the DryDepChm arrays?
-    IF ( PRESENT( Chm ) ) THEN
-       initChm = Chm
-    ELSE
-       initChm = .FALSE.
+    ! Get array sizes
+    IF ( isDryDep ) THEN
+       NX     = SIZE( State_Diag%DryDep, 1 )
+       NY     = SIZE( State_Diag%DryDep, 2 )
+       NW     = SIZE( State_Diag%DryDep, 3 )
+       nSlots = State_Diag%Map_DryDep%nSlots
+       nIds   = State_Diag%Map_DryDep%nIds
+    ELSE IF ( isSatDgn ) THEN
+       NX     = SIZE( State_Diag%SatDiagnDryDep, 1 )
+       NY     = SIZE( State_Diag%SatDiagnDryDep, 2 )
+       NW     = SIZE( State_Diag%SatDiagnDryDep, 3 )
+       nSlots = State_Diag%Map_SatDiagnDryDep%nSlots
+       nIds   = State_Diag%Map_SatDiagnDryDep%nIds
     ENDIF
 
-    ! Initialize the DryDepMix arrays?
-    IF ( PRESENT( Mix ) ) THEN
-       initMix = Mix
-    ELSE
-       initMix = .FALSE.
-    ENDIF
+    ! Which array to initialize?
+    IF ( PRESENT( Chm ) ) initChm = Chm
+    IF ( PRESENT( Mix ) ) initMix = Mix
 
+    !========================================================================
+    ! Initialize the DryDepChm array
+    !========================================================================
     IF ( initChm ) THEN
 
        ! Initialize the logical
-       State_Diag%Archive_DryDepChm = State_Diag%Archive_DryDep
+       State_Diag%Archive_DryDepChm = ( isDryDep .or. isSatDgn )
 
-       ! Initialzie
-       ALLOCATE( State_Diag%DryDepChm( NX, NY, NW ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepChm', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_diag%DryDepChm = 0.0_f4
+       ! Only allocate the DryDepChm array if necessary
+       IF ( State_Diag%Archive_DryDepChm ) THEN
 
-       ! Initialize the mapping object
-       ALLOCATE( State_Diag%Map_DryDepChm, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Map_DryDepChm', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+          ! Initialize
+          ALLOCATE( State_Diag%DryDepChm( NX, NY, NW ), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%DryDepChm', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_diag%DryDepChm = 0.0_f4
 
-       ! Initialize slot2Id vector
-       State_Diag%Map_DryDepChm%nSlots = State_Diag%Map_DryDep%nSlots
-       ALLOCATE( State_Diag%Map_DryDepChm%slot2Id(nSlots), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Map_DryDepChm%slot2Id', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Map_DryDepChm%slot2Id = State_Diag%Map_DryDep%slot2Id
+          ! Initialize the mapping object
+          ALLOCATE( State_Diag%Map_DryDepChm, STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepChm', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
 
-       ! Initialize id2slot vector
-       State_Diag%Map_DryDepChm%nIds = State_Diag%Map_DryDep%nIds
-       ALLOCATE( State_Diag%Map_DryDepChm%id2slot(nIds), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Map_DryDepChm%id2slot', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Map_DryDepChm%id2slot = State_Diag%Map_DryDep%id2slot
+          ! Initialize slot2Id vector
+          State_Diag%Map_DryDepChm%nSlots = nSlots
+          ALLOCATE( State_Diag%Map_DryDepChm%slot2Id(nSlots), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepChm%slot2Id', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          IF ( isDryDep ) THEN
+             State_Diag%Map_DryDepChm%slot2Id =                              &
+                  State_Diag%Map_DryDep%slot2Id
+          ELSE IF ( isSatDgn ) THEN
+             State_Diag%Map_DryDepChm%slot2Id =                              &
+                  State_Diag%Map_SatDiagnDryDep%slot2Id
+          ENDIF
 
+          ! Initialize id2slot vector
+          State_Diag%Map_DryDepChm%nIds = nIds
+          ALLOCATE( State_Diag%Map_DryDepChm%id2slot(nIds), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepChm%id2slot', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          IF ( isDryDep ) THEN
+             State_Diag%Map_DryDepChm%id2slot =                              &
+                  State_Diag%Map_DryDep%id2slot
+          ELSE IF ( isSatDgn ) THEN
+             State_Diag%Map_DryDepChm%id2slot =                              &
+               State_Diag%Map_SatDiagnDryDep%id2slot
+          ENDIF
+       ENDIF
     ENDIF
 
+    !========================================================================
+    ! Initialize the DryDepMix array
+    !========================================================================
     IF ( initMix ) THEN
 
-       ! Initialize the logical
-       State_Diag%Archive_DryDepMix = State_Diag%Archive_DryDep
+       ! Only allocate the DryDepMix array if necessary
+       State_Diag%Archive_DryDepMix = ( isDryDep .or. isSatDgn )
 
-       ! Initialzie
-       ALLOCATE( State_Diag%DryDepMix( NX, NY, NW ), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepMix', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_diag%DryDepMix = 0.0_f4
+       ! Allocate
+       IF ( State_Diag%Archive_DryDepMix ) THEN
 
-       ! Initialize the mapping object
-       ALLOCATE( State_Diag%Map_DryDepMix, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Map_DryDepMix', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+          ! Initialize
+          ALLOCATE( State_Diag%DryDepMix( NX, NY, NW ), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%DryDepMix', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_diag%DryDepMix = 0.0_f4
 
-       ! Initialize slot2Id vector
-       State_Diag%Map_DryDepMix%nSlots = State_Diag%Map_DryDep%nSlots
-       ALLOCATE( State_Diag%Map_DryDepMix%slot2Id(nSlots), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%slot2Id', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Map_DryDepMix%slot2Id = State_Diag%Map_DryDep%slot2Id
+          ! Initialize the mapping object
+          ALLOCATE( State_Diag%Map_DryDepMix, STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepMix', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
 
-       ! Initialize id2slot vector
-       State_Diag%Map_DryDepMix%nIds = State_Diag%Map_DryDep%nIds
-       ALLOCATE( State_Diag%Map_DryDepMix%id2slot(nIds), STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%id2slot', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Map_DryDepMix%id2slot = State_Diag%Map_DryDep%id2slot
+          ! Initialize slot2Id vector
+          State_Diag%Map_DryDepMix%nSlots = nSlots
+          ALLOCATE( State_Diag%Map_DryDepMix%slot2Id(nSlots), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%slot2Id', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          IF ( isDryDep ) THEN
+             State_Diag%Map_DryDepMix%slot2Id =                              &
+                  State_Diag%Map_DryDep%slot2Id
+          ELSE IF ( isSatDgn ) THEN
+             State_Diag%Map_DryDepMix%slot2Id =                              &
+               State_Diag%Map_SatDiagnDryDep%slot2Id
+          ENDIF
 
+          ! Initialize id2slot vector
+          State_Diag%Map_DryDepMix%nIds = nIds
+          ALLOCATE( State_Diag%Map_DryDepMix%id2slot(nIds), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%id2slot', 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          IF ( isDryDep ) THEN
+             State_Diag%Map_DryDepMix%id2slot =                              &
+                  State_Diag%Map_DryDep%id2slot
+          ELSE IF ( isSatDgn ) THEN
+             State_Diag%Map_DryDepMix%id2slot =                              &
+                  State_Diag%Map_SatDiagnDryDep%id2slot
+          ENDIF
+       ENDIF
     ENDIF
+
   END SUBROUTINE Init_NoRegister_DryDepChmMix
 !EOC
 END MODULE State_Diag_Mod

@@ -264,6 +264,19 @@ CONTAINS
        IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
     ENDIF
+    
+    ! Also zero satellite diagnostic archival arrays
+    IF ( State_Diag%Archive_SatDiagnLoss ) State_Diag%SatDiagnLoss    = 0.0_f4
+    IF ( State_Diag%Archive_SatDiagnProd ) State_Diag%SatDiagnProd    = 0.0_f4
+    IF ( State_Diag%Archive_SatDiagnJval ) THEN
+       State_Diag%SatDiagnJval = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+       State_Diag%SatDiagnJvalO3O1D = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+       State_Diag%SatDiagnJvalO3O3P = 0.0_f4
+    ENDIF
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
     ! diagnostic. When time-averaged, this will be the fraction of time
@@ -635,6 +648,17 @@ CONTAINS
                    ENDIF
                 ENDIF
 
+                ! Satellite diagnostics
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                IF ( State_Diag%Archive_SatDiagnJval ) THEN
+                   S = State_Diag%Map_SatDiagnJval%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%SatDiagnJval(I,J,L,S) =                     &
+                      State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
+                   ENDIF
+                ENDIF
+
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Met%IsLocalNoon(I,J) ) THEN
@@ -657,6 +681,12 @@ CONTAINS
                    State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
                 ENDIF
 
+                ! J(O3_O1D) for satellite diagnostics
+                IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+                   State_Diag%SatDiagnJvalO3O1D(I,J,L) =                     &
+                   State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
              ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
 
                 ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
@@ -665,6 +695,12 @@ CONTAINS
                 IF ( State_Diag%Archive_JvalO3O3P ) THEN
                    State_Diag%JvalO3O3P(I,J,L) =                             &
                    State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
+                ! J(O3_O3P) for satellite diagnostics
+                IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+                   State_Diag%SatDiagnJvalO3O3P(I,J,L) =                     &
+                   State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
                 ENDIF
 
              ENDIF
@@ -1360,6 +1396,22 @@ CONTAINS
           ENDDO
        ENDIF
 
+       ! Satellite diagnostic: Chemical loss [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             KppId = State_Diag%Map_SatDiagnLoss%slot2Id(S)
+             State_Diag%SatDiagnLoss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: Chemical production [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             KppID = State_Diag%Map_SatDiagnProd%slot2Id(S)
+             State_Diag%SatDiagnProd(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Archive prod/loss fields for the TagCO simulation [molec/cm3/s]
        ! (In practice, we only need to do this from benchmark simulations)
@@ -1407,7 +1459,8 @@ CONTAINS
        ! inverse of its life-time. In a crude ad-hoc approach, manually add
        ! all OH reactants (ckeller, 9/20/2017)
        !====================================================================
-       IF ( State_Diag%Archive_OHreactivity ) THEN
+       IF ( State_Diag%Archive_OHreactivity           .or.                   &
+            State_Diag%Archive_SatDiagnOHreactivity ) THEN
 
           ! Start timer
           IF ( Input_Opt%useTimers ) THEN
@@ -1419,7 +1472,12 @@ CONTAINS
 
           ! Archive OH reactivity diagnostic
           CALL Get_OHreactivity ( C, RCONST, OHreact )
-          State_Diag%OHreactivity(I,J,L) = OHreact
+          IF ( State_Diag%Archive_OHreactivity ) THEN
+             State_Diag%OHreactivity(I,J,L) = OHreact
+          ENDIF
+          IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
+             State_Diag%SatDiagnOHreactivity(I,J,L) = OHreact
+          ENDIF
 
           ! Stop timer
           IF ( Input_Opt%useTimers ) THEN

@@ -235,7 +235,12 @@ CONTAINS
 !###    IF ( State_Diag%Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
 !###    IF ( State_Diag%Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
 !###    IF ( State_Diag%Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
-    IF ( State_Diag%Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
+    IF ( State_Diag%Archive_WetLossLS  ) THEN
+       State_Diag%WetLossLS = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnWetLossLS  ) THEN
+       State_Diag%SatDiagnWetLossLS = 0.0_f4
+    ENDIF
 
     !------------------------------------------
     ! Create precip fields
@@ -4174,6 +4179,17 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
        ! Archive wet loss in kg/m2/s
        IF ( LSOILNOX ) THEN
           CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
@@ -4698,7 +4714,18 @@ CONTAINS
           IF ( S > 0 ) THEN
              State_Diag%WetLossLS(I,J,L,S) =                                 &
              State_Diag%WetLossLS(I,J,L,S) + ( WetLoss / DT )                &
-                                           *  State_Grid%Area_M2(I,J)
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
 
@@ -4957,6 +4984,17 @@ CONTAINS
              State_Diag%WetLossLs(I,J,L,S) =                                 &
              State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
                                            * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
 
@@ -5223,6 +5261,18 @@ CONTAINS
                                            * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
 
        ! Archive wet loss in kg/m2/s (check source code for this routine - ewl )
        !IF ( LSOILNOX ) THEN

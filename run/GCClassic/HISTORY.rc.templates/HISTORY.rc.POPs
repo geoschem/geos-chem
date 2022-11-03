@@ -7,7 +7,7 @@
 # EXPID allows you to specify the beginning of the file path corresponding
 # to each diagnostic collection.  For example:
 #
-#   EXPID: ./GEOSChem 
+#   EXPID: ./GEOSChem
 #      Will create netCDF files whose names begin "GEOSChem",
 #      in this run directory.
 #
@@ -33,8 +33,8 @@ COLLECTIONS: 'Restart',
              #'Budget',
              #'CloudConvFlux',
              #'DryDep',
-             #'LevelEdgeDiags',      
-             #'StateMet',      
+             #'LevelEdgeDiags',
+             #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
              #'BoundaryConditions',
@@ -88,24 +88,24 @@ COLLECTIONS: 'Restart',
   Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
   Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
-  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
-                       'BudgetEmisDryDepTrop_?ADV?           ',  
-                       'BudgetEmisDryDepPBL_?ADV?            ',  
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
                        'BudgetChemistryFull_?ADV?            ',
                        'BudgetChemistryTrop_?ADV?            ',
-                       'BudgetChemistryPBL_?ADV?             ',  
+                       'BudgetChemistryPBL_?ADV?             ',
                        'BudgetTransportFull_?ADV?            ',
                        'BudgetTransportTrop_?ADV?            ',
-                       'BudgetTransportPBL_?ADV?             ',  
+                       'BudgetTransportPBL_?ADV?             ',
                        'BudgetMixingFull_?ADV?               ',
                        'BudgetMixingTrop_?ADV?               ',
-                       'BudgetMixingPBL_?ADV?                ',    
+                       'BudgetMixingPBL_?ADV?                ',
                        'BudgetConvectionFull_?ADV?           ',
                        'BudgetConvectionTrop_?ADV?           ',
-                       'BudgetConvectionPBL_?ADV?            ',  
+                       'BudgetConvectionPBL_?ADV?            ',
                        'BudgetWetDepFull_?WET?               ',
                        'BudgetWetDepTrop_?WET?               ',
-                       'BudgetWetDepPBL_?WET?                ',  
+                       'BudgetWetDepPBL_?WET?                ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%

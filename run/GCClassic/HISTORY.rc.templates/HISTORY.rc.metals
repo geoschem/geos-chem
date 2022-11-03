@@ -33,6 +33,7 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'DryDep',
              #'LevelEdgeDiags',
+             #'SatDiagn',
              #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
@@ -152,6 +153,45 @@ COLLECTIONS: 'Restart',
                               'Met_PFILSAN                   ',
                               'Met_PFLCU                     ',
                               'Met_PFLLSAN                   ',
+::
+#==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_AlF1              ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_AlF1         ',
+                              'SatDiagnWetLossConv_AlF1       ',
+                              'SatDiagnDryDep_AlF1            ',
+                              'SatDiagnDryDepVel_AlF1         ',
+                              'SatDiagnColEmis_AlF1           ',
+                              'SatDiagnSurfFlux_AlF1          ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
