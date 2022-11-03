@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
 
+### Changed
+- Use met-field surface type fractions instead of input land-water-ice (LWI) index
+
+### Fixed
+
+### Removed
+- Removed State_Met%LWI and LWI as a met-field input
+
 ## [14.0.1] - 2022-10-31
 ### Fixed
 - Corrected units in metadata for State_Met%AirNumDen and State_Met%PHIS
