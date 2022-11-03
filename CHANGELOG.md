@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 14.1.0]
 ### Added
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
+- Updated CESM HISTORY.rc configuration to remove unavailable diagnostics, remove wildcards for History exports support
 
 ## [14.0.1] - 2022-10-31
 ### Fixed
