@@ -1522,12 +1522,12 @@ Warnings:                    1
 # scale factor section below for more information.
 #==============================================================================
 (((AEIC2019_DAILY
-0 AEIC19_DAILY_SOAP $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s SOAP 241/280     20 1
-0 AEIC19_DAILY_SO2  $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
-0 AEIC19_DAILY_pFe  -                                                             -        -                - -   -       pFe  241/111/66  20 1
-0 AEIC19_DAILY_SO4  -                                                             -        -                - -   -       SO4  241/112     20 1
-0 AEIC19_DAILY_BCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
-0 AEIC19_DAILY_OCPI $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_DAILY_SOAP $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc CO       2019/1-12/1-31/0 C xyz kg/m2/s SOAP 241/280     20 1
+0 AEIC19_DAILY_SO2  $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s SO2  241/111     20 1
+0 AEIC19_DAILY_pFe  -                                                                 -        -                - -   -       pFe  241/111/66  20 1
+0 AEIC19_DAILY_SO4  -                                                                 -        -                - -   -       SO4  241/112     20 1
+0 AEIC19_DAILY_BCPI $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc BC       2019/1-12/1-31/0 C xyz kg/m2/s BCPI 241         20 1
+0 AEIC19_DAILY_OCPI $ROOT/AEIC2019/v2022-03/2019/$MM/AEIC_2019$MM$DD.0.5x0.625.36L.nc OC       2019/1-12/1-31/0 C xyz kg/m2/s OCPI 241         20 1
 )))AEIC2019_DAILY
 (((AEIC2019_MONMEAN
 0 AEIC19_MONMEAN_SOAP $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc CO       2019/1-12/1/0 C xyz kg/m2/s SOAP 241/280     20 1

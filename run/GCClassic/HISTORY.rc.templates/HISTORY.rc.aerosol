@@ -67,6 +67,8 @@ COLLECTIONS: 'Restart',
                               'Chem_DryDepNitrogen            ',
                               'Chem_WetDepNitrogen            ',
                               'Met_DELPDRY                    ',
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

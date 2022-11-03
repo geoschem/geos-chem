@@ -57,6 +57,8 @@ COLLECTIONS: 'Restart',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ', 
                               'Met_DELPDRY                    ', 
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
