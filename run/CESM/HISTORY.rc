@@ -1,7 +1,33 @@
 ###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
-###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)    ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
+
+#============================================================================
+# This HISTORY.rc file is specific for running GEOS-Chem within the
+# Community Earth System Model (CESM2)
+#
+# To use GEOS-Chem "History" diagnostics in CESM2, there are two steps:
+# 1) Enable the desired diagnostic(s) in this HISTORY.rc file.
+#    The collection, template, frequency, duration, and mode are ignored.
+#    Only the presence or not of the diagnostic matters.
+# 2) Write the desired diagnostic(s) name(s) into the finclX variable,
+#    similar to other CESM output variables, in user_nl_cam.
+#    There, you can configure averaging/instantaneous, duration, etc. features
+#    in the same way as other CESM outputs.
+#
+# Note: SpeciesConc are always available without the prefix, e.g., SpeciesConc_O3
+# mixing ratio will be present in O3 variable in CESM.
+#
+# Note: Wildcards (e.g., ?ADV?) are NOT available, and all species must be
+# written out explicitly.
+#
+# Note: Many physical/chemical processes in CESM are handled not by GEOS-Chem,
+# and as such those diagnostics will not be present. For example, deposition
+# and advection. As such, these collections have been removed.
+#
+# Contact: Haipeng Lin (hplin@seas.harvard.edu)
+#============================================================================
 
 #============================================================================
 # EXPID allows you to specify the beginning of the file path corresponding
@@ -16,7 +42,7 @@
 #      in the OutputDir sub-folder of this run directory.
 #
 #============================================================================
-EXPID:  ./OutputDir/GEOSChem
+EXPID:  ./IGNORED_USE_user_nl_cam
 
 #==============================================================================
 # %%%%% COLLECTION NAME DECLARATIONS %%%%%
@@ -27,10 +53,7 @@ EXPID:  ./OutputDir/GEOSChem
 # NOTE: These are the "default" collections for GEOS-Chem, but you can create
 # your own customized diagnostic collections as well.
 #==============================================================================
-COLLECTIONS: 'Restart',
-             #'Metrics',
-             #'SpeciesConc',
-             #'AdvFluxVert',
+COLLECTIONS: 'Metrics',
              #'AerosolMass',
              #'Aerosols',
              #'Budget',
@@ -41,14 +64,10 @@ COLLECTIONS: 'Restart',
              'JValues',
              #'KppDiags',
              #'LevelEdgeDiags',
-             #'ProdLoss',
-             ##'RRTMG',
-             #'StateChm',
+             'ProdLoss',
+             'StateChm',
              #'StateMet',
              #'StratBM',
-             #'WetLossConv',
-             #'WetLossLS',
-             ##'BoundaryConditions',
 ::
 ###############################################################################
 ### The rest of this file consists of collection definitions.               ###
@@ -57,32 +76,6 @@ COLLECTIONS: 'Restart',
 ### collections above, ends with a double-colon ("::").                     ###
 ###############################################################################
 
-#==============================================================================
-# %%%%% THE Restart COLLECTION %%%%%
-#
-# GEOS-Chem restart file fields
-#
-# Available for all simulations
-#==============================================================================
-  Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
-  Restart.frequency:          'End',
-  Restart.duration:           'End',
-  Restart.mode:               'instantaneous'
-  Restart.fields:             'SpeciesRst_?ALL?               ', 'GIGCchem',
-                              #'Chem_H2O2AfterChem             ', 'GIGCchem',
-                              #'Chem_SO2AfterChem              ', 'GIGCchem',
-                              #'Chem_DryDepNitrogen            ', 'GIGCchem',
-                              #'Chem_WetDepNitrogen            ', 'GIGCchem',
-                              #'Chem_KPPHvalue                 ', 'GIGCchem',
-                              #'Chem_StatePSC                  ', 'GIGCchem',
-                              #'Met_DELPDRY                    ', 'GIGCchem',
-                              #'Met_PS1WET                     ', 'GIGCchem',
-                              #'Met_PS1DRY                     ', 'GIGCchem',
-                              #'Met_SPHU1                      ', 'GIGCchem',
-                              #'Met_TMPU1                      ', 'GIGCchem',
-                              #'Met_BXHEIGHT                   ', 'GIGCchem',
-                              #'Met_TropLev                    ', 'GIGCchem',
-::
 #==============================================================================
 # %%%%% THE Metrics COLLECTION %%%%%
 #
@@ -102,32 +95,6 @@ COLLECTIONS: 'Restart',
                               'LossOHbyCH4columnTrop         ', 'GIGCchem',
                               'LossOHbyMCFcolumnTrop         ', 'GIGCchem',
                               'OHwgtByAirMassColumnFull      ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE SpeciesConc COLLECTION %%%%%
-#
-# GEOS-Chem species concentrations (default = advected species)
-#
-# Available for all simulations
-#==============================================================================
-  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.frequency:      {FREQUENCY}
-  SpeciesConc.duration:       {DURATION}
-  SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ALL?             ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE AdvFluxVert COLLECTION %%%%%
-#
-# GEOS-Chem vertical mass flux of species in kg/s (default = O3 only)
-#
-# Available for all simulations
-#==============================================================================
-  AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  AdvFluxVert.frequency:      {FREQUENCY}
-  AdvFluxVert.duration:       {DURATION}
-  AdvFluxVert.mode:           'time-averaged'
-  AdvFluxVert.fields:         'AdvFluxVert_O3                 ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE AerosolMass COLLECTION %%%%%
@@ -338,22 +305,6 @@ COLLECTIONS: 'Restart',
                               'O3PconcAfterChem              ', 'GIGCchem',
 ::
 #==============================================================================
-# %%%%% THE DryDep COLLECTION %%%%%
-#
-# Dry depositon fluxes and velocities (for all dry-depositing species)
-#
-# Available for all simuations that have dry-depositing species
-#==============================================================================
-  DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  DryDep.frequency:           {FREQUENCY}
-  DryDep.duration:            {DURATION}
-  DryDep.mode:                'time-averaged'
-  DryDep.fields:              'DryDepVel_?DRY?               ', 'GIGCchem',
-                              ##'DryDepChm_?DRY?              ', 'GIGCchem',
-                              ##'DryDepMix_?DRY?              ', 'GIGCchem',
-                              'DryDep_?DRY?                  ', 'GIGCchem',
-::
-#==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
 #
 # Photolysis rates and UV fluxes (from the FAST-JX photolysis module)
@@ -364,12 +315,199 @@ COLLECTIONS: 'Restart',
   JValues.frequency:          {FREQUENCY}
   JValues.duration:           {DURATION}
   JValues.mode:               'time-averaged'
-  JValues.fields:             'Jval_?PHO?                    ', 'GIGCchem',
-                              'JvalO3O1D                     ', 'GIGCchem',
-                              'JvalO3O3P                     ', 'GIGCchem',
-                              #'UVFluxDiffuse_?UVFLX?         ', 'GIGCchem',
-                              #'UVFluxDirect_?UVFLX?          ', 'GIGCchem',
-                              #'UVFluxNet_?UVFLX?             ', 'GIGCchem',
+  JValues.fields:             'JvalO3O3P              ', 'GCHPchem',
+                              'JvalO3O1D              ', 'GCHPchem',
+                              'Jval_O2                ', 'GCHPchem',
+                              'Jval_SO4               ', 'GCHPchem',
+                              'Jval_RP                ', 'GCHPchem',
+                              'Jval_RIPD              ', 'GCHPchem',
+                              'Jval_RIPC              ', 'GCHPchem',
+                              'Jval_RIPB              ', 'GCHPchem',
+                              'Jval_RIPA              ', 'GCHPchem',
+                              'Jval_RCHO              ', 'GCHPchem',
+                              'Jval_RB3P              ', 'GCHPchem',
+                              'Jval_RA3P              ', 'GCHPchem',
+                              'Jval_R4P               ', 'GCHPchem',
+                              'Jval_R4N2              ', 'GCHPchem',
+                              'Jval_PYAC              ', 'GCHPchem',
+                              'Jval_PRPN              ', 'GCHPchem',
+                              'Jval_PROPNN            ', 'GCHPchem',
+                              'Jval_PP                ', 'GCHPchem',
+                              'Jval_PIP               ', 'GCHPchem',
+                              'Jval_PAN               ', 'GCHPchem',
+                              'Jval_OIO               ', 'GCHPchem',
+                              'Jval_OCS               ', 'GCHPchem',
+                              'Jval_OClO              ', 'GCHPchem',
+                              'Jval_O3                ', 'GCHPchem',
+                              'Jval_NPRNO3            ', 'GCHPchem',
+                              'Jval_NO3               ', 'GCHPchem',
+                              'Jval_NO2               ', 'GCHPchem',
+                              'Jval_NO                ', 'GCHPchem',
+                              'Jval_NITs              ', 'GCHPchem',
+                              'Jval_NIT               ', 'GCHPchem',
+                              'Jval_N2O5              ', 'GCHPchem',
+                              'Jval_N2O               ', 'GCHPchem',
+                              'Jval_MVKPC             ', 'GCHPchem',
+                              'Jval_MVKN              ', 'GCHPchem',
+                              'Jval_MVKHP             ', 'GCHPchem',
+                              'Jval_MVKHCB            ', 'GCHPchem',
+                              'Jval_MVKHC             ', 'GCHPchem',
+                              'Jval_MVK               ', 'GCHPchem',
+                              'Jval_MPN               ', 'GCHPchem',
+                              'Jval_MPAN              ', 'GCHPchem',
+                              'Jval_MP                ', 'GCHPchem',
+                              'Jval_MONITU            ', 'GCHPchem',
+                              'Jval_MONITS            ', 'GCHPchem',
+                              'Jval_MGLY              ', 'GCHPchem',
+                              'Jval_MENO3             ', 'GCHPchem',
+                              'Jval_MEK               ', 'GCHPchem',
+                              'Jval_MCRHP             ', 'GCHPchem',
+                              'Jval_MCRHNB            ', 'GCHPchem',
+                              'Jval_MCRHN             ', 'GCHPchem',
+                              'Jval_MCRENOL           ', 'GCHPchem',
+                              'Jval_MAP               ', 'GCHPchem',
+                              'Jval_MACR1OOH          ', 'GCHPchem',
+                              'Jval_MACR              ', 'GCHPchem',
+                              'Jval_ITHN              ', 'GCHPchem',
+                              'Jval_ITCN              ', 'GCHPchem',
+                              'Jval_IPRNO3            ', 'GCHPchem',
+                              'Jval_IONO2             ', 'GCHPchem',
+                              'Jval_IONO              ', 'GCHPchem',
+                              'Jval_IO                ', 'GCHPchem',
+                              'Jval_INPD              ', 'GCHPchem',
+                              'Jval_INPB              ', 'GCHPchem',
+                              'Jval_INO               ', 'GCHPchem',
+                              'Jval_IHN4              ', 'GCHPchem',
+                              'Jval_IHN3              ', 'GCHPchem',
+                              'Jval_IHN2              ', 'GCHPchem',
+                              'Jval_IHN1              ', 'GCHPchem',
+                              'Jval_IDN               ', 'GCHPchem',
+                              'Jval_IDHPE             ', 'GCHPchem',
+                              'Jval_IDHDP             ', 'GCHPchem',
+                              'Jval_IDCHP             ', 'GCHPchem',
+                              'Jval_ICPDH             ', 'GCHPchem',
+                              'Jval_ICN               ', 'GCHPchem',
+                              'Jval_ICl               ', 'GCHPchem',
+                              'Jval_IBr               ', 'GCHPchem',
+                              'Jval_I2O4              ', 'GCHPchem',
+                              'Jval_I2O3              ', 'GCHPchem',
+                              'Jval_I2O2              ', 'GCHPchem',
+                              'Jval_I2                ', 'GCHPchem',
+                              'Jval_HPETHNL           ', 'GCHPchem',
+                              'Jval_HPALD4            ', 'GCHPchem',
+                              'Jval_HPALD3            ', 'GCHPchem',
+                              'Jval_HPALD2            ', 'GCHPchem',
+                              'Jval_HPALD1            ', 'GCHPchem',
+                              'Jval_HONIT             ', 'GCHPchem',
+                              'Jval_HOI               ', 'GCHPchem',
+                              'Jval_HOCl              ', 'GCHPchem',
+                              'Jval_HOBr              ', 'GCHPchem',
+                              'Jval_HNO4              ', 'GCHPchem',
+                              'Jval_HNO3              ', 'GCHPchem',
+                              'Jval_HNO2              ', 'GCHPchem',
+                              'Jval_HMHP              ', 'GCHPchem',
+                              'Jval_HCFC22            ', 'GCHPchem',
+                              'Jval_HCFC142b          ', 'GCHPchem',
+                              'Jval_HCFC141b          ', 'GCHPchem',
+                              'Jval_HCFC123           ', 'GCHPchem',
+                              'Jval_HC5A              ', 'GCHPchem',
+                              'Jval_HAC               ', 'GCHPchem',
+                              'Jval_H2O2              ', 'GCHPchem',
+                              'Jval_H2402             ', 'GCHPchem',
+                              'Jval_H1301             ', 'GCHPchem',
+                              'Jval_H1211             ', 'GCHPchem',
+                              'Jval_GLYX              ', 'GCHPchem',
+                              'Jval_GLYC              ', 'GCHPchem',
+                              'Jval_ETP               ', 'GCHPchem',
+                              'Jval_ETNO3             ', 'GCHPchem',
+                              'Jval_ETHP              ', 'GCHPchem',
+                              'Jval_ETHLN             ', 'GCHPchem',
+                              'Jval_ClOO              ', 'GCHPchem',
+                              'Jval_ClO               ', 'GCHPchem',
+                              'Jval_ClNO3             ', 'GCHPchem',
+                              'Jval_ClNO2             ', 'GCHPchem',
+                              'Jval_Cl2O2             ', 'GCHPchem',
+                              'Jval_Cl2               ', 'GCHPchem',
+                              'Jval_CHCl3             ', 'GCHPchem',
+                              'Jval_CHBr3             ', 'GCHPchem',
+                              'Jval_CH3I              ', 'GCHPchem',
+                              'Jval_CH3Cl             ', 'GCHPchem',
+                              'Jval_CH3CCl3           ', 'GCHPchem',
+                              'Jval_CH3Br             ', 'GCHPchem',
+                              'Jval_CH2O              ', 'GCHPchem',
+                              'Jval_CH2ICl            ', 'GCHPchem',
+                              'Jval_CH2IBr            ', 'GCHPchem',
+                              'Jval_CH2I2             ', 'GCHPchem',
+                              'Jval_CH2Cl2            ', 'GCHPchem',
+                              'Jval_CH2Br2            ', 'GCHPchem',
+                              'Jval_CFC12             ', 'GCHPchem',
+                              'Jval_CFC115            ', 'GCHPchem',
+                              'Jval_CFC114            ', 'GCHPchem',
+                              'Jval_CFC113            ', 'GCHPchem',
+                              'Jval_CFC11             ', 'GCHPchem',
+                              'Jval_CCl4              ', 'GCHPchem',
+                              'Jval_BrO               ', 'GCHPchem',
+                              'Jval_BrNO3             ', 'GCHPchem',
+                              'Jval_BrNO2             ', 'GCHPchem',
+                              'Jval_BrCl              ', 'GCHPchem',
+                              'Jval_Br2               ', 'GCHPchem',
+                              'Jval_ATOOH             ', 'GCHPchem',
+                              'Jval_ALD2              ', 'GCHPchem',
+                              'Jval_ACET              ', 'GCHPchem',
+                              'UVFluxNet_574nm        ', 'GCHPchem',
+                              'UVFluxNet_380nm        ', 'GCHPchem',
+                              'UVFluxNet_333nm        ', 'GCHPchem',
+                              'UVFluxNet_316nm        ', 'GCHPchem',
+                              'UVFluxNet_310nm        ', 'GCHPchem',
+                              'UVFluxNet_303nm        ', 'GCHPchem',
+                              'UVFluxNet_295nm        ', 'GCHPchem',
+                              'UVFluxNet_277nm        ', 'GCHPchem',
+                              'UVFluxNet_267nm        ', 'GCHPchem',
+                              'UVFluxNet_261nm        ', 'GCHPchem',
+                              'UVFluxNet_214nm        ', 'GCHPchem',
+                              'UVFluxNet_211nm        ', 'GCHPchem',
+                              'UVFluxNet_208nm        ', 'GCHPchem',
+                              'UVFluxNet_202nm        ', 'GCHPchem',
+                              'UVFluxNet_196nm        ', 'GCHPchem',
+                              'UVFluxNet_193nm        ', 'GCHPchem',
+                              'UVFluxNet_191nm        ', 'GCHPchem',
+                              'UVFluxNet_187nm        ', 'GCHPchem',
+                              'UVFluxDirect_574nm     ', 'GCHPchem',
+                              'UVFluxDirect_380nm     ', 'GCHPchem',
+                              'UVFluxDirect_333nm     ', 'GCHPchem',
+                              'UVFluxDirect_316nm     ', 'GCHPchem',
+                              'UVFluxDirect_310nm     ', 'GCHPchem',
+                              'UVFluxDirect_303nm     ', 'GCHPchem',
+                              'UVFluxDirect_295nm     ', 'GCHPchem',
+                              'UVFluxDirect_277nm     ', 'GCHPchem',
+                              'UVFluxDirect_267nm     ', 'GCHPchem',
+                              'UVFluxDirect_261nm     ', 'GCHPchem',
+                              'UVFluxDirect_214nm     ', 'GCHPchem',
+                              'UVFluxDirect_211nm     ', 'GCHPchem',
+                              'UVFluxDirect_208nm     ', 'GCHPchem',
+                              'UVFluxDirect_202nm     ', 'GCHPchem',
+                              'UVFluxDirect_196nm     ', 'GCHPchem',
+                              'UVFluxDirect_193nm     ', 'GCHPchem',
+                              'UVFluxDirect_191nm     ', 'GCHPchem',
+                              'UVFluxDirect_187nm     ', 'GCHPchem',
+                              'UVFluxDiffuse_574nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_380nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_333nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_316nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_310nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_303nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_295nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_277nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_267nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_261nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_214nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_211nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_208nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_202nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_196nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_193nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_191nm    ', 'GCHPchem',
+                              'UVFluxDiffuse_187nm    ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE KppDiags COLLECTION %%%%%
@@ -421,7 +559,13 @@ COLLECTIONS: 'Restart',
   ProdLoss.frequency:         {FREQUENCY}
   ProdLoss.duration:          {DURATION}
   ProdLoss.mode:              'time-averaged'
-  ProdLoss.fields:            'Prod_?PRD?                    ', 'GIGCchem',
+  ProdLoss.fields:            'Prod_Ox                       ', 'GIGCchem',
+                              'Prod_SO4                      ', 'GIGCchem',
+                              'Prod_CO                       ', 'GIGCchem',
+                              'Prod_H2O2                     ', 'GIGCchem',
+                              'Loss_CH4                      ', 'GIGCchem',
+                              'Loss_CO                       ', 'GIGCchem',
+                              'Loss_Ox                       ', 'GIGCchem',
                               'ProdBCPIfromBCPO              ', 'GIGCchem',
                               'ProdOCPIfromOCPO              ', 'GIGCchem',
                               'ProdSO4fromH2O2inCloud        ', 'GIGCchem',
@@ -432,80 +576,9 @@ COLLECTIONS: 'Restart',
                               'ProdSO4fromSRO3               ', 'GIGCchem',
                               'ProdSO4fromSRHObr             ', 'GIGCchem',
                               'ProdSO4fromO3s                ', 'GIGCchem',
-                              'Loss_?LOS?                    ', 'GIGCchem',
                               'LossHNO3onSeaSalt             ', 'GIGCchem',
                               'ProdCOfromCH4                 ', 'GIGCchem',
                               'ProdCOfromNMVOC               ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE RRTMG COLLECTION %%%%%
-#
-# Outputs for different species from the RRTMG radiative transfer model:
-# (See http://wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG)
-#
-#    0=BA (Baseline    )  1=O3 (Ozone          )   2=ME (Methane   )
-#    3=SU (Sulfate     )  4=NI (Nitrate        )   5=AM (Ammonium  )
-#    6=BC (Black carbon)  7=OA (Organic aerosol)   8=SS (Sea Salt  )
-#    9=DU (Mineral dust) 10=PM (All part. matter) 12=ST (Strat aer., UCX only)
-#
-# NOTES:
-# (1) Only request diagnostics you need to reduce the overall run time.
-# (2) The ?RRTMG? wildcard includes all output except ST (strat aerosols).
-#     However, if ST is included explicitly for one diagnostic then it
-#     will be included for all others that use the wildcard.
-# (3) Only enable ST if running with UCX.
-# (4) Optics diagnostics have a reduced set of output species (no BASE, O3, ME)
-#==============================================================================
-  RRTMG.template:             '%y4%m2%d2_%h2%n2z.nc4',
-  RRTMG.frequency:            {FREQUENCY}
-  RRTMG.duration:             {DURATION}
-  RRTMG.mode:                 'time-averaged'
-  RRTMG.fields:               'RadClrSkyLWSurf_BASE   ', 'GIGCchem',
-                              'RadClrSkyLWSurf_O3     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_ME     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_SU     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_NI     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_AM     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_BC     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_OA     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_SS     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_DU     ', 'GIGCchem',
-                              'RadClrSkyLWSurf_PM     ', 'GIGCchem',
-                              #'RadClrSkyLWSurf_ST     ', 'GIGCchem',
-                              'RadAllSkyLWSurf_?RRTMG?', 'GIGCchem',
-                              'RadClrSkySWSurf_?RRTMG?', 'GIGCchem',
-                              'RadAllSkySWSurf_?RRTMG?', 'GIGCchem',
-                              'RadClrSkyLWTOA_?RRTMG? ', 'GIGCchem',
-                              'RadAllSkyLWTOA_?RRTMG? ', 'GIGCchem',
-                              'RadClrSkySWTOA_?RRTMG? ', 'GIGCchem',
-                              'RadAllSkySWTOA_?RRTMG? ', 'GIGCchem',
-                              'RadAODWL1_SU          ', 'GIGCchem',
-                              'RadAODWL1_NI          ', 'GIGCchem',
-                              'RadAODWL1_AM          ', 'GIGCchem',
-                              'RadAODWL1_BC          ', 'GIGCchem',
-                              'RadAODWL1_OA          ', 'GIGCchem',
-                              'RadAODWL1_SS          ', 'GIGCchem',
-                              'RadAODWL1_DU          ', 'GIGCchem',
-                              'RadAODWL1_PM          ', 'GIGCchem',
-                              #'RadAODWL1_ST          ', 'GIGCchem',
-                              'RadSSAWL1_SU          ', 'GIGCchem',
-                              'RadSSAWL1_NI          ', 'GIGCchem',
-                              'RadSSAWL1_AM          ', 'GIGCchem',
-                              'RadSSAWL1_BC          ', 'GIGCchem',
-                              'RadSSAWL1_OA          ', 'GIGCchem',
-                              'RadSSAWL1_SS          ', 'GIGCchem',
-                              'RadSSAWL1_DU          ', 'GIGCchem',
-                              'RadSSAWL1_PM          ', 'GIGCchem',
-                              #'RadSSAWL1_ST          ', 'GIGCchem',
-                              'RadAsymWL1_SU         ', 'GIGCchem',
-                              'RadAsymWL1_NI         ', 'GIGCchem',
-                              'RadAsymWL1_AM         ', 'GIGCchem',
-                              'RadAsymWL1_BC         ', 'GIGCchem',
-                              'RadAsymWL1_OA         ', 'GIGCchem',
-                              'RadAsymWL1_SS         ', 'GIGCchem',
-                              'RadAsymWL1_DU         ', 'GIGCchem',
-                              'RadAsymWL1_PM         ', 'GIGCchem',
-                              #'RadAsymWL1_ST         ', 'GIGCchem',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%
@@ -654,45 +727,4 @@ COLLECTIONS: 'Restart',
                           'Met_BXHEIGHT                      ', 'GIGCchem',
                           'Met_AIRDEN                        ', 'GIGCchem',
                           'Met_AD                            ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE WetLossConv COLLECTION %%%%%
-#
-# Loss of soluble species in convective updrafts
-#
-# Available for all simulations that have soluble species
-#==============================================================================
-  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.frequency:      {FREQUENCY}
-  WetLossConv.duration:       {DURATION}
-  WetLossConv.mode:           'time-averaged'
-  WetLossConv.fields:         'WetLossConv_?WET?             ', 'GIGCchem',
-                              'WetLossConvFrac_?WET?         ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE WetLossLS COLLECTION %%%%%
-#
-# Loss of soluble species in large-scale wetdep (i.e. rainout and washout)
-#
-# Available for all simulations that have soluble species
-#==============================================================================
-# Loss due to rainout and washout (per deposited species)
-  WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossLS.frequency:        {FREQUENCY}
-  WetLossLS.duration:         {DURATION}
-  WetLossLS.mode:             'time-averaged'
-  WetLossLS.fields:           'WetLossLS_?WET?               ', 'GIGCchem',
-::
-#==============================================================================
-# %%%%% THE BoundaryConditions COLLECTION %%%%%
-#
-# GEOS-Chem boundary conditions for use in nested grid simulations
-#
-# Available for all simulations
-#==============================================================================
-  BoundaryConditions.template:   '%y4%m2%d2_%h2%n2z.nc4',
-  BoundaryConditions.frequency:  00000000 030000
-  BoundaryConditions.duration:   00000001 000000
-  BoundaryConditions.mode:       'instantaneous'
-  BoundaryConditions.fields:     'SpeciesBC_?ADV?             ', 'GIGCchem',
 ::
