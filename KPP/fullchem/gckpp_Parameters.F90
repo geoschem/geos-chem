@@ -43,13 +43,13 @@ MODULE gckpp_Parameters
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 4 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 913 
+  INTEGER, PARAMETER :: NREACT = 914 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 288 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 3486 
+  INTEGER, PARAMETER :: NONZERO = 3487 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
   INTEGER, PARAMETER :: LU_NONZERO = 4579 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
