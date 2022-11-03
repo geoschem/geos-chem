@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
 
+### Fixed
+-Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
+
+
 ## [14.0.1] - 2022-10-31
 ### Fixed
 - Corrected units in metadata for State_Met%AirNumDen and State_Met%PHIS
