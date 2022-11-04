@@ -9,8 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
 - Added Add MO2 + NO3 = NO2 + CH2O + HO2 reaction
 
+### Changed
+
 ### Fixed
-- Change sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O
+- Fixed sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O
+- Fixed products in HOBr + SO2 and HOCl + SO2 reactions
 
 
 ## [14.0.1] - 2022-10-31
