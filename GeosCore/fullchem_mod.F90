@@ -96,6 +96,9 @@ CONTAINS
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
     USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
@@ -265,7 +268,8 @@ CONTAINS
        IF (State_Diag%Archive_KppLuDecomps) State_Diag%KppLuDecomps   = 0.0_f4
        IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
-       IF (State_Diag%Archive_KppAutoReducerNVAR) State_Diag%KppAutoReducerNVAR   = 0.0_f4
+       IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
+                                      State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
     ENDIF
 
@@ -455,55 +459,13 @@ CONTAINS
        CALL Timer_Start( "  -> FlexChem loop", RC )
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Keep species active functionality for auto-reduce
-    ! only available for full-chemistry simulations currently
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Always consider halogens as "fast" species for auto-reduce
+    !------------------------------------------------------------------------
     IF ( FIRSTCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       IF ( Input_Opt%AUTOREDUCE_IS_KEEPACTIVE ) THEN
-           ! New halogens auto-reduce list hplin 01/27/22, 03/02/22
-           ! based off Shen et al. 2020 GMD Table 1, lines 10, 11, 12
-           keepSpcActive(ind_AERI )      = .true.  ! Iodine on aerosol
-           keepSpcActive(ind_Br)         = .true.
-           keepSpcActive(ind_Br2 )       = .true.
-           keepSpcActive(ind_BrCl)       = .true.
-           keepSpcActive(ind_BrNO2)      = .true.
-           keepSpcActive(ind_BrNO3)      = .true.
-           keepSpcActive(ind_BrO)        = .true.
-           keepSpcActive(ind_BrSALA)     = .true.
-           keepSpcActive(ind_BrSALC)     = .true.
-           keepSpcActive(ind_HBr )       = .true.
-           keepSpcActive(ind_HOBr)       = .true.
-           keepSpcActive(ind_Cl  )       = .true.
-           keepSpcActive(ind_Cl2)        = .true.
-           keepSpcActive(ind_Cl2O2)      = .true.
-           keepSpcActive(ind_ClNO2)      = .true.
-           keepSpcActive(ind_ClNO3)      = .true.
-           keepSpcActive(ind_ClO )       = .true.
-           keepSpcActive(ind_ClOO)       = .true.
-           keepSpcActive(ind_OClO)       = .true.
-           keepSpcActive(ind_HCl )       = .true.
-           keepSpcActive(ind_HOCl)       = .true.
-           keepSpcActive(ind_I)          = .true.
-           keepSpcActive(ind_I2   )      = .true.
-           keepSpcActive(ind_IO)         = .true.
-           keepSpcActive(ind_I2O2)       = .true.
-           keepSpcActive(ind_HI   )      = .true.
-           keepSpcActive(ind_ISALA)      = .true.
-           keepSpcActive(ind_ISALC)      = .true.
-           keepSpcActive(ind_I2O4 )      = .true.
-           keepSpcActive(ind_I2O3 )      = .true.
-           keepSpcActive(ind_INO  )      = .true.
-           keepSpcActive(ind_IONO)       = .true.
-           keepSpcActive(ind_IONO2)      = .true.
-           keepSpcActive(ind_ICl  )      = .true.
-           keepSpcActive(ind_IBr  )      = .true.
-           keepSpcActive(ind_HOI)        = .true.
-           keepSpcActive(ind_SALACl)     = .true.
-           keepSpcActive(ind_SALCCl)     = .true.
-           keepSpcActive(ind_SALAAL)     = .true.
-           keepSpcActive(ind_SALCAL)     = .true.
-        ENDIF
+       IF ( Input_Opt%AutoReduce_Is_KeepActive ) THEN
+          CALL fullchem_AR_KeepHalogensActive( Input_Opt%amIRoot )
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -573,7 +535,8 @@ CONTAINS
 
        ! Per discussions for Lin et al., force keepActive throughout the atmosphere
        ! if keepActive option is enabled. (hplin, 2/9/22)
-       keepActive = .true.
+       !keepActive = .true.
+       CALL fullchem_AR_SetKeepActive( option=.TRUE. )
 
        ! Start measuring KPP-related routine timing for this grid box
        IF ( State_Diag%Archive_KppTime ) THEN
@@ -1176,19 +1139,10 @@ CONTAINS
              State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
 
-          ! # of species in auto-reduced mechanism
-          IF ( Input_Opt%USE_AUTOREDUCE .and. State_Diag%Archive_KppAutoReducerNVAR ) THEN
-             State_Diag%KppAutoReducerNVAR(I,J,L) = rNVAR
-          ENDIF
-
-          ! Computed threshold
-          IF ( Input_Opt%USE_AUTOREDUCE .and. State_Diag%Archive_KppAutoReduceThres ) THEN
-             State_Diag%KppAutoReduceThres(I,J,L) = RSTATE(NARthr)
-          ENDIF
-
-          ! # of nonzero elements in LU factorization of Jacobian, AR only
-          IF ( Input_Opt%USE_AUTOREDUCE .and. State_Diag%Archive_KppcNONZERO ) THEN
-             State_Diag%KppcNONZERO(I,J,L) = cNONZERO
+          ! Update autoreduce solver statistics
+          ! (only if the autoreduction is turned on)
+          IF ( Input_Opt%Use_AutoReduce ) THEN
+             CALL fullchem_AR_UpdateKppDiags( I, J, L, RSTATE, State_Diag )
           ENDIF
        ENDIF
 
@@ -1208,7 +1162,7 @@ CONTAINS
           C         = 0.0_dp
 
           ! Disable auto-reduce solver for the second iteration for safety
-          IF ( Input_Opt%USE_AUTOREDUCE) THEN
+          IF ( Input_Opt%Use_AutoReduce ) THEN
              RCNTRL(12) = -1.0_dp ! without using ICNTRL
           ENDIF
 
