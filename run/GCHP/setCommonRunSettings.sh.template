@@ -86,6 +86,7 @@ Diag_Collections=(SpeciesConc    \
                   RRTMG 	 \
                   StateChm	 \
                   StateMet       \
+                  StratBM        \
                   Transport	 \
                   WetLossConv    \
                   WetLossLS      \
@@ -95,13 +96,14 @@ Diag_Collections=(SpeciesConc    \
 #    MID-RUN CHECKPOINT FILES
 #------------------------------------------------------------
 Periodic_Checkpoint=OFF
-Checkpoint_Freq="1680000"
+Checkpoint_Freq=monthly
 
 # Instructions for configuring restart output before end of run:
 #  1. Set Periodic_Checkpoint=ON
-#  2. Set Checkpoint_Freq to a string of format HHmmss. More than 2 digits for
-#     hours string is permitted, e.g. 168000 for 7 days.
-#  NOTE: Frequency of output will be measured from start datetime in cap_restart
+#  2. Set Checkpoint_Freq to either monthly or a string of format HHmmss
+#     where HHmmss is frequency hours, minutes, and seconds.
+#     More than 2 digits for hours is permitted, e.g. "1680000" for 7 days.
+#  NOTE: Frequency of output will be measured from start date set in cap_restart.
 
 ###################################################################
 #    INFREQUENTLY CHANGED SETTINGS
@@ -565,7 +567,7 @@ if [[ ${Periodic_Checkpoint} == "ON" ]]; then
     uncomment_line RECORD_REF_DATE  GCHP.rc
     uncomment_line RECORD_REF_TIME  GCHP.rc
     replace_val RECORD_FREQUENCY "${Checkpoint_Freq}" GCHP.rc
-    start_str=$(echo cap_restart)
+    start_str=$(cat cap_restart)
     Checkpoint_Ref_Date="${start_str:0:8}"
     Checkpoint_Ref_Time="${start_str:9:6}"
     replace_val RECORD_REF_DATE "${Checkpoint_Ref_Date}" GCHP.rc

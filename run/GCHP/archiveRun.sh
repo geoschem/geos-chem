@@ -8,7 +8,7 @@
 #
 # All output files are copied, including output data (OutputDir/*.nc4), 
 # log files (*.log, slurm-*), config files (*.rc, *.yml), 
-# run files (*.run, *.env, setCommonRunSettings.sh), and restarts (only gcchem*). 
+# run files (*.run, *.env, setCommonRunSettings.sh), and restarts. 
 # Files are stored in subdirectories within the archive directory.
 #
 # NOTE: Clean the run directory AFTER archiving with './cleanupRunDir.sh'
@@ -74,25 +74,23 @@ copyfiles () {
 # Make Archive directory
 echo "Archiving files to directory $1"
 mkdir -p ${archivedir}
-mkdir -p ${archivedir}/OutputDir
-mkdir -p ${archivedir}/BenchmarkResults
+mkdir -p ${archivedir}/Logs
 
 # Copy files
 echo "Copying files..."
 copyfiles "*.yml"              ${archivedir}
-copyfiles "rundir.version"     ${archivedir}
 copyfiles "*.rc"               ${archivedir}
-copyfiles "setCommonRunSettings.sh" ${archivedir}
 copyfiles "*.run"              ${archivedir}
-copyfiles "*.multirun.sh"      ${archivedir}
+copyfiles "*.sh"               ${archivedir}
 copyfiles "*.env"              ${archivedir}
-copyfiles "*.log"              ${archivedir}
-copyfiles "slurm-*"            ${archivedir}
-copyfiles "gcchem_*"           ${archivedir}
+copyfiles "*.log"              ${archivedir}/Logs
+copyfiles "slurm-*"            ${archivedir}/Logs
+copyfiles "build_info/"        ${archivedir}
+copyfiles "BenchmarkResults/"  ${archivedir}
+copyfiles "OutputDir/"         ${archivedir}
+copyfiles "CreateRunDirLogs/"  ${archivedir}
 copyfiles "cap_restart"        ${archivedir}
-copyfiles "build_info/*"       ${archivedir}/build_info
-copyfiles "BenchmarkResults/*" ${archivedir}/BenchmarkResults
-copyfiles "OutputDir/*"        ${archivedir}/OutputDir
+copyfiles "setCommonRunSettings.sh" ${archivedir}
 
 printf "WARNING: Restart files are not archived. Copy manually if you would like to store restarts in the archive directory."
 printf "Complete!\n"

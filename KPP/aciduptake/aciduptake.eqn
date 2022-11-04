@@ -471,7 +471,6 @@ SO4D1      = IGNORE; {SO4 taken up on DST1}
 SO4D2      = IGNORE; {SO4 taken up on DST2}
 SO4D3      = IGNORE; {SO4 taken up on DST3}
 SO4D4      = IGNORE; {SO4 taken up on DST4}
-SO4        = IGNORE; {SO4; Sulfate}
 SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
