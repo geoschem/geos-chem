@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O
 - Fixed products in HOBr + SO2 and HOCl + SO2 reactions
+- Changed MW_g value of CH4 from 16.05 to 16.04
 
 
 ## [14.0.1] - 2022-10-31

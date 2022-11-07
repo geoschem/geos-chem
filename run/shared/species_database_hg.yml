@@ -16,7 +16,7 @@ CH4:
   Formula: CH4
   Fullname: Methane
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 Cl:
   Formula: Cl
   FullName: Atomic chlorine
