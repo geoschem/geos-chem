@@ -81,40 +81,40 @@ CONTAINS
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
   END SUBROUTINE carboncycle_ConvertMolecCm3ToKg
 
-  FUNCTION carboncycle_Get_CO_CH4_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carboncycle_Get_COfromCH4_Flux( dtChem ) RESULT ( flux )
     !
     ! Stub for carboncycle_Get_CO_CH4_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION carboncycle_Get_CO_CH4_Flux
+  END FUNCTION carboncycle_Get_COfromCH4_Flux
 
-  FUNCTION carboncycle_Get_CO_NMVOC_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carboncycle_Get_COfromNMVOC_Flux( dtChem ) RESULT ( flux )
     !
     ! Stub for carboncycle_Get_CO_NMVOC_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION carboncycle_Get_CO_NMVOC_Flux
+  END FUNCTION carboncycle_Get_COfromNMVOC_Flux
 
-  FUNCTION  carboncycle_Get_CO2_OH_Flux( dtChem ) RESULT ( flux )
+  FUNCTION  carboncycle_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
     !
     ! Stub for carboncycle_Get_CO_NMVOC_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION carboncycle_Get_CO2_OH_Flux
+  END FUNCTION carboncycle_Get_CO2fromOH_Flux
 
-  FUNCTION ccarboncycle_Get_OH_E_Flux( dtChem ) RESULT ( flux )
+  FUNCTION ccarboncycle_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
     !
     ! Stub for ccarboncycle_Get_OH_E_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION ccarboncycle_Get_OH_E_Flux
+  END FUNCTION ccarboncycle_Get_FixedOH_Flux
 
 END MODULE carboncycle_Funcs
