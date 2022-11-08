@@ -3316,6 +3316,7 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
+  WD_CoarseAer: true
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -4351,6 +4352,7 @@ SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
   MW_g: 31.4
+  WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
