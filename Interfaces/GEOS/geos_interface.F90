@@ -1887,19 +1887,23 @@ CONTAINS
 
        ! Check if total column and/or trop. column requested for this species
        TotID = -1
-       DO J = 1,mapTotCol%nSlots
-           IF ( mapTotCol%slot2id(J)==I ) THEN
-              TotID = J
-              EXIT
-           ENDIF
-       ENDDO
+       IF ( State_Diag%Archive_TotCol ) THEN 
+          DO J = 1,mapTotCol%nSlots
+             IF ( mapTotCol%slot2id(J)==I ) THEN
+                TotID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
        TropID = -1
-       DO J = 1,mapTropCol%nSlots
-           IF ( mapTropCol%slot2id(J)==I ) THEN
-              TropID = J
-              EXIT
-           ENDIF
-       ENDDO
+       IF ( State_Diag%Archive_TropCol ) THEN
+          DO J = 1,mapTropCol%nSlots
+             IF ( mapTropCol%slot2id(J)==I ) THEN
+                TropID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
        IF ( (TotID<0) .AND. (TropID<0) ) CYCLE
 
        ! Species info
