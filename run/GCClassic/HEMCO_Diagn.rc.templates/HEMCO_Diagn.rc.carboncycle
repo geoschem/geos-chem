@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: HEMCO_Diagn.rc 
+# !MODULE: HEMCO_Diagn.rc
 #
 # !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
 #\\
@@ -13,14 +13,14 @@
 #
 # !REVISION HISTORY:
 #  18 Oct 2018 - R. Yantosca - Added comment header and longname metadata.
-#                              Also changed output unit to kg/m2/s.                    
+#                              Also changed output unit to kg/m2/s.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 # Name               Spec  ExtNr  Cat Hier Dim  OutUnit  LongName
 
 ###############################################################################
-#####  CH4 sources                                                         ##### 
+#####  CH4 sources                                                         #####
 ###############################################################################
 
 EmisCH4_Total         CH4     -1   -1   -1   2  kg/m2/s  CH4_emissions_from_all_sectors
@@ -40,7 +40,7 @@ EmisCH4_Termites      CH4      0   13   -1   2  kg/m2/s  CH4_emissions_from_term
 EmisCH4_SoilAbsorb    CH4      0   14   -1   2  kg/m2/s  CH4_emissions_from_soil_absorption
 
 ###############################################################################
-#####  CO sources                                                         ##### 
+#####  CO sources                                                         #####
 ###############################################################################
 EmisCO_Total          CO      -1   -1   -1   3  kg/m2/s  CO_emission_flux_from_all_sectors
 EmisCO_Aircraft       CO       0   20   -1   3  kg/m2/s  CO_emission_flux_from_aircraft
@@ -49,43 +49,7 @@ EmisCO_BioBurn        CO       0    5   -1   2  kg/m2/s  CO_emission_flux_from_b
 EmisCO_Ship           CO       0   10   -1   2  kg/m2/s  CO_emission_flux_from_ships
 
 ###############################################################################
-#####  COus sources                                                       ##### 
-###############################################################################
-EmisCOus_Total        COus    -1   -1   -1   3  kg/m2/s  COus_emission_flux_from_all_sectors
-EmisCOus_Aircraft     COus     0   20   -1   3  kg/m2/s  COus_emission_flux_from_aircraft
-EmisCOus_Anthro       COus     0    1   -1   3  kg/m2/s  COus_emission_flux_from_anthropogenic
-EmisCOus_BioBurn      COus     0    5   -1   2  kg/m2/s  COus_emission_flux_from_biomass_burning
-EmisCOus_Ship         COus     0   10   -1   2  kg/m2/s  COus_emission_flux_from_ships
-
-###############################################################################
-#####  COeur sources                                                      ##### 
-###############################################################################
-EmisCOeur_Total       COeur   -1   -1   -1   3  kg/m2/s  COeur_emission_flux_from_all_sectors
-EmisCOeur_Aircraft    COeur    0   20   -1   3  kg/m2/s  COeur_emission_flux_from_aircraft
-EmisCOeur_Anthro      COeur    0    1   -1   3  kg/m2/s  COeur_emission_flux_from_anthropogenic
-EmisCOeur_BioBurn     COeur    0    5   -1   2  kg/m2/s  COeur_emission_flux_from_biomass_burning
-EmisCOeur_Ship        COeur    0   10   -1   2  kg/m2/s  COeur_emission_flux_from_ships
-
-###############################################################################
-#####  COasia sources                                                     ##### 
-###############################################################################
-EmisCOasia_Total      COasia  -1   -1   -1   3  kg/m2/s  COasia_emission_flux_from_all_sectors
-EmisCOasia_Aircraft   COasia   0   20   -1   3  kg/m2/s  COasia_emission_flux_from_aircraft
-EmisCOasia_Anthro     COasia   0    1   -1   3  kg/m2/s  COasia_emission_flux_from_anthropogenic
-EmisCOasia_BioBurn    COasia   0    5   -1   2  kg/m2/s  COasia_emission_flux_from_biomass_burning
-EmisCOasia_Ship       COasia   0   10   -1   2  kg/m2/s  COasia_emission_flux_from_ships
-
-###############################################################################
-#####  COoth sources                                                      ##### 
-###############################################################################
-EmisCOoth_Total       COoth   -1   -1   -1   3  kg/m2/s  COoth_emission_flux_from_all_sectors
-EmisCOoth_Aircraft    COoth    0   20   -1   3  kg/m2/s  COoth_emission_flux_from_aircraft
-EmisCOoth_Anthro      COoth    0    1   -1   3  kg/m2/s  COoth_emission_flux_from_anthropogenic
-EmisCOoth_BioBurn     COoth    0    5   -1   2  kg/m2/s  COoth_emission_flux_from_biomass_burning
-EmisCOoth_Ship        COoth    0   10   -1   2  kg/m2/s  COoth_emission_flux_from_ships
-
-###############################################################################
-#####  CO2 sources                                                      ##### 
+#####  CO2 sources                                                        #####
 ###############################################################################
 EmisCO2_Total         CO2      0   -1   -1   3  kg/m2/s  CO2_total_emissions
 EmisCO2_FossilFuel    CO2      0    1   -1   2  kg/m2/s  CO2_anthropogenic_emissions
@@ -103,4 +67,85 @@ EmisCO2_CO2SurfCorr   CO2      0    8   -1   2  kg/m2/s  CO2_surface_correction_
 # Uncomment this if FINN is used
 #EmisCO2_Biomass_FINN  CO2    114    1    1   2  kg/m2/s  CO2_biomass_burning_emissions_from_FINN
 
-    
+###############################################################################
+#####  OCS sources                                                        #####
+###############################################################################
+EmisOCS_Total         OCS      0   -1   -1   3  kg/m2/s  OCS_emission_flux_from_all_sectors
+EmisOCS_Anthro        OCS      0    1   -1   2  kg/m2/s  OCS_emission_flux_from_anthropogenic
+EmisOCS_Bioburn       OCS      0    2   -1   2  kg/m2/s  OCS_emission_flux_from_biomass_burning
+EmisOCS_MissingOcean  OCS      0    3   -1   2  kg/m2/s  OCS_emission_flux_from_missing_ocean
+EmisOCS_Ocean         OCS      0    4   -1   2  kg/m2/s  OCS_emission_flux_from_ocean
+
+# Tagged CO species, uncomment if needed
+#
+################################################################################
+######  COus sources                                                       #####
+################################################################################
+#EmisCOus_Total        COus    -1   -1   -1   3  kg/m2/s  COus_emission_flux_from_all_sectors
+#EmisCOus_Aircraft     COus     0   20   -1   3  kg/m2/s  COus_emission_flux_from_aircraft
+#EmisCOus_Anthro       COus     0    1   -1   3  kg/m2/s  COus_emission_flux_from_anthropogenic
+#EmisCOus_BioBurn      COus     0    5   -1   2  kg/m2/s  COus_emission_flux_from_biomass_burning
+#EmisCOus_Ship         COus     0   10   -1   2  kg/m2/s  COus_emission_flux_from_ships
+#
+################################################################################
+######  COeur sources                                                      #####
+################################################################################
+#EmisCOeur_Total       COeur   -1   -1   -1   3  kg/m2/s  COeur_emission_flux_from_all_sectors
+#EmisCOeur_Aircraft    COeur    0   20   -1   3  kg/m2/s  COeur_emission_flux_from_aircraft
+#EmisCOeur_Anthro      COeur    0    1   -1   3  kg/m2/s  COeur_emission_flux_from_anthropogenic
+#EmisCOeur_BioBurn     COeur    0    5   -1   2  kg/m2/s  COeur_emission_flux_from_biomass_burning
+#EmisCOeur_Ship        COeur    0   10   -1   2  kg/m2/s  COeur_emission_flux_from_ships
+#
+################################################################################
+######  COasia sources                                                     #####
+################################################################################
+#EmisCOasia_Total      COasia  -1   -1   -1   3  kg/m2/s  COasia_emission_flux_from_all_sectors
+#EmisCOasia_Aircraft   COasia   0   20   -1   3  kg/m2/s  COasia_emission_flux_from_aircraft
+#EmisCOasia_Anthro     COasia   0    1   -1   3  kg/m2/s  COasia_emission_flux_from_anthropogenic
+#EmisCOasia_BioBurn    COasia   0    5   -1   2  kg/m2/s  COasia_emission_flux_from_biomass_burning
+#EmisCOasia_Ship       COasia   0   10   -1   2  kg/m2/s  COasia_emission_flux_from_ships
+#
+################################################################################
+######  COoth sources                                                      #####
+################################################################################
+#EmisCOoth_Total       COoth   -1   -1   -1   3  kg/m2/s  COoth_emission_flux_from_all_sectors
+#EmisCOoth_Aircraft    COoth    0   20   -1   3  kg/m2/s  COoth_emission_flux_from_aircraft
+#EmisCOoth_Anthro      COoth    0    1   -1   3  kg/m2/s  COoth_emission_flux_from_anthropogenic
+#EmisCOoth_BioBurn     COoth    0    5   -1   2  kg/m2/s  COoth_emission_flux_from_biomass_burning
+#EmisCOoth_Ship        COoth    0   10   -1   2  kg/m2/s  COoth_emission_flux_from_ships
+#
+################################################################################
+######  COus sources                                                       #####
+################################################################################
+#EmisCOus_Total        COus    -1   -1   -1   3  kg/m2/s  COus_emission_flux_from_all_sectors
+#EmisCOus_Aircraft     COus     0   20   -1   3  kg/m2/s  COus_emission_flux_from_aircraft
+#EmisCOus_Anthro       COus     0    1   -1   3  kg/m2/s  COus_emission_flux_from_anthropogenic
+#EmisCOus_BioBurn      COus     0    5   -1   2  kg/m2/s  COus_emission_flux_from_biomass_burning
+#EmisCOus_Ship         COus     0   10   -1   2  kg/m2/s  COus_emission_flux_from_ships
+#
+################################################################################
+######  COeur sources                                                      #####
+################################################################################
+#EmisCOeur_Total       COeur   -1   -1   -1   3  kg/m2/s  COeur_emission_flux_from_all_sectors
+#EmisCOeur_Aircraft    COeur    0   20   -1   3  kg/m2/s  COeur_emission_flux_from_aircraft
+#EmisCOeur_Anthro      COeur    0    1   -1   3  kg/m2/s  COeur_emission_flux_from_anthropogenic
+#EmisCOeur_BioBurn     COeur    0    5   -1   2  kg/m2/s  COeur_emission_flux_from_biomass_burning
+#EmisCOeur_Ship        COeur    0   10   -1   2  kg/m2/s  COeur_emission_flux_from_ships
+#
+################################################################################
+######  COasia sources                                                     #####
+################################################################################
+#EmisCOasia_Total      COasia  -1   -1   -1   3  kg/m2/s  COasia_emission_flux_from_all_sectors
+#EmisCOasia_Aircraft   COasia   0   20   -1   3  kg/m2/s  COasia_emission_flux_from_aircraft
+#EmisCOasia_Anthro     COasia   0    1   -1   3  kg/m2/s  COasia_emission_flux_from_anthropogenic
+#EmisCOasia_BioBurn    COasia   0    5   -1   2  kg/m2/s  COasia_emission_flux_from_biomass_burning
+#EmisCOasia_Ship       COasia   0   10   -1   2  kg/m2/s  COasia_emission_flux_from_ships
+#
+################################################################################
+######  COoth sources                                                      #####
+################################################################################
+#EmisCOoth_Total       COoth   -1   -1   -1   3  kg/m2/s  COoth_emission_flux_from_all_sectors
+#EmisCOoth_Aircraft    COoth    0   20   -1   3  kg/m2/s  COoth_emission_flux_from_aircraft
+#EmisCOoth_Anthro      COoth    0    1   -1   3  kg/m2/s  COoth_emission_flux_from_anthropogenic
+#EmisCOoth_BioBurn     COoth    0    5   -1   2  kg/m2/s  COoth_emission_flux_from_biomass_burning
+#EmisCOoth_Ship        COoth    0   10   -1   2  kg/m2/s  COoth_emission_flux_from_ships

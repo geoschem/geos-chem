@@ -57,6 +57,7 @@ Mask fractions:              false
     --> USE_CH4_DATA           :       true
     --> USE_CO_DATA            :       true
     --> USE_CO2_DATA           :       true
+    --> USE_OCS_DATA           :       true     # 2012-2016
 # ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       true
     --> HEMCO_RESTART          :       true
@@ -120,6 +121,11 @@ Mask fractions:              false
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
     --> ICOADS_SHIP            :       false    # 2004
+#------ OCS FLUX DATA ---------------------------------------------------------
+    --> OCS_ANTHRO_FLUX        :       true     # 2012-2016
+    --> OCS_BIOMASS_FLUX       :       true     # 2012-2016
+    --> OCS_MISSING_OCEAN_FLUX :       true     # 2012-2016
+    --> OCS_OCEAN_FLUX         :       true     # 2012-2016
 # ----- FUTURE EMISSIONS ------------------------------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
@@ -1139,6 +1145,28 @@ Mask fractions:              false
 
 )))USE_CO2_DATA
 
+(((USE_OCS_DATA
+#=============================================================================
+# OCS anthropogenic fluxes [kg S/km2/s] from Kevin Bowman/JPL
+#=============================================================================
+(((OCS_ANTHRO_FLUX
+0 OCS_ANTHRO $ROOT/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 1 1
+)))OCS_ANTHRO_FLUX
+
+(((OCS_BIOMASS_FLUX
+0 OCS_BIOMASS $ROOT/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 2 1
+)))OCS_BIOMASS_FLUX
+
+(((OCS_MISSING_OCEAN_FLUX
+0 OCS_MISSING_OCEAN $ROOT/OCS_FLUX/v2022-11/MissingOcean/LUKAI/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 3 1
+)))OCS_MISSING_OCEAN_FLUX
+
+(((OCS_OCEAN_FLUX
+0 OCS_OCEAN $ROOT/OCS_FLUX/v2022-11/OceanCOS/Kettle/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 4 1
+)))OCS_OCEAN_FLUX
+
+)))USE_OCS_DATA
+
 ###############################################################################
 ### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
 ###
@@ -1620,31 +1648,17 @@ ${RUNDIR_CO2_COPROD}
 # --- Scale factors used for species conversions ---
 #==============================================================================
 
-# Units carbon to species conversions
-# Factor = # carbon atoms * MW carbon) / MW species
-40 CtoACET MATH:58.09/(3.0*12.0)   - - - xy unitless 1
-41 CtoALD2 MATH:44.06/(2.0*12.0)   - - - xy unitless 1
-42 CtoALK4 MATH:58.12/(4.3*12.0)   - - - xy unitless 1
-43 CtoBENZ MATH:78.12/(6.0*12.0)   - - - xy unitless 1
-44 CtoC2H4 MATH:28.05/(2.0*12.0)   - - - xy unitless 1
-45 CtoC2H6 MATH:30.08/(2.0*12.0)   - - - xy unitless 1
-46 CtoC3H8 MATH:46.08/(3.0*12.0)   - - - xy unitless 1
-47 CtoEOH  MATH:46.06/(2.0*12.0)   - - - xy unitless 1
-48 CtoMEK  MATH:72.11/(4.0*12.0)   - - - xy unitless 1
-49 CtoPRPE MATH:42.09/(3.0*12.0)   - - - xy unitless 1
-55 CtoTOLU MATH:92.15/(7.0*12.0)   - - - xy unitless 1
-56 CtoXYLE MATH:106.18/(8.0*12.0)  - - - xy unitless 1
-59 CtoC2H2 MATH:26.04/(2.0*12.0)   - - - xy unitless 1
-61 CtoISOP MATH:68.13/(5.0*12.0)   - - - xy unitless 1
-62 CtoMTPA MATH:136.26/(10.0*12.0) - - - xy unitless 1
-64 CtoMBOX MATH:86.13/(5.0*12.0)   - - - xy unitless 1
-67 CtoSESQ MATH:204.4/(15.0*12.0)  - - - xy unitless 1
-
 # VOC speciations
 (((APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 52 COPROD_FOSSIL    1.02  - - - xy unitless 1
 54 COPROD_BIOMASS   1.05  - - - xy unitless 1
 )))APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
+
+# S to OCS ratio
+70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1
+
+# km-2 to m-2
+71 Km2ToM2 1.0e-6 - - - xy unitless 1
 
 #==============================================================================
 # --- QFED2 diurnal scale factors ---
