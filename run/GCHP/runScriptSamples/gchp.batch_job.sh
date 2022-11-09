@@ -148,7 +148,7 @@ source checkRunSettings.sh
 # and update restart symlink
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
-   echo "ERROR: cap_restart either did not change or is empty."
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    

@@ -3982,7 +3982,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on ND51 diagnostic
     !------------------------------------------------------------------------
-    key    = "extra_diagnostics%ND51_satellite%activate"
+    key    = "extra_diagnostics%legacy_bpch%ND51_satellite%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN

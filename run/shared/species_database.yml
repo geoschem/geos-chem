@@ -1359,7 +1359,7 @@ HCOOH:
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
 Hg0_PROP: &Hg0properties
-  DD_F0: 1.0e-5
+  DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
   Is_Advected: true

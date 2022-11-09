@@ -1,6 +1,6 @@
 # This run directory is for GEOS-Chem Classic.
 
-## Instructions on setting up, compiling, and running GEOS-Chem Classic:
+## For instructions on setting up, compiling, and running GEOS-Chem Classic, see:
 
   - https://geos-chem.readthedocs.org
 
