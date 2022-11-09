@@ -150,36 +150,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%%%  NOTE: Emissions for Hg specialty simulations are passed to   %%%%
-    !%%%%  mercury_mod.F90 via HEMCO diagnostics, and not directly      %%%%
-    !%%%%  from the HEMCO state pointer.  Therefore, we need to make    %%%%
-    !%%%%  sure that routine DIAGN_Hg is outside the BPCH_DIAG #if      %%%%
-    !%%%%  block.  -- Bob Yantosca (25 Jan 2018)                        %%%%
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    CALL Diagn_Hg( Input_Opt, HcoState, ExtState, RC )
-
-    ! Trap potential errors
-    IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Diagn_Hg"'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-
-
     !=======================================================================
     ! Define manual diagnostics
     !=======================================================================
     CALL Diagn_Dust    ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-!#ifdef BPCH_DIAG  
 #ifdef TOMAS
     CALL Diagn_TOMAS   ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
-!#endif
+
     ! Return
     RC = HCO_SUCCESS
 
@@ -918,8 +899,6 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-!#ifdef BPCH_DIAG
-
     ! Get default HEMCO species ID's
     id_BCPI = HCO_GetHcoID( 'BCPI', HcoState )
     id_BCPO = HCO_GetHcoID( 'BCPO', HcoState )
@@ -1232,7 +1211,6 @@ CONTAINS
        CALL GC_Error( Msg, RC, Loc )
        RETURN
     ENDIF
-!#endif
 
   END SUBROUTINE Diagn_TOMAS
 !EOC

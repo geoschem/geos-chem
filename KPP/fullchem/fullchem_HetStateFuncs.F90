@@ -443,11 +443,10 @@ CONTAINS
     !=======================================================================
     ! Fraction of SALACL in total fine sea salt
     !=======================================================================
-    ! bc - could give floating point exception -added if
     IF ((  C(ind_SALACL) + C(ind_NIT) + C(ind_SO4)) > 0.0_dp) THEN
-    H%frac_SALACL = C(ind_SALACL) / ( C(ind_SALACL) + C(ind_NIT) + C(ind_SO4) )
+       H%frac_SALACL = C(ind_SALACL) / ( C(ind_SALACL) + C(ind_NIT) + C(ind_SO4) )
     ELSE 
-    H%frac_SALACL = 0.0_dp
+       H%frac_SALACL = 0.0_dp
     ENDIF
 
   END SUBROUTINE Halide_Conc
