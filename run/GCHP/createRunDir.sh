@@ -111,22 +111,8 @@ if [[ -z "${GC_USER_REGISTERED}" ]]; then
     IFS='\n' read -r site
     printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
     IFS='\n' read -r git_username
-    printf "${thinline}How do you plan to run GEOS-Chem?${thinline}"
-    printf "   1. Local Cluster\n"
-    printf "   2. AWS\n"
-    valid_env=0
-    while [ "${valid_env}" -eq 0 ]; do
-        read env_num
-        valid_env=1
-        if [[ ${env_num} = "1" ]]; then
-    	env_type="Local Cluster"
-        elif [[ ${env_num} = "2" ]]; then
-    	env_type=AWS
-        else
-            valid_env=0
-    	printf "Invalid option. Try again.\n"
-        fi
-    done
+    printf "${thinline}Where do you plan to run GEOS-Chem (e.g. local compute cluster, AWS, other supercomputer)?${thinline}"
+    IFS='\n' read -r env_type
     printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
     IFS='\n' read -r research_interest
     post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
@@ -438,7 +424,7 @@ mkdir -p ${rundir_config}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
+cp ./README.md                        ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -485,14 +471,14 @@ printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   mak
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 if [[ ${sim_name} = "fullchem" ]]; then
     start_date='20190701'
-    restart_dir='v2021-09'
+    restart_dir='GC_14.0.0/1yr_benchmark'
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_13.0.0'
+    restart_dir='GC_14.0.0'
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${sim_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"

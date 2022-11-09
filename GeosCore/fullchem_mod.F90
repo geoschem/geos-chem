@@ -356,6 +356,7 @@ CONTAINS
     ENDIF
 
     ! Do Photolysis
+    WAVELENGTH = 0
     CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm,                         &
                   State_Diag, State_Grid, State_Met, RC                     )
 
