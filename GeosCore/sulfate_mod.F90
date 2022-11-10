@@ -2849,10 +2849,10 @@ CONTAINS
           ! SALAAL and SALCAL will not get set properly.  Think about
           ! a better way to abstract this code later.
           !   -- Bob Yantosca (09 Sep 2021)
-          IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
-             Spc(I,J,L,id_SALAAL) = AlkA
-             Spc(I,J,L,id_SALCAL) = AlkC
-          ENDIF
+!          IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
+!             Spc(I,J,L,id_SALAAL) = AlkA
+!             Spc(I,J,L,id_SALCAL) = AlkC
+!          ENDIF
        ENDIF
 
        ! If we are not using KPP to compute seasalt reaction rates,
