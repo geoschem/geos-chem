@@ -2833,16 +2833,16 @@ CONTAINS
        IF ( .NOT. FullRun ) Then
 
           ! Fine mode seasalt alkalinity
-          State_Chm%SSAlk(I,J,L,1)                                           &
-               =  AlkA                                                       &
-               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
-               / ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
+ !         State_Chm%SSAlk(I,J,L,1)                                           &
+ !              =  AlkA                                                       &
+ !              * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
+ !              / ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
 
           ! Coarse mode seasalt alkalinity
-          State_Chm%SSAlk(I,J,L,2)                                           &
-               = AlkC                                                        &
-               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
-               / ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
+!          State_Chm%SSAlk(I,J,L,2)                                           &
+!               = AlkC                                                        &
+!               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
+!               / ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
 
           ! We also need to update the SALAAL and SALCAL species here
           ! when we are using KPP to perform sulfur chemistry, otherwise
