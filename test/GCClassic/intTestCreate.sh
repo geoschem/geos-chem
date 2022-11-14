@@ -44,7 +44,6 @@ if [[ "x${envFile}" == "x" ]]; then
     exit 1
 fi
 if [[ ! -f ${envFile} ]]; then
-
     echo "ERROR: The enviroment file is not a valid file!"
     exit 1
 fi

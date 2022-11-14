@@ -7,8 +7,8 @@
 #
 # !MODULE: intTestCreate.sh
 #
-# !DESCRIPTION: Creates GCHP integration test run directories in a
-#  user-specified root folder, and copies a run script there.
+# !DESCRIPTION: Creates integration test run directories in a user-specified
+#  root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
@@ -63,7 +63,7 @@ cd ${testDir}
 cd ../..
 geosChemDir=$(pwd -P)
 
-# GCClassic superproject directory
+# GCHP superproject directory
 cd ../../../..
 superProjectDir=$(pwd -P)
 cd ${superProjectDir}
@@ -98,17 +98,23 @@ fi
 # now that the folder exists
 root=$(absolute_path ${root})
 
-# Remove run directories in the test folder
+# Remove everything in the test folder
 cleanup_files ${root}
 
-# Make the build directory
-printf "\nCreating new build and directories:\n"
+# Make the directory for the executables
+printf "\nCreating new build and executable directories:\n"
+echo " ... ${root}/exe_files"
+mkdir -p ${root}/exe_files
+
+# Make the build directories
 if [[ ! -d ${root}/build ]]; then
-    echo " ... ${root}/build/"
-    mkdir -p ${root}/build/
+    for dir in apm bpch default hg luowd rrtmg tomas15 tomas40; do
+	echo " ... ${root}/build/${dir}"
+	mkdir -p ${root}/build/${dir}
+    done
 fi
 
-# Copying the run scripts to the root test folder
+# Copying the run scripts to the Integration Test root folder
 printf "\nCopying run scripts to: ${root}\n"
 cp -f ${envFile} ${root}/gchp.env
 cp -f ${testDir}/intTest*.sh ${root}
@@ -130,11 +136,8 @@ printf "\nCreating new run directories:\n"
 cd ${runDir}
 
 #=============================================================================
-# TransportTracers run directories
+# TransportTracers run directory
 #=============================================================================
-
-# TODO: this section and the next for other run directories should
-# be combined in a loop to avoid duplicate code.
 
 dir="gchp_TransportTracers_geosfp_c24"
 create_rundir "2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
@@ -150,7 +153,7 @@ sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
-# Standard run directories
+# Standard run directory
 #=============================================================================
 
 dir="gchp_fullchem_standard_merra2_c24"
@@ -167,7 +170,7 @@ sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
-# Benchmark run directories
+# Benchmark run directory
 #=============================================================================
 
 dir="gchp_fullchem_benchmark_merra2_c48"
@@ -176,6 +179,40 @@ ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 sed -i -e "s/CS_RES=.*/CS_RES=48/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
+
+#=============================================================================
+# TOMAS15 run directory
+#=============================================================================
+
+dir="gchp_fullchem_TOMAS15_merra2_c24"
+create_rundir "1\n6\n1\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
+
+#=============================================================================
+# TOMAS15 run directory
+#=============================================================================
+
+dir="gchp_fullchem_TOMAS40_merra2_c24"
+create_rundir "1\n6\n2\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
+sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh

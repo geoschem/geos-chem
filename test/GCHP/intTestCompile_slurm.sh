@@ -29,14 +29,13 @@
 #BOC
 
 #============================================================================
-# Variable and function definitions
+# Global variable and function definitions
 #============================================================================
 
 # Get the long path of this folder
 root=$(pwd -P)
 
-# Load computational environment and OpenMP settings
-# if we are in a SLURM environment
+# In SLURM: Load computational environment and OpenMP settings
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
     . ~/.bashrc
     . ${root}/gchp.env
@@ -45,32 +44,23 @@ fi
 # Load common functions for tests
 . ${root}/commonFunctionsForTests.sh
 
-# Count the number of tests to be done = 1
-# (We don't have to recompile GCHP to change resolutions)
-numTests=1
+# Count the number of tests to be done = number of run directories
+numTests=$(ls -1 "${root}/build" | wc -l)
 
-# Logfile for compilation output
-log="${root}/logs/compile.GCHP.log"
-rm -f ${log}
-
-# Results logfile name
-results="${root}/logs/results.compile.log"
-rm -f ${results}
-
-# Build and installation directory for CMake
-buildDir="${root}/build"
-installDir="${root}/exe_files"
-
-# CMake configuration options for GCHP
-options="-DCMAKE_BUILD_TYPE=Debug"
+# All integration tests will use debugging features
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
+# Results logfile name
+results="${root}/logs/results.compile.log"
+rm -f ${results}
+
 # Print header to results log file
 print_to_log "${SEP_MAJOR}"                             ${results}
-print_to_log "GCHP: Compilation Test Results"        ${results}
+print_to_log "GCHP: Compilation Test Results"           ${results}
 print_to_log ""                                         ${results}
 print_to_log "Number of compilation tests: ${numTests}" ${results}
 print_to_log "${SEP_MAJOR}"                             ${results}
@@ -90,14 +80,27 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
-# Build GCHP
-build_gchp ${root} ${buildDir} ${log} ${results} "${options}"
-if [[ $? -eq 0 ]]; then
-    let passed++
-else
-    let failed++
-fi
-let remain--
+# Loop over build directories
+for dir in default apm bpch hg luowd rrtmg tomas15 tomas40; do
+
+    # Define build directory
+    buildDir="${root}/build/${dir}"
+
+    # Define log file
+    log="${root}/logs/compile.${dir}.log"
+    rm -f ${log}
+    
+    # Configure and build GCHP source code
+    # and increment pass/fail/remain counters
+    build_gchp ${root} ${buildDir} ${log} ${results} "${baseOptions}"
+    if [[ $? -eq 0 ]]; then
+	let passed++
+    else
+	let failed++
+    fi
+    let remain--
+
+done
 
 #============================================================================
 # Check the number of simulations that have passed
@@ -135,11 +138,11 @@ fi
 #============================================================================
 
 # Free local variables
+unset baseOptions
 unset failed
 unset dir
 unset log
 unset numTests
-unset options
 unset passed
 unset remain
 unset results
