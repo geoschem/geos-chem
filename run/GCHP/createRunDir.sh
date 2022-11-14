@@ -520,6 +520,7 @@ else
     if [[ "${sim_extra_option}" == "marinePOA" ]]; then
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+	RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
