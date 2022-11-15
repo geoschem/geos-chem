@@ -1631,7 +1631,7 @@ CONTAINS
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
 
-                  ! Create the a HISTORY ITEM object for this diagnostic
+                   ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
                    CALL History_AddItemToCollection(                         &
                             Input_Opt    = Input_Opt,                        &
@@ -1770,7 +1770,6 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-
     ENDDO
 
     !=======================================================================
@@ -2344,6 +2343,10 @@ CONTAINS
 
     ! Increment number of HISTORY ITEMS in this collection
     Collection%nHistItems = Collection%nHistItems + 1
+
+    ! Free Item (we have added it to the container and don't need it anymore)
+    DEALLOCATE( Item )
+    Item => NULL()
 
     ! Free pointers
     Ptr0d   => NULL()

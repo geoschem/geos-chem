@@ -1932,8 +1932,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
-    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
-    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
@@ -2442,13 +2440,13 @@ CONTAINS
     IF ( ALLOCATED( ml2 ) ) THEN
        DEALLOCATE( ml2, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:ML2', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( qmincg ) ) THEN
        DEALLOCATE( qmincg, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:QMINCG', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
   END SUBROUTINE Cleanup_Vdiff
