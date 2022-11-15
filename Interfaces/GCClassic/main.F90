@@ -739,6 +739,7 @@ PROGRAM GEOS_Chem
 
   ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
   ! and restart file fields
+  TimeForEmis = .FALSE.
   CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid,  &
                       State_Met, TimeForEmis, 0,          RC )
 
@@ -2724,11 +2725,18 @@ CONTAINS
     ! Initialize
     RC = GC_SUCCESS
 
-    ! For dry-run simulations, Write the dry-run header to
-    ! stdout (aka GEOS-Chem log file) and the HEMCO log file.
+    ! Skip if not a dry-run simulation
     IF ( Input_Opt%DryRun ) THEN
+
+       ! Print dry-run header to stdout
+       ! (which is usually redirected to the dryrun log file)
        CALL Print_Dry_Run_Warning( 6 )
-       CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
+
+       ! Print dry-run header to HEMCO.log file
+       ! (if HEMCO output is not already being sent to stdout)
+       IF ( HcoState%Config%Err%LUN > 0 ) THEN
+          CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
+       ENDIF
     ENDIF
 
   END SUBROUTINE Cleanup_Dry_Run
