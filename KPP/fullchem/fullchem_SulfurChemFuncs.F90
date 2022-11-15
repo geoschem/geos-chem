@@ -204,8 +204,8 @@ CONTAINS
                        srMw   = SR_MW(ind_SO2)                              )
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
-       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / C(ind_SALAAL)
+       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_SALAAL), k_ex )                     &
+               / C(ind_O3)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -260,8 +260,8 @@ CONTAINS
                        srMw   = SR_MW(ind_SO2)                              )
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
-       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / C(ind_SALCAL)
+       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_SALCAL), k_ex )                     &
+               / C(ind_O3)
     ENDIF
 
     !------------------------------------------------------------------------
