@@ -108,7 +108,7 @@ mkdir -p ${root}/exe_files
 
 # Make the build directories
 if [[ ! -d ${root}/build ]]; then
-    for dir in apm bpch default hg luowd rrtmg tomas15 tomas40; do
+    for dir in default tomas15 tomas40; do
 	echo " ... ${root}/build/${dir}"
 	mkdir -p ${root}/build/${dir}
     done

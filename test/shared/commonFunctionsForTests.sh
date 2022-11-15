@@ -572,8 +572,16 @@ function submit_gchp_slurm_job() {
     rm -f core.*
     rm -f ./OutputDir/*.nc*
 
-    # Copy the executable here
-    cp ${root}/build/bin/gchp .
+    # Get executable file path for specific directories
+    for runName in default tomas15 tomas40; do
+	if [[ ${runDir} =~ ${runName} ]]; then
+	    exeFile="${root}/build/${runName}/bin/gchp"
+	    break
+	fi
+    done
+    
+    # Link to the executable
+    ln -s ${exeFile} .
 
     # Redirect the log file
     log="${root}/logs/execute.${runDir}.log"
