@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added fix for writing dry-run header to log file
 - Updated KPP diagnostics archive flags
 - Rewrote code to avoid memory leaks (identified by the code sanitizer)
+- Updated EDGAR v6 CH4 emission files to correct timestamp issue
 
 ## [14.0.1] - 2022-10-31
 ### Fixed
