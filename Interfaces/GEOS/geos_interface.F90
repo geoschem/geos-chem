@@ -1210,7 +1210,7 @@ CONTAINS
     !=======================================================================
     ! Total and tropospheric columns
     !=======================================================================
-    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, __RC__ )
+    CALL CalcColumns_( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
 
     !=======================================================================
     ! Derived met. diagnostics relevant to chemistry processes
@@ -1804,7 +1804,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, RC )
+  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -1814,6 +1814,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)            :: am_I_Root
     TYPE(OptInput),   INTENT(INOUT)         :: Input_Opt
+    TYPE(MetState),   INTENT(INOUT)         :: State_Met 
     TYPE(ChmState),   INTENT(INOUT)         :: State_Chm
     TYPE(DgnState),   INTENT(INOUT)         :: State_Diag
     REAL,             POINTER               :: PLE  (:,:,:)
@@ -1831,6 +1832,7 @@ CONTAINS
 !
     REAL,  POINTER               :: ExpTOTCOL(:,:)
     REAL,  POINTER               :: ExpTRPCOL(:,:)
+    REAL,  POINTER               :: ExpPBLCOL(:,:)
     REAL(fp), POINTER            :: Spc3D    (:,:,:)
     REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer, 
                                                   !  for total ozone
@@ -1838,13 +1840,14 @@ CONTAINS
                                                   !  for total ozone
     REAL                         :: MW, const
     INTEGER                      :: I, J, IM, JM, LM, LB, L, STATUS
-    INTEGER                      :: ID, TotID, TropID
+    INTEGER                      :: ID, TotID, TropID, PblID
     CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
     CHARACTER(LEN=15)            :: ISPEC
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapTotCol  => NULL()
     TYPE(DgnMap), POINTER :: mapTropCol => NULL()
+    TYPE(DgnMap), POINTER :: mapPblCol  => NULL()
 
     !=======================================================================
     ! CalcColumns_ begins here
@@ -1854,8 +1857,9 @@ CONTAINS
     Iam = 'CalcColumns_'
 
     ! Nothing to do if not active
-    IF ( .NOT. State_Diag%Archive_TotCol .AND. &
-         .NOT. State_Diag%Archive_TropCol       ) THEN
+    IF ( .NOT. State_Diag%Archive_TotCol  .AND. &
+         .NOT. State_Diag%Archive_TropCol .AND. &
+         .NOT. State_Diag%Archive_PblCol         ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
@@ -1874,6 +1878,10 @@ CONTAINS
     IF ( State_Diag%Archive_TropCol ) THEN
        mapTropCol => State_Diag%Map_TropCol
        State_Diag%TropCol(:,:,:) = 0.0
+    ENDIF
+    IF ( State_Diag%Archive_PblCol ) THEN
+       mapPblCol => State_Diag%Map_PblCol
+       State_Diag%PblCol(:,:,:) = 0.0
     ENDIF
 
     ! Allocate local variables
@@ -1904,7 +1912,16 @@ CONTAINS
              ENDIF
           ENDDO
        ENDIF
-       IF ( (TotID<0) .AND. (TropID<0) ) CYCLE
+       PblID = -1
+       IF ( State_Diag%Archive_PblCol ) THEN
+          DO J = 1,mapPblCol%nSlots
+             IF ( mapPblCol%slot2id(J)==I ) THEN
+                PblID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
+       IF ( (TotID<0) .AND. (TropID<0) .AND. (PblID<0)  ) CYCLE
 
        ! Species info
        ISPEC = State_Chm%SpcData(I)%Info%Name
@@ -1934,6 +1951,13 @@ CONTAINS
              wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-TROPP(:,:)) &
                  / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
              State_Diag%TropCol(:,:,TropID) = State_Diag%TropCol(:,:,TropID) &
+                                            + DUsLayerL(:,:)*wgt(:,:)
+          END IF
+          ! Add to PBL column
+          IF ( PblID > 0 ) THEN
+             wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-(State_Met%PBL_TOP_hPa(:,:)*100.0)) &
+                 / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
+             State_Diag%PblCol(:,:,PblID) = State_Diag%PblCol(:,:,PblID) &
                                             + DUsLayerL(:,:)*wgt(:,:)
           END IF
        END DO

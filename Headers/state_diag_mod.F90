@@ -1090,6 +1090,10 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_PM25soa
 
      !%%%%% Species diagnostics %%%%%
+     REAL(f4),           POINTER :: PblCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_PblCol
+     LOGICAL                     :: Archive_PblCol
+
      REAL(f4),           POINTER :: TropCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TropCol
      LOGICAL                     :: Archive_TropCol
@@ -2104,6 +2108,10 @@ CONTAINS
 
     State_Diag%PM25soa                             => NULL()
     State_Diag%Archive_PM25soa                     = .FALSE.
+
+    State_Diag%PblCol                              => NULL()
+    State_Diag%Map_PblCol                          => NULL()
+    State_Diag%Archive_PblCol                      = .FALSE.
 
     State_Diag%TropCol                             => NULL()
     State_Diag%Map_TropCol                         => NULL()
@@ -6751,6 +6759,26 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'PblCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PblCol,                              &
+            archiveData    = State_Diag%Archive_PblCol,                      &
+            mapData        = State_Diag%Map_PblCol,                          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        diagID  = 'TropCol'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -10672,6 +10700,12 @@ CONTAINS
                    mapData  = State_Diag%Map_TropCol,                        &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PblCol',                                      &
+                   Ptr2Data = State_Diag%PblCol,                             &
+                   mapData  = State_Diag%Map_PblCol,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
@@ -11636,6 +11670,12 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TROPCOL' ) THEN
        IF ( isDesc    ) Desc  = 'tropospheric column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PBLCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'boundary layer column density of species'
        IF ( isUnits   ) Units = '1.0e15 molec cm-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ALL'
