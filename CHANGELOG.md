@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated EDGAR v6 CH4 emission files to correct timestamp issue
 - Fixed indentation error in the `legacy_bpch` section of
   `geoschem_config.yml` template files
+- Removed "dry air" from the metadata of fields `State_Met%AIRVOL` and
+  `State_Met%BXHEIGHT`
 
 ## [14.0.1] - 2022-10-31
 ### Fixed
