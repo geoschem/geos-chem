@@ -5,28 +5,40 @@
 
 #============================================================================
 # This HISTORY.rc file is specific for running GEOS-Chem within the
-# Community Earth System Model (CESM2)
+# Community Earth System Model (CESM)
 #
-# To use GEOS-Chem "History" diagnostics in CESM2, there are two steps:
-# 1) Enable the desired diagnostic(s) in this HISTORY.rc file.
-#    The collection, template, frequency, duration, and mode are ignored.
-#    Only the presence or not of the diagnostic matters.
-# 2) Write the desired diagnostic(s) name(s) into the finclX variable,
-#    similar to other CESM output variables, in user_nl_cam.
-#    There, you can configure averaging/instantaneous, duration, etc. features
-#    in the same way as other CESM outputs.
+# There are two steps to configure GEOS-Chem "History" diagnostics in CESM:
 #
-# Note: SpeciesConc are always available without the prefix, e.g., SpeciesConc_O3
-# mixing ratio will be present in O3 variable in CESM.
+# 1) Uncomment the names of the diagnostics you wish to output in this file.
+#    Make sure the collections they are included in are also uncommented in the
+#    COLLECTIONS list at the top of the file.
 #
-# Note: Wildcards (e.g., ?ADV?) are NOT available, and all species must be
-# written out explicitly.
+# 2) Write the names of the diagnostics you wish to output into the 'finclX'
+#    namelist variable in CESM case file 'user_nl_cam'. Use that file instead
+#    of this one to configure averaging/instantaneous, frequency, duration,
+#    and other collection features in the same way as other CESM outputs.
 #
-# Note: Many physical/chemical processes in CESM are handled not by GEOS-Chem,
-# and as such those diagnostics will not be present. For example, deposition
-# and advection. As such, these collections have been removed.
+# Important notes:
 #
-# Contact: Haipeng Lin (hplin@seas.harvard.edu)
+# 1) Collection name, frequency, duration, and mode in this file are ignored.
+#    CESM diagnostic collections and their attributes must be specified in
+#    file 'user_nl_cam' within the CESM case directory.
+#
+# 2) Mixing ratio diagnostics are always available without using this file.
+#    For example, you may output ozone mixing ratio by specifying
+#    'O3' in CESM file 'user_nl_cam' rather than 'SpeciesConc_O3'.
+#    The SpeciesConc collection is therefore excluded. Note that the CESM
+#    mixing ratio diagnostics are computed from State_Chm%Species(N)%Conc
+#    rather than State_Diag%SpeciesConc.
+#
+# 3) Diagnostic name wildcards (e.g. ?ADV?) are NOT available for use in CESM.
+#    All diagnostic tags, such as 'O2' in 'JVAL_O2', must be written out
+#    explicitly.
+#
+# 4) Many physical/chemical processes in CESM are handled outside of GEOS-Chem,
+#    such as wet deposition and advection. GEOS-Chem diagnostics computed in
+#    those components are therefore not available and are excluded in this file.
+#
 #============================================================================
 
 #============================================================================
