@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added "WD_CoarseAer:true" for SO4s and NITs in species_database.yml
 
 
+### Fixed
+-Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
+
+
 ## [14.0.1] - 2022-10-31
 ### Fixed
 - Corrected units in metadata for State_Met%AirNumDen and State_Met%PHIS
