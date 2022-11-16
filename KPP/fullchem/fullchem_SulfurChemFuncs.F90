@@ -179,8 +179,10 @@ CONTAINS
     RC            = GC_SUCCESS
     k_ex          = 0.0_dp
     K_MT          = 0.0_dp
-    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
-    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
+!    SALAAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALAAL) > 0.1_dp )
+!    SALCAL_gt_0_1 = ( State_Chm%Species(I,J,L,id_SALCAL) > 0.1_dp )
+    SALAAL_gt_0_1 = ( C(ind_SALAAL) > 0.1_dp )
+    SALCAL_gt_0_1 = ( C(ind_SALCAL) > 0.1_dp )
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
