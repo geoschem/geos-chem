@@ -1571,7 +1571,7 @@ ${RUNDIR_PCO_NMVOC}
 )))PROD_CO_NMVOC
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
-$ --- Units: prod [v/v/s]; loss [1/s]                         ---
+# --- Units: prod [v/v/s]; loss [1/s]                         ---
 (((GMI_PROD_LOSS
 ${RUNDIR_GMI_LOSS_CO}
 ${RUNDIR_GMI_PROD_CO}
