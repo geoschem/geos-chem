@@ -47,6 +47,7 @@ COLLECTIONS: 'Restart',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
+             ##'Tomas',
              ##'WetLossConv',
              ##'WetLossLS',
              ##'BoundaryConditions',
@@ -677,6 +678,59 @@ COLLECTIONS: 'Restart',
                           'Met_BXHEIGHT                      ',
                           'Met_AIRDEN                        ',
                           'Met_AD                            ',
+::
+#==============================================================================
+# %%%%% THE Tomas Microphysics Rate COLLECTION %%%%%
+#
+# Tomas microphysics rates
+#
+# Available for full-chemistry and aerosol-only simulations
+#==============================================================================
+  Tomas.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  Tomas.format:         'CFIO',
+  Tomas.timestampStart: .true.
+  Tomas.monthly:        0
+  Tomas.frequency:      010000
+  Tomas.duration:       010000
+  Tomas.mode:           'time-averaged'
+  Tomas.fields:         'TomasH2SO4                  ', 'GCHPchem',
+                        'TomasH2SO4mass_bin01        ', 'GCHPchem',
+                        'TomasH2SO4number_bin01      ', 'GCHPchem',
+                        'TomasCOAG                   ', 'GCHPchem',
+                        'TomasCOAGmass_bin01         ', 'GCHPchem',
+                        'TomasCOAGnumber_bin01       ', 'GCHPchem',
+                        'TomasNUCL                   ', 'GCHPchem',
+                        'TomasNUCRATEFN              ', 'GCHPchem',
+                        'TomasNUCLmass_bin01         ', 'GCHPchem',
+                        'TomasNUCLnumber_bin01       ', 'GCHPchem',
+                        'TomasNUCRATEnumber_bin01    ', 'GCHPchem',
+                        'TomasAQOX                   ', 'GCHPchem',
+                        'TomasAQOXmass_bin01         ', 'GCHPchem',
+                        'TomasAQOXnumber_bin01       ', 'GCHPchem',
+                        'TomasMNFIX                  ', 'GCHPchem',
+                        'TomasMNFIXmass_bin01        ', 'GCHPchem',
+                        'TomasMNFIXnumber_bin01      ', 'GCHPchem',
+                        'TomasMNFIXh2so4mass_bin01   ', 'GCHPchem',
+                        'TomasMNFIXh2so4number_bin01 ', 'GCHPchem',
+                        'TomasMNFIXcoagmass_bin01    ', 'GCHPchem',
+                        'TomasMNFIXcoagnumber_bin01  ', 'GCHPchem',
+                        'TomasMNFIXaqoxmass_bin01    ', 'GCHPchem',
+                        'TomasMNFIXaqoxnumber_bin01  ', 'GCHPchem',
+                        'TomasMNFIXezwat1mass_bin01  ', 'GCHPchem',
+                        'TomasMNFIXezwat1number_bin01', 'GCHPchem',
+                        'TomasMNFIXezwat2mass_bin01  ', 'GCHPchem',
+                        'TomasMNFIXezwat2number_bin01', 'GCHPchem',
+                        'TomasMNFIXezwat3mass_bin01  ', 'GCHPchem',
+                        'TomasMNFIXezwat3number_bin01', 'GCHPchem',
+                        'TomasMNFIXcheck1mass_bin01  ', 'GCHPchem',
+                        'TomasMNFIXcheck1number_bin01', 'GCHPchem',
+                        'TomasMNFIXcheck2mass_bin01  ', 'GCHPchem',
+                        'TomasMNFIXcheck2number_bin01', 'GCHPchem',
+                        'TomasMNFIXcheck3mass_bin01  ', 'GCHPchem',
+                        'TomasMNFIXcheck3number_bin01', 'GCHPchem',
+                        'TomasSOA                    ', 'GCHPchem',
+                        'TomasSOAmass_bin01          ', 'GCHPchem',
+                        'TomasSOAnumber_bin01        ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE WetLossConv COLLECTION %%%%%
