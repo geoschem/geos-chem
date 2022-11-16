@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed "dry air" from the metadata of fields `State_Met%AIRVOL` and
   `State_Met%BXHEIGHT`
 
+### Changed
+- Updated CESM HISTORY.rc to work with new CESM-GC diagnostics interface
+
 ## [14.0.1] - 2022-10-31
 ### Fixed
 - Corrected units in metadata for State_Met%AirNumDen and State_Met%PHIS
