@@ -149,18 +149,36 @@ COLLECTIONS: 'Metrics',
   Aerosols.frequency:         {FREQUENCY}
   Aerosols.duration:          {DURATION}
   Aerosols.mode:              'time-averaged'
-  Aerosols.fields:            'AODDust                       ',
-                              #'AODDustWL1_?DUSTBIN?          ',
-                              #'AODHygWL1_?HYG?               ',
+  Aerosols.fields:            'AODHygWL1_SO4                 ',
+                              'AODHygWL1_BCPI                ',
+                              'AODHygWL1_OCPI                ',
+                              'AODHygWL1_SALA                ',
+                              'AODHygWL1_SALC                ',
+                              'AODDust                       ',
+                              'AODDustWL1_bin1               ',
+                              'AODDustWL1_bin2               ',
+                              'AODDustWL1_bin3               ',
+                              'AODDustWL1_bin4               ',
+                              'AODDustWL1_bin5               ',
+                              'AODDustWL1_bin6               ',
+                              'AODDustWL1_bin7               ',
                               'AODSOAfromAqIsopreneWL1       ',
                               'AODStratLiquidAerWL1          ',
                               'AODPolarStratCloudWL1         ',
-                              #'AerHygroscopicGrowth_?HYG?    ',
+                              'AerHygroscopicGrowth_SO4      ',
+                              'AerHygroscopicGrowth_BCPI     ',
+                              'AerHygroscopicGrowth_OCPI     ',
+                              'AerHygroscopicGrowth_SALA     ',
+                              'AerHygroscopicGrowth_SALC     ',
                               'AerNumDensityStratLiquid      ',
                               'AerNumDensityStratParticulate ',
                               'AerAqueousVolume              ',
                               'AerSurfAreaDust               ',
-                              #'AerSurfAreaHyg_?HYG?          ',
+                              'AerSurfAreaHyg_SO4            ',
+                              'AerSurfAreaHyg_BCPI           ',
+                              'AerSurfAreaHyg_OCPI           ',
+                              'AerSurfAreaHyg_SALA           ',
+                              'AerSurfAreaHyg_SALC           ',
                               'AerSurfAreaStratLiquid        ',
                               'AerSurfAreaPolarStratCloud    ',
                               'Chem_AeroAreaMDUST1           ',
@@ -237,7 +255,7 @@ COLLECTIONS: 'Metrics',
 #
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
-# (default = advected species)
+# This diagnostic is avaiable for all advected species.
 #
 # Available for all simulations
 #==============================================================================
@@ -245,25 +263,9 @@ COLLECTIONS: 'Metrics',
   Budget.frequency:    {FREQUENCY}
   Budget.duration:     {DURATION}
   Budget.mode:         'time-averaged'
-  Budget.fields:       'BudgetEmisDryDepFull_O3               ',
-                       #'BudgetEmisDryDepFull_?ADV?           ',
-                       #'BudgetEmisDryDepTrop_?ADV?           ',
-                       #'BudgetEmisDryDepPBL_?ADV?            ',
-                       #'BudgetChemistryFull_?ADV?            ',
-                       #'BudgetChemistryTrop_?ADV?            ',
-                       #'BudgetChemistryPBL_?ADV?             ',
-                       #'BudgetTransportFull_?ADV?            ',
-                       #'BudgetTransportTrop_?ADV?            ',
-                       #'BudgetTransportPBL_?ADV?             ',
-                       #'BudgetMixingFull_?ADV?               ',
-                       #'BudgetMixingTrop_?ADV?               ',
-                       #'BudgetMixingPBL_?ADV?                ',
-                       #'BudgetConvectionFull_?ADV?           ',
-                       #'BudgetConvectionTrop_?ADV?           ',
-                       #'BudgetConvectionPBL_?ADV?            ',
-                       #'BudgetWetDepFull_?WET?               ',
-                       #'BudgetWetDepTrop_?WET?               ',
-                       #'BudgetWetDepPBL_?WET?                ',
+  Budget.fields:       'BudgetChemistryFull_O3            ',
+                       'BudgetChemistryTrop_O3            ',
+                       'BudgetChemistryPBL_O3             ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -294,9 +296,11 @@ COLLECTIONS: 'Metrics',
   ConcAboveSfc.frequency:     {FREQUENCY}
   ConcAboveSfc.duration:      {DURATION}
   ConcAboveSfc.mode:          'instantaneous'
-  ConcAboveSfc.fields:        'DryDepRaALT1                  ',
-                              #'DryDepVelForALT1_?DRYALT?     ',
-                              #'SpeciesConcALT1_?DRYALT?      ',
+  ConcAboveSfc.fields:        'DryDepRaALT1               ',
+                              'DryDepVelForALT1_O3        ',
+                              'DryDepVelForALT1_HNO3      ',
+                              'SpeciesConcALT1_O3         ',
+                              'SpeciesConcALT1_HNO3       ',
 ::
 #==============================================================================
 # %%%%% THE ConcAfterChem COLLECTION %%%%%
