@@ -572,13 +572,22 @@ function submit_gchp_slurm_job() {
     rm -f core.*
     rm -f ./OutputDir/*.nc*
 
+    # Turn on case-insensitivity
+    shopt -s nocasematch
+
+    # Default executable name
+    exeFile="${root}/build/default/bin/gchp"
+
     # Get executable file path for specific directories
-    for runName in default tomas15 tomas40; do
-	if [[ ${runDir} =~ ${runName} ]]; then
+    for runName in tomas15 tomas40; do
+	if [[ "${runDir}" =~ "${runName}" ]]; then
 	    exeFile="${root}/build/${runName}/bin/gchp"
 	    break
 	fi
     done
+
+    # Turn off case-insensitivity
+    shopt -u nocasematch
     
     # Link to the executable
     ln -s ${exeFile} .
