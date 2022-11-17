@@ -2505,7 +2505,8 @@ CONTAINS
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
-    State_Chm%pHcloud    =  0.0_fp
+!    State_Chm%pHcloud    =  0.0_fp
+    State_Chm%pHcloud    =  4.5_fp
     State_Chm%QLxpHcloud =  0.0_fp
 #ifdef LUO_WETDEP
     State_Chm%pHrain     =  5.6_fp
