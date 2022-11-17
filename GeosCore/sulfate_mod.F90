@@ -2805,6 +2805,7 @@ CONTAINS
        IF ( ( DO_SEASALT_CHEM ) .and. ( ALK    > MINDAT )  .and.             &
             ( SO2_cd > MINDAT ) .and. ( SO2_cd < O3     ) ) THEN
 
+
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
           CALL SEASALT_CHEM( I,          J,          L,         ALK1,        &
@@ -2831,7 +2832,7 @@ CONTAINS
 
        ! We must store alkalinity first for gas phase chemistry
        ! (convert from kg to equivalents) -- Xuan Wang 6/9/19
-       IF ( .NOT. FullRun ) Then
+!       IF ( .NOT. FullRun ) Then
 
           ! Fine mode seasalt alkalinity
  !         State_Chm%SSAlk(I,J,L,1)                                           &
@@ -2854,7 +2855,7 @@ CONTAINS
 !             Spc(I,J,L,id_SALAAL) = AlkA
 !             Spc(I,J,L,id_SALCAL) = AlkC
 !          ENDIF
-       ENDIF
+!       ENDIF
 
        ! If we are not using KPP to compute seasalt reaction rates,
        ! then update sea salt alkalinity [v/v] in FullRun (XW 12/8/17)
