@@ -15,8 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O
 - Fixed products in HOBr + SO2 and HOCl + SO2 reactions
 - Changed MW_g value of CH4 from 16.05 to 16.04
-- Added "WD_CoarseAer:true" for SO4s and NITs in species_database.yml
-
+- Added "WD\_CoarseAer:true" for SO4s and NITs in species_database.yml
+- Fixed double-titration of seasalt alkalinity
 
 ### Fixed
 -Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
