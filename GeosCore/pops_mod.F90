@@ -429,15 +429,11 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG53_MOD
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : DEBUG_MSG
     USE ERROR_MOD,      ONLY : SAFE_DIV
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE Species_Mod,    ONLY : Species
+    USE Species_Mod,    ONLY : Species, SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -640,7 +636,7 @@ CONTAINS
     REAL(fp)            :: DENOM
 
     ! Pointers
-    REAL(fp),      POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
     TYPE(Species), POINTER :: ThisSpc
 
     !=================================================================
@@ -660,7 +656,7 @@ CONTAINS
     LNLPBL    = Input_Opt%LNLPBL
     LGTMM     = Input_Opt%LGTMM
 
-    ! Point to the chemical species array [kg]
+    ! Point to the chemical species vector
     Spc       => State_Chm%Species
 
     ! Pointer for the species database object
@@ -875,11 +871,11 @@ CONTAINS
        ! GAS-PARTICLE PARTITIONING
        !==============================================================
 
-       OLD_POPG      = MAX( Spc(I,J,L,id_POPG),     SMALLNUM ) ![kg]
-       OLD_POPP_OCPO = MAX( Spc(I,J,L,id_POPPOCPO), SMALLNUM ) ![kg]
-       OLD_POPP_BCPO = MAX( Spc(I,J,L,id_POPPBCPO), SMALLNUM ) ![kg]
-       OLD_POPP_OCPI = MAX( Spc(I,J,L,id_POPPOCPI), SMALLNUM ) ![kg]
-       OLD_POPP_BCPI = MAX( Spc(I,J,L,id_POPPBCPI), SMALLNUM ) ![kg]
+       OLD_POPG      = MAX( Spc(id_POPG    )%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_OCPO = MAX( Spc(id_POPPOCPO)%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_BCPO = MAX( Spc(id_POPPBCPO)%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_OCPI = MAX( Spc(id_POPPOCPI)%Conc(I,J,L), SMALLNUM ) ![kg]
+       OLD_POPP_BCPI = MAX( Spc(id_POPPBCPI)%Conc(I,J,L), SMALLNUM ) ![kg]
 
        ! Total POPs in box I,J,L
        OLD_POP_T = OLD_POPG      + &
@@ -996,29 +992,6 @@ CONTAINS
        ! Sum of differences should equal zero
        SUM_DIFF = MAX(DIFF_G + DIFF_OC + DIFF_BC, SMALLNUM)
 
-#ifdef BPCH_DIAG
-       !==============================================================
-       ! %%%%% ND53 (bpch) DIAGNOSTIC %%%%%
-       ! ND53 diagnostic: Differences in distribution of gas and
-       ! particle phases between time steps [kg/s]
-       !==============================================================
-       IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
-
-          IF (DIFF_OC .lt. 0) THEN
-             AD53_PG_OC_NEG(I,J,L) = AD53_PG_OC_NEG(I,J,L)  + DIFF_OC / DTCHEM
-          ELSE IF (DIFF_OC .eq. 0 .or. DIFF_OC .gt. 0) THEN
-             AD53_PG_OC_POS(I,J,L) = AD53_PG_OC_POS(I,J,L)  + DIFF_OC / DTCHEM
-          ENDIF
-
-          IF (DIFF_BC .lt. 0) THEN
-             AD53_PG_BC_NEG(I,J,L) = AD53_PG_BC_NEG(I,J,L)  + DIFF_BC / DTCHEM
-          ELSE IF (DIFF_BC .eq. 0 .or. DIFF_BC .gt. 0) THEN
-             AD53_PG_BC_POS(I,J,L) = AD53_PG_BC_POS(I,J,L)  + DIFF_BC / DTCHEM
-          ENDIF
-
-       ENDIF
-#endif
-
        !==============================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
@@ -1075,8 +1048,8 @@ CONTAINS
        MPOP_BCPO = MPOP_BC * EXP( -FOLD )
 
        ! Hydrophilic particulate POP already existing
-       MPOP_OCPI = MAX( Spc(I,J,L,id_POPPOCPI), SMALLNUM )  ![kg]
-       MPOP_BCPI = MAX( Spc(I,J,L,id_POPPBCPI), SMALLNUM )  ![kg]
+       MPOP_OCPI = MAX( Spc(id_POPPOCPI)%Conc(I,J,L), SMALLNUM )  ![kg]
+       MPOP_BCPI = MAX( Spc(id_POPPBCPI)%Conc(I,J,L), SMALLNUM )  ![kg]
 
        ! Hydrophilic POP that used to be hydrophobic
        NEW_OCPI = MPOP_OC - MPOP_OCPO
@@ -1303,11 +1276,11 @@ CONTAINS
        NEW_POPP_BCPI = MAX( NEW_POPP_BCPI, SMALLNUM )
 
        ! Archive new POPG and POPP values [kg]
-       Spc(I,J,L,id_POPG)     = NEW_POPG
-       Spc(I,J,L,id_POPPOCPO) = NEW_POPP_OCPO
-       Spc(I,J,L,id_POPPBCPO) = NEW_POPP_BCPO
-       Spc(I,J,L,id_POPPOCPI) = NEW_POPP_OCPI
-       Spc(I,J,L,id_POPPBCPI) = NEW_POPP_BCPI
+       Spc(id_POPG    )%Conc(I,J,L) = NEW_POPG
+       Spc(id_POPPOCPO)%Conc(I,J,L) = NEW_POPP_OCPO
+       Spc(id_POPPBCPO)%Conc(I,J,L) = NEW_POPP_BCPO
+       Spc(id_POPPOCPI)%Conc(I,J,L) = NEW_POPP_OCPI
+       Spc(id_POPPBCPI)%Conc(I,J,L) = NEW_POPP_BCPI
 
        ! Net oxidation [kg] (equal to gross ox for now)
        NET_OX      = MPOP_G    - NEW_POPG      - DEP_POPG
@@ -1404,40 +1377,6 @@ CONTAINS
        ELSE
           DEP_POPP_BCPI_DRY  = DEP_POPP_BCPI
        ENDIF
-
-#ifdef BPCH_DIAG
-       !==============================================================
-       ! %%%% ND53 (bpch) DIAGNOSTIC %%%%
-       ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg/s]
-       !==============================================================
-       IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
-
-          ! OH:
-          AD53_POPG_OH(I,J,L) = AD53_POPG_OH(I,J,L) + &
-                                GROSS_OX_OH / DTCHEM
-
-          ! O3:
-          AD53_POPP_OCPO_O3(I,J,L) = AD53_POPP_OCPO_O3(I,J,L) + &
-                                     GROSS_OX_O3_OCPO / DTCHEM
-          AD53_POPP_OCPI_O3(I,J,L) = AD53_POPP_OCPI_O3(I,J,L) + &
-                                     GROSS_OX_O3_OCPI / DTCHEM
-          AD53_POPP_BCPO_O3(I,J,L) = AD53_POPP_BCPO_O3(I,J,L) + &
-                                     GROSS_OX_O3_BCPO / DTCHEM
-          AD53_POPP_BCPI_O3(I,J,L) = AD53_POPP_BCPI_O3(I,J,L) + &
-                                     GROSS_OX_O3_BCPI / DTCHEM
-
-          ! NO3:
-          AD53_POPP_OCPO_NO3(I,J,L) = AD53_POPP_OCPO_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_OCPO / DTCHEM
-          AD53_POPP_OCPI_NO3(I,J,L) = AD53_POPP_OCPI_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_OCPI / DTCHEM
-          AD53_POPP_BCPO_NO3(I,J,L) = AD53_POPP_BCPO_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_BCPO / DTCHEM
-          AD53_POPP_BCPI_NO3(I,J,L) = AD53_POPP_BCPI_NO3(I,J,L) + &
-                                      GROSS_OX_NO3_BCPI / DTCHEM
-
-       ENDIF
-#endif
 
        !==============================================================
        ! %%%%% HISTORY (netCDF DIAGNOSTICS) %%%%%

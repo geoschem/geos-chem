@@ -15,6 +15,9 @@ MODULE Species_Mod
 !
 ! USES:
 !
+#if defined( MODEL_GCHPCTM)
+  USE ESMF
+#endif
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -57,6 +60,17 @@ MODULE Species_Mod
   TYPE, PUBLIC :: SpcPtr
      TYPE(Species), POINTER :: Info         ! Single entry of Species Database
   END TYPE SpcPtr
+
+  !=========================================================================
+  ! Type for single species concentrations
+  !=========================================================================
+  TYPE, PUBLIC :: SpcConc
+#if defined( MODEL_GCHPCTM )
+     REAL(ESMF_KIND_R8), POINTER :: Conc(:,:,:)
+#else
+     REAL(fp), POINTER :: Conc(:,:,:)
+#endif
+  END TYPE SpcConc
 
   !=========================================================================
   ! Type for individual species information
@@ -149,31 +163,14 @@ MODULE Species_Mod
      LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
      ! Tagged mercury parameters
-     LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
-     LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
-     LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
-     INTEGER            :: Hg_Cat           ! Tagged Hg category number
+     LOGICAL            :: Is_Hg0           ! Is a Hg0 species?
+     LOGICAL            :: Is_Hg2           ! Is a Hg2 species?
+     LOGICAL            :: Is_HgP           ! Is a HgP species?
 
   END TYPE Species
 !
-! !DEFINED PARAMETERS
+! !DEFINED PARAMETERS:
 !
-  !=========================================================================
-  ! Missing value parameters
-  !=========================================================================
-  INTEGER,          PARAMETER, PUBLIC :: MISSING_INT  = -999
-  REAL(fp),         PARAMETER, PUBLIC :: MISSING      = -999.0_fp
-  REAL(f4),         PARAMETER, PUBLIC :: MISSING_R4   = -999.0_f4
-  REAL(f8),         PARAMETER, PUBLIC :: MISSING_R8   = -999.0_f8
-  REAL(fp),         PARAMETER, PUBLIC :: ZERO         =  0.0_fp
-  REAL(f4),         PARAMETER, PUBLIC :: ZERO_R4      =  0.0_f4
-  REAL(f8),         PARAMETER, PUBLIC :: ZERO_R8      =  0.0_f8
-  REAL(fp),         PARAMETER, PUBLIC :: ONE          =  1.0_fp
-  REAL(f4),         PARAMETER, PUBLIC :: ONE_R4       =  1.0_f4
-  REAL(f8),         PARAMETER, PUBLIC :: ONE_R8       =  1.0_f8
-  LOGICAL,          PARAMETER, PUBLIC :: MISSING_BOOL = .FALSE.
-  CHARACTER(LEN=1), PARAMETER, PUBLIC :: MISSING_STR  = ""
-
   !=========================================================================
   ! Missing species concentration value if not in restart file and special
   ! background value not defined
@@ -388,7 +385,6 @@ CONTAINS
     Spc%DryAltId        = MISSING_INT
     Spc%DryDepId        = MISSING_INT
     Spc%GasSpcId        = MISSING_INT
-    Spc%Hg_Cat          = MISSING_INT
     Spc%HygGrthId       = MISSING_INT
     Spc%KppFixId        = MISSING_INT
     Spc%KppSpcId        = MISSING_INT
@@ -416,9 +412,9 @@ CONTAINS
     Spc%WD_RetFactor    = MISSING
 
     ! Reals (8-byte precision)
-    Spc%Henry_CR        = MISSING_R8
-    Spc%Henry_K0        = MISSING_R8
-    Spc%Henry_PKA       = MISSING_R8
+    Spc%Henry_CR        = MISSING_DBLE
+    Spc%Henry_K0        = MISSING_DBLE
+    Spc%Henry_PKA       = MISSING_DBLE
 
     ! Strings
     Spc%Formula         = MISSING_STR
@@ -492,11 +488,11 @@ CONTAINS
        ! Print Henry"s Law info (only applicable to gas-phase species)
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
-          IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
+          IF ( ThisSpc%Henry_K0 > ZERO_DBLE ) THEN
              WRITE( 6, 120 ) "Henry_K0       ", ThisSpc%Henry_K0
           ENDIF
 
-          IF ( ThisSpc%Henry_CR > ZERO_R8 ) THEN
+          IF ( ThisSpc%Henry_CR > ZERO_DBLE ) THEN
              WRITE( 6, 120 ) "Henry_CR       ", ThisSpc%Henry_CR
           ENDIF
        ENDIF

@@ -589,7 +589,7 @@ CONTAINS
          
        ! Get CH4 values at native model resolution [v/v]
        GC_CH4_NATIVE(:) = 0.0_fp 
-       GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4)
+       GC_CH4_NATIVE(:) = State_Chm%Species(id_CH4)%Conc(I,J,:)
 
        ! Get # mols of dry air in each gridbox
        DRY_AIR(:) = 0.0_fp

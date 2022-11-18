@@ -634,15 +634,15 @@ CONTAINS
 
     ! Echo to stdout
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
-       WRITE( 6, '(  a)' ) '-------------------------------------------'
-       WRITE( 6, '(''Chemistry  Timestep [sec] : '', i6)' ) TS_CHEM
-       WRITE( 6, '(''Convection Timestep [sec] : '', i6)' ) TS_CONV
-       WRITE( 6, '(''Dynamics   Timestep [sec] : '', i6)' ) TS_DYN
-       WRITE( 6, '(''Emission   Timestep [sec] : '', i6)' ) TS_EMIS
-       WRITE( 6, '(''Unit Conv  Timestep [sec] : '', i6)' ) TS_UNIT
-       WRITE( 6, '(''Diagnostic Timestep [sec] : '', i6)' ) TS_DIAG
-       WRITE( 6, '(''Radiation  Timestep [sec] : '', i6)' ) TS_RAD
+       WRITE( 6, '(/,a)' ) 'TIMESTEPS SETTINGS'
+       WRITE( 6, '(  a)' ) '------------------'
+       WRITE( 6, '(''Chemistry  Timestep [sec]   : '', i6)' ) TS_CHEM
+       WRITE( 6, '(''Convection Timestep [sec]   : '', i6)' ) TS_CONV
+       WRITE( 6, '(''Dynamics   Timestep [sec]   : '', i6)' ) TS_DYN
+       WRITE( 6, '(''Emission   Timestep [sec]   : '', i6)' ) TS_EMIS
+       WRITE( 6, '(''Unit Conv  Timestep [sec]   : '', i6)' ) TS_UNIT
+       WRITE( 6, '(''Diagnostic Timestep [sec]   : '', i6)' ) TS_DIAG
+       WRITE( 6, '(''Radiation  Timestep [sec]   : '', i6)' ) TS_RAD
     ENDIF
 
   END SUBROUTINE SET_TIMESTEPS

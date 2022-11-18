@@ -8,11 +8,11 @@
 #
 # !MODULE: getRunInfo
 #
-# !DESCRIPTION: This script extracts information from the input.geos file
-#  and prints the result. The input arguments are (1) the location of file
-#  input.geos, and (2) the ID of run information to be extracted. Mapping 
-#  between ID and input.geos information are is as follows: 0:START, 1:END,
-#  3:STARTDATE, 4:ENDDATE.
+# !DESCRIPTION: This script extracts information from the geoschem_config.yml
+#  file and prints the result. The input arguments are (1) the location of file
+#  geoschem_config.yml, and (2) the ID of run information to be extracted.
+#  Mapping  between ID and geoschem_config.yml information are is as follows:
+#  0:START, 1:END, 3:STARTDATE, 4:ENDDATE.
 #\\
 #\\
 # !USES:
@@ -27,7 +27,7 @@ use strict;                      # Use "IMPLICIT NONE" syntax
 # 
 # !CALLING SEQUENCE:
 #  getRunInfo RUNDIR ID
-#    where RUNDIR is the path location of input.geos and ID is the 
+#    where RUNDIR is the path location of geoschem_config.yml and ID is the 
 #    ID of the run information to retrieve
 #
 # !REMARKS:
@@ -53,7 +53,7 @@ use strict;                      # Use "IMPLICIT NONE" syntax
 #
 # !IROUTINE: getRunInfo
 #
-# !DESCRIPTION: Extracts run information from input.geos.
+# !DESCRIPTION: Extracts run information from geoschem_config.yml.
 #\\
 #\\
 # !INTERFACE:
@@ -94,17 +94,17 @@ sub getInfo($$) {
   my @times         = ();
   my @runinfoarray  = ();
 
-  # Make sure that an input.geos file is found; otherwise print a "";
-  if ( -f "$rundir/input.geos" ) {
+  # Make sure that an geoschem_config.yml file is found; otherwise print a "";
+  if ( -f "$rundir/geoschem_config.yml" ) {
   
     # Get start run time if $id is 1 or 3, end run time if $id is 2 or 4
     if ( $id == 1 || $id == 2 || $id == 3 || $id == 4 )  {
         
-      if    ( $id == 1 || $id == 3 ) { $runstr = "Start"; }
-      elsif ( $id == 2 || $id == 4 ) { $runstr = "End";   }
+      if    ( $id == 1 || $id == 3 ) { $runstr = "start"; }
+      elsif ( $id == 2 || $id == 4 ) { $runstr = "end";   }
    
-      # Grep for date & time in input.geos
-      $line = qx( grep "$runstr.*YYYYMMDD" $rundir/input.geos );
+      # Grep for date & time in geoschem_config.yml
+      $line = qx( grep "$runstr.*YYYYMMDD" $rundir/geoschem_config.yml );
       chomp( $line );
   
       # Split by spaces
@@ -118,8 +118,8 @@ sub getInfo($$) {
 
     } elsif ( $id == 5 ) {
 
-      # Grep for line in input.geos
-      $line = qx( grep "Simulation name" $rundir/input.geos );
+      # Grep for line in geoschem_config.yml
+      $line = qx( grep "name" $rundir/geoschem_config.yml );
       chomp( $line );
 
       # Split by spaces
@@ -130,8 +130,8 @@ sub getInfo($$) {
       
     } elsif ( $id == 6 ) {
 
-      # Grep for line in input.geos
-      $line = qx( grep "Turn on RRTMG" $rundir/input.geos );
+      # Grep for line in geoschem_config.yml
+      $line = qx( grep "Turn on RRTMG" $rundir/geoschem_config.yml );
       chomp( $line );
 
       # Split by spaces

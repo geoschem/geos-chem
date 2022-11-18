@@ -70,7 +70,7 @@ COLLECTIONS: 'Emissions',
 # You can skip individual diagnostics by commenting them out.
 #
 # WARNING: Frequency, duration, and mode will be over-written with
-# settings in runConfig.sh. Edit those settings there. Add collections
+# settings in setCommonRunSettings.sh. Edit those settings there. Add collections
 # as needed to that file as needed or edit in place new collections here.
 #
 # NOTES:

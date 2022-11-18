@@ -12,6 +12,29 @@
 #
 # Initial version: E. Lundgren,10/5/2018
 
+# post registration details to api
+function post_registration() {
+    email="$1"
+    name="$2"
+    affiliation="$3"
+    site="$4"
+    git_username="$5"
+    research_interest="$6"
+    env_type="$7"
+    curl --location --request POST "https://gc-dashboard.org/registration" \
+        --header "Content-Type: text/plain" \
+        -d "{
+            \"email\": \"${email}\",
+            \"name\": \"${name}\",
+            \"affiliation\": \"${affiliation}\",
+            \"site\": \"${site}\",
+            \"git_username\": \"${git_username}\",
+            \"research_interest\": \"${research_interest}\",
+            \"model_type\": \"gchp\",
+            \"env_type\": \"${env_type}\"
+        }"
+}
+
 srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
@@ -70,6 +93,33 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 fi
 
 RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
+
+# --------------------------------------------------------------
+# registration for first time users
+# --------------------------------------------------------------
+if [[ -z "${GC_USER_REGISTERED}" ]]; then
+    printf "\nInitiating User Registration: You will only need to fill this out once.\n"
+    printf "${thinline}What is your email address?${thinline}"
+    read email
+    
+    if [[ ${email} != "" ]]; then
+    printf "${thinline}What is your name?${thinline}"
+    IFS='\n' read -r name
+    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
+    IFS='\n' read -r affiliation
+    printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
+    IFS='\n' read -r site
+    printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
+    IFS='\n' read -r git_username
+    printf "${thinline}Where do you plan to run GEOS-Chem (e.g. local compute cluster, AWS, other supercomputer)?${thinline}"
+    IFS='\n' read -r env_type
+    printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
+    IFS='\n' read -r research_interest
+    post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
+    fi
+    echo "export GC_USER_REGISTERED=true" >> ${HOME}/.geoschem/config
+    source ${HOME}/.geoschem/config
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -170,6 +220,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	fi
     done
 
+
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
@@ -181,45 +232,45 @@ RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
 if [[ ${sim_extra_option} == "benchmark"  ]] || \
    [[ ${sim_extra_option} =~ "complexSOA" ]] || \
    [[ ${sim_extra_option} == "APM"        ]]; then
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='T'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='true'\n"
     if [[ ${sim_extra_option} == "complexSOA_SVPOA" ]]; then
-	RUNDIR_VARS+="RUNDIR_SVPOA='T'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='true'\n"
     else
-	RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+	RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
     fi
 else
-    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='F'\n"
-    RUNDIR_VARS+="RUNDIR_SVPOA='F'\n"
+    RUNDIR_VARS+="RUNDIR_COMPLEX_SOA='false'\n"
+    RUNDIR_VARS+="RUNDIR_SVPOA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "aciduptake" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='on '\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='T'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='true'\n"
 else
     RUNDIR_VARS+="RUNDIR_DUSTALK_EXT='off'\n"
-    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='F'\n"
+    RUNDIR_VARS+="RUNDIR_ACID_UPTAKE='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "marinePOA" ]]; then
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='T'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='true'\n"
 else
-    RUNDIR_VARS+="RUNDIR_MARINE_POA='F'\n"
+    RUNDIR_VARS+="RUNDIR_MARINE_POA='false'\n"
 fi
 
 if [[ ${sim_extra_option} == "RRTMG" ]]; then
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='T'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='true'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='true '\n"
 else
-    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='F'\n"
+    RUNDIR_VARS+="RUNDIR_RRTMG_OPTS='false'\n"
     RUNDIR_VARS+="RUNDIR_USE_RRTMG='false'\n"
 fi
 
 if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='F'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='F'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='T'\n"
-    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='T'\n"
+    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true'\n"
+    RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true'\n"
 fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
@@ -229,7 +280,7 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
     else
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
     fi
 fi
 
@@ -239,6 +290,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
+printf "  3. GEOS-FP native data\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -250,6 +302,23 @@ while [ "${valid_met}" -eq 0 ]; do
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+    elif [[ ${met_num} = "3" ]]; then
+        read -p "Do you want to use mass fluxes for advection? (yes/no, default=no): " use_mass_fluxes
+	if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
+            use_mass_flux_derived_wind=no
+        else
+            read -p "Do you want to use mass fluxes derived winds for advection? (yes/no, default=no): " use_mass_flux_derived_wind
+        fi
+        
+        if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux.txt)\n"
+        elif [[ "$use_mass_flux_derived_wind" =~ ^[Yy] ]]; then
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux_derived_wind.txt)\n"
+        else 
+            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_normal_wind.txt)\n"
+        fi
+	met="geosfp"
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp.txt)\n"
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -343,20 +412,26 @@ done
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
+
 mkdir -p ${rundir}
+mkdir -p ${rundir}/Restarts
+
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/CreateRunDirLogs
+mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
-cp ./setEnvironment.sh                ${rundir}
+cp ./README.md                        ${rundir}
+cp ./setEnvironmentLink.sh            ${rundir}
+cp ./setRestartLink.sh                ${rundir}
+cp ./checkRunSettings.sh              ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
 
-# Only copy adjoint for CO2 simulation (for now)
-if [ "${sim_name}" == "CO2" ]; then
-    cp ./runConfig_adj.sh.template     ${rundir}/runConfig_adj.sh
-fi
+# Copy file to auto-update common settings. Use adjoint version for CO2.
+cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
@@ -366,11 +441,10 @@ fi
 # Set permissions
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
-chmod 744 ${rundir}/setEnvironment.sh
-
-if [ "${sim_name}" == "CO2" ]; then
-    chmod 744 ${rundir}/runConfig_adj.sh
-fi
+chmod 744 ${rundir}/setEnvironmentLink.sh
+chmod 744 ${rundir}/setRestartLink.sh
+chmod 744 ${rundir}/setCommonRunSettings.sh
+chmod 744 ${rundir}/checkRunSettings.sh
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
@@ -383,99 +457,55 @@ elif [[ ${sim_extra_option} =~ "APM" ]]; then
     cp ${gcdir}/run/shared/input.apm   ${rundir}/input.apm
 fi
 
-# If benchmark simulation, put run script in directory
-if [[ ${sim_extra_option} == "benchmark" ]]; then
-    cp ./runScriptSamples/operational_examples/harvard_gcst/gchp.benchmark.run ${rundir}
-    chmod 744 ${rundir}/gchp.benchmark.run
-fi
-
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
+# Create build directory
+mkdir ${rundir}/build
+printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
+
 #--------------------------------------------------------------------
-# Link to sample restart files
+# Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
+if [[ ${sim_name} = "fullchem" ]]; then
+    start_date='20190701'
+    restart_dir='GC_14.0.0/1yr_benchmark'
+elif [[ ${sim_name} = "TransportTracers" ]]; then
+    start_date='20190101'
+    restart_dir='GC_14.0.0'
+fi
 for N in 24 48 90 180 360
 do
-    src_prefix="GCHP.Restart.${sim_name}."
-    src_suffix=".c${N}.nc4"
-    target_name=initial_GEOSChem_rst.c${N}_${sim_name}.nc
-    if [[ ${sim_name} = "fullchem" ]]; then
-        start_date="20190701_0000z"
-        src_name="${src_prefix}${start_date}${src_suffix}"
-	#----------------------------------------------------------------------
-	# NOTE: We must now link restart files from v2021-09, since these will
-	# have extra species such as HMS, C2H2, C2H4, etc. (bmy, 9/23/21)
-        #ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
-	#----------------------------------------------------------------------
-        ln -s ${restarts}/v2021-09/${src_name} ${rundir}/${target_name}
-    elif [[ ${sim_name} = "TransportTracers" ]]; then
-        start_date="20190101_0000z"
-        src_name="${src_prefix}${start_date}${src_suffix}"
-        ln -s ${restarts}/GC_13.0.0/${src_name} ${rundir}/${target_name}
-    fi
+    old_prefix="GEOSChem.Restart.${sim_name}"
+    new_prefix="GEOSChem.Restart"
+    echo "${start_date} 000000" > ${rundir}/cap_restart
+    initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
+    linkname="${rundir}/Restarts/${new_prefix}.${start_date}_0000z.c${N}.nc4"
+    ln -s ${initial_rst} ${linkname}
 done
-
-# Add restart file to RUNDIR vars
-RUNDIR_VARS+="RUNDIR_RESTART_FILE='initial_GEOSChem_rst.c"'${CS_RES}'"'_${sim_name}.nc\n"
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
 cd ${rundir}
 
-# Special handling for start/end date based on simulation so that
-# start year/month/day matches default initial restart file.
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
-    startdate='20190101'
-    enddate='20190201'
-elif [[ "x${sim_name}" == "xCO2" ]]; then
-    startdate='20140901'
-    enddate='20141001'
-else
-    startdate='20190701'
-    enddate='20190801'
-fi
-RUNDIR_VARS+="RUNDIR_SIM_START_DATE=$startdate\n"
-RUNDIR_VARS+="RUNDIR_SIM_END_DATE=$enddate\n"
-RUNDIR_VARS+="RUNDIR_SIM_START_TIME='000000'\n"
-RUNDIR_VARS+="RUNDIR_SIM_END_TIME='000000'\n"
 RUNDIR_VARS+="RUNDIR_SIM_DUR_YYYYMMDD='00000100'\n"
 RUNDIR_VARS+="RUNDIR_SIM_DUR_HHmmSS='000000'\n"
 
 # Use monthly diagnostics by default
-RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='7440000'\n"
-RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='7440000'\n"
-RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='7440000'\n"
-RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='7440000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_DUR='010000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_TIME_AVG_FREQ='010000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_DUR='010000'\n"
+RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='010000'\n"
 RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
-# Special handling for benchmark simulation
-if [[ ${sim_extra_option} = "benchmark" || ${sim_name} == "TransportTracers" ]]; then
-    RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
-    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
-    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
-    RUNDIR_VARS+="RUNDIR_CS_RES='48'\n"
-elif [ "${sim_name}" == "CO2" ]; then
-    RUNDIR_VARS+="RUNDIR_NUM_CORES='48'\n"
-    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
-    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
-    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
-else
-    RUNDIR_VARS+="RUNDIR_NUM_CORES='24'\n"
-    RUNDIR_VARS+="RUNDIR_NUM_NODES='1'\n"
-    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
-    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
-fi
-
-# Turn on GEOS-Chem timers for benchmark simulations
-if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='T'\n"
-else
-    RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='F'\n"
-fi
+# Set default compute resources
+RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
+RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
@@ -519,31 +549,23 @@ RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 #--------------------------------------------------------------------
 
 # Save RUNDIR variables to file
-echo -e "$RUNDIR_VARS" > rundir_vars.txt
-sort -o rundir_vars.txt rundir_vars.txt
+rundir_config_log=${rundir_config}/rundir_vars.txt
+echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
-# Call init_rd.sh
-${srcrundir}/init_rd.sh rundir_vars.txt
-
-#--------------------------------------------------------------------
-# Print run direcory setup info to screen
-#--------------------------------------------------------------------
-
-printf "\n  -- This run directory has been set up for $startdate - $enddate.\n"
-printf "\n  -- The default frequency and duration of diagnostics is set to monthly.\n"
-printf "\n  -- You may modify these settings in runConfig.sh.\n"
+# Initialize run directory
+${srcrundir}/init_rd.sh ${rundir_config_log}
 
 # Call function to setup configuration files with settings common between
-# GEOS-Chem Classic and GCHP. This script mainly now adds species to input.geos
-# and modifies diagnostic output based on simulation type.
+# GEOS-Chem Classic and GCHP. This script mainly now adds species to 
+# geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings ${sim_extra_option}
 fi
 
-# Call runConfig.sh so that all config files are consistent with its
+# Call setCommonRunSettings.sh so that all config files are consistent with its
 # default settings. Suppress informational prints.
-chmod +x runConfig.sh
-./runConfig.sh --silent
+chmod +x setCommonRunSettings.sh
+./setCommonRunSettings.sh --silent
 
 #--------------------------------------------------------------------
 # Navigate back to source code directory
@@ -553,7 +575,7 @@ cd ${srcrundir}
 #----------------------------------------------------------------------
 # Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
-version_log=${rundir}/rundir.version
+version_log=${rundir_config}/rundir.version
 echo "This run directory was created with ${srcrundir}/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
@@ -584,7 +606,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.run *.py input.geos input.nml
+	git add *.rc *.sh *.yml input.nml
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
@@ -599,6 +621,18 @@ done
 #-----------------------------------------------------------------
 # Done!
 #-----------------------------------------------------------------
-printf "\nCreated ${rundir}\n"
+
+printf "\n${thinline}Created ${rundir}\n"
+printf "\n  -- This run directory is set up for simulation start date $start_date"
+printf "\n  -- Restart files for this date at different grid resolutions are in the"
+printf "\n     Restarts subdirectory"
+printf "\n  -- To update start time, edit configuration file cap_restart and"
+printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+printf "\n     where YYYYMMDD_HHmm is start date and time"
+printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
+printf "\n  -- See build/README for compilation instructions"
+printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
+printf "\n  -- For more information visit the GCHP user guide at"
+printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
 exit 0

@@ -146,6 +146,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE Species_Mod,          ONLY : SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
@@ -194,7 +195,7 @@ CONTAINS
     CHARACTER(LEN=512)    :: ErrMsg
 
     ! Pointers
-    REAL(fp), POINTER     :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Arrays
     REAL(fp) :: CO2_COPROD(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -293,11 +294,11 @@ CONTAINS
                     - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )
 
           ! Add to Species #1: Total CO2 [kg/kg]
-          Spc(I,J,L,1) = Spc(I,J,L,1) + E_CO2
+          Spc(1)%Conc(I,J,L) = Spc(1)%Conc(I,J,L) + E_CO2
 
           ! Add to Species #10: Chemical Source of CO2 [kg/kg]
           IF ( nAdvect > 9 ) THEN
-             Spc(I,J,L,10) = Spc(I,J,L,10) + E_CO2
+             Spc(10)%Conc(I,J,L) = Spc(10)%Conc(I,J,L) + E_CO2
           ENDIF
 
        ENDDO

@@ -186,7 +186,7 @@ CONTAINS
           ! Compute implied CH4 flux if diagnostic is on
           IF ( State_Diag%Archive_CH4pseudoFlux ) THEN
              ! v/v dry
-             dCH4 = CH4 - State_Chm%Species(I,J,L,id_CH4)
+             dCH4 = CH4 - State_Chm%Species(id_CH4)%Conc(I,J,L)
              ! Convert to kg/kg dry
              dCH4 = dCH4 * State_Chm%SpcData(id_CH4)%Info%MW_g / AIRMW
              ! Convert to kg/m2/s
@@ -196,7 +196,7 @@ CONTAINS
                 State_Diag%CH4pseudoFlux(I,J) + dCH4
           ENDIF
 
-          State_Chm%Species(I,J,L,id_CH4) = CH4
+          State_Chm%Species(id_CH4)%Conc(I,J,L) = CH4
        ENDDO
 
     ENDDO

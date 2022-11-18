@@ -57,14 +57,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
-                           State_Grid, State_Met, RC )
+  SUBROUTINE Do_Chemistry( Input_Opt,  State_Chm, State_Diag,                &
+                           State_Grid, State_Met, RC                        )
 !
 ! !USES:
 !
     USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,     ONLY : RDAER
-    USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
@@ -102,6 +101,7 @@ CONTAINS
 #ifdef TOMAS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -227,14 +227,95 @@ CONTAINS
        !=====================================================================
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start  ( "=> Aerosol chem", RC )
+          ENDIF
+
           !------------------------------------------------------------------
           ! Dry-run sulfate chem to get cloud pH
           !------------------------------------------------------------------
           IF ( Input_Opt%LSULF ) THEN
 
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "=> Aerosol chem", RC )
+             ! Calculate stratospheric aerosol properties
+             CALL Calc_Strat_Aer( Input_Opt  = Input_Opt,                    &
+                                  State_Chm  = State_Chm,                    &
+                                  State_Grid = State_Grid,                   &
+                                  State_Met  = State_Met,                    &
+                                  RC         = RC                           )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
              ENDIF
+
+             ! Compute aerosol concentrations (needed for AOD computations)
+             CALL Aerosol_Conc( Input_Opt  = Input_Opt,                      &
+                                State_Chm  = State_Chm,                      &
+                                State_Diag = State_Diag,                     &
+                                State_Grid = State_Grid,                     &
+                                State_Met  = State_Met,                      &
+                                RC         = RC                             )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "AEROSOL_CONC"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Call RDAER
+          !------------------------------------------------------------------
+          waveLength = 0
+          CALL RdAer( Input_Opt  = Input_Opt,                                &
+                      State_Chm  = State_Chm,                                &
+                      State_Diag = State_Diag,                               &
+                      State_Grid = State_Grid,                               &
+                      State_Met  = State_Met,                                &
+                      month      = month,                                    &
+                      year       = year,                                     &
+                      odSwitch   = waveLength,                               &
+                      RC         = RC                                       )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "RDAER"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          !==================================================================
+          ! If LDUST is turned on, then we have online dust aerosol in
+          ! GEOS-CHEM.
+          ! If LDUST is turned off, then we do not have online dust aerosol
+          ! in GEOS-CHEM...so read monthly-mean dust files from disk.
+          ! (rjp, tdf, bmy, 4/1/04)
+          !==================================================================
+          IF ( Input_Opt%LDUST ) THEN
+             CALL RDust_Online( Input_Opt  = Input_Opt,                      &
+                                State_Chm  = State_Chm,                      &
+                                State_Diag = State_Diag,                     &
+                                State_Grid = State_Grid,                     &
+                                State_Met  = State_Met,                      &
+                                odSwitch   = waveLength,                     &
+                                RC         = RC                             )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "RDUST_ONLINE"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Dry-run sulfate chem to get cloud pH
+          !------------------------------------------------------------------
+          IF ( Input_Opt%LSULF ) THEN
 
              ! Dry run only
              CALL ChemSulfate( Input_Opt  = Input_Opt,                       &
@@ -252,8 +333,44 @@ CONTAINS
                 RETURN
              ENDIF
 
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "=> Aerosol chem", RC )
+
+             !---------------------------------------------------------------
+             ! Do aerosol thermodynamic equilibrium
+             !---------------------------------------------------------------
+             IF ( Input_Opt%LSSALT ) THEN
+
+#ifndef APM
+                ! ISORROPIA takes Na+, Cl- into account
+                CALL Do_IsorropiaII( Input_Opt  = Input_Opt,                 &
+                                     State_Chm  = State_Chm,                 &
+                                     State_Diag = State_Diag,                &
+                                     State_Grid = State_Grid,                &
+                                     State_Met  = State_Met,                 &
+                                     RC         = RC                        )
+
+                ! Trap potential errors
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
+#endif
+
+             ELSE
+
+#ifdef APM
+                ! Exit with error if RPMARES + APM is selected
+                ErrMsg = 'Warning: APM does not want to use DO_RPMARES'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+#endif
+
+                ! RPMARES does not take Na+, Cl- into account
+                CALL Do_RPMARES( Input_Opt  = Input_Opt,                     &
+                                 State_Chm  = State_Chm,                     &
+                                 State_Grid = State_Grid,                    &
+                                 State_Met  = State_Met,                     &
+                                 RC         = RC                            )
              ENDIF
 
           ENDIF
@@ -261,7 +378,7 @@ CONTAINS
 #ifdef APM
           ! Save SO4 concentration before chemistry
           N          = APMIDS%id_SO4
-          CONCTMPSO4 = State_Chm%Species(:,:,:,N)
+          CONCTMPSO4 = State_Chm%Species(N)%Conc
 
           CALL AERONUM( Input_Opt  = Input_Opt,                              &
                         State_Chm  = State_Chm,                              &
@@ -272,11 +389,15 @@ CONTAINS
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "ChemSulfate"!'
+             ErrMsg = 'Error encountered in "AERONUM"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 #endif
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Aerosol chem", RC )
+          ENDIF
 
           !------------------------------------------------------------------
           ! Call gas-phase chemistry
@@ -356,8 +477,8 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             IF ( State_Chm%Species(I,J,L,N) > CONCTMPSO4(I,J,L) ) THEN
-                PSO4GAS(I,J,L) = State_Chm%Species(I,J,L,N)                  &
+             IF ( State_Chm%Species(N)%Conc(I,J,L) > CONCTMPSO4(I,J,L) ) THEN
+                PSO4GAS(I,J,L) = State_Chm%Species(N)%Conc(I,J,L)                  &
                                - CONCTMPSO4(I,J,L)
              ELSE
                 PSO4GAS(I,J,L) = 0.D0
@@ -432,45 +553,6 @@ CONTAINS
                 ErrMsg = 'Error encountered in "ChemSulfate"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
-             ENDIF
-
-             !---------------------------------------------------------------
-             ! Do aerosol thermodynamic equilibrium
-             !---------------------------------------------------------------
-             IF ( Input_Opt%LSSALT ) THEN
-
-#ifndef APM
-                ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( Input_Opt  = Input_Opt,                 &
-                                     State_Chm  = State_Chm,                 &
-                                     State_Diag = State_Diag,                &
-                                     State_Grid = State_Grid,                &
-                                     State_Met  = State_Met,                 &
-                                     RC         = RC                        )
-
-                ! Trap potential errors
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
-                   RETURN
-                ENDIF
-#endif
-
-             ELSE
-
-#ifdef APM
-                ! Exit with error if RPMARES + APM is selected
-                ErrMsg = 'Warning: APM does not want to use DO_RPMARES'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-#endif
-
-                ! RPMARES does not take Na+, Cl- into account
-                CALL Do_RPMARES( Input_Opt  = Input_Opt,                     &
-                                 State_Chm  = State_Chm,                     &
-                                 State_Grid = State_Grid,                    &
-                                 State_Met  = State_Met,                     &
-                                 RC         = RC                            )
              ENDIF
 
           ENDIF
@@ -751,9 +833,13 @@ CONTAINS
 
              ! Compute dust OD's & surface areas
              WAVELENGTH = 0
-             CALL Rdust_Online( Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, SOILDUST,   &
-                                WAVELENGTH, RC )
+             CALL Rdust_Online( Input_Opt  = Input_Opt,                   &
+                                State_Chm  = State_Chm,                   &
+                                State_Diag = State_Diag,                  &
+                                State_Grid = State_Grid,                  &
+                                State_Met  = State_Met,                   &
+                                ODswitch   = waveLength,                  &
+                                RC         = RC                          )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1013,7 +1099,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE DO_CHEMISTRY
+  END SUBROUTINE Do_Chemistry
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1035,7 +1121,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,    ONLY : RDAER
-    USE AEROSOL_MOD,    ONLY : SOILDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : Debug_Msg
@@ -1141,9 +1226,7 @@ CONTAINS
 
              !===============================================================
              ! If LDUST is turned on, then we have online dust aerosol in
-             ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order
-             ! to compute aerosol optical depth for FAST-JX, etc.
-             !
+             ! GEOS-CHEM.
              ! If LDUST is turned off, then we don't have online dust
              ! aerosol in GEOS-CHEM...so read monthly-mean dust files
              ! from disk. (rjp, tdf, bmy, 4/1/04)
@@ -1154,7 +1237,6 @@ CONTAINS
                                    State_Diag = State_Diag,                  &
                                    State_Grid = State_Grid,                  &
                                    State_Met  = State_Met,                   &
-                                   dust       = soilDust,                    &
                                    ODswitch   = waveLength,                  &
                                    RC         = RC                          )
 
@@ -1320,8 +1402,8 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          State_Chm%Species(I,J,L,GcId) = State_Chm%Species(I,J,L,GcId)      &
-                                        * Rate
+          State_Chm%Species(GcId)%Conc(I,J,L) =                &
+                    State_Chm%Species(GcId)%Conc(I,J,L) * Rate
        ENDDO
        ENDDO
        ENDDO
