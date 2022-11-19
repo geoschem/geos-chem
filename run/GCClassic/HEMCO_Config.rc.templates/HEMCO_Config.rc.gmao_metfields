@@ -135,8 +135,15 @@ METDIR:   ${RUNDIR_MET_DIR}
 #                                                    --Lee Murray (16 Jan 2019)
 #==============================================================================
 (((LightNOx
+(((.not.LightningClimatology
 * FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_${RUNDIR_MET_NATIVE_RES}_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 * CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_${RUNDIR_MET_NATIVE_RES}_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+))).not.LightningClimatology
+
+(((LightningClimatology
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/CLIM/FLASH_CTH_$MET_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4  LDENS 2019/1-12/1/0 C xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/CLIM/FLASH_CTH_$MET_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4  CTH   2019/1-12/1/0 C xy  1  * -  1 1
+)))LightningClimatology
 )))LightNOx
 
 ### END SECTION BASE EMISSIONS ###

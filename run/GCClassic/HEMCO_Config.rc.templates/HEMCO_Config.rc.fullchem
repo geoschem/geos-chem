@@ -170,6 +170,7 @@ Warnings:                    1
     --> LUT data format        :       nc
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
 103     LightNOx               : on    NO
+    --> LightningClimatology   :       false
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
     --> Use fertilizer NOx     :       true
