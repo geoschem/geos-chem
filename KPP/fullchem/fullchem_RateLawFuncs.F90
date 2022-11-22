@@ -1822,7 +1822,8 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%aClArea
+!       area = H%ClearFr * H%aClArea
+       area = H%ClearFr * H%aClArea * (1.0_dp - H%f_Alk_SSA)
        k    = k + Ars_L1K( area, H%aClRadi, gammaAer, srMw ) * branch
     ENDIF
 
@@ -1882,7 +1883,8 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%xArea(SSC)
+!       area = H%ClearFr * H%xArea(SSC)
+       area = H%ClearFr * H%xArea(SSC) * (1.0_dp - H%f_Alk_SSC)
        k    = k + Ars_L1K( area, H%xRadi(SSC), gammaAer, srMw ) * branch
     ENDIF
 
@@ -1942,7 +1944,8 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%aClArea
+!       area = H%ClearFr * H%aClArea
+       area = H%ClearFr * H%aClArea * (1.0_dp - H%f_Alk_SSA)
        k    = k + Ars_L1K( area, H%aClRadi, gammaAer, srMw ) * branch
     ENDIF
 
@@ -2002,7 +2005,8 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%xArea(SSC)
+!       area = H%ClearFr * H%xArea(SSC)
+       area = H%ClearFr * H%xArea(SSC) * (1.0_dp - H%f_Alk_SSC)
        k    = k + Ars_L1K( area, H%xRadi(SSC), gammaAer, srMw ) * branch
     ENDIF
 
@@ -2270,7 +2274,8 @@ CONTAINS
     ! Compute HOCl + SALACL uptake rate [1/s] on acidic aerosols in clear-sky
     IF ( H%SSA_is_Acid ) THEN
        CALL Gam_HOCl_Aer( H, H%aClRadi, H%H_conc_SSA, H%Cl_conc_SSA, gamma )
-       area = H%ClearFr * H%aClArea
+!       area = H%ClearFr * H%aClArea
+       area = H%ClearFr * H%aClArea * (1.0_dp - H%f_Alk_SSA)
        k    = k + Ars_L1k( area, H%aClRadi, gamma, srMw )
     ENDIF
     !
@@ -2305,7 +2310,8 @@ CONTAINS
     ! Compute HOCl + SALCCL uptake rate [1/s] on acidic aerosols in clear-sky
     IF ( H%SSC_is_Acid ) THEN
        CALL Gam_HOCl_Aer( H, H%xRadi(SSC), H%H_conc_SSC, H%Cl_conc_SSC, gamma )
-       area = H%ClearFr * H%xArea(SSC)
+!       area = H%ClearFr * H%xArea(SSC)
+       area = H%ClearFr * H%xArea(SSC) * (1.0_dp - H%f_Alk_SSC)
        k    = k + Ars_L1k( area, H%xRadi(SSC), gamma, srMw )
     ENDIF
     !
@@ -3135,7 +3141,8 @@ CONTAINS
     !
     ! O3 + Br- uptake on acidic fine sea-salt, clear sky
     IF ( H%SSA_is_Acid ) THEN
-       area  = H%ClearFr * H%aClArea
+!       area  = H%ClearFr * H%aClArea
+       area  = H%ClearFr * H%aClArea * (1.0_dp - H%f_Alk_SSA)
        gamma = Gamma_O3_Br( H, H%aClRadi, H%Br_conc_SSA )
        k     = k + Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_O3) )
     ENDIF
@@ -3160,7 +3167,8 @@ CONTAINS
     !
     ! O3 + Br- uptake on acidic coarse sea salt, clear sky
     IF ( H%SSC_is_Acid ) THEN
-       area  = H%ClearFr * H%xArea(SSC)
+!       area  = H%ClearFr * H%xArea(SSC)
+       area  = H%ClearFr * H%xArea(SSC) * (1.0_dp - H%f_Alk_SSC)
        gamma = Gamma_O3_Br( H, H%xRadi(SSC), H%Br_conc_SSC )
        k     = k + Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_O3) )
     ENDIF
