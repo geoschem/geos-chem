@@ -59,6 +59,9 @@ CONTAINS
     USE rateLawUtilFuncs
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
+
+  ! Species ID flags
+  INTEGER           :: id_SALAAL,   id_SALA,   id_SALCAL,    id_SALC
 !
 ! !INPUT PARAMETERS:
 !
@@ -145,10 +148,18 @@ CONTAINS
     H%H_conc_ICl    = 10.0**( -4.5_dp              )
     H%H_conc_SSA    = H%H_conc_Sul
     H%H_conc_SSC    = 10.0**( -5.0_dp              )
-    H%ssAlk         = State_Chm%SSAlk(I,J,L,:)
-    H%SSA_is_Alk    = ( H%ssAlk(1) > 0.05_dp       )
+!    H%ssAlk         = State_Chm%SSAlk(I,J,L,:)
+    H%f_Alk_SSA     = SafeDiv(State_Chm%Species(I,J,L,id_SALAAL), &
+                              State_Chm%Species(I,J,L,id_SALA),  &
+                              0.0_dp)
+    H%f_Alk_SSC     = SafeDiv(State_Chm%Species(I,J,L,id_SALCAL), &
+                              State_Chm%Species(I,J,L,id_SALC),  &
+                              0.0_dp)
+!    H%SSA_is_Alk    = ( H%ssAlk(1) > 0.05_dp       )
+    H%SSA_is_Alk    = ( ABS(H%f_Alk_SSA) > 0.01_dp )
     H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk        )
-    H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )
+!    H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )
+    H%SSC_is_Alk    = ( ABS(H%f_Alk_SSC) > 0.01_dp )
     H%SSC_is_Acid   = ( .not.  H%SSC_is_Alk        )
 
     ! Other fields
