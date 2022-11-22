@@ -10,10 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated KPP diagnostics archive flags
 - Rewrote code to avoid memory leaks (identified by the code sanitizer)
 - Updated EDGAR v6 CH4 emission files to correct timestamp issue
+- Updated CH4 Lakes emission files to correct time unit issue
 - Fixed indentation error in the `legacy_bpch` section of
   `geoschem_config.yml` template files
 - Removed "dry air" from the metadata of fields `State_Met%AIRVOL` and
   `State_Met%BXHEIGHT`
+- Applied fixes for CESM runs: Turned off sea salt emissions; Modified time
+  cycle flag for YUAN_MODIS_LAI
 
 ### Changed
 - Updated CESM HISTORY.rc to work with new CESM-GC diagnostics interface
