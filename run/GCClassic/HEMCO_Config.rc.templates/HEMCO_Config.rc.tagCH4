@@ -477,11 +477,11 @@ Warnings:                    1
 )))SEEPS
 
 #==============================================================================
-# --- Emissions from Lakes (Maasakkers et al., in prep) ---
+# --- Emissions from Lakes (Maasakkers et al., 2019) ---
 #==============================================================================
 (((LAKES
-0 CH4_LAKES_T $ROOT/CH4/v2017-10/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4_LAK - 12 1
-0 CH4_LAKES   $ROOT/CH4/v2017-10/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4     - 12 1
+0 CH4_LAKES_T $ROOT/CH4/v2022-11/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4_LAK - 12 1
+0 CH4_LAKES   $ROOT/CH4/v2022-11/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4     - 12 1
 )))LAKES
 
 #==============================================================================
