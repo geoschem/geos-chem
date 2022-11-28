@@ -57,7 +57,7 @@ CONTAINS
     USE PhysConstants,    ONLY : AVO, PI
     USE Input_Opt_Mod,    ONLY : OptInput
     USE rateLawUtilFuncs
-    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Chm_Mod,    ONLY : ChmState, Ind_
     USE State_Met_Mod,    ONLY : MetState
 
   ! Species ID flags
@@ -79,6 +79,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -94,6 +95,12 @@ CONTAINS
     ! Initialization
     RC = GC_SUCCESS
     NA = State_Chm%nAeroType
+
+    ! Define flags for species IDs
+    id_SALAAL = Ind_( 'SALAAL' )
+    id_SALA   = Ind_( 'SALA'   )
+    id_SALCAL = Ind_('SALCAL'  )
+    id_SALC   = Ind_('SALC'    )
 
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
@@ -154,8 +161,7 @@ CONTAINS
                               0.0_dp)
     H%f_Alk_SSC     = SafeDiv(State_Chm%Species(I,J,L,id_SALCAL), &
                               State_Chm%Species(I,J,L,id_SALC),  &
-                              0.0_dp)
-!    H%SSA_is_Alk    = ( H%ssAlk(1) > 0.05_dp       )
+                              0.0_dp)      )
     H%SSA_is_Alk    = ( ABS(H%f_Alk_SSA) > 0.01_dp )
     H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk        )
 !    H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )
