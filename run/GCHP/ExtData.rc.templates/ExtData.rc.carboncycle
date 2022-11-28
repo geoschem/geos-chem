@@ -138,50 +138,50 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 #==============================================================================
 
 # --- CH4: Gridded EPA (Maasakkers et al., Environ. Sci. Technol., 2016) ---
-GEPA_OIL               molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_GAS_PRODUCTION    molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_GAS_PROCESSING    molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_GAS_TRANSMISSION  molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_GAS_DISTRIBUTION  molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAL_UNDERGROUND  molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Underground        ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAL_SURFACE      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Surface            ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAL_ABANDONED    molec/cm2/s N    Y -                    none none  emissions_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_LIVESTOCK__4A     molec/cm2/s N    Y -                    none none  emissions_4A_Enteric_Fermentation             ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_LIVESTOCK__4B     molec/cm2/s N    Y -                    none none  emissions_4B_Manure_Management                ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_LANDFILLS_MUNI    molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Municipal              ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_LANDFILLS_INDU    molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Industrial             ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_WASTEWATER_DOME   molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_WASTEWATER_INDU   molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_RICE              molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_OTHER__1A_M       molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Mobile                ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_OTHER__1A_S       molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Stationary            ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_OTHER__2B5        molec/cm2/s N    Y -                    none none  emissions_2B5_Petrochemical_Production        ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_OTHER__2C2        molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_OTHER__4F         molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissions_4F_Field_Burning                    ./HcoDir/CH4/v2017-10/GEPA/GEPA_Monthly.nc
-#GEPA_OTHER__5          molec/cm2/s 2012 Y F%y4-%m2-%d2T00:00:00 none none emissions_5_Forest_Fires                      ./HcoDir/CH4/v2017-10/GEPA/GEPA_Daily.nc
-GEPA_OTHER__6D         molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_OIL         molec/cm2/s N    Y -                    none none  emissions_1B2a_Petroleum                      ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_PR      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_PC      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_TR      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_DS      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_COAL_U      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Underground        ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_COAL_S      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Surface            ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_COAL_A      molec/cm2/s N    Y -                    none none  emissions_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_LVSTK_F     molec/cm2/s N    Y -                    none none  emissions_4A_Enteric_Fermentation             ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_LVSTK_M     molec/cm2/s N    Y -                    none none  emissions_4B_Manure_Management                ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_LDF_M       molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Municipal              ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_LDF_I       molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Industrial             ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_WSTW_D      molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_WSTW_I      molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_RICE        molec/cm2/s N    Y -                    none none  emissions_4C_Rice_Cultivation                 ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_1AM     molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Mobile                ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_1AS     molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Stationary            ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_2B5     molec/cm2/s N    Y -                    none none  emissions_2B5_Petrochemical_Production        ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_2C2     molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_4F      molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissions_4F_Field_Burning                    ./HcoDir/CH4/v2017-10/GEPA/GEPA_Monthly.nc
-#GEPA_COAST_OTH_5       molec/cm2/s 2012 Y F%y4-%m2-%d2T00:00:00 none none emissions_5_Forest_Fires                       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Daily.nc
-GEPA_COAST_OTH_6D      molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2017-10/GEPA/GEPA_Annual.nc
+GEPA_OIL               molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_GAS_PRODUCTION    molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_GAS_PROCESSING    molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_GAS_TRANSMISSION  molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_GAS_DISTRIBUTION  molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAL_UNDERGROUND  molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Underground        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAL_SURFACE      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Surface            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAL_ABANDONED    molec/cm2/s N    Y -                    none none  emissions_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_LIVESTOCK__4A     molec/cm2/s N    Y -                    none none  emissions_4A_Enteric_Fermentation             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_LIVESTOCK__4B     molec/cm2/s N    Y -                    none none  emissions_4B_Manure_Management                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_LANDFILLS_MUNI    molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Municipal              ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_LANDFILLS_INDU    molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Industrial             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_WASTEWATER_DOME   molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_WASTEWATER_INDU   molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_RICE              molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_OTHER__1A_M       molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Mobile                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_OTHER__1A_S       molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Stationary            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_OTHER__2B5        molec/cm2/s N    Y -                    none none  emissions_2B5_Petrochemical_Production        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_OTHER__2C2        molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_OTHER__4F         molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissions_4F_Field_Burning                    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Monthly.nc
+#GEPA_OTHER__5          molec/cm2/s 2012 Y F%y4-%m2-%d2T00:00:00 none none emissions_5_Forest_Fires                      ./HcoDir/CH4/v2022-11/GEPA/GEPA_Daily.nc
+GEPA_OTHER__6D         molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_OIL         molec/cm2/s N    Y -                    none none  emissions_1B2a_Petroleum                      ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_GAS_PR      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_GAS_PC      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_GAS_TR      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_GAS_DS      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_COAL_U      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Underground        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_COAL_S      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Surface            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_COAL_A      molec/cm2/s N    Y -                    none none  emissions_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_LVSTK_F     molec/cm2/s N    Y -                    none none  emissions_4A_Enteric_Fermentation             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_LVSTK_M     molec/cm2/s N    Y -                    none none  emissions_4B_Manure_Management                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_LDF_M       molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Municipal              ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_LDF_I       molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Industrial             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_WSTW_D      molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_WSTW_I      molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_RICE        molec/cm2/s N    Y -                    none none  emissions_4C_Rice_Cultivation                 ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_OTH_1AM     molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Mobile                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_OTH_1AS     molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Stationary            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_OTH_2B5     molec/cm2/s N    Y -                    none none  emissions_2B5_Petrochemical_Production        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_OTH_2C2     molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+GEPA_COAST_OTH_4F      molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissions_4F_Field_Burning                    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Monthly.nc
+#GEPA_COAST_OTH_5       molec/cm2/s 2012 Y F%y4-%m2-%d2T00:00:00 none none emissions_5_Forest_Fires                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Daily.nc
+GEPA_COAST_OTH_6D      molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
 
 # --- Scarpelli Mexico ---
 MEX_OIL                      kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
@@ -276,7 +276,7 @@ CH4_SEEPS kg/m2/s 2012 Y F%y4-01-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2
 
 # --- Emissions from lakes (Maasakkers et al.) ---
 # --- NOTE: Superseded by WetCHARTs            ---
-#CH4_LAKES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2017-10/Lakes/Maasakkers_Lakes_%y4.01x01.nc
+#CH4_LAKES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2022-11/Lakes/Maasakkers_Lakes_%y4.01x01.nc
 
 # --- Emissions from termites (Fung et al 1991) ---
 CH4_TERMITES    kg/m2/s N Y F%y4-01-01T00:00:00 none none  CH4  ./HcoDir/CH4/v2014-09/4x5/termites.geos.4x5.nc
