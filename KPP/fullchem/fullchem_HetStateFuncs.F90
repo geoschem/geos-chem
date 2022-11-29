@@ -161,7 +161,7 @@ CONTAINS
                               0.0_dp)
     H%f_Alk_SSC     = SafeDiv(State_Chm%Species(I,J,L,id_SALCAL), &
                               State_Chm%Species(I,J,L,id_SALC),  &
-                              0.0_dp)      )
+                              0.0_dp)      
     H%SSA_is_Alk    = ( ABS(H%f_Alk_SSA) > 0.01_dp )
     H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk        )
 !    H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )

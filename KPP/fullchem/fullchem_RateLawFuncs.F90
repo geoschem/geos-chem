@@ -2399,18 +2399,17 @@ CONTAINS
     k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
   END FUNCTION IuptkBySulf1stOrd
 
-!  FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
-  FUNCTION IuptkBySALA1stOrd( ssarea, srMw, gamma, H ) RESULT( k )
+  FUNCTION IuptkBySALA1stOrd( srMw, gamma, H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for uptake of iodine species
     ! by accumulation-mode (aka fine) sea-salt aerosol.
     !
-    REAL(dp),       INTENT(IN) :: srMw, gamma, ssarea ! sqrt( mol wt ) rxn prob area
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob area
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
-    !
-!    k = Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
-    k = Ars_L1k( ssarea, H%xRadi(SSA), gamma, srMw )
+    
+    k = Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
+
   END FUNCTION IuptkbySALA1stOrd
 
   FUNCTION IuptkByAlkSALA1stOrd( srMw, gamma, H ) RESULT( k )
@@ -2427,22 +2426,21 @@ CONTAINS
     IF ( H%SSA_is_Alk ) THEN
        ssarea = H%f_Alk_SSA * H%xArea(SSA)
 !       k = IuptkBySALA1stOrd( srMw, gamma, H )
-       k = IuptkBySALA1stOrd( ssarea, srMw, gamma, H )
+       k = Ars_L1k( ssarea, H%xRadi(SSA), srMw, gamma )
     ENDIF
   END FUNCTION IuptkbyAlkSALA1stOrd
 
-!  FUNCTION IuptkBySALC1stOrd( srMw, gamma, H ) RESULT( k )
-  FUNCTION IuptkBySALC1stOrd( ssarea, srMw, gamma, H ) RESULT( k )
+  FUNCTION IuptkBySALC1stOrd( srMw, gamma, H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for uptake of iodine species
     ! by coarse-mode sea-salt aerosol.
     !
-    REAL(dp),       INTENT(IN) :: srMw, gamma, ssarea    ! sqrt( mol wt ), rxn prob
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
-!    k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
-    k = Ars_L1k( ssarea, H%xRadi(SSC), gamma, srMw )
+    k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
+
   END FUNCTION IuptkBySALC1stOrd
 
   FUNCTION IuptkByAlkSALC1stOrd( srMw, gamma, H ) RESULT( k )
@@ -2458,7 +2456,7 @@ CONTAINS
     IF ( H%SSC_is_Alk ) THEN
        ssarea = H%f_Alk_SSC * H%xArea(SSC)
 !       k = IuptkBySALC1stOrd( srMw, gamma, H )
-       k = IuptkBySALC1stOrd( ssarea, srMw, gamma, H )
+       k = Ars_L1K( ssarea, H%xRadi(SSC), srMw, gamma )
     ENDIF
   END FUNCTION IuptkByAlkSALC1stOrd
 
@@ -2475,7 +2473,7 @@ CONTAINS
     IF ( H%SSA_is_Acid ) THEN
        ssarea = (1.0_dp - H%f_Alk_SSA) * H%xArea(SSA)
 !       k = 0.15_dp * IuptkBySALA1stOrd( srMw, gamma, H )
-       k = 0.15_dp * IuptkBySALA1stOrd( ssarea, srMw, gamma, H )
+       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSA), srMw, gamma )
        k = kIIR1Ltd( conc, C(ind_BrSALA), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALA
@@ -2493,7 +2491,7 @@ CONTAINS
     IF ( H%SSC_is_Acid ) THEN
        ssarea = (1.0_dp - H%f_Alk_SSC) * H%xArea(SSC)
 !       k = 0.15_dp * IuptkBySALC1stOrd( srMw, gamma, H )
-       k = 0.15_dp * IuptkBySALC1stOrd( ssarea, srMw, gamma, H )
+       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSC), srMw, gamma )
        k = kIIR1Ltd( conc, C(ind_BrSALC), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALC
@@ -2511,7 +2509,7 @@ CONTAINS
     IF ( H%SSA_is_Acid ) THEN
        ssarea = (1.0_dp - H%f_Alk_SSA) * H%xArea(SSA)
 !       k = 0.85_dp * IuptkBySALA1stOrd( srMw, gamma, H )
-       k = 0.85_dp * IuptkBySALA1stOrd( ssarea, srMw, gamma, H )
+       k = 0.85_dp * Ars_L1K( ssarea, H%xRadi(SSA), srMw, gamma )
        k = kIIR1Ltd( conc, C(ind_SALACl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALACl
@@ -2529,7 +2527,7 @@ CONTAINS
     IF ( H%SSC_is_Acid ) THEN
        ssarea = (1.0_dp - H%f_Alk_SSC) * H%xArea(SSC)
 !       k = 0.85_dp * IuptkBySALC1stOrd( srMw, gamma, H )
-       k = 0.85_dp * IuptkBySALC1stOrd( ssarea, srMw, gamma, H )
+       k = 0.85_dp * ARs_L1K( ssarea, H%xRAdi(SSC), srMw, gamma )
        k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
