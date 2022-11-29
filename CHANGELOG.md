@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Rewrote code to avoid memory leaks (identified by the code sanitizer)
   - Updated EDGAR v6 CH4 emission files to correct timestamp issue
   - Updated CH4 Lakes emission files to correct time unit issue
+  - Added fix for CH4_RICE emissions from EDGAR v6
   - Fixed indentation error in the `legacy_bpch` section of
     `geoschem_config.yml` template files
   - Removed "dry air" from the metadata of fields `State_Met%AIRVOL` and
