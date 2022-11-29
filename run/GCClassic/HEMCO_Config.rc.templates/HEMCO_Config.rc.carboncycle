@@ -216,26 +216,26 @@ Mask fractions:              false
 # --- CH4: Mexico emissions (Scarpelli et. al, Environ. Res. Lett., 2020) ---
 #==============================================================================
 (((Scarpelli_Mexico
-0 MEX_OIL               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 30
-0 MEX_GAS               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 30
-0 MEX_COAL              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 30
-0 MEX_LIVESTOCK_A       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 30
-0 MEX_LIVESTOCK_B       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 30
-0 MEX_LANDFILLS         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 30
-0 MEX_WASTEWATER        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 30
-0 MEX_RICE              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 30
-0 MEX_OTHER             $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 30
+0 MEX_OIL               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 30
+0 MEX_GAS               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 30
+0 MEX_COAL              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 30
+0 MEX_LIVESTOCK_A       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 30
+0 MEX_LIVESTOCK_B       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 30
+0 MEX_LANDFILLS         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 30
+0 MEX_WASTEWATER        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 30
+0 MEX_RICE              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 30
+0 MEX_OTHER             $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 30
 
 ### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR) ###
-0 MEX_OIL_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 1
-0 MEX_GAS_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 1
-0 MEX_COAL_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 1
-0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
-0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
-0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
-0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
-0 MEX_RICE_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
-0 MEX_OTHER_COAST       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
+0 MEX_OIL_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 1
+0 MEX_GAS_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 1
+0 MEX_COAL_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 1
+0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
+0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
+0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
+0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
+0 MEX_RICE_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
+0 MEX_OTHER_COAST       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
 )))Scarpelli_Mexico
 
 #==============================================================================
@@ -284,6 +284,7 @@ Mask fractions:              false
 0 CH4_LIVESTOCK__4B      $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 4 1
 0 CH4_LANDFILLS__6A_6D   $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_SWD_LDF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 5 1
 0 CH4_WASTEWATER__6B     $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_WWT.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 6 1
+0 CH4_RICE__4C_4D        $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 7 1
 0 CH4_OTHER__1A1_1B1_1B2 $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 CH4_OTHER__1A1a        $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 CH4_OTHER__1A2         $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
@@ -297,7 +298,6 @@ Mask fractions:              false
 0 CH4_OTHER__2B          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_CHE.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 CH4_OTHER__2C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 CH4_OTHER__4F          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 CH4_OTHER__4C_4D       $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 CH4_OTHER__6C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 )))EDGARv6
 
@@ -372,7 +372,7 @@ Mask fractions:              false
 #   in mixing_mod.F
 #==============================================================================
 (((FUNG_TERMITES
-0 CH4_TERMITES     $ROOT/CH4/v2014-09/4x5/termites.geos.4x5.nc          CH4 1985/1/1/0         C xy kg/m2/s     CH4 - 13 1
+0 CH4_TERMITES     $ROOT/CH4/v2022-11/4x5/termites.geos.4x5.nc CH4 1985/1/1/0 C xy kg/m2/s CH4 - 13 1
 )))FUNG_TERMITES
 (((FUNG_SOIL_ABSORPTION
 0 CH4_SOILABSORB   $ROOT/CH4/v2019-10/Fung_SoilAbs/Soil_Absorption_4x5_$YYYY.nc CH4 2009-2015/1-12/1/0 C xy molec/cm2/s CH4 1 14 1
@@ -721,7 +721,7 @@ Mask fractions:              false
 )))OCEAN_EXCH_TAKA09
 
 (((OCEAN_EXCH_SCALED
-0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2015-04/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
+0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
 )))OCEAN_EXCH_SCALED
 
 #==============================================================================

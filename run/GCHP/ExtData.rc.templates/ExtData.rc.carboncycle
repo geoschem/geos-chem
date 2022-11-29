@@ -184,47 +184,47 @@ GEPA_COAST_OTH_4F      molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissi
 GEPA_COAST_OTH_6D      molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
 
 # --- Scarpelli Mexico ---
-MEX_OIL                      kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
-MEX_GAS                      kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc
-MEX_COAL                     kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc
-MEX_LIVESTOCK_A              kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc
-MEX_LIVESTOCK_B              kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc
-MEX_LANDFILLS                kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc
-MEX_WASTEWATER               kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc
-MEX_RICE                     kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc
-MEX_OTHER                    kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc
-MEX_OIL_COAST                kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
-MEX_GAS_COAST                kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc
-MEX_COAL_COAST               kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc
-MEX_LIVESTOCK_A_COAST        kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc
-MEX_LIVESTOCK_B_COAST        kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc
-MEX_LANDFILLS_COAST          kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc
-MEX_WASTEWATER_COAST         kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc
-MEX_RICE_COAST               kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc
-MEX_OTHER_COAST              kg/m2/s 2015 Y F%y4-01-01T00:00:00 none none  emis_ch4  ./HcoDir/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc
+MEX_OIL                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
+MEX_GAS                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc
+MEX_COAL                     kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc
+MEX_LIVESTOCK_A              kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc
+MEX_LIVESTOCK_B              kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc
+MEX_LANDFILLS                kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc
+MEX_WASTEWATER               kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc
+MEX_RICE                     kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc
+MEX_OTHER                    kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc
+MEX_OIL_COAST                kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
+MEX_GAS_COAST                kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc
+MEX_COAL_COAST               kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc
+MEX_LIVESTOCK_A_COAST        kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc
+MEX_LIVESTOCK_B_COAST        kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc
+MEX_LANDFILLS_COAST          kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc
+MEX_WASTEWATER_COAST         kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc
+MEX_RICE_COAST               kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc
+MEX_OTHER_COAST              kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc
 
 # --- Scarpelli Canada ---
-CAN_OIL_GAS_COMBUSTION       kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  oil_gas_combustion_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc
-CAN_OIL_GAS_LEAKAGE          kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  oil_gas_leakage_total      ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc
-CAN_OIL_GAS_VENT_FLARE       kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  oil_gas_vent_flare_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc
-CAN_COAL                     kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  coal_total                 ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc
-CAN_LIVESTOCK                kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  livestock_total            ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc
-CAN_SOLID_WASTE              kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  solid_waste_total          ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc
-CAN_WASTEWATER               kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  wastewater_total           ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc
-CAN_OTHER                    kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
-CAN_OIL_GAS_COMBUSTION_COAST kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  oil_gas_combustion_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc
-CAN_OIL_GAS_LEAKAGE_COAST    kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  oil_gas_leakage_total      ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc
-CAN_OIL_GAS_VENT_FLARE_COAST kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  oil_gas_vent_flare_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc
-CAN_COAL_COAST               kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  coal_total                 ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc
-CAN_LIVESTOCK_COAST          kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  livestock_total            ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc
-CAN_SOLID_WASTE_COAST        kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  solid_waste_total          ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc
-CAN_WASTEWATER_COAST         kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  wastewater_total           ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc
-CAN_OTHER_COAST              kg/m2/s 2018 Y F%y4-01-01T00:00:00 none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
+CAN_OIL_GAS_COMBUSTION       kg/m2/s N Y - none none  oil_gas_combustion_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc
+CAN_OIL_GAS_LEAKAGE          kg/m2/s N Y - none none  oil_gas_leakage_total      ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc
+CAN_OIL_GAS_VENT_FLARE       kg/m2/s N Y - none none  oil_gas_vent_flare_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc
+CAN_COAL                     kg/m2/s N Y - none none  coal_total                 ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc
+CAN_LIVESTOCK                kg/m2/s N Y - none none  livestock_total            ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc
+CAN_SOLID_WASTE              kg/m2/s N Y - none none  solid_waste_total          ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc
+CAN_WASTEWATER               kg/m2/s N Y - none none  wastewater_total           ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc
+CAN_OTHER                    kg/m2/s N Y - none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
+CAN_OIL_GAS_COMBUSTION_COAST kg/m2/s N Y - none none  oil_gas_combustion_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc
+CAN_OIL_GAS_LEAKAGE_COAST    kg/m2/s N Y - none none  oil_gas_leakage_total      ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc
+CAN_OIL_GAS_VENT_FLARE_COAST kg/m2/s N Y - none none  oil_gas_vent_flare_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc
+CAN_COAL_COAST               kg/m2/s N Y - none none  coal_total                 ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc
+CAN_LIVESTOCK_COAST          kg/m2/s N Y - none none  livestock_total            ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc
+CAN_SOLID_WASTE_COAST        kg/m2/s N Y - none none  solid_waste_total          ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc
+CAN_WASTEWATER_COAST         kg/m2/s N Y - none none  wastewater_total           ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc
+CAN_OTHER_COAST              kg/m2/s N Y - none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
 
 # --- GFEI ---
-GFEI_CH4_OIL  kg/m2/s N Y F%y4-01-01T00:00:00  none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc
-GFEI_CH4_GAS  kg/m2/s N Y F%y4-01-01T00:00:00  none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
-GFEI_CH4_COAL kg/m2/s N Y F%y4-01-01T00:00:00  none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
+GFEI_CH4_OIL  kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc
+GFEI_CH4_GAS  kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
+GFEI_CH4_COAL kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
 
 # --- EDGAR v6.0 ---
 CH4_OIL__1B2a          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_PRO_OIL.0.1x0.1.nc
@@ -234,6 +234,7 @@ CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./H
 CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_MNM.0.1x0.1.nc
 CH4_LANDFILLS__6A_6D   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_SWD_LDF.0.1x0.1.nc
 CH4_WASTEWATER__6B     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_WWT.0.1x0.1.nc
+CH4_RICE__4C_4D        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_AGS.0.1x0.1.nc
 CH4_OTHER__1A1_1B1_1B2 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_REF_TRF.0.1x0.1.nc
 CH4_OTHER__1A1a        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_ENE.0.1x0.1.nc
 CH4_OTHER__1A2         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_IND.0.1x0.1.nc
@@ -247,7 +248,6 @@ CH4_OTHER__1A4         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./H
 CH4_OTHER__2B          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_CHE.0.1x0.1.nc
 CH4_OTHER__2C          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_IRO.0.1x0.1.nc
 CH4_OTHER__4F          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_AWB.0.1x0.1.nc
-CH4_OTHER__4C_4D       kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_AGS.0.1x0.1.nc
 CH4_OTHER__6C          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_SWD_INC.0.1x0.1.nc
 
 # --- CH4: CEDS (historical) or Shared Socioeconomic Pathways (future) ---
@@ -272,14 +272,14 @@ UPDATED_GFED4_CH4 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none  CH4 ./HcoDir/CH4/
 JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
 
 # --- Geological seeps ---
-CH4_SEEPS kg/m2/s 2012 Y F%y4-01-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc
+CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc
 
 # --- Emissions from lakes (Maasakkers et al.) ---
 # --- NOTE: Superseded by WetCHARTs            ---
 #CH4_LAKES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2022-11/Lakes/Maasakkers_Lakes_%y4.01x01.nc
 
 # --- Emissions from termites (Fung et al 1991) ---
-CH4_TERMITES    kg/m2/s N Y F%y4-01-01T00:00:00 none none  CH4  ./HcoDir/CH4/v2014-09/4x5/termites.geos.4x5.nc
+CH4_TERMITES    kg/m2/s N Y - none none  CH4  ./HcoDir/CH4/v2022-11/4x5/termites.geos.4x5.nc
 
 # --- Soil absoprtion (Fung et al 1991) ---
 # --- NOTE: Superseded by MeMo          ---
@@ -466,7 +466,7 @@ GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2014-09/v5
 GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
 
 # --- Stratospheric L(CO) from GMI ---
-CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2014-09/4x5/gmi.ch4loss.geos5_47L.4x5.nc
+CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2022-11/4x5/gmi.ch4loss.geos5_47L.4x5.nc
 
 # --- P(CO) from CH4 and NMVOC from the last 10-yr benchmark ---
 PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
@@ -507,7 +507,7 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 
 # --- CO2 scale factors
 AVIATION_SURF_CORR      1       2004 Y F%y2-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2015-04/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
-OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2015-04/OCEAN/Scaled_Ocean_CO2_monthly.nc
+OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc
 
 ###############################################################################
 ###
