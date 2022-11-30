@@ -386,15 +386,15 @@ AEIC19_MONMEAN_CO kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEI
 FOSSILCO2_ODIAC    kg/m2/s N Y  F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
 
 # --- CO2 Ocean Exchange ---
-#OCEANCO2_TAKA_ANNUAL   kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2014-09/OCEAN/Taka2009_CO2_Annual.nc
-OCEANCO2_TAKA_MONTHLY  kg/m2/s 2000 Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2014-09/OCEAN/Taka2009_CO2_Monthly.nc
+#OCEANCO2_TAKA_ANNUAL   kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Taka2009_CO2_Annual.nc
+OCEANCO2_TAKA_MONTHLY  kg/m2/s 2000 Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Taka2009_CO2_Monthly.nc
 
 # --- Balanced biosphere exchange ---
 #BBIOCO2_DIURNAL kg/m2/s N Y F%y4-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2014-09/BBIO/BBIO_diurnal_CO2.nc
-SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2015-04/BIO/SiB3_3hr_NEP.nc
+SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
 
 # --- Net Terrestrial Exchange ---
-CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2015-04/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
+CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
 
 # --- CO2 Ship Emissions ---
 #ICOADS_CO2_SHIP kg/m2/s N Y F2004-%m2-01T00:00:00 none none CO2 ./HcoDir/ICOADS_SHIP/v2014-07/ICOADS_ship_CO2_2004.generic.1x1.nc
@@ -406,16 +406,16 @@ AEIC19_MONMEAN_CO2 kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./Hco
 
 # --- CO2: Surface correction for CO oxidation ---
 FOSSILCO2_MONTHLY kg/m/s N    Y F%y4-%m2-01T01:00:00 none none CO2     ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
-CO2_LIVESTOCK     kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_004 ./HcoDir/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc
-CO2_WASTE         kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_005 ./HcoDir/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc
-CO2_RICE          kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_007 ./HcoDir/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc
-CO2_WETLANDS      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_010 ./HcoDir/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc
-CO2_NATURAL       kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_012 ./HcoDir/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc
-CO2_ISOPRENE      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none ISOP    ./HcoDir/CO2/v2015-04/CHEM/Isoprene-2004.geos.2x25.nc
-CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2015-04/CHEM/Monoterpene-2004.geos.2x25.nc
+CO2_LIVESTOCK     kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_004 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_WASTE         kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_005 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_RICE          kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_007 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_WETLANDS      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_010 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_NATURAL       kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_012 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_ISOPRENE      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none ISOP    ./HcoDir/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc
+CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc
 
 # --- CO2 production from CO ---
-CO2_COPROD        kgC/m3/s N Y F$y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2019-02/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc
+CO2_COPROD        kgC/m3/s N Y F$y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2022-11/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc
 
 #==============================================================================
 # --- OCS flux data ----
