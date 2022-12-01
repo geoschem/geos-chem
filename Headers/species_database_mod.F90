@@ -820,9 +820,6 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Debug printout
-       IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
-
        ! Free pointer
        ThisSpc => NULL()
     ENDDO
@@ -834,6 +831,27 @@ CONTAINS
 31  FORMAT( a30, " | ", 2f10.2 )
 32  FORMAT( a30, " | ", 3f10.2 )
 40  FORMAT( a30, " | ", i10    )
+
+    !=======================================================================
+    ! Print metadata for only the species that are defined in this
+    ! simulation (but not the entire species database) to a YAML file.
+    !
+    ! Also note: Input_Opt%amIRoot is always set to False in MODEL_CESM
+    ! so we will need to block out the test for it for CESM only.
+    !=======================================================================
+    IF ( TRIM( Input_Opt%SpcMetaDataOutFile ) /= "none" ) THEN
+#ifndef MODEL_CESM
+       IF ( Input_Opt%amIRoot ) THEN
+#endif
+          CALL QFYAML_Print( yml        = yml,                               &
+                             fileName   = Input_Opt%SpcMetaDataOutFile,      &
+                             searchKeys = species_names,                     &
+                             RC         = RC                                )
+
+#ifndef MODEL_CESM
+       ENDIF
+#endif
+    ENDIF
 
     !=======================================================================
     ! Normal exit

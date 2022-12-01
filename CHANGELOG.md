@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
 - Added Add MO2 + NO3 = NO2 + CH2O + HO2 reaction
+- Added capability to write species metadata to YAML file
 
 ### Changed
 
