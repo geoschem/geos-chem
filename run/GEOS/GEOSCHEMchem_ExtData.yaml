@@ -8,320 +8,255 @@ Samplings:
 
 Collections:
   GCC_ACET_seawater:
-    #template: /discover/nobackup/cakelle2/data/OCEAN/ACET_seawater.generic.1x1.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN/v0.0.0/sfc/ACET_seawater.generic.1x1.esmf.nc
+    template: ExtData/chemistry/OCEAN/v0.0.0/sfc/ACET_seawater.generic.1x1.esmf.nc
   GCC_ALD2_seawater:
-    #template: /discover/nobackup/cakelle2/data/OCEAN/ALD2_seawater.geos.2x25.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN/v0.0.0/sfc/ALD2_seawater_x144_y91_t12.2006.nc
+    template: ExtData/chemistry/OCEAN/v0.0.0/sfc/ALD2_seawater_x144_y91_t12.2006.nc
   GCC_DMS_lana:
-    #template: /discover/nobackup/cakelle2/data/OCEAN/DMS_lana.geos.1x1.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN/v0.0.0/sfc/DMS_lana_x360_y180_t12.1985.nc
+    template: ExtData/chemistry/OCEAN/v0.0.0/sfc/DMS_lana_x360_y180_t12.1985.nc
   GEOSCHEMchem_AEIC:
-    #template: /discover/nobackup/cakelle2/data/AEIC.72L.gen.1x1.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/AEIC/v0.0.0/L72/AEIC_x360_y180_z72_t12.2005.nc
+    template: ExtData/chemistry/AEIC/v0.0.0/L72/AEIC_x360_y180_z72_t12.2005.nc
   GEOSCHEMchem_AF_LANDMASK:
-    #template: /discover/nobackup/cakelle2/data/DICE/mask/AF_LANDMASK.025x025.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/Masks/v0.0.0/sfc/AF_LANDMASK.025x025.nc
+    template: ExtData/chemistry/Masks/v0.0.0/sfc/AF_LANDMASK.025x025.nc
   GEOSCHEMchem_resp:
-    #template: /discover/nobackup/cakelle2/data/resp.geos.2x25.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/PlantDecay/v0.0.0/sfc/resp.geos_x144_y91_t12.1985.nc 
+    template: ExtData/chemistry/PlantDecay/v0.0.0/sfc/resp.geos_x144_y91_t12.1985.nc 
   GEOSCHEMchem_Bromocarb_Liang2010:
-    #template: /discover/nobackup/cakelle2/data/Bromocarb_Liang2010.gen.1x1.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/BromoCarb/Liang/v0.0.0/Bromocarb_Liang2010.gen.1x1.nc
+    template: ExtData/chemistry/BromoCarb/Liang/v0.0.0/Bromocarb_Liang2010.gen.1x1.nc
   GEOSCHEMchem_BromoCarb_Season:
-    #template: /discover/nobackup/cakelle2/data/BromoCarb_Season.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/sfc/BromoCarb_Season_x360_y180_t12.2000.nc
+    template: ExtData/chemistry/ScaleFactors/v0.0.0/sfc/BromoCarb_Season_x360_y180_t12.2000.nc
   GEOSCHEMchem_ALD2_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/ALD2_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALD2_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALD2_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_ALK4_butanes_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/ALK4_butanes_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_butanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_butanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_ALK4_hexanes_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/ALK4_hexanes_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_hexanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_hexanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_ALK4_pentanes_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/ALK4_pentanes_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_pentanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_pentanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_BC_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/BC_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/BC_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/BC_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_BENZ_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/BENZ_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/BENZ_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/BENZ_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C2H2_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/C2H2_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H2_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H2_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C2H4_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/C2H4_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H4_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H4_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C2H6_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/C2H6_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H6_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H6_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C3H8_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/C3H8_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C3H8_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C3H8_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_CH2O_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/CH2O_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/CH2O_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/CH2O_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_CO_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/CO_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/CO_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/CO_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_EOH_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/EOH_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/EOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/EOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_HCOOH_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/HCOOH_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/HCOOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/HCOOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_NH3_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/NH3_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/NH3_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/NH3_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_NOx_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/NOx_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/NOx_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/NOx_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_MEK_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/MEK_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/MEK_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/MEK_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_SO2_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/SO2_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/SO2_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/SO2_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_TOLU_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/TOLU_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/TOLU_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/TOLU_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_XYLE_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/XYLE_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/XYLE_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/XYLE_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_OC_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/OC_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/OC_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/OC_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_PRPE_anthro_CEDS:
-    #template: /discover/nobackup/kknowlan/Raw_Data/CEDS/CEDS_2021_Annual_0.1/PRPE_anthro_CEDS_%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/PRPE_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/PRPE_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_CEDS_vertical_emiss_factors:
-    #template: /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/CEDS/CEDS_vertical_emiss_factors.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/L72/CEDS_vertical_emiss_factors.nc
+    template: ExtData/chemistry/ScaleFactors/v0.0.0/L72/CEDS_vertical_emiss_factors.nc
   GEOSCHEMchem_CLM4_PFT:
-    #template: /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/CLM4_PFT.geos.025x03125.esmf.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/CLM4_PFT.geos.025x03125.esmf.nc
   GEOSCHEMchem_GOCART_src_fn:
-    #template: /discover/nobackup/cakelle2/data/GOCART_src_fn.esmf.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/GOCART_src_fn.esmf.2x25.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/GOCART_src_fn.esmf.2x25.nc
   GEOSCHEMchem_dst_tibds:
-    #template: /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/dst_tibds.esmf.2x25.nc 
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/dst_tibds.esmf.2x25.nc 
   GEOSCHEMchem_dst_tvbds:
-    #template: /discover/nobackup/cakelle2/data/dst_tvbds.esmf.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/dst_tvbds.esmf.2x25.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/dst_tvbds.esmf.2x25.nc
   GEOSCHEMchem_TOMS_O3col:
-    #template: /discover/nobackup/cakelle2/data/GCHP_data/TOMS_O3col_2010.a.geos.1x1.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/GCHP_data/TOMS_O3col_2010.a.geos.1x1.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/GCHP_data/TOMS_O3col_2010.a.geos.1x1.nc
   GEOSCHEMchem_EDGAR2_1985_FF_IND:
-    #template: /discover/nobackup/cakelle2/data/EDGAR2_1985_FF_IND.360x180.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/sfc/EDGAR2_1985_FF_IND.360x180.nc
+    template: ExtData/chemistry/ScaleFactors/v0.0.0/sfc/EDGAR2_1985_FF_IND.360x180.nc
   GEOSCHEMchem_RONO2_seawater:
-    #template: /discover/nobackup/ewlundgr/data/ExtData/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN/v0.0.0/sfc/RONO2_seawater_x144_y91_t12.2006.nc
+    template: ExtData/chemistry/OCEAN/v0.0.0/sfc/RONO2_seawater_x144_y91_t12.2006.nc
   GEOSCHEMchem_NH3:
-    #template: /discover/nobackup/cakelle2/data/NH3.gen.1x1.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEIA/v0.0.0/sfc/NH3.gen.1x1.nc
+    template: ExtData/chemistry/GEIA/v0.0.0/sfc/NH3.gen.1x1.nc
   GEOSCHEMchem_GEOSCCM_Bry_day:
-    #template: /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Bry/GEOSCCM_Bry.2007.day.esmf.nc
   GEOSCHEMchem_GEOSCCM_Bry_night:
-    #template: /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Bry/GEOSCCM_Bry.2007.night.esmf.nc
   GEOSCHEMchem_AnnualScalar_1985:
-    #template: /discover/nobackup/cakelle2/data/AnnualScalar.gen.1x1.1985.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/sfc/AnnualScalar.gen.1x1.1985.nc
+    template: ExtData/chemistry/ScaleFactors/v0.0.0/sfc/AnnualScalar.gen.1x1.1985.nc
   GEOSCHEMchem_AnnualScalar_2010:
-    #template: /discover/nobackup/cakelle2/data/AnnualScalar.gen.1x1.2010.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/sfc/AnnualScalar.gen.1x1.2010.nc
+    template: ExtData/chemistry/ScaleFactors/v0.0.0/sfc/AnnualScalar.gen.1x1.2010.nc
   GEOSCHEMchem_NVOC:
-    #template: /discover/nobackup/cakelle2/data/NVOC.geos.1x1.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/NVOC.geos.1x1.esmf.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/NVOC.geos.1x1.esmf.nc
   GEOSCHEMchem_MEGAN2.1_EF:
-    #template: /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/MEGAN2.1_EF.geos.025x03125.esmf.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/MEGAN2.1_EF.geos.025x03125.esmf.nc
   GEOSCHEMchem_MOH_seawater:
-    #template: /discover/nobackup/ewlundgr/data/ExtData/MOH/v2019-12/MOH_seawater.low.kgCm3.generic.1x1.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN/v0.0.0/sfc/MOH_seawater.low.kgCm3.generic.1x1.nc
+    template: ExtData/chemistry/OCEAN/v0.0.0/sfc/MOH_seawater.low.kgCm3.generic.1x1.nc
   GEOSCHEMchem_multiyearice:
-    #template: /discover/nobackup/ewlundgr/data/ExtData/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/MULTI_ICE/2021-07/multiyearice.merra2.05x0625.%y4.nc
+    template: ExtData/chemistry/HEMCO/MULTI_ICE/2021-07/multiyearice.merra2.05x0625.%y4.nc
     valid_range: "1980-01-01T00:00/2020-12-31T00:00"
   GEOSCHEMchem_monthly.gridded.surface.methane:
-    #template: /discover/nobackup/cakelle2/data/NOAA_GMD/monthly.gridded.surface.methane.1979-2024.1x1.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/NOAA_GMD/monthly.gridded.surface.methane.1979-2024.1x1.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/NOAA_GMD/monthly.gridded.surface.methane.1979-2024.1x1.nc
     valid_range: "1979-01-01T00:00/2024-12-01T00:00"
   GEOSCHEMchem_Olson_2001_Land_Map:
-    #template: /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/Masks/v0.0.0/sfc/Olson_2001_Land_Map.2x25.nc
+    template: ExtData/chemistry/Masks/v0.0.0/sfc/Olson_2001_Land_Map.2x25.nc
   GEOSCHEMchem_CH2I2_monthly_emissions_Ordonez:
-    #template: /home/cakelle2/data/ORDONEZ/newMAPL/CH2I2_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH2I2_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
+    template: ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH2I2_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
   GEOSCHEMchem_CH2IBr_monthly_emissions_Ordonez:
-    #template: /home/cakelle2/data/ORDONEZ/newMAPL/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH2IBr_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
+    template: ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH2IBr_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
   GEOSCHEMchem_CH2ICl_monthly_emissions_Ordonez:
-    #template: /home/cakelle2/data/ORDONEZ/newMAPL/CH2ICl_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH2ICl_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
+    template: ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH2ICl_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
   GEOSCHEMchem_CH3I_monthly_emissions_Ordonez:
-    #template: /home/cakelle2/data/ORDONEZ/newMAPL/CH3I_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH3I_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
+    template: ExtData/chemistry/BromoCarb/ORDONEZ/v0.0.0/sfc/CH3I_monthly_emissions_Ordonez_x360_y180_t12.2000.nc
   GEOSCHEMchem_PM25FINE_ECLIPSE:
-    #template: /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/AFCID/v2018-04/sfc/PM25FINE_ECLIPSE_x144_y91_t12.2015.nc
+    template: ExtData/chemistry/AFCID/v2018-04/sfc/PM25FINE_ECLIPSE_x144_y91_t12.2015.nc
   GEOSCHEMchem_qfed2_forest_mask:
-    #template: /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/Masks/v0.0.0/sfc/qfed2_forest_mask.nc4
+    template: ExtData/chemistry/Masks/v0.0.0/sfc/qfed2_forest_mask.nc4
   GEOSCHEMchem_qfed2.emis_acet_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_acet_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.061.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.061.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_ald2_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ald2.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ald2.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_ald2_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ald2.061.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ald2.061.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_alk4_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_alk4.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_alk4.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_alk4_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_alk4.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_alk4.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_bc_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_bc_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_c2h6_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c2h6.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c2h6.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_c2h6_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c2h6.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c2h6.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_c3h6_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h6.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h6.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_c3h6_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h6.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h6.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_c3h8_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h8.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h8.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_c3h8_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h8.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h8.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_ch2o_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch2o.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch2o.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_ch2o_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch2o.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch2o.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_co_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_co_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_mek_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_mek.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_mek.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_mek_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_mek.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_mek.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_nh3_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_nh3_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_no_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_no.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_no.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_no_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_no.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_no.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_oc_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_oc_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_qfed2.emis_so2_006:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   GEOSCHEMchem_qfed2.emis_so2_061:
-    template: /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01T12:00"
   GEOSCHEMchem_NH3_Arctic_seabirds:
-    #template: /discover/nobackup/cakelle2/data/NH3_Arctic_seabirds.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/SEABIRDS/v0.0.0/sfc/NH3_Arctic_seabirds_x1440_y720_t12.1990.nc
+    template: ExtData/chemistry/SEABIRDS/v0.0.0/sfc/NH3_Arctic_seabirds_x1440_y720_t12.1990.nc
   GEOSCHEMchem_soilNOx_climate:
-    #template: /discover/nobackup/cakelle2/data/soilNOx.climate.generic.05x05.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/soilNOx.climate.generic.05x05.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/soilNOx.climate.generic.05x05.nc
   GEOSCHEMchem_soilNOx_fert_res:
-    #template: /discover/nobackup/cakelle2/data/soilNOx.fert_res.generic.05x05.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/soilNOx.fert_res.generic.05x05.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/soilNOx.fert_res.generic.05x05.nc
     valid_range: "2000-01-01T00:00/2000-12-31T00:00"
   GEOSCHEMchem_soilNOx_landtype:
-    #template: /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/soilNOx.landtype.generic.025x025.1L.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/soilNOx.landtype.generic.025x025.1L.nc
   GEOSCHEMchem_gmi.clim.OH:
-    #template: /discover/nobackup/cakelle2/data/GMI/gmi.clim.OH.geos5.2x25.esmf.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/GMI/gmi.clim.OH.geos5.2x25.esmf.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/GMI/gmi.clim.OH.geos5.2x25.esmf.nc
   GEOSCHEMchem_surface_VMRs_WMO2018:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/WMO_2018/v2019-12/surface_VMRs_WMO2018_x360_y180_%y4.nc 
+    template: ExtData/chemistry/GEOSCHEMchem/surface_VMR/WMO_2018/v2019-12/surface_VMRs_WMO2018_x360_y180_%y4.nc 
     valid_range: "2010-01-01T00:00/2020-12-01T00:00"
   GEOSCHEMchem_CMIP6_GHG_surface_VMR:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/CMIP6/v2020-03/sfc/CMIP6_GHG_surface_VMR_x360_y180_%y4.nc
+    template: ExtData/chemistry/GEOSCHEMchem/surface_VMR/CMIP6/v2020-03/sfc/CMIP6_GHG_surface_VMR_x360_y180_%y4.nc
     valid_range: "2010-01-01T00:00/2014-12-01T00:00"
   GEOSCHEMchem_surface_VMR_H2:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/SfcFix/v2019-12/surface_VMR_H2_x360_y180.nc
+    template: ExtData/chemistry/GEOSCHEMchem/surface_VMR/SfcFix/v2019-12/surface_VMR_H2_x360_y180.nc
   GEOSCHEMchem_surface_VMR_OCS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/surface_VMR/SfcFix/v2019-12/surface_VMR_OCS_x360_y180.nc
+    template: ExtData/chemistry/GEOSCHEMchem/surface_VMR/SfcFix/v2019-12/surface_VMR_OCS_x360_y180.nc
   GEOSCHEMchem_timezones:
-    #template: /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/timezones_esmf.2x25.nc
+    template: ExtData/chemistry/HEMCO/v0.0.0/sfc/timezones_esmf.2x25.nc
   GEOSCHEMchem_uvalbedo:
-    #template: /discover/nobackup/cakelle2/data/uvalbedo.geos.2x25.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/UV_ALBEDO/uvalbedo.geos.2x25.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/UV_ALBEDO/uvalbedo.geos.2x25.nc
   GEOSCHEMchem_Condensed_Yuan_proc_MODIS_XLAI:
-    #template: /gpfsm/dnb31/ewlundgr/data/ExtData/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
     valid_range: "2005-01-01T00:00/2016-12-31T00:00"
   GEOSCHEMchem_Oi_prj_predicted_iodide:
-    #template: /discover/nobackup/cakelle2/data/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
+    template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
   GEOSCHEMchem_WOA_2013_salinity:
-    #template: /discover/nobackup/cakelle2/data/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/WOA_2013_salinity.nc
+    template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/WOA_2013_salinity.nc
 
 Exports:
   ACET_SEAWATER:
