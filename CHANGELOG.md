@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added capability to write species metadata to YAML file
 
 ### Changed
+- Moved in-module variables in global_ch4_mod.F90 to State_Chm
 
 ### Fixed
 - Fixed sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O
