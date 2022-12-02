@@ -29,19 +29,20 @@ if [[ ( $* == --rundir-vars ) ]]; then
    exit 0
 fi 
 
-function remove_blank_lines() {
-   grep -v '^[ \t]*$'
-}
-
-function remove_commented_lines() {
-   grep -v '^[ \t]*#'
+function get_rundir_vars_list() {
+   sed -n 's#^\s*\([A-Za-z0-9_][A-Za-z0-9_]*\)=.*#\1#p'
 }
 
 # Source given files, and build variable list
 variables=
 for envfile in "$@"; do
    source $envfile
-   variables+="$(cat $envfile | remove_blank_lines | remove_commented_lines | cut -d= -f1) "
+   variables+="$(cat $envfile | get_rundir_vars_list) "
+   export $variables
+done
+# Source a second time to resolve dependent variables
+for envfile in "$@"; do
+   source $envfile
    export $variables
 done
 variables=$(echo $variables | sort | uniq)
@@ -52,7 +53,7 @@ HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RUNDIR_SIM_NAME}
 """
 
 SUBST_LIST="""
-input.geos.templates/input.geos.${RUNDIR_SIM_NAME}
+geoschem_config.yml.templates/geoschem_config.yml.${RUNDIR_SIM_NAME}
 HEMCO_Config.rc.templates/HEMCO_Config.rc.${RUNDIR_SIM_NAME}
 HISTORY.rc.templates/HISTORY.rc.${RUNDIR_SIM_NAME}
 HEMCO_Config.rc.templates/${RUNDIR_MET_FIELD_CONFIG}

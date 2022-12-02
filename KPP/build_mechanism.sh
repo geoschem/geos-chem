@@ -34,16 +34,6 @@
 #BOC
 
 #============================================================================
-# Check KPP version
-#============================================================================
-kppCodeDir=$(basename $KPP_HOME)
-if [[ "x${kppCodeDir}" != "xkpp-code" ]]; then
-    echo "ERROR: You must use KPP version 2.3.0_gc or later!"
-    echo 
-    exit 1
-fi
-
-#============================================================================
 # Check that directory exists before proceeding
 #============================================================================
 if [ "x${1}" != "x" ]; then
@@ -139,7 +129,7 @@ sed -i -e "s|${line1}|${line2}|" gckpp_Rates.F90
 #
 # TODO: Port this to C and include within KPP
 #============================================================================
-python ../OHreact_parser.py
+python ../OHreact_parser.py ${mechName}
 
 #============================================================================
 # Change back to the prior directory and exit

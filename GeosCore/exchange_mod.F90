@@ -768,6 +768,7 @@ CONTAINS
 !
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -794,9 +795,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp), POINTER :: SPC(:,:,:,:)
-    INTEGER           :: L, I,IU_RST
-    LOGICAL           :: prtDebug
+    TYPE(SpcConc, POINTER :: SPC(:)
+    INTEGER               :: L, I,IU_RST
+    LOGICAL               :: prtDebug
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! NOTE: Species units are in kg/kg dry which may be incompatible with
@@ -820,7 +821,7 @@ CONTAINS
 
     DO L = 1, State_Chm%nSpecies
        CALL EX_REGRID_UP( State_Grid%NX, State_Grid%NY, IM_BC, JM_BC, &
-                          State_Grid%NZ, SPC(:,:,:,L), TMP_WINDOW )
+                          State_Grid%NZ, SPC(L)%Conc, TMP_WINDOW )
        CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, State_Grid%NZ, TMP_WINDOW )
     ENDDO
     CLOSE( 2 )
@@ -832,7 +833,7 @@ CONTAINS
 
     DO L = 1, State_Chm%nAdvect
        CALL EX_REGRID_UP( State_Grid%NX, State_Grid%NY, IM_BC, JM_BC, &
-                          State_Grid%NZ, SPC(:,:,:,L), TMP_WINDOW )
+                          State_Grid%NZ, SPC(L)%Conc, TMP_WINDOW )
        CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, State_Grid%NZ, TMP_WINDOW )
     ENDDO
     CLOSE( IU_RST )
@@ -861,6 +862,7 @@ CONTAINS
 !
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -890,15 +892,15 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp), POINTER :: SPC(:,:,:,:)
-    REAL(fp), POINTER :: CSPEC_FULL(:,:,:,:)
-    REAL(fp)          :: TMP_WINDOW_CHT(IM_BC_CH,JM_BC_CH,State_Grid%NZ)
-    REAL(fp)          :: TMP_WINDOW_NAT(IM_BC_NA,JM_BC_NA,State_Grid%NZ)
-    REAL(fp)          :: TMP_WINDOW_EUT(IM_BC_EU,JM_BC_EU,State_Grid%NZ)
-    REAL*4            :: ARRAYTEMPR(576,361,73)
-    INTEGER           :: L,IU_RST,IOS
-    INTEGER           :: NI,NJ,NK,I,J,K
-    LOGICAL           :: prtDebug
+    TYPE(SpcConc), POINTER :: SPC(:)
+    REAL(fp), POINTER      :: CSPEC_FULL(:,:,:,:)
+    REAL(fp)               :: TMP_WINDOW_CHT(IM_BC_CH,JM_BC_CH,State_Grid%NZ)
+    REAL(fp)               :: TMP_WINDOW_NAT(IM_BC_NA,JM_BC_NA,State_Grid%NZ)
+    REAL(fp)               :: TMP_WINDOW_EUT(IM_BC_EU,JM_BC_EU,State_Grid%NZ)
+    REAL*4                 :: ARRAYTEMPR(576,361,73)
+    INTEGER                :: L,IU_RST,IOS
+    INTEGER                :: NI,NJ,NK,I,J,K
+    LOGICAL                :: prtDebug
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! NOTE: Species units are in kg/kg dry which may be incompatible with
@@ -934,9 +936,9 @@ CONTAINS
           ENDIF
           TMP_WINDOW_CH=TMP_WINDOW_CHT
 
-          SPC( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1, &
-               J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1, &
-               State_Grid%NZ, L ) = &
+          SPC(L)%Conc( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1, &
+                       J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1, &
+                       State_Grid%NZ ) = &
                TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,State_Grid%NZ)
        ENDDO
        CLOSE( IU_RST )
@@ -952,9 +954,9 @@ CONTAINS
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
           ENDIF
           TMP_WINDOW_CH=TMP_WINDOW_CHT
-          SPC( I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1, &
-               J0_BC_CH + 2:J0_BC_CH + JM_BC_CH-1, &
-               State_Grid%NZ, L ) = &
+          SPC(L)%Conc( I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1, &
+                       J0_BC_CH + 2:J0_BC_CH + JM_BC_CH-1, &
+                       State_Grid%NZ ) = &
               TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,State_Grid%NZ)
        ENDDO
        CLOSE( IU_RST )
@@ -976,9 +978,9 @@ CONTAINS
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
           ENDIF
           TMP_WINDOW_NA=TMP_WINDOW_NAT
-          SPC( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2, &
-               J0_BC_NA + 3 : J0_BC_NA + JM_BC_NA-2, &
-               State_Grid%NZ, L ) = &
+          SPC(L)%Conc( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2, &
+                       J0_BC_NA + 3 : J0_BC_NA + JM_BC_NA-2, &
+                       State_Grid%NZ ) = &
                TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,State_Grid%NZ)
        ENDDO
        CLOSE( IU_RST )
@@ -994,9 +996,9 @@ CONTAINS
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
           ENDIF
           TMP_WINDOW_NA=TMP_WINDOW_NAT
-          SPC( I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2, &
-               J0_BC_NA + 3:J0_BC_NA + JM_BC_NA-2, &
-               State_Grid%NZ, L ) = &
+          SPC(L)%Conc( I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2, &
+                       J0_BC_NA + 3:J0_BC_NA + JM_BC_NA-2, &
+                       State_Grid%NZ ) = &
                TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,State_Grid%NZ)
        ENDDO
        CLOSE( IU_RST )
@@ -1018,9 +1020,9 @@ CONTAINS
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
           ENDIF
           TMP_WINDOW_EU=TMP_WINDOW_EUT
-          SPC( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1, &
-               J0_BC_EU + 2 : J0_BC_EU + JM_BC_EU-1, &
-               State_Grid%NZ, L ) = &
+          SPC(L)%Conc( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1, &
+                       J0_BC_EU + 2 : J0_BC_EU + JM_BC_EU-1, &
+                       State_Grid%NZ ) = &
                REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,State_Grid%NZ),8)
        ENDDO
        !CLOSE( 2 )
@@ -1036,9 +1038,9 @@ CONTAINS
              CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
           ENDIF
           TMP_WINDOW_EU=TMP_WINDOW_EUT
-          SPC( I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1, &
-               J0_BC_EU + 2:J0_BC_EU + JM_BC_EU-1, &
-               State_Grid%NZ, L ) = &
+          SPC(L)%Conc( I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1, &
+                       J0_BC_EU + 2:J0_BC_EU + JM_BC_EU-1, &
+                       State_Grid%NZ ) = &
                REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,State_Grid%NZ),8)
        ENDDO
        !CLOSE( 2 )
@@ -1105,6 +1107,7 @@ CONTAINS
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1137,21 +1140,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp), POINTER :: SPC(:,:,:,:)
-    REAL(fp)          :: SRC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-    integer           :: L
+    TYPE(SpcConc), POINTER :: SPC(:)
+    REAL(fp)               :: SRC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    integer                :: L
 
     SPC => State_Chm%Species
 
     IF ( FLAG == 1 ) THEN
        DO L = 1, State_Chm%nSpecies
-          SRC( :, :, : ) = SPC( :, :, :, L) !* State_Met%AIRVOL
-          SPC( :, :, :, L) = SRC(:, :, : )
+          SRC( :, :, : ) = SPC(L)%Conc( :, :, : ) !* State_Met%AIRVOL
+          SPC(L)%Conc( :, :, : ) = SRC(:, :, : )
        ENDDO
     ELSE IF (FLAG == 2 ) THEN
        DO L = 1, State_Chm%nSpecies
-          SRC( :, :, : ) = SPC( :, :, :, L) !/ State_Met%AIRVOL
-          SPC( :, :, :, L) = SRC(:, :, : )
+          SRC( :, :, : ) = SPC(L)%Conc( :, :, : ) !/ State_Met%AIRVOL
+          SPC(L)%Conc( :, :, : ) = SRC(:, :, : )
        ENDDO
     END IF
     NULLIFY(SPC)

@@ -396,6 +396,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -504,7 +505,7 @@ CONTAINS
     LOGICAL :: prtDebug
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! AEROPHYS begins here
@@ -615,7 +616,7 @@ CONTAINS
        ! Skip non-chemgrid boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
-       !vbn write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
+       !vbn write(890,89)I,J,L,Spc(id_H2SO4)%Conc(i,j,l)
 
        !if(printdebug) print *,'+++++',I,J,L,'inside Aerophys'
 
@@ -677,9 +678,10 @@ CONTAINS
 
        ! Swap Spc into Nk, Mk, Gc arrays
        DO N = 1, IBINS
-          NK(N) = Spc(I,J,L,id_NK1-1+N)
+          NK(N) = Spc(id_NK1-1+N)%Conc(I,J,L)
           DO JC = 1, ICOMP-IDIAG
-             MK(N,JC) = Spc(I,J,L,id_NK1-1+N+JC*IBINS)
+             MK(N,JC) = Spc(id_NK1-1+N+JC*IBINS)%Conc(I,J,L)
+
 
              IF( IT_IS_NAN( MK(N,JC) ) ) THEN
                 PRINT *,'+++++++ Found NaN in AEROPHYS ++++++++'
@@ -687,18 +689,21 @@ CONTAINS
              ENDIF
 
           ENDDO
-          MK(N,SRTH2O) = Spc(I,J,L,id_AW1-1+N)
+          MK(N,SRTH2O) = Spc(id_AW1-1+N)%Conc(I,J,L)
+
        ENDDO
 
        ! Get NH4 mass from the bulk mass and scale to bin with sulfate
        IF ( SRTNH4 > 0 ) THEN
-          CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), TRANSFER )
+          CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(id_NH4)%Conc(I,J,L), TRANSFER )
           MK(1:IBINS,SRTNH4) = TRANSFER(1:IBINS)
-          Gc(SRTNH4) = Spc(I,J,L,id_NH3)
+          Gc(SRTNH4) = Spc(id_NH3)%Conc(I,J,L)
+
        ENDIF
 
        ! Give it the pseudo-steady state value instead later (win,9/30/08)
-       !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
+       !GC(SRTSO4) = Spc(id_H2SO4)%Conc(I,J,L)
+
 
        H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
        ! Pengfei Liu add 2018/04/18, debug
@@ -1042,33 +1047,33 @@ CONTAINS
        ! Swap Nk, Mk, and Gc arrays back to Spc
        DO N = 1, IBINS
           TRACNUM = id_NK1 - 1 + N
-          Spc(I,J,L,TRACNUM) = NK(N)
+          Spc(TRACNUM)%Conc(I,J,L) = NK(N)
           DO JC = 1, ICOMP-IDIAG
              TRACNUM = id_NK1 - 1 + N + IBINS * JC
-             Spc(I,J,L,TRACNUM) = MK(N,JC)
+             Spc(TRACNUM)%Conc(I,J,L) = MK(N,JC)
           ENDDO
-          Spc(I,J,L,id_AW1-1+N) = MK(N,SRTH2O)
+          Spc(id_AW1-1+N)%Conc(I,J,L) = MK(N,SRTH2O)
        ENDDO
-       Spc(I,J,L,id_H2SO4) = GC(SRTSO4)
+       Spc(id_H2SO4)%Conc(I,J,L) = GC(SRTSO4)
 
        ! print to file to check mass conserv
-       !write(*,77) I,J,L, Spc(I,J,L,id_NH3), Spc(I,J,L,id_NH3)-GC(SRTNH4)
+       !write(*,77) I,J,L, Spc(id_NH3)%Conc(I,J,L), Spc(id_NH3)%Conc(I,J,L)-GC(SRTNH4)
 
        ! Calculate NH3 gas lost to aerosol phase as NH4
-       NH3_to_NH4 = Spc(I,J,L,id_NH3)-GC(SRTNH4)
+       NH3_to_NH4 = Spc(id_NH3)%Conc(I,J,L)-GC(SRTNH4)
 
        ! Update the bulk NH4 aerosol species
        if ( NH3_to_NH4 > 0e+0_fp ) &
-            Spc(I,J,L,id_NH4) = Spc(I,J,L,id_NH4) + &
+            Spc(id_NH4)%Conc(I,J,L) = Spc(id_NH4)%Conc(I,J,L) + &
                                 NH3_to_NH4/17.e+0_fp*18.e+0_fp
 
        ! Update NH3 gas species (win, 10/6/08)
        ! plus tiny amount CEPS in case zero causes some problem
-       Spc(I,J,L,id_NH3)   = GC(SRTNH4) + CEPS !MUST CHECK THIS!! (win,9/26/08)
+       Spc(id_NH3)%Conc(I,J,L)   = GC(SRTNH4) + CEPS !MUST CHECK THIS!! (win,9/26/08)
 
 
-       !vbn write(889,89)I,J,L,Spc(i,j,l,id_H2SO4)
-89     format(3I3,'Spc(id_H2SO4) kg', E13.5)
+       !vbn write(889,89)I,J,L,Spc(id_H2SO4)%Conc(I,J,L)
+89     format(3I3,'Spc(id_H2SO4)%Conc(I,J,L) kg', E13.5)
 
     ENDDO                     !L loop
     ENDDO                     !J loop
@@ -1076,7 +1081,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !WRITE(777,*) '---------------------------'
-77  FORMAT(3I4, '  Spc(id_NH3),'E13.5,'  Used', E13.5 )
+77  FORMAT(3I4, '  Spc(id_NH3)%Conc(I,J,L),'E13.5,'  Used', E13.5 )
 
     IF ( COND .and. prtDebug ) PRINT *,'### AEROPHYS: SO4 CONDENSATION'
     IF ( COAG .and. prtDebug ) PRINT *,'### AEROPHYS: COAGULATION'
@@ -3576,6 +3581,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -3626,7 +3632,7 @@ CONTAINS
     LOGICAL                  :: UNITCHANGE_KGM2
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! AQOXID begins here
@@ -3652,7 +3658,7 @@ CONTAINS
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
 
-    ! Point to the chemical species array [kg]
+    ! Point to the chemical species array
     Spc => State_Chm%Species
 
     PDBG = .FALSE.            !For print debugging
@@ -3674,11 +3680,11 @@ CONTAINS
     ! Swap GEOSCHEM variables into aerosol algorithm variables
     DO K = 1, IBINS
        NKID = id_NK1 - 1 + K
-       NK(K) = Spc(I,J,L,NKID)
+       NK(K) = Spc(NKID)%Conc(I,J,L)
        DO JC = 1, ICOMP-IDIAG
-          MK(K,JC) = Spc(I,J,L,NKID+JC*IBINS)
+          MK(K,JC) = Spc(NKID+JC*IBINS)%Conc(I,J,L)
        ENDDO
-       MK(K,SRTH2O) = Spc(I,J,L,id_AW1-1+K)
+       MK(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
     ENDDO
     !sfarina - initialize Gc to ensure storenm doesn't go NaN on us.
     DO JC=1, ICOMP-1
@@ -3687,7 +3693,7 @@ CONTAINS
 
     ! Take the bulk NH4 and allocate to size-resolved NH4
     IF ( SRTNH4 > 0 ) THEN
-       CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), MK(:,SRTNH4) )
+       CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(id_NH4)%Conc(I,J,L), MK(:,SRTNH4) )
     ENDIF
 
     ! Fix any inconsistencies in M/N distribution
@@ -3857,12 +3863,12 @@ CONTAINS
     ! Swap Nk and Mk arrays back to Spc
     DO K = 1, IBINS
        TRACNUM = id_NK1 - 1 + K
-       Spc(I,J,L,TRACNUM) = Nk(K)
+       Spc(TRACNUM)%Conc(I,J,L) = Nk(K)
        DO JC = 1, ICOMP-IDIAG
           TRACNUM = id_NK1 - 1 + K + IBINS*JC
-          Spc(I,J,L,TRACNUM) = Mk(K,JC)
+          Spc(TRACNUM)%Conc(I,J,L) = Mk(K,JC)
        ENDDO
-       Spc(I,J,L,id_AW1-1+K) = Mk(K,SRTH2O)
+       Spc(id_AW1-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
     ENDDO
 
     ! Free pointer memory
@@ -3910,6 +3916,7 @@ CONTAINS
 #endif
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -3962,7 +3969,7 @@ CONTAINS
     LOGICAL                  :: ERRORSWITCH = .FALSE.
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER   :: Spc(:)
 
     ! For SOACOND warnings
     INTEGER, SAVE       :: SOACOND_WARNING_CT  = -1
@@ -3983,7 +3990,7 @@ CONTAINS
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
 
-    ! Point to the chemical species array [kg]
+    ! Point to the chemical species array
     Spc => State_Chm%Species
 
     pdbg = .false.
@@ -3997,21 +4004,21 @@ CONTAINS
     ! Swap GEOSCHEM variables into TOMAS variables
     DO K = 1, IBINS
        TRACNUM = id_NK1 - 1 + K
-       NK(K) = Spc(I,J,L,TRACNUM)
+       NK(K) = Spc(TRACNUM)%Conc(I,J,L)
        DO JC = 1, ICOMP-IDIAG  ! do I need aerosol water here?
           TRACNUM = id_NK1 - 1 + K + IBINS*JC
-          MK(K,JC) = Spc(I,J,L,TRACNUM)
+          MK(K,JC) = Spc(TRACNUM)%Conc(I,J,L)
           IF( IT_IS_NAN( MK(K,JC) ) ) THEN
              PRINT *,'+++++++ Found NaN in SOACOND ++++++++'
              PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',JC
           ENDIF
        ENDDO
-       MK(K,SRTH2O) = Spc(I,J,L,id_AW1-1+K)
+       MK(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
     ENDDO
 
     ! Take the bulk NH4 and allocate to size-resolved NH4
     IF ( SRTNH4 > 0 ) THEN
-       CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), &
+       CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(id_NH4)%Conc(I,J,L), &
                           MK(:,SRTNH4) )
     ENDIF
 
@@ -4162,12 +4169,12 @@ CONTAINS
     ! Swap Nk and Mk arrays back to Spc array
     DO K = 1, IBINS
        TRACNUM = id_NK1 - 1 + K
-       Spc(I,J,L,TRACNUM) = Nk(K)
+       Spc(TRACNUM)%Conc(I,J,L) = Nk(K)
        DO JC = 1, ICOMP-IDIAG
           TRACNUM = id_NK1 - 1 + K + IBINS*JC
-          Spc(I,J,L,TRACNUM) = Mk(K,JC)
+          Spc(TRACNUM)%Conc(I,J,L) = Mk(K,JC)
        ENDDO
-       Spc(I,J,L,id_AW1-1+K) = Mk(K,SRTH2O)
+       Spc(id_AW1-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
     ENDDO
 
     ! Free pointer memory
@@ -6189,8 +6196,8 @@ CONTAINS
 ! !IROUTINE: init_tomas
 !
 ! !DESCRIPTION: Subroutine INIT_TOMAS intializes variables for TOMAS
-!  microphysics based on switches from input.geos, e.g. what aerosol species to
-!  simulate.(win, 7/9/07)
+!  microphysics based on switches from geoschem_config.yml, e.g. what aerosol
+!  species to simulate.(win, 7/9/07)
 !\\
 !\\
 ! !INTERFACE:
@@ -6563,6 +6570,7 @@ CONTAINS
 ! !USES:
 !
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
@@ -6612,7 +6620,7 @@ CONTAINS
     REAL(fp)               ::  UNITFACTOR
 
     ! Pointers
-    REAL(fp), POINTER      :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! GETFRACTION begins here
@@ -6651,14 +6659,14 @@ CONTAINS
     MDUST = 0.E0
 
     IF ( id_ECIL1 > 0 .AND.id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
-       MECIL = Spc(I,J,L,id_ECIL1-1+BIN) * UNITFACTOR
-       MOCIL = Spc(I,J,L,id_OCIL1-1+BIN) * UNITFACTOR
-       MOCOB = Spc(I,J,L,id_OCOB1-1+BIN) * UNITFACTOR
+       MECIL = Spc(id_ECIL1-1+BIN)%Conc(I,J,L) * UNITFACTOR
+       MOCIL = Spc(id_OCIL1-1+BIN)%Conc(I,J,L) * UNITFACTOR
+       MOCOB = Spc(id_OCOB1-1+BIN)%Conc(I,J,L) * UNITFACTOR
     ENDIF
-    IF ( id_DUST1 > 0 ) MDUST = Spc(I,J,L,id_DUST1-1+BIN) * UNITFACTOR
+    IF ( id_DUST1 > 0 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,L) * UNITFACTOR
     !account for ammonium sulfate
-    IF ( id_SF1 > 0 ) MSO4  = Spc(I,J,L,id_SF1-1+BIN) * 1.2 * UNITFACTOR
-    IF ( id_SS1 > 0 ) MNACL = Spc(I,J,L,id_SS1-1+BIN) * UNITFACTOR
+    IF ( id_SF1 > 0 ) MSO4  = Spc(id_SF1-1+BIN)%Conc(I,J,L) * 1.2 * UNITFACTOR
+    IF ( id_SS1 > 0 ) MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,L) * UNITFACTOR
     MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
     XOCIL = MOCIL / MTOT
     XSO4  = MSO4  / MTOT
@@ -6706,7 +6714,7 @@ CONTAINS
 
     ! Calculate the soluble fraction of mass
     MECOB = 0.E0
-    IF ( id_ECOB1 > 0 ) MECOB = Spc(I,J,L,id_ECOB1-1+BIN) * UNITFACTOR
+    IF ( id_ECOB1 > 0 ) MECOB = Spc(id_ECOB1-1+BIN)%Conc(I,J,L) * UNITFACTOR
     SOLFRAC = MTOT / ( MTOT + MECOB )
 
     ! Free pointer
@@ -6732,6 +6740,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
@@ -6767,7 +6776,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: MSG, LOC ! For species unit check (ewl)
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! GETACTBIN begins here
@@ -6783,7 +6792,7 @@ CONTAINS
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
 
-    ! Point to chemical species array [kg]
+    ! Point to chemical species array
     Spc => State_Chm%Species
 
     BIN = N - id_NK1 + 1
@@ -6800,14 +6809,14 @@ CONTAINS
 
     IF ( id_ECIL1 > 0 .AND.id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
        !IF (LCARB30) THEN
-       MECIL = Spc(I,J,L,id_ECIL1-1+BIN)
-       MOCIL = Spc(I,J,L,id_OCIL1-1+BIN)
-       MOCOB = Spc(I,J,L,id_OCOB1-1+BIN)
+       MECIL = Spc(id_ECIL1-1+BIN)%Conc(I,J,L)
+       MOCIL = Spc(id_OCIL1-1+BIN)%Conc(I,J,L)
+       MOCOB = Spc(id_OCOB1-1+BIN)%Conc(I,J,L)
     ENDIF
-    IF ( id_DUST1 > 0 ) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
-    !IF (LDUST30) MDUST = Spc(I,J,L,id_DUST1-1+BIN)
-    MSO4  = Spc(I,J,L,id_SF1-1+BIN) * 1.2 !account for ammonium sulfate
-    MNACL = Spc(I,J,L,id_SS1-1+BIN)
+    IF ( id_DUST1 > 0 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,L)
+    !IF (LDUST30) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,L)
+    MSO4  = Spc(id_SF1-1+BIN)%Conc(I,J,L) * 1.2 !account for ammonium sulfate
+    MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,L)
 
     MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
     XOCIL = MOCIL / MTOT
@@ -6964,6 +6973,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
 !
@@ -6995,7 +7005,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: MSG, LOC ! For species unit check (ewl)
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !========================================================================
     ! EZWATEREQM2 begins here!
@@ -7012,12 +7022,12 @@ CONTAINS
     if (rhe .gt. 99.) rhe=99.
     if (rhe .lt. 1.) rhe=1.
 
-    so4mass=Spc(i,j,l,id_SF1-1+bin)*1.2 !1.2 converts kg so4 to kg nh4hso4
+    so4mass=Spc(id_SF1-1+bin)%Conc(I,J,L)*1.2 !1.2 converts kg so4 to kg nh4hso4
     wrso4=waterso4(rhe)       !use external function
 
     ! Add condition for srtnacl in case of running so4 only. (win, 5/8/06)
     if (id_SS1.gt.0) then
-       naclmass=Spc(i,j,l,id_SS1-1+bin) !already as kg nacl - no conv necessary
+       naclmass=Spc(id_SS1-1+bin)%Conc(I,J,L) !already as kg nacl - no conv necessary
        wrnacl=waternacl(rhe)  !use external function
     else
        naclmass = 0.e+0_fp
@@ -7025,14 +7035,14 @@ CONTAINS
     endif
 
     if (id_OCIL1 > 0) then
-       ocilmass=Spc(i,j,l,id_OCIL1-1+bin)  !already as kg ocil - no conv necessary
+       ocilmass=Spc(id_OCIL1-1+bin)%Conc(I,J,L)  !already as kg ocil - no conv necessary
        wrocil=waterocil(rhe)
     else
        ocilmass = 0.e+0_fp
        wrocil = 1.e+0_fp
     endif
 
-    Spc(i,j,l,id_AW1-1+bin)= so4mass*(wrso4-1.e+0_fp) + &
+    Spc(id_AW1-1+bin)%Conc(I,J,L)= so4mass*(wrso4-1.e+0_fp) + &
                              naclmass*(wrnacl-1.e+0_fp) &
                              + ocilmass*(wrocil-1.e+0_fp)
 
@@ -7149,6 +7159,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -7191,7 +7202,7 @@ CONTAINS
     REAL(fp)            :: AMASS(ICOMP)
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !========================================================================
     ! AERO_DIADEN begins here!
@@ -7218,7 +7229,7 @@ CONTAINS
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
-    ! Point to the chemical species array [kg]
+    ! Point to the chemical species array
     Spc => State_Chm%Species
 
     ! Initialize mass mixing ratios
@@ -7253,21 +7264,21 @@ CONTAINS
 
        ! Prepare the mass mixing ratio to call external function
        ! for density
-       MH2O = Spc(I,J,1,WID)
-       !IF ( LSULF30 ) MSO4  = Spc(I,J,LEV,id_SF1-1+BIN)
-       IF ( id_SF1 > 0 ) MSO4 = Spc(I,J,LEV,id_SF1-1+BIN)
-       !IF ( LSALT30 ) MNACL = Spc(I,J,LEV,id_SS1-1+BIN)
-       IF ( id_SS1 > 0 ) MNACL = Spc(I,J,LEV,id_SS1-1+BIN)
+       MH2O = Spc(WID)%Conc(I,J,1)
+       !IF ( LSULF30 ) MSO4  = Spc(id_SF1-1+BIN)%Conc(I,J,LEV)
+       IF ( id_SF1 > 0 ) MSO4 = Spc(id_SF1-1+BIN)%Conc(I,J,LEV)
+       !IF ( LSALT30 ) MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,LEV)
+       IF ( id_SS1 > 0 ) MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,LEV)
        IF ( id_ECIL1 > 0 .AND.id_ECOB1 > 0 .AND. &
             id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
           !IF ( LCARB30 ) THEN
-          MECIL = Spc(I,J,LEV,id_ECIL1-1+BIN)
-          MECOB = Spc(I,J,LEV,id_ECOB1-1+BIN)
-          MOCIL = Spc(I,J,LEV,id_OCIL1-1+BIN)
-          MOCOB = Spc(I,J,LEV,id_OCOB1-1+BIN)
+          MECIL = Spc(id_ECIL1-1+BIN)%Conc(I,J,LEV)
+          MECOB = Spc(id_ECOB1-1+BIN)%Conc(I,J,LEV)
+          MOCIL = Spc(id_OCIL1-1+BIN)%Conc(I,J,LEV)
+          MOCOB = Spc(id_OCOB1-1+BIN)%Conc(I,J,LEV)
        ENDIF
-       !IF ( LDUST30 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
-       IF ( id_DUST1 > 0 ) MDUST = Spc(I,J,LEV,id_DUST1-1+BIN)
+       !IF ( LDUST30 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,LEV)
+       IF ( id_DUST1 > 0 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,LEV)
 
        ! Get density from external function
        DENSITY(I,J,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4, &
@@ -7328,6 +7339,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -7378,7 +7390,7 @@ CONTAINS
     LOGICAL             :: prtDebug
 
     ! Pointers
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CHECKMN begins here!
@@ -7435,16 +7447,16 @@ CONTAINS
        DO K = 1, IBINS
           TRACNUM = id_NK1 - 1 + K
           ! Check for nan
-          IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) ) &
+          IF ( IT_IS_NAN( Spc(TRACNUM)%Conc(I,J,L) ) ) &
                print *, 'Found NaN at',I, J, L,'Species',TRACNUM
-          NK(K) = Spc(I,J,L,TRACNUM)
+          NK(K) = Spc(TRACNUM)%Conc(I,J,L)
           DO JC = 1, ICOMP-IDIAG
              TRACNUM = id_NK1 - 1 + K + IBINS*JC
-             IF ( IT_IS_NAN( Spc(I,J,L,TRACNUM) ) ) &
+             IF ( IT_IS_NAN( Spc(TRACNUM)%Conc(I,J,L) ) ) &
                   print *, 'Found NaN at',I, J, L,'Species',TRACNUM
-             MK(K,JC) = Spc(I,J,L,TRACNUM)
+             MK(K,JC) = Spc(TRACNUM)%Conc(I,J,L)
           ENDDO
-          MK(K,SRTH2O) = Spc(I,J,L,id_AW1-1+K)
+          MK(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
        ENDDO
 
        DO JC = 1, ICOMP - 1
@@ -7453,9 +7465,9 @@ CONTAINS
 
        ! Get NH4 mass from the bulk mass and scale to bin with sulfate
        IF ( SRTNH4 > 0 ) THEN
-          CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(I,J,L,id_NH4), XFER  )
+          CALL NH4BULKTOBIN( MK(:,SRTSO4), Spc(id_NH4)%Conc(I,J,L), XFER  )
           MK(1:IBINS,SRTNH4) = XFER(1:IBINS)
-          Gc(SRTNH4) = Spc(I,J,L,id_NH3)
+          Gc(SRTNH4) = Spc(id_NH3)%Conc(I,J,L)
        ENDIF
 
        !if ( i==26 .and. j==57 .and. l==13 ) &
@@ -7486,12 +7498,12 @@ CONTAINS
        ! Swap Nk and Mk arrays back to Spc
        DO K = 1, IBINS
           TRACNUM = id_NK1 - 1 + K
-          Spc(I,J,L,TRACNUM) = Nk(K)
+          Spc(TRACNUM)%Conc(I,J,L) = Nk(K)
           DO JC = 1, ICOMP-IDIAG
              TRACNUM = id_NK1 - 1 + K + IBINS*JC
-             Spc(I,J,L,TRACNUM) = Mk(K,JC)
+             Spc(TRACNUM)%Conc(I,J,L) = Mk(K,JC)
           ENDDO
-          Spc(I,J,L,id_AW1-1+K) = MK(K,SRTH2O)
+          Spc(id_AW1-1+K)%Conc(I,J,L) = MK(K,SRTH2O)
        ENDDO
 
     ENDDO
@@ -8995,6 +9007,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
 !
@@ -9038,9 +9051,7 @@ CONTAINS
     parameter (pi=3.141592654e+0_fp)
 
     ! Pointers
-    ! We need to define local arrays to hold corresponding values
-    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! GETDP begins here!
@@ -9070,33 +9081,33 @@ CONTAINS
     ! Significance limit in concentration unit
     ! Treshold for mass concentration 1d-4 ug/m3 = 1d-13 kg/m3
     ! Treshold for numb concentration 1d-1 #/cm3 = 1d5 kg/m3 (fake kg = #)
-    IF( Spc(I,J,L,ID) == 0e+0_fp ) GOTO 10
+    IF( Spc(ID)%Conc(I,J,L) == 0e+0_fp ) GOTO 10
 
-    IF( Spc(I,J,L,ID) < 0e+0_fp ) THEN
-       NCONC = ABS( Spc(I,J,L,ID) )/ State_Met%AIRVOL(I,J,L)/1e+6_fp
+    IF( Spc(ID)%Conc(I,J,L) < 0e+0_fp ) THEN
+       NCONC = ABS( Spc(ID)%Conc(I,J,L) )/ State_Met%AIRVOL(I,J,L)/1e+6_fp
        IF ( nconc <= 1e-1_fp ) THEN
-          Spc(I,J,L,ID) = 0e+0_fp
+          Spc(ID)%Conc(I,J,L) = 0e+0_fp
        ELSE
           PRINT *,'#### GETDP: negative NK at',I,J,L,'bin',NUMBIN
-          PRINT *,'Species',N,'Spc=',Spc(I,J,L,ID)
+          PRINT *,'Species',N,'Spc=',Spc(ID)%Conc(I,J,L)
           CALL ERROR_STOP('Negative NK', 'GETDP:1')
        ENDIF
     ENDIF
-    IF(IT_IS_NAN(Spc(I,J,L,ID))) PRINT *,'+++++++++ Found Nan in ' , &
+    IF(IT_IS_NAN(Spc(ID)%Conc(I,J,L))) PRINT *,'+++++++++ Found Nan in ' , &
           'GETDP at (I,J,L)',I,J,L,'Bin',NUMBIN,': Nk'
     DO JC = 1, ICOMP-IDIAG
-       IF( Spc(I,J,L,ID+JC*IBINS) < 0e+0_fp ) THEN
-          MCONC = ( ABS(Spc(I,J,L,ID+JC*IBINS)) * 1.e+9_fp / &
+       IF( Spc(ID+JC*IBINS)%Conc(I,J,L) < 0e+0_fp ) THEN
+          MCONC = ( ABS(Spc(ID+JC*IBINS)%Conc(I,J,L)) * 1.e+9_fp / &
                     State_Met%AIRVOL(I,J,L) )
           IF ( MCONC <= 1.e-4_fp ) THEN
-             Spc(I,J,L,ID+JC*IBINS) = 0e+0_fp
+             Spc(ID+JC*IBINS)%Conc(I,J,L) = 0e+0_fp
           ELSE
              PRINT *,'#### GETDP: negative mass at',I,J,L,'bin',NUMBIN
-             PRINT *,'Species',N,'Spc=',Spc(I,J,L,ID+JC*IBINS)
+             PRINT *,'Species',N,'Spc=',Spc(ID+JC*IBINS)%Conc(I,J,L)
              CALL ERROR_STOP('Negative mass','GETDP:2')
           ENDIF
        ENDIF
-       IF(IT_IS_NAN(Spc(I,J,L,ID+JC*IBINS))) PRINT *,'+++++++++ ', &
+       IF(IT_IS_NAN(Spc(ID+JC*IBINS)%Conc(I,J,L))) PRINT *,'+++++++++ ', &
           'Found Nan in GETDP at (I,J,L)',I,J,L,'Bin',NUMBIN,'comp',JC
     ENDDO
 
@@ -9118,15 +9129,15 @@ CONTAINS
 
     ! Get aerosol masses from GEOS-CHEM's Spc array
     DO JC = 1, ICOMP-IDIAG
-       IF( JC == SRTSO4  ) MSO4  = Spc(I,J,L,ID+JC*IBINS)
-       IF( JC == SRTNACL ) MNACL = Spc(I,J,L,ID+JC*IBINS)
-       IF( JC == SRTECIL ) MECIL = Spc(I,J,L,ID+JC*IBINS)
-       IF( JC == SRTECOB ) MECOB = Spc(I,J,L,ID+JC*IBINS)
-       IF( JC == SRTOCIL ) MOCIL = Spc(I,J,L,ID+JC*IBINS)
-       IF( JC == SRTOCOB ) MOCOB = Spc(I,J,L,ID+JC*IBINS)
-       IF( JC == SRTDUST ) MDUST = Spc(I,J,L,ID+JC*IBINS)
+       IF( JC == SRTSO4  ) MSO4  = Spc(ID+JC*IBINS)%Conc(I,J,L)
+       IF( JC == SRTNACL ) MNACL = Spc(ID+JC*IBINS)%Conc(I,J,L)
+       IF( JC == SRTECIL ) MECIL = Spc(ID+JC*IBINS)%Conc(I,J,L)
+       IF( JC == SRTECOB ) MECOB = Spc(ID+JC*IBINS)%Conc(I,J,L)
+       IF( JC == SRTOCIL ) MOCIL = Spc(ID+JC*IBINS)%Conc(I,J,L)
+       IF( JC == SRTOCOB ) MOCOB = Spc(ID+JC*IBINS)%Conc(I,J,L)
+       IF( JC == SRTDUST ) MDUST = Spc(ID+JC*IBINS)%Conc(I,J,L)
     ENDDO
-    MH2O  = Spc(I,J,L,id_AW1-1+NUMBIN)
+    MH2O  = Spc(id_AW1-1+NUMBIN)%Conc(I,J,L)
 
     !dbg print *,'mh2o',mh2o,'at',i,j,l
 
@@ -9134,7 +9145,7 @@ CONTAINS
     MNH4 = MSO4 * 1.875e-1_fp
     TOTALMASS = ( MSO4 + MNO3 + MNH4 + MNACL + MH2O + &
                   MECIL + MECOB + MOCIL + MOCOB + MDUST)/ &
-                  Spc(I,J,L,ID)
+                  Spc(ID)%Conc(I,J,L)
     DENSITY = AERODENS( MSO4, MNO3, MNH4, MNACL, MECIL, MECOB, &
                         MOCIL, MOCOB, MDUST, MH2O)
 

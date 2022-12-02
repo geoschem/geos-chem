@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# GCHP run script template for running interactively from the command line.
+# Consecutive executions of this script will do consecutive GCHP simulations.
+# Log information is sent to both terminal and log file. Set cap_restart in
+# run directory to specify start date. Set grid resolution, number of cores,
+# and other common settings in setCommonRunSettings.sh prior to running.
+
+# Define log name to include simulation start date
+start_str=$(sed 's/ /_/g' cap_restart)
+log=gchp.${start_str:0:13}z.log
+
+# Load environment
+if [ ! -L gchp.env ] || [ ! -e gchp.env ]; then
+   echo "ERROR: gchp.env symbolic link not valid. Set using setEnvironment.sh."
+   exit 1
+else
+   source gchp.env > ${log}
+fi
+
+# Update config files, set restart symlink, and do sanity checks
+source setCommonRunSettings.sh --verbose >> ${log}
+source setRestartLink.sh >> ${log}
+source checkRunSettings.sh >> ${log}
+
+# Run GCHP with # processors specified in config file setCommonRunSettings.sh
+nCores=$( grep -oP 'TOTAL_CORES=\s*\K\d+' setCommonRunSettings.sh )
+
+#--------------------------------------------------
+# Edit this line to run GCHP on your system
+#--------------------------------------------------
+time mpirun -np ${nCores} ./gchp 2>&1 | tee -a ${log}
+
+# Rename and move restart file and update restart symlink if new start time ok
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh 2>&1 | tee -a ${log}
+fi
+

@@ -83,7 +83,8 @@ ${NEW_LINE}"
 #### Define function to update config file default settings based on
 #### simulation selected. All settings changed in this function are common
 #### between GEOS-Chem Classic and GCHP. This script mainly now adds species
-###  to input.geos and modifies diagnostic output based on simulation type.
+#### geoschem_config.yml and modifies diagnostic output based on simulation
+#### type.
 ####
 #### Argument: Extra option for full-chemistry simulation (string)
 #============================================================================
@@ -150,37 +151,37 @@ function set_common_settings() {
        [[ "x${sim_extra_option}" == "xAPM"       ]]; then
 
 	# Add complex SOA species ASOA* and ASOG* following ALK4
-        prev_line='Species name            : ALK4'
-        new_line='\Species name            : ASOA1\
-Species name            : ASOA2\
-Species name            : ASOA3\
-Species name            : ASOAN\
-Species name            : ASOG1\
-Species name            : ASOG2\
-Species name            : ASOG3
+        prev_line='      - ALK4'
+        new_line='\      - ASOA1\
+      - ASOA2\
+      - ASOA3\
+      - ASOAN\
+      - ASOG1\
+      - ASOG2\
+      - ASOG3
 '
-        insert_text "${prev_line}" "${new_line}" input.geos
+        insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add complex SOA species TSOA* and TSOG* following TOLU
-        prev_line='Species name            : TOLU'
-        new_line='\Species name            : TSOA0\
-Species name            : TSOA1\
-Species name            : TSOA2\
-Species name            : TSOA3\
-Species name            : TSOG0\
-Species name            : TSOG1\
-Species name            : TSOG2\
-Species name            : TSOG3
+        prev_line='      - TOLU'
+        new_line='\      - TSOA0\
+      - TSOA1\
+      - TSOA2\
+      - TSOA3\
+      - TSOG0\
+      - TSOG1\
+      - TSOG2\
+      - TSOG3
 '
-        insert_text "${prev_line}" "${new_line}" input.geos
+        insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	sed_ie 's/@//' HISTORY.rc
     fi
 
-    # For complexSOA only, remove SOAP and SOAS species from input.geos
+    # For complexSOA only, remove SOAP and SOAS species from geoschem_config.yml
     if [[ ${sim_extra_option} =~ "complexSOA" ]]; then
-	remove_text 'Species name            : SOAP' input.geos
-	remove_text 'Species name            : SOAS' input.geos
+	remove_text '      - SOAP' geoschem_config.yml
+	remove_text '      - SOAS' geoschem_config.yml
     fi
 
     #------------------------------------------------------------------------
@@ -188,32 +189,32 @@ Species name            : TSOG3
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ]]; then
 
-	# Remove non-SVPOA species from input.geos
-        remove_text 'Species name            : OCPI' input.geos
-        remove_text 'Species name            : OCPO' input.geos
+	# Remove non-SVPOA species from geoschem_config.yml
+        remove_text '      - OCPI' geoschem_config.yml
+        remove_text '      - OCPO' geoschem_config.yml
 
-        # Add semivolatile POA species in input.geos
-        prev_line='Species name            : N2O5'
-        new_line='\Species name            : NAP'
-	insert_text "${prev_line}" "${new_line}" input.geos
+        # Add semivolatile POA species in geoschem_config.yml
+        prev_line='      - N2O5'
+        new_line='\      - NAP'
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add OPOA* and OPOG* species following OIO
-        prev_line='Species name            : OIO'
-        new_line='Species name            : OPOA1\
-Species name            : OPOA2\
-Species name            : OPOG1\
-Species name            : OPOG2
+        prev_line='      - OIO'
+        new_line='      - OPOA1\
+      - OPOA2\
+      - OPOG1\
+      - OPOG2
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add POA* and POG* species following PIP
-        prev_line='Species name            : PIP'
-        new_line='\Species name            : POA1\
-Species name            : POA2\
-Species name            : POG1\
-Species name            : POG2
+        prev_line='      - PIP'
+        new_line='\      - POA1\
+      - POA2\
+      - POG1\
+      - POG2
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's/@//' HISTORY.rc
@@ -225,33 +226,33 @@ Species name            : POG2
     if [[ "x${sim_extra_option}" == "xaciduptake" ]]; then
 
         # Add DSTAL* species after DST4
-        prev_line='Species name            : DST4'
-        new_line='\Species name            : DSTAL1\
-Species name            : DSTAL2\
-Species name            : DSTAL3\
-Species name            : DSTAL4
+        prev_line='      - DST4'
+        new_line='\      - DSTAL1\
+      - DSTAL2\
+      - DSTAL3\
+      - DSTAL4
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add NITD* species after NITs.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after NIT and NITs.
-        prev_line='Species name            : NITs'
-        new_line='\Species name            : NITD1\
-Species name            : NITD2\
-Species name            : NITD3\
-Species name            : NITD4
+        prev_line='      - NITs'
+        new_line='\      - NITD1\
+      - NITD2\
+      - NITD3\
+      - NITD4
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add SO4* species after SO4s.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after SO4 and SO4s.
-        prev_line='Species name            : SO4s'
-        new_line='\Species name            : SO4D1\
-Species name            : SO4D2\
-Species name            : SO4D3\
-Species name            : SO4D4
+        prev_line='      - SO4s'
+        new_line='\      - SO4D1\
+      - SO4D2\
+      - SO4D3\
+      - SO4D4
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's/@//' HISTORY.rc
@@ -263,11 +264,11 @@ Species name            : SO4D4
     if [[ "x${sim_extra_option}" == "xmarinePOA" ]]; then
 
         # Add MOP* species following MONITU
-        prev_line='Species name            : MONITU'
-        new_line='\Species name            : MOPI\
-Species name            : MOPO
+        prev_line='      - MONITU'
+        new_line='\      - MOPI\
+      - MOPO
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's|@||' HISTORY.rc
@@ -284,7 +285,7 @@ Species name            : MOPO
 
 	# Issue a warning
 	printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
-        printf "\nEdit input.geos and HISTORY.rc in your new run directory to customize options to only"
+        printf "\nEdit geoschem_config.yml and HISTORY.rc in your new run directory to customize options to only"
         printf "\nwhat you need.\n"
     fi
 
@@ -300,418 +301,418 @@ Species name            : MOPO
 	fi
 
 	# Add TOMAS species for the first 15 bins following XYLE
-        prev_line='Species name            : XYLE'
-        new_line='\Species name            : H2SO4\
-Species name            : NK1\
-Species name            : NK2\
-Species name            : NK3\
-Species name            : NK4\
-Species name            : NK5\
-Species name            : NK6\
-Species name            : NK7\
-Species name            : NK8\
-Species name            : NK9\
-Species name            : NK10\
-Species name            : NK11\
-Species name            : NK12\
-Species name            : NK13\
-Species name            : NK14\
-Species name            : NK15\
-Species name            : SF1\
-Species name            : SF2\
-Species name            : SF3\
-Species name            : SF4\
-Species name            : SF5\
-Species name            : SF6\
-Species name            : SF7\
-Species name            : SF8\
-Species name            : SF9\
-Species name            : SF10\
-Species name            : SF11\
-Species name            : SF12\
-Species name            : SF13\
-Species name            : SF14\
-Species name            : SF15\
-Species name            : SS1\
-Species name            : SS2\
-Species name            : SS3\
-Species name            : SS4\
-Species name            : SS5\
-Species name            : SS6\
-Species name            : SS7\
-Species name            : SS8\
-Species name            : SS9\
-Species name            : SS10\
-Species name            : SS11\
-Species name            : SS12\
-Species name            : SS13\
-Species name            : SS14\
-Species name            : SS15\
-Species name            : ECOB1\
-Species name            : ECOB2\
-Species name            : ECOB3\
-Species name            : ECOB4\
-Species name            : ECOB5\
-Species name            : ECOB6\
-Species name            : ECOB7\
-Species name            : ECOB8\
-Species name            : ECOB9\
-Species name            : ECOB10\
-Species name            : ECOB11\
-Species name            : ECOB12\
-Species name            : ECOB13\
-Species name            : ECOB14\
-Species name            : ECOB15\
-Species name            : ECIL1\
-Species name            : ECIL2\
-Species name            : ECIL3\
-Species name            : ECIL4\
-Species name            : ECIL5\
-Species name            : ECIL6\
-Species name            : ECIL7\
-Species name            : ECIL8\
-Species name            : ECIL9\
-Species name            : ECIL10\
-Species name            : ECIL11\
-Species name            : ECIL12\
-Species name            : ECIL13\
-Species name            : ECIL14\
-Species name            : ECIL15\
-Species name            : OCOB1\
-Species name            : OCOB2\
-Species name            : OCOB3\
-Species name            : OCOB4\
-Species name            : OCOB5\
-Species name            : OCOB6\
-Species name            : OCOB7\
-Species name            : OCOB8\
-Species name            : OCOB9\
-Species name            : OCOB10\
-Species name            : OCOB11\
-Species name            : OCOB12\
-Species name            : OCOB13\
-Species name            : OCOB14\
-Species name            : OCOB15\
-Species name            : OCIL1\
-Species name            : OCIL2\
-Species name            : OCIL3\
-Species name            : OCIL4\
-Species name            : OCIL5\
-Species name            : OCIL6\
-Species name            : OCIL7\
-Species name            : OCIL8\
-Species name            : OCIL9\
-Species name            : OCIL10\
-Species name            : OCIL11\
-Species name            : OCIL12\
-Species name            : OCIL13\
-Species name            : OCIL14\
-Species name            : OCIL15\
-Species name            : DUST1\
-Species name            : DUST2\
-Species name            : DUST3\
-Species name            : DUST4\
-Species name            : DUST5\
-Species name            : DUST6\
-Species name            : DUST7\
-Species name            : DUST8\
-Species name            : DUST9\
-Species name            : DUST10\
-Species name            : DUST11\
-Species name            : DUST12\
-Species name            : DUST13\
-Species name            : DUST14\
-Species name            : DUST15\
-Species name            : AW1\
-Species name            : AW2\
-Species name            : AW3\
-Species name            : AW4\
-Species name            : AW5\
-Species name            : AW6\
-Species name            : AW7\
-Species name            : AW8\
-Species name            : AW9\
-Species name            : AW10\
-Species name            : AW11\
-Species name            : AW12\
-Species name            : AW13\
-Species name            : AW14\
-Species name            : AW15
+        prev_line='      - XYLE'
+        new_line='\      - H2SO4\
+      - NK1\
+      - NK2\
+      - NK3\
+      - NK4\
+      - NK5\
+      - NK6\
+      - NK7\
+      - NK8\
+      - NK9\
+      - NK10\
+      - NK11\
+      - NK12\
+      - NK13\
+      - NK14\
+      - NK15\
+      - SF1\
+      - SF2\
+      - SF3\
+      - SF4\
+      - SF5\
+      - SF6\
+      - SF7\
+      - SF8\
+      - SF9\
+      - SF10\
+      - SF11\
+      - SF12\
+      - SF13\
+      - SF14\
+      - SF15\
+      - SS1\
+      - SS2\
+      - SS3\
+      - SS4\
+      - SS5\
+      - SS6\
+      - SS7\
+      - SS8\
+      - SS9\
+      - SS10\
+      - SS11\
+      - SS12\
+      - SS13\
+      - SS14\
+      - SS15\
+      - ECOB1\
+      - ECOB2\
+      - ECOB3\
+      - ECOB4\
+      - ECOB5\
+      - ECOB6\
+      - ECOB7\
+      - ECOB8\
+      - ECOB9\
+      - ECOB10\
+      - ECOB11\
+      - ECOB12\
+      - ECOB13\
+      - ECOB14\
+      - ECOB15\
+      - ECIL1\
+      - ECIL2\
+      - ECIL3\
+      - ECIL4\
+      - ECIL5\
+      - ECIL6\
+      - ECIL7\
+      - ECIL8\
+      - ECIL9\
+      - ECIL10\
+      - ECIL11\
+      - ECIL12\
+      - ECIL13\
+      - ECIL14\
+      - ECIL15\
+      - OCOB1\
+      - OCOB2\
+      - OCOB3\
+      - OCOB4\
+      - OCOB5\
+      - OCOB6\
+      - OCOB7\
+      - OCOB8\
+      - OCOB9\
+      - OCOB10\
+      - OCOB11\
+      - OCOB12\
+      - OCOB13\
+      - OCOB14\
+      - OCOB15\
+      - OCIL1\
+      - OCIL2\
+      - OCIL3\
+      - OCIL4\
+      - OCIL5\
+      - OCIL6\
+      - OCIL7\
+      - OCIL8\
+      - OCIL9\
+      - OCIL10\
+      - OCIL11\
+      - OCIL12\
+      - OCIL13\
+      - OCIL14\
+      - OCIL15\
+      - DUST1\
+      - DUST2\
+      - DUST3\
+      - DUST4\
+      - DUST5\
+      - DUST6\
+      - DUST7\
+      - DUST8\
+      - DUST9\
+      - DUST10\
+      - DUST11\
+      - DUST12\
+      - DUST13\
+      - DUST14\
+      - DUST15\
+      - AW1\
+      - AW2\
+      - AW3\
+      - AW4\
+      - AW5\
+      - AW6\
+      - AW7\
+      - AW8\
+      - AW9\
+      - AW10\
+      - AW11\
+      - AW12\
+      - AW13\
+      - AW14\
+      - AW15
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Special handling for TOMAS-40 bin simulations
         if [[ ${sim_extra_option} = "TOMAS40" ]]; then
 
 	    # Add NK16-NK40
-    	    prev_line='Species name            : NK15'
-    	    new_line='\Species name            : NK16\
-Species name            : NK17\
-Species name            : NK18\
-Species name            : NK19\
-Species name            : NK20\
-Species name            : NK21\
-Species name            : NK22\
-Species name            : NK23\
-Species name            : NK24\
-Species name            : NK25\
-Species name            : NK26\
-Species name            : NK27\
-Species name            : NK28\
-Species name            : NK29\
-Species name            : NK30\
-Species name            : NK31\
-Species name            : NK32\
-Species name            : NK33\
-Species name            : NK34\
-Species name            : NK35\
-Species name            : NK36\
-Species name            : NK37\
-Species name            : NK38\
-Species name            : NK39\
-Species name            : NK40
+    	    prev_line='      - NK15'
+    	    new_line='\      - NK16\
+      - NK17\
+      - NK18\
+      - NK19\
+      - NK20\
+      - NK21\
+      - NK22\
+      - NK23\
+      - NK24\
+      - NK25\
+      - NK26\
+      - NK27\
+      - NK28\
+      - NK29\
+      - NK30\
+      - NK31\
+      - NK32\
+      - NK33\
+      - NK34\
+      - NK35\
+      - NK36\
+      - NK37\
+      - NK38\
+      - NK39\
+      - NK40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add SF16-SF40
-	    prev_line='Species name            : SF15'
-    	    new_line='\Species name            : SF16\
-Species name            : SF17\
-Species name            : SF18\
-Species name            : SF19\
-Species name            : SF20\
-Species name            : SF21\
-Species name            : SF22\
-Species name            : SF23\
-Species name            : SF24\
-Species name            : SF25\
-Species name            : SF26\
-Species name            : SF27\
-Species name            : SF28\
-Species name            : SF29\
-Species name            : SF30\
-Species name            : SF31\
-Species name            : SF32\
-Species name            : SF33\
-Species name            : SF34\
-Species name            : SF35\
-Species name            : SF36\
-Species name            : SF37\
-Species name            : SF38\
-Species name            : SF39\
-Species name            : SF40
+	    prev_line='      - SF15'
+    	    new_line='\      - SF16\
+      - SF17\
+      - SF18\
+      - SF19\
+      - SF20\
+      - SF21\
+      - SF22\
+      - SF23\
+      - SF24\
+      - SF25\
+      - SF26\
+      - SF27\
+      - SF28\
+      - SF29\
+      - SF30\
+      - SF31\
+      - SF32\
+      - SF33\
+      - SF34\
+      - SF35\
+      - SF36\
+      - SF37\
+      - SF38\
+      - SF39\
+      - SF40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add SS16-SS40
-    	    prev_line='Species name            : SS15'
-    	    new_line='\Species name            : SS16\
-Species name            : SS17\
-Species name            : SS18\
-Species name            : SS19\
-Species name            : SS20\
-Species name            : SS21\
-Species name            : SS22\
-Species name            : SS23\
-Species name            : SS24\
-Species name            : SS25\
-Species name            : SS26\
-Species name            : SS27\
-Species name            : SS28\
-Species name            : SS29\
-Species name            : SS30\
-Species name            : SS31\
-Species name            : SS32\
-Species name            : SS33\
-Species name            : SS34\
-Species name            : SS35\
-Species name            : SS36\
-Species name            : SS37\
-Species name            : SS38\
-Species name            : SS39\
-Species name            : SS40
+    	    prev_line='      - SS15'
+    	    new_line='\      - SS16\
+      - SS17\
+      - SS18\
+      - SS19\
+      - SS20\
+      - SS21\
+      - SS22\
+      - SS23\
+      - SS24\
+      - SS25\
+      - SS26\
+      - SS27\
+      - SS28\
+      - SS29\
+      - SS30\
+      - SS31\
+      - SS32\
+      - SS33\
+      - SS34\
+      - SS35\
+      - SS36\
+      - SS37\
+      - SS38\
+      - SS39\
+      - SS40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add ECOB16-ECOB40
-    	    prev_line='Species name            : ECOB15'
-    	    new_line='\Species name            : ECOB16\
-Species name            : ECOB17\
-Species name            : ECOB18\
-Species name            : ECOB19\
-Species name            : ECOB20\
-Species name            : ECOB21\
-Species name            : ECOB22\
-Species name            : ECOB23\
-Species name            : ECOB24\
-Species name            : ECOB25\
-Species name            : ECOB26\
-Species name            : ECOB27\
-Species name            : ECOB28\
-Species name            : ECOB29\
-Species name            : ECOB30\
-Species name            : ECOB31\
-Species name            : ECOB32\
-Species name            : ECOB33\
-Species name            : ECOB34\
-Species name            : ECOB35\
-Species name            : ECOB36\
-Species name            : ECOB37\
-Species name            : ECOB38\
-Species name            : ECOB39\
-Species name            : ECOB40
+    	    prev_line='      - ECOB15'
+    	    new_line='\      - ECOB16\
+      - ECOB17\
+      - ECOB18\
+      - ECOB19\
+      - ECOB20\
+      - ECOB21\
+      - ECOB22\
+      - ECOB23\
+      - ECOB24\
+      - ECOB25\
+      - ECOB26\
+      - ECOB27\
+      - ECOB28\
+      - ECOB29\
+      - ECOB30\
+      - ECOB31\
+      - ECOB32\
+      - ECOB33\
+      - ECOB34\
+      - ECOB35\
+      - ECOB36\
+      - ECOB37\
+      - ECOB38\
+      - ECOB39\
+      - ECOB40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add ECIL15-ECIL40
-    	    prev_line='Species name            : ECIL15'
-    	    new_line='\Species name            : ECIL16\
-Species name            : ECIL17\
-Species name            : ECIL18\
-Species name            : ECIL19\
-Species name            : ECIL20\
-Species name            : ECIL21\
-Species name            : ECIL22\
-Species name            : ECIL23\
-Species name            : ECIL24\
-Species name            : ECIL25\
-Species name            : ECIL26\
-Species name            : ECIL27\
-Species name            : ECIL28\
-Species name            : ECIL29\
-Species name            : ECIL30\
-Species name            : ECIL31\
-Species name            : ECIL32\
-Species name            : ECIL33\
-Species name            : ECIL34\
-Species name            : ECIL35\
-Species name            : ECIL36\
-Species name            : ECIL37\
-Species name            : ECIL38\
-Species name            : ECIL39\
-Species name            : ECIL40
+    	    prev_line='      - ECIL15'
+    	    new_line='\      - ECIL16\
+      - ECIL17\
+      - ECIL18\
+      - ECIL19\
+      - ECIL20\
+      - ECIL21\
+      - ECIL22\
+      - ECIL23\
+      - ECIL24\
+      - ECIL25\
+      - ECIL26\
+      - ECIL27\
+      - ECIL28\
+      - ECIL29\
+      - ECIL30\
+      - ECIL31\
+      - ECIL32\
+      - ECIL33\
+      - ECIL34\
+      - ECIL35\
+      - ECIL36\
+      - ECIL37\
+      - ECIL38\
+      - ECIL39\
+      - ECIL40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add OCOB15-OCOB40
-    	    prev_line='Species name            : OCOB15'
-    	    new_line='\Species name            : OCOB16\
-Species name            : OCOB17\
-Species name            : OCOB18\
-Species name            : OCOB19\
-Species name            : OCOB20\
-Species name            : OCOB21\
-Species name            : OCOB22\
-Species name            : OCOB23\
-Species name            : OCOB24\
-Species name            : OCOB25\
-Species name            : OCOB26\
-Species name            : OCOB27\
-Species name            : OCOB28\
-Species name            : OCOB29\
-Species name            : OCOB30\
-Species name            : OCOB31\
-Species name            : OCOB32\
-Species name            : OCOB33\
-Species name            : OCOB34\
-Species name            : OCOB35\
-Species name            : OCOB36\
-Species name            : OCOB37\
-Species name            : OCOB38\
-Species name            : OCOB39\
-Species name            : OCOB40
+    	    prev_line='      - OCOB15'
+    	    new_line='\      - OCOB16\
+      - OCOB17\
+      - OCOB18\
+      - OCOB19\
+      - OCOB20\
+      - OCOB21\
+      - OCOB22\
+      - OCOB23\
+      - OCOB24\
+      - OCOB25\
+      - OCOB26\
+      - OCOB27\
+      - OCOB28\
+      - OCOB29\
+      - OCOB30\
+      - OCOB31\
+      - OCOB32\
+      - OCOB33\
+      - OCOB34\
+      - OCOB35\
+      - OCOB36\
+      - OCOB37\
+      - OCOB38\
+      - OCOB39\
+      - OCOB40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add OCIL16-OCIL40
-    	    prev_line='Species name            : OCIL15'
-    	    new_line='\Species name            : OCIL16\
-Species name            : OCIL17\
-Species name            : OCIL18\
-Species name            : OCIL19\
-Species name            : OCIL20\
-Species name            : OCIL21\
-Species name            : OCIL22\
-Species name            : OCIL23\
-Species name            : OCIL24\
-Species name            : OCIL25\
-Species name            : OCIL26\
-Species name            : OCIL27\
-Species name            : OCIL28\
-Species name            : OCIL29\
-Species name            : OCIL30\
-Species name            : OCIL31\
-Species name            : OCIL32\
-Species name            : OCIL33\
-Species name            : OCIL34\
-Species name            : OCIL35\
-Species name            : OCIL36\
-Species name            : OCIL37\
-Species name            : OCIL38\
-Species name            : OCIL39\
-Species name            : OCIL40
+    	    prev_line='      - OCIL15'
+    	    new_line='\      - OCIL16\
+      - OCIL17\
+      - OCIL18\
+      - OCIL19\
+      - OCIL20\
+      - OCIL21\
+      - OCIL22\
+      - OCIL23\
+      - OCIL24\
+      - OCIL25\
+      - OCIL26\
+      - OCIL27\
+      - OCIL28\
+      - OCIL29\
+      - OCIL30\
+      - OCIL31\
+      - OCIL32\
+      - OCIL33\
+      - OCIL34\
+      - OCIL35\
+      - OCIL36\
+      - OCIL37\
+      - OCIL38\
+      - OCIL39\
+      - OCIL40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add DUST15-DUST40
-    	    prev_line='Species name            : DUST15'
-    	    new_line='\Species name            : DUST16\
-Species name            : DUST17\
-Species name            : DUST18\
-Species name            : DUST19\
-Species name            : DUST20\
-Species name            : DUST21\
-Species name            : DUST22\
-Species name            : DUST23\
-Species name            : DUST24\
-Species name            : DUST25\
-Species name            : DUST26\
-Species name            : DUST27\
-Species name            : DUST28\
-Species name            : DUST29\
-Species name            : DUST30\
-Species name            : DUST31\
-Species name            : DUST32\
-Species name            : DUST33\
-Species name            : DUST34\
-Species name            : DUST35\
-Species name            : DUST36\
-Species name            : DUST37\
-Species name            : DUST38\
-Species name            : DUST39\
-Species name            : DUST40
+    	    prev_line='      - DUST15'
+    	    new_line='\      - DUST16\
+      - DUST17\
+      - DUST18\
+      - DUST19\
+      - DUST20\
+      - DUST21\
+      - DUST22\
+      - DUST23\
+      - DUST24\
+      - DUST25\
+      - DUST26\
+      - DUST27\
+      - DUST28\
+      - DUST29\
+      - DUST30\
+      - DUST31\
+      - DUST32\
+      - DUST33\
+      - DUST34\
+      - DUST35\
+      - DUST36\
+      - DUST37\
+      - DUST38\
+      - DUST39\
+      - DUST40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	    # Add AW15-AW40
-    	    prev_line='Species name            : AW15'
-    	    new_line='\Species name            : AW16\
-Species name            : AW17\
-Species name            : AW18\
-Species name            : AW19\
-Species name            : AW20\
-Species name            : AW21\
-Species name            : AW22\
-Species name            : AW23\
-Species name            : AW24\
-Species name            : AW25\
-Species name            : AW26\
-Species name            : AW27\
-Species name            : AW28\
-Species name            : AW29\
-Species name            : AW30\
-Species name            : AW31\
-Species name            : AW32\
-Species name            : AW33\
-Species name            : AW34\
-Species name            : AW35\
-Species name            : AW36\
-Species name            : AW37\
-Species name            : AW38\
-Species name            : AW39\
-Species name            : AW40
+    	    prev_line='      - AW15'
+    	    new_line='\      - AW16\
+      - AW17\
+      - AW18\
+      - AW19\
+      - AW20\
+      - AW21\
+      - AW22\
+      - AW23\
+      - AW24\
+      - AW25\
+      - AW26\
+      - AW27\
+      - AW28\
+      - AW29\
+      - AW30\
+      - AW31\
+      - AW32\
+      - AW33\
+      - AW34\
+      - AW35\
+      - AW36\
+      - AW37\
+      - AW38\
+      - AW39\
+      - AW40
 '
-	    insert_text "${prev_line}" "${new_line}" input.geos
+	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
         fi
 
 	# Remove the @ from HISTORY.rc diagnostic fields
@@ -724,125 +725,125 @@ Species name            : AW40
     if [[ "x${sim_extra_option}" == "xAPM" ]]; then
 
         # Add APM species following XYLE
-        prev_line='Species name            : XYLE'
-        new_line='\Species name            : APMBCBIN01\
-Species name            : APMBCBIN02\
-Species name            : APMBCBIN03\
-Species name            : APMBCBIN04\
-Species name            : APMBCBIN05\
-Species name            : APMBCBIN06\
-Species name            : APMBCBIN07\
-Species name            : APMBCBIN08\
-Species name            : APMBCBIN09\
-Species name            : APMBCBIN10\
-Species name            : APMBCBIN11\
-Species name            : APMBCBIN12\
-Species name            : APMBCBIN13\
-Species name            : APMBCBIN14\
-Species name            : APMBCBIN15\
-Species name            : APMCTBC1\
-Species name            : APMCTBC2\
-Species name            : APMCTDST1\
-Species name            : APMCTDST2\
-Species name            : APMCTOC1\
-Species name            : APMCTOC2\
-Species name            : APMCTSEA1\
-Species name            : APMCTSEA2\
-Species name            : APMDSTBIN01\
-Species name            : APMDSTBIN02\
-Species name            : APMDSTBIN03\
-Species name            : APMDSTBIN04\
-Species name            : APMDSTBIN05\
-Species name            : APMDSTBIN06\
-Species name            : APMDSTBIN07\
-Species name            : APMDSTBIN08\
-Species name            : APMDSTBIN09\
-Species name            : APMDSTBIN10\
-Species name            : APMDSTBIN11\
-Species name            : APMDSTBIN12\
-Species name            : APMDSTBIN13\
-Species name            : APMDSTBIN14\
-Species name            : APMDSTBIN15\
-Species name            : APMH2SO4\
-Species name            : APMLVSOA\
-Species name            : APMLVSOG\
-Species name            : APMOCBIN01\
-Species name            : APMOCBIN02\
-Species name            : APMOCBIN03\
-Species name            : APMOCBIN04\
-Species name            : APMOCBIN05\
-Species name            : APMOCBIN06\
-Species name            : APMOCBIN07\
-Species name            : APMOCBIN08\
-Species name            : APMOCBIN09\
-Species name            : APMOCBIN10\
-Species name            : APMOCBIN11\
-Species name            : APMOCBIN12\
-Species name            : APMOCBIN13\
-Species name            : APMOCBIN14\
-Species name            : APMOCBIN15\
-Species name            : APMSEABIN01\
-Species name            : APMSEABIN02\
-Species name            : APMSEABIN03\
-Species name            : APMSEABIN04\
-Species name            : APMSEABIN05\
-Species name            : APMSEABIN06\
-Species name            : APMSEABIN07\
-Species name            : APMSEABIN08\
-Species name            : APMSEABIN09\
-Species name            : APMSEABIN10\
-Species name            : APMSEABIN11\
-Species name            : APMSEABIN12\
-Species name            : APMSEABIN13\
-Species name            : APMSEABIN14\
-Species name            : APMSEABIN15\
-Species name            : APMSEABIN16\
-Species name            : APMSEABIN17\
-Species name            : APMSEABIN18\
-Species name            : APMSEABIN19\
-Species name            : APMSEABIN20\
-Species name            : APMSPBIN01\
-Species name            : APMSPBIN02\
-Species name            : APMSPBIN03\
-Species name            : APMSPBIN04\
-Species name            : APMSPBIN05\
-Species name            : APMSPBIN06\
-Species name            : APMSPBIN07\
-Species name            : APMSPBIN08\
-Species name            : APMSPBIN09\
-Species name            : APMSPBIN10\
-Species name            : APMSPBIN11\
-Species name            : APMSPBIN12\
-Species name            : APMSPBIN13\
-Species name            : APMSPBIN14\
-Species name            : APMSPBIN15\
-Species name            : APMSPBIN16\
-Species name            : APMSPBIN17\
-Species name            : APMSPBIN18\
-Species name            : APMSPBIN19\
-Species name            : APMSPBIN20\
-Species name            : APMSPBIN21\
-Species name            : APMSPBIN22\
-Species name            : APMSPBIN23\
-Species name            : APMSPBIN24\
-Species name            : APMSPBIN25\
-Species name            : APMSPBIN26\
-Species name            : APMSPBIN27\
-Species name            : APMSPBIN28\
-Species name            : APMSPBIN29\
-Species name            : APMSPBIN30\
-Species name            : APMSPBIN31\
-Species name            : APMSPBIN32\
-Species name            : APMSPBIN33\
-Species name            : APMSPBIN34\
-Species name            : APMSPBIN35\
-Species name            : APMSPBIN36\
-Species name            : APMSPBIN37\
-Species name            : APMSPBIN38\
-Species name            : APMSPBIN39\
-Species name            : APMSPBIN40
+        prev_line='      - XYLE'
+        new_line='\      - APMBCBIN01\
+      - APMBCBIN02\
+      - APMBCBIN03\
+      - APMBCBIN04\
+      - APMBCBIN05\
+      - APMBCBIN06\
+      - APMBCBIN07\
+      - APMBCBIN08\
+      - APMBCBIN09\
+      - APMBCBIN10\
+      - APMBCBIN11\
+      - APMBCBIN12\
+      - APMBCBIN13\
+      - APMBCBIN14\
+      - APMBCBIN15\
+      - APMCTBC1\
+      - APMCTBC2\
+      - APMCTDST1\
+      - APMCTDST2\
+      - APMCTOC1\
+      - APMCTOC2\
+      - APMCTSEA1\
+      - APMCTSEA2\
+      - APMDSTBIN01\
+      - APMDSTBIN02\
+      - APMDSTBIN03\
+      - APMDSTBIN04\
+      - APMDSTBIN05\
+      - APMDSTBIN06\
+      - APMDSTBIN07\
+      - APMDSTBIN08\
+      - APMDSTBIN09\
+      - APMDSTBIN10\
+      - APMDSTBIN11\
+      - APMDSTBIN12\
+      - APMDSTBIN13\
+      - APMDSTBIN14\
+      - APMDSTBIN15\
+      - APMH2SO4\
+      - APMLVSOA\
+      - APMLVSOG\
+      - APMOCBIN01\
+      - APMOCBIN02\
+      - APMOCBIN03\
+      - APMOCBIN04\
+      - APMOCBIN05\
+      - APMOCBIN06\
+      - APMOCBIN07\
+      - APMOCBIN08\
+      - APMOCBIN09\
+      - APMOCBIN10\
+      - APMOCBIN11\
+      - APMOCBIN12\
+      - APMOCBIN13\
+      - APMOCBIN14\
+      - APMOCBIN15\
+      - APMSEABIN01\
+      - APMSEABIN02\
+      - APMSEABIN03\
+      - APMSEABIN04\
+      - APMSEABIN05\
+      - APMSEABIN06\
+      - APMSEABIN07\
+      - APMSEABIN08\
+      - APMSEABIN09\
+      - APMSEABIN10\
+      - APMSEABIN11\
+      - APMSEABIN12\
+      - APMSEABIN13\
+      - APMSEABIN14\
+      - APMSEABIN15\
+      - APMSEABIN16\
+      - APMSEABIN17\
+      - APMSEABIN18\
+      - APMSEABIN19\
+      - APMSEABIN20\
+      - APMSPBIN01\
+      - APMSPBIN02\
+      - APMSPBIN03\
+      - APMSPBIN04\
+      - APMSPBIN05\
+      - APMSPBIN06\
+      - APMSPBIN07\
+      - APMSPBIN08\
+      - APMSPBIN09\
+      - APMSPBIN10\
+      - APMSPBIN11\
+      - APMSPBIN12\
+      - APMSPBIN13\
+      - APMSPBIN14\
+      - APMSPBIN15\
+      - APMSPBIN16\
+      - APMSPBIN17\
+      - APMSPBIN18\
+      - APMSPBIN19\
+      - APMSPBIN20\
+      - APMSPBIN21\
+      - APMSPBIN22\
+      - APMSPBIN23\
+      - APMSPBIN24\
+      - APMSPBIN25\
+      - APMSPBIN26\
+      - APMSPBIN27\
+      - APMSPBIN28\
+      - APMSPBIN29\
+      - APMSPBIN30\
+      - APMSPBIN31\
+      - APMSPBIN32\
+      - APMSPBIN33\
+      - APMSPBIN34\
+      - APMSPBIN35\
+      - APMSPBIN36\
+      - APMSPBIN37\
+      - APMSPBIN38\
+      - APMSPBIN39\
+      - APMSPBIN40
 '
-	insert_text "${prev_line}" "${new_line}" input.geos
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Remove the @ from HISTORY.rc diagnostic fields
 	sed_ie 's/@//' HISTORY.rc

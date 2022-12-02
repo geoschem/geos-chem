@@ -51,9 +51,8 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #ifdef BPCH_DIAG
   USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
   USE DIAG_MOD,                ONLY : CLEANUP_DIAG
-  USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
   USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
-  USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53
+  USE DIAG51b_MOD,             ONLY : CLEANUP_DIAG51b
 #endif
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
@@ -222,9 +221,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 
 #ifdef BPCH_DIAG
   CALL CLEANUP_DIAG()
-  CALL CLEANUP_DIAG03()
   CALL CLEANUP_DIAG51()
-  CALL CLEANUP_DIAG53()
 
   CALL Cleanup_CMN_O3( RC )
   IF ( RC /= GC_SUCCESS ) THEN

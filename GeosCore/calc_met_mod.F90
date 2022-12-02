@@ -292,15 +292,16 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNO(I,J) - State_Met%FRLANDIC(I,J)
+       ! Land without snow or ice
+       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNO(I,J)
 
        ! Water without sea ice
        FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)
       
-       ! Land and sea ice 
+       ! Land ice and sea ice
        FRICE = State_Met%FRLANDIC(I,J) + State_Met%FRSEAICE(I,J)
       
-       ! Land snow
+       ! Snow
        FRSNO = State_Met%FRSNO(I,J)
       
        ! Set IsLand, IsWater, IsIce, IsSnow based on max fractional area
@@ -682,9 +683,10 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * &
-                                          State_Met%DP_DRY_PREV(I,J,L) / &
-                                          State_Met%DELP_DRY(I,J,L)
+             State_Chm%Species(N)%Conc(I,J,L) = &
+                                      State_Chm%Species(n)%Conc(I,J,L) * &
+                                      State_Met%DP_DRY_PREV(I,J,L)        / &
+                                      State_Met%DELP_DRY(I,J,L)
           ENDDO
           ENDDO
           ENDDO
@@ -1601,11 +1603,11 @@ CONTAINS
 
        IF ( L == 1 ) THEN
           ! Set the surface to a sink
-          State_Chm%Species(I,J,L,id_CLOCK) = 0.0_fp
+          State_Chm%Species(id_CLOCK)%Conc(I,J,L) = 0.0_fp
        ELSE
           ! Otherwise add time step [s]
-          State_Chm%Species(I,J,L,id_CLOCK) = State_Chm%Species(I,J,L,id_CLOCK)&
-                                              + TimeStep
+          State_Chm%Species(id_CLOCK)%Conc(I,J,L) = &
+                      State_Chm%Species(id_CLOCK)%Conc(I,J,L) + TimeStep
        ENDIF
 
     ENDDO

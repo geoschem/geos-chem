@@ -23,8 +23,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE CMN_SIZE_MOD,   ONLY : NDSTBIN
   USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
   USE DIAG_MOD                           ! For diagnostic arrays
-  USE DIAG03_MOD                         ! For Hg diagnostic
-  USE DIAG53_MOD                         ! For POPs diag
   USE DRYDEP_MOD                         ! For dry deposition
   USE ErrCode_Mod
   USE ERROR_MOD,      ONLY : ERROR_STOP
@@ -316,13 +314,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      CALL ERROR_STOP ( 'HcoState not defined!', LOC )
   ENDIF
 
-  !****************************************************************************
-  !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
-  !****************************************************************************
-  IF ( ND03 > 0 ) THEN
-     CALL WRITE_DIAG03( Input_Opt, State_Chm, State_Grid, RC )
-  ENDIF
-
 #ifdef TOMAS
 
   !****************************************************************************
@@ -393,7 +384,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         ENDIF
 
-        ! To output only the species asked in input.geos
+        ! To output only the species asked in geoschem_config.yml
         ! (ccc, 5/15/09)
         MM  = 1
         MMB = 0
@@ -435,7 +426,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      DO N = 1, M
 
         NN  = State_Chm%Map_DryDep(N)
-        ! To output only the species asked in input.geos
+        ! To output only the species asked in geoschem_config.yml
         ! (ccc, 5/15/09)
         MM  = 1
         MMB = 0

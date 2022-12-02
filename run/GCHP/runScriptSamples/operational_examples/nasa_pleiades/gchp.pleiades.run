@@ -1,0 +1,72 @@
+#!/bin/bash
+#PBS -S /bin/bash
+#PBS -N SGIdebugGCHP
+#PBS -l select=2:ncpus=24:mpiprocs=48:model=bro
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -W group_list=[YOUR_ACCOUNT]
+#PBS -m e
+#PBS -M your.name@email.com
+
+# to run on more nodes / processes, use 
+# #PBS -l select=NNODEES:ncpus=NCPUS_PER_NODE:mpirocs=(NNODES * NCPUS_PER_NODE):model=bro
+# for example, to run on 48 cores total over 2 nodes
+# #PBS -l select=2:ncpus=24:mpiprocs=48:model=bro
+
+# By default, PBS executes your job from your home directory.
+# However, you can use the environment variable
+# PBS_O_WORKDIR to change to the directory where
+# you submitted your job.
+
+cd $PBS_O_WORKDIR
+
+# Exit if command fails, and log all commands
+set -xe
+
+# Define log name to include simulation start date
+start_str=$(sed 's/ /_/g' cap_restart)
+log=gchp.${start_str:0:13}z.log
+echo "Writing output to ${log}"
+
+# Update config files, set restart symlink, load run env, and do sanity checks
+source setCommonRunSettings.sh > ${log}
+source setRestartLink.sh >> ${log}
+source gchp.env >> ${log}
+source checkRunSettings.sh >> ${log}
+
+# Use SLURM to distribute tasks across nodes
+NX=$( grep NX GCHP.rc | awk '{print $2}' )
+NY=$( grep NY GCHP.rc | awk '{print $2}' )
+coreCount=$(( ${NX} * ${NY} ))
+
+# Echo info from computational cores to log file for displaying results
+echo "# of CPUs : ${coreCount}" >> ${log}
+#echo "# of nodes: ${SLURM_NNODES}" >> ${log}
+echo "-m plane  : ${planeCount}" >> ${log}
+
+# Echo start date
+echo ' ' >> ${log}
+echo '===> Run started at' `date` >> ${log}
+
+mpiexec -n $coreCount ./gchp >> $log 2>&1 &
+tail --pid=$! -f $log
+#mpiexec dplace -s1 -c 4-11 ./grinder < run_input > output
+rc=$?
+
+# Rename and move restart file and update restart symlink if new start time ok
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh
+fi
+
+# Echo end date
+echo '===> Run ended at' `date` >> ${log}
+echo "Exit code: $rc"
+
+# -end of script-
+exit $rc

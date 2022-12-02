@@ -91,24 +91,22 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,              ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
-    USE DUST_MOD,                 ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
+    USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
+    USE GcKpp_Integrator,         ONLY : INTEGRATE
     USE GcKpp_Function
     USE GcKpp_Model
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
-    USE GcKpp_Initialize,         ONLY : Init_KPP => Initialize
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
     USE PhysConstants,            ONLY : AVO, AIRMW
@@ -204,9 +202,16 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
-    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+    REAL(dp)               :: Vloc(NVAR),     Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(f4)               :: NOxTau, NOxConc, Vdotout(NVAR)
+    REAL(f4)               :: NOxTau, NOxConc, NOx_weight, NOx_tau_weighted
+    REAL(f4)               :: TROP_NOx_Tau
+    REAL(f4)               :: TROPv_NOx_tau(State_Grid%NX,State_Grid%NY)
+    REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
+    REAL(dp)               :: Vdotout(NVAR), localC(NSPEC)
+#endif
+#ifdef MODEL_WRF
+    REAL(dp)               :: localC(NSPEC)
 #endif
 
     ! Objects
@@ -214,6 +219,7 @@ CONTAINS
 
     !========================================================================
     ! Do_FullChem begins here!
+    ! NOTE: FlexChem timer is started in DO_CHEMISTRY (the calling routine)
     !========================================================================
 
     ! Initialize
@@ -269,98 +275,14 @@ CONTAINS
        ENDWHERE
     ENDIF
 
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",     RC ) ! started in Do_Chemistry
-       CALL Timer_Start( "=> Aerosol chem", RC )
+#if defined( MODEL_GEOS )
+    IF ( State_Diag%Archive_NoxTau     ) State_Diag%NoxTau(:,:,:) = 0.0_f4
+    IF ( State_Diag%Archive_TropNOxTau ) THEN
+       State_Diag%TropNOxTau(:,:) = 0.0_f4
+       TROPv_NOx_mass(:,:) = 0.0_f4
+       TROPv_NOx_tau(:,:)  = 0.0_f4
     ENDIF
-
-    !========================================================================
-    ! Get concentrations of aerosols in [kg/m3]
-    ! for FAST-JX and optical depth diagnostics
-    !========================================================================
-    IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or.                        &
-         Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-
-       ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-       CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Debug output
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### Do_FullChem: after CALC_PSC' )
-       ENDIF
-
-       ! Compute aerosol concentrations
-       CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "AEROSOL_CONC"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-    !========================================================================
-    ! Call RDAER -- computes aerosol optical depths for FAST-JX
-    !========================================================================
-    WAVELENGTH = 0
-    CALL RDAER( Input_Opt,  State_Chm, State_Diag,                           &
-                State_Grid, State_Met, RC,                                   &
-                MONTH,      YEAR,      WAVELENGTH                           )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "RDAER"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FullChem: after RDAER' )
-    ENDIF
-
-    !========================================================================
-    ! If LDUST is turned on, then we have online dust aerosol in
-    ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
-    ! compute aerosol optical depth for FAST-JX, etc.
-    !
-    ! If LDUST is turned off, then we do not have online dust aerosol
-    ! in GEOS-CHEM...so read monthly-mean dust files from disk.
-    ! (rjp, tdf, bmy, 4/1/04)
-    !========================================================================
-    IF ( Input_Opt%LDUST ) THEN
-       CALL RDUST_ONLINE( Input_Opt,  State_Chm,  State_Diag,                &
-                          State_Grid, State_Met,  SOILDUST,                  &
-                          WAVELENGTH, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "RDUST_ONLINE"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FullChem: after RDUST' )
-    ENDIF
-
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Aerosol chem", RC )
-       CALL Timer_Start( "=> FlexChem",     RC )
-    ENDIF
+#endif
 
     !========================================================================
     ! Zero out certain species:
@@ -378,7 +300,7 @@ CONTAINS
        ! isoprene oxidation counter species
        IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
             TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
-          State_Chm%Species(:,:,:,N) = 0.0_fp
+          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
        ! aromatic oxidation counter species
@@ -386,7 +308,7 @@ CONTAINS
           SELECT CASE ( TRIM( SpcInfo%Name ) )
              CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
                     'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
-                State_Chm%Species(:,:,:,N) = 0.0_fp
+                State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
           END SELECT
        ENDIF
 
@@ -394,7 +316,7 @@ CONTAINS
        ! CO2 is a dead species and needs to be set to zero to
        ! match the old SMVGEAR code (mps, 6/14/16)
        IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
-          State_Chm%Species(:,:,:,N) = 0.0_fp
+          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
        ! Free pointer
@@ -423,6 +345,7 @@ CONTAINS
     ENDIF
 
     ! Do Photolysis
+    WAVELENGTH = 0
     CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm,                         &
                   State_Diag, State_Grid, State_Met, RC                     )
 
@@ -462,7 +385,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -527,6 +450,10 @@ CONTAINS
     ! 0 - adjoint, 1 - no adjoint
     ICNTRL(7) = 1
 
+    ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
+    ! the integrator.  Rate updates are done before calling KPP.
+    ICNTRL(15) = -1
+
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=======================================================================
@@ -568,9 +495,12 @@ CONTAINS
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,   NOxConc,  Vdotout                              )&
+    !$OMP PRIVATE( NOxTau,     NOxConc,  Vdotout, localC                    )&
+    !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
 #endif
-
+#ifdef MODEL_WRF
+    !$OMP PRIVATE( localC                                                   )&
+#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -595,16 +525,18 @@ CONTAINS
        LWC       = 0.0_fp                   ! Liquid water content
        SIZE_RES  = .FALSE.                  ! Size resolved calculation?
        C         = 0.0_dp                   ! KPP species conc's
-       VAR       = 0.0_dp                   ! KPP variable species conc's
-       FIX       = 0.0_dp                   ! KPP fixed species conc's
        RCONST    = 0.0_dp                   ! KPP rate constants
        PHOTOL    = 0.0_dp                   ! Photolysis array for KPP
        K_CLD     = 0.0_dp                   ! Sulfur in-cloud rxn het rates
        K_MT      = 0.0_dp                   ! Sulfur sea salt rxn het rates
+       CFACTOR   = 1.0_dp                   ! KPP conversion factor
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
+#endif
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+       localC    = 0.0_dp                   ! Local backup array for C
 #endif
 
        !=====================================================================
@@ -768,7 +700,7 @@ CONTAINS
        DO N = 1, NSPEC
           SpcID = State_Chm%Map_KppSpc(N)
           C(N)  = 0.0_dp
-          IF ( SpcId > 0 ) C(N) = State_Chm%Species(I,J,L,SpcID)
+          IF ( SpcId > 0 ) C(N) = State_Chm%Species(SpcID)%Conc(I,J,L)
        ENDDO
 
        !=====================================================================
@@ -801,9 +733,6 @@ CONTAINS
                             ThreadNum = Thread,                              &
                             RC        =  RC                                 )
        ENDIF
-
-       ! Initialize KPP for this grid box
-       CALL Init_KPP()
 
        ! Copy values into the various KPP global variables
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
@@ -973,11 +902,6 @@ CONTAINS
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
-       ! Set VAR and FIX arrays
-       ! This has to be done after the zeroing above
-       VAR(1:NVAR) = C(1:NVAR)
-       FIX         = C(NVAR+1:NSPEC)
-
        !=====================================================================
        ! Update reaction rates
        !=====================================================================
@@ -1006,15 +930,21 @@ CONTAINS
        !
        ! Archive KPP reaction rates [s-1]
        ! See gckpp_Monitor.F90 for a list of chemical reactions
+       !
+       ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
+       ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
+       ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate ) THEN
-#ifdef MODEL_GEOS
-          ! gckpp_Function.F90 function Fun must be modified to use optional
-          ! argument Vdotout if building with GEOS
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
-#else
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout )
-#endif
+          !---------------------------------------------------
+          ! Get equation rates (Aout)
+          !---------------------------------------------------
+          CALL Fun( V       = C(1:NVAR),                                     &
+                    F       = C(NVAR+1:NSPEC),                               &
+                    RCT     = RCONST,                                        &
+                    Vdot    = Vloc,                                          &
+                    Aout    = Aout                                          )
+
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
@@ -1033,7 +963,9 @@ CONTAINS
        ! Zero all slots of RCNTRL
        RCNTRL    = 0.0_fp
 
-       ! Starting value for integration time step
+       ! Initialize Hstart (the starting value of the integration step
+       ! size with the value of Hnew (the last predicted but not yet 
+       ! taken timestep)  saved to the the restart file.
        RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
        !=====================================================================
@@ -1126,13 +1058,15 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+          ! Save a copy of the C vector (GEOS and WRF only)
+          localC    = C
+#endif
+
           ! Reset first time step and start concentrations
-          ! Retry the integration with non-optimized
-          ! settings
-          RCNTRL(3)  = 0e+0_fp
-          CALL Init_KPP( )
-          VAR = C(1:NVAR)
-          FIX = C(NVAR+1:NSPEC)
+          ! Retry the integration with non-optimized settings
+          RCNTRL(3) = 0.0_dp
+          C         = 0.0_dp
 
           ! Update rates again
           CALL Update_RCONST( )
@@ -1223,8 +1157,7 @@ CONTAINS
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
              ELSE
-                VAR = C(1:NVAR)
-                FIX = C(NVAR+1:NSPEC)
+                C = localC
              ENDIF
              IF ( ASSOCIATED(State_Diag%KppError) ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
@@ -1263,21 +1196,21 @@ CONTAINS
        ! Continue upon successful return...
        !=====================================================================
 
-       ! Copy VAR and FIX back into C (mps, 2/24/16)
-       C(1:NVAR)       = VAR(:)
-       C(NVAR+1:NSPEC) = FIX(:)
-
        ! Revert Alkalinity (only when using sulfur chemistry in KPP)
        IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
           CALL fullchem_ConvertEquivToAlk()
        ENDIF
 
-       ! Save for next integration time step
-       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
+       ! Save Hnew (the last predicted but not taken step) from the 3rd slot
+       ! of RSTATE into State_Chm so that it can be written to the restart
+       ! file.  For simulations that are broken into multiple stages,
+       ! Hstart will be initialized to the value of Hnew from the restart
+       ! file at startup (see above).
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(3)
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
-       ! calculated from the C array back into State_Chm%Species
+       ! calculated from the C array back into State_Chm%Species%Conc
        !=====================================================================
 
        ! Loop over KPP species
@@ -1293,7 +1226,7 @@ CONTAINS
           C(N) = MAX( C(N), 0.0_dp )
 
           ! Copy concentrations back into State_Chm%Species
-          State_Chm%Species(I,J,L,SpcID) = REAL( C(N), kind=fp )
+          State_Chm%Species(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
 
@@ -1332,8 +1265,8 @@ CONTAINS
           ! time step (win, 8/4/09)
           IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
              ! Hard-coded MW
-             H2SO4_RATE(I,J,L) = VAR(KppID) / AVO * 98.e-3_fp * &
-                                 State_Met%AIRVOL(I,J,L)  * &
+             H2SO4_RATE(I,J,L) = C(KppID) / AVO * 98.e-3_fp * &
+                                 State_Met%AIRVOL(I,J,L)    * &
                                  1.0e+6_fp / DT
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
@@ -1351,20 +1284,40 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
-       IF ( State_Diag%Archive_NoxTau ) THEN
-          ! gckpp_Function.F90 function Fun must be modified to use optional
-          ! argument Vdotout if building with GEOS
-          CALL Fun( VAR, FIX, RCONST, Vloc, Aout=Aout, Vdotout=Vdotout )
+       IF ( State_Diag%Archive_NoxTau .OR. State_Diag%Archive_TropNOxTau ) THEN
+          CALL Fun( C(1:NVAR), C(NVAR+1:NSPEC), RCONST,                          &
+                    Vloc,      Aout=Aout,       Vdotout=Vdotout )
           NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
                  + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
                  + Vdotout(ind_HNO4)
           NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
                   + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
-          NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
-          IF ( NoxTau > 0.0_f4 ) THEN
-             State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
-          ELSE
-             State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+          ! NOx chemical lifetime per grid cell
+          IF ( State_Diag%Archive_NoxTau ) THEN
+             NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
+             IF ( NoxTau > 0.0_f4 ) THEN
+                State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
+             ELSE
+                State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+             ENDIF
+          ENDIF
+          ! NOx chemical lifetime per trop. column
+          IF ( State_Diag%Archive_TropNOxTau ) THEN
+             NOx_weight = ( NOxConc )*State_Met%AIRDEN(I,J,L)*State_Met%DELP_DRY(I,J,L)
+             NOx_tau_weighted = ( NOxConc / ( -1.0_f4*NOxTau*3600.0_f4 ) )*NOx_weight
+             IF ( ABS(NOx_tau_weighted) < 1.0e8 ) THEN
+               NOx_tau_weighted = ( NINT(NOx_tau_weighted)*1.0e6 )*1.0e-6_f4
+             ELSE
+                IF ( NOx_tau_weighted > 0.0 ) THEN
+                   NOx_tau_weighted = 1.0e8
+                ELSE
+                   NOx_tau_weighted = -1.0e8
+                ENDIF
+             ENDIF
+             IF ( State_Met%InTroposphere(I,J,L) ) THEN
+               TROPv_NOx_mass(I,J) = TROPv_NOx_mass(I,J) + NOx_weight
+               TROPv_NOx_tau(I,J)  = TROPv_NOx_tau(I,J) + NOx_tau_weighted
+             ENDIF
           ENDIF
        ENDIF
 #endif
@@ -1376,14 +1329,14 @@ CONTAINS
        !
        ! NOTE: KppId is the KPP ID # for each of the prod and loss
        ! diagnostic species.  This is the value used to index the
-       ! KPP "VAR" array (in module gckpp_Global.F90).
+       ! KPP "C" array (in module gckpp_Global.F90).
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
        IF ( State_Diag%Archive_Loss ) THEN
           DO S = 1, State_Diag%Map_Loss%nSlots
              KppId = State_Diag%Map_Loss%slot2Id(S)
-             State_Diag%Loss(I,J,L,S) = VAR(KppID) / DT
+             State_Diag%Loss(I,J,L,S) = C(KppID) / DT
           ENDDO
        ENDIF
 
@@ -1391,7 +1344,7 @@ CONTAINS
        IF ( State_Diag%Archive_Prod ) THEN
           DO S = 1, State_Diag%Map_Prod%nSlots
              KppID = State_Diag%Map_Prod%slot2Id(S)
-             State_Diag%Prod(I,J,L,S) = VAR(KppID) / DT
+             State_Diag%Prod(I,J,L,S) = C(KppID) / DT
           ENDDO
        ENDIF
 
@@ -1403,10 +1356,10 @@ CONTAINS
             State_Diag%Archive_ProdCOfromNMVOC ) THEN
 
           ! Total production of CO
-          PCO_TOT   = VAR(id_PCO) / DT
+          PCO_TOT   = C(id_PCO) / DT
 
           ! Loss of CO from CH4
-          LCH4      = VAR(id_LCH4) / DT
+          LCH4      = C(id_LCH4) / DT
 
           ! P(CO)_CH4 is LCH4. Cap so that it is never greater
           ! than total P(CO) to prevent negative P(CO)_NMVOC.
@@ -1497,6 +1450,14 @@ CONTAINS
        RETURN
     ENDIF
 
+#if defined( MODEL_GEOS )
+    IF ( State_Diag%Archive_TropNOxTau ) THEN
+       WHERE (TROPv_NOx_mass > 0.0_f4 )
+          State_Diag%TropNOxTau = TROPv_NOx_tau / TROPv_NOx_mass
+       END WHERE
+    ENDIF
+#endif
+
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after solver
     !=======================================================================
@@ -1504,7 +1465,7 @@ CONTAINS
 
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
-       ! have been archived in State_Chm%Species output.
+       ! have been archived in State_Chm%Species%Conc output.
        CALL Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
 
@@ -1549,7 +1510,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(:,:,:,N)
+          State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -1581,6 +1542,15 @@ CONTAINS
     CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
+    ENDIF
+
+    ! Set State_Chm arrays for surface J-values used in HEMCO and
+    ! saved to restart file
+    IF ( RXN_O3_1 >= 0 ) THEN
+       State_Chm%JOH(:,:) = ZPJ(1,RXN_O3_1,:,:)
+    ENDIF
+    IF ( RXN_NO2 >= 0 ) THEN
+       State_Chm%JNO2(:,:) = ZPJ(1,RXN_NO2,:,:)
     ENDIF
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
@@ -1900,6 +1870,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -1923,9 +1894,9 @@ CONTAINS
 ! !REMARKS:
 !  This routine replaces both OHSAVE and DIAGOH.  Those routines were needed
 !  for SMVGEAR, when we had separate arrays for the non-advected species.
-!  But now, all species are stored in State_Chm%SPECIES, so the various
+!  But now, all species are stored in State_Chm%Species%Conc, so the various
 !  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
-!  just get values directly from State_Chm%SPECIES.
+!  just get values directly from State_Chm%Species%Conc.
 !
 !  Also note: for the netCDF diagnostics, we have removed multiplication by
 !  LTOH etc arrays.  These are almost always set between 0 and 24.
@@ -1948,8 +1919,8 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER  :: AirNumDen(:,:,:  )
-    REAL(fp), POINTER  :: Spc      (:,:,:,:)
+    REAL(fp),      POINTER  :: AirNumDen(:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc      (:    )
 
     !=======================================================================
     ! Diag_OH_HO2_O1D_O3P begins here!
@@ -2007,127 +1978,127 @@ CONTAINS
 
             ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-               State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
+               State_Diag%OHconcAfterChem(I,J,L) = Spc(id_OH)%Conc(I,J,L)
             ENDIF
 #ifdef MODEL_GEOS
             IF ( State_Diag%Archive_O3concAfterChem ) THEN
-               State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
+               State_Diag%O3concAfterChem(I,J,L) = Spc(id_O3)%Conc(I,J,L)
             ENDIF
             IF ( Archive_RO2concAfterChem ) THEN
                IF ( id_A3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) +  Spc(I,J,L,id_A3O2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_A3O2)%Conc(I,J,L)
                IF ( id_ATO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ATO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ATO2)%Conc(I,J,L)
                IF ( id_B3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_B3O2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_B3O2)%Conc(I,J,L)
                IF ( id_BRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_BRO2)%Conc(I,J,L)
                IF ( id_ETO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ETO2)%Conc(I,J,L)
                IF ( id_HO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HO2)%Conc(I,J,L)
                IF ( id_LIMO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_LIMO2)%Conc(I,J,L)
                IF ( id_MO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_MO2)%Conc(I,J,L)
                IF ( id_PIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PIO2)%Conc(I,J,L)
                IF ( id_PO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PO2)%Conc(I,J,L)
                IF ( id_PRN1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRN1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_PRN1)%Conc(I,J,L)
                IF ( id_R4N1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4N1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_R4N1)%Conc(I,J,L)
                IF ( id_R4O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_R4O2)%Conc(I,J,L)
                IF ( id_TRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_TRO2)%Conc(I,J,L)
                IF ( id_XRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_XRO2)%Conc(I,J,L)
                IF ( id_IHOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHOO1)%Conc(I,J,L)
                IF ( id_IHOO4 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHOO4)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHOO4)%Conc(I,J,L)
                IF ( id_ICHOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ICHOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ICHOO)%Conc(I,J,L)
                IF ( id_IHPOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO1)%Conc(I,J,L)
                IF ( id_IHPOO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO2)%Conc(I,J,L)
                IF ( id_IHPOO3 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO3)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPOO3)%Conc(I,J,L)
                IF ( id_IEPOXAOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXAOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IEPOXAOO)%Conc(I,J,L)
                IF ( id_IEPOXBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXBOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IEPOXBOO)%Conc(I,J,L)
                IF ( id_C4HVP1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_C4HVP1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_C4HVP1)%Conc(I,J,L)
                IF ( id_C4HVP2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_C4HVP2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_C4HVP2)%Conc(I,J,L)
                IF ( id_HPALD1OO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HPALD1OO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HPALD1OO)%Conc(I,J,L)
                IF ( id_HPALD2OO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HPALD2OO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_HPALD2OO)%Conc(I,J,L)
                IF ( id_ISOPNOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISOPNOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ISOPNOO1)%Conc(I,J,L)
                IF ( id_ISOPNOO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISOPNOO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ISOPNOO2)%Conc(I,J,L)
                IF ( id_INO2D > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INO2D)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_INO2D)%Conc(I,J,L)
                IF ( id_INO2B > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INO2B)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_INO2B)%Conc(I,J,L)
                IF ( id_IDHNBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNBOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNBOO)%Conc(I,J,L)
                IF ( id_IDHNDOO1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNDOO1)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNDOO1)%Conc(I,J,L)
                IF ( id_IDHNDOO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNDOO2)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDHNDOO2)%Conc(I,J,L)
                IF ( id_IHPNBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPNBOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPNBOO)%Conc(I,J,L)
                IF ( id_IHPNDOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPNDOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IHPNDOO)%Conc(I,J,L)
                IF ( id_ICNOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ICNOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_ICNOO)%Conc(I,J,L)
                IF ( id_IDNOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDNOO)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(id_IDNOO)%Conc(I,J,L)
             ENDIF
 #endif
 
@@ -2138,7 +2109,7 @@ CONTAINS
          !------------------------------------------------------------------
          IF ( ok_HO2 ) THEN
             IF ( State_Diag%Archive_HO2concAfterChem ) THEN
-               State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
+               State_Diag%HO2concAfterChem(I,J,L) = ( Spc(id_HO2)%Conc(I,J,L) &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
 
@@ -2149,7 +2120,7 @@ CONTAINS
          !---------------------------------------------------------------
          IF ( ok_O1D ) THEN
             IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
-               State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
+               State_Diag%O1DconcAfterChem(I,J,L) = Spc(id_O1D)%Conc(I,J,L)
             ENDIF
          ENDIF
 
@@ -2159,7 +2130,7 @@ CONTAINS
          !---------------------------------------------------------------
          IF ( ok_O3P ) THEN
             IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
-               State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
+               State_Diag%O3PconcAfterChem(I,J,L) = Spc(id_O3P)%Conc(I,J,L)
             ENDIF
          ENDIF
 
@@ -2336,7 +2307,7 @@ CONTAINS
           airMass_kg  = airMass_m / XNUMOLAIR
 
           ! OH concentration [molec cm-3]
-          OHconc_mcm3 = State_Chm%Species(I,J,L,id_OH)
+          OHconc_mcm3 = State_Chm%Species(id_OH)%Conc(I,J,L)
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
           OHmassWgt   = airMass_kg * ( OHconc_mcm3  * MCM3toKGM3_OH  )

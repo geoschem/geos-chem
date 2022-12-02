@@ -36,7 +36,6 @@ MODULE HCOI_GC_Diagn_Mod
 #ifdef BPCH_DIAG
   USE CMN_DIAG_Mod
   USE DIAG_Mod
-  USE DIAG53_Mod
 #endif
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
@@ -234,7 +233,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. Ind_('CH4','A') > 0 ) ) RETURN
+    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM ) ) RETURN
 
     ! Get default HEMCO species ID for CH4
     id_CH4 = HCO_GetHcoID( 'CH4', HcoState )

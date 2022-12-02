@@ -1314,7 +1314,7 @@ CONTAINS
                        (10.D0**(-26.4641D0*&
                        (1.00155D0**p_T)+30.6534D0))
            RAINFRAC = RAINFRAC/&
-                      MAX(1.D-30,(State_Chm%Species(I,J,L,N)*&
+                      MAX(1.D-30,(State_Chm%Species(N)%Conc(I,J,L)*&
                           28.9644d0/SpcInfo%MW_g/&
                          (State_Met%AIRDEN(I,J,L)*&
                           State_Met%BXHEIGHT(I,J,L))))
@@ -1332,7 +1332,7 @@ CONTAINS
          CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
 
          IF(p_T<237.D0)THEN
-         IF(State_Chm%Species(I,J,L,N)>1.D-20)THEN
+         IF(State_Chm%Species(N)%Conc(I,J,L)>1.D-20)THEN
            RAINFRAC = RAINFRAC*MAX(0.D0,&
            MIN( (0.06*MAX(0.d0,MIN(1.d0,((237.d0-p_T)/27.d0)))*&
               (State_Met%QI(I,J,L)+State_Met%QL(I,J,L))*&
@@ -1340,8 +1340,8 @@ CONTAINS
                MAX(1.D-4,State_Met%CLDF(I,J,L))*&
                State_Met%BXHEIGHT(I,J,L)&
                *SpcInfo%MW_g/18.d0),&
-               State_Chm%Species(I,J,L,N) )/&
-               State_Chm%Species(I,J,L,N))
+               State_Chm%Species(N)%Conc(I,J,L) )/&
+               State_Chm%Species(N)%Conc(I,J,L))
          ENDIF
          ENDIF
 
@@ -1949,7 +1949,7 @@ CONTAINS
 #ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS MICROPHYSICS ONLY
-    ! Convert State_Chm%Species units back to original units
+    ! Convert State_Chm%Species%Conc units back to original units
     ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
     !-----------------------------------------------------------------
     IF ( UNITCHANGE_KGKG ) THEN
@@ -3751,23 +3751,17 @@ CONTAINS
              ! Check if it is a gaseous Hg2 tag
              IF ( SpcInfo%Is_Hg2 ) THEN
 
-                ! Get the category # for this Hg2 species
-                Hg_Cat = SpcInfo%Hg_Cat
-
                 ! Archive wet-deposited Hg2
-                CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, &
+                CALL ADD_Hg2_WD      ( I, J, DEP_HG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, DEP_HG, &
                                        State_Met, State_Chm, State_Diag )
 
              ! Check if it is a HgP tag
              ELSE IF ( SpcInfo%Is_HgP ) THEN
 
-                ! Get the category # for this HgP species
-                Hg_Cat = SpcInfo%Hg_Cat
-
                 ! Archive wet-deposited HgP
-                CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, &
+                CALL ADD_HgP_WD      ( I, J, DEP_HG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, DEP_HG, &
                                        State_Met, State_Chm, State_Diag )
 
              ENDIF
@@ -3975,6 +3969,7 @@ CONTAINS
     USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
     USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
     USE Input_Opt_Mod,  ONLY : OptInput              ! Input options type
+    USE Species_Mod,    ONLY : SpcConc               ! Species conc pointer array
     USE State_Chm_Mod,  ONLY : ChmState              ! Chem State object
     USE State_Diag_Mod, ONLY : DgnState              ! Diag State object
     USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
@@ -4038,7 +4033,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
 
 #ifdef TOMAS
     ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
@@ -4125,10 +4120,10 @@ CONTAINS
 
        ! WETLOSS is the amount of species in grid box per unit area
        ! (I,J,L) that is lost to rainout [kg/m2]
-       WETLOSS = Spc(I,J,L,N) * RAINFRAC
+       WETLOSS = Spc(N)%Conc(I,J,L) * RAINFRAC
 
        ! Subtract the rainout loss in grid box (I,J,L) from Spc [kg/m2]
-       Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS
+       Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) - WETLOSS
 
        IF ( L == State_Grid%NZ ) THEN
 
@@ -4187,8 +4182,8 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Error checks (only prints if this is the first error)
        !---------------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )  .or.                                  &
-            Spc(I,J,L,N) < 0e+0_fp     .or.                                  &
+       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) )  .or.                                  &
+            Spc(N)%Conc(I,J,L) < 0e+0_fp     .or.                                  &
             DSpc(NW,L,I,J) < 0e+0_fp ) THEN
 
           ! Print error message
@@ -4208,7 +4203,7 @@ CONTAINS
                           LOST        = 0e+0_fp,                  &
                           State_Grid  = State_Grid,               &
                           DSpc        = DSpc(NW,:,I,J),           &
-                          Spc         = Spc(I,J,:,N),             &
+                          Spc         = Spc(N)%Conc(I,J,:),       &
                           RC          = RC )
           ENDIF
 
@@ -4254,6 +4249,7 @@ CONTAINS
     USE ERROR_MOD
     USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
     USE Input_Opt_Mod,  ONLY : OptInput              ! Input options
+    USE Species_Mod,    ONLY : SpcConc               ! Species conc pointer array
     USE State_Chm_Mod,  ONLY : ChmState              ! Chemistry State object
     USE State_Diag_Mod, ONLY : DgnState              ! Diagnostic State object
     USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
@@ -4376,7 +4372,7 @@ CONTAINS
     ! Pointers
     ! We need to define local array to hold species concentraiton values
     ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
 
 #ifdef TOMAS
     REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
@@ -4527,7 +4523,7 @@ CONTAINS
 
           ! Amount of aerosol lost to washout in grid box
           ! (qli, bmy, 10/29/02)
-          WETLOSS = Spc(I,J,L,N) * WASHFRAC - GAINED
+          WETLOSS = Spc(N)%Conc(I,J,L) * WASHFRAC - GAINED
 
           ! Remove washout losses in grid box (I,J,L) from Spc.
           ! Add the aerosol that was reevaporated in (I,J,L).
@@ -4536,7 +4532,7 @@ CONTAINS
           ! If evaporation occurs then SO2 comes back as SO4
           ! (rjp, bmy, 3/23/03)
           IF ( N == id_SO2 ) THEN
-             Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) &
+             Spc(id_SO4)%Conc(I,J,L) = Spc(id_SO4)%Conc(I,J,L) &
                                  + GAINED * 96e+0_fp / 64e+0_fp
 
 #ifdef APM
@@ -4544,7 +4540,7 @@ CONTAINS
                                    + GAINED * 96e+0_fp / 64e+0_fp
 #endif
 
-             Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1e+0_fp - WASHFRAC )
+             Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) * ( 1e+0_fp - WASHFRAC )
 
 
 #ifdef TOMAS
@@ -4601,7 +4597,7 @@ CONTAINS
 #endif
 
           ELSE
-             Spc(I,J,L,N)      = Spc(I,J,L,N) - WETLOSS
+             Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) - WETLOSS
           ENDIF
 
           ! LOST is the rained out aerosol coming down from
@@ -4641,7 +4637,7 @@ CONTAINS
 
           ! MASS_NOWASH is the amount of non-aerosol species in
           ! grid box (I,J,L) that is NOT available for washout.
-          MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Spc(I,J,L,N)
+          MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Spc(N)%Conc(I,J,L)
 
           ! MASS_WASH is the total amount of non-aerosol species
           ! that is available for washout in grid box (I,J,L).
@@ -4649,7 +4645,7 @@ CONTAINS
           ! part of box (I,J,L), plus the previously rained-out
           ! species coming down from grid box (I,J,L+1).
           ! (Eq. 15, Jacob et al, 2000).
-          MASS_WASH = ( F_WASHOUT*Spc(I,J,L,N) ) + DSpc(NW,L+1,I,J)
+          MASS_WASH = ( F_WASHOUT*Spc(N)%Conc(I,J,L) ) + DSpc(NW,L+1,I,J)
 
           ! WETLOSS is the amount of species mass in
           ! grid box (I,J,L) that is lost to washout.
@@ -4659,7 +4655,7 @@ CONTAINS
           ! The species left in grid box (I,J,L) is what was
           ! in originally in the non-precipitating fraction
           ! of the box, plus MASS_WASH, less WETLOSS.
-          Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS
+          Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) - WETLOSS
 
           ! Add washout losses in grid box (I,J,L) to DSpc
           IF ( F_RAINOUT > 0e+0_fp ) THEN
@@ -4714,8 +4710,8 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Error checks
        !---------------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )       .or.                             &
-            Spc(I,J,L,N)   < 0e+0_fp        .or.                             &
+       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) ) .or.                             &
+            Spc(N)%Conc(I,J,L)   < 0e+0_fp  .or.                             &
             DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
           ! Print error message and stop simulaton
@@ -4735,7 +4731,7 @@ CONTAINS
                           LOST        = LOST,                     &
                           State_Grid  = State_Grid,               &
                           DSpc        = DSpc(NW,:,I,J),           &
-                          Spc         = Spc(I,J,:,N),             &
+                          Spc         = Spc(N)%Conc(I,J,:),       &
                           RC          = RC )
           ENDIF
 
@@ -4781,6 +4777,7 @@ CONTAINS
     USE Error_Mod,      ONLY : It_Is_Nan
     USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -4830,7 +4827,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
 
 #ifdef TOMAS
     REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
@@ -4863,7 +4860,7 @@ CONTAINS
        ! (I,J,L+1) goes back into the gas phase at (I,J,L)
        ! In evap, SO2 comes back as SO4 (rjp, bmy, 3/23/03)
        IF ( N == id_SO2 ) THEN
-          Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) - &
+          Spc(id_SO4)%Conc(I,J,L) = Spc(id_SO4)%Conc(I,J,L) - &
                               ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
 #ifdef APM
@@ -4937,7 +4934,7 @@ CONTAINS
 
 
        ELSE
-          Spc(I,J,L,N)      = Spc(I,J,L,N) - WETLOSS
+          Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) - WETLOSS
        ENDIF
 
        ! There is nothing rained out/washed out in grid box
@@ -4971,8 +4968,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Error checks
        !--------------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.                                 &
-            Spc(I,J,L,N)   < 0e+0_fp    .or.                                 &
+       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) ) .or.                           &
+            Spc(N)%Conc(I,J,L)   < 0e+0_fp  .or.                           &
             DSpc(NW,L,I,J) < 0e+0_fp  ) THEN
           ! Print error message and stop simulaton
           IF ( errPrint ) THEN
@@ -4991,7 +4988,7 @@ CONTAINS
                           LOST        = 0e+0_fp,                             &
                           State_Grid  = State_Grid,                          &
                           DSpc        = DSpc(NW,:,I,J),                      &
-                          Spc         = Spc(I,J,:,N),                        &
+                          Spc         = Spc(N)%Conc(I,J,:),                  &
                           RC          = RC )
           ENDIF
 
@@ -5038,6 +5035,7 @@ CONTAINS
     USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
     USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
     USE Input_Opt_Mod,  ONLY : OptInput              ! Input options
+    USE Species_Mod,    ONLY : SpcConc               ! Species conc pointer array
     USE State_Chm_Mod,  ONLY : ChmState              ! Chm State object
     USE State_Diag_Mod, ONLY : DgnState              ! Diagnostic State object
     USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
@@ -5094,7 +5092,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
 
     ! Pointers
-    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    TYPE(SpcConc), POINTER  :: Spc(:)
 
     !=======================================================================
     ! DO_WASHOUT_AT_SFC begins here!
@@ -5174,13 +5172,13 @@ CONTAINS
        ! already present in WASHFRAC.  For other soluble
        ! gases, we need to multiply by the F (hyl, bmy, 10/27/00)
        IF ( KIN ) THEN
-          WETLOSS = Spc(I,J,L,N) * WASHFRAC
+          WETLOSS = Spc(N)%Conc(I,J,L) * WASHFRAC
        ELSE
-          WETLOSS = Spc(I,J,L,N) * WASHFRAC * F
+          WETLOSS = Spc(N)%Conc(I,J,L) * WASHFRAC * F
        ENDIF
 
        ! Subtract WETLOSS from Spc [kg/m2]
-       Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS
+       Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) - WETLOSS
 
        ! Add washout losses in grid box (I,J,L=1) to DSpc [kg/m2]
        ! (added cdh, 4/14/2009)
@@ -5236,20 +5234,20 @@ CONTAINS
        ! stuff from stratospheric boxes -- this can cause
        ! negative species (rvm, bmy, 6/21/00)
        !
-       IF ( Spc(I,J,L,N) < 0e+0_fp .and. L > 23 ) THEN
+       IF ( Spc(N)%Conc(I,J,L) < 0e+0_fp .and. L > 23 ) THEN
           WRITE ( 6, 101 ) I, J, L, N, 7
 101       FORMAT( 'WETDEP - Spc < 0 at ', 3i4, &
                   ' for species ', i4, 'in area ', i4 )
-          PRINT*, 'Spc:', Spc(I,J,:,N)
-          Spc(I,J,L,N) = 0e+0_fp
+          PRINT*, 'Spc:', Spc(N)%Conc(I,J,:)
+          Spc(N)%Conc(I,J,L) = 0e+0_fp
        ENDIF
        !--------------------------------------------------------------------
 
        !--------------------------------------------------------------------
        ! Error checks
        !--------------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or. &
-            Spc(I,J,L,N)   < 0e+0_fp        .or. &
+       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) )   .or. &
+            Spc(N)%Conc(I,J,L)   < 0e+0_fp        .or. &
             DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
           !PRINT*, 'WASHFRAC = ', WASHFRAC
@@ -5272,7 +5270,7 @@ CONTAINS
                           LOST        = 0e+0_fp,                             &
                           State_Grid  = State_Grid,                          &
                           DSpc        = DSpc(NW,:,I,J),                      &
-                          Spc         = Spc(I,J,:,N),                        &
+                          Spc         = Spc(N)%Conc(I,J,:),                  &
                           RC          = RC                                  )
           ENDIF
 
@@ -5876,7 +5874,7 @@ CONTAINS
 
     !====================================================================
     ! We need to initialize the H2O2s and SO2s arrays to the values
-    ! of State_Chm%Species for H2O2 and SO2.  This only needs to be
+    ! of State_Chm%Species%Conc for H2O2 and SO2.  This only needs to be
     ! done the first time this routine is called (which happens after
     ! the restart file is read from disk). If State_Chm%H2O2AfterChem
     ! or State_Chm%SO2AfterChem are already populated from the restart
@@ -5886,23 +5884,23 @@ CONTAINS
 
        ! Set H2O2s to the initial H2O2 from the species array, so that we will
        ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-       ! While State_Chm%Species are now in units of [kg/kg dry air] for
+       ! While State_Chm%Species%Conc are now in units of [kg/kg dry air] for
        ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air]
        ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
        IF ( ( id_H2O2 > 0 ) .AND. &
             ( SUM(State_Chm%H2O2AfterChem(:,:,:)) < 1e-31 ) ) THEN
-          State_Chm%H2O2AfterChem = State_Chm%Species(:,:,:,id_H2O2) &
+          State_Chm%H2O2AfterChem = State_Chm%Species(id_H2O2)%Conc &
                * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%MW_g )
        ENDIF
 
        ! Set SO2s to the initial SO2 from the species array, so that we will
        ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-       ! While State_Chm%Species are now in units of [kg/kg dry air] for
+       ! While State_Chm%Species%Conc are now in units of [kg/kg dry air] for
        ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now
        ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
        IF ( ( id_SO2 > 0 ) .AND. &
             ( SUM(State_Chm%SO2AfterChem(:,:,:)) < 1e-31 ) ) THEN
-          State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2) &
+          State_Chm%SO2AfterChem = State_Chm%Species(id_SO2)%Conc &
                * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%MW_g )
        ENDIF
 
