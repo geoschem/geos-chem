@@ -391,7 +391,7 @@ OCEANCO2_TAKA_MONTHLY  kg/m2/s 2000 Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDi
 
 # --- Balanced biosphere exchange ---
 #BBIOCO2_DIURNAL kg/m2/s N Y F%y4-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2014-09/BBIO/BBIO_diurnal_CO2.nc
-SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
+SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
 
 # --- Net Terrestrial Exchange ---
 CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
@@ -415,15 +415,15 @@ CO2_ISOPRENE      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none ISOP    ./HcoDir/
 CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc
 
 # --- CO2 production from CO ---
-CO2_COPROD        kgC/m3/s N Y F$y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2022-11/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc
+#CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2022-11/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc
 
 #==============================================================================
 # --- OCS flux data ----
 #==============================================================================
-OCS_ANTHRO        kgS/km2/s N N %y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/%y4/%m2.nc
-OCS_BIOMASS       kgS/km2/s N N %y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/%y4/%m2.nc
-OCS_MISSING_OCEAN kgS/km2/s N N %y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/MissingOcean/LUKAI/%y4/%m2.nc
-OCS_OCEAN         kgS/km2/s N N %y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/OceanCOS/Kettle/%y4/%m2.nc
+OCS_ANTHRO        kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/%y4/%m2.nc
+OCS_BIOMASS       kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/%y4/%m2.nc
+OCS_MISSING_OCEAN kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/MissingOcean/LUKAI/%y4/%m2.nc
+OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/OceanCOS/Kettle/%y4/%m2.nc
 #
 ###############################################################################
 ###
@@ -432,15 +432,15 @@ OCS_OCEAN         kgS/km2/s N N %y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/
 ###############################################################################
 
 # --- GFED4 (Extension 111)---
-GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
 
 # --- GFED_daily scale factors ---
-GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2015-10/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
+GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2022-11/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
 
 # --- GFED_3hourly (off by default in HEMCO_Config.rc) ---
 #GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2020-02/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
@@ -455,14 +455,15 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
 
 # --- OH from the latest 10-year benchmark ---
-GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
+# ** TODO: Update to 14.0.0 **
+#GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
 
 # --- OH from GEOS-Chem v5-07-08 ---
 # --- NOTE: Use this for CH4/IMI ---
-#GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc
+#GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc
 
 # --- Global Cl concentrations
-GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
+GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
 # --- Stratospheric L(CO) from GMI ---
 CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2022-11/4x5/gmi.ch4loss.geos5_47L.4x5.nc
@@ -472,10 +473,10 @@ PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoD
 PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 
 #--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---
-GMI_LOSS_CH4 s-1   2000 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2015-02/gmi.clim.CH4.geos5.2x25.nc
-GMI_PROD_CH4 v/v/s 2000 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015-02/gmi.clim.CH4.geos5.2x25.nc
-GMI_LOSS_CO  s-1   2000 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc
-GMI_PROD_CO  v/v/s 2000 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015-02/gmi.clim.CO.geos5.2x25.nc
+GMI_LOSS_CH4 s-1   2000 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2022-11/gmi.clim.CH4.geos5.2x25.nc
+GMI_PROD_CH4 v/v/s 2000 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2022-11/gmi.clim.CH4.geos5.2x25.nc
+GMI_LOSS_CO  s-1   2005 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
+GMI_PROD_CO  v/v/s 2005 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
 
 ###############################################################################
 ###
@@ -484,7 +485,7 @@ GMI_PROD_CO  v/v/s 2000 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015
 ###############################################################################
 
 # --- CO2 diurnal and weekly scale factors ---
-CO2_DIURNAL 1 2006 Y F%y4-%m2-%d2T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
+CO2_DIURNAL 1 N    Y F%y4-%m2-%d2T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
 CO2_WEEKLY  1 2006 Y F%y4-%m2-%d2T00:00:00  none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
 
 # --- CH4 manure and rice scale factors ---
@@ -505,7 +506,7 @@ INDUSTRY_LEVS 1 N Y - none none g_industry ./HcoDir/VerticalScaleFactors/v2021-0
 SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-05/gc_layers.nc
 
 # --- CO2 scale factors
-AVIATION_SURF_CORR      1       2004 Y F%y2-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2015-04/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
+AVIATION_SURF_CORR      1       2004 Y F%y2-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
 OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc
 
 ###############################################################################
