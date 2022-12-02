@@ -6,9 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.1.0]
 ### Added
-- Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
-- Added Add MO2 + NO3 = NO2 + CH2O + HO2 reaction
+- Added dry deposition updates to Hg0 from Feinberg22 ESPI publication +
+  AMAP emissions
+- Added MO2 + NO3 = NO2 + CH2O + HO2 reaction
 - Added capability to write species metadata to YAML file
+- Added satellite diagnostic (SatDiagn) collection, to archive several
+  fields within a user-defined local-time interval. CAVEAT: For now,
+  only one local-time interval is permitted.
 
 ### Changed
 - Moved in-module variables in global_ch4_mod.F90 to State_Chm
@@ -22,7 +26,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 -Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
-
 
 ## [14.0.1] - 2022-10-31
 ### Fixed

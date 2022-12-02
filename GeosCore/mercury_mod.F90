@@ -817,7 +817,10 @@ CONTAINS
     ! leftover values from the last timestep near the top of the chemgrid
     IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
     IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnLoss   ) State_Diag%SatDiagnLoss   = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnProd   ) State_Diag%SatDiagnProd   = 0.0_f4
     IF (State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnJVal   ) State_Diag%SatDiagnJVal   = 0.0_f4
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
@@ -1029,10 +1032,21 @@ CONTAINS
                 State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)          &
                                          + PHOTOL(N)
              ENDIF
+
+             ! J_values for satellite diagnostics
+             IF ( State_Diag%Archive_SatDiagnJVal ) THEN
+
+                ! GC photolysis species index
+                P = GC_Photo_Id(N)
+
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                State_Diag%SatDiagnJVal(I,J,L,P) =                           &
+                State_Diag%SatDiagnJVal(I,J,L,P) + PHOTOL(N)
+             ENDIF
+
           ENDDO
        ENDIF
-
-
 
        !====================================================================
        ! Copy values at each gridbox into variables in gckpp_Global.F90
@@ -1250,6 +1264,21 @@ CONTAINS
           ENDDO
        ENDIF
 
+       ! Satellite diagnostic: chemical loss of species/families [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             KppId = State_Diag%Map_SatDiagnLoss%slot2Id(S)
+             State_Diag%SatdiagnLoss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: chemical prod of species/families [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             KppID = State_Diag%Map_SatDiagnProd%slot2Id(S)
+             State_Diag%SatDiagnProd(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)

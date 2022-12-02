@@ -4643,10 +4643,10 @@ CONTAINS
     USE Mercury_Mod,          ONLY : Hg_Emis
 #endif
     USE PhysConstants
-    USE Species_Mod,          ONLY : Species
+    USE Species_Mod,          ONLY : Species,  SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
-    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Diag_Mod,       ONLY : DgnState, DgnMap
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
@@ -4709,6 +4709,9 @@ CONTAINS
     REAL(fp), TARGET        :: eflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
+    REAL(fp), TARGET        :: colEflx(State_Grid%NX,                        &
+                                       State_Grid%NY,                        &
+                                       State_Chm%nAdvect                    )
     REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
@@ -4720,6 +4723,7 @@ CONTAINS
     REAL(f4),       POINTER :: PNOxLoss_HNO3(:,:)
 
     TYPE(Species),  POINTER :: ThisSpc
+    TYPE(DgnMap),   POINTER :: mapData
 
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
@@ -4729,6 +4733,7 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
+    colEflx =  0.0_fp
     ThisSpc => NULL()
     errMsg  = ''
     thisLoc = &
@@ -4842,12 +4847,16 @@ CONTAINS
          CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
       ENDIF
 
-      !$OMP PARALLEL DO                                                        &
-      !$OMP DEFAULT( SHARED )                                                  &
-      !$OMP PRIVATE( I,       J,            topMix                            )&
-      !$OMP PRIVATE( tmpflx,  found,        emis,      dep                    )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED )                                                &
+      !$OMP PRIVATE( I,       J,       topMix                               )&
+      !$OMP PRIVATE( tmpFlx,  found,   emis,      dep                       )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
+
+      ! Below emissions. Do not apply for MODEL_CESM as its handled by
+      ! HEMCO-CESM independently
+#ifndef MODEL_CESM
 
         ! PBL top level [integral model levels]
         topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
@@ -4881,14 +4890,25 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
-#if !defined( MODEL_CESM )
-           ! For Hg simulations, also add Hg emissions not handled by HEMCO
-           IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-              eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
+           ! Compute column emission fluxes for satellite diagnostics
+           IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+              tmpFlx = 0.0_fp
+              DO L = 1, State_Grid%NZ
+                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
+                                     J,         L,          found, emis     )
+                 IF ( .NOT. found ) EXIT
+                 tmpFlx = tmpFlx + emis
+              ENDDO
+              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
            ENDIF
-#endif
 
         ENDIF
+
+        ! For Hg simulations, also add Hg emissions not handled by HEMCO
+        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+           eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
+        ENDIF
+#endif
 
         !------------------------------------------------------------------
         ! Also add drydep frequencies calculated by HEMCO (e.g. from the
@@ -4931,8 +4951,9 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED )                                                  &
     !$OMP PRIVATE( I,       J,            N                                 )&
-    !$OMP PRIVATE( thisSpc, dep                                             )&
-    !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep, Hg_cat                )
+    !$OMP PRIVATE( thisSpc, dep,          S                                 )&
+    !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep                        )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -5012,6 +5033,29 @@ CONTAINS
        ! SFLX is what we need to pass into routine VDIFF
        !=====================================================================
        State_Chm%SurfaceFlux(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
+
+       !=====================================================================
+       ! Defining Satellite Diagnostics
+       !=====================================================================
+
+       ! Define emission satellite diagnostics
+       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
+             N = State_Diag%Map_SatDiagnColEmis%slot2id(S)
+             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)
+          ENDDO
+       ENDIF
+
+       ! N.B. SatDiagnSurfFlux contains within it the underlying eflx
+       ! variable as opposed to colEflx.
+       ! Thus, taking SatDiagnSurfFlux - SatDiagnColEmis will not
+       ! necessarily equal the dry deposition flux (dflx)
+       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnSurfFlux%nSlots
+             N = State_Diag%Map_SatDiagnSurfFlux%slot2id(S)
+             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)
+          ENDDO
+       ENDIF
 
        !=====================================================================
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
