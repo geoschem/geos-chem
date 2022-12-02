@@ -96,11 +96,6 @@ MODULE HCO_Interface_GC_Mod
 
   ! Internal met fields (will be used by some extensions)
   INTEGER,  TARGET    :: HCO_PBL_MAX                      ! level
-  REAL(hp), POINTER   :: HCO_SZAFACT(:,:)
-
-  ! Arrays to store J-values (used by Paranox extension)
-  REAL(hp), POINTER   :: JNO2(:,:)
-  REAL(hp), POINTER   :: JOH(:,:)
 
 #if defined( MODEL_CLASSIC )
 
@@ -1277,24 +1272,6 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Deallocate module variables
     !-----------------------------------------------------------------------
-    IF ( ASSOCIATED( HCO_SZAFACT ) ) THEN
-       DEALLOCATE( HCO_SZAFACT, STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( JNO2 ) ) THEN
-       DEALLOCATE( JNO2, STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( JOH ) ) THEN
-       DEALLOCATE( JOH, STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
 
 #if defined( MODEL_CLASSIC )
     IF ( ASSOCIATED( REGR_3DI ) ) THEN
@@ -1518,7 +1495,7 @@ CONTAINS
     ! Due to the extensions requiring met fields and some of them are derived
     ! data, we need to initialize targets here.
     !
-    ! Some variables are stored on the MODEL grid, e.g. SZAFACT, JNO2, JOH.
+    ! Some variables are stored on the MODEL grid, i.e., SZAFACT.
     ! Because they need to be computed here, before a regrid.
     !
     ! Shadow targets for all derived met fields (not read from HEMCO) are
@@ -1695,45 +1672,8 @@ CONTAINS
     ENDIF
 #endif
 
-
-    !-----------------------------------------------------------------------
-    ! HCO_SZAFACT is not defined in Met_State.  Hence need to
-    ! define here so that we can point to them.
-    !
-    ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
-    ! simulation (mps, 8/20/14)
-    !
-    ! Removed HCO_FRAC_OF_PBL, can directly point to State_Met%F_OF_PBL.
-    ! Moved SUMCOSZA to State_Met%SUNCOSsum
-    ! (hplin, 6/9/20)
-    ! ----------------------------------------------------------------------
-    IF ( ExtState%SZAFACT%DoUse ) THEN
-       ALLOCATE( HCO_SZAFACT( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       HCO_SZAFACT = 0e0_hp
-
-    ENDIF
-
     ! Initialize max. PBL
     HCO_PBL_MAX = 0
-
-    ! ----------------------------------------------------------------------
-    ! The J-Values for NO2 and O3 are not defined in Met_State. We
-    ! need to compute them separately.
-    ! ----------------------------------------------------------------------
-    IF ( ExtState%JNO2%DoUse ) THEN
-       ALLOCATE( JNO2( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       JNO2 = 0.0e0_hp
-    ENDIF
-
-    IF ( ExtState%JOH%DoUse ) THEN
-       ALLOCATE( JOH( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 0, RC )
-       JOH = 0.0e0_hp
-    ENDIF
 
     ! ----------------------------------------------------------------------
     ! Arrays to be copied physically because HEMCO units are not the
@@ -1941,7 +1881,7 @@ CONTAINS
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
-                       HMRC,     FIRST,            HCO_SZAFACT )
+                       HMRC,     FIRST,            State_Met%SZAFACT )
 #if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
@@ -1962,7 +1902,7 @@ CONTAINS
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
-                       HMRC,     FIRST,         JNO2 )
+                       HMRC,     FIRST,         State_Chm%JNO2 )
 #if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
@@ -1983,7 +1923,7 @@ CONTAINS
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
-                       HMRC,     FIRST,        JOH )
+                       HMRC,     FIRST,        State_Chm%JOH )
 #if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
@@ -3016,7 +2956,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Compute SZAFACT, JNO2 and JOH on MODEL GRID
+    ! Compute SZAFACT on MODEL GRID
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
@@ -3029,36 +2969,12 @@ CONTAINS
        ! (This is mostly needed for offline simulations where a diurnal
        ! scale factor has to be imposed on monthly mean OH concentrations.)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
-          HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
+          State_Met%SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
        ENDIF
 
        ! Maximum extent of the PBL [model level]
        HCO_PBL_MAX = State_Met%PBL_MAX_L
 
-       ! J-values for NO2 and O3 (2D field only)
-       ! This code was moved from hcox_paranox_mod.F90 to break
-       ! dependencies to GC specific code (ckeller, 07/28/14).
-       IF ( L==1 .AND.                                    &
-            (ExtState%JNO2%DoUse .OR. ExtState%JOH%DoUse) ) THEN
-
-          ! Check if sun is up
-          IF ( State_Met%SUNCOS(I,J) == 0d0 ) THEN
-             IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
-             IF ( ExtState%JOH%DoUse  ) JOH  = 0.0_hp
-          ELSE
-             IF ( ExtState%JNO2%DoUse ) THEN
-                ! RXN_NO2: NO2 + hv --> NO  + O
-!                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
-                JNO2(I,J) = State_Chm%JNO2(I,J)
-             ENDIF
-             IF ( ExtState%JOH%DoUse ) THEN
-                ! RXN_O3_1: O3  + hv --> O2  + O
-!                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-                JOH(I,J) = State_Chm%JOH(I,J)
-             ENDIF
-          ENDIF
-
-       ENDIF
     ENDDO
     ENDDO
     ENDDO
@@ -3090,7 +3006,7 @@ CONTAINS
 
     ! SZAFACT
     IF ( ExtState%SZAFACT%DoUse ) THEN
-      REGR_3DI(:,:,1) = HCO_SZAFACT(:,:)
+      REGR_3DI(:,:,1) = State_Met%SZAFACT(:,:)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
                            ResetRegrName=.true. )
@@ -3099,7 +3015,7 @@ CONTAINS
 
     ! JNO2
     IF ( ExtState%JNO2%DoUse ) THEN
-      REGR_3DI(:,:,1) = JNO2(:,:)
+      REGR_3DI(:,:,1) = State_Chm%JNO2(:,:)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
                            ResetRegrName=.true. )
@@ -3108,7 +3024,7 @@ CONTAINS
 
     ! JOH
     IF ( ExtState%JOH%DoUse ) THEN
-      REGR_3DI(:,:,1) = JOH(:,:)
+      REGR_3DI(:,:,1) = State_Chm%JOH(:,:)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
                            ResetRegrName=.true. )
