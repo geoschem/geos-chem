@@ -5905,7 +5905,14 @@ CONTAINS
         MAX( Ind_('ASOA1','A'), 0 ) + &
         MAX( Ind_('ASOA2','A'), 0 ) + &
         MAX( Ind_('ASOA3','A'), 0 ) + &
-        MAX( Ind_('ASOAN','A'), 0 )
+        MAX( Ind_('ASOAN','A'), 0 ) + &
+        MAX( Ind_('ASOG1','A'), 0 ) + &
+        MAX( Ind_('ASOG2','A'), 0 ) + &
+        MAX( Ind_('ASOG3','A'), 0 ) + &
+        MAX( Ind_('TSOG0','A'), 0 ) + &
+        MAX( Ind_('TSOG1','A'), 0 ) + &
+        MAX( Ind_('TSOG2','A'), 0 ) + &
+        MAX( Ind_('TSOG3','A'), 0 )
 
     IF ( Input_Opt%LSOA ) THEN
        IF ( I == 0 ) THEN
