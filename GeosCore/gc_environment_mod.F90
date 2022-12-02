@@ -674,7 +674,7 @@ CONTAINS
     ! CH4
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       CALL Init_Global_Ch4( Input_Opt, State_Diag, State_Grid, RC )
+       CALL Init_Global_Ch4( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Global_CH4"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

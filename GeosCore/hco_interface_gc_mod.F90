@@ -4633,7 +4633,6 @@ CONTAINS
     USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
     USE ErrCode_Mod
     USE Get_Ndep_Mod,         ONLY : Soil_Drydep
-    USE Global_CH4_Mod,       ONLY : CH4_Emis
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
     USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
@@ -4859,7 +4858,7 @@ CONTAINS
         !------------------------------------------------------------------
         IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
-           ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F90.
+           ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions
            ! only to make sure that total CH4 emissions are properly defined
            ! in a multi-tracer CH4 simulation. For a single-tracer simulation
@@ -4868,7 +4867,7 @@ CONTAINS
            ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
            !
            !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-           eflx(I,J,NA) = CH4_EMIS(I,J,NA)
+           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
 
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 

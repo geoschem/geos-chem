@@ -273,6 +273,14 @@ MODULE State_Chm_Mod
      LOGICAL                    :: Do_SulfateMod_SeaSalt
 
      !-----------------------------------------------------------------------
+     ! Fields for CH4 specialty simulation
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: BOH        (:,:,:  ) ! OH values [molec/cm3]
+     REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
+     REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  ) ! CH4 emissions [kg/m2/s].
+                                                        ! third dim is cat, total 15
+
+     !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !-----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -436,6 +444,9 @@ CONTAINS
     State_Chm%TO3_DAILY         => NULL()
     State_Chm%TOMS1             => NULL()
     State_Chm%TOMS2             => NULL()
+    State_Chm%BOH               => NULL()
+    State_Chm%BCl               => NULL()
+    State_Chm%CH4_EMIS          => NULL()
     State_Chm%SFC_CH4           => NULL()
 
     ! Emissions and drydep quantities
@@ -2053,6 +2064,59 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !=======================================================================
+    ! Initialize State_Chm quantities pertinent to CH4 simulations
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+        ! CH4_EMIS
+        chmId = 'CH4_EMIS'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%CH4_EMIS,                                 &
+            nSlots     = 15,                                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Global OH and Cl from HEMCO input
+       chmId = 'BOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%BOH,                                      &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'BCl'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%BCl,                                      &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     !========================================================================
     ! Once we are done registering all fields, we need to define the
     ! registry lookup table.  This algorithm will avoid hash collisions.
@@ -2878,7 +2942,7 @@ CONTAINS
        DEALLOCATE( State_Chm%Species )
        CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Species => NULL()    
+       State_Chm%Species => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
@@ -3242,6 +3306,27 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%TLSTT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%TLSTT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BOH ) ) THEN
+       DEALLOCATE( State_Chm%BOH, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BOH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BOH => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCl ) ) THEN
+       DEALLOCATE( State_Chm%BCl, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCl', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BCl => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%CH4_EMIS ) ) THEN
+       DEALLOCATE( State_Chm%CH4_EMIS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH4_EMIS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%CH4_EMIS => NULL()
     ENDIF
 
 #ifdef LUO_WETDEP
@@ -4231,6 +4316,21 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
+
+       CASE( 'CH4_EMIS' )
+          IF ( isDesc  ) Desc  = 'CH4 emissions by sector, CH4 specialty simulation only'
+          IF ( isUnits ) Units = 'kg/m2/s'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'BOH' )
+          IF ( isDesc  ) Desc  = 'OH values, CH4 specialty simulation only'
+          IF ( isUnits ) Units = 'molec/cm3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'BCL' )
+          IF ( isDesc  ) Desc  = 'Cl values, CH4 specialty simulation only'
+          IF ( isUnits ) Units = 'v/v'
+          IF ( isRank  ) Rank  = 3
 
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
