@@ -3219,17 +3219,19 @@ CONTAINS
        WRITE( 6, 10 )
 10     FORMAT(/, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
-                         Registry    = State_Met%Registry,                   &
-                         ShortFormat = .TRUE.,                               &
-                         RC          = RC                                   )
 
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Met%Registry,                &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
+
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
    END SUBROUTINE Init_State_Met

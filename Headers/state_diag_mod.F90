@@ -2190,10 +2190,10 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Write header
     !------------------------------------------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+       WRITE( 6, 10 )
+ 10    FORMAT(/, 'Allocating the following fields of the State_Diag object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 
     !------------------------------------------------------------------------
@@ -9034,16 +9034,25 @@ CONTAINS
     !========================================================================
     ! Print information about the registered fields (short format)
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
             'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Diag%Registry,               &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
-    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
-                         Registry    = State_Diag%Registry,                  &
-                         ShortFormat = .TRUE.,                               &
-                         RC          = RC                                   )
 
     !========================================================================
     ! Set high-level logicals for diagnostics
@@ -9157,13 +9166,6 @@ CONTAINS
                                                3                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
   END SUBROUTINE Init_State_Diag
@@ -14989,7 +14991,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15174,7 +15176,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15355,7 +15357,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15546,7 +15548,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15731,7 +15733,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15909,7 +15911,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF

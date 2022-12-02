@@ -580,7 +580,7 @@ CONTAINS
     TLSTT          => State_Chm%TLSTT
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, '(a)' ) REPEAT( '#', 79 )
        WRITE( 6,  50   ) CMONTH(MONTH)
        WRITE( 6, '(a)' ) REPEAT( '#', 79 )
@@ -1143,7 +1143,7 @@ CONTAINS
 
     ! Read header
     READ ( IU_FILE, '(a)' ) HEADING
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE(6,*) TRIM( HEADING )
     ENDIF
 
@@ -1185,13 +1185,15 @@ CONTAINS
        enddo
 
        ! Write overall min & max
-       IF ( Input_Opt%amIRoot ) write (6,912) TITL1,TMIN,TMAX
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+          write (6,912) TITL1,TMIN,TMAX
+       ENDIF
 912    FORMAT('  Linoz Data:  ',a80,1p,2e10.3)
 
     enddo
 
     ! Echo info
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, '(a)' ) '$$ Finished Reading Linoz Data $$'
        WRITE( 6, '(a)' )
     ENDIF

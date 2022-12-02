@@ -1728,7 +1728,7 @@ CONTAINS
        id_I2O3     = IND_('I2O3'    )
 
        ! Print info
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
 
           if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
@@ -2012,7 +2012,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -2055,7 +2055,7 @@ CONTAINS
     read (NUN,101) NQRD,NWWW
     NW1 = 1
     NW2 = NWWW
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) THEN
        write(6,'(1x,a)') TITLE0
        write(6,'(i8)') NWWW
     ENDIF
@@ -2127,7 +2127,7 @@ CONTAINS
     NJX = JJ
 
     do J = 1,NJX
-       if ( Input_Opt%AmIRoot ) then
+       if ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) then
           write(6,200) J,TITLEJX(J),SQQ(J),LQQ(J),(TQQ(I,J),I=1,LQQ(J))
        endif
        ! need to check that TQQ is monotonically increasing:
@@ -2154,7 +2154,7 @@ CONTAINS
     if (W_ .ne. WX_) then
        ! TROP-ONLY
        if (W_ .eq. 12) then
-          if ( Input_Opt%AmIRoot ) then
+          if ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) then
              write(6,'(a)') &
                   ' >>>TROP-ONLY reduce wavelengths to 12, drop strat X-sects'
           endif
@@ -2191,7 +2191,7 @@ CONTAINS
           enddo
           ! TROP-QUICK  (must scale solar flux for W=5)
        elseif (W_ .eq. 8) then
-          if ( Input_Opt%amIRoot ) then
+          if ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) then
              write(6,'(a)') &
                   ' >>>TROP-QUICK reduce wavelengths to 8, drop strat X-sects'
           endif
@@ -2347,7 +2347,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -2381,7 +2381,9 @@ CONTAINS
 
     ! Read header lines
     READ( NUN,'(A)' ) TITLE0
-    IF  ( Input_Opt%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) THEN
+       WRITE( 6, '(1X,A)' ) TITLE0
+    ENDIF 
     READ( NUN,'(A)' ) TITLE0
 
     !---Read aerosol phase functions:
@@ -2427,7 +2429,7 @@ CONTAINS
 #endif
 #endif
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):', &
                             (WAA(K,1),K=1,5)
        do J=1,NAA
@@ -2562,7 +2564,7 @@ CONTAINS
        ENDIF
 
        ! Write to stdout for both regular and dry-run simulations
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
 300       FORMAT( a, ' ', a )
        ENDIF
@@ -2654,7 +2656,7 @@ CONTAINS
     !=================================================================
     IF ( .not. Input_Opt%DryRun ) THEN
 
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           WRITE( 6, * ) 'Optics read for all wavelengths successfully'
        ENDIF
 
@@ -2996,7 +2998,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -3034,7 +3036,7 @@ CONTAINS
     open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
     read (NUNIT,'(a)') CLINE
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        write(6,'(a)') CLINE
     ENDIF
     do J = 1,JVN_
@@ -3095,13 +3097,13 @@ CONTAINS
        enddo
     enddo
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        write(6,'(a,i4,a)')'Photochemistry Scheme with',NRATJ,' J-values'
     ENDIF
     do K=1,NRATJ
        if (JMAP(K) .ne. '------' ) then
           J = JIND(K)
-          IF ( Input_Opt%amIRoot ) THEN
+          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
              if (J.eq.0) then
                 write(6,'(i5,1x,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K), &
                      ' no mapping onto fast-JX',JMAP(K)
@@ -3126,7 +3128,7 @@ CONTAINS
           TEXT = JLABEL(K)
           CALL CSTRIP( TEXT )
 
-          !IF ( Input_Opt%amIRoot ) THEN
+          !IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           !   WRITE(*,*) K, TRIM( TEXT )
           !ENDIF
 
@@ -3246,7 +3248,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Print out saved rxn flags for fullchem simulations
        !---------------------------------------------------------------------
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
           WRITE( 6, 110 )
           WRITE( 6, 120 ) RXN_O2
@@ -3326,7 +3328,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Print out saved rxn flags for Hg simulation
        !---------------------------------------------------------------------
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
           WRITE( 6, 110 )
           WRITE( 6, 130 ) RXN_O3_1
@@ -5140,7 +5142,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -5169,7 +5171,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 100 ) REPEAT( '%', 79 )
        WRITE( 6, 110 ) TRIM(nc_file)
        WRITE( 6, 120 ) TRIM(nc_dir)
@@ -5196,7 +5198,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 #endif
@@ -5222,7 +5224,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 #endif
@@ -5239,7 +5241,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 140 )
        WRITE( 6, 100 ) REPEAT( '%', 79 )
     ENDIF
