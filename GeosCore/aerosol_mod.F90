@@ -1377,41 +1377,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot  DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          WAERSL(I,J,L,1) = SO4_NH4_NIT(I,J,L)
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDIF
-
-    !=================================================================
-    ! C A R B O N  &  2 n d A R Y   O R G A N I C   A E R O S O L S
-    !
-    ! If LCARB = TRUE, then take Hydrophilic OC, Hydrophobic OC,
-    ! Hydropilic BC, and Hydrophobic BC, and 2ndary organic aerosol
-    ! concentrations [kg/m3] that have been computed by AEROSOL_CONC.
-    ! Save these into DAERSL and WAERSL for use w/ FAST-J and hetchem.
-    ! These fields are updated every chemistry timestep.
-    ! (For both fullchem and offline simulations)
-    !
-    ! If LCARB = FALSE, then read monthly mean carbon aerosol
-    ! concentrations [kg/m3] from disk at the start of each month.
-    ! (For full chemistry simulations only)
-    !=================================================================
-    IF ( LCARB ) THEN
-
-       !-----------------------------------
-       ! Use online aerosol concentrations
-       !-----------------------------------
-       IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) WRITE( 6, 120 )
+          IF ( Input_Opt%amIRoot ) WRITE( 6, 120 )
 120       FORMAT( '     - RDAER: Using online SALA SALC' )
        ENDIF
 
