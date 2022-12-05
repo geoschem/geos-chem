@@ -4390,7 +4390,7 @@ CONTAINS
     id_SO4   = Ind_('SO4'       )
 
     ! Print info
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( prtDebug ) THEN
        WRITE( 6,'(a)') REPEAT( '=', 79 )
        WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
        WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'

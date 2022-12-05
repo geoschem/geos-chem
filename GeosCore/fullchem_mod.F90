@@ -1590,8 +1590,8 @@ CONTAINS
     ! Exit if we are not on the first chemistry timestep
     IF ( .not. FirstChem ) RETURN
 
-    ! Print on the root CPU only
-    IF ( Input_Opt%AmIRoot ) THEN
+    ! Print on the root CPU only (only if debug printout is on)
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) THEN
 
        ! Write header
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )

@@ -426,8 +426,8 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! Print out
-       IF ( Input_Opt%amIRoot ) THEN
+       ! Print out only when debug output is on (bmy, 05 Dec 2022)
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
           WRITE( 6, 110 )
           WRITE( 6, 100 ) REPEAT( '=', 79 )

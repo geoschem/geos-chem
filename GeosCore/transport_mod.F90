@@ -788,7 +788,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: LTRAN
+    LOGICAL            :: LTRAN, prtDebug
     INTEGER            :: J, K, L, N_DYN
     REAL(fp)           :: YMID_R(State_Grid%NY)
     REAL(fp)           :: REAL_N_DYN
@@ -799,9 +799,10 @@ CONTAINS
     !=================================================================
     ! Initialize
     !=================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Init_Transport (in module GeosCore/transport_mod.F90)'
+    RC       = GC_SUCCESS
+    prtDebug = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Init_Transport (in module GeosCore/transport_mod.F90)'
 
     !=================================================================
     ! Allocate arrays for TPCORE vertical coordinates
@@ -862,9 +863,10 @@ CONTAINS
     REAL_N_DYN = N_DYN
 
     ! Call INIT routine from "tpcore_fvdas_mod.f"
-    CALL INIT_TPCORE( State_Grid%NX, State_Grid%NY,  State_Grid%NZ, &
-                      JFIRST, JLAST, NG, MG,         REAL_N_DYN,    &
-                      Re,    YMID_R, RC                            )
+    CALL INIT_TPCORE( State_Grid%NX, State_Grid%NY,  State_Grid%NZ,          &
+                      JFIRST,        JLAST,          NG,                     &
+                      MG,            REAL_N_DYN,     Re,                     &
+                      YMID_R,        prtDebug,       RC                     )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

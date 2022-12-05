@@ -5638,7 +5638,8 @@ CONTAINS
     !=================================================================
     ! Print information about wet-depositing species
     !=================================================================
-    IF ( Input_Opt%amIRoot .and. State_Chm%nWetDep > 0 ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT                              &
+                           .and. State_Chm%nWetDep > 0 ) THEN
 
        ! Title
        LINE = 'INIT_WETSCAV: List of soluble species: '

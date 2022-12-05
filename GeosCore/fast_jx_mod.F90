@@ -1730,13 +1730,14 @@ CONTAINS
        ! Print info
        IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
-
-          if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
-             ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          endif
        ENDIF
+
+       ! Move error check outside the print statement (bmy, 05 Dec 2022)
+       if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
+          ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       endif
 
 #if defined( MODEL_CESM )
        IF ( Input_Opt%amIRoot ) THEN
@@ -1890,8 +1891,8 @@ CONTAINS
 
           ENDIF
 
-          ! Print the mapping
-          IF ( Input_Opt%amIRoot ) THEN
+          ! Print the mapping (for debug printout only)
+          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
              IF ( GC_Photo_Id(J) > 0 ) THEN
                 WRITE(6, 200) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
 200             FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
@@ -2601,12 +2602,18 @@ CONTAINS
        ENDIF
 
        ! Read header lines
+       ! Write only if debug printout is on (bmy, 05 Dec 2022)
        READ(  NJ1, '(A)' ) TITLE0
-       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+          WRITE( 6, '(1X,A)' ) TITLE0
+       ENDIF
 
        ! Second header line added for more info
+       ! Write only if debug printout is on (bmy, 05 Dec 2022)
        READ(  NJ1, '(A)' ) TITLE0
-       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+          WRITE( 6, '(1X,A)' ) TITLE0
+       ENDIF
 
        READ(  NJ1, '(A)' ) TITLE0
 110    FORMAT( 3x, a20 )
@@ -2810,7 +2817,7 @@ CONTAINS
           CCOEF_WV(W) =(Input_Opt%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/ &
                       (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
        ENDIF
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           write(6,*) 'N WAVELENGTHS: ',Input_Opt%NWVSELECT
           write(6,*) 'WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
           write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
@@ -2898,7 +2905,7 @@ CONTAINS
        !i.e. without the standard and LW wavelengths
        IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
        IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
           write(6,*) 'N RT WAVELENGTHS: ',Input_Opt%NWVSELECT
           write(6,*) 'RT WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
           write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
@@ -5012,10 +5019,13 @@ CONTAINS
     MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 
     ! Ensure all 'AN_' types are valid selections
+    ! NOTE: Only write out messages if debug printout has been selected
     do i=1,AN_
-       IF (Input_Opt%amIRoot) write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
+       IF (Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+          write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
+       ENDIF
        if (MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
-          if (Input_Opt%amIRoot) then
+          if ( Input_Opt%amIRoot .and. Input_Opt%LPRT) then
              write(6,1200) MIEDX(i),NAA
           endif
           CALL EXITC('Bad MIEDX value.')

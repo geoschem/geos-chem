@@ -1795,7 +1795,7 @@ CONTAINS
        DO C = 1, CollectionCount
           print*, 'Collection        ', TRIM( CollectionName       (C) )
           print*, '  -> FileName     ', TRIM( CollectionFileName   (C) )
-          print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
+         !print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
           IF ( CollectionAccInterval(C) /= UNDEFINED_STR ) THEN
              print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )

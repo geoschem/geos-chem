@@ -4751,7 +4751,7 @@ CONTAINS
     !=================================================================
     ! Echo information to stdout
     !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
 
        ! Line 1
        MSG = 'INIT_DRYDEP: List of dry deposition species:'

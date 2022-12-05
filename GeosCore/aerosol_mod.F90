@@ -1377,8 +1377,10 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 120 )
-120       FORMAT( '     - RDAER: Using online SALA SALC' )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+             WRITE( 6, 120 )
+120          FORMAT( '     - RDAER: Using online SALA SALC' )
+          ENDIF
        ENDIF
 
        !$OMP PARALLEL DO       &

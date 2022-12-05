@@ -3214,8 +3214,9 @@ CONTAINS
 
     !========================================================================
     ! Print information about the registered fields (short format)
+    ! Only written if debug printout is requested
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
        WRITE( 6, 10 )
 10     FORMAT(/, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
