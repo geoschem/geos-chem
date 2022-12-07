@@ -106,7 +106,7 @@ Warnings:                    1
     --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
-    --> HTAPv3_SHIP            :       false    # 2008-2010
+    --> HTAPv3_SHIP            :       false    # 2008-2018
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
@@ -1392,13 +1392,13 @@ Warnings:                    1
 # ==> HTAPv3 ship emissions are listed in the ship emissions section below
 #==============================================================================
 (((HTAPv3
-0 HTAPv3_CO_AGR   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_AGR  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
-0 HTAPv3_CO_ENE   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_ENE  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
-0 HTAPv3_CO_IND   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_IND  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
-0 HTAPv3_CO_TRA   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_TRA  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
-0 HTAPv3_CO_RCO   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_RCO  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
-0 HTAPv3_CO_SLV   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_SLV  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
-0 HTAPv3_CO_WST   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_WST  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_AGR $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_AGR  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_ENE $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_ENE  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_IND $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_IND  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_TRA $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_TRA  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_RCO $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_RCO  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_SLV $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_SLV  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_WST $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_WST  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
 0 HTAPv3_SO2_AGR  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_AGR 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
 0 HTAPv3_SO4_AGR  -                                                        -       -                  - -  -       SO4   63       1 4
 0 HTAPv3_pFe_AGR  -                                                        -       -                  - -  -       pFe   66       1 4
@@ -1509,7 +1509,7 @@ Warnings:                    1
 )))CORBETT_SHIP
 
 (((HTAPv3_SHIP
-0 HTAPv3_CO_SHP   $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc  CO_SHP  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 4
+0 HTAPv3_SOAP_SHP $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc  CO_SHP  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 4
 0 HTAPv3_SO2_SHP  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc SO2_SHP 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -      10 4
 0 HTAPv3_SO4_SHP  -                                                       -       -                  - -  -       SO4   63     10 4
 0 HTAPv3_pFe_SHP  -                                                       -       -                  - -  -       pFe   66     10 4
@@ -2215,7 +2215,7 @@ ${RUNDIR_TES_CLIM_N2O}
 #==============================================================================
 # --- Annual scale factors ---
 #==============================================================================
-(((HTAPv3.or.HTAPv3_SHIP.or.XIAO_C3H8
+(((XIAO_C3H8
 1  TOTFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 1985-2010/1/1/0 C xy 1  1
 5  TOTFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2002/1/1/0      C xy 1 -1
 27 TOTFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2008-2010/1/1/0 C xy 1 -1
@@ -2228,7 +2228,7 @@ ${RUNDIR_TES_CLIM_N2O}
 15 SOLFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2002/1/1/0      C xy 1 -1
 19 SOLFUEL_2008      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008/1/1/0      C xy 1 -1
 29 SOLFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008-2010/1/1/0 C xy 1 -1
-)))HTAPv3.or.HTAPv3_SHIP.or.XIAO_C3H8
+)))XIAO_C3H8
 
 #==============================================================================
 # --- Diurnal scale factors ---
