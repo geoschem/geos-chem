@@ -12,6 +12,7 @@ FileVarDry: 0
 UseObsHour: 0
 ObsHourName: ana_hour
 ApplyIncrement: 0
+NonZeroIncOnly: 0
 InStrat: 1
 InTrop: 0
 AnaL1: 1
