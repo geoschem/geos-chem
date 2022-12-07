@@ -2178,10 +2178,15 @@ CONTAINS
              ENDIF
           ENDIF
           PtrTmp => State_Chm%Species(N)%Conc(:,:,LM:1:-1)
-          IF ( STATUS /= ESMF_SUCCESS ) THEN
-             WRITE(*,*) 'Error reading ',TRIM(SpcName)
-             VERIFY_(STATUS)
-          ENDIF
+
+          ! uncomment below to output more family species information 
+!          IF ( am_I_Root .AND. FIRST ) THEN
+!             write(*,*) 'First GCC species diagnostics: ', TRIM(SpcName), MW
+!             IF ( IsNOy   ) write(*,*) '--> Is part of NOy'
+!             IF ( IsBry   ) write(*,*) '--> Is part of Bry: ', BrCoeff
+!             IF ( IsCly   ) write(*,*) '--> Is part of Cly: ', ClCoeff
+!             IF ( IsOrgCl ) write(*,*) '--> Is part of OrgCl: ', OrgClCoeff
+!          ENDIF
 
           ! NOy concentration
           IF ( IsNOy ) NOy = NOy + PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
@@ -2195,6 +2200,10 @@ CONTAINS
           ! OrgCl concentration
           IF ( IsOrgCl ) OrgCl = OrgCl + OrgClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
        ENDIF
+
+       
+
+
     ENDDO
 
     !=======================================================================
