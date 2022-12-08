@@ -12,6 +12,29 @@
 #
 # Initial version: E. Lundgren,10/5/2018
 
+# post registration details to api
+function post_registration() {
+    email="$1"
+    name="$2"
+    affiliation="$3"
+    site="$4"
+    git_username="$5"
+    research_interest="$6"
+    env_type="$7"
+    curl --location --request POST "https://gc-dashboard.org/registration" \
+        --header "Content-Type: text/plain" \
+        -d "{
+            \"email\": \"${email}\",
+            \"name\": \"${name}\",
+            \"affiliation\": \"${affiliation}\",
+            \"site\": \"${site}\",
+            \"git_username\": \"${git_username}\",
+            \"research_interest\": \"${research_interest}\",
+            \"model_type\": \"gchp\",
+            \"env_type\": \"${env_type}\"
+        }"
+}
+
 srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
@@ -70,6 +93,33 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 fi
 
 RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
+
+# --------------------------------------------------------------
+# registration for first time users
+# --------------------------------------------------------------
+if [[ -z "${GC_USER_REGISTERED}" ]]; then
+    printf "\nInitiating User Registration: You will only need to fill this out once.\n"
+    printf "${thinline}What is your email address?${thinline}"
+    read email
+    
+    if [[ ${email} != "" ]]; then
+    printf "${thinline}What is your name?${thinline}"
+    IFS='\n' read -r name
+    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
+    IFS='\n' read -r affiliation
+    printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
+    IFS='\n' read -r site
+    printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
+    IFS='\n' read -r git_username
+    printf "${thinline}Where do you plan to run GEOS-Chem (e.g. local compute cluster, AWS, other supercomputer)?${thinline}"
+    IFS='\n' read -r env_type
+    printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
+    IFS='\n' read -r research_interest
+    post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
+    fi
+    echo "export GC_USER_REGISTERED=true" >> ${HOME}/.geoschem/config
+    source ${HOME}/.geoschem/config
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -357,7 +407,7 @@ mkdir -p ${rundir_config}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
+cp ./README.md                        ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -396,20 +446,24 @@ fi
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
+# Create build directory
+mkdir ${rundir}/build
+printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
+
 #--------------------------------------------------------------------
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 if [[ ${sim_name} = "fullchem" ]]; then
     start_date='20190701'
-    restart_dir='v2021-09'
+    restart_dir='GC_14.0.0/1yr_benchmark'
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_13.0.0'
+    restart_dir='GC_14.0.0'
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${sim_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
@@ -437,16 +491,6 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
 # Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
-
-#--------------------------------------------------------------------
-# Print run direcory setup info to screen
-#--------------------------------------------------------------------
-
-printf "\n  -- This run directory has been set up to start on $start_date and"
-printf "\n     restart files for this date are in the Restarts subdirectory.\n"
-printf "\n  -- Update start time in configuration file cap_restart.\n"
-printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc4.\n"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh."
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
