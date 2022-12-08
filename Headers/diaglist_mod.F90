@@ -181,6 +181,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                      :: doPrintCollList
     LOGICAL                      :: EOF, found, isWildcard, isTagged
     LOGICAL                      :: InDefSection, InFieldsSection
     INTEGER                      :: QMatch, CMatch
@@ -232,6 +233,7 @@ CONTAINS
     IsCarbonCycle   = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
+    doPrintCollList = .FALSE.
     Name            =  ''
     LastCollName    =  ''
 
@@ -303,6 +305,17 @@ CONTAINS
        WRITE ( RadWL(I), "(a5)" ) a_str(N)
        RadWL(I) = ADJUSTL( RadWL(I) )
     ENDDO
+
+    ! Read the simulation name
+    key  = "simulation%debug_printout"
+    CALL QFYAML_Add_Get( Config, key, doPrintCollList, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL QFYAML_CleanUp( Config          )
+       CALL QFYAML_CleanUp( ConfigAnchored  )
+       RETURN
+    ENDIF
 
     ! Clean up YAML config objects
     CALL QFYAML_CleanUp( Config          )
@@ -385,7 +398,9 @@ CONTAINS
              collname = CleanText( Line )
 
           ENDDO
-          CALL Print_ColList( am_I_Root, CollList, RC )
+          IF ( doPrintCollList ) THEN
+             CALL Print_ColList( am_I_Root, CollList, RC )
+          ENDIF
           CYCLE
        ENDIF
 
