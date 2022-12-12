@@ -1,0 +1,66 @@
+#!/bin/bash
+#PBS -S /bin/bash
+#PBS -l select=60:ncpus=40:mpiprocs=40:model=sky_ele
+#PBS -l walltime=2:00:00
+#PBS -l site=needed=/home4+/nobackupp12+/nobackupp16
+#PBS -l place=excl
+#PBS -N C720-MF-v14
+#PBS -m abe
+#PBS -r y
+#PBS -W group_list=s2387
+# loading environment
+source /u/dzhang8/gchp-intel.202209.env
+cd $PBS_O_WORKDIR
+
+module list	# print loaded modules
+set -e		# if a subsequent command fails, treat it as fatal (don't continue)
+set -x		# for remainder of script, echo commands to the job's log file
+
+ulimit -c 0
+ulimit -l unlimited
+ulimit -u 50000
+ulimit -v unlimited
+ulimit -s unlimited
+
+export MPI_LAUNCH_TIMEOUT=40
+export PATH=$PATH:/u/scicon/tools/bin
+#export MPI_VERBOSE=1
+#export MPI_DISPLAY_SETTINGS=1
+#export MPI_OMP_NUM_THREADS=1
+export MPIO_LUSTRE_GCYC_MIN_ITER=1
+export FOR_IGNORE_EXCEPTIONS=false
+export MPI_COLL_REPRODUCIBLE
+unset MPI_MEMMAP_OFF
+unset MPI_NUM_MEMORY_REGIONS
+export MPI_XPMEM_ENABLED=yes
+unset SUPPRESS_XPMEM_TRIM_THRESH
+unset PMI_RANK
+
+function last_checkpoint() {
+    ls -1 gcchem_internal_checkpoint*.nc4 | tail -n 1
+}
+
+function last_checkpoint_datetime() {
+    last_checkpoint | sed 's/gcchem_internal_checkpoint.\(20[12][0-9][0-9][0-9][0123][0-9]\)_\([0-9][0-9]00\).*/\1 \200/'
+}
+
+# set your start date: YYYYMMDD HHMMSS
+RESTART_DATE="20210601 000000"
+initial_restart=./Restarts/GEOSChem.Restart.20190701_0000z.c720.nc4
+# Execute simulation
+if [ ! -f CONTINUE_SEM ] ; then
+    ./setCommonRunSettings.sh
+    echo "$RESTART_DATE" > cap_restart
+    ln -nsf ${initial_restart} gchp_restart.nc4
+    touch CONTINUE_SEM
+else
+    RESTART_FILE=$(last_checkpoint)
+    RESTART_DATE=$(last_checkpoint_datetime)
+    echo "$RESTART_DATE" > cap_restart
+    ln -nsf ${RESTART_FILE} gchp_restart.nc4
+fi
+
+rm -f gcchem_internal_checkpoint
+several_tries mpiexec -np 2400 mbind.x -v ./gchp &> run-HTAPv3-$(date +"%Y%m%d_%H%M").log
+pbs_release_nodes -j $PBS_JOBID -a
+
