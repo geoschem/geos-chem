@@ -38,8 +38,7 @@ Separator:                   /
 Unit tolerance:              2
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
 
 ### END SECTION SETTINGS ###
 
