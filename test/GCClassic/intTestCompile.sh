@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -t 0-01:00
-#SBATCH -p huce_cascade
+#SBATCH -t 0-00:30
+#SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=8000
 #SBATCH --mail-type=END
 
@@ -12,18 +12,16 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestCompile_slurm.sh
+# !MODULE: intTestCompile.sh
 #
 # !DESCRIPTION: Runs compilation tests on various GEOS-Chem Classic
-#  run directories (using the SLURM scheduler).
+#  run directories (interactively or using a scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  sbatch intTestCompile_slurm.sh
-#
-# !REVISION HISTORY:
-#  03 Nov 2020 - R. Yantosca - Initial version
-#  See the subsequent Git history with the gitk browser!
+#  ./intTestCompile.sh        # Interactive command-line execution
+#  bsub intTestCompile.sh     # Execution via LSF
+#  sbatch intTestCompile.sh   # Execution via SLURM
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -35,23 +33,57 @@
 # Get the long path of this folder
 root=$(pwd -P)
 
-# In SLURM: Load computational environment and OpenMP settings
-# Otherwise (e.g. for testing) use a small number of OpenMP threads
-if [[ "x${SLURM_JOBID}" == "x" ]]; then
-    export OMP_NUM_THREADS=6
+# Load the environment and the software environment
+. ~/.bashrc
+. ${root}/gcclassic_env.sh
+
+if [[ "x${SLURM_JOBID}" != "x" ]]; then
+
+    #--------------------
+    # Run via SLURM
+    #--------------------
+
+    # Set number of cores to those requested with #SBATCH -c
+    export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+    
+elif [[ "x${LSB_JOBID}" != "x" ]]; then
+
+    #--------------------
+    # Run via LSF
+    #--------------------
+    # TODO
+    
 else
-    . ~/.bashrc
-    . ${root}/gcclassic_env.sh
+    
+    #--------------------
+    # Run interactively 
+    #--------------------
+    
+    # For AWS, set $OMP_NUM_THREADS to the available cores
+    kernel=$(uname -r)
+    [[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
+
 fi
 
-# Load common functions for tests
-. ${root}/commonFunctionsForTests.sh
+# Sanity check: Set OMP_NUM_THREADS to 6 if it is not set
+# (this may happen when running interactively)
+[[ "x${OMP_NUM_THREADS}" == "x" ]] && export OMP_NUM_THREADS=6
 
-# Count the number of tests to be done = number of run directories
-numTests=$(ls -1 "${root}/build" | wc -l)
+# Sanity check: Max out the OMP_STACKSIZE if it is not set
+[[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"
+
+#============================================================================
+# Load common variables and functions for tesets
+#============================================================================
+
+# Include global variables & functions
+. ${root}/commonFunctionsForTests.sh
+
+# Count the number of tests to be done
+numTests=${#EXE_BUILD_LIST[@]}
 
 #============================================================================
 # Initialize results logfile
@@ -85,7 +117,7 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in default apm bpch hg luowd rrtmg tomas15 tomas40; do
+for dir in ${EXE_BUILD_LIST[@]}; do
 
     # Define build directory
     buildDir="${root}/build/${dir}"
@@ -96,7 +128,7 @@ for dir in default apm bpch hg luowd rrtmg tomas15 tomas40; do
 
     # Configure and build GEOS-Chem source code
     # and increment pass/fail/remain counters
-    build_gcclassic ${root} ${buildDir} ${log} ${results} "${baseOptions}"
+    build_gcclassic "${root}" "${buildDir}" "${log}" "${results}" "${baseOptions}"
     if [[ $? -eq 0 ]]; then
 	let passed++
     else
@@ -134,6 +166,7 @@ fi
 unset baseOptions
 unset failed
 unset dir
+unset kernel
 unset log
 unset numTests
 unset passed

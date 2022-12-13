@@ -4,6 +4,14 @@ This file documents all notable changes to the GEOS-Chem repository since versio
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased TBD]
+### Changed
+- GC-Classic integration tests now use a single set of scripts
+- `test/GCClassic/README` is now a Markdown file: `test/GCClassic/README.md`
+
+### Removed
+- Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
+
 ## [Unreleased 14.1.0]
 ### Added
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication +

@@ -1,18 +1,25 @@
 #!/bin/bash
 
+#SBATCH -c 24
+#SBATCH -N 1
+#SBATCH -t 0-03:00
+#SBATCH -p REQUESTED_PARTITION
+#SBATCH --mem=90000
+#SBATCH --mail-type=END
+
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestExecute_interactive.sh
+# !MODULE: intTestExecute_slurm.sh
 #
 # !DESCRIPTION: Runs execution tests on various GEOS-Chem Classic
-#  run directories (in an interactive session such as on AWS).
+#  run directories (using the SLURM scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestExecute_interactive.sh
+#  sbatch intTestExecute_slurm.sh
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -22,22 +29,59 @@
 #============================================================================
 
 # Get the long path of this folder
-root=`pwd -P`
+root=$(pwd -P)
 
-# Load computational environment and settings)
+# Load the environment and the software environment
 . ~/.bashrc
 . ${root}/gcclassic_env.sh
-export OMP_STACKSIZE=500m
 
-# For AWS, set $OMP_NUM_THREADS to the available cores
-kernel=$(uname -r)
-[[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
+if [[ "x${SLURM_JOBID}" != "x" ]]; then
+
+    #--------------------
+    # Run via SLURM
+    #--------------------
+
+    # Set number of cores to those requested with #SBATCH -c
+    export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+    
+elif [[ "x${LSB_JOBID}" != "x" ]]; then
+
+    #--------------------
+    # Run via LSF
+    #--------------------
+    # TODO
+    
+else
+    
+    #--------------------
+    # Run interactively 
+    #--------------------
+    
+    # For AWS, set $OMP_NUM_THREADS to the available cores
+    kernel=$(uname -r)
+    [[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
+
+fi
+
+# Sanity check: Set OMP_NUM_THREADS to 6 if it is not set
+# (this may happen when running interactively)
+[[ "x${OMP_NUM_THREADS}" == "x" ]] && export OMP_NUM_THREADS=6
+
+# Sanity check: Max out the OMP_STACKSIZE if it is not set
+[[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
 # Load common functions for tests
 . ${root}/commonFunctionsForTests.sh
 
-# Count the number of tests to be done = number of run directories
-numTests=$(count_rundirs ${root})
+#============================================================================
+# Load common variables and functions for tesets
+#============================================================================
+
+# Include global variables & functions
+. ${root}/commonFunctionsForTests.sh
+
+# Count the number of tests to be run (same as the # of run directories)
+numTests=$(count_rundirs "${root}")
 
 #============================================================================
 # Initialize results logfile
@@ -76,40 +120,40 @@ for runDir in *; do
 
 	# Define log file
 	log="${root}/logs/execute.${runDir}.log"
-	rm -f ${LOG}
+	rm -f "${log}"
 
 	# Messages for execution pass & fail
 	passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
 	failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
 	# Get the executable file corresponding to this run directory
-	exeFile=$(gcclassic_exe_name ${runDir})
+	exeFile=$(gcclassic_exe_name "${runDir}")
 
 	# Test if the executable exists
-	if [[ -f ${root}/exe_files/${exeFile} ]]; then
+	if [[ -f "${root}/exe_files/${exeFile}" ]]; then
 
 	    #----------------------------------------------------------------
 	    # If the executable file exists, we can do the test
 	    #----------------------------------------------------------------
 
 	    # Change to this run directory; remove leftover log file
-	    cd ${root}/${runDir}
+	    cd "${root}/${runDir}"
 
 	    # Copy the executable file here
-	    cp -f ${root}/exe_files/${exeFile} .
+	    cp -f "${root}/exe_files/${exeFile}" .
 
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.
-	    ./${exeFile} >> ${log} 2>&1
+	    srun -c ${OMP_NUM_THREADS} "./${exeFile}" >> "${log}" 2>&1
 	    if [[ $? -eq 0 ]]; then
 		let passed++
 		if [[ "x${results}" != "x" ]]; then
-		    print_to_log "${passMsg}" ${results}
+		    print_to_log "${passMsg}" "${results}"
 		fi
 	    else
 		let failed++
 		if [[ "x${results}" != "x" ]]; then
-		    print_to_log "${failMsg}" ${results}
+		    print_to_log "${failMsg}" "${results}"
 		fi
 	    fi
 
@@ -124,7 +168,7 @@ for runDir in *; do
 	    #----------------------------------------------------------------
 	    let failed++
 	    if [[ "x${results}" != "x" ]]; then
-		print_to_log "${failMsg}" ${results}
+		print_to_log "${failMsg}" "${results}"
 	    fi
 	fi
 
