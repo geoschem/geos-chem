@@ -37,14 +37,14 @@ Before you submit any GEOS-Chem Classic integration tests, take a moment and mak
 
 ```console
 $ cd test/GCClassic
-$ ./intTest.sh -s -d /path/to/test/dir -e /path/to/env-file
+$ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file -s -p partition
 ```
 
 ### With the LSF scheduler
 
 ```console
 $ cd test/GCClassic
-$ ./intTest.sh -l -d /path/to/test/dir -e /path/to/env-file
+$ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file -l -p partition
 ```
 
 ### Interactively at the command line
@@ -56,11 +56,13 @@ $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file
 
 ### Notes
 
-1. `/path/to/test/dir` specifies the root directory where integration test subdirectories will be placed.
-2. `/path/to/env-file` specifies the file that is used to initialize the software environment.  This file will typically contain either `module load` or `spack load` commands.
-3. You can also use long names for the option switches:
-   - `--slurm` instead of `-s`
-   - `--lsf` instead of `-l`
+1. `-d /path/to/test/dir` specifies the root directory where integration test subdirectories and scripts will be placed.
+2. `-e /path/to/env-file` specifies the file that is used to initialize the software environment.  This file will typically contain either `module load` or `spack load` commands.
+3. `-p partition` specifies the partition for the SLURM or LSF scheduler.  You may omit this for running interactively
+4. You can also use long names for the option switches:
    - `--directory` instead of `-d`
    - `--env-file` instead of `-e`
-4. There is an additional option (`-q` or `--quick`) that will run only a couple of integration tests instead of the full suite.  This is intendend for development and debugging.  You will normally not need to use this option.
+   - `--lsf` instead of `-l`
+   - `--partition` instead of `-p`
+   - `--slurm` instead of `-s`
+5. There is an additional option (`-q` or `--quick`) that will run only a couple of integration tests instead of the full suite.  This is intendend for development and debugging.  You will normally not need to use this option.

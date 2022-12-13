@@ -12,13 +12,14 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTest.sh -d root-directory -e env-file [-l] [-q] [-s]
+#  ./intTest.sh -d root-directory -e env-file [-l] [-p partition] [-q] [-s]
 #
 #  Where the command-line arguments are as follows:
 #
 #    -d root-directory : Specify the root folder for integration tests
 #    -e env-file       : Specify the environment file (w/ module loads)
 #    -l                : Select the LSF scheduler
+#    -p partition      : Select partition for SLURM or LSF schedulers
 #    -q                : Run a quick set of integration tests (for testing)
 #    -s                : Use the SLURM scheduler
 #
@@ -27,6 +28,7 @@
 #    --directory root-directory (instead of -d root-directory)
 #    --env-file  env-file       (instead of -e env-file      )
 #    --lsf                      (instead of -l               )
+#    --partition partition      (instead of -p partition     )
 #    --quick                    (instead of -q               )
 #    --slurm                    (instead of -s               )
 #EOP
@@ -37,10 +39,11 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-directory -e env-file [-s] [-l] [-q]"
+usage="Usage: ${this} -d root-directory -e env-file [-l] [-p partition] [-s] [-q]"
 int_test_root="none"
 env_file="none"
 scheduler="none"
+sed_cmd="none"
 quick="no"
 
 #=============================================================================
@@ -50,8 +53,8 @@ quick="no"
 
 # Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
-valid_args=$(getopt --options d:e:hlqs \
-		    --long directory:,env-file:,help,lsf,quick,slurm -- "$@")
+valid_args=$(getopt --options d:e:hlp:qs \
+		    --long directory:,env-file:,help,lsf,partition:,quick,slurm -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
@@ -91,6 +94,12 @@ while [ : ]; do
             shift
 	    ;;
 
+	# -p or --partition edits the SLURM and LSF tags
+	-p | --partition)
+	    sed_cmd="s/REQUESTED_PARTITION/${2}/"
+	    shift 2
+	    ;;
+
 	# -s or --slurm selects the SLURM scheduler
 	-s | --slurm)
 	    scheduler="SLURM"
@@ -113,6 +122,20 @@ fi
 # Error check environment file
 if [[ "x${env_file}" == "xnone" ]]; then
     echo "ERROR: The enviroment file (module loads) has not been specified!"
+    echo "${usage}"
+    exit 1
+fi
+
+# Exit if no partition has been selected for SLURM
+if [[ "x${scheduler}" == "xSLURM" && "x${sed_cmd}" == "xnone" ]]; then
+    echo "ERROR: You must specify a partition for SLURM."
+    echo "${usage}"
+    exit 1
+fi
+
+# Exit if no partition has been selected for SLURM
+if [[ "x${scheduler}" == "xLSF" && "x${sed_cmd}" == "xnone" ]]; then
+    echo "ERROR: You must specify a partition for LSF."
     echo "${usage}"
     exit 1
 fi
@@ -157,6 +180,10 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     # Integration tests will run via SLURM
     #----------------------------------------------
 
+    # Replace "REQUESTED_PARTITION" with the partition name
+    sed_ie "${sed_cmd}" "${int_test_root}/intTestCompile.sh"
+    sed_ie "${sed_cmd}" "${int_test_root}/intTestExecute.sh"
+
     # Submit compilation tests script
     output=$(sbatch intTestCompile.sh)
     output=($output)
@@ -178,6 +205,11 @@ elif [[ "x{$scheduler}" == "xLSF" ]]; then
     #----------------------------------------------
     echo "LSF has not been implemented yet"
     exit 1
+
+    # Future-proof: Add code for LSF
+    ## Replace "REQUESTED_PARTITION" with the partition name
+    #sed_ie "${sed_cmd}" "${int_test_root}/intTestCompile.sh"
+    #sed_ie "${sed_cmd}" "${int_test_root}/intTestExecute.sh"
 
 else
 
