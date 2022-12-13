@@ -23,7 +23,7 @@
 #    -s                : Use the SLURM scheduler
 #
 #  NOTE: you can also use the following long name options:
-# 
+#
 #    --directory root-directory (instead of -d root-directory)
 #    --env-file  env-file       (instead of -e env-file      )
 #    --lsf                      (instead of -l               )
@@ -48,7 +48,7 @@ quick="no"
 # See https://www.baeldung.com/linux/bash-parse-command-line-arguments
 #=============================================================================
 
-# Call Linux getopt function to specify short & long input options 
+# Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
 valid_args=$(getopt --options d:e:hlqs \
 		    --long directory:,env-file:,help,lsf,quick,slurm -- "$@")
@@ -78,27 +78,27 @@ while [ : ]; do
             echo "$usage"
             exit 1
             ;;
-	
+
 	# -l or --lsf selects the LSF scheduler
 	-l | --lsf)
 	    scheduler="LSF"
             shift
             ;;
-	
+
 	# -q or --quick runs a quick set of integration tests (for testing)
 	-q | --quick)
 	    quick="yes"
             shift
 	    ;;
-	
+
 	# -s or --slurm selects the SLURM scheduler
 	-s | --slurm)
 	    scheduler="SLURM"
             shift
             ;;
 
-	--) shift; 
-            break 
+	--) shift;
+            break
             ;;
     esac
 done
@@ -135,14 +135,14 @@ this_dir=$(pwd -P)
 int_test_root=$(absolute_path ${int_test_root})
 
 # Create GEOS-Chem run directories in the integration test root folder
-./intTestCreate.sh ${int_test_root} ${env_file} ${quick}
+./intTestCreate.sh "${int_test_root}" "${env_file}" "${quick}"
 if [[ $? -ne 0 ]]; then
-   exit 0
+   exit 1
 fi
 
 # Change to the integration test root folder
 if [[ -d ${int_test_root} ]]; then
-    cd ${int_test_root}
+    cd "${int_test_root}"
 else
     echo "ERROR: ${int_test_root} is not a valid directory!  Exiting..."
     exit 1
@@ -172,12 +172,12 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     echo "Execution   tests submitted as SLURM job ${exe_id}"
 
 elif [[ "x{$scheduler}" == "xLSF" ]]; then
-    
-    #----------------------------------------------
-    # Integration tests will run via LSF
-    #----------------------------------------------
 
-    # TODO
+    #----------------------------------------------
+    # Integration tests will run via LSF (TODO)
+    #----------------------------------------------
+    echo "LSF has not been implemented yet"
+    exit 1
 
 else
 
@@ -185,7 +185,9 @@ else
     # Integration tests will run interactively
     #----------------------------------------------
 
-    # Run compilation tests script
+    # Run compilation tests
+    echo ""
+    echo "Compiliation tests are running..."
     ./intTestCompile.sh
     if [[ $? != 0 ]]; then
 	echo ""
@@ -195,8 +197,10 @@ else
     fi
     echo ""
     echo "Compilation tests finished!"
-    
-    # Run execution tests script
+
+    # Run execution tests
+    echo ""
+    echo "Execution tests are running..."
     ./intTestExecute.sh
     if [[ $? != 0 ]]; then
 	echo ""

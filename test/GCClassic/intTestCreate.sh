@@ -50,7 +50,7 @@ if [[ ! -f ${envFile} ]]; then
 fi
 
 # Run a short integration test?
-short=${3}
+quick=${3}
 
 #=============================================================================
 # Global variable and function definitions
@@ -60,9 +60,10 @@ short=${3}
 testDir=$(pwd -P)
 cd ${testDir}
 
-# Top-level GEOS-Chem directory
+# Top-level GEOS-Chem and HEMCO directories
 cd ../..
 geosChemDir=$(pwd -P)
+hemcoDir=${geosChemDir/GEOS-Chem/HEMCO}
 
 # GCClassic superproject directory
 cd ../../
@@ -81,9 +82,20 @@ root=$(absolute_path ${root})
 # Log file
 log=${root}/logs/createIntTests.log
 
+# Get the Git commit of the superproject and submodules
+head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+	   git -C "$superProjectDir" log --oneline --no-decorate -1)
+head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+	  git -C "$geosChemDir" log --oneline --no-decorate -1)
+head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+	   git -C "$hemcoDir" log --oneline --no-decorate -1)
+
 # Echo header
 printf "${SEP_MAJOR}\n"
-printf "Creating GCClassic Integration Tests\n"
+printf "Creating GCClassic Integration Tests\n\n"
+printf "GCClassic #${head_gcc}\n"
+printf "GEOS_Chem #${head_gc}\n"
+printf "HEMCO     #${head_hco}\n"
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
@@ -108,10 +120,10 @@ echo " ... ${root}/exe_files"
 mkdir -p ${root}/exe_files
 
 # Make the build directories
-if [[ ! -d ${root}/build ]]; then
-s    for dir in ${EXE_BUILD_LIST[@]}; do
+if [[ ! -d "${root}/build" ]]; then
+    for dir in ${EXE_BUILD_LIST[@]}; do
 	echo " ... ${root}/build/${dir}"
-	mkdir -p ${root}/build/${dir}
+	mkdir -p "${root}/build/${dir}"
     done
 fi
 
@@ -125,9 +137,9 @@ cp -f ${testDir}/commonFunctionsForTests.sh ${root}
 ln -s ${superProjectDir} ${root}/CodeDir
 
 # Create log directory
-if [[ !(-d ${root}/logs) ]]; then
+if [[ !(-d "${root}/logs") ]]; then
     printf "\nCreating log directory: ${root}/logs\n"
-    mkdir ${root}/logs
+    mkdir "${root}/logs"
 fi
 
 # Change to the directory where we will create the rundirs
@@ -154,7 +166,7 @@ create_rundir "1\n1\n1\n2\n1\n${root}\n${dir}\nn\n"       ${root} ${dir} ${log}
 
 # DEBUG: Exit after creating a couple of rundirs
 # if the 2nd argument is passed and not a null string
-if [[ "x${short}" != "x" ]]; then
+if [[ "x${quick}" != "x" ]]; then
     cd ${testDir}
     exit 0
 fi

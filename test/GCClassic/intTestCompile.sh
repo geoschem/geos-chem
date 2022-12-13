@@ -30,12 +30,22 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of this folder
+# Get the long path of the integration test folder
 root=$(pwd -P)
 
-# Load the environment and the software environment
-. ~/.bashrc
-. ${root}/gcclassic_env.sh
+# Load the user-environment and the software environment
+. ~/.bashrc                > /dev/null 2>&1
+. ${root}/gcclassic_env.sh > /dev/null 2>&1
+
+# All integration tests will use debugging features
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"
+# Get the Git commit of the superproject and submodules
+head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+	   git -C "./CodeDir" log --oneline --no-decorate -1)
+head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+	  git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+	   git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
 
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
 
@@ -45,20 +55,21 @@ if [[ "x${SLURM_JOBID}" != "x" ]]; then
 
     # Set number of cores to those requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
-    
+
 elif [[ "x${LSB_JOBID}" != "x" ]]; then
 
     #--------------------
-    # Run via LSF
+    # Run via LSF (TODO)
     #--------------------
-    # TODO
-    
+    echo "LSF support is coming soon!"
+    exit 1
+
 else
-    
+
     #--------------------
-    # Run interactively 
+    # Run interactively
     #--------------------
-    
+
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
     [[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
@@ -71,9 +82,6 @@ fi
 
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
-
-# All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"
 
 #============================================================================
 # Load common variables and functions for tesets
@@ -94,19 +102,23 @@ results="${root}/logs/results.compile.log"
 rm -f ${results}
 
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                                ${results}
-print_to_log "GEOS-Chem Classic: Compilation Test Results" ${results}
-print_to_log ""                                            ${results}
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     ${results}
-print_to_log "Number of compilation tests: ${numTests}"    ${results}
-print_to_log "${SEP_MAJOR}"                                ${results}
+print_to_log "${SEP_MAJOR}"                                "${results}"
+print_to_log "GEOS-Chem Classic: Compilation Test Results" "${results}"
+print_to_log ""                                            "${results}"
+print_to_log "GCClassic #${head_gcc}"                      "${results}"
+print_to_log "GEOS-Chem #${head_gc}"                       "${results}"
+print_to_log "HEMCO     #${head_hco}"                      "${results}"
+print_to_log ""                                            "${results}"
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     "${results}"
+print_to_log "Number of compilation tests: ${numTests}"    "${results}"
+print_to_log "${SEP_MAJOR}"                                "${results}"
 
 #============================================================================
 # Configure and compile code in each GEOS_Chem run directory
 #============================================================================
-print_to_log " "                   ${results}
-print_to_log "Compiliation tests:" ${results}
-print_to_log "${SEP_MINOR}"        ${results}
+print_to_log " "                   "${results}"
+print_to_log "Compiliation tests:" "${results}"
+print_to_log "${SEP_MINOR}"        "${results}"
 
 # Change to the top-level build directory
 cd ${root}
@@ -143,19 +155,19 @@ done
 #============================================================================
 
 # Print summary to log
-print_to_log " "                                           ${results}
-print_to_log "Summary of compilation test results:"        ${results}
-print_to_log "${SEP_MINOR}"                                ${results}
-print_to_log "Complilation tests passed:        ${passed}" ${results}
-print_to_log "Complilation tests failed:        ${failed}" ${results}
-print_to_log "Complilation tests not completed: ${remain}" ${results}
+print_to_log " "                                           "${results}"
+print_to_log "Summary of compilation test results:"        "${results}"
+print_to_log "${SEP_MINOR}"                                "${results}"
+print_to_log "Complilation tests passed:        ${passed}" "${results}"
+print_to_log "Complilation tests failed:        ${failed}" "${results}"
+print_to_log "Complilation tests not completed: ${remain}" "${results}"
 
 # Check if all tests passed
 if [[ "x${passed}" == "x${numTests}" ]]; then
-    print_to_log ""                                        ${results}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
-    print_to_log "%%%  All compilation tests passed!  %%%" ${results}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ${results}
+    print_to_log ""                                        "${results}"
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" "${results}"
+    print_to_log "%%%  All compilation tests passed!  %%%" "${results}"
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" "${results}"
 fi
 
 #============================================================================
@@ -166,6 +178,9 @@ fi
 unset baseOptions
 unset failed
 unset dir
+unset head_gcc
+unset head_gc
+unset head_hco
 unset kernel
 unset log
 unset numTests

@@ -279,8 +279,8 @@ function cleanup_files() {
 	printf "If this is OK, type 'yes to proceed or 'no' to quit:\n"
 	read answer
 	if [[ ! ${answer} =~ [Yy][Ee][Ss] ]]; then
-	    printf "Exiting..."
-	    return 1
+	    printf "Exiting...\n"
+	    exit 1
 	fi
 
 	# Remove files and unlink links
