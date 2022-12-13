@@ -160,6 +160,7 @@ int_test_root=$(absolute_path ${int_test_root})
 # Create GEOS-Chem run directories in the integration test root folder
 ./intTestCreate.sh "${int_test_root}" "${env_file}" "${quick}"
 if [[ $? -ne 0 ]]; then
+   echo "ERROR: Could not create integration test run directories!"
    exit 1
 fi
 
