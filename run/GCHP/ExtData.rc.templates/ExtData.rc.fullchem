@@ -2115,18 +2115,8 @@ surf_iodide   1 Y Y F1970-%m2-01T00:00:00 none none Ensemble_Monthly_mean ./HcoD
 # --- annual scale factors ---
 #==============================================================================
 # Need DC0360xPC0181_CFnnnnx6C.bin
-TOTFUEL_THISYR    1 N Y F%y4-01-01T00:00:00  none none NOxscalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2002      1 N Y F2002-01-01T00:00:00 none none NOxscalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none NOxscalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_THISYR    1 N Y F%y4-01-01T00:00:00  none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_1985      1 N Y F1985-01-01T00:00:00 none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2006      1 N Y F2006-01-01T00:00:00 none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2002      1 N Y F2002-01-01T00:00:00 none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_THISYR    1 N Y F%y4-01-01T00:00:00  none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2002      1 N Y F2002-01-01T00:00:00 none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2008      1 N Y F2008-01-01T00:00:00 none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 #
 #==============================================================================
 # --- Diurnal scale factors ---
