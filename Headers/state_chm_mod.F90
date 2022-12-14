@@ -2071,7 +2071,7 @@ CONTAINS
     !========================================================================
     ! Print out the list of registered fields
     !========================================================================
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 10 )
  10    FORMAT( /, 'Registered variables contained within the State_Chm object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )

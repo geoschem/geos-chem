@@ -216,7 +216,7 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     !========================================================================
     ! Accumulation mode (SALA) wet settling
@@ -534,7 +534,7 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     DTCHEM   = GET_TS_CHEM()    ! Chemistry timestep [s]
     DEN      = SS_DEN( N )      ! Sea salt density [kg/m3]
     ErrMsg   = ''

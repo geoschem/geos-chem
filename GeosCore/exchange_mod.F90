@@ -805,7 +805,7 @@ CONTAINS
     ! developers (ewl, 8/15/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     SPC      => State_Chm%Species
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug =  ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     IU_RST=2
     IF ( Input_Opt%amIRoot ) THEN
        WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_DUMP_FOR_GLOBAL"
@@ -908,7 +908,7 @@ CONTAINS
     ! 3rd party developers (ewl, 8/15/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     SPC      => State_Chm%Species
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug =  ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     IU_RST=2
     IOS=1
     NI=IM_BC_CH

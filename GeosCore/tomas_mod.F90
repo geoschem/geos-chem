@@ -528,7 +528,7 @@ CONTAINS
     Spc => State_Chm%Species
 
     ! Get logical values from Input_Opt
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Initialize debugging and error-signal switches
     printneg    = .FALSE.
@@ -7400,7 +7400,7 @@ CONTAINS
     RC        =  GC_SUCCESS
 
     ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Point to chemical species array [kg]
     Spc       => State_Chm%Species

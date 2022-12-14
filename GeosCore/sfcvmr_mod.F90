@@ -146,7 +146,7 @@ CONTAINS
     SpcInfo   => NULL()
 
     ! Verbose output -- only when debug printout is on (bmy, 05 Dec 2022)
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) 
  100   FORMAT('--- Initialize surface boundary conditions from input file ---')
     ENDIF
@@ -190,7 +190,7 @@ CONTAINS
            SfcMrHead         => iSfcMrObj
 
            ! Only write messages if debug printout is on (bmy, 05 Dec 2022)
-           IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT) THEN
+           IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose) THEN
               WRITE( 6, 110 ) TRIM( SpcInfo%Name ), TRIM( iSfcMrObj%FldName )
  110          FORMAT( '--> ', a, ' will use prescribed surface boundary ',   &
                       'conditions from field ', a )
@@ -206,7 +206,7 @@ CONTAINS
 
     ! If successful, print message 
     ! Now only print when debug printout is on (bmy, 05 Dec 2022)    
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT .AND. RC == GC_SUCCESS) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose .AND. RC == GC_SUCCESS) THEN
        WRITE( 6, 120 )
  120   FORMAT( '--- Finished initializing surface boundary conditions ---' )
     ENDIF

@@ -277,7 +277,7 @@ CONTAINS
 
     ! Assume success
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.F90)'
 
@@ -718,7 +718,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     errMsg   = ''
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     thisLoc  = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
     itim     =  0.0_fp            ! For KPP timing
     rtim     =  0.0_fp            ! For KPP timing
@@ -1628,7 +1628,7 @@ CONTAINS
     thisLoc   = ' -> at Get_HgOxConc (in GeosCore/mercury_mod.F90)'
 
     ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     !=================================================================
     ! Set instantaneous species concentrations
@@ -2540,7 +2540,7 @@ CONTAINS
 
     ! Assume success
     RC        =  GC_SUCCESS                                ! Success?
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Debug prints?
+    prtDebug  = ( Input_Opt%Verbose .and. Input_Opt%amIRoot ) ! Debug prints?
     DT        = Get_Ts_Chem()                              ! Chem timestep [s]
     errMsg    = ''
     thisLoc   = ' -> at SeaSaltUptake (in GeosCore/mercury_mod.F90)'

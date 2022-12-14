@@ -127,7 +127,7 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Init (in module ObsPack/obspack_mod.F90'
 
@@ -1335,7 +1335,7 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
     prtLog   = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
-    prtDebug = (Input_Opt%amIRoot .and. Input_Opt%LPRT                    )
+    prtDebug = (Input_Opt%amIRoot .and. Input_Opt%Verbose                    )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).

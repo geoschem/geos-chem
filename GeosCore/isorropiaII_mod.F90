@@ -263,7 +263,7 @@ CONTAINS
     ! Copy fields from INPUT_OPT to local variables for use below
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug             = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Zero State_Chm arrays to avoid leftover values from hanging
     ! around between calls -- especially up near the tropopause
@@ -427,7 +427,7 @@ CONTAINS
        ENDIF
 
        ! Print out only when debug output is on (bmy, 05 Dec 2022)
-       IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
           WRITE( 6, 110 )
           WRITE( 6, 100 ) REPEAT( '=', 79 )

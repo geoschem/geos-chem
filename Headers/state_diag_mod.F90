@@ -2190,7 +2190,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Write header
     !------------------------------------------------------------------------
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 10 )
  10    FORMAT(/, 'Allocating the following fields of the State_Diag object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -9034,7 +9034,7 @@ CONTAINS
     !========================================================================
     ! Print information about the registered fields (short format)
     !========================================================================
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
             'Registered variables contained within the State_Diag object:' )
@@ -14991,7 +14991,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15176,7 +15176,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15357,7 +15357,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15548,7 +15548,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15733,7 +15733,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -15911,7 +15911,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF

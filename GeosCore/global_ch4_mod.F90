@@ -158,7 +158,7 @@ CONTAINS
     ITS_A_CH4_SIM  = Input_Opt%ITS_A_CH4_SIM
 
     ! Do we have to print debug output?
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
        print*,'BEGIN SUBROUTINE: EMISSCH4'
@@ -662,7 +662,7 @@ CONTAINS
 
     ! Copy values from Input_Opt
     LSPLIT  = Input_Opt%LSPLIT
-    prtDebug= ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug= ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Point to the chemical species
     Spc     => State_Chm%Species

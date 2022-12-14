@@ -279,7 +279,7 @@ CONTAINS
     LSULF   = Input_Opt%LSULF
 
     ! Do we have to print debug output?
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug   = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Define logical flags
     IS_OCPI    = ( id_OCPI  > 0 )
@@ -1288,7 +1288,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) WRITE( 6, 100 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 100 )
 100       FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
        ENDIF
 
@@ -1326,7 +1326,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) WRITE( 6, 110 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 110 )
 110       FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
        ENDIF
 
@@ -1377,7 +1377,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
              WRITE( 6, 120 )
 120          FORMAT( '     - RDAER: Using online SALA SALC' )
           ENDIF

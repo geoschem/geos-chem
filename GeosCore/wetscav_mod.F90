@@ -186,7 +186,7 @@ CONTAINS
     ITS_A_POPS_SIM    = Input_Opt%ITS_A_POPS_SIM
 
     ! Only print output on the root CPU
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     !------------------------------------------------------------------------
     ! WetDep budget diagnostics - Part 1 of 2
@@ -5638,7 +5638,7 @@ CONTAINS
     !=================================================================
     ! Print information about wet-depositing species
     !=================================================================
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT                              &
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose                              &
                            .and. State_Chm%nWetDep > 0 ) THEN
 
        ! Title

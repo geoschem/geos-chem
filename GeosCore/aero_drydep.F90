@@ -130,7 +130,7 @@
     DTCHEM    = GET_TS_CHEM()
 
     ! Get logical values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
     Spc      => State_Chm%Species

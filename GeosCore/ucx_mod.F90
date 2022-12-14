@@ -327,7 +327,7 @@ CONTAINS
     !=================================================================
 
     ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Point to GEOS-Chem species array
     Spc => State_Chm%Species
@@ -684,7 +684,7 @@ CONTAINS
     !=================================================================
 
     ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Clear interpolated arrays
     NOX_O = 0e+0_fp
@@ -1449,7 +1449,7 @@ CONTAINS
     !=================================================================
 
     ! Copy fields from INPUT_OPT
-    prtDebug = Input_Opt%LPRT .and. Input_Opt%amIRoot
+    prtDebug = Input_Opt%Verbose .and. Input_Opt%amIRoot
 
     ! Copy fields from species database
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
@@ -1720,7 +1720,7 @@ CONTAINS
     LACTIVEH2O  = Input_Opt%LACTIVEH2O
 
     ! Do we have to print debug output?
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Copy fields from species database
     NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%MW_g   ! g/mol
@@ -4032,7 +4032,7 @@ CONTAINS
     !=================================================================
 
     ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! --------------------------------------------------------------
     ! Input data sources
@@ -4367,7 +4367,7 @@ CONTAINS
          .not. Input_Opt%ITS_AN_AEROSOL_SIM ) RETURN
 
     ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Initialize species ID flags
     id_BCPI  = Ind_('BCPI'      )

@@ -1880,7 +1880,7 @@ CONTAINS
     ! Compute the number of PBL levels
     ! Write out the message as debug output (bmy, 05 Dec 2022)
     npbl = MAX( 1, plev - k )
-    IF ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
        WRITE(6,*) 'Init_Vdiff: pbl height will be limited to bottom ',npbl,  &
             ' model levels.'
        WRITE(6,*) 'Top is ',ref_pmid(plevp-npbl),' hpa'
@@ -2246,7 +2246,7 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS                                ! Assume success
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Print debug output?
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot ) ! Print debug output?
     ErrMsg   = ''
     ThisLoc  = ' -> at DO_PBL_MIX_2 (in module GeosCore/vdiff_mod.F90)'
 

@@ -79,7 +79,8 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
-     LOGICAL                     :: LPRT
+     LOGICAL                     :: Verbose
+     LOGICAL                     :: VerboseAndRoot
      LOGICAL                     :: useTimers
 
      !----------------------------------------
@@ -580,7 +581,8 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
-    Input_Opt%LPRT                   = .FALSE.
+    Input_Opt%Verbose                = .FALSE.
+    Input_Opt%VerboseAndRoot         = .FALSE.
     Input_Opt%useTimers              = .FALSE.
 
     !----------------------------------------

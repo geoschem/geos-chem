@@ -349,7 +349,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: prtDebug
     INTEGER            :: N
     CHARACTER(LEN=63)  :: OrigUnit
 
@@ -366,9 +365,6 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = &
   ' -> at fullchem_SulfurCldChem (in KPP/fullchem/fullchem_SulfurChemFuncs.F90'
-
-    ! Should we print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !------------------------------------------------------------------------
     ! SO2 chemistry

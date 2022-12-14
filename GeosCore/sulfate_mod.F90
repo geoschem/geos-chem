@@ -307,7 +307,7 @@ CONTAINS
     Spc                  => State_Chm%Species  ! Chemistry species [kg]
 
     ! Should we print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug             = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Get current month
     MONTH                = GET_MONTH()
@@ -1022,7 +1022,7 @@ CONTAINS
     Ptr3D    => NULL()
 
     ! COpy values from Input_Opt
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     LNLPBL   = Input_Opt%LNLPBL
 
     ! Import emissions from HEMCO (through HEMCO state)

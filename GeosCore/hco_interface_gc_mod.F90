@@ -3692,7 +3692,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
-    prtDebug = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
+    prtDebug = ( Input_Opt%amIRoot .and. Input_Opt%Verbose )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at SetHcoSpecies (in module GeosCore/hco_interface_gc_mod.F90)'
@@ -4366,7 +4366,7 @@ CONTAINS
     ENDIF
 
     ! Print value of shadow fields (only if debug output is requested)
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'

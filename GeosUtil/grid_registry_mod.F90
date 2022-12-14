@@ -827,7 +827,7 @@ CONTAINS
     !=======================================================================
     ! Print info about registered variables
     !=======================================================================
-    IF ( Input_Opt%amIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Header line
        WRITE( 6, 10 )

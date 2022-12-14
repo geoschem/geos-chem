@@ -155,7 +155,7 @@ CONTAINS
     ! Initialize
     RC        = GC_SUCCESS
     ErrMsg    = ''
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     ThisLoc   = ' -> at Do_Chemistry  (in module GeosCore/chemistry_mod.F90)'
 
     ! Save species ID"s on first call
@@ -1175,7 +1175,7 @@ CONTAINS
     RC       = GC_SUCCESS
     MONTH    = GET_MONTH()
     YEAR     = GET_YEAR()
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at Recompute_OD  (in module GeosCore/chemistry_mod.F90)'
 
@@ -1332,7 +1332,7 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F90)'

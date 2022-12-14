@@ -486,7 +486,7 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-    prtDebug  = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
+    prtDebug  = ( Input_Opt%amIRoot .and. Input_Opt%Verbose )
     ErrMsg    = ''
     ThisLoc   = &
        ' -> at GC_Init_Extra (in module GeosCore/gc_environment_mod.F90)'

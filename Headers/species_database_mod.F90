@@ -170,7 +170,7 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug   = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     errMsg     = ""
     thisLoc    = &
     " -> at Init_Species_Database (in module Headers/species_database_mod.F90"

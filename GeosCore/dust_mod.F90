@@ -129,7 +129,6 @@ CONTAINS
     LOGICAL            :: LDRYD
     LOGICAL            :: LDUST
     LOGICAL            :: LDSTUP
-    LOGICAL            :: prtDebug
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
@@ -154,9 +153,6 @@ CONTAINS
     LDRYD  = Input_Opt%LDRYD
     LDUST  = Input_Opt%LDUST
     LDSTUP = Input_Opt%LDSTUP
-
-    ! Set a flag for debug output
-    prtDebug = ( Input_Opt%LPrt .and. Input_Opt%amIRoot )
 
     ! Execute on first call only
     IF ( FIRST ) THEN
@@ -316,7 +312,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%VerboseAndRoot ) THEN
        CALL DEBUG_MSG( '### CHEMDUST: a DRY_SETTLING' )
     ENDIF
 
@@ -581,7 +577,6 @@ CONTAINS
     ! Non-SAVEd scalars
     LOGICAL           :: LDEAD
     LOGICAL           :: LDUST
-    LOGICAL           :: prtDebug
     LOGICAL           :: LINTERP
     INTEGER           :: I, J, K, N
     REAL(fp)          :: MEMIS
@@ -606,7 +601,6 @@ CONTAINS
     ! Initialize
     LDEAD     =  Input_Opt%LDEAD
     LDUST     =  Input_Opt%LDUST
-    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Execute on first-call only
     IF ( FIRST ) THEN
@@ -644,7 +638,9 @@ CONTAINS
           STOP
 
        ELSE
-          IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
+          IF ( Input_Opt%VerboseAndRoot ) THEN
+             CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
+          ENDIF
        ENDIF
 
 #ifdef BPCH_DIAG

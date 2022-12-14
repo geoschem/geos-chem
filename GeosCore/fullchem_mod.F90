@@ -227,7 +227,7 @@ CONTAINS
     ErrMsg    =  ''
     ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
     SpcInfo   => NULL()
-    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  =  ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     Day       =  Get_Day()    ! Current day
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
@@ -1591,7 +1591,7 @@ CONTAINS
     IF ( .not. FirstChem ) RETURN
 
     ! Print on the root CPU only (only if debug printout is on)
-    IF ( Input_Opt%AmIRoot .and. Input_Opt%LPRT ) THEN
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Write header
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -2464,7 +2464,7 @@ CONTAINS
     !=======================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Debug output
     IF ( prtDebug ) THEN

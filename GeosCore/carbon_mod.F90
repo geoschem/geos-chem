@@ -407,7 +407,7 @@ CONTAINS
     SOAP_LIFETIME        = 1.00_fp * 24.0_fp * 60.0_fp * 60.0_fp
 
     ! Do we have to print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug             = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Point to chemical species vector containing concentrations
     Spc                  => State_Chm%Species
@@ -1646,7 +1646,7 @@ CONTAINS
    Spc          => State_Chm%Species
 
    ! Do we have to print debug output?
-   prtDebug     = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+   prtDebug     = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
    ! Zero some diagnostics (hotp 5/17/10)
    GLOB_POGRXN  = 0e+0_fp
@@ -3254,7 +3254,7 @@ CONTAINS
    KOM_REF(2,IDSV(PARENTOPOA)) = KOM_REF(2,IDSV(PARENTPOA)) * 100e+0_fp
 
    ! debug print checks (hotp 7/22/09)
-   IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%Verbose .and. Input_Opt%amIRoot ) THEN
       print*, 'Semivolatile POA settings:---------------'
       print*, ' ALPHA:   ', ALPHA(1,1,9), ALPHA(1,2,9)
       ! OCFPOA and OCFOPOA are now 2D arrays
@@ -4930,7 +4930,7 @@ CONTAINS
    RC                  = GC_SUCCESS
 
    ! Print debug output?
-   prtDebug            = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+   prtDebug            = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
    ! Get nested-grid offsets
    I0                  = State_Grid%XMinOffset
@@ -6632,7 +6632,7 @@ CONTAINS
    Spc => State_Chm%Species
 
    ! Do we have to print debug output?
-   prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+   prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
    ! run in serial now (hotp 6/5/10)
    ! Make parallel again (mpayer, 9/14/11)

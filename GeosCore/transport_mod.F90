@@ -373,7 +373,7 @@ CONTAINS
 
     ! Initialize
     LFILL       =  Input_Opt%LFILL
-    prtDebug    =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug    =  ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     IORD        =  Input_Opt%TPCORE_IORD
     JORD        =  Input_Opt%TPCORE_JORD
     KORD        =  Input_Opt%TPCORE_KORD
@@ -601,7 +601,7 @@ CONTAINS
     JORD        =  Input_Opt%TPCORE_JORD
     KORD        =  Input_Opt%TPCORE_KORD
     nAdvect     =  State_Chm%nAdvect
-    prtDebug    =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug    =  ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
     p_A_M2      => NULL()
@@ -800,7 +800,7 @@ CONTAINS
     ! Initialize
     !=================================================================
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
+    prtDebug = ( Input_Opt%amIRoot .and. Input_Opt%Verbose )
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_Transport (in module GeosCore/transport_mod.F90)'
 
