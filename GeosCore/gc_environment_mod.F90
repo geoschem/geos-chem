@@ -477,7 +477,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: prtDebug
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -486,7 +485,6 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-    prtDebug  = ( Input_Opt%amIRoot .and. Input_Opt%Verbose )
     ErrMsg    = ''
     ThisLoc   = &
        ' -> at GC_Init_Extra (in module GeosCore/gc_environment_mod.F90)'
@@ -800,7 +798,7 @@ CONTAINS
 #endif
 #endif
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
+    IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 
   END SUBROUTINE GC_Init_Extra
 !EOC

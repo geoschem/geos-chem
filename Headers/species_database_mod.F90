@@ -128,7 +128,6 @@ CONTAINS
     LOGICAL                     :: found_wd_rainouteff_luo
     LOGICAL                     :: found_wd_retfactor_luo
     LOGICAL                     :: no_luo
-    LOGICAL                     :: prtDebug
     LOGICAL                     :: v_bool
     LOGICAL                     :: wd_liqandgas_luo
     INTEGER                     :: v_int
@@ -170,7 +169,6 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    prtDebug   = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     errMsg     = ""
     thisLoc    = &
     " -> at Init_Species_Database (in module Headers/species_database_mod.F90"
@@ -821,7 +819,9 @@ CONTAINS
 #endif
 
        ! Debug printout
-       IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       IF ( Input_Opt%VerboseAndRoot ) THEN
+          CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       ENDIF
 
        ! Free pointer
        ThisSpc => NULL()

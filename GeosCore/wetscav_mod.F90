@@ -161,7 +161,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                 :: prtDebug
     INTEGER                 :: TS_Dyn
     REAL(f8)                :: DT_Dyn
 
@@ -184,9 +183,6 @@ CONTAINS
     LDYNOCEAN         = Input_Opt%LDYNOCEAN
     ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
     ITS_A_POPS_SIM    = Input_Opt%ITS_A_POPS_SIM
-
-    ! Only print output on the root CPU
-    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     !------------------------------------------------------------------------
     ! WetDep budget diagnostics - Part 1 of 2
@@ -255,7 +251,9 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+    IF ( Input_Opt%VerboseAndRoot ) THEN
+       CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+    ENDIF
 
     !-----------------------------------------
     ! Do wet deposition
@@ -277,7 +275,9 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+    IF ( Input_Opt%VerboseAndRoot ) THEN
+       CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+    ENDIF
 
     !------------------------------------------------------------------------
     ! Wet deposition budget diagnostics - Part 2 of 2

@@ -202,7 +202,6 @@ CONTAINS
     LOGICAL            :: IT_IS_A_TAGO3_SIM
 
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: I,     J,       L,   N
     INTEGER            :: NN
     REAL(fp)           :: dt,    P,       k,   M0,  RC
@@ -242,7 +241,6 @@ CONTAINS
     LSYNOZ               = Input_Opt%LSYNOZ
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM
-    prtDebug             = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
     Spc                  => NULL()
     AD                   => NULL()
     T                    => NULL()
@@ -306,7 +304,7 @@ CONTAINS
     ENDIF
 #endif
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%VerboseAndRoot ) THEN
        CALL DEBUG_MSG( '### LINEAR_CHEM: at DO_LINEAR_CHEM' )
     ENDIF
 

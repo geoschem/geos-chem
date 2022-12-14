@@ -239,7 +239,6 @@ CONTAINS
     LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
     LOGICAL, SAVE            :: USE_HNO3_FROM_HEMCO = .FALSE.
     LOGICAL, SAVE            :: USE_HCl_FROM_HEMCO  = .FALSE.
-    LOGICAL                  :: prtDebug
 
     ! Pointers
     TYPE(SpcConc), POINTER   :: Spc(:)
@@ -263,7 +262,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT to local variables for use below
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-    prtDebug             = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Zero State_Chm arrays to avoid leftover values from hanging
     ! around between calls -- especially up near the tropopause
@@ -992,7 +990,9 @@ CONTAINS
     Spc => NULL()
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
+    IF ( Input_Opt%VerboseAndRoot ) THEN
+       CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
+    ENDIF
 
   END SUBROUTINE DO_ISORROPIAII
 !EOC

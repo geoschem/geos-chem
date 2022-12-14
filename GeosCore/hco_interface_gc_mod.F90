@@ -3672,7 +3672,6 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug
     INTEGER                :: nSpc, HMRC
     INTEGER                :: N,    L,    M
     REAL(dp)               :: K0,   CR,   pKa
@@ -3692,7 +3691,6 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     HMRC     = HCO_SUCCESS
-    prtDebug = ( Input_Opt%amIRoot .and. Input_Opt%Verbose )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at SetHcoSpecies (in module GeosCore/hco_interface_gc_mod.F90)'
@@ -3738,7 +3736,7 @@ CONTAINS
        IF ( PHASE == 2 ) THEN
 
           ! Verbose (only written if debug printout is requested)
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%VerboseAndRoot ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -3768,7 +3766,9 @@ CONTAINS
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
              ! Logfile output (only written if debug printout is requested)
-             IF ( prtDebug ) CALL HCO_SPEC2LOG( HcoState, N )
+             IF ( Input_Opt%VerboseAndRoot ) THEN
+                CALL HCO_SPEC2LOG( HcoState, N )
+             ENDIF
 
              ! Free pointer memory
              SpcInfo => NULL()
@@ -3789,7 +3789,9 @@ CONTAINS
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
              ! Logfile output (only written if debug output is requested)
-             IF ( prtDebug ) CALL HCO_SPEC2LOG(  HcoState, N )
+             IF ( Input_Opt%VerboseAndRoot ) THEN 
+                CALL HCO_SPEC2LOG(  HcoState, N )
+             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
@@ -3829,12 +3831,16 @@ CONTAINS
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
                 ! Logfile output (only written if debug printout is requested)
-                IF ( prtDebug ) CALL HCO_SPEC2LOG( HcoState, M )
+                IF ( Input_Opt%VerboseAndRoot ) THEN
+                   CALL HCO_SPEC2LOG( HcoState, M )
+                ENDIF
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( prtDebug ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          IF ( Input_Opt%VerboseAndRoot ) THEN
+             CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          ENDIF
        ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------

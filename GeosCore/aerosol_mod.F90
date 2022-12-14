@@ -230,7 +230,6 @@ CONTAINS
     REAL(fp)            :: REFF
 
     ! Logical flags
-    LOGICAL             :: prtDebug
     LOGICAL             :: LCARB
     LOGICAL             :: LDUST
     LOGICAL             :: LSSALT
@@ -277,9 +276,6 @@ CONTAINS
     LDUST   = Input_Opt%LDUST
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
-
-    ! Do we have to print debug output?
-    prtDebug   = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Define logical flags
     IS_OCPI    = ( id_OCPI  > 0 )
@@ -416,7 +412,7 @@ CONTAINS
                             ( Rho_wet / Rho_dry ) )
 
        ! Print values to log file
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%VerboseAndRoot ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'

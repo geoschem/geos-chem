@@ -200,7 +200,6 @@ CONTAINS
 
     LOGICAL       :: AOD999
     LOGICAL, SAVE :: FIRST = .true.
-    LOGICAL       :: prtDebug
 
     ! Species ID flags
     INTEGER, SAVE :: id_O3
@@ -216,7 +215,6 @@ CONTAINS
     RC        = GC_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' -> at Fast_JX (in module GeosCore/fast_jx_mod.F)'
-    prtDebug  = ( Input_Opt%Verbose .and. Input_Opt%amIRoot)
 
     ! Get day of year (0-365 or 0-366)
     DAY_OF_YR = GET_DAY_OF_YEAR()

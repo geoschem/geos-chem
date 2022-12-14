@@ -342,7 +342,7 @@ CONTAINS
 #endif
 
     !### Debug
-    IF ( Input_Opt%Verbose .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%VerboseAndRoot ) THEN
        CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
     ENDIF
 

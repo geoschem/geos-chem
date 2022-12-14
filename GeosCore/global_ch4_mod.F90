@@ -130,7 +130,6 @@ CONTAINS
 
     ! For fields from Input_Opt
     LOGICAL            :: ITS_A_CH4_SIM
-    LOGICAL            :: prtDebug
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Arrays of state vector elements for applying emissions perturbations
@@ -157,10 +156,7 @@ CONTAINS
     ! Copy values from Input_Opt
     ITS_A_CH4_SIM  = Input_Opt%ITS_A_CH4_SIM
 
-    ! Do we have to print debug output?
-    prtDebug = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
-
-    IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%VerboseAndRoot ) THEN
        print*,'BEGIN SUBROUTINE: EMISSCH4'
     ENDIF
 
@@ -482,7 +478,7 @@ CONTAINS
     ! =================================================================
     CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,15))
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%VerboseAndRoot ) THEN
        WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
        WRITE(*,*) 'Total        : ', SUM(CH4_EMIS(:,:,1))
        WRITE(*,*) 'Oil          : ', SUM(CH4_EMIS(:,:,2))
@@ -554,7 +550,7 @@ CONTAINS
 
     ENDIF
 
-    IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%VerboseAndRoot ) THEN
        print*,'END SUBROUTINE: EMISSCH4'
     ENDIF
 
@@ -642,7 +638,6 @@ CONTAINS
 
     ! For fields from Input_Opt
     LOGICAL            :: LSPLIT
-    LOGICAL            :: prtDebug
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -662,12 +657,11 @@ CONTAINS
 
     ! Copy values from Input_Opt
     LSPLIT  = Input_Opt%LSPLIT
-    prtDebug= ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
 
     ! Point to the chemical species
     Spc     => State_Chm%Species
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%VerboseAndRoot ) THEN
        WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
     ENDIF
 
