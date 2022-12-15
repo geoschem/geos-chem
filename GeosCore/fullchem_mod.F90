@@ -1076,12 +1076,12 @@ CONTAINS
           ENDIF
 
           ! # of accepted internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
+          IF ( State_Diag%Archive_KppAccSteps ) THEN
              State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
           ENDIF
 
           ! # of rejected internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
+          IF ( State_Diag%Archive_KppRejSteps ) THEN
              State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
           ENDIF
 
@@ -1164,13 +1164,13 @@ CONTAINS
              ENDIF
 
              ! # of accepted internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
+             IF ( State_Diag%Archive_KppAccSteps ) THEN
                 State_Diag%KppAccSteps(I,J,L) =                              &
                 State_Diag%KppAccSteps(I,J,L) + ISTATUS(4)
              ENDIF
 
              ! # of rejected internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
+             IF ( State_Diag%Archive_KppRejSteps ) THEN
                 State_Diag%KppRejSteps(I,J,L) =                              &
                 State_Diag%KppRejSteps(I,J,L) + ISTATUS(5)
              ENDIF

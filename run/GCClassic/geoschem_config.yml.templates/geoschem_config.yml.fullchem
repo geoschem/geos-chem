@@ -387,19 +387,19 @@ extra_diagnostics:
     output_file: plane.log.YYYYMMDD
 
   legacy_bpch:                #          1         2         3
-     output_menu:             # 1234567890123456789012345678901
-       schedule_output_for_JAN: 3000000000000000000000000000000
-       schedule_output_for_FEB: 30000000000000000000000000000
-       schedule_output_for_MAR: 3000000000000000000000000000000
-       schedule_output_for_APR: 300000000000000000000000000000
-       schedule_output_for_MAY: 3000000000000000000000000000000
-       schedule_output_for_JUN: 300000000000000000000000000000
-       schedule_output_for_JUL: 3000000000000000000000000000000
-       schedule_output_for_AUG: 3000000000000000000000000000000
-       schedule_output_for_SEP: 300000000000000000000000000000
-       schedule_output_for_OCT: 3000000000000000000000000000000
-       schedule_output_for_NOV: 300000000000000000000000000000
-       schedule_output_for_DEC: 3000000000000000000000000000000
+    output_menu:             # 1234567890123456789012345678901
+      schedule_output_for_JAN: 3000000000000000000000000000000
+      schedule_output_for_FEB: 30000000000000000000000000000
+      schedule_output_for_MAR: 3000000000000000000000000000000
+      schedule_output_for_APR: 300000000000000000000000000000
+      schedule_output_for_MAY: 3000000000000000000000000000000
+      schedule_output_for_JUN: 300000000000000000000000000000
+      schedule_output_for_JUL: 3000000000000000000000000000000
+      schedule_output_for_AUG: 3000000000000000000000000000000
+      schedule_output_for_SEP: 300000000000000000000000000000
+      schedule_output_for_OCT: 3000000000000000000000000000000
+      schedule_output_for_NOV: 300000000000000000000000000000
+      schedule_output_for_DEC: 3000000000000000000000000000000
 
     gamap:
       diaginfo_dat_file: ./diaginfo.dat

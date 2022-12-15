@@ -12218,7 +12218,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATE' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
-       IF ( isUnits   ) Units = 's-1'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
