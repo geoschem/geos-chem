@@ -12,7 +12,7 @@ simulation:
   name: ${RUNDIR_SIM_NAME}
   chem_inputs_dir: ./ChemDir/
   species_database_file: ./species_database.yml
-  debug_printout: false
+  verbose: false
 
 #============================================================================
 # Settings for GEOS-Chem operations

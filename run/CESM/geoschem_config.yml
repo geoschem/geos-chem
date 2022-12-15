@@ -14,7 +14,7 @@ simulation:
   end_date: 20000101 010000
   chem_inputs_dir: ./
   species_database_file: ./species_database.yml
-  debug_printout: false
+  verbose: false
 
 #============================================================================
 # Settings for GEOS-Chem operations

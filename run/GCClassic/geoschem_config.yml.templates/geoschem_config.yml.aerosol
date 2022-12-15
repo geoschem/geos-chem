@@ -15,7 +15,7 @@ simulation:
   root_data_dir: ${RUNDIR_DATA_ROOT}
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
-  debug_printout: false
+  verbose: false
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
 
 #============================================================================

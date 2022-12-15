@@ -12,7 +12,7 @@ simulation:
   name: fullchem
   chem_inputs_dir: /discover/nobackup/cakelle2/data/CHEM_INPUTS/
   species_database_file: ./species_database.yml
-  debug_printout: false
+  verbose: false
 
 #============================================================================
 # Settings for GEOS-Chem operations
