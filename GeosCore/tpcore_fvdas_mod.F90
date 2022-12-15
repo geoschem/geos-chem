@@ -209,8 +209,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Tpcore( IM, JM, KM, JFIRST, JLAST,    NG,                  &
-                          MG, dt, ae, clat,   prtDebug, RC                  )
+  SUBROUTINE Init_Tpcore( IM, JM, KM, JFIRST, JLAST,   NG,                   &
+                          MG, dt, ae, clat,   verbose, RC                   )
 !
 ! !USES:
 !
@@ -227,7 +227,7 @@ CONTAINS
     REAL(fp),       INTENT(IN)  :: dt         ! Time step in seconds
     REAL(fp),       INTENT(IN)  :: ae         ! Earth's radius (m)
     REAL(fp),       INTENT(IN)  :: clat(JM)   ! latitude in radian
-    LOGICAL,        INTENT(IN)  :: prtDebug   ! Print debug output?
+    LOGICAL,        INTENT(IN)  :: verbose    ! Print verbose output?
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -345,7 +345,7 @@ CONTAINS
     enddo
 
     ! Write a message only when debug printout is on (bmy, 05 Dec 2022)
-    IF ( prtDebug ) THEN
+    IF ( verbose ) THEN
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
        WRITE( 6, '(a)' ) &
  'TPCORE_FVDAS (based on GMI) Tracer Transport Module successfully initialized'

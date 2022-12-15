@@ -7386,9 +7386,6 @@ CONTAINS
     REAL*4              :: BOXVOL
     REAL(fp)            :: XFER(IBINS)
 
-    ! For values from Input_Opt
-    LOGICAL             :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
@@ -7508,7 +7505,9 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
+    IF ( Input_Opt%VerboseAndRoot ) THEN
+       WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
+    ENDIF
 
     ! Free pointer
     Spc => NULL()
