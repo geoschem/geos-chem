@@ -2319,13 +2319,6 @@ CONTAINS
           ! Update the mapping vector of advected species
           C                       = ThisSpc%AdvectId
           State_Chm%Map_Advect(C) = ThisSpc%ModelId
-
-!          ! Print to screen
-!          IF ( Input_Opt%amIRoot ) THEN
-!             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name
-! 100         FORMAT( I3, 2x, A31 )
-!          ENDIF
-
        ENDIF
 
        !---------------------------------------------------------------------
