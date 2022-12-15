@@ -93,7 +93,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(MetaHIstItem), POINTER :: Current
+    TYPE(MetaHistItem), POINTER :: Current
 
     !=======================================================================
     ! Initialize
@@ -1677,6 +1677,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Free Item now that we have added it to IndexVarList
+       DEALLOCATE( Item )
+       Item => NULL()
     ENDDO
 
   END SUBROUTINE IndexVarList_Create

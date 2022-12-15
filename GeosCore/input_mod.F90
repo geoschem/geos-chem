@@ -4710,7 +4710,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AIRS_CH4_OBS = Input_Opt%GOSAT_CH4_OBS
+    Input_Opt%AIRS_CH4_OBS = v_bool
 
     !------------------------------------------------------------------------
     ! Use GOSAT observational operator?
@@ -4811,8 +4811,8 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
        WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
        WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis

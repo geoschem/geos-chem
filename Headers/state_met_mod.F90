@@ -4956,7 +4956,7 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AIRVOL' )
-          IF ( isDesc  ) Desc  = 'Volume of dry air in grid box'
+          IF ( isDesc  ) Desc  = 'Volume of grid box'
           IF ( isUnits ) Units = 'm3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
@@ -4968,7 +4968,7 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'BXHEIGHT' )
-          IF ( isDesc  ) Desc  = 'Grid box height (w/r/t dry air)'
+          IF ( isDesc  ) Desc  = 'Grid box height'
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
