@@ -561,11 +561,19 @@ CONTAINS
        Input_Opt%Verbose = v_bool
     ENDIF
 
+#ifdef MODEL_WRF
+    ! Special case for WRF-GC: Do not restrict verbose output to the
+    ! root core.  WRF can separate the output into different cores.
+    !  -- Haipeng Lin and Bob Yantosca (15 Dec 2022)
+    Input_Opt%VerboseAndRoot = Input_Opt%Verbose
+#else
     ! Denote if Input_Opt%Verbose is TRUE and we are the root core.
     ! This flag can be used to determine if Verobse output can be safely
     ! printed.  Pre-defining this will avoid repeated logical comparisons.
     !   -- Bob Yantosca (14 Dec 2022)
     Input_Opt%VerboseAndRoot = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
+#endif
+
 
 #if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     !========================================================================
