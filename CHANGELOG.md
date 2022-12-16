@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - GC-Classic integration tests now use a single set of scripts
 - `test/GCClassic/README` is now a Markdown file: `test/GCClassic/README.md`
+- Integration test run directories are created with the default names assigned by `createRunDir.sh`
 
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts

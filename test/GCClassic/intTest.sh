@@ -148,14 +148,14 @@ fi
 this_dir=$(pwd -P)
 
 # Load common functions
-. ${this_dir}/commonFunctionsForTests.sh
+. "${this_dir}/commonFunctionsForTests.sh"
 
 #=============================================================================
 # Create integration test directories in the root folder
 #=============================================================================
 
 # Convert integration test root folder to an absolute path
-int_test_root=$(absolute_path ${int_test_root})
+int_test_root=$(absolute_path "${int_test_root}")
 
 # Create GEOS-Chem run directories in the integration test root folder
 ./intTestCreate.sh "${int_test_root}" "${env_file}" "${quick}"

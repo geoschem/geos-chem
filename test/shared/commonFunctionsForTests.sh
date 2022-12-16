@@ -149,8 +149,7 @@ function update_config_files() {
     # 1st argument = Integration tests root path
     # 2nd argument = GEOS-Chem run directory name
     #========================================================================
-    root=${1}
-    runDir=${2}
+    runPath="${1}"   # Absolute path
 
     #------------------------------------------------------------------------
     # Replace text in geoschem_config.yml
@@ -158,53 +157,53 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change simulation time to 20 minutes
     # in order to reduce the run time of the whole set of integration tests.
-    if grep -q "025x03125_fullchem" <<< "${runDir}"; then
-	sed_ie "${SED_CONFIG_N}" "${root}/${runDir}/geoschem_config.yml"
+    if grep -q "025x03125_fullchem" <<< "${runPath}"; then
+	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
     fi
-    if grep -q "05x0625_fullchem" <<< "${runDir}"; then
-	sed_ie "${SED_CONFIG_N}" "${root}/${runDir}/geoschem_config.yml"
+    if grep -q "05x0625_fullchem" <<< "${runPath}"; then
+	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
     fi
 
     # Other text replacements
-    sed_ie "${SED_CONFIG_1}" "${root}/${runDir}/geoschem_config.yml"
-    sed_ie "${SED_CONFIG_2}" "${root}/${runDir}/geoschem_config.yml"
-    sed_ie "${SED_CONFIG_3}" "${root}/${runDir}/geoschem_config.yml"
-    sed_ie "${SED_CONFIG_4}" "${root}/${runDir}/geoschem_config.yml"
-    sed_ie "${SED_CONFIG_5}" "${root}/${runDir}/geoschem_config.yml"
-    sed_ie "${SED_CONFIG_6}" "${root}/${runDir}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_1}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_2}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_3}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_4}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_5}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_6}" "${runPath}/geoschem_config.yml"
 
     #------------------------------------------------------------------------
     # Replace text in HEMCO_Config.rc
     #------------------------------------------------------------------------
 
     # For all nested-grid rundirs, add a NA into the entries for met fields
-    if grep -q "025x03125" <<< "${runDir}"; then
-	sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc"
+    if grep -q "025x03125" <<< "${runPath}"; then
+	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
     fi
-    if grep -q "05x0625" <<< "${runDir}"; then
-	sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc"
+    if grep -q "05x0625" <<< "${runPath}"; then
+	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
     fi
 
     # Other text replacements
-    sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc"
-    sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc"
+    sed_ie "${SED_HEMCO_CONF_1}" "${runPath}/HEMCO_Config.rc"
+    sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc"
 
     #------------------------------------------------------------------------
     # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
     #------------------------------------------------------------------------
 
-    if [[ -f ${root}/${runDir}/HEMCO_Config.rc.gmao_metfields ]]; then
+    if [[ -f ${root}/${runPath}/HEMCO_Config.rc.gmao_metfields ]]; then
 	# For all nested-grid rundirs, add a NA into the entries for met fields
-	if grep -q "025x03125" <<< "${runDir}"; then
-	    sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	if grep -q "025x03125" <<< "${runPath}"; then
+	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
 	fi
-	if grep -q "05x0625" <<< "${runDir}"; then
-	    sed_ie "${SED_HEMCO_CONF_N}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	if grep -q "05x0625" <<< "${runPath}"; then
+	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
 	fi
 
 	# Other text replacements
-	sed_ie "${SED_HEMCO_CONF_1}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
-	sed_ie "${SED_HEMCO_CONF_2}" "${root}/${runDir}/HEMCO_Config.rc.gmao_metfields"
+	sed_ie "${SED_HEMCO_CONF_1}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
+	sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
     fi
 
     #------------------------------------------------------------------------
@@ -213,28 +212,28 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change frequency and duration to 20 mins
     # in order to reduce the run time of the whole set of integration tests.
-    if grep -q "025x03125_fullchem" <<< "${runDir}"; then
-	sed_ie "${SED_HISTORY_RC_N}" "${root}/${runDir}/HISTORY.rc"
+    if grep -q "025x03125_fullchem" <<< "${runPath}"; then
+	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
-    if grep -q "05x0625_fullchem" <<< "${runDir}"; then
-	sed_ie "${SED_HISTORY_RC_N}" "${root}/${runDir}/HISTORY.rc"
+    if grep -q "05x0625_fullchem" <<< "${runPath}"; then
+	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
 
     # Other text replacements
-    sed_ie "${SED_HISTORY_RC_1}" "${root}/${runDir}/HISTORY.rc"
-    sed_ie "${SED_HISTORY_RC_2}" "${root}/${runDir}/HISTORY.rc"
+    sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
+    sed_ie "${SED_HISTORY_RC_2}" "${runPath}/HISTORY.rc"
 
     #------------------------------------------------------------------------
     # Replace text in setCommonRunSettings.sh (GCHP_only)
     #------------------------------------------------------------------------
-    expr=$(is_gchp_rundir "${root}/${runDir}")
+    expr=$(is_gchp_rundir "${root}/${runPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-	sed_ie "${SED_RUN_CONFIG_1}" ${root}/${runDir}/setCommonRunSettings.sh
-	sed_ie "${SED_RUN_CONFIG_2}" ${root}/${runDir}/setCommonRunSettings.sh
-	sed_ie "${SED_RUN_CONFIG_3}" ${root}/${runDir}/setCommonRunSettings.sh
-	sed_ie "${SED_RUN_CONFIG_4}" ${root}/${runDir}/setCommonRunSettings.sh
-	sed_ie "${SED_RUN_CONFIG_5}" ${root}/${runDir}/setCommonRunSettings.sh
-	sed_ie "${SED_RUN_CONFIG_6}" ${root}/${runDir}/setCommonRunSettings.sh
+	sed_ie "${SED_RUN_CONFIG_1}" "${runPath}/setCommonRunSettings.sh"
+	sed_ie "${SED_RUN_CONFIG_2}" "${runPath}/setCommonRunSettings.sh"
+	sed_ie "${SED_RUN_CONFIG_3}" "${runPath}/setCommonRunSettings.sh"
+	sed_ie "${SED_RUN_CONFIG_4}" "${runPath}/setCommonRunSettings.sh"
+	sed_ie "${SED_RUN_CONFIG_5}" "${runPath}/setCommonRunSettings.sh"
+	sed_ie "${SED_RUN_CONFIG_6}" "${runPath}/setCommonRunSettings.sh"
     fi
 }
 
@@ -244,19 +243,36 @@ function create_rundir() {
     # Calls createRunDir.sh with appropriate arguments
     #
     # 1st argument: Commands to forcefeed into createRunDir.sh
-    # 2nd argument: Integration test root folder
-    # 3rd argument: GEOS-Chem rundir to be created
-    # 4th argument: Log file where stdout & stderr will be redirected
+    # 2nd argument: Log file where stdout & stderr will be redirected
+    #
+    # NOTE: Run directories will be created with default names.
     #========================================================================
-    cmd=${1}
-    root=$(absolute_path ${2})
-    runDir=${3}
-    log=${4}
+    cmd="${1}"
+    log="${2}"
+    logTmp="${log}.tmp"
+    logTmp2="${log}.tmp.tmp"
+    runPath=""
 
     # Create run dir for a short simulation
-    printf " ... ${root}/${runDir}\n"
-    printf ${cmd} | ./createRunDir.sh >> ${log} 2>&1
-    update_config_files ${root} ${runDir}
+    printf "${cmd}" | ./createRunDir.sh > "${logTmp}" 2>&1
+
+    # Get the absolute rundir path from the output of createRunDir.sh
+    runPath=$(grep -E "Created" "${logTmp}")
+    runPath=${runPath/Created /}
+    printf " ... ${runPath}\n"
+    
+    # Now concatenate the temporary log into the log file
+    # (Or create the log file if it doesn't yet exist)
+    if [[ -f "${log}" ]]; then
+	cat "${log}" "${logTmp}" >> "${logTmp2}"
+	mv -f "${logTmp2}" "${log}"
+	rm -f "${logTmp}"
+    else
+	mv "${logTmp}" "${log}"
+    fi 
+
+    # Change start & end dates etc. in rundir configuration files
+    update_config_files "${runPath}"
 }
 
 

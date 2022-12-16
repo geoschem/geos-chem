@@ -12,12 +12,8 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestCreate.sh /path/to/int/test/root ENV-FILE           or
-#  ./intTestCreate.sh /path/to/int/test/root ENV-FILE short=1
-#
-# !REMARKS:
-#  Right now we pass values to the existing ./createRunDir.sh,
-#  but will implement a more elegant solution later.
+#  ./intTestCreate.sh /path/to/int/test/root /path/to/env-file           or
+#  ./intTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
 #
 # !REVISION HISTORY:
 #  09 Oct 2020 - R. Yantosca - Initial version
@@ -58,29 +54,23 @@ quick=${3}
 
 # Current directory
 testDir=$(pwd -P)
-cd ${testDir}
+cd "${testDir}"
 
 # Top-level GEOS-Chem and HEMCO directories
 cd ../..
 geosChemDir=$(pwd -P)
-hemcoDir=${geosChemDir/GEOS-Chem/HEMCO}
+hemcoDir="${geosChemDir/GEOS-Chem/HEMCO}"
 
 # GCClassic superproject directory
 cd ../../
 superProjectDir=$(pwd -P)
 cd ${superProjectDir}
 
-# Directory where the run creation scripts are found
-runDir=${geosChemDir}/run/GCClassic
-
 # Load file with utility functions to setup configuration files
-. ${geosChemDir}/test/shared/commonFunctionsForTests.sh
+. "${geosChemDir}/test/shared/commonFunctionsForTests.sh"
 
 # Get the absolute path of the root folder
-root=$(absolute_path ${root})
-
-# Log file
-log=${root}/logs/createIntTests.log
+root=$(absolute_path "${root}")
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -103,21 +93,21 @@ printf "${SEP_MAJOR}\n"
 #=============================================================================
 
 # Create integration test root folder if it doesn't exist
-if [[ ! -d ${root} ]]; then
-    mkdir -p ${root}
+if [[ ! -d "${root}" ]]; then
+    mkdir -p "${root}"
 fi
 
 # Get the absolute path of the root folder again;
 # now that the folder exists
-root=$(absolute_path ${root})
+root=$(absolute_path "${root}")
 
 # Remove everything in the test folder
-cleanup_files ${root}
+cleanup_files "${root}"
 
 # Make the directory for the executables
 printf "\nCreating new build and executable directories:\n"
 echo " ... ${root}/exe_files"
-mkdir -p ${root}/exe_files
+mkdir -p "${root}/exe_files"
 
 # Make the build directories
 if [[ ! -d "${root}/build" ]]; then
@@ -129,12 +119,12 @@ fi
 
 # Copying the run scripts to the Integration Test root folder
 printf "\nCopying run scripts to: ${root}\n"
-cp -f ${envFile} ${root}/gcclassic_env.sh
-cp -f ${testDir}/intTest*.sh ${root}
+cp -f ${envFile}                            ${root}/gcclassic_env.sh
+cp -f ${testDir}/intTest*.sh                ${root}
 cp -f ${testDir}/commonFunctionsForTests.sh ${root}
 
 # Create a symbolic link to the code from the Integration Test root folder
-ln -s ${superProjectDir} ${root}/CodeDir
+ln -s "${superProjectDir}" "${root}/CodeDir"
 
 # Create log directory
 if [[ !(-d "${root}/logs") ]]; then
@@ -142,27 +132,30 @@ if [[ !(-d "${root}/logs") ]]; then
     mkdir "${root}/logs"
 fi
 
+# Log file with echoback from rundir creation
+log="${root}/logs/createIntTests.log"
+
 # Change to the directory where we will create the rundirs
 printf "\nCreating new run directories:\n"
 
 # Switch to folder where rundir creation scripts live
-cd ${runDir}
+cd "${geosChemDir}/run/GCClassic"
 
 #=============================================================================
 # Create individual run directories: 2x25 - MERRA2 - 72L
 #=============================================================================
 
-dir="gc_2x25_CH4_merra2"
-create_rundir "3\n1\n2\n1\n${root}\n${dir}\nn\n"          "$root" "$dir" "$log"
+# 2x25 merra2 CH4
+create_rundir "3\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_CO2_merra2"
-create_rundir "4\n1\n2\n1\n${root}\n${dir}\nn\n"          "$root" "$dir" "$log"
+# 2x25 merra2 CO2
+create_rundir "4\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_aerosol_merra2"
-create_rundir "2\n1\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 2x25 merra2 aerosol
+create_rundir "2\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_fullchem_merra2"
-create_rundir "1\n1\n1\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
+# 2x25 merra2 fullchem
+create_rundir "1\n1\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
@@ -170,316 +163,182 @@ if [[ "x${quick}" == "xyes" ]]; then
     exit 0
 fi
 
-#----------------------------------------------------------------------------
-# NOTE: Disable most 2x25 fullchem rundirs to reduce execution time
-# (bmy, 05 Jan 2020)
-#
-#dir="gc_2x25_fullchem_aciduptake_merra2"
-#create_rundir "1\n5\n1\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_APM_merra2"
-#create_rundir "1\n7\n1\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-# NOTE: Benchmark @ 2 x 2.5 will fail due to no available mass tuning factor
-#dir="gc_2x25_fullchem_benchmark_merra2"
-#create_rundir "1\n1\n2\n1\n2\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_complexSOA_merra2"
-#create_rundir "1\n3\n1\n1\n1\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_complexSOA_SVPOA_merra2"
-#create_rundir "1\n3\n2\n1\n1\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_marinePOA_merra2"
-#create_rundir "1\n4\n1\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#----------------------------------------------------------------------------
+# 2x25 merra2 Hg
+create_rundir "5\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_Hg_merra2"
-create_rundir "5\n1\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 2x25 merra2 POPs
+create_rundir "6\n1\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_POPs_BaP_merra2"
-create_rundir "6\n1\n1\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
+# 2x25 merra2 tagCH4
+create_rundir "7\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_tagCH4_merra2"
-create_rundir "7\n1\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 2x25 merra2 tagCO
+create_rundir "8\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_tagCO_merra2"
-create_rundir "8\n1\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 2x25 merra2 tagO3
+create_rundir "9\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_tagO3_merra2"
-create_rundir "9\n1\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 2x25 merra2 TransportTracers
+create_rundir "10\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_TransportTracers_merra2"
-create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 2x25 merra2 TransportTracers LuoWd"
+create_rundir "10\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_TransportTracers_merra2_LuoWd"
-create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 2x25 merra2 metals
+create_rundir "11\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_2x25_metals_merra2"
-create_rundir "11\n1\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
-
-#dir="gc_2x25_carboncycle_merra2"
-#create_rundir "12\n1\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
-
-#=============================================================================
-# Create individual run directories: 2x25 - GEOSFP - 72L
-#=============================================================================
-
-#-----------------------------------------------------------------------------
-# NOTE: Disable 2x25 tests w/ GEOS-FP to reduce testing time (bmy, 05 Jan 2022)
-#
-#dir="gc_2x25_CH4_geosfp"
-#create_rundir "3\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_CO2_geosfp"
-#create_rundir "4\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_aerosol_geosfp"
-#create_rundir "2\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_geosfp"
-#create_rundir "1\n1\n2\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_aciduptake_geosfp"
-#create_rundir "1\n5\n2\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_APM_geosfp"
-#create_rundir "1\n7\n2\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-## NOTE: Benchmark @ 2 x 2.5 will fail due to no available tuning factor
-##dir="gc_2x25_fullchem_benchmark_geosfp"
-##create_rundir "1\n1\n2\n2\n2\n1\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_complexSOA_geosfp"
-#create_rundir "1\n3\n1\n2\n1\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_complexSOA_SVPOA_geosfp"
-#create_rundir "1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_2x25_fullchem_marinePOA_geosfp"
-#create_rundir "1\n4\n2\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_2x25_Hg_geosfp"
-#create_rundir "5\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_POPs_BaP.geosfp"
-#create_rundir "6\n1\n2\n2\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_2x25_tagCH4_geosfp"
-#create_rundir "7\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_tagCO_geosfp"
-#create_rundir "8\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_tagO3_geosfp"
-#create_rundir "9\n2\n2\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
-#
-#dir="gc_2x25_TransportTracers_geosfp"
-#create_rundir "10\n2\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
-#
-# NOTE: The metals simulation runs from 2011-2013, the earlier part of
-# which is out of the range of the GEOS-FP met fields.  Disable
-# the metals simulation with GEOS-FP met for now (bmy, 07 Jul 2021)
-#dir="gc_2x25_metals_geosfp"
-#create_rundir "11\n2\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
-#
-#dir="gc_2x25_TransportTracers_geosfp_LuoWd"
-#create_rundir "10\n2\n2\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
-#-----------------------------------------------------------------------------
+# 2x25 merra2 carboncycle -- COMING SOON
+#create_rundir "12\n1\n2\n1\n${root}\n\nn\n" "${log}"
 
 #=============================================================================
 # Create individual run directories: 4x5 - MERRA2 - 72L
 #=============================================================================
 
-dir="gc_4x5_CH4_merra2"
-create_rundir "3\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 merra2 CH4
+create_rundir "3\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_aerosol_merra2"
-create_rundir "2\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 merra2 aerosol"
+create_rundir "2\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_merra2"
-create_rundir "1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem"
+create_rundir "1\n1\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_merra2_LuoWd"
-create_rundir "1\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_LuoWd"
+create_rundir "1\n1\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_aciduptake_merra2"
-create_rundir "1\n5\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_aciduptake"
+create_rundir "1\n5\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_APM_merra2"
-create_rundir "1\n7\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_APM"
+create_rundir "1\n7\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_benchmark_merra2"
-create_rundir "1\n2\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_benchmark"
+create_rundir "1\n2\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_complexSOA_merra2"
-create_rundir "1\n3\n1\n1\n1\n1\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_complexSOA"
+create_rundir "1\n3\n1\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_complexSOA_SVPOA_merra2"
-create_rundir "1\n3\n2\n1\n1\n1\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_complexSOA_SVPOA"
+create_rundir "1\n3\n2\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_marinePOA_merra2"
-create_rundir "1\n4\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_marinePOA"
+create_rundir "1\n4\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_RRTMG_merra2"
-create_rundir "1\n8\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_RRTMG"
+create_rundir "1\n8\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_TOMAS15_merra2_47L"
-create_rundir "1\n6\n1\n1\n1\n2\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_TOMAS15_47L"
+create_rundir "1\n6\n1\n1\n1\n2\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_TOMAS40_merra2_47L"
-create_rundir "1\n6\n2\n1\n1\n2\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
+# 4x5 merra2 fullchem_TOMAS40_47L"
+create_rundir "1\n6\n2\n1\n1\n2\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_Hg_merra2"
-create_rundir "5\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 merra2 Hg"
+create_rundir "5\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_POPs_BaP_merra2"
-create_rundir "6\n1\n1\n1\n1\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 4x5 merra2 POPs_BaP"
+create_rundir "6\n1\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_tagCH4_merra2"
-create_rundir "7\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 merra2 tagCH4"
+create_rundir "7\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_tagCO_merra2"
-create_rundir "8\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 merra2 tagCO"
+create_rundir "8\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_tagO3_merra2"
-create_rundir "9\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 merra2 tagO3"
+create_rundir "9\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_TransportTracers_merra2"
-create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"      "$root" "$dir" "$log"
+# 4x5 merra2 TransportTracers"
+create_rundir "10\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_TransportTracers_merra2_LuoWd"
-create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"      "$root" "$dir" "$log"
+# 4x5 merra2 TransportTracers_LuoWd"
+create_rundir "10\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_metals_merra2"
-create_rundir "11\n1\n1\n1\n${root}\n${dir}\nn\n"      "$root" "$dir" "$log"
+# 4x5 merra2 metals"
+create_rundir "11\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
-#dir="gc_4x5_carboncycle_merra2"
-#create_rundir "12\n1\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+##4x5 merra2 carboncycle" -- COMING SOON
+#create_rundir "12\n1\n1\n1\n${root}\n\nn\n" "${log}"
 
 #=============================================================================
 # Create individual run directories: 4x5 - GEOSFP - 72L
 #=============================================================================
 
-dir="gc_4x5_CH4_geosfp"
-create_rundir "3\n2\n1\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 4x5 geosfp CH4"
+create_rundir "3\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_aerosol_geosfp"
-create_rundir "2\n2\n1\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 4x5 geosfp aerosol"
+create_rundir "2\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_fullchem_geosfp"
-create_rundir "1\n1\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
+# 4x5 geosfp fullchem"
+create_rundir "1\n1\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-#-----------------------------------------------------------------------------
-# Disable most GEOS-Chem fullchem tests w/ GEOS-FP to decrease run time
-# (bmy, 05 Jan 2021)
-#
-#dir="gc_4x5_fullchem_geosfp_LuoWd"
-#create_rundir "1\n1\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_aciduptake_geosfp"
-#create_rundir "1\n5\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_APM_geosfp"
-#create_rundir "1\n7\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_benchmark_geosfp"
-#create_rundir "1\n2\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_complexSOA_geosfp"
-#create_rundir "1\n3\n1\n2\n1\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_complexSOA_SVPOA_geosfp"
-#create_rundir "1\n3\n2\n2\n1\n1\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_marinePOA_geosfp"
-#create_rundir "1\n4\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_RRTMG_geosfp"
-#create_rundir "1\n8\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_TOMAS15_geosfp_47L"
-#create_rundir "1\n6\n1\n2\n1\n2\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#
-#dir="gc_4x5_fullchem_TOMAS40_geosfp_47L"
-#create_rundir "1\n6\n2\n2\n1\n2\n${root}\n${dir}\nn\n"  "$root" "$dir" "$log"
-#-----------------------------------------------------------------------------
+# 4x5 geosfp Hg"
+create_rundir "5\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_Hg_geosfp"
-create_rundir "5\n2\n1\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 4x5 geosfp POPs_BaP"
+create_rundir "6\n1\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_POPs_BaP_geosfp"
-create_rundir "6\n1\n2\n1\n1\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
+# 4x5 geosfp tagCH4"
+create_rundir "7\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_tagCH4_geosfp"
-create_rundir "7\n2\n1\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 4x5 geosfp tagCO"
+create_rundir "8\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_tagCO_geosfp"
-create_rundir "8\n2\n1\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 4x5 geosfp tagO3"
+create_rundir "9\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_tagO3_geosfp"
-create_rundir "9\n2\n1\n1\n${root}\n${dir}\nn\n"        "$root" "$dir" "$log"
+# 4x5 geosfp TransportTracers"
+create_rundir "10\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-dir="gc_4x5_TransportTracers_geosfp"
-create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
-
-dir="gc_4x5_TransportTracers_geosfp_LuoWd"
-create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+# 4x5 geosfp TransportTracers_LuoWd"
+create_rundir "10\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
 # NOTE: The metals simulation runs from 2011-2013, the earlier part of
 # which is out of the range of the GEOS-FP met fields.  Disable
 # the metals simulation with GEOS-FP met for now (bmy, 07 Jul 2021)
-#dir="gc_4x5_metals_geosfp"
-#create_rundir "11\n2\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+## 4x5 geosfp metals"
+#create_rundir "11\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
-#dir="gc_4x5_carboncycle_geosfp"
-#create_rundir "12\n2\n1\n1\n${root}\n${dir}\nn\n"       "$root" "$dir" "$log"
+## 4x5 geosfp carboncycle" -- COMING SOON
+#create_rundir "12\n2\n1\n1\n${root}\n\nn\n" "${log}"
 
 #=============================================================================
-# Create individual run directories: 4x5 and 47L (both MERRA2 and GEOSFP)
+# Create individual run directories: 4x5 and 47L (MERRA2)
 #=============================================================================
 
-dir="gc_4x5_fullchem_merra2_47L"
-create_rundir "1\n1\n1\n1\n2\n${root}\n${dir}\nn\n"     "$root" "$dir" "$log"
-
-#-----------------------------------------------------------------------------
-# Disable most GEOS-Chem fullchem_47L tests w/ GEOS-FP to decrease run time
-# (bmy, 05 Jan 2021)
-#dir="gc_4x5_fullchem_geosfp_47L"
-#create_rundir "1\n1\n2\n1\n2\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
-#-----------------------------------------------------------------------------
+# 4x5 merra2 fullchem_47L"
+create_rundir "1\n1\n1\n1\n2\n${root}\n\nn\n" "${log}"
 
 #=============================================================================
 # Nested-grid simulations
 #=============================================================================
 
-dir="gc_05x0625_CH4_merra2_47L_na"
-create_rundir "3\n1\n3\n4\n2\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 05x0625 merra2 CH4_47L_na"
+create_rundir "3\n1\n3\n4\n2\n${root}\n\nn\n" "${log}"
 
-dir="gc_025x03125_CH4_geosfp_47L_na"
-create_rundir "3\n2\n4\n4\n2\n${root}\n${dir}\nn\n"    "$root" "$dir" "$log"
+# 025x03125 geosfp CH4_47L_na"
+create_rundir "3\n2\n4\n4\n2\n${root}\n\nn\n" "${log}"
 
-dir="gc_05x0625_fullchem_merra2_47L_na"
-create_rundir "1\n1\n1\n3\n4\n2\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
+# 05x0625 merra2 fullchem_47L_na"
+create_rundir "1\n1\n1\n3\n4\n2\n${root}\n\nn\n" "${log}"
 
-dir="gc_025x03125_fullchem_geosfp_47L_na"
-create_rundir "1\n1\n2\n4\n4\n2\n${root}\n${dir}\nn\n" "$root" "$dir" "$log"
+# 025x03125 geosfp fullchem_47L_na"
+create_rundir "1\n1\n2\n4\n4\n2\n${root}\n\nn\n" "${log}"
 
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
 
 # Switch back to the present directory
-cd ${testDir}
+cd "${testDir}"
 
 # Free local variables
-unset root
-unset testDir
 unset geosChemDir
-unset superProjectDir
-unset runDir
 unset log
-unset dir
+unset root
+unset superProjectDir
+unset testDir
 
 # Free imported variables
 unset FILL
