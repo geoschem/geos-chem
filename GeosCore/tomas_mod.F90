@@ -171,6 +171,7 @@ MODULE TOMAS_MOD
   INTEGER :: lowRH = 1    !This is to match AW more with AERONET (JKODROS 6/15)
 
   REAL(fp), ALLOCATABLE :: H2SO4_RATE(:,:,:) ! H2SO4 prod rate [kg s-1]
+  REAL(fp), ALLOCATABLE :: PSO4AQ_RATE(:,:,:) ! Cld chem sulfate prod rate [kg s-1]
 
 #if  defined( TOMAS12 ) || defined( TOMAS15 )
   !tomas12 or tomas15
@@ -6344,6 +6345,10 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_RATE' )
     H2SO4_RATE = 0.0e+0_fp
 
+    ALLOCATE( PSO4AQ_RATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4AQ_RATE' )
+    PSO4AQ_RATE = 0.0e+0_fp
+
     !=================================================================
     ! Calculate aerosol size bin boundaries (dry mass / particle)
     !=================================================================
@@ -10459,6 +10464,7 @@ CONTAINS
     !=================================================================
     IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT      )
     IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE )
+    IF ( ALLOCATED( PSO4AQ_RATE  ) ) DEALLOCATE( PSO4AQ_RATE )
 
   END SUBROUTINE CLEANUP_TOMAS
 !EOC

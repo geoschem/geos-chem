@@ -131,6 +131,7 @@ CONTAINS
 #ifdef TOMAS
 #ifdef BPCH_DIAG
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
+    USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
 #endif
 #endif
 !
@@ -1248,10 +1249,10 @@ CONTAINS
 #ifdef BPCH_DIAG
 #ifdef TOMAS
        !always calculate rate for TOMAS
-       DO F = 1, NFAM
+!!       DO F = 1, NFAM
 
           ! Determine dummy species index in KPP
-          KppID =  PL_Kpp_Id(F)
+!!          KppID =  PL_Kpp_Id(F)
 
           !-----------------------------------------------------------------
           ! FOR TOMAS MICROPHYSICS:
@@ -1263,19 +1264,39 @@ CONTAINS
 
           ! Calculate H2SO4 production rate [kg s-1] in each
           ! time step (win, 8/4/09)
-          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
+!!          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
              ! Hard-coded MW
-             H2SO4_RATE(I,J,L) = C(KppID) / AVO * 98.e-3_fp * &
+!!             H2SO4_RATE(I,J,L) = C(KppID) / AVO * 98.e-3_fp * &
+!!                                 State_Met%AIRVOL(I,J,L)    * &
+!!                                 1.0e+6_fp / DT
+
+!!            IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
+!!              write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
+!!                 I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
+!!              H2SO4_RATE(I,J,L) = 0.0d0
+!!            ENDIF
+!!          ENDIF
+!!       ENDDO
+
+             H2SO4_RATE(I,J,L) = C(ind_PH2SO4) / AVO * 98.e-3_fp * &
                                  State_Met%AIRVOL(I,J,L)    * &
                                  1.0e+6_fp / DT
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
               write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
                  I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
-              H2SO4_RATE(I,J,L) = 0.0d0
-            ENDIF
-          ENDIF
-       ENDDO
+            ENDIF   
+            H2SO4_RATE(I,J,L) = 0.0d0
+
+             PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
+                                 State_Met%AIRVOL(I,J,L)    * &
+                                 1.0e+6_fp ! per timestep
+
+            IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
+              write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
+                 I, J, L, "was:", PSO4AQ_RATE(I,J,L), "  setting to 0.0d0"
+            ENDIF             
+           PSO4AQ_RATE(I,J,L) = 0.0d0
 
 #endif
 #endif
