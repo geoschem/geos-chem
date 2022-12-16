@@ -27,14 +27,14 @@
 #=============================================================================
 
 # Integration test root folder
-itRoot=${1}
+itRoot="${1}"
 if [[ "x${itRoot}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit 1
 fi
 
 # Environment file
-envFile=${2}
+envFile="${2}"
 if [[ "x${envFile}" == "x" ]]; then
     echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
     exit 1
@@ -56,21 +56,21 @@ thisDir=$(pwd -P)
 cd ${thisDir}
 
 # GCClassic superproject directory
-cd ../../../..
+cd ../../../../../..
 superProjectDir=$(pwd -P)
 cd "${superProjectDir}"
 
 # GEOS-Chem and HEMCO submodule directories
-geosChemDir="${superProjectDir}/src/GCHP_GridCompMod/GEOSChem_GridCompMod/geos-chem"
-hemcoDir="${superProjectDir}/src/GCHP_GridCompMod/HEMCO_GridCompMod/HEMCO"
+geosChemDir="${superProjectDir}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem"
+hemcoDir="${superProjectDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO"
 
 # Get the Git commit of the superproject and submodules
 head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	    git -C "$superProjectDir" log --oneline --no-decorate -1)
+	    git -C "${superProjectDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "$geosChemDir" log --oneline --no-decorate -1)
+	  git -C "${geosChemDir}" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "$hemcoDir" log --oneline --no-decorate -1)
+	   git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Source the script containing utility functions and variables
 . "${geosChemDir}/test/shared/commonFunctionsForTests.sh"
@@ -78,7 +78,7 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GCHP Integration Tests\n\n"
-printf "GCHP      #${head_gcc}\n"
+printf "GCHP      #${head_gchp}\n"
 printf "GEOS_Chem #${head_gc}\n"
 printf "HEMCO     #${head_hco}\n"
 printf "${SEP_MAJOR}\n"
@@ -91,6 +91,9 @@ printf "${SEP_MAJOR}\n"
 itRoot=$(absolute_path "${itRoot}")
 [[ ! -d "${itRoot}" ]] && mkdir -p "${itRoot}"
 
+# Get absolute path of the environment file
+envFile=$(absolute_path "${envFile}")
+
 # Remove run directories in the te folder
 cleanup_files "${itRoot}"
 
@@ -98,7 +101,7 @@ cleanup_files "${itRoot}"
 printf "\nCreating new build and directories:\n"
 if [[ ! -d ${itRoot}/build ]]; then
     echo " ... ${itRoot}/build/"
-    mkdir -p ${itRoot}/build/
+    mkdir -p "${itRoot}/build/"
 fi
 
 # Copying the run scripts to the root test folder
@@ -122,12 +125,10 @@ log="${itRoot}/logs/createIntTests.log"
 # Switch to folder where rundir creation scripts live
 cd "${geosChemDir}/run/GCHP"
 
-# Change to the directory where we will create the rundirs
+#=============================================================================
+# Create the GCHP run directories
+#=============================================================================
 printf "\nCreating new run directories:\n"
-
-#=============================================================================
-# TransportTracers run directories
-#=============================================================================
 
 # c24 geosfp TransportTracers
 create_rundir "2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"

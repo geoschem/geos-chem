@@ -148,12 +148,16 @@ function update_gchp_config_files() {
     #
     # 1st argument: Root directory containing several GC run directories
     #========================================================================
-    runPath="${1}"                             # absolute path
-    file="${runPath}/setCommonRunSettings.sh"  # config file to edit
+    runPath=$(absolute_path "${1}")           # GCHP run dir (abs path)
+    itRoot=$(absolute_path "${2}")            # Int test root dir (abs path)
+    file="${runPath}/setCommonRunSettings.sh" # config file to edit
 
-    ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
-    cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+    # Link & copy files to the GCHP run dir
+    cp "${itRoot}/gchp.env"                         "${runPath}/gchp.env"
+    #cp "${runPath}/runScriptSamples/gchp.slurm.sh" "${runPath}"
+    cp "${runPath}/runScriptSamples/gchp.local.run" "${runPath}"
 
+    # Replace text in config file
     sed_ie "${SED_RUN_CONFIG_1}"                                    "${file}"
     sed_ie "${SED_RUN_CONFIG_2}"                                    "${file}"
     sed_ie "${SED_RUN_CONFIG_3}"                                    "${file}"
@@ -177,8 +181,8 @@ function update_config_files() {
     # 1st argument = Integration tests root path
     # 2nd argument = GEOS-Chem run directory name
     #========================================================================
-    runPath="${1}"                       # GEOS-Chem rundir (abs path)
-    intTestRoot=$(absolute_path "${2}")  # Int test root folder (abs path)
+    runPath=$(absolute_path "${1}")     # GEOS-Chem rundir (abs path)
+    itRoot=$(absolute_path "${2}")      # Int test root folder (abs path)
 
     #------------------------------------------------------------------------
     # Replace text in geoschem_config.yml
@@ -221,7 +225,7 @@ function update_config_files() {
     # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
     #------------------------------------------------------------------------
 
-    if [[ -f ${runPath}/HEMCO_Config.rc.gmao_metfields ]]; then
+    if [[ -f "${runPath}/HEMCO_Config.rc.gmao_metfields" ]]; then
 	# For all nested-grid rundirs, add a NA into the entries for met fields
 	if grep -q "025x03125" <<< "${runPath}"; then
 	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
@@ -251,23 +255,6 @@ function update_config_files() {
     # Other text replacements
     sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
     sed_ie "${SED_HISTORY_RC_2}" "${runPath}/HISTORY.rc"
-
-    #------------------------------------------------------------------------
-    # If this is a GCHP run directory, then also replace text
-    # in GCHP-specific rundir configuration files
-    #------------------------------------------------------------------------
-    expr=$(is_gchp_rundir "${runPath}")
-    if [[ "x${expr}" == "xTRUE" ]]; then
-
-	# Create a link in the run directory to the env file
-        ln -s "${intTestRoot}/gchp.env" "${runPath}/gchp.env"
-
-	# Get the GCHP run script
-	cp -f "${runPath}/runScriptSamples/gchp.local.run" .
-
-	# Edit text in GCHP-specific config files
-	update_gchp_config_files "${runPath}"
-    fi
 }
 
 
@@ -280,11 +267,12 @@ function create_rundir() {
     #
     # NOTE: Run directories will be created with default names.
     #========================================================================
-    cmd="${1}"
-    log="${2}"
-    logTmp="${log}.tmp"
-    logTmp2="${log}.tmp.tmp"
-    runPath=""
+    cmd="${1}"                     # Command for createRunDir.sh
+    log=$(absolute_path "${2}")    # Log file for output of createRunDir.sh
+    itRoot=$(absolute_path "${3}") # Int test root folder
+    logTmp="${log}.tmp"            # Temporary log file
+    logTmp2="${log}.tmp.tmp"       # Temporary log file
+    runPath=""                     # Path to run directory (abs path)
 
     # Create run dir for a short simulation
     printf "${cmd}" | ./createRunDir.sh > "${logTmp}" 2>&1
@@ -305,7 +293,14 @@ function create_rundir() {
     fi
 
     # Change start & end dates etc. in rundir configuration files
-    update_config_files "${runPath}"
+    update_config_files "${runPath}" "${itRoot}"
+
+    # If this is a GCHP run directory, then also replace text in
+    # GCHP-specific rundir configuration files etc.
+    expr=$(is_gchp_rundir "${runPath}")
+    if [[ "x${expr}" == "xTRUE" ]]; then
+	update_gchp_config_files "${runPath}" "${itRoot}"
+    fi
 }
 
 
