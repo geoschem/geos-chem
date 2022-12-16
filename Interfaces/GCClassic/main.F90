@@ -903,8 +903,7 @@ PROGRAM GEOS_Chem
 
        ! Write collections (such as BoundaryConditions) that need
        ! to be defined at the start of the run
-       CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, &
-                           State_Chm, RC )
+       CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
