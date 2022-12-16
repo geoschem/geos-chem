@@ -142,6 +142,34 @@ function count_rundirs() {
 }
 
 
+function update_gchp_config_files() {
+    #========================================================================
+    # Returns the number of run directories in the root folder.
+    #
+    # 1st argument: Root directory containing several GC run directories
+    #========================================================================
+    runPath="${1}"                             # absolute path
+    file="${runPath}/setCommonRunSettings.sh"  # config file to edit
+
+    ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
+    cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
+
+    sed_ie "${SED_RUN_CONFIG_1}"                                    "${file}"
+    sed_ie "${SED_RUN_CONFIG_2}"                                    "${file}"
+    sed_ie "${SED_RUN_CONFIG_3}"                                    "${file}"
+    sed_ie "${SED_RUN_CONFIG_4}"                                    "${file}"
+    sed_ie "${SED_RUN_CONFIG_5}"                                    "${file}"
+    sed_ie "${SED_RUN_CONFIG_6}"                                    "${file}"
+    sed_ie "s/CS_RES=.*/CS_RES=24/"                                 "${file}"
+    sed_ie "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" "${file}"
+    sed_ie "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/"             "${file}"
+    sed_ie "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/"       "${file}"
+    sed_ie "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/"         "${file}"
+    sed_ie "s/TOTAL_CORES=.*/TOTAL_CORES=24/"                       "${file}"
+    sed_ie "s/NUM_NODES=.*/NUM_NODES=1/"                            "${file}"
+    sed_ie "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/"         "${file}"
+}
+
 function update_config_files() {
     #========================================================================
     # Function to replace text in rundir config files
@@ -149,7 +177,8 @@ function update_config_files() {
     # 1st argument = Integration tests root path
     # 2nd argument = GEOS-Chem run directory name
     #========================================================================
-    runPath="${1}"   # Absolute path
+    runPath="${1}"                       # GEOS-Chem rundir (abs path)
+    intTestRoot=$(absolute_path "${2}")  # Int test root folder (abs path)
 
     #------------------------------------------------------------------------
     # Replace text in geoschem_config.yml
@@ -192,7 +221,7 @@ function update_config_files() {
     # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
     #------------------------------------------------------------------------
 
-    if [[ -f ${root}/${runPath}/HEMCO_Config.rc.gmao_metfields ]]; then
+    if [[ -f ${runPath}/HEMCO_Config.rc.gmao_metfields ]]; then
 	# For all nested-grid rundirs, add a NA into the entries for met fields
 	if grep -q "025x03125" <<< "${runPath}"; then
 	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
@@ -224,16 +253,20 @@ function update_config_files() {
     sed_ie "${SED_HISTORY_RC_2}" "${runPath}/HISTORY.rc"
 
     #------------------------------------------------------------------------
-    # Replace text in setCommonRunSettings.sh (GCHP_only)
+    # If this is a GCHP run directory, then also replace text
+    # in GCHP-specific rundir configuration files
     #------------------------------------------------------------------------
-    expr=$(is_gchp_rundir "${root}/${runPath}")
+    expr=$(is_gchp_rundir "${runPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-	sed_ie "${SED_RUN_CONFIG_1}" "${runPath}/setCommonRunSettings.sh"
-	sed_ie "${SED_RUN_CONFIG_2}" "${runPath}/setCommonRunSettings.sh"
-	sed_ie "${SED_RUN_CONFIG_3}" "${runPath}/setCommonRunSettings.sh"
-	sed_ie "${SED_RUN_CONFIG_4}" "${runPath}/setCommonRunSettings.sh"
-	sed_ie "${SED_RUN_CONFIG_5}" "${runPath}/setCommonRunSettings.sh"
-	sed_ie "${SED_RUN_CONFIG_6}" "${runPath}/setCommonRunSettings.sh"
+
+	# Create a link in the run directory to the env file
+        ln -s "${intTestRoot}/gchp.env" "${runPath}/gchp.env"
+
+	# Get the GCHP run script
+	cp -f "${runPath}/runScriptSamples/gchp.local.run" .
+
+	# Edit text in GCHP-specific config files
+	update_gchp_config_files "${runPath}"
     fi
 }
 
@@ -260,7 +293,7 @@ function create_rundir() {
     runPath=$(grep -E "Created" "${logTmp}")
     runPath=${runPath/Created /}
     printf " ... ${runPath}\n"
-    
+
     # Now concatenate the temporary log into the log file
     # (Or create the log file if it doesn't yet exist)
     if [[ -f "${log}" ]]; then
@@ -269,7 +302,7 @@ function create_rundir() {
 	rm -f "${logTmp}"
     else
 	mv "${logTmp}" "${log}"
-    fi 
+    fi
 
     # Change start & end dates etc. in rundir configuration files
     update_config_files "${runPath}"
