@@ -7,6 +7,13 @@
 #SBATCH --mem=8000
 #SBATCH --mail-type=END
 
+#BSUB -q REQUESTED_PARTITION
+#BSUB -n 8
+#BSUB -W 00:30
+#BSUB -R "rusage[mem=8GB] span[ptile=1] select[mem < 1TB]"
+#BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
+#BSUB -o lsf-%J.txt
+
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
 #------------------------------------------------------------------------------

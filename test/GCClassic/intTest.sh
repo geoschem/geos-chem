@@ -40,7 +40,7 @@
 #=============================================================================
 this="$(basename ${0})"
 usage="Usage: ${this} -d root-directory -e env-file [-l] [-p partition] [-s] [-q]"
-int_test_root="none"
+it_root="none"
 env_file="none"
 scheduler="none"
 sed_cmd="none"
@@ -66,7 +66,7 @@ while [ : ]; do
 
 	# -d or --directory specifies the root folder for tests
 	-d | --directory)
-	    int_test_root="${2}"
+	    it_root="${2}"
             shift 2
             ;;
 
@@ -113,7 +113,7 @@ while [ : ]; do
 done
 
 # Error check integration tests root path
-if [[ "x${int_test_root}" == "xnone" ]]; then
+if [[ "x${it_root}" == "xnone" ]]; then
     echo "ERROR: The integration test root directory has not been specified!"
     echo "${usage}"
     exit 1
@@ -155,20 +155,20 @@ this_dir=$(pwd -P)
 #=============================================================================
 
 # Convert integration test root folder to an absolute path
-int_test_root=$(absolute_path "${int_test_root}")
+it_root=$(absolute_path "${it_root}")
 
 # Create GEOS-Chem run directories in the integration test root folder
-./intTestCreate.sh "${int_test_root}" "${env_file}" "${quick}"
+./intTestCreate.sh "${it_root}" "${env_file}" "${quick}"
 if [[ $? -ne 0 ]]; then
    echo "ERROR: Could not create integration test run directories!"
    exit 1
 fi
 
 # Change to the integration test root folder
-if [[ -d ${int_test_root} ]]; then
-    cd "${int_test_root}"
+if [[ -d ${it_root} ]]; then
+    cd "${it_root}"
 else
-    echo "ERROR: ${int_test_root} is not a valid directory!  Exiting..."
+    echo "ERROR: ${it_root} is not a valid directory!  Exiting..."
     exit 1
 fi
 
@@ -177,14 +177,37 @@ fi
 #=============================================================================
 if [[ "x${scheduler}" == "xSLURM" ]]; then
 
-    #----------------------------------------------
+    #-------------------------------------------------------------------------
     # Integration tests will run via SLURM
-    #----------------------------------------------
+    #-------------------------------------------------------------------------
 
+    # Remove LSF #BSUB tags
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${it_root}/intTestCompile.sh"
+    sed_ie '/#BSUB -n 8/d'                   "${it_root}/intTestCompile.sh"
+    sed_ie '/#BSUB -W 00:30/d'               "${it_root}/intTestCompile.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${it_root}/intTestCompile.sh"
+    sed_ie \
+     '/#BSUB -R "rusage[mem=8GB] span[ptile=1] select[mem < 1TB]"/d' \
+     "${it_root}/intTestCompile.sh"
+    sed_ie \
+    '/#BSUB -a ''docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)''/d' \
+     "${it_root}/intTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${it_root}/intTestExecute.sh"
+    sed_ie '/#BSUB -n 24/d'                  "${it_root}/intTestExecute.sh"
+    sed_ie '/#BSUB -W 03:00/d'               "${it_root}/intTestExecute.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${it_root}/intTestExecute.sh"
+    sed_ie \
+    '/#BSUB -R "rusage[mem=90GB] span[ptile=1] select[mem < 2TB]"/d' \
+     "${it_root}/intTestExecute.sh"
+    sed_ie \
+    '/#BSUB -a ''docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)''/d' \
+     "${it_root}/intTestExecute.sh"
+    exit 1
+    
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sed_cmd}" "${int_test_root}/intTestCompile.sh"
-    sed_ie "${sed_cmd}" "${int_test_root}/intTestExecute.sh"
-
+    sed_ie "${sed_cmd}" "${it_root}/intTestCompile.sh"
+    sed_ie "${sed_cmd}" "${it_root}/intTestExecute.sh"
+    
     # Submit compilation tests script
     output=$(sbatch intTestCompile.sh)
     output=($output)
@@ -201,16 +224,28 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 
 elif [[ "x{$scheduler}" == "xLSF" ]]; then
 
-    #----------------------------------------------
+    #-------------------------------------------------------------------------
     # Integration tests will run via LSF (TODO)
-    #----------------------------------------------
-    echo "LSF has not been implemented yet"
-    exit 1
+    #-------------------------------------------------------------------------
 
-    # Future-proof: Add code for LSF
-    ## Replace "REQUESTED_PARTITION" with the partition name
-    #sed_ie "${sed_cmd}" "${int_test_root}/intTestCompile.sh"
-    #sed_ie "${sed_cmd}" "${int_test_root}/intTestExecute.sh"
+    # Remove SLURM #SBATCH tags
+    sed_ie '/#SBATCH -c 8/d'                   "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-00:30/d'             "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH --mem=8000/d'             "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${it_root}/intTestCompile.sh"
+    sed_ie '/#SBATCH -c 24/d'                  "${it_root}/intTestExecute.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${it_root}/intTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-03:00/d'             "${it_root}/intTestExecute.sh" 
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${it_root}/intTestExecute.sh" 
+    sed_ie '/#SBATCH --mem=90000/d'            "${it_root}/intTestExecute.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${it_root}/intTestExecute.sh" 
+
+    # Replace "REQUESTED_PARTITION" with the partition name
+    sed_ie "${sed_cmd}" "${it_root}/intTestCompile.sh"
+    sed_ie "${sed_cmd}" "${it_root}/intTestExecute.sh"
 
 else
 
@@ -255,7 +290,7 @@ fi
 
 # Free local variables
 unset env_file
-unset int_test_root
+unset it_root
 unset cmp_id
 unset exe_id
 unset quick
