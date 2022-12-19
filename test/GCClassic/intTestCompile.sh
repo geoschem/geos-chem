@@ -6,7 +6,6 @@
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=8000
 #SBATCH --mail-type=END
-
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 8
 #BSUB -W 00:30
@@ -38,44 +37,45 @@
 #============================================================================
 
 # Get the long path of the integration test folder
-root=$(pwd -P)
+itRoot=$(pwd -P)
 
 # Load the user-environment and the software environment
-. ~/.bashrc                > /dev/null 2>&1
-. ${root}/gcclassic_env.sh > /dev/null 2>&1
+. ~/.bashrc                  > /dev/null 2>&1
+. ${itRoot}/gcclassic_env.sh > /dev/null 2>&1
 
 # All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${itRoot}/exe_files"
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "./CodeDir" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
 
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
 
-    #--------------------
-    # Run via SLURM
-    #--------------------
+    #-----------------------
+    # SLURM settings
+    #-----------------------
 
-    # Set number of cores to those requested with #SBATCH -c
+    # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 elif [[ "x${LSB_JOBID}" != "x" ]]; then
 
-    #--------------------
-    # Run via LSF (TODO)
-    #--------------------
-    echo "LSF support is coming soon!"
-    exit 1
+    #-----------------------
+    # LSF settings
+    #-----------------------
+
+    # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
+    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
 
 else
 
-    #--------------------
-    # Run interactively
-    #--------------------
+    #-----------------------
+    # Interactive settings
+    #-----------------------
 
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
@@ -95,7 +95,7 @@ fi
 #============================================================================
 
 # Include global variables & functions
-. ${root}/commonFunctionsForTests.sh
+. "${itRoot}/commonFunctionsForTests.sh"
 
 # Count the number of tests to be done
 numTests=${#EXE_BUILD_LIST[@]}
@@ -105,7 +105,7 @@ numTests=${#EXE_BUILD_LIST[@]}
 #============================================================================
 
 # Results logfile name
-results="${root}/logs/results.compile.log"
+results="${itRoot}/logs/results.compile.log"
 rm -f ${results}
 
 # Print header to results log file
@@ -128,7 +128,7 @@ print_to_log "Compiliation tests:" "${results}"
 print_to_log "${SEP_MINOR}"        "${results}"
 
 # Change to the top-level build directory
-cd ${root}
+cd "${itRoot}"
 
 # Keep track of the number of tests that passed & failed
 let passed=0
@@ -139,19 +139,20 @@ let remain=${numTests}
 for dir in ${EXE_BUILD_LIST[@]}; do
 
     # Define build directory
-    buildDir="${root}/build/${dir}"
+    buildDir="${itRoot}/build/${dir}"
 
     # Define log file
-    log="${root}/logs/compile.${dir}.log"
+    log="${itRoot}/logs/compile.${dir}.log"
     rm -f ${log}
 
     # Configure and build GEOS-Chem source code
     # and increment pass/fail/remain counters
-    build_gcclassic "${root}" "${buildDir}" "${log}" "${results}" "${baseOptions}"
+    build_gcclassic \
+        "${itRoot}" "${buildDir}" "${log}" "${results}" "${baseOptions}"
     if [[ $? -eq 0 ]]; then
-	let passed++
+        let passed++
     else
-	let failed++
+let failed++
     fi
     let remain--
 
@@ -169,12 +170,33 @@ print_to_log "Complilation tests passed:        ${passed}" "${results}"
 print_to_log "Complilation tests failed:        ${failed}" "${results}"
 print_to_log "Complilation tests not completed: ${remain}" "${results}"
 
-# Check if all tests passed
+# Check for success
 if [[ "x${passed}" == "x${numTests}" ]]; then
+
+    #--------------------------
+    # Successful compilation
+    #--------------------------
     print_to_log ""                                        "${results}"
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" "${results}"
     print_to_log "%%%  All compilation tests passed!  %%%" "${results}"
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" "${results}"
+
+    # Start the interactive execution test script upon successful finish
+    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+        echo ""
+        echo "Compilation tests finished!"
+        ./intTestExecute.sh &
+    fi
+
+else
+
+    #---------------------------
+    # Unsuccessful compilation
+    #---------------------------
+    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+       echo ""
+       echo "Compilation tests failed!  Exiting..."
+    fi
 fi
 
 #============================================================================
@@ -188,13 +210,13 @@ unset dir
 unset head_gcc
 unset head_gc
 unset head_hco
+unset itRoot
 unset kernel
 unset log
 unset numTests
 unset passed
 unset remain
 unset results
-unset root
 
 # Free imported variables
 unset FILL

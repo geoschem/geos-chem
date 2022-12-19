@@ -645,3 +645,50 @@ function submit_gchp_slurm_job() {
     # Return the jobId for the next iteration
     echo "${jobId}"
 }
+
+
+function run_gchp_local_job() {
+    #========================================================================
+    # Submits a GCHP SLURM job script for the execution test phase.
+    # Subsequent jobs are submitted as SLURM job dependencies.
+    #
+    # 1st argument = Root folder for tests (w/ many rundirs etc)
+    # 2nd argument = GCHP run directory name
+    # 3rd argument = Id from the previous SLURM job
+    #========================================================================
+
+    # Arguments
+    root=${1}
+    runDir=${2}
+    jobId=${3}
+
+    # Change to the run directory
+    cd "${root}/${runDir}"
+
+    # Remove any leftover files in the run dir
+    ./cleanRunDir.sh --no-interactive
+
+    # Copy the executable here
+    cp ${root}/build/bin/gchp .
+
+    # Redirect the log file
+    log="${root}/logs/execute.${runDir}.log"
+
+    # Submit jobs (except the first) as a SLURM dependency
+    if [[ "x${jobId}" == "xnone" ]]; then
+	output=$(sbatch --export=ALL gchp.slurm.sh)
+	output=($output)
+	jobId=${output[3]}
+    else
+	output=$(sbatch --export=ALL --dependency=afterany:${jobId} gchp.slurm.sh)
+	output=(${output})
+	jobId=${output[3]}
+    fi
+
+    # Change to the root folder
+    cd ${root}
+
+    # Return the jobId for the next iteration
+    echo "${jobId}"
+}
+

@@ -6,7 +6,6 @@
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=90000
 #SBATCH --mail-type=END
-
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 24
 #BSUB -W 3:00
@@ -38,42 +37,45 @@
 #============================================================================
 
 # Get the long path of the integration test root folder
-root=$(pwd -P)
+itRoot=$(pwd -P)
 
 # Load the environment and the software environment
 . ~/.bashrc                > /dev/null 2>&1
-. ${root}/gcclassic_env.sh > /dev/null 2>&1
+. ${itRoot}/gcclassic_env.sh > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "./CodeDir" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
 
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
 
-    #--------------------
-    # Run via SLURM
-    #--------------------
+    #-----------------------
+    # SLURM settings
+    #-----------------------
 
-    # Set number of cores to those requested with #SBATCH -c
+    # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 elif [[ "x${LSB_JOBID}" != "x" ]]; then
 
-    #--------------------
-    # Run via LSF (TODO)
-    #--------------------
-    echo "LSF support coming soon!"
-    exit 1
+    #-----------------------
+    # LSF settings
+    #-----------------------
+
+    # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
+    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
 
 else
 
-    #--------------------
-    # Run interactively
-    #--------------------
+    #-----------------------
+    # Interactive settings
+    #-----------------------
+    echo ""
+    echo "Execution tests running..."
 
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
@@ -93,17 +95,17 @@ fi
 #============================================================================
 
 # Include global variables & functions
-. ${root}/commonFunctionsForTests.sh
+. "${itRoot}/commonFunctionsForTests.sh"
 
 # Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${root}")
+numTests=$(count_rundirs "${itRoot}")
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-results="${root}/logs/results.execute.log"
+results="${itRoot}/logs/results.execute.log"
 rm -f "${results}"
 
 # Print header to results log file
@@ -134,65 +136,65 @@ let remain=${numTests}
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${root}/${runDir}")
+    expr=$(is_valid_rundir "${itRoot}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
-	# Define log file
-	log="${root}/logs/execute.${runDir}.log"
-	rm -f "${log}"
+        # Define log file
+        log="${itRoot}/logs/execute.${runDir}.log"
+        rm -f "${log}"
 
-	# Messages for execution pass & fail
-	passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
-	failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
+        # Messages for execution pass & fail
+        passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
+        failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
-	# Get the executable file corresponding to this run directory
-	exeFile=$(gcclassic_exe_name "${runDir}")
+        # Get the executable file corresponding to this run directory
+        exeFile=$(gcclassic_exe_name "${runDir}")
 
-	# Test if the executable exists
-	if [[ -f "${root}/exe_files/${exeFile}" ]]; then
+        # Test if the executable exists
+        if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
 
-	    #----------------------------------------------------------------
-	    # If the executable file exists, we can do the test
-	    #----------------------------------------------------------------
+            #----------------------------------------------------------------
+            # If the executable file exists, we can do the test
+            #----------------------------------------------------------------
 
-	    # Change to this run directory; remove leftover log file
-	    cd "${root}/${runDir}"
+            # Change to this run directory; remove leftover log file
+            cd "${itRoot}/${runDir}"
 
-	    # Copy the executable file here
-	    cp -f "${root}/exe_files/${exeFile}" .
+            # Copy the executable file here
+            cp -f "${itRoot}/exe_files/${exeFile}" .
 
-	    # Run the code if the executable is present.  Then update the
-	    # pass/fail counters and write a message to the results log file.
-	    srun -c ${OMP_NUM_THREADS} "./${exeFile}" >> "${log}" 2>&1
-	    if [[ $? -eq 0 ]]; then
-		let passed++
-		if [[ "x${results}" != "x" ]]; then
-		    print_to_log "${passMsg}" "${results}"
-		fi
-	    else
-		let failed++
-		if [[ "x${results}" != "x" ]]; then
-		    print_to_log "${failMsg}" "${results}"
-		fi
-	    fi
+            # Run the code if the executable is present.  Then update the
+            # pass/fail counters and write a message to the results log file.
+            srun -c ${OMP_NUM_THREADS} "./${exeFile}" >> "${log}" 2>&1
+            if [[ $? -eq 0 ]]; then
+                let passed++
+                if [[ "x${results}" != "x" ]]; then
+                    print_to_log "${passMsg}" "${results}"
+                fi
+            else
+                let failed++
+                if [[ "x${results}" != "x" ]]; then
+                    print_to_log "${failMsg}" "${results}"
+                fi
+            fi
 
-	    # Change to root directory for next iteration
-	    cd ${root}
+            # Change to itRoot directory for next iteration
+            cd "${itRoot}"
 
-	else
+        else
 
-  	    #----------------------------------------------------------------
-	    # If the executable is missing, update the "fail" counter
-	    # and write the "failed" message to the results log file.
-	    #----------------------------------------------------------------
-	    let failed++
-	    if [[ "x${results}" != "x" ]]; then
-		print_to_log "${failMsg}" "${results}"
-	    fi
-	fi
+            #----------------------------------------------------------------
+            # If the executable is missing, update the "fail" counter
+            # and write the "failed" message to the results log file.
+            #----------------------------------------------------------------
+            let failed++
+            if [[ "x${results}" != "x" ]]; then
+                print_to_log "${failMsg}" "${results}"
+            fi
+        fi
 
-	# Decrement the count of remaining tests
-	let remain--
+        # Decrement the count of remaining tests
+        let remain--
     fi
 done
 
@@ -201,19 +203,39 @@ done
 #============================================================================
 
 # Print summary to log
-print_to_log " "                                            ${results}
-print_to_log "Summary of test results:"                     ${results}
-print_to_log "${SEP_MINOR}"                                 ${results}
-print_to_log "Execution tests passed: ${passed}"            ${results}
-print_to_log "Execution tests failed: ${failed}"            ${results}
-print_to_log "Execution tests not yet completed: ${remain}" ${results}
+print_to_log " "                                            "${results}"
+print_to_log "Summary of test results:"                     "${results}"
+print_to_log "${SEP_MINOR}"                                 "${results}"
+print_to_log "Execution tests passed: ${passed}"            "${results}"
+print_to_log "Execution tests failed: ${failed}"            "${results}"
+print_to_log "Execution tests not yet completed: ${remain}" "${results}"
 
-# Check if all tests passed
+# Check for success
 if [[ "x${passed}" == "x${numTests}" ]]; then
-    print_to_log ""                                         ${results}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${results}
-    print_to_log "%%%  All execution tests passed!  %%%"    ${results}
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${results}
+
+    #--------------------------
+    # Successful execution
+    #--------------------------
+    print_to_log ""                                         "${results}"
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
+    print_to_log "%%%  All execution tests passed!  %%%"    "${results}"
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
+
+    # Print success (if interactive)
+    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+        echo ""
+        echo "Execution tests finished!"
+    fi
+
+else
+
+    #--------------------------
+    # Unsuccessful execution
+    #--------------------------
+    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+        echo ""
+        echo "Execution tests failed!  Exiting ..."
+    fi
 fi
 
 #============================================================================
@@ -227,13 +249,13 @@ unset failmsg
 unset head_gcc
 unset head_gc
 unset head_hco
+unset itRoot
 unset log
 unset numTests
 unset passed
 unset passMsg
 unset remain
 unset results
-unset root
 
 # Free imported global variables
 unset FILL

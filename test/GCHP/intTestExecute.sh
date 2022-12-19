@@ -6,6 +6,12 @@
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=90000
 #SBATCH --mail-type=END
+#BSUB -q REQUESTED_PARTITION
+#BSUB -n 24
+#BSUB -W 3:00
+#BSUB -R "rusage[mem=90GB] span[ptile=1] select[mem < 2TB]"
+#BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
+#BSUB -o lsf-%J.txt
 
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
@@ -39,11 +45,11 @@ root=$(pwd -P)
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "./CodeDir" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
 
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
 
@@ -127,64 +133,64 @@ let remain=${numTests}
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${root}/${runDir}")
+    expr=$(is_gchp_rundir "${root}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
-	# Define log file
-	log="${root}/logs/execute.${runDir}.log"
-	rm -f "${log}"
+        # Define log file
+        log="${root}/logs/execute.${runDir}.log"
+        rm -f "${log}"
 
-	# Messages for execution pass & fail
-	passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
-	failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
+        # Messages for execution pass & fail
+        passMsg="$runDir${FILL:${#runDir}}.....${EXE_PASS_STR}"
+        failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
-	# Get the executable file corresponding to this run directory
-	exeFile=$(gcclassic_exe_name "${runDir}")
+        # Get the executable file corresponding to this run directory
+        exeFile="gchp"
 
-	# Test if the executable exists
-	if [[ -f "${root}/exe_files/${exeFile}" ]]; then
+        # Test if the executable exists
+        if [[ -f "${root}/exe_files/${exeFile}" ]]; then
 
 	    #----------------------------------------------------------------
 	    # If the executable file exists, we can do the test
-	    #----------------------------------------------------------------
+            #----------------------------------------------------------------
 
-	    # Change to this run directory; remove leftover log file
+            # Change to this run directory; remove leftover log file
 	    cd "${root}/${runDir}"
 
-	    # Copy the executable file here
-	    cp -f "${root}/exe_files/${exeFile}" .
+            # Copy the executable file here
+            cp -f "${root}/exe_files/${exeFile}" .
 
-	    # Run the code if the executable is present.  Then update the
-	    # pass/fail counters and write a message to the results log file.
-	    srun -c ${OMP_NUM_THREADS} "./${exeFile}" >> "${log}" 2>&1
-	    if [[ $? -eq 0 ]]; then
-		let passed++
-		if [[ "x${results}" != "x" ]]; then
-		    print_to_log "${passMsg}" "${results}"
-		fi
-	    else
-		let failed++
-		if [[ "x${results}" != "x" ]]; then
-		    print_to_log "${failMsg}" "${results}"
-		fi
-	    fi
+            # Run the code if the executable is present.  Then update the
+            # pass/fail counters and write a message to the results log file.
+            ./gchp_local.run >> "${log}" 2>&1
+            if [[ $? -eq 0 ]]; then
+                let passed++
+                if [[ "x${results}" != "x" ]]; then
+                    print_to_log "${passMsg}" "${results}"
+                fi
+            else
+                let failed++
+                if [[ "x${results}" != "x" ]]; then
+                    print_to_log "${failMsg}" "${results}"
+                fi
+            fi
 
-	    # Change to root directory for next iteration
-	    cd ${root}
+            # Change to root directory for next iteration
+            cd ${root}
 
-	else
+        else
 
-  	    #----------------------------------------------------------------
-	    # If the executable is missing, update the "fail" counter
-	    # and write the "failed" message to the results log file.
-	    #----------------------------------------------------------------
-	    let failed++
-	    if [[ "x${results}" != "x" ]]; then
-		print_to_log "${failMsg}" "${results}"
-	    fi
-	fi
+            #----------------------------------------------------------------
+            # If the executable is missing, update the "fail" counter
+            # and write the "failed" message to the results log file.
+            #----------------------------------------------------------------
+            let failed++
+            if [[ "x${results}" != "x" ]]; then
+                print_to_log "${failMsg}" "${results}"
+            fi
+        fi
 
-	# Decrement the count of remaining tests
+        # Decrement the count of remaining tests
 	let remain--
     fi
 done
