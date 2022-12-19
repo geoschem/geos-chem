@@ -40,8 +40,8 @@
 itRoot=$(pwd -P)
 
 # Load the environment and the software environment
-. ~/.bashrc                > /dev/null 2>&1
-. ${itRoot}/gcclassic_env.sh > /dev/null 2>&1
+. ~/.bashrc               > /dev/null 2>&1
+. ${itRoot}/gcclassic.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \

@@ -40,16 +40,18 @@
 root=$(pwd -P)
 
 # Load the environment and the software environment
-. ~/.bashrc                > /dev/null 2>&1
-. ${root}/gcclassic_env.sh > /dev/null 2>&1
+. ~/.bashrc        > /dev/null 2>&1
+. ${root}/gchp.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "./CodeDir" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "./CodeDir/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem" \
+              log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "./CodeDir/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
+               log --oneline --no-decorate -1)
 
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
 

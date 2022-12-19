@@ -40,8 +40,8 @@
 itRoot=$(pwd -P)
 
 # Load the user-environment and the software environment
-. ~/.bashrc             > /dev/null 2>&1
-. ${itRoot}/gchp_env.sh > /dev/null 2>&1
+. ~/.bashrc          > /dev/null 2>&1
+. ${itRoot}/gchp.env > /dev/null 2>&1
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug"
@@ -50,9 +50,11 @@ baseOptions="-DCMAKE_BUILD_TYPE=Debug"
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "./CodeDir" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "./CodeDir/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem" \
+              log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "./CodeDir/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
+               log --oneline --no-decorate -1)
 
 if [[ "x${SLURM_JOBID}" != "x" ]]; then
 

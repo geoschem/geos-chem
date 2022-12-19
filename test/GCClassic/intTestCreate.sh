@@ -109,7 +109,7 @@ fi
 
 # Copying the run scripts to the integration test root folder
 printf "\nCopying run scripts to: ${itRoot}\n"
-cp -f ${envFile}                            ${itRoot}/gcclassic_env.sh
+cp -f ${envFile}                            ${itRoot}/gcclassic.env
 cp -f ${thisDir}/intTest*.sh                ${itRoot}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}
 

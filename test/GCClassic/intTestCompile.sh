@@ -40,8 +40,8 @@
 itRoot=$(pwd -P)
 
 # Load the user-environment and the software environment
-. ~/.bashrc                  > /dev/null 2>&1
-. ${itRoot}/gcclassic_env.sh > /dev/null 2>&1
+. ~/.bashrc               > /dev/null 2>&1
+. ${itRoot}/gcclassic.env > /dev/null 2>&1
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${itRoot}/exe_files"

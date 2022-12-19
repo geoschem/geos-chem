@@ -127,14 +127,14 @@ if [[ "x${envFile}" == "xnone" ]]; then
 fi
 
 # Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xSLURM" && "x${sed_cmd}" == "xnone" ]]; then
+if [[ "x${scheduler}" == "xSLURM" && "x${sedCmd}" == "xnone" ]]; then
     echo "ERROR: You must specify a partition for SLURM."
     echo "${usage}"
     exit 1
 fi
 
 # Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xLSF" && "x${sed_cmd}" == "xnone" ]]; then
+if [[ "x${scheduler}" == "xLSF" && "x${sedCmd}" == "xnone" ]]; then
     echo "ERROR: You must specify a partition for LSF."
     echo "${usage}"
     exit 1
@@ -165,7 +165,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Change to the integration test root folder
-if [[ -d ${itRoot} ]]; then
+if [[ -d "${itRoot}" ]]; then
     cd "${itRoot}"
 else
     echo "ERROR: ${itRoot} is not a valid directory!  Exiting..."
@@ -204,22 +204,22 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 	"${itRoot}/intTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sed_cmd}" "${int_test_root}/intTestCompile.sh"
-    sed_ie "${sed_cmd}" "${int_test_root}/intTestExecute.sh"
+    sed_ie "${sedCmd}" "${itRoot}/intTestCompile.sh"
+    sed_ie "${sedCmd}" "${itRoot}/intTestExecute.sh"
 
     # Submit compilation tests script
     output=$(sbatch intTestCompile.sh)
     output=($output)
-    cmp_id=${output[3]}
+    cmpId=${output[3]}
 
     # Submit execution tests script as a job dependency
-    output=$(sbatch --dependency=afterok:${cmp_id} intTestExecute.sh)
+    output=$(sbatch --dependency=afterok:${cmpId} intTestExecute.sh)
     output=($output)
-    exe_id=${output[3]}
+    exeId=${output[3]}
 
     echo ""
-    echo "Compilation tests submitted as SLURM job ${cmp_id}"
-    echo "Execution   tests submitted as SLURM job ${exe_id}"
+    echo "Compilation tests submitted as SLURM job ${cmpId}"
+    echo "Execution   tests submitted as SLURM job ${exeId}"
 
 elif [[ "x${scheduler}" == "xLSF" ]]; then
 
@@ -260,6 +260,10 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     exeId=${exeId/<}
     exeId=${exeId/>}
 
+    echo ""
+    echo "Compilation tests submitted as LSF job ${cmpId}"
+    echo "Execution   tests submitted as LSF job ${exeId}"
+
 else
 
     #-------------------------------------------------------------------------
@@ -270,30 +274,9 @@ else
     echo ""
     echo "Compiliation tests are running..."
     ./intTestCompile.sh
-    if [[ $? != 0 ]]; then
-	echo ""
-	echo "Compilation tests failed!  Exiting..."
-	cd ${thisDir}
-	exit 1
-    fi
-    echo ""
-    echo "Compilation tests finished!"
-
-    # Run execution tests
-    echo ""
-    echo "Execution tests are running..."
-    ./intTestExecute.sh
-    if [[ $? != 0 ]]; then
-	echo ""
-	echo "Execution tests failed!  Exiting..."
-	cd ${thisDir}
-	exit 1
-    fi
-    echo ""
-    echo "Execution tests finished!"
 
     # Change back to this directory
-    cd ${thisDir}
+    cd "${thisDir}"
 
 fi
 
