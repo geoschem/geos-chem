@@ -38,6 +38,9 @@ MODULE FullChem_Mod
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
   INTEGER               :: id_PCO, id_LCH4, id_NH3
+#ifdef TOMAS
+  INTEGER               :: id_NK5,  id_NK8,  id_NK10,  id_NK20
+#endif
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -703,6 +706,8 @@ CONTAINS
           C(N)  = 0.0_dp
           IF ( SpcId > 0 ) C(N) = State_Chm%Species(SpcID)%Conc(I,J,L)
        ENDDO
+         C(ind_PH2SO4) = 0.0e+0_fp  !betty
+         C(ind_PSO4AQ) = 0.0e+0_fp  !betty
 
        !=====================================================================
        ! Start KPP main timer
@@ -965,7 +970,7 @@ CONTAINS
        RCNTRL    = 0.0_fp
 
        ! Initialize Hstart (the starting value of the integration step
-       ! size with the value of Hnew (the last predicted but not yet 
+       ! size with the value of Hnew (the last predicted but not yet
        ! taken timestep)  saved to the the restart file.
        RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
@@ -1278,25 +1283,28 @@ CONTAINS
 !!          ENDIF
 !!       ENDDO
 
+             !!print*,'Here is index' , ind_PH2SO4, ind_PSO4AQ
+
              H2SO4_RATE(I,J,L) = C(ind_PH2SO4) / AVO * 98.e-3_fp * &
                                  State_Met%AIRVOL(I,J,L)    * &
-                                 1.0e+6_fp / DT
+                                 1.0e+6_fp / DT  ! kg s-1 box-1
 
             IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
               write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
                  I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
-            ENDIF   
             H2SO4_RATE(I,J,L) = 0.0d0
+            ENDIF
+
 
              PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
                                  State_Met%AIRVOL(I,J,L)    * &
-                                 1.0e+6_fp ! per timestep
+                                 1.0e+6_fp ! kg per timestep box-1
 
             IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
               write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
                  I, J, L, "was:", PSO4AQ_RATE(I,J,L), "  setting to 0.0d0"
-            ENDIF             
            PSO4AQ_RATE(I,J,L) = 0.0d0
+            ENDIF
 
 #endif
 #endif
@@ -1479,6 +1487,21 @@ CONTAINS
     ENDIF
 #endif
 
+
+#ifdef TOMAS
+       !-----------------------------------------------------------------
+       ! For TOMAS microphysics:
+       !
+       ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
+       !
+       ! SO4 produced via aqueous chemistry is distributed onto 30-bin
+       ! aerosol by TOMAS subroutine AQOXID.
+       !-----------------------------------------------------------------
+
+       CALL TOMAS_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMSULFATE: a TOMAS_SO4_AQ' )
+#endif
+
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after solver
     !=======================================================================
@@ -1579,6 +1602,144 @@ CONTAINS
 
   END SUBROUTINE Do_FullChem
 !EOC
+#ifdef TOMAS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: tomas_so4_aq
+!
+! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous
+!  chemistry of SO2 and distribute onto the size-resolved aerosol number and
+!  sulfate mass as a part of the TOMAS aerosol microphysics module
+!  (win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE TOMAS_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE ERROR_MOD
+    USE Input_Opt_Mod,      ONLY : OptINput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN,PSO4AQ_RATE
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  NOTE: This subroutine is ignored unless we compile for TOMAS microphysics.
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER           :: I, J, L
+    INTEGER           :: k, binact1, binact2
+    INTEGER           :: KMIN
+    REAL(fp)          :: SO4OXID
+    CHARACTER(LEN=63) :: OrigUnit
+
+    !=================================================================
+    ! TOMAS_SO4_AQ begins here!
+    !=================================================================
+
+    ! Assume success
+    RC  = GC_SUCCESS
+
+    ! Convert species from to [kg]
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Start of TOMAS_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED )  &
+    !$OMP PRIVATE( I, J, L ) &
+    !$OMP PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 ) &
+    !$OMP SCHEDULE( DYNAMIC )
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Skip non-chemistry boxes
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+        SO4OXID = PSO4AQ_RATE(I,J,L)
+
+!        print*, 'Here is SO4OXID ',SO4OXID, I,J,L 
+
+!       SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
+!                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g ) ! convert v/v to kg/box
+
+       IF ( SO4OXID > 0e+0_fp ) THEN
+          ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
+          !length being used)
+#if defined( TOMAS12 )
+          CALL GETACTBIN( I, J, L, id_NK5, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK5, .FALSE., BINACT2, State_Chm, RC )
+#elif defined( TOMAS15 )
+          CALL GETACTBIN( I, J, L, id_NK8, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK8, .FALSE., BINACT2, State_Chm, RC )
+#elif defined( TOMAS30 )
+          CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK10, .FALSE., BINACT2, State_Chm, RC )
+#else
+          CALL GETACTBIN( I, J, L, id_NK20, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK20, .FALSE., BINACT2, State_Chm, RC )
+#endif
+
+          KMIN = ( BINACT1 + BINACT2 )/ 2.
+
+          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
+                       State_Chm, State_Grid, State_Met, RC )
+       ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Convert species back to original units
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'End of TOMAS_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+  END SUBROUTINE TOMAS_SO4_AQ
+!EOC 
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2509,6 +2670,12 @@ CONTAINS
     id_SALCAL   = Ind_( 'SALCAL'       )
     id_SO4      = Ind_( 'SO4'          )
     id_SALC     = Ind_( 'SALC'         )
+#ifdef TOMAS
+    id_NK5      = Ind_( 'NK5'          )
+    id_NK8      = Ind_( 'NK8'          )
+    id_NK10     = Ind_( 'NK10'         )
+    id_NK20     = Ind_( 'NK20'         )
+#endif
 
 #ifdef MODEL_GEOS
     ! ckeller
