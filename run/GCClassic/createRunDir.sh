@@ -35,12 +35,12 @@ function post_registration() {
         }"
 }
 
-srcrundir=$(pwd)
+srcrundir=$(pwd -P)
 cd ${srcrundir}
 cd ../..
-gcdir=$(pwd)
+gcdir=$(pwd -P)
 cd ../../
-wrapperdir=$(pwd)
+wrapperdir=$(pwd -P)
 cd ${srcrundir}
 
 # Load file with utility functions to setup configuration files
