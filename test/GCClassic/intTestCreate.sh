@@ -302,7 +302,7 @@ create_rundir "10\n2\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 #=============================================================================
 
 # 4x5 merra2 fullchem_47L"
-create_rundir "1\n1\n1\n1\n2\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
+create_rundir "1\n1\n1\n1\n2\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 #=============================================================================
 # Nested-grid simulations
