@@ -45,11 +45,12 @@ CMP_FAIL_STR='Configure & Build.....FAIL'
 EXE_PASS_STR='Execute Simulation....PASS'
 EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
-EXE_BUILD_LIST=("default" "apm"   "hg"                     \
-                "luowd"   "rrtmg" "tomas15" "tomas40" )
+EXE_GCC_BUILD_LIST=("default" "apm"   "hg"                     \
+                    "luowd"   "rrtmg" "tomas15" "tomas40" )
 # Future development -- add carboncycle
-#EXE_BUILD_LIST=("default" "apm"   "carboncycle" "hg"       \
-#                "luowd"   "rrtmg" "tomas15"     "tomas40" )
+#EXE_GCC_BUILD_LIST=("default" "apm"   "carboncycle" "hg"       \
+#                   "luowd"   "rrtmg" "tomas15"     "tomas40" )
+EXE_GCHP_BUILD_LIST=("default" "rrtmg")
 
 
 function sed_ie() {
@@ -59,12 +60,12 @@ function sed_ie() {
     # 1st argument = regular expression
     # 2nd argument = file to be edited
     #========================================================================
-    REGEX=${1}
-    FILE=${2}
+    regex="${1}"
+    file="${2}"
     if [[ "x$(uname -s)" == "xDarwin" ]]; then
-	sed -i '' -e "${REGEX}" "${FILE}"          # MacOS/Darwin
+	sed -i '' -e "${regex}" "${file}"          # MacOS/Darwin
     else
-	sed -i -e "${REGEX}" "${FILE}"             # GNU/Linux
+	sed -i -e "${regex}" "${file}"             # GNU/Linux
     fi
 }
 
@@ -75,7 +76,7 @@ function absolute_path() {
     #
     # 1st argument = relative path
     #========================================================================
-    if [[ -d ${1} ]]; then
+    if [[ -d "${1}" ]]; then
 	absPath=$(readlink -f "${1}")   # If directory exists, use readlink
     else
 	absPath="${1/#\~/$HOME}"        # Otherwise, replace ~ with $HOME
@@ -90,8 +91,9 @@ function is_valid_rundir() {
     #
     # 1st argument: File or directory to be tested
     #========================================================================
-    if [[ -d ${1} ]]; then
-	if [[ -f ${1}/geoschem_config.yml && -f ${1}/HEMCO_Config.rc ]]; then
+    if [[ -d "${1}" ]]; then
+	if [[ -f "${1}/geoschem_config.yml" && \
+	      -f "${1}/HEMCO_Config.rc" ]]; then
 	    echo "TRUE"
 	    return
 	fi
@@ -106,9 +108,9 @@ function is_gchp_rundir() {
     #
     # 1st argument: Directory to be tested
     #========================================================================
-    expr=$(is_valid_rundir ${1})
+    expr=$(is_valid_rundir "${1}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-	if [[ -f ${1}/CAP.rc ]]; then
+	if [[ -f "${1}/CAP.rc" ]]; then
 	    echo "TRUE"
 	    return
 	fi
@@ -123,19 +125,19 @@ function count_rundirs() {
     #
     # 1st argument: Root directory containing several GC run directories
     #========================================================================
-    root=${1}
+    itRoot="${1}"
     thisDir=$(pwd -P)
 
     # Count run directories
-    cd ${root}
+    cd "${itRoot}"
     declare -i x=0
-    for rundir in *; do
-	expr=$(is_valid_rundir ${rundir})
+    for runDir in *; do
+	expr=$(is_valid_rundir "${runDir}")
 	if [[ "x${expr}" == "xTRUE" ]]; then
 	    let x++
 	fi
     done
-    cd ${thisDir}
+    cd "${thisDir}"
 
     # Cleanup and quit
     echo $x
@@ -147,6 +149,7 @@ function update_gchp_config_files() {
     # Returns the number of run directories in the root folder.
     #
     # 1st argument: Root directory containing several GC run directories
+    # 2nd argument: Integration test root directory
     #========================================================================
     runPath=$(absolute_path "${1}")           # GCHP run dir (abs path)
     itRoot=$(absolute_path "${2}")            # Int test root dir (abs path)
@@ -154,7 +157,6 @@ function update_gchp_config_files() {
 
     # Link & copy files to the GCHP run dir
     cp "${itRoot}/gchp.env"                         "${runPath}/gchp.env"
-    #cp "${runPath}/runScriptSamples/gchp.slurm.sh" "${runPath}"
     cp "${runPath}/runScriptSamples/gchp.local.run" "${runPath}"
 
     # Replace text in config file
@@ -264,6 +266,7 @@ function create_rundir() {
     #
     # 1st argument: Commands to forcefeed into createRunDir.sh
     # 2nd argument: Log file where stdout & stderr will be redirected
+    # 3rd argument: Integration test root directory
     #
     # NOTE: Run directories will be created with default names.
     #========================================================================
@@ -301,6 +304,9 @@ function create_rundir() {
     if [[ "x${expr}" == "xTRUE" ]]; then
 	update_gchp_config_files "${runPath}" "${itRoot}"
     fi
+
+    # Remove temporary logs
+    rm -rf "${logTmp} ${logTmp2}"
 }
 
 
@@ -313,7 +319,7 @@ function cleanup_files() {
     if [[ "x${1}" != "x" ]]; then
 
 	# Exit if directory is already empty
-	if [[ ! $(ls -A ${1}) ]]; then
+	if [[ ! $(ls -A "${1}") ]]; then
 	    echo "${1} is empty... nothing to clean up!"
 	    return 0
 	fi
@@ -322,21 +328,21 @@ function cleanup_files() {
 	printf "\nRemoving files and directories in ${1}:\n"
 	printf "If this is OK, type 'yes to proceed or 'no' to quit:\n"
 	read answer
-	if [[ ! ${answer} =~ [Yy][Ee][Ss] ]]; then
+	if [[ ! "${answer}" =~ "[Yy][Ee][Ss]" ]]; then
 	    printf "Exiting...\n"
 	    exit 1
 	fi
 
 	# Remove files and unlink links
 	printf "Removing ...\n"
-	for file in ${1}/*; do
-	    if [[ -h ${file} ]]; then
-		unlink ${file}
+	for file in "${1}/*"; do
+	    if [[ -h "${file}" ]]; then
+		unlink "${file}"
 	    else
-		path=$(absolute_path ${file})
-		if [[ -e ${path} ]]; then
+		path=$(absolute_path "${file}")
+		if [[ -e "${path}" ]]; then
 		    printf " ... ${path}\n";
-		    rm -rf ${path}
+		    rm -rf "${path}"
 		fi
 		unset path
 	    fi
@@ -356,26 +362,45 @@ function print_to_log() {
 }
 
 
-function gcclassic_exe_name() {
+function exe_name() {
     #========================================================================
     # Returns the executable name given a directory name
     #
-    # 1st argument: Directory name
+    # 1st argument: Model (GCClassic or GCHP)
+    # 2nd argument: Build directory name
     #========================================================================
+    model="${1}"
+    buildDir="${2}"
 
     # Turn on case-insensitivity
     shopt -s nocasematch
 
     # Default executable name
-    exeFileName="gcclassic"
+    exeFileName="none"
+    [[ "x${model}" == "xgcclassic" ]] && exeFileName="${model}"
+    [[ "x${model}" == "xgchp"      ]] && exeFileName="${model}"
+    if [[ "x${exeFileName}" == "xnone" ]]; then
+	echo "ERROR: Model must be either 'gcclassic' or 'gchp'!"
+	echo "Exiting from exe_name (in commonFunctionsForTests.sh)"
+	exit 1
+    fi
 
     # Append a suffix to the executable file name for specific directories
-    for suffix in ${EXE_BUILD_LIST[@]}; do
-	if [[ ${1} =~ ${suffix} ]]; then
-	    exeFileName+=".${suffix}"
-	    break
-	fi
-    done
+    if [[ "x${model}" == "xgcclassic" ]]; then
+	for suffix in ${EXE_GCC_BUILD_LIST[@]}; do
+	    if [[ "${buildDir}" =~ "${suffix}" ]]; then
+		exeFileName+=".${suffix}"
+		break
+	    fi
+	done
+    elif [[ "x${model}" == "xgchp" ]]; then
+	for suffix in ${EXE_GCHP_BUILD_LIST[@]}; do
+	    if [[ "${buildDir}" =~ "${suffix}" ]]; then
+		exeFileName+=".${suffix}"
+		break
+	    fi
+	done
+    fi
 
     # Turn off case-insensitivity
     shopt -u nocasematch
@@ -385,19 +410,22 @@ function gcclassic_exe_name() {
 }
 
 
-function gcclassic_config_options() {
+function config_options() {
     #========================================================================
-    # Returns the GCClassic configuration options given a directory name
+    # Returns the configuration options given a directory name
     #
-    # 1st argument: Directory name
+    # 1st argument: Model type ("gcclassic" or "gchp")
+    # 2nd argument: Directory name
+    # 3rd argument: Base compilation options
     #========================================================================
 
     # Arguments
-    dir=$(basename ${1})  # Only take last part of path
-    baseOptions=${2}
+    model="${1}"
+    dir=$(basename "${2}")  # Only take last part of path
+    baseOptions="${3}"
 
     # Local variables
-    exeFileName=$(gcclassic_exe_name ${dir})
+    exeFileName=$(exe_name "${model}" "${dir}" )
 
     # Turn on case-insensitivity
     shopt -s nocasematch
@@ -429,36 +457,40 @@ function gcclassic_config_options() {
 }
 
 
-function gcclassic_compiletest_name() {
+function compiletest_name() {
     #========================================================================
     # Returns the GCClassic configuration options given a directory name
     #
-    # 1st argument: Directory name
+    # 1st argument: Model name ('gcclassic' or 'gchp')
+    # 2nd argument: Build directory name
     #========================================================================
+    model="${1}"
+    buildDir=$(basename "${2}")   # Only take last part of path
 
-    # Arguments
-    dir=$(basename ${1})   # Only take last part of path
+    # Display the proper model name
+    [[ "x${model}" == "xgcclassic" ]] && displayName="GCClassic"
+    [[ "x${model}" == "xgchp"      ]] && displayName="GCHP"
 
     # Turn on case-insensitivity
     shopt -s nocasematch
 
     # Pick the proper build options
-    if [[ ${dir} =~ "apm" ]]; then
-	result="GCClassic with APM"
-    elif [[ ${dir} =~ "carboncycle" ]]; then
-	result="GCClassic with carboncycle (as a KPP mechanism)"
-    elif [[ ${dir} =~ "luowd" ]]; then
-	result="GCClassic with Luo et al wetdep"
-    elif [[ ${dir} =~ "hg" ]]; then
-	result="GCClassic with Hg (as a KPP mechanism)"
-    elif [[ ${dir} =~ "rrtmg" ]]; then
-	result="GCClassic with RRTMG"
-    elif [[ ${dir} =~ "tomas15" ]]; then
-	result="GCClassic with TOMAS15"
-    elif [[ ${dir} =~ "tomas40" ]]; then
-	result="GCClassic with TOMAS40"
+    if [[ "${buildDir}" =~ "apm" ]]; then
+	result="${displayName} with APM"
+    elif [[ "${buildDir}" =~ "carboncycle" ]]; then
+	result="${displayName} with carboncycle (as a KPP mechanism)"
+    elif [[ "${buildDir}" =~ "luowd" ]]; then
+	result="${displayName} with Luo et al wetdep"
+    elif [[ "${buildDir}" =~ "hg" ]]; then
+	result="${displayName} with Hg (as a KPP mechanism)"
+    elif [[ "${buildDir}" =~ "rrtmg" ]]; then
+	result="${displayName} with RRTMG"
+    elif [[ "${buildDir}" =~ "tomas15" ]]; then
+	result="${displayName} with TOMAS15"
+    elif [[ "${buildDir}" =~ "tomas40" ]]; then
+	result="${displayName} with TOMAS40"
     else
-	result="GCClassic"
+	result="${displayName}"
     fi
 
     # Turn off case-insensitivity
@@ -469,39 +501,50 @@ function gcclassic_compiletest_name() {
 }
 
 
-function build_gcclassic() {
+function build_model() {
     #========================================================================
     # Configures and compiles GEOS-Chem (Classic or GCHP) for
     # CMAKE_BUILD_TYPE=Debug.
     #
-    # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GEOS_Chem Classic build directory
-    # 3rd argument = Log file where stderr and stdout will be redirected
-    # 4th argument = (OPTIONAL) Log file where results will be printed
+    # 1st argument = Model name ('gcclassic' or 'gchp')
+    # 2nd argument = Root folder for tests (w/ many rundirs etc)
+    # 3rd argument = GEOS_Chem Classic build directory
+    # 4th argument = Base compilation options
+    # 5th argument = Log file where stderr and stdout will be redirected
+    # 6th argument = Log file where results will be printed
     #========================================================================
 
     # Arguments
-    root=$(absolute_path ${1})
-    buildDir=${2}
-    log=${3}
-    results=${4}
-    baseOptions=${5}
+    model="${1}"
+    itRoot=$(absolute_path "${2}")
+    buildDir="${3}"
+    baseOptions="${4}"
+    log="${5}"
+    results="${6}"
+
+    # Stop with error if the model name is invalid
+    if [[ "x${model}" != "xgcclassic" && "x${model}" != "gchp" ]]; then
+	echo "ERROR: '${model}' is an invalid model name!"
+	echo "Exiting in 'build_model' (in 'commonFunctionsForTests.sh')"
+	exit 1
+    fi
+
 
     # Local variables
-    codeDir=${root}/CodeDir
-    configOptions=$(gcclassic_config_options ${buildDir} "${baseOptions}")
-    message=$(gcclassic_compiletest_name "${buildDir}")
+    codeDir="${itRoot}/CodeDir"
+    configOptions=$(config_options "${model}" "${buildDir}" "${baseOptions}")
+    message=$(compiletest_name "${model}" "${buildDir}")
     passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
     failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
 
     #---------------------------------------
     # Code configuration
     #---------------------------------------
-    cd ${buildDir}
-    cmake ${codeDir} ${configOptions} >> ${log} 2>&1
+    cd "${buildDir}"
+    cmake "${codeDir}" "${configOptions}" >> "${log}" 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
-	    print_to_log "${failMsg}" ${results}
+	    print_to_log "${failMsg}" "${results}"
 	fi
 	return 1
     fi
@@ -509,10 +552,10 @@ function build_gcclassic() {
     #----------------------------------------
     # Code compilation and installation
     #----------------------------------------
-    make -j install >> ${log} 2>&1
+    make -j install >> "${log}" 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
-	    print_to_log "${failMsg}" ${results}
+	    print_to_log "${failMsg}" "${results}"
 	fi
 	return 1
     fi
@@ -523,172 +566,48 @@ function build_gcclassic() {
 
     # If we have gotten this far, the run passed,
     # so update the results log file accordingly
-    print_to_log "${passMsg}" ${results}
+    print_to_log "${passMsg}" "${results}"
 
     # Switch back to the root directory
-    cd ${root}
-}
-
-
-function build_gchp() {
-    #========================================================================
-    # Configures and compiles GCHP.
-    #
-    # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GEOS_Chem Classic build directory
-    # 3rd argument = Log file where stderr and stdout will be redirected
-    # 4th argument = Log file where results will be printed
-    # 5th argument = Compilation options
-    #========================================================================
-
-    # Arguments
-    root=$(absolute_path ${1})
-    buildDir=${2}
-    log=${3}
-    results=${4}
-    options=${5}
-
-    # Local variables
-    codeDir=${root}/CodeDir
-    message="GCHP"
-    passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
-    failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
-
-    #---------------------------------------
-    # Code configuration
-    #---------------------------------------
-    cd ${buildDir}
-    cmake ${codeDir} ${options} >> ${log} 2>&1
-    if [[ $? -ne 0 ]]; then
-	if [[ "x${results}" != "x" ]]; then
-	    print_to_log "${failMsg}" ${results}
-	fi
-	return 1
-    fi
-
-    #----------------------------------------
-    # Code compilation and installation
-    #----------------------------------------
-    make -j install >> ${log} 2>&1
-    if [[ $? -ne 0 ]]; then
-	if [[ "x${results}" != "x" ]]; then
-	    print_to_log "${failMsg}" ${results}
-	fi
-	return 1
-    fi
-
-    #----------------------------------------
-    # Cleanup & quit
-    #----------------------------------------
-
-    # If we have gotten this far, the run passed,
-    # so update the results log file accordingly
-    print_to_log "${passMsg}" ${results}
-
-    # Switch back to the root directory
-    cd ${root}
-}
-
-
-function submit_gchp_slurm_job() {
-    #========================================================================
-    # Submits a GCHP SLURM job script for the execution test phase.
-    # Subsequent jobs are submitted as SLURM job dependencies.
-    #
-    # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GCHP run directory name
-    # 3rd argument = Id from the previous SLURM job
-    #========================================================================
-
-    # Arguments
-    root=${1}
-    runDir=${2}
-    jobId=${3}
-
-    # Change to the run directory
-    cd ${root}/${runDir}
-
-    # Remove any leftover files in the run dir
-    # (similar to createRunDir.sh, but do not ask user to confirm)
-    rm -f gcchem*
-    rm -f *.rcx
-    rm -f *~
-    rm -f *.log
-    rm -f log.dryrun*
-    rm -f logfile.000000.out
-    rm -f slurm-*
-    rm -f 1
-    rm -f EGRESS
-    rm -f core.*
-    rm -f ./OutputDir/*.nc*
-
-    # Copy the executable here
-    cp ${root}/build/bin/gchp .
-
-    # Redirect the log file
-    log="${root}/logs/execute.${runDir}.log"
-
-    # Submit jobs (except the first) as a SLURM dependency
-    if [[ "x${jobId}" == "xnone" ]]; then
-	output=$(sbatch --export=ALL gchp.slurm.sh)
-	output=($output)
-	jobId=${output[3]}
-    else
-	output=$(sbatch --export=ALL --dependency=afterany:${jobId} gchp.slurm.sh)
-	output=(${output})
-	jobId=${output[3]}
-    fi
-
-    # Change to the root folder
-    cd ${root}
-
-    # Return the jobId for the next iteration
-    echo "${jobId}"
+    cd "${itRoot}"
 }
 
 
 function run_gchp_local_job() {
     #========================================================================
-    # Submits a GCHP SLURM job script for the execution test phase.
-    # Subsequent jobs are submitted as SLURM job dependencies.
+    # Submits GCHP jobs using the gchp.local.run script for the
+    # execution test phase.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
     # 2nd argument = GCHP run directory name
-    # 3rd argument = Id from the previous SLURM job
     #========================================================================
 
     # Arguments
-    root=${1}
-    runDir=${2}
-    jobId=${3}
+    itRoot=$(absolute_path "${1}")
+    runDir="${2}"
 
     # Change to the run directory
-    cd "${root}/${runDir}"
+    cd "${itRoot}/${runDir}"
 
     # Remove any leftover files in the run dir
     ./cleanRunDir.sh --no-interactive
 
-    # Copy the executable here
-    cp ${root}/build/bin/gchp .
+    # Copy the executable file here
+    cp "${itRoot}/build/bin/gchp" .
 
     # Redirect the log file
-    log="${root}/logs/execute.${runDir}.log"
+    log="${itRoot}/logs/execute.${runDir}.log"
 
-    # Submit jobs (except the first) as a SLURM dependency
-    if [[ "x${jobId}" == "xnone" ]]; then
-	output=$(sbatch --export=ALL gchp.slurm.sh)
-	output=($output)
-	jobId=${output[3]}
-    else
-	output=$(sbatch --export=ALL --dependency=afterany:${jobId} gchp.slurm.sh)
-	output=(${output})
-	jobId=${output[3]}
-    fi
+    # Link to the environment file
+    ./setEnvironmentLink.sh "${itRoot}/gchp.env"
+
+    # Run GCHP and save error code
+    ./gchp.local.run > "${log}" 2>&1
+    status=$?
 
     # Change to the root folder
-    cd ${root}
+    cd "${itRoot}"
 
-    # Return the jobId for the next iteration
-    echo "${jobId}"
+    # Return the error code
+    echo "${status}"
 }
-
