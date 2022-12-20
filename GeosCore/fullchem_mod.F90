@@ -706,8 +706,8 @@ CONTAINS
           C(N)  = 0.0_dp
           IF ( SpcId > 0 ) C(N) = State_Chm%Species(SpcID)%Conc(I,J,L)
        ENDDO
-         C(ind_PH2SO4) = 0.0e+0_fp  !betty
-         C(ind_PSO4AQ) = 0.0e+0_fp  !betty
+         C(ind_PH2SO4) = 0.0e+0_fp  !for sulfate gas prod diag, BC,12/20/22
+         C(ind_PSO4AQ) = 0.0e+0_fp  !for sulfate cloud prod diag, BC 12/20/22
 
        !=====================================================================
        ! Start KPP main timer
