@@ -35,6 +35,6 @@ EmisHgCl2_Anthro   HgCl2    0    -1   -1   2  kg/m2/s  HgCl2_emission_flux_from_
 ###############################################################################
 #####   Hg2 emissions                                                     #####
 ###############################################################################
-EmisHg2ClP_Anthro  Hg2ClP   0    -1   -1   2  kg/m1/a  Hg2ClP_emission_flux_from_anthropogenic
+EmisHg2ClP_Anthro  Hg2ClP   0    -1   -1   2  kg/m2/s  Hg2ClP_emission_flux_from_anthropogenic
 
 #EOC

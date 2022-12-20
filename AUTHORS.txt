@@ -1,4 +1,5 @@
-List of Developers for GEOS-Chem, HEMCO, and Related Software (04 Jan 2021)
+List of Developers for GEOS-Chem, GCHP, HEMCO, and Related Software
+(26 Oct 2022)
 ===============================================================================
 
 Peter Adams
@@ -30,6 +31,7 @@ Beata Bukosa
 Christopher Butenhoff
 Karen Cady-Pereira
 Philip Cameron-Smith
+Patrick Campbell
 Liangzhong Cao
 Guofeng Cao
 Yi Cao
@@ -47,6 +49,7 @@ Xin Chen
 Yang Chen
 Yunsoo Choi
 Kenneth Christian
+Tom Clune
 Matt Cooper
 Bess Corbitt
 Betty Croft
@@ -66,10 +69,12 @@ Bryan Duncan
 Sebastian Eastham
 Raluca Ellis
 Joseph Enberg
+Lucas Estrada
 Mathew Evans
 T. Duncan Fairlie
 Sal Farina
 Vivian Faye
+Ari Feinberg
 Brendan Field
 Arlene Fiore
 Emily Fischer
@@ -89,6 +94,7 @@ Cui Ge
 Jeffrey Geddes
 Amanda Giang
 Christos Giannakopoulos
+Harriet Gounia
 Edward Graef
 Jesse Greenslade
 Xiaoguang Gu
@@ -112,7 +118,9 @@ Andy Jacobson
 Marc Jacobson
 Lyatt Jaegle
 Ruud Jansen
+Weiyuan Jiang
 Zhe Jiang
+Lixu Jin
 Matthew Johnson
 Dylan Jones
 Jaegun Jung
@@ -138,6 +146,7 @@ David Lary
 Robyn Latimer
 Philippe Le Sager
 Chulkyu Lee
+Colin Lee
 Meemong Lee
 Ralph Lehmann
 Eric Leibensperger
@@ -148,6 +157,7 @@ Chi Li
 Ke Li
 Qinbin Li
 Xianglan Li
+Yanshun Li
 K. J. Liao
 Qing Liang
 Hong Liao
@@ -164,6 +174,7 @@ Yang Liu
 Ying Liu
 Jennifer Logan
 Mike Long
+Xiao Lu
 Lizzie Lundgren
 Gan Luo
 J.D. (Bram) Maasakkers
@@ -219,6 +230,7 @@ Will Porter
 Ryan Pound
 Michael Prather
 Anna Protonatariou
+Bill Putman
 Havala Pye
 Asif Qureshi
 Emily Ramnarine
@@ -245,6 +257,7 @@ Viral Shah
 Jingyuan Shao
 Lu Shen
 Tomas Sherwen
+Joshua Shutter
 Sam Silva
 Nicole Smith-Downey
 Anne Laerke Soerensen
@@ -255,6 +268,7 @@ Dominick Spracklen
 Ilya Stanevich
 Stephen Steenrod
 Rebecca Stern
+Robin Stevens
 David Streets
 Sarah Strode
 Flora Su
@@ -263,6 +277,7 @@ Minmin Sun
 Elsie Sunderland
 Parvada Suntharalingam
 Luke Surl
+Bethany Sutherland
 Kimito Suto
 Monika Szelag
 Amos Tai
@@ -270,6 +285,7 @@ Hiroshi Tanimoto
 John Tannahill
 Shu Tao
 Colin Thackray
+Matt Thompson
 Thibaud Thonat
 Rong Tian
 Maria Tombrou
@@ -310,6 +326,7 @@ Ingo Wohltmann
 Shiliang Wu
 Shiliang Wu
 Yaping Xiao
+Junwei Xu
 Yingying Yan
 Matt Yannetti
 Bob Yantosca
@@ -320,6 +337,7 @@ Fangqun Yu
 Xu Yue
 Xuyan Yue
 Maria Zatko
+Shixian Zhai
 Shuting Zhai
 Bo Zhang
 Chi Zhang

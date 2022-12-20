@@ -85,8 +85,6 @@ PROGRAM GEOS_Chem
 #ifdef BPCH_DIAG
   USE DIAG_MOD              ! G-C diagnostic arrays & counters
   USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
-  USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
-  USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
 #endif
   USE PLANEFLIGHT_MOD       ! For planeflight track diag
   USE HISTORY_MOD           ! Updated netCDF diagnostics
@@ -739,6 +737,7 @@ PROGRAM GEOS_Chem
 
   ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
   ! and restart file fields
+  TimeForEmis = .FALSE.
   CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid,  &
                       State_Met, TimeForEmis, 0,          RC )
 
@@ -889,6 +888,35 @@ PROGRAM GEOS_Chem
     ! Get dynamic timestep in seconds
     N_DYN  = GET_TS_DYN()
 
+    !---------------------------------------------------------------------
+    ! %%%%% HISTORY (netCDF diagnostics) %%%%%
+    !
+    ! Write HISTORY ITEMS in each diagnostic collection to disk
+    ! Appears at start of run to output instantaneous boundary conditions
+    ! at the start of the simulation with the correct time:
+    !---------------------------------------------------------------------
+    IF ( notDryRun ) THEN
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "All diagnostics",           RC )
+          CALL Timer_Start( "=> History (netCDF diags)", RC )
+       ENDIF
+
+       ! Write collections (such as BoundaryConditions) that need
+       ! to be defined at the start of the run
+       CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered before timestepping in "History_Write"!'
+          CALL Error_Stop( ErrMsg, ThisLoc )
+       ENDIF
+
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "All diagnostics",           RC )
+          CALL Timer_End( "=> History (netCDF diags)", RC )
+       ENDIF
+    ENDIF
+
     !========================================================================
     !         ***** D Y N A M I C   T I M E S T E P   L O O P *****
     !         *****    a k a   H E A R T B E A T   L O O P    *****
@@ -932,19 +960,6 @@ PROGRAM GEOS_Chem
           CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Zero_Diagnostics_StartOfTimestep!"'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-
-          ! Write HISTORY ITEMS in each diagnostic collection to disk
-          ! (or skip writing if it is not the proper output time.
-          ! Appears at start of run to output instantaneous boundary conditions
-          ! at the start of the simulation with the correct time:
-          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, &
-                              State_Chm, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered before timestepping in "History_Write"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
@@ -1869,7 +1884,7 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Update each HISTORY ITEM from its data source
-          CALL History_Update( Input_Opt, RC )
+          CALL History_Update( Input_Opt, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -2002,43 +2017,6 @@ PROGRAM GEOS_Chem
           ENDIF
           IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after Planeflight' )
 
-#ifdef BPCH_DIAG
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> Binary punch diagnostics",  RC )
-          ENDIF
-
-          !------------------------------------------------------------------
-          !     ***** T I M E S E R I E S   D I A G N O S T I C S  *****
-          !------------------------------------------------------------------
-
-          ! Morning or afternoon timeseries
-          IF ( Input_Opt%DO_ND51 ) THEN
-             CALL DIAG51( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag51"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-          ENDIF
-
-          IF ( Input_Opt%DO_ND51b ) THEN
-             CALL DIAG51b( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Diag51b"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-          ENDIF
-          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG51' )
-
-          IF ( prtDebug ) CALL Debug_Msg('### MAIN: after TIMESERIES')
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> Binary punch diagnostics",  RC )
-          ENDIF
-#endif
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "All diagnostics",              RC )
              CALL Timer_End( "Output",                       RC )
@@ -2073,7 +2051,7 @@ PROGRAM GEOS_Chem
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
-          CALL History_Write( Input_Opt, State_Chm%Spc_Units, State_Diag, State_Chm, RC )
+          CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -2724,11 +2702,18 @@ CONTAINS
     ! Initialize
     RC = GC_SUCCESS
 
-    ! For dry-run simulations, Write the dry-run header to
-    ! stdout (aka GEOS-Chem log file) and the HEMCO log file.
+    ! Skip if not a dry-run simulation
     IF ( Input_Opt%DryRun ) THEN
+
+       ! Print dry-run header to stdout
+       ! (which is usually redirected to the dryrun log file)
        CALL Print_Dry_Run_Warning( 6 )
-       CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
+
+       ! Print dry-run header to HEMCO.log file
+       ! (if HEMCO output is not already being sent to stdout)
+       IF ( HcoState%Config%Err%LUN > 0 ) THEN
+          CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
+       ENDIF
     ENDIF
 
   END SUBROUTINE Cleanup_Dry_Run

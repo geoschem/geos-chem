@@ -36,6 +36,7 @@ COLLECTIONS: 'Restart',
              #'DryDep',
              #'LevelEdgeDiags',
              #'ProdLoss',
+	     #'SatDiagn',
              #'StateChm',     
              #'StateMet',      
              #'WetLossConv',
@@ -67,6 +68,8 @@ COLLECTIONS: 'Restart',
                               'Chem_DryDepNitrogen            ',
                               'Chem_WetDepNitrogen            ',
                               'Met_DELPDRY                    ',
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
@@ -285,6 +288,48 @@ COLLECTIONS: 'Restart',
                               'ProdSO4fromSRO3               ',
                               'ProdSO4fromO3s                ',
                               'LossHNO3onSeaSalt             ',
+::
+#==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_BCPI              ',
+                              'SatDiagnConc_BCPO              ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_BCPI         ',
+                              'SatDiagnWetLossConv_BCPI       ',
+                              'SatDiagnDryDep_BCPI            ',
+                              'SatDiagnDryDepVel_BCPI         ',
+                              'SatDiagnColEmis_BCPI           ',
+                              'SatDiagnSurfFlux_BCPI          ',
+                              'SatDiagnProd_?PRD?             ',
+                              'SatDiagnLoss_?LOS?             ',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%

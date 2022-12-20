@@ -830,7 +830,7 @@ cp ${gcdir}/run/shared/download_data.py     ${rundir}
 cp ${gcdir}/run/shared/download_data.yml    ${rundir}
 cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
-cp ./README                                 ${rundir}
+cp ./README.md                              ${rundir}
 cp ./gitignore                              ${rundir}/.gitignore
 
 # Use data downloader that points to GCAP2 restart files
@@ -1038,38 +1038,22 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
           "x${sim_name}" == "xaerosol"      ||
           "x${sim_name}" == "xtagO3"    ]]; then
 
-        # NOTE: We need to read the fullchem restart files from the v2021-09/
-        # folder and TOMAS restart files from the v2021-12/ folder.  These
-        # restart files contain extra species (e.g HMS, HSO3m, SO3mm), for
-        # chemistry updates that were added in 13.3.0 and 13.4.0.  This is
-        # necessary to avoid GEOS-Chem Classic simulations from halting if
-        # these species are not found in the restart file (i.e. with time
-        # cycle flag "EFYO").
-        #   -- Bob Yantosca (14 Jan 2022)
-        #
-        # Aerosol-only simulations can use the fullchem restart since all
-        # of the aerosol species are included.
-	#
-	# For TagO3, we now use the same restart file as the fullchem
-	# to ensure that we start with the same initial conditions.
-	#  -- Bob Yantosca (02 Mar 2022)
-	#
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
 	# For TransportTracers, use restart from latest benchmark
-	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+	sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
 
     elif [[ "x${sim_name}" == "xHg" ]]; then
 
-	# For Hg, point to the restert file w/ KPP species (in v2021-12)
+	# For Hg, point to the restart file w/ KPP species (in v2021-12)
 	sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     elif [[ "x${sim_name}" == "xPOPs" ]]; then

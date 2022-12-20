@@ -1,4 +1,4 @@
-###############################################################################
+<###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -44,6 +44,7 @@ COLLECTIONS: 'Restart',
              ##'ProdLoss',
              ##'RRTMG',
              ##'RxnRates',
+             ##'SatDiagn',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
@@ -533,6 +534,77 @@ COLLECTIONS: 'Restart',
   RxnRates.mode:       'time-averaged'
   RxnRates.fields:     'RxnRate_EQ001                           ',
                        'RxnRate_EQ002                           ',
+::
+#==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_ISOP              ',
+                              'SatDiagnConc_CH2O              ',
+                              'SatDiagnConc_MVK               ',
+                              'SatDiagnConc_MACR              ',
+                              'SatDiagnConc_MOH               ',
+                              'SatDiagnConc_CO                ',
+                              'SatDiagnConc_NO                ',
+                              'SatDiagnConc_NO2               ',
+                              'SatDiagnConc_NO3               ',
+                              'SatDiagnConc_O3                ',
+                              'SatDiagnConc_HO2               ',
+                              'SatDiagnOH                     ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_CH2O         ',
+                              'SatDiagnWetLossConv_CH2O       ',
+                              'SatDiagnJval_CH2O              ',
+                              'SatDiagnJval_NO2               ',
+                              'SatDiagnJval_NO3               ',
+                              'SatDiagnJval_O3                ',
+                              'SatDiagnJvalO3O1D              ',
+                              'SatDiagnJvalO3O3P              ',
+                              'SatDiagnDryDep_CH2O            ',
+                              'SatDiagnDryDep_NO2             ',
+                              'SatDiagnDryDep_O3              ',
+                              'SatDiagnDryDepVel_CH2O         ',
+                              'SatDiagnDryDepVel_NO2          ',
+                              'SatDiagnDryDepVel_O3           ',
+                              'SatDiagnOHreactivity           ',
+                              'SatDiagnColEmis_ISOP           ',
+                              'SatDiagnSurfFlux_ISOP          ',
+                              'SatDiagnColEmis_CH2O           ',
+                              'SatDiagnSurfFlux_CH2O          ',
+                              'SatDiagnColEmis_NO             ',
+                              'SatDiagnSurfFlux_NO            ',
+                              'SatDiagnProd_?PRD?             ',
+                              'SatDiagnLoss_?LOS?             ',
+                              'SatDiagnRxnRate_EQ385          ',
+                              'SatDiagnRxnRate_EQ386          ',
+                              'SatDiagnRxnRate_EQ387          ',
+                              'SatDiagnRxnRate_EQ388          ',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%

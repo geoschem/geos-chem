@@ -16,7 +16,7 @@ CH4:
   Formula: CH4
   Fullname: Methane
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 Cl:
   Formula: Cl
   FullName: Atomic chlorine
@@ -34,7 +34,7 @@ CO:
   Is_Gas: true
   MW_g: 28.01
 Hg0:
-  DD_F0: 1.0e-5
+  DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
   FullName: Elemental mercury

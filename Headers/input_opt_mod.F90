@@ -69,6 +69,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: MetField
      CHARACTER(LEN=255)          :: SimulationName
      CHARACTER(LEN=255)          :: SpcDatabaseFile
+     CHARACTER(LEN=255)          :: SpcMetaDataOutFile
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
@@ -570,6 +571,7 @@ CONTAINS
     Input_Opt%MetField               = ''
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
+    Input_Opt%SpcMetaDataOutFile     = ''
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
@@ -1212,6 +1214,13 @@ CONTAINS
        Input_Opt%FAM_NAME => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( Input_Opt%FAM_TYPE ) ) THEN
+       DEALLOCATE( Input_Opt%FAM_TYPE, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%FAM_TYPE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%FAM_TYPE => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
        DEALLOCATE( Input_Opt%LINOZ_TPARM, STAT=RC )
        CALL GC_CheckVar( 'Input_Opt%LINOZ_TPARM', 2, RC )
@@ -1224,6 +1233,34 @@ CONTAINS
        CALL GC_CheckVar( 'Input_Opt%LSPECRADMENU', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%LSPECRADMENU => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%LSKYRAD ) ) THEN
+       DEALLOCATE( Input_Opt%LSKYRAD, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%LSKYRAD', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%LSKYRAD => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%WVSELECT ) ) THEN
+       DEALLOCATE( Input_Opt%WVSELECT, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%WVSELECT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%WVSELECT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%STRWVSELECT ) ) THEN
+       DEALLOCATE( Input_Opt%STRWVSELECT, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%STRWVSELECT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%STRWVSELECT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%ObsPack_SpcName ) ) THEN
+       DEALLOCATE( Input_Opt%ObsPack_SpcName, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%ObsPack_SpcName', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%ObsPack_SpcName => NULL()
     ENDIF
 
 #ifdef MODEL_GEOS

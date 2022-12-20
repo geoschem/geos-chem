@@ -534,6 +534,19 @@ CONTAINS
     Input_Opt%SpcDataBaseFile = TRIM( v_str )
 
     !------------------------------------------------------------------------
+    ! Species metadata output file
+    !------------------------------------------------------------------------
+    key   = "simulation%species_metadata_output_file"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%SpcMetaDataOutFile = TRIM( v_str )
+
+    !------------------------------------------------------------------------
     ! Turn on debug output
     !------------------------------------------------------------------------
     key    = "simulation%debug_printout"
@@ -3868,7 +3881,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on ND51 diagnostic
     !------------------------------------------------------------------------
-    key    = "extra_diagnostics%ND51_satellite%activate"
+    key    = "extra_diagnostics%legacy_bpch%ND51_satellite%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4681,7 +4694,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AIRS_CH4_OBS = Input_Opt%GOSAT_CH4_OBS
+    Input_Opt%AIRS_CH4_OBS = v_bool
 
     !------------------------------------------------------------------------
     ! Use GOSAT observational operator?
@@ -4712,7 +4725,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Do an analytical inversion?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%activate"
+    key    = "ch4_simulation_options%analytical_inversion%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4725,7 +4738,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Emission perturbation
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%emission_perturbation"
+    key   = "ch4_simulation_options%analytical_inversion%emission_perturbation"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4738,7 +4751,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Current state vector element number
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%state_vector_element_number"
+    key   = "ch4_simulation_options%analytical_inversion%state_vector_element_number"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4751,7 +4764,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use emission scale factor?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_emission_scale_factor"
+    key    = "ch4_simulation_options%analytical_inversion%use_emission_scale_factor"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4764,7 +4777,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use OH scale factors?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_OH_scale_factors"
+    key    = "ch4_simulation_options%analytical_inversion%use_OH_scale_factors"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4780,8 +4793,8 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
        WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
        WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis

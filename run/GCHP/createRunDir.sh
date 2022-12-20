@@ -424,7 +424,7 @@ mkdir -p ${rundir_config}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
+cp ./README.md                        ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -471,14 +471,14 @@ printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   mak
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 if [[ ${sim_name} = "fullchem" ]]; then
     start_date='20190701'
-    restart_dir='v2021-09'
+    restart_dir='GC_14.0.0'
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_13.0.0'
+    restart_dir='GC_14.0.0'
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${sim_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
