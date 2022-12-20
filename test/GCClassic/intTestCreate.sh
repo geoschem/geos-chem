@@ -285,7 +285,7 @@ create_rundir "9\n2\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 create_rundir "10\n2\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # 4x5 geosfp TransportTracers_LuoWd"
-dir="gc_2x25_geosfp_TransportTracers_LuoWd"
+dir="gc_4x5_geosfp_TransportTracers_LuoWd"
 create_rundir "10\n2\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 # NOTE: The metals simulation runs from 2011-2013, the earlier part of
@@ -302,7 +302,6 @@ create_rundir "10\n2\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 #=============================================================================
 
 # 4x5 merra2 fullchem_47L"
-dir="gc_4x5_merra2_47L_fullchem"
 create_rundir "1\n1\n1\n1\n2\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 #=============================================================================
