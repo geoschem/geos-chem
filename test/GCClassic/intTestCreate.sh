@@ -172,7 +172,8 @@ create_rundir "9\n1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 create_rundir "10\n1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # 2x25 merra2 TransportTracers LuoWd"
-create_rundir "10\n1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+dir="gc_2x25_merra2_TransportTracers_LuoWd"
+create_rundir "10\n1\n2\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 # 2x25 merra2 metals
 create_rundir "11\n1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
@@ -194,7 +195,8 @@ create_rundir "2\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 create_rundir "1\n1\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # 4x5 merra2 fullchem_LuoWd"
-create_rundir "1\n1\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+dir="gc_4x5_merra2_fullchem_LuoWd"
+create_rundir "1\n1\n1\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 # 4x5 merra2 fullchem_aciduptake"
 create_rundir "1\n5\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
@@ -242,7 +244,8 @@ create_rundir "9\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 create_rundir "10\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # 4x5 merra2 TransportTracers_LuoWd"
-create_rundir "10\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+dir="gc_4x5_merra2_TransportTracers_LuoWd"
+create_rundir "10\n1\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 # 4x5 merra2 metals"
 create_rundir "11\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
@@ -282,7 +285,8 @@ create_rundir "9\n2\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 create_rundir "10\n2\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # 4x5 geosfp TransportTracers_LuoWd"
-create_rundir "10\n2\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+dir="gc_2x25_geosfp_TransportTracers_LuoWd"
+create_rundir "10\n2\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 # NOTE: The metals simulation runs from 2011-2013, the earlier part of
 # which is out of the range of the GEOS-FP met fields.  Disable
@@ -298,7 +302,8 @@ create_rundir "10\n2\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 #=============================================================================
 
 # 4x5 merra2 fullchem_47L"
-create_rundir "1\n1\n1\n1\n2\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+dir="gc_4x5_merra2_47L_fullchem"
+create_rundir "1\n1\n1\n1\n2\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 #=============================================================================
 # Nested-grid simulations
@@ -324,6 +329,7 @@ create_rundir "1\n1\n2\n4\n4\n2\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 cd "${thisDir}"
 
 # Free local variables
+unset dir
 unset geosChemDir
 unset itRoot
 unset log
