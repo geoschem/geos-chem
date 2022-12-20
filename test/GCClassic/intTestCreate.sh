@@ -101,7 +101,7 @@ mkdir -p "${itRoot}/exe_files"
 
 # Make the build directories
 if [[ ! -d "${itRoot}/build" ]]; then
-    for dir in ${EXE_BUILD_LIST[@]}; do
+    for dir in ${EXE_GCC_BUILD_LIST[@]}; do
 	echo " ... ${itRoot}/build/${dir}"
 	mkdir -p "${itRoot}/build/${dir}"
     done

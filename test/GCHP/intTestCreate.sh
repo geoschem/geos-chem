@@ -98,10 +98,14 @@ envFile=$(absolute_path "${envFile}")
 cleanup_files "${itRoot}"
 
 # Make the build directory
-printf "\nCreating new build and directories:\n"
-if [[ ! -d ${itRoot}/build ]]; then
-    echo " ... ${itRoot}/build/"
-    mkdir -p "${itRoot}/build/"
+printf "\nCreating new build and executable directories:\n"
+echo " ... ${itRoot}/exe_files"
+mkdir -p "${itRoot}/exe_files"
+if [[ ! -d "${itRoot}/build" ]]; then
+     for dir in ${EXE_GCHP_BUILD_LIST[@]}; do
+	echo " ... ${itRoot}/build/${dir}"
+	mkdir -p "${itRoot}/build/${dir}"
+     done
 fi
 
 # Copying the run scripts to the root test folder
@@ -132,6 +136,12 @@ printf "\nCreating new run directories:\n"
 
 # c24 geosfp TransportTracers
 create_rundir "2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+
+# DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
+if [[ "x${quick}" == "xyes" ]]; then
+    cd ${thisDir}
+    exit 0
+fi
 
 # c24 merra2 fullchem_standard
 create_rundir "1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"

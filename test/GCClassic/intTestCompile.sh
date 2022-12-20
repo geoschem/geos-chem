@@ -136,7 +136,7 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in ${EXE_BUILD_LIST[@]}; do
+for dir in ${EXE_GCC_BUILD_LIST[@]}; do
 
     # Define build directory
     buildDir="${itRoot}/build/${dir}"
@@ -145,14 +145,14 @@ for dir in ${EXE_BUILD_LIST[@]}; do
     log="${itRoot}/logs/compile.${dir}.log"
     rm -f ${log}
 
-    # Configure and build GEOS-Chem source code
+    # Configure and build GEOS-Chem Classic source code
     # and increment pass/fail/remain counters
-    build_gcclassic \
-        "${itRoot}" "${buildDir}" "${log}" "${results}" "${baseOptions}"
+    build_model "gcclassic"      "${itRoot}" "${buildDir}" \
+                "${baseOptions}" "${log}"    "${results}"
     if [[ $? -eq 0 ]]; then
         let passed++
     else
-let failed++
+        let failed++
     fi
     let remain--
 

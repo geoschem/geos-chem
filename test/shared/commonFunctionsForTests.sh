@@ -379,11 +379,6 @@ function exe_name() {
     exeFileName="none"
     [[ "x${model}" == "xgcclassic" ]] && exeFileName="${model}"
     [[ "x${model}" == "xgchp"      ]] && exeFileName="${model}"
-    if [[ "x${exeFileName}" == "xnone" ]]; then
-	echo "ERROR: Model must be either 'gcclassic' or 'gchp'!"
-	echo "Exiting from exe_name (in commonFunctionsForTests.sh)"
-	exit 1
-    fi
 
     # Append a suffix to the executable file name for specific directories
     if [[ "x${model}" == "xgcclassic" ]]; then

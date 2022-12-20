@@ -37,11 +37,11 @@
 #============================================================================
 
 # Get the long path of the integration test root folder
-root=$(pwd -P)
+itRoot=$(pwd -P)
 
 # Load the environment and the software environment
-. ~/.bashrc        > /dev/null 2>&1
-. ${root}/gchp.env > /dev/null 2>&1
+. ~/.bashrc          > /dev/null 2>&1
+. ${itRoot}/gchp.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -94,17 +94,17 @@ fi
 #============================================================================
 
 # Include global variables & functions
-. ${root}/commonFunctionsForTests.sh
+. ${itRoot}/commonFunctionsForTests.sh
 
 # Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${root}")
+numTests=$(count_rundirs "${itRoot}")
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-results="${root}/logs/results.execute.log"
+results="${itRoot}/logs/results.execute.log"
 rm -f "${results}"
 
 # Print header to results log file
@@ -135,11 +135,12 @@ let remain=${numTests}
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_gchp_rundir "${root}/${runDir}")
+    expr=$(is_gchp_rundir "${itRoot}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
-        log="${root}/logs/execute.${runDir}.log"
+        log="${itRoot}/logs/execute.${runDir}.log"
+	echo $log
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -150,21 +151,15 @@ for runDir in *; do
         exeFile="gchp"
 
         # Test if the executable exists
-        if [[ -f "${root}/exe_files/${exeFile}" ]]; then
+        if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
 
 	    #----------------------------------------------------------------
 	    # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
-            # Change to this run directory; remove leftover log file
-	    cd "${root}/${runDir}"
-
-            # Copy the executable file here
-            cp -f "${root}/exe_files/${exeFile}" .
-
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-            ./gchp_local.run >> "${log}" 2>&1
+            run_gchp_local_job "${itRoot}" "${runDir}"
             if [[ $? -eq 0 ]]; then
                 let passed++
                 if [[ "x${results}" != "x" ]]; then
@@ -178,7 +173,7 @@ for runDir in *; do
             fi
 
             # Change to root directory for next iteration
-            cd ${root}
+            cd ${itRoot}
 
         else
 
@@ -228,13 +223,13 @@ unset failmsg
 unset head_gcc
 unset head_gc
 unset head_hco
+unset itRoot
 unset log
 unset numTests
 unset passed
 unset passMsg
 unset remain
 unset results
-unset root
 
 # Free imported global variables
 unset FILL

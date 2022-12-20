@@ -149,14 +149,28 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
-# Build GCHP
-build_gchp "${itRoot}" "${buildDir}" "${log}" "${results}" "${baseOptions}"
-if [[ $? -eq 0 ]]; then
-    let passed++
-else
-    let failed++
-fi
-let remain--
+# Loop over build directories
+for dir in ${EXE_GCHP_BUILD_LIST[@]}; do
+
+    # Define build directory
+    buildDir="${itRoot}/build/${dir}"
+
+    # Define log file
+    log="${itRoot}/logs/compile.${dir}.log"
+    rm -f "${log}"
+
+    # Configure and build GEOS-Chem source code
+    # and increment pass/fail/remain counters
+    build_model "gchp"           "${itRoot}" "${buildDir}" \
+                "${baseOptions}" "${log}"    "${results}"
+    if [[ $? -eq 0 ]]; then
+        let passed++
+    else
+        let failed++
+    fi
+    let remain--
+
+done
 
 #============================================================================
 # Check the number of simulations that have passed
