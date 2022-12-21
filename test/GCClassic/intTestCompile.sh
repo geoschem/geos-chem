@@ -98,7 +98,7 @@ fi
 . "${itRoot}/commonFunctionsForTests.sh"
 
 # Count the number of tests to be done
-numTests=${#EXE_BUILD_LIST[@]}
+numTests=${#EXE_GCC_BUILD_LIST[@]}
 
 #============================================================================
 # Initialize results logfile

@@ -51,7 +51,12 @@ head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
 
-if [[ "x${SLURM_JOBID}" != "x" ]]; then
+# Determine the scheduler from the job ID (or lack of one)
+scheduler="none"
+[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
+[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
+
+if [[ "x${scheduler}" != "xSLURM" ]]; then
 
     #-----------------------
     # SLURM settings
@@ -60,7 +65,7 @@ if [[ "x${SLURM_JOBID}" != "x" ]]; then
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${LSB_JOBID}" != "x" ]]; then
+elif [[ "x${scheduler}" != "xLSF" ]]; then
 
     #-----------------------
     # LSF settings
@@ -83,9 +88,9 @@ else
 
 fi
 
-# Sanity check: Set OMP_NUM_THREADS to 6 if it is not set
+# Sanity check: Set OMP_NUM_THREADS to 8 if it is not set
 # (this may happen when running interactively)
-[[ "x${OMP_NUM_THREADS}" == "x" ]] && export OMP_NUM_THREADS=6
+[[ "x${OMP_NUM_THREADS}" == "x" ]] && export OMP_NUM_THREADS=8
 
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
@@ -148,7 +153,7 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(gcclassic_exe_name "${runDir}")
+        exeFile=$(exe_name "gcclassic" "${runDir}")
 
         # Test if the executable exists
         if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
@@ -157,16 +162,11 @@ for runDir in *; do
             # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
-            # Change to this run directory; remove leftover log file
-            cd "${itRoot}/${runDir}"
-
-            # Copy the executable file here
-            cp -f "${itRoot}/exe_files/${exeFile}" .
-
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-            srun -c ${OMP_NUM_THREADS} "./${exeFile}" >> "${log}" 2>&1
-            if [[ $? -eq 0 ]]; then
+	    run_gcclassic_job "${itRoot}"  "${runDir}"  \
+                              "${exeFile}" "${OMP_NUM_THREADS}" "${scheduler}"
+	    if [[ $? -eq 0 ]]; then
                 let passed++
                 if [[ "x${results}" != "x" ]]; then
                     print_to_log "${passMsg}" "${results}"

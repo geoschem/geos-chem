@@ -2,13 +2,13 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-03:00
+#SBATCH -t 0-03:30
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=90000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 24
-#BSUB -W 3:00
+#BSUB -W 3:30
 #BSUB -R "rusage[mem=90GB] span[ptile=1] select[mem < 2TB]"
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt
@@ -18,10 +18,10 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestExecute_slurm.sh
+# !MODULE: intTestExecute.sh
 #
 # !DESCRIPTION: Runs execution tests on various GEOS-Chem Classic
-#  run directories (using the SLURM scheduler).
+#  run directories (interactively or using a scheduler)
 #\\
 #\\
 # !CALLING SEQUENCE:
@@ -148,7 +148,7 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile="gchp"
+        exeFile=$(exe_name "gchp" "${runDir}")
 
         # Test if the executable exists
         if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
@@ -159,7 +159,7 @@ for runDir in *; do
 
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-            run_gchp_local_job "${itRoot}" "${runDir}"
+            run_gchp_job "${itRoot}" "${runDir}" "${exeFile}"
             if [[ $? -eq 0 ]]; then
                 let passed++
                 if [[ "x${results}" != "x" ]]; then

@@ -572,41 +572,111 @@ function build_model() {
 }
 
 
-function run_gchp_local_job() {
+function run_gcclassic_job() {
+    #========================================================================
+    # Submits GCHP jobs using the gchp.local.run script for the
+    # execution test phase.
+    #
+    # 1st argument = Root folder for tests (w/ many rundirs etc)
+    # 2nd argument = GCClassic run directory name
+    # 3rd argument = GCClassic executable file name
+    # 4th argument = Value of $OMP_NUM_THREADS
+    # 5th argument = Name of the scheduler (SLURM, LSF, or none)
+    #========================================================================
+
+    # Arguments
+    itRoot=$(absolute_path "${1}")
+    runDir="${2}"
+    exeFile="${3}"
+    ompNumThreads="${4}"
+    scheduler="${5}"
+
+    # Change to this run directory; remove leftover log file
+    cd "${itRoot}/${runDir}"
+    
+    # Copy the executable file here
+    cp -f "${itRoot}/exe_files/${exeFile}" .
+    
+    # Remove any leftover files in the run dir
+    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+
+    # Redirect the log file
+    log="${itRoot}/logs/execute.${runDir}.log"
+    rm -f "${log}"
+
+    # Run GEOS-Chem Classic and save exit code
+    if [[ "x${scheduler}" == "xSLURM" ]]; then
+	srun -c "${ompNumThreads}" ./${exeFile} >> "${log}" 2>&1
+	if [[ $? -ne 0 ]]; then
+	    cd "${itRoot}"
+	    return 1
+	fi
+    elif [[ "x${scheduler}" == "xLSF" ]]; then
+	export OMP_NUM_THREADS="${ompNumThreads}"
+	./${exeFile} >> "${log}" 2>&1
+	if [[ $? -ne 0 ]]; then
+	    cd "${itRoot}"
+	    return 1
+	fi
+    else
+	export OMP_NUM_THREADS="${ompNumThreads}"
+	./${exeFile} >> "${log}" 2>&1
+	if [[ $? -ne 0 ]]; then
+	    cd "${itRoot}"
+	    return 1
+	fi
+    fi
+	
+    # Change to the root folder
+    cd "${itRoot}"
+
+    # Return success
+    return 0
+}
+
+
+function run_gchp_job() {
     #========================================================================
     # Submits GCHP jobs using the gchp.local.run script for the
     # execution test phase.
     #
     # 1st argument = Root folder for tests (w/ many rundirs etc)
     # 2nd argument = GCHP run directory name
+    # 3rd argument = GCHP executable file name
     #========================================================================
 
     # Arguments
     itRoot=$(absolute_path "${1}")
     runDir="${2}"
+    exeFile="${3}"
 
     # Change to the run directory
     cd "${itRoot}/${runDir}"
 
     # Remove any leftover files in the run dir
-    ./cleanRunDir.sh --no-interactive
+    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
     # Copy the executable file here
-    cp "${itRoot}/build/bin/gchp" .
+    cp "${itRoot}/exe_files/${exeFile}" .
 
     # Redirect the log file
     log="${itRoot}/logs/execute.${runDir}.log"
+    rm -f "${log}"
 
     # Link to the environment file
     ./setEnvironmentLink.sh "${itRoot}/gchp.env"
 
-    # Run GCHP and save error code
+    # Run GCHP (exit with error)
     ./gchp.local.run > "${log}" 2>&1
-    status=$?
+    ./${exeFile} >> "${log}" 2>&1
+    if [[ $? -ne 0 ]]; then
+	cd "${itRoot}"
+	return 1
+    fi
 
     # Change to the root folder
     cd "${itRoot}"
 
-    # Return the error code
-    echo "${status}"
+    # Return success
+    return 0
 }
