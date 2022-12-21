@@ -143,7 +143,7 @@ for dir in ${EXE_GCC_BUILD_LIST[@]}; do
 
     # Define log file
     log="${itRoot}/logs/compile.${dir}.log"
-    rm -f ${log}
+    rm -f "${log}"
 
     # Configure and build GEOS-Chem Classic source code
     # and increment pass/fail/remain counters
@@ -155,7 +155,6 @@ for dir in ${EXE_GCC_BUILD_LIST[@]}; do
         let failed++
     fi
     let remain--
-
 done
 
 #============================================================================

@@ -316,31 +316,32 @@ function cleanup_files() {
     #
     # 1st argument = root folder for tests (w/ many rundirs etc)
     #========================================================================
-    if [[ "x${1}" != "x" ]]; then
+    itRoot="${1}"
+    if [[ "x${itRoot}" != "x" ]]; then
 
 	# Exit if directory is already empty
-	if [[ ! $(ls -A "${1}") ]]; then
-	    echo "${1} is empty... nothing to clean up!"
+	if [[ ! $(ls -A "${itRoot}") ]]; then
+	    echo "${itRoot} is empty... nothing to clean up!"
 	    return 0
 	fi
 
 	# Give user a chance to avoid removing files
-	printf "\nRemoving files and directories in ${1}:\n"
+	printf "\nRemoving files and directories in ${itRoot}:\n"
 	printf "If this is OK, type 'yes to proceed or 'no' to quit:\n"
 	read answer
-	if [[ ! "${answer}" =~ "[Yy][Ee][Ss]" ]]; then
+	if [[ ! "${answer}" =~ [Yy][Ee][Ss] ]]; then
 	    printf "Exiting...\n"
 	    exit 1
 	fi
 
 	# Remove files and unlink links
 	printf "Removing ...\n"
-	for file in "${1}/*"; do
-	    if [[ -h "${file}" ]]; then
-		unlink "${file}"
+	for file in ${itRoot}/*; do
+	    if [[ -h ${file} ]]; then
+		unlink ${file}
 	    else
 		path=$(absolute_path "${file}")
-		if [[ -e "${path}" ]]; then
+		if [[ -e ${path} ]]; then
 		    printf " ... ${path}\n";
 		    rm -rf "${path}"
 		fi
@@ -358,7 +359,7 @@ function print_to_log() {
     # 1st argument: Message to be printed
     # 2nd argument: Log file where message will be sent
     #========================================================================
-    printf "%s\n" "${1}" >> ${2} 2>&1
+    printf "%s\n" "${1}" >> "${2}" 2>&1
 }
 
 
@@ -518,12 +519,11 @@ function build_model() {
     results="${6}"
 
     # Stop with error if the model name is invalid
-    if [[ "x${model}" != "xgcclassic" && "x${model}" != "gchp" ]]; then
+    if [[ "x${model}" != "xgcclassic" && "x${model}" != "xgchp" ]]; then
 	echo "ERROR: '${model}' is an invalid model name!"
 	echo "Exiting in 'build_model' (in 'commonFunctionsForTests.sh')"
 	exit 1
     fi
-
 
     # Local variables
     codeDir="${itRoot}/CodeDir"
@@ -532,11 +532,15 @@ function build_model() {
     passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
     failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
 
+    # Change to the build directory
+    cd "${buildDir}"
+
     #---------------------------------------
     # Code configuration
     #---------------------------------------
-    cd "${buildDir}"
-    cmake "${codeDir}" "${configOptions}" >> "${log}" 2>&1
+    # Note: do not put quotes around configOptions, as bash will treat
+    # it as a single string rather than individual options.
+    cmake "${codeDir}" ${configOptions} >> "${log}" 2>&1
     if [[ $? -ne 0 ]]; then
 	if [[ "x${results}" != "x" ]]; then
 	    print_to_log "${failMsg}" "${results}"
