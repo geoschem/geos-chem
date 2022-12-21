@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added satellite diagnostic (SatDiagn) collection, to archive several
     fields within a user-defined local-time interval. CAVEAT: For now,
     only one local-time interval is permitted.
+  - Added GCHP run script and environment files for MIT clusters Hex and Svante
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
