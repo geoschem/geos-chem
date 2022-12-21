@@ -116,20 +116,24 @@ numTests=${#EXE_GCHP_BUILD_LIST[@]}
 results="${itRoot}/logs/results.compile.log"
 rm -f "${results}"
 
-# Count the number of tests to be done = 1
-# (We don't have to recompile GCHP to change resolutions)
-numTests=1
-
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                             "${results}"
-print_to_log "GCHP: Compilation Test Results"           "${results}"
-print_to_log ""                                         "${results}"
-print_to_log "GCClassic #${head_gcc}"                   "${results}"
-print_to_log "GEOS-Chem #${head_gc}"                    "${results}"
-print_to_log "HEMCO     #${head_hco}"                   "${results}"
-print_to_log ""                                         "${results}"
-print_to_log "Number of compilation tests: ${numTests}" "${results}"
-print_to_log "${SEP_MAJOR}"                             "${results}"
+print_to_log "${SEP_MAJOR}"                               "${results}"
+print_to_log "GCHP: Compilation Test Results"             "${results}"
+print_to_log ""                                           "${results}"
+print_to_log "GCClassic #${head_gcc}"                     "${results}"
+print_to_log "GEOS-Chem #${head_gc}"                      "${results}"
+print_to_log "HEMCO     #${head_hco}"                     "${results}"
+print_to_log ""                                           "${results}"
+print_to_log "Number of compilation tests: ${numTests}"   "${results}"
+print_to_log ""                                           "${results}"
+if [[ "x${scheduler}" == "xSLURM" ]]; then
+    print_to_log "Submitted as SLURM job: ${SLURM_JOBID}" "${results}"
+elif  [[ "x${scheduler}" == "xLSF" ]]; then
+    print_to_log "Submitted as LSF job: ${LSB_JOBID}"     "${results}"
+else
+    print_to_log "Submitted as interactive job"           "${results}"
+fi
+print_to_log "${SEP_MAJOR}"                               "${results}"
 
 # Build and installation directory for CMake
 buildDir="${itRoot}/build"

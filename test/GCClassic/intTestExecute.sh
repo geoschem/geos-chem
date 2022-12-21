@@ -114,16 +114,24 @@ results="${itRoot}/logs/results.execute.log"
 rm -f "${results}"
 
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                               "${results}"
-print_to_log "GEOS-Chem Classic: Execution Test Results"  "${results}"
-print_to_log ""                                           "${results}"
-print_to_log "GCClassic #${head_gcc}"                     "${results}"
-print_to_log "GEOS-Chem #${head_gc}"                      "${results}"
-print_to_log "HEMCO     #${head_hco}"                     "${results}"
-print_to_log ""                                           "${results}"
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"    "${results}"
-print_to_log "Number of execution tests: ${numTests}"     "${results}"
-print_to_log "${SEP_MAJOR}"                               "${results}"
+print_to_log "${SEP_MAJOR}"                                "${results}"
+print_to_log "GEOS-Chem Classic: Execution Test Results"   "${results}"
+print_to_log ""                                            "${results}"
+print_to_log "GCClassic #${head_gcc}"                      "${results}"
+print_to_log "GEOS-Chem #${head_gc}"                       "${results}"
+print_to_log "HEMCO     #${head_hco}"                      "${results}"
+print_to_log ""                                            "${results}"
+print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     "${results}"
+print_to_log "Number of execution tests: ${numTests}"      "${results}"
+print_to_log ""                                            "${results}"
+if [[ "x${scheduler}" == "xSLURM" ]]; then
+    print_to_log "Submitted as SLURM job: ${SLURM_JOBID}"  "${results}"
+elif  [[ "x${scheduler}" == "xLSF" ]]; then
+    print_to_log "Submitted as LSF job: ${LSB_JOBID}"      "${results}"
+else
+    print_to_log "Submitted as interactive job"            "${results}"
+fi
+print_to_log "${SEP_MAJOR}"                                "${results}"
 
 #============================================================================
 # Run the GEOS-Chem executable in each GEOS-Chem run directory
