@@ -256,6 +256,7 @@ unset passed
 unset passMsg
 unset remain
 unset results
+unset scheduler
 
 # Free imported global variables
 unset FILL

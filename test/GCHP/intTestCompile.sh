@@ -56,7 +56,12 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "./CodeDir/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
                log --oneline --no-decorate -1)
 
-if [[ "x${SLURM_JOBID}" != "x" ]]; then
+# Determine the scheduler from the job ID (or lack of one)
+scheduler="none"
+[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
+[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
+
+if [[ "x${scheduler}" != "xSLURM" ]]; then
 
     #-----------------------
     # SLURM settings
@@ -65,7 +70,7 @@ if [[ "x${SLURM_JOBID}" != "x" ]]; then
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${LSB_JOBID}" != "x" ]]; then
+elif [[ "x${scheduler}" != "xLSF" ]]; then
 
     #-----------------------
     # LSF settings
@@ -197,7 +202,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
 
     # Run execution tests interactively
     # (This job has already been submitted as a dependency in SLURM/LSF)
-    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+    if [[ "x${scheduler}" == "xnone" ]]; then
         echo ""
         echo "Execution tests are running..."
         ./intTestExecute.sh &
@@ -227,6 +232,7 @@ unset options
 unset passed
 unset remain
 unset results
+unset scheduler
 
 # Free imported variables
 unset FILL

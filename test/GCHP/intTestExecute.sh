@@ -53,7 +53,12 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "./CodeDir/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
                log --oneline --no-decorate -1)
 
-if [[ "x${SLURM_JOBID}" != "x" ]]; then
+# Determine the scheduler from the job ID (or lack of one)
+scheduler="none"
+[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
+[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
+
+if [[ "x${scheduler}" != "xSLURM" ]]; then
 
     #--------------------
     # Run via SLURM
@@ -62,7 +67,7 @@ if [[ "x${SLURM_JOBID}" != "x" ]]; then
     # Set number of cores to those requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${LSB_JOBID}" != "x" ]]; then
+elif [[ "x${scheduler}" != "xLSF" ]]; then
 
     #--------------------
     # Run via LSF (TODO)
@@ -140,7 +145,6 @@ for runDir in *; do
 
         # Define log file
         log="${itRoot}/logs/execute.${runDir}.log"
-	echo $log
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -230,6 +234,7 @@ unset passed
 unset passMsg
 unset remain
 unset results
+unset scheduler
 
 # Free imported global variables
 unset FILL
