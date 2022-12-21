@@ -61,7 +61,7 @@ scheduler="none"
 [[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
 [[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
 
-if [[ "x${scheduler}" != "xSLURM" ]]; then
+if [[ "x${scheduler}" == "xSLURM" ]]; then
 
     #-----------------------
     # SLURM settings
@@ -70,7 +70,7 @@ if [[ "x${scheduler}" != "xSLURM" ]]; then
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${scheduler}" != "xLSF" ]]; then
+elif [[ "x${scheduler}" == "xLSF" ]]; then
 
     #-----------------------
     # LSF settings

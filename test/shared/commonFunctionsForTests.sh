@@ -605,26 +605,11 @@ function run_gcclassic_job() {
     rm -f "${log}"
 
     # Run GEOS-Chem Classic and save exit code
-    if [[ "x${scheduler}" == "xSLURM" ]]; then
-	srun -c "${ompNumThreads}" ./${exeFile} >> "${log}" 2>&1
-	if [[ $? -ne 0 ]]; then
-	    cd "${itRoot}"
-	    return 1
-	fi
-    elif [[ "x${scheduler}" == "xLSF" ]]; then
-	export OMP_NUM_THREADS="${ompNumThreads}"
-	./${exeFile} >> "${log}" 2>&1
-	if [[ $? -ne 0 ]]; then
-	    cd "${itRoot}"
-	    return 1
-	fi
-    else
-	export OMP_NUM_THREADS="${ompNumThreads}"
-	./${exeFile} >> "${log}" 2>&1
-	if [[ $? -ne 0 ]]; then
-	    cd "${itRoot}"
-	    return 1
-	fi
+    export OMP_NUM_THREADS="${ompNumThreads}"
+    ./${exeFile} >> "${log}" 2>&1
+    if [[ $? -ne 0 ]]; then
+	cd "${itRoot}"
+	return 1
     fi
 	
     # Change to the root folder
