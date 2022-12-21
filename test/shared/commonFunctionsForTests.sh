@@ -572,54 +572,6 @@ function build_model() {
 }
 
 
-function run_gcclassic_job() {
-    #========================================================================
-    # Submits GCHP jobs using the gchp.local.run script for the
-    # execution test phase.
-    #
-    # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GCClassic run directory name
-    # 3rd argument = GCClassic executable file name
-    # 4th argument = Value of $OMP_NUM_THREADS
-    # 5th argument = Name of the scheduler (SLURM, LSF, or none)
-    #========================================================================
-
-    # Arguments
-    itRoot=$(absolute_path "${1}")
-    runDir="${2}"
-    exeFile="${3}"
-    ompNumThreads="${4}"
-    scheduler="${5}"
-
-    # Change to this run directory; remove leftover log file
-    cd "${itRoot}/${runDir}"
-    
-    # Copy the executable file here
-    cp -f "${itRoot}/exe_files/${exeFile}" .
-    
-    # Remove any leftover files in the run dir
-    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
-
-    # Redirect the log file
-    log="${itRoot}/logs/execute.${runDir}.log"
-    rm -f "${log}"
-
-    # Run GEOS-Chem Classic and save exit code
-    export OMP_NUM_THREADS="${ompNumThreads}"
-    ./${exeFile} >> "${log}" 2>&1
-    if [[ $? -ne 0 ]]; then
-	cd "${itRoot}"
-	return 1
-    fi
-	
-    # Change to the root folder
-    cd "${itRoot}"
-
-    # Return success
-    return 0
-}
-
-
 function run_gchp_job() {
     #========================================================================
     # Submits GCHP jobs using the gchp.local.run script for the

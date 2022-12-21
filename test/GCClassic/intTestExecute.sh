@@ -170,10 +170,28 @@ for runDir in *; do
             # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
+	    # Change to this run directory
+	    cd "${itRoot}/${runDir}"
+
+	    # Copy the executable file here
+	    cp -f "${itRoot}/exe_files/${exeFile}" .
+
+	    # Remove any leftover files in the run dir
+	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+
+	    # Redirect the log file
+	    log="${itRoot}/logs/execute.${runDir}.log"
+	    rm -f "${log}"
+
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-	    run_gcclassic_job "${itRoot}"  "${runDir}"  \
-                              "${exeFile}" "${OMP_NUM_THREADS}" "${scheduler}"
+	    if [[ "x{$scheduler}" == "xSLURM" ]]; then
+		srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
+	    else
+		./${exeFile} >> "${log}" 2>&1
+	    fi
+
+	    # Determine if the job succeeded or failed
 	    if [[ $? -eq 0 ]]; then
                 let passed++
                 if [[ "x${results}" != "x" ]]; then
