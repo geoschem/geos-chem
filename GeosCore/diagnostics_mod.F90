@@ -129,7 +129,7 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered setting species concentration diagnostic'
+       ErrMsg = 'Error encountered setting SpeciesConcVV diagnostic'
        CALL GC_ERROR( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -143,7 +143,7 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered setting species concentration diagnostic 2'
+       ErrMsg = 'Error encountered setting SpeciesConcMND diagnostic'
        CALL GC_ERROR( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -153,16 +153,12 @@ CONTAINS
     ! Set species concentration diagnostic in units specified in state_diag_mod
     !-----------------------------------------------------------------------
     IF ( State_Diag%Archive_SpeciesAdj ) THEN
-       ! if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-       !    write(*,*) 'Before diagnostic ',  &
-       !         State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
-       ! ENDIF
        CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,         &
                                    State_Grid, State_Met, RC                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered setting species adjoint diagnostic'
+          ErrMsg = 'Error encountered setting SpeciesAdj diagnostic'
           CALL GC_ERROR( ErrMsg, RC, ThisLoc )
        ENDIF
     ENDIF
@@ -541,13 +537,6 @@ CONTAINS
 
     ENDIF
 
-    ! Error handling
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error converting species units for archiving diagnostics #2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
   END SUBROUTINE Set_SpcAdj_Diagnostic
 !EOC
 #endif
@@ -831,12 +820,12 @@ CONTAINS
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AVO
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -864,6 +853,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER               :: N, S
+    REAL(fp)              :: MW_kg
 
     ! Strings
     CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, OrigUnit
@@ -887,10 +877,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Convert to molec/cm3
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'molec/cm3', RC, OrigUnit=OrigUnit )
-
     !=======================================================================
     ! Copy species to SpeciesConcMND (concentrations diagnostic) [molec/cm3]
     !=======================================================================
@@ -899,12 +885,18 @@ CONTAINS
        ! Point to mapping obj specific to SpeciesConcMND diagnostic collection
        mapData => State_Diag%Map_SpeciesConcMND
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
+       !$OMP PARALLEL DO            &
+       !$OMP DEFAULT( SHARED      ) &
+       !$OMP PRIVATE( N, S, MW_kg )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesConcMND(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
+
+          ! Molecular weight for the species [kg]
+          MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
+
+          State_Diag%SpeciesConcMND(:,:,:,S) =                      &
+               State_Chm%Species(N)%Conc(:,:,:) *                   &
+               State_Met%AIRDEN(:,:,:) * ( AVO / MW_kg ) / 1e+6_fp
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -912,10 +904,6 @@ CONTAINS
        mapData => NULL()
 
     ENDIF
-
-    ! Convert back to original units (kg/kg dry)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
-                            OrigUnit,  RC )
 
   END SUBROUTINE Set_SpcConc_Diags_MND
 !EOC
