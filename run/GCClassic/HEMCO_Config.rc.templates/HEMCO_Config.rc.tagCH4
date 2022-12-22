@@ -47,6 +47,7 @@ Unit tolerance:              1
 Negative values:             2
 Only unitless scale factors: false
 Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
