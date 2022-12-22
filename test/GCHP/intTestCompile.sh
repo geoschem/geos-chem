@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -c 6
+#SBATCH -c 8
 #SBATCH -N 1
 #SBATCH -t 0-01:00
 #SBATCH -p REQUESTED_PARTITION
@@ -44,7 +44,7 @@ itRoot=$(pwd -P)
 . ${itRoot}/gchp.env > /dev/null 2>&1
 
 # All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${itRoot}/exe_files"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
