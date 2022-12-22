@@ -155,10 +155,6 @@ function update_gchp_config_files() {
     itRoot=$(absolute_path "${2}")            # Int test root dir (abs path)
     file="${runPath}/setCommonRunSettings.sh" # config file to edit
 
-    # Link & copy files to the GCHP run dir
-    cp "${itRoot}/gchp.env"                         "${runPath}/gchp.env"
-    cp "${runPath}/runScriptSamples/gchp.local.run" "${runPath}"
-
     # Replace text in config file
     sed_ie "${SED_RUN_CONFIG_1}"                                    "${file}"
     sed_ie "${SED_RUN_CONFIG_2}"                                    "${file}"
@@ -569,51 +565,4 @@ function build_model() {
 
     # Switch back to the root directory
     cd "${itRoot}"
-}
-
-
-function run_gchp_job() {
-    #========================================================================
-    # Submits GCHP jobs using the gchp.local.run script for the
-    # execution test phase.
-    #
-    # 1st argument = Root folder for tests (w/ many rundirs etc)
-    # 2nd argument = GCHP run directory name
-    # 3rd argument = GCHP executable file name
-    #========================================================================
-
-    # Arguments
-    itRoot=$(absolute_path "${1}")
-    runDir="${2}"
-    exeFile="${3}"
-
-    # Change to the run directory
-    cd "${itRoot}/${runDir}"
-
-    # Remove any leftover files in the run dir
-    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
-
-    # Copy the executable file here
-    cp "${itRoot}/exe_files/${exeFile}" .
-
-    # Redirect the log file
-    log="${itRoot}/logs/execute.${runDir}.log"
-    rm -f "${log}"
-
-    # Link to the environment file
-    ./setEnvironmentLink.sh "${itRoot}/gchp.env"
-
-    # Run GCHP (exit with error)
-    ./gchp.local.run > "${log}" 2>&1
-    ./${exeFile} >> "${log}" 2>&1
-    if [[ $? -ne 0 ]]; then
-	cd "${itRoot}"
-	return 1
-    fi
-
-    # Change to the root folder
-    cd "${itRoot}"
-
-    # Return success
-    return 0
 }
