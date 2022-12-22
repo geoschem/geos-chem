@@ -194,14 +194,10 @@ for runDir in *; do
 	    # Determine if the job succeeded or failed
 	    if [[ $? -eq 0 ]]; then
                 let passed++
-                if [[ "x${results}" != "x" ]]; then
-                    print_to_log "${passMsg}" "${results}"
-                fi
+                print_to_log "${passMsg}" "${results}"
             else
                 let failed++
-                if [[ "x${results}" != "x" ]]; then
-                    print_to_log "${failMsg}" "${results}"
-                fi
+                print_to_log "${failMsg}" "${results}"
             fi
 
             # Change to itRoot directory for next iteration

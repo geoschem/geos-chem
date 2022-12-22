@@ -174,14 +174,10 @@ for runDir in *; do
             run_gchp_job "${itRoot}" "${runDir}" "${exeFile}"
             if [[ $? -eq 0 ]]; then
                 let passed++
-                if [[ "x${results}" != "x" ]]; then
-                    print_to_log "${passMsg}" "${results}"
-                fi
+                print_to_log "${passMsg}" "${results}"
             else
                 let failed++
-                if [[ "x${results}" != "x" ]]; then
-                    print_to_log "${failMsg}" "${results}"
-                fi
+                print_to_log "${failMsg}" "${results}"
             fi
 
             # Change to root directory for next iteration
@@ -194,9 +190,7 @@ for runDir in *; do
             # and write the "failed" message to the results log file.
             #----------------------------------------------------------------
             let failed++
-            if [[ "x${results}" != "x" ]]; then
-                print_to_log "${failMsg}" "${results}"
-            fi
+            print_to_log "${failMsg}" "${results}"
         fi
 
         # Decrement the count of remaining tests
