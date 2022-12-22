@@ -251,7 +251,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
     ENDIF
 
@@ -275,7 +275,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
     ENDIF
 

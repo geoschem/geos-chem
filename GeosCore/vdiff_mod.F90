@@ -340,7 +340,7 @@ CONTAINS
     pblh     = pblh_arg(:,lat)
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
@@ -384,7 +384,7 @@ CONTAINS
     end do
 
 !      !### Debug
-    IF ( Input_Opt%VerboseAndRoot .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: diffusion begins' )
 
 !-----------------------------------------------------------------------
@@ -406,7 +406,7 @@ CONTAINS
     end do
 
 !      !### Debug
-    IF ( Input_Opt%VerboseAndRoot .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: compute free atmos. diffusion' )
 
 !-----------------------------------------------------------------------
@@ -455,7 +455,7 @@ CONTAINS
     end do
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
 !-----------------------------------------------------------------------
@@ -484,7 +484,7 @@ CONTAINS
     endif
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
 !-----------------------------------------------------------------------
@@ -651,7 +651,7 @@ CONTAINS
     end do
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
 !-----------------------------------------------------------------------
@@ -1879,7 +1879,7 @@ CONTAINS
     ! Compute the number of PBL levels
     ! Write out the message as debug output (bmy, 05 Dec 2022)
     npbl = MAX( 1, plev - k )
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,*) 'Init_Vdiff: pbl height will be limited to bottom ',npbl,  &
             ' model levels.'
        WRITE(6,*) 'Top is ',ref_pmid(plevp-npbl),' hpa'
@@ -2021,7 +2021,7 @@ CONTAINS
     !=================================================================
 
     !### Debug info
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
     ENDIF
 
@@ -2088,7 +2088,7 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
     ENDIF
 
@@ -2123,7 +2123,7 @@ CONTAINS
     p_shp              =  p_shp * 1.e-3_fp
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
     ENDIF
 
@@ -2143,7 +2143,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
     ENDIF
 
@@ -2175,7 +2175,7 @@ CONTAINS
     p_cgs    => NULL()
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
     ENDIF
 
@@ -2329,7 +2329,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF( Input_Opt%VerboseAndRoot ) THEN
+    IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 
@@ -2354,7 +2354,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF( Input_Opt%VerboseAndRoot ) THEN
+    IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
     ENDIF
 

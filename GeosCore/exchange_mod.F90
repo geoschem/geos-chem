@@ -837,7 +837,7 @@ CONTAINS
     CLOSE( IU_RST )
 
     SPC => NULL()
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### WRITE_EXCHANGE: wrote file' )
     ENDIF
 
@@ -913,7 +913,7 @@ CONTAINS
     NJ=JM_BC_CH
     NK=State_Grid%NZ
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_READ_AND_APPLY_FEEDBACK"
        WRITE(*,*) "!!!!!!!!!!FILLING THE SPECIES BOUNDARY"
     ENDIF
@@ -1044,7 +1044,7 @@ CONTAINS
        !CLOSE( 2 )
     ENDIF
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### read and apply fb: done' )
     ENDIF
 

@@ -452,7 +452,7 @@ CONTAINS
           ENDIF
 
           ! Print to log for record
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              print*,'Number of SOA semivols (MAXSIMSV): ', MAXSIMSV
              print*,'This number should be 5 for semivol POA' ! hotp 5/20/10
           ENDIF
@@ -501,7 +501,7 @@ CONTAINS
     IF ( id_BCPO > 0 ) THEN
        CALL CHEM_BCPO( Input_Opt, State_Diag, State_Grid, &
                        Spc(id_BCPO)%Conc(:,:,:),   RC          )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
        ENDIF
     ENDIF
@@ -510,7 +510,7 @@ CONTAINS
     IF ( id_BCPI > 0 ) THEN
        CALL CHEM_BCPI( Input_Opt, State_Diag, State_Grid, &
                        Spc(id_BCPI)%Conc(:,:,:),   RC )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
        ENDIF
     ENDIF
@@ -519,7 +519,7 @@ CONTAINS
     IF ( id_OCPO > 0 ) THEN
        CALL CHEM_OCPO( Input_Opt, State_Diag, State_Grid, &
                        Spc(id_OCPO)%Conc(:,:,:),   RC          )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
        ENDIF
     ENDIF
@@ -528,7 +528,7 @@ CONTAINS
     IF ( id_OCPI > 0 ) THEN
        CALL CHEM_OCPI( Input_Opt, State_Diag, State_Grid, &
                        Spc(id_OCPI)%Conc(:,:,:),   RC )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
        ENDIF
     ENDIF
@@ -788,13 +788,13 @@ CONTAINS
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
       CALL AGING_CARB( id_ECIL1, id_ECOB1, State_Grid, State_Chm )
-      IF ( Input_Opt%VerboseAndRoot ) THEN
+      IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
       ENDIF
    ENDIF
    IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
       CALL AGING_CARB( id_OCIL1, id_OCOB1, State_Grid, State_Chm )
-      IF ( Input_Opt%VerboseAndRoot ) THEN
+      IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
    ENDIF
@@ -843,7 +843,7 @@ CONTAINS
       !$OMP END PARALLEL DO
 #endif
 
-      IF ( Input_Opt%VerboseAndRoot ) THEN
+      IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: SIMPLIFIED SOA')
       ENDIF
    ENDIF
@@ -865,7 +865,7 @@ CONTAINS
          ! but only if it hasn't been done in EMISSCARBON
          IF ( LSOA .and. ( .not. LEMIS ) ) THEN
             CALL OHNO3TIME( State_Grid )
-            IF ( Input_Opt%VerboseAndRoot ) THEN
+            IF ( Input_Opt%Verbose ) THEN
                CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
             ENDIF
          ENDIF
@@ -878,7 +878,7 @@ CONTAINS
       CALL SOA_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
                           State_Grid, State_Met, RC )
 
-      IF ( Input_Opt%VerboseAndRoot ) THEN
+      IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
@@ -1646,7 +1646,7 @@ CONTAINS
    DELTASOGSAVE = 0e+0_fp
 
    ! Save initial OA+OG for diagnostic (hotp 5/17/10)
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       CALL SAVE_OAGINIT( State_Chm, State_Grid, State_Met )
    ENDIF
 
@@ -1658,7 +1658,7 @@ CONTAINS
       CALL SOA_PARA_INIT( Input_Opt )
 
       ! Diagnostic/debug info (hotp 5/22/10)
-      IF ( Input_Opt%VerboseAndRoot ) THEN
+      IF ( Input_Opt%Verbose ) THEN
          WRITE(*,*) 'HC and SV IDs'
          print*, 'Monoterpenes and sesquiterpenes'
          print*, 'MTPA ', PARENTMTPA, IDSV(PARENTMTPA)
@@ -1691,7 +1691,7 @@ CONTAINS
       FIRST = .FALSE.
    ENDIF
 
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)), &
                                MAXVAL(GLOB_DARO2(:,:,:,1,1))
    ENDIF
@@ -1701,7 +1701,7 @@ CONTAINS
    GLOB_AM0_POA_0 = 0.e+0_fp
 
    ! added debug (hotp 8/24/09)
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       IIDebug = Min(State_Grid%NX,20)
       JJDebug = Min(State_Grid%NY,33)
       print*, 'START SOA_CHEMISTRY'
@@ -2085,7 +2085,7 @@ CONTAINS
       ! Comment out for now.  This produces a lot of excess debug output.
       ! (bmy, 5/5/20)
       !! Check equilibrium (hotp 5/18/10)
-      !IF ( Input_Opt%VerboseAndRoot ) THEN
+      !IF ( Input_Opt%Verbose ) THEN
       !   ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
       !   ! Low NOX (non-volatile) aromatic product is IPR=4
       !   CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
@@ -2100,13 +2100,13 @@ CONTAINS
    !$OMP END PARALLEL DO
 
    ! Debug: check mass balance (hotp 5/18/10)
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       CALL CHECK_MB( Input_Opt,State_Chm, State_Grid, State_Met )
    ENDIF
 
    !------------------------------------------------------------------------
    !### Now only print when ND70 is turned on (bmy, 4/21/10)
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
 
       IF ( Input_Opt%LSVPOA ) THEN
          ! 10/12/09 debug
@@ -3246,7 +3246,7 @@ CONTAINS
    KOM_REF(2,IDSV(PARENTOPOA)) = KOM_REF(2,IDSV(PARENTPOA)) * 100e+0_fp
 
    ! debug print checks (hotp 7/22/09)
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       print*, 'Semivolatile POA settings:---------------'
       print*, ' ALPHA:   ', ALPHA(1,1,9), ALPHA(1,2,9)
       ! OCFPOA and OCFOPOA are now 2D arrays
@@ -5170,7 +5170,7 @@ CONTAINS
    END DO
    !$OMP END PARALLEL DO
 
-   IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
+   IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
    ! Convert concentrations back to original units (ewl, 9/11/15)
    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -6653,7 +6653,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA1)%Conc(I,J,L) + Spc(id_TSOG1)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6666,7 +6666,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA2)%Conc(I,J,L) +  Spc(id_TSOG2)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6679,7 +6679,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA3)%Conc(I,J,L) + Spc(id_TSOG3)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6692,7 +6692,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA0)%Conc(I,J,L) + Spc(id_TSOG0)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6721,7 +6721,7 @@ CONTAINS
       !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA1)%Conc(I,J,L) + Spc(id_ISOG1)%Conc(I,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      !IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      !IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
       !              'in box ', I, J, L
       !   print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6740,7 +6740,7 @@ CONTAINS
       !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA2)%Conc(I,J,L) + Spc(id_ISOG2)%Conc(I,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      !IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      !IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
       !              'in box ', I, J, L
       !   print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6760,7 +6760,7 @@ CONTAINS
       !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
       !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA3)%Conc(I,J,L) + Spc(id_ISOG3)%Conc(I,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      !IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      !IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
       !              'in box ', I, J, L
       !   print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6797,7 +6797,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
       MBDIFF   = ABS( TEMPSOAG - Spc(id_ASOAN)%Conc(I,J,L) )
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6811,7 +6811,7 @@ CONTAINS
       ENDIF
 
       ! Debug print to screen
-      !IF ( Input_Opt%VerboseAndRoot ) THEN
+      !IF ( Input_Opt%Verbose ) THEN
       !   IF ( I == 37 .AND. J == 25 .AND. L == 4 ) THEN
       !      print*,'CK_MB ',NOX,IPR,JSV, &
       !             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,NOX,IPR,JSV)
@@ -6825,7 +6825,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA1)%Conc(I,J,L) + Spc(id_ASOG1)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6839,7 +6839,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA2)%Conc(I,J,L) + Spc(id_ASOG2)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6853,7 +6853,7 @@ CONTAINS
       TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
       MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA3)%Conc(I,J,L) + Spc(id_ASOG3)%Conc(I,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-      IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+      IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
                     'in box ', I, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6883,7 +6883,7 @@ CONTAINS
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA1)%Conc(I,J,L) + Spc(id_POG1)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+         IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
                        JSV, 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6896,7 +6896,7 @@ CONTAINS
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA2)%Conc(I,J,L) + Spc(id_POG2)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+         IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
                        JSV, 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6923,7 +6923,7 @@ CONTAINS
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA1)%Conc(I,J,L) + Spc(id_OPOG1)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+         IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
                        JSV, 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6936,7 +6936,7 @@ CONTAINS
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA2)%Conc(I,J,L) + Spc(id_OPOG2)%Conc(I,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( Input_Opt%VerboseAndRoot .and. MBDIFF > ACCEPTERROR ) THEN
+         IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
                        JSV, 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
@@ -6959,7 +6959,7 @@ CONTAINS
    ENDDO
 
    ! Print diagnostic information to screen
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       print*,'Global cumulative amount reacted in gas phase [Tg]'
       JHC = 1
       print*,'MTPA High NOx Rxn : ', DELTAHCSAVE(1,JHC)

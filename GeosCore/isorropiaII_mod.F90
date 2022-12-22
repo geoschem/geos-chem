@@ -990,7 +990,7 @@ CONTAINS
     Spc => NULL()
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
     ENDIF
 

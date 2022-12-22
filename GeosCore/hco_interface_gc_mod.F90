@@ -3736,7 +3736,7 @@ CONTAINS
        IF ( PHASE == 2 ) THEN
 
           ! Verbose (only written if debug printout is requested)
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -3766,7 +3766,7 @@ CONTAINS
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
              ! Logfile output (only written if debug printout is requested)
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL HCO_SPEC2LOG( HcoState, N )
              ENDIF
 
@@ -3789,7 +3789,7 @@ CONTAINS
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
              ! Logfile output (only written if debug output is requested)
-             IF ( Input_Opt%VerboseAndRoot ) THEN 
+             IF ( Input_Opt%Verbose ) THEN 
                 CALL HCO_SPEC2LOG(  HcoState, N )
              ENDIF
           ENDIF
@@ -3831,14 +3831,14 @@ CONTAINS
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
                 ! Logfile output (only written if debug printout is requested)
-                IF ( Input_Opt%VerboseAndRoot ) THEN
+                IF ( Input_Opt%Verbose ) THEN
                    CALL HCO_SPEC2LOG( HcoState, M )
                 ENDIF
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
           ENDIF
        ENDIF ! Phase = 2

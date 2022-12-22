@@ -394,7 +394,7 @@ CONTAINS
     !=================================================================
 
     !!### DEBUG: Print a few global species sums
-    !IF ( Input_Opt%VerboseAndRoot ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3',       &
     !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
@@ -476,7 +476,7 @@ CONTAINS
                  RC, update_mixing_ratio=.FALSE. )
 
     !!### DEBUG: Print a few global species sums
-    !IF ( Input_Opt%VerboseAndRoot ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3',       &
     !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
@@ -637,7 +637,7 @@ CONTAINS
     ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
     !=================================================================
 
-    !IF ( Input_Opt%VerboseAndRoot ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'SPC_O3',   &
     !                                 Input_Opt,  State_Chm, &
     !                                 State_Grid, State_Met, &
@@ -674,7 +674,7 @@ CONTAINS
                              State_Met%U, State_Met%V, &
                              XMASS,       YMASS )
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
     ENDIF
 
@@ -731,7 +731,7 @@ CONTAINS
                  Update_Mixing_Ratio=.FALSE. )
 
     !!### Debug
-    !IF ( Input_Opt%VerboseAndRoot ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'SPC_O3',   &
     !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
@@ -864,7 +864,7 @@ CONTAINS
          State_Grid%NX, State_Grid%NY,            State_Grid%NZ,             &
          JFIRST,        JLAST,                    NG,                        &
          MG,            REAL_N_DYN,               Re,                        &
-         YMID_R,        Input_Opt%VerboseAndRoot, RC                        )
+         YMID_R,        Input_Opt%Verbose, RC                        )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

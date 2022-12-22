@@ -14,7 +14,9 @@ simulation:
   end_date: 20000101 010000
   chem_inputs_dir: ./
   species_database_file: ./species_database.yml
-  verbose: false
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
 
 #============================================================================
 # Settings for GEOS-Chem operations

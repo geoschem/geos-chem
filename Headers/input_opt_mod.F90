@@ -79,8 +79,9 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
+     LOGICAL                     :: VerboseRequested
+     CHARACTER(LEN=10)           :: VerboseOnCores
      LOGICAL                     :: Verbose
-     LOGICAL                     :: VerboseAndRoot
      LOGICAL                     :: useTimers
 
      !----------------------------------------
@@ -581,8 +582,9 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
+    Input_Opt%VerboseRequested       = .FALSE.
+    Input_Opt%VerboseOnCores         = ''
     Input_Opt%Verbose                = .FALSE.
-    Input_Opt%VerboseAndRoot         = .FALSE.
     Input_Opt%useTimers              = .FALSE.
 
     !----------------------------------------

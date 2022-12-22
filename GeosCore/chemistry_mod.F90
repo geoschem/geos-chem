@@ -1035,7 +1035,7 @@ CONTAINS
           ENDIF
 
           !### Debug
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL Debug_Msg( '### MAIN: a CHEMISTRY' )
           ENDIF
 
@@ -1216,7 +1216,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL Debug_Msg( '### RECOMPUTE_OD: after RDAER' )
              ENDIF
 
@@ -1245,7 +1245,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
              ENDIF
           ENDIF
@@ -1377,7 +1377,7 @@ CONTAINS
 
        !### Debug output
        IF ( First ) THEN
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
                             GcId, Rate
  100         FORMAT( '     -  Pass. species name, Id, loss rate: ',          &

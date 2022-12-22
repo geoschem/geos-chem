@@ -461,6 +461,7 @@ CONTAINS
     CHARACTER(LEN=6)             :: timeStr
     CHARACTER(LEN=8)             :: dateStr
     CHARACTER(LEN=12)            :: met
+    CHARACTER(LEN=15)            :: verboseMsg
     CHARACTER(LEN=24)            :: sim
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
@@ -536,7 +537,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on verbose output
     !------------------------------------------------------------------------
-    key    = "simulation%verbose"
+    key    = "simulation%verbose%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -544,36 +545,36 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%Verbose = v_bool
+    Input_Opt%VerboseRequested = v_bool
 
-    ! Also check the "debug_printout" key, for backwards compatibility
-    ! with older versions of the geoschem_config.yml file.
-    !  -- Bob Yantosca (14 Dec 2022)
-    IF ( .not. Input_Opt%Verbose ) THEN
-       key    = "simulation%debug_printout"
-       v_bool = MISSING_BOOL
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+    !------------------------------------------------------------------------
+    ! Which cores for verbose output: root or all?
+    !------------------------------------------------------------------------
+    key  = "simulation%verbose%on_cores"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%VerboseOnCores = To_UpperCase( v_str )
+
+    ! Should verbose output be printed only on root or on all cores?
+    SELECT CASE ( TRIM( Input_Opt%VerboseOnCores ) )
+       CASE( 'ROOT' )
+          verboseMsg = 'root core only'
+          Input_Opt%Verbose =                                                &
+             ( Input_Opt%VerboseRequested .and. Input_Opt%amIRoot )    
+       CASE( 'ALL' )
+          verboseMsg = 'all cores'
+          Input_Opt%Verbose = Input_Opt%VerboseRequested
+       CASE DEFAULT
+          errMsg = 'Invalid selection!' // NEW_LINE( 'a' ) //                &
+               'simulation:verbose:on_cores must be either "root" or "all"'
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
-       ENDIF
-       Input_Opt%Verbose = v_bool
-    ENDIF
-
-#ifdef MODEL_WRF
-    ! Special case for WRF-GC: Do not restrict verbose output to the
-    ! root core.  WRF can separate the output into different cores.
-    !  -- Haipeng Lin and Bob Yantosca (15 Dec 2022)
-    Input_Opt%VerboseAndRoot = Input_Opt%Verbose
-#else
-    ! Denote if Input_Opt%Verbose is TRUE and we are the root core.
-    ! This flag can be used to determine if Verobse output can be safely
-    ! printed.  Pre-defining this will avoid repeated logical comparisons.
-    !   -- Bob Yantosca (14 Dec 2022)
-    Input_Opt%VerboseAndRoot = ( Input_Opt%Verbose .and. Input_Opt%amIRoot )
-#endif
-
+    END SELECT
 
 #if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     !========================================================================
@@ -870,8 +871,10 @@ CONTAINS
                         TRIM( Input_Opt%CHEM_INPUTS_DIR )
        WRITE( 6, 110 ) 'Species database file       : ',                     &
                         TRIM( Input_Opt%SpcDatabaseFile )
-       WRITE( 6, 120 ) 'Turn on verbose ouptut      : ',                     &
+       WRITE( 6, 120 ) 'Turn on verbose output      : ',                     &
                         Input_Opt%Verbose
+       WRITE( 6, 110 ) 'Verbose output printed on   : ',                     &
+                        TRIM( verboseMsg )
 #ifdef MODEL_CLASSIC
        WRITE( 6, 100 ) 'Start time of run           : ',                     &
                         Input_Opt%NYMDb, Input_Opt%NHMSb

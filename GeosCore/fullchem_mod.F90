@@ -356,7 +356,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after FAST_JX' )
     ENDIF
 
@@ -1475,7 +1475,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### Do_FullChem: after OHSAVE' )
        ENDIF
     ENDIF
@@ -1493,7 +1493,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after Diag_Metrics' )
     ENDIF
 
@@ -1534,12 +1534,12 @@ CONTAINS
     ! photolysis approximations outside the chemistry grid
     !=======================================================================
     CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
     ENDIF
 
     CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
 
@@ -2464,7 +2464,7 @@ CONTAINS
     ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
 
     ! Debug output
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 100 )
 100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays' )
 

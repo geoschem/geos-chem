@@ -338,7 +338,7 @@ CONTAINS
        DO J = 1, JM
        DO I = 1, IM
 
-          !IF ( Input_Opt%VerboseAndRoot ) THEN
+          !IF ( Input_Opt%Verbose ) THEN
           !   PRINT*, '### I: ', I, 'J: ', J
           !   CALL FLUSH(6)
           !END IF
@@ -350,7 +350,7 @@ CONTAINS
           ENDDO
           LPOS = LPOS-1
 
-          !IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG('DONE GET_PEDGE')
+          !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE GET_PEDGE')
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !-----------------------------------------------------------
@@ -374,13 +374,13 @@ CONTAINS
                   Spc(1)%Conc(I,J,(L_OVERWRLD+1):State_Grid%NZ)
           ENDIF
 #endif
-          !IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
-          !IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG('DONE TAGO3')
+          !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
+          !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE TAGO3')
 
           ! Loop over levels
           DO L = LM, LBOT, -1
 
-             !IF ( Input_Opt%VerboseAndRoot ) THEN
+             !IF ( Input_Opt%Verbose ) THEN
              !   PRINT*, '### Spc: ', Spc(NTRACER)%Conc(I,J,L)
              !   CALL FLUSH(6)
              !ENDIF
@@ -462,7 +462,7 @@ CONTAINS
        !write(6,*) 'max of columns= ',maxval(out_data)
 
     ENDDO
-    IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
 
     ! Free pointer
     Spc => NULL()

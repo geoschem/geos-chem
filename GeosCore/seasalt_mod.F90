@@ -234,7 +234,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
        ENDIF
     ENDIF
@@ -259,7 +259,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
        ENDIF
     ENDIF
@@ -284,7 +284,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
        ENDIF
     ENDIF
@@ -309,7 +309,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
        ENDIF
     ENDIF
@@ -334,7 +334,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
        ENDIF
     ENDIF
@@ -359,7 +359,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
        ENDIF
     ENDIF
@@ -384,7 +384,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
           ENDIF
        ENDIF
@@ -404,7 +404,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
           ENDIF
        ENDIF
@@ -421,7 +421,7 @@ CONTAINS
     ENDDO
     CALL SRCSALTBIN( Seasalt_Ids, State_Grid, State_Met, State_Chm )
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
     ENDIF
 
@@ -554,7 +554,7 @@ CONTAINS
        REFF = REFF_accum                  ! Eff radius of accum mode  [m]
     ENDIF
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
     ENDIF
 
@@ -821,7 +821,7 @@ CONTAINS
     ENDDO ! J
     !$OMP END PARALLEL DO
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
     ENDIF
 

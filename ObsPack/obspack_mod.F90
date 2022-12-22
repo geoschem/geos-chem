@@ -132,7 +132,7 @@ CONTAINS
     ! Assume that there are ObsPack data for today
     State_Diag%Do_ObsPack = .TRUE.
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### OBSPACK_INIT: starting' )
     ENDIF
 

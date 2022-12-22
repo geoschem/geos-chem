@@ -798,7 +798,7 @@ CONTAINS
 #endif
 #endif
 
-    IF ( Input_Opt%VerboseAndRoot ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 
   END SUBROUTINE GC_Init_Extra
 !EOC

@@ -1077,13 +1077,13 @@ CONTAINS
     !WRITE(777,*) '---------------------------'
 77  FORMAT(3I4, '  Spc(id_NH3)%Conc(I,J,L),'E13.5,'  Used', E13.5 )
 
-    IF ( COND .and. Input_Opt%VerboseAndRoot ) THEN
+    IF ( COND .and. Input_Opt%Verbose ) THEN
        PRINT *,'### AEROPHYS: SO4 CONDENSATION'
     ENDIF
-    IF ( COAG .and. Input_Opt%VerboseAndRoot ) THEN
+    IF ( COAG .and. Input_Opt%Verbose ) THEN
        PRINT *,'### AEROPHYS: COAGULATION'
     ENDIF
-    IF ( NUCL .and. Input_Opt%VerboseAndRoot ) THEN
+    IF ( NUCL .and. Input_Opt%Verbose ) THEN
        PRINT *,'### AEROPHYS: NUCLEATION'
     ENDIF
 
@@ -7505,7 +7505,7 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
     ENDIF
 

@@ -521,7 +521,7 @@
     ENDDO
     !$OMP END PARALLEL DO
 
-    IF ( Input_Opt%VerboseAndRoot ) PRINT *,'### Finish AERO_DRYDEP'
+    IF ( Input_Opt%Verbose ) PRINT *,'### Finish AERO_DRYDEP'
 
     ! Free pointers
     Spc      => NULL()

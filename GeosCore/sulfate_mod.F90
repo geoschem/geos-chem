@@ -442,7 +442,7 @@ CONTAINS
        IF ( id_SO4s > 0 ) THEN
           CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                               State_Met, id_SO4s,   RC )
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
           ENDIF
        ENDIF
@@ -451,7 +451,7 @@ CONTAINS
        IF ( id_NITs > 0 ) THEN
           CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                               State_Met, id_NITs,   RC )
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
           ENDIF
        ENDIF
@@ -465,7 +465,7 @@ CONTAINS
           IF ( id_SO4d1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d1,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
              ENDIF
           ENDIF
@@ -474,7 +474,7 @@ CONTAINS
           IF ( id_SO4d2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d2,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
              ENDIF
           ENDIF
@@ -483,7 +483,7 @@ CONTAINS
           IF ( id_SO4d3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d3,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
              ENDIF
           ENDIF
@@ -492,7 +492,7 @@ CONTAINS
           IF ( id_SO4d4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d4,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
              ENDIF
           ENDIF
@@ -501,7 +501,7 @@ CONTAINS
           IF ( id_NITd1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd1,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
              ENDIF
           ENDIF
@@ -510,7 +510,7 @@ CONTAINS
           IF ( id_NITd2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd2,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
              ENDIF
           ENDIF
@@ -519,7 +519,7 @@ CONTAINS
           IF ( id_NITd3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd3,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
              ENDIF
           ENDIF
@@ -528,7 +528,7 @@ CONTAINS
           IF ( id_NITd4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd4,  RC )
-             IF ( Input_Opt%VerboseAndRoot ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
              ENDIF
           ENDIF
@@ -538,7 +538,7 @@ CONTAINS
        IF ( LGRAVSTRAT ) THEN
           CALL SETTLE_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
                                  State_Met, RC )
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
           ENDIF
        ENDIF
@@ -551,7 +551,7 @@ CONTAINS
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
 
@@ -572,7 +572,7 @@ CONTAINS
           ENDIF
 
           ! Debug info
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' )
           ENDIF
 
@@ -589,7 +589,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
           ENDIF
 
@@ -609,7 +609,7 @@ CONTAINS
        ENDIF
 
        ! Debug info
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
        ENDIF
 
@@ -626,7 +626,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
        ENDIF
 
@@ -642,14 +642,14 @@ CONTAINS
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
        !-----------------------------------------------------------------
        CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
        ENDIF
 #endif
 
        ! MSA
        CALL CHEM_MSA( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
        ENDIF
 
@@ -657,13 +657,13 @@ CONTAINS
        ! CHEM_NIT includes a source term from sea salt aerosols, so keep
        ! here.
        CALL CHEM_NIT( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
        ENDIF
 
        ! Calculate the HCl uptake by alkalinity, xnw
        CALL CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_CL' )
        ENDIF
 
@@ -681,7 +681,7 @@ CONTAINS
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
 
@@ -696,7 +696,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2 false' )
        ENDIF
 
@@ -1413,7 +1413,7 @@ CONTAINS
 
     NULLIFY(TC1)
 
-    IF ( Input_Opt%VerboseAndRoot ) print *,'   ### Finish SRCSF30'
+    IF ( Input_Opt%Verbose ) print *,'   ### Finish SRCSF30'
 
   END SUBROUTINE SRCSF30
 #endif

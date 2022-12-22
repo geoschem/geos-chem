@@ -1809,7 +1809,7 @@ CONTAINS
        ENDDO
     ENDIF
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        ! Print information about each diagnostic collection
        CALL MetaHistContainer_Print( Input_Opt, CollectionList, RC )
     ENDIF
@@ -2553,7 +2553,7 @@ CONTAINS
        ENDIF
 
        ! Debug output
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE( 6, 100 ) Container%Name
  100      FORMAT( '     - Updating collection: ', a20 )
        ENDIF
@@ -2720,7 +2720,7 @@ CONTAINS
 
 ! Uncomment more detailed debug output if you need it!
 !          ! Debug output
-!          IF ( Input_Opt%VerboseAndRoot ) THEN
+!          IF ( Input_Opt%Verbose ) THEN
 !             WRITE( 6, 110 ) TRIM(Container%Name),                        &
 !                             TRIM(Item%Name),       Item%nUpdates
 ! 110         FORMAT( a20, 1x, a20, 1x, f7.1 )

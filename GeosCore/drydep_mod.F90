@@ -342,7 +342,7 @@ CONTAINS
 #endif
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
     ENDIF
 
@@ -2629,7 +2629,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
 130    FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
     ENDIF
@@ -2661,7 +2661,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2689,7 +2689,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2731,7 +2731,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2759,7 +2759,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2787,7 +2787,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2819,7 +2819,7 @@ CONTAINS
     IRI(3) = 200
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2847,7 +2847,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2875,7 +2875,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2903,7 +2903,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2931,7 +2931,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2959,7 +2959,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2987,7 +2987,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3015,7 +3015,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3031,7 +3031,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
     ENDIF
 

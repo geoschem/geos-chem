@@ -819,7 +819,7 @@ CONTAINS
 #endif
 
        ! Debug printout
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL Spc_Print( Input_Opt, ThisSpc, RC )
        ENDIF
 

@@ -304,7 +304,7 @@ CONTAINS
     ENDIF
 #endif
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### LINEAR_CHEM: at DO_LINEAR_CHEM' )
     ENDIF
 

@@ -468,7 +468,7 @@ PROGRAM GEOS_Chem
 
   ! Set a flag to denote if we should print verbose output
   ! Turn off verbose output for the dry-runs simulation
-  VerboseAndRoot      = ( Input_Opt%VerboseAndRoot  .and. notDryRun )
+  VerboseAndRoot      = ( Input_Opt%Verbose  .and. notDryRun )
 
   ! Debug output
   IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )

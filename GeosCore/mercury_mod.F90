@@ -323,7 +323,7 @@ CONTAINS
                             State_Grid = State_Grid,                         &
                             State_Met  = State_Met,                          &
                             LFLUX      = EHg0_ln                            )
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
     ENDIF
 
@@ -332,7 +332,7 @@ CONTAINS
                    State_Grid = State_Grid,                                  &
                    State_Met  = State_Met,                                   &
                    EHg0_so    = EHg0_so                                     )
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
     ENDIF
 
@@ -342,7 +342,7 @@ CONTAINS
                                 State_Grid = State_Grid,                     &
                                 State_Met  = State_Met,                      &
                                 FLUX       = EHg0_snow                      )
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
     ENDIF
 
@@ -353,13 +353,13 @@ CONTAINS
 
     ! Zero arrays for Hg deposition
     CALL RESET_HG_DEP_ARRAYS()
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### EMISSMERCURY: a RESET_HG_DEP_ARRAYS' )
     ENDIF
 
     ! Add Hg(0) source into State_Chm%Species [kg]
     CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
-   IF ( Input_Opt%VerboseAndRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
       CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
    ENDIF
 
@@ -871,7 +871,7 @@ CONTAINS
         ENDIF
 
         !### Debug
-        IF ( Input_Opt%VerboseAndRoot ) THEN
+        IF ( Input_Opt%Verbose ) THEN
            CALL DEBUG_MSG( '### ChemMercury: after FAST_JX' )
         ENDIF
     ENDIF
@@ -889,7 +889,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### ChemMercury: after Set_HgOxidConc' )
     ENDIF
 

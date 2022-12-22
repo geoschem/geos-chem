@@ -581,7 +581,7 @@ CONTAINS
     ENDDO ! L
     !$OMP END PARALLEL DO
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        ! Print mean NOx tendency in mesosphere
        DBGMSG = ' ### UCX_NOX: Mesospheric NOx processed'
        CALL DEBUG_MSG(TRIM(DBGMSG))
@@ -1502,7 +1502,7 @@ CONTAINS
     ! Free pointer
     NULLIFY( Spc )
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
     ENDIF
 
@@ -1716,7 +1716,7 @@ CONTAINS
     ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
     STATE_PSC => State_Chm%STATE_PSC
 
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
     ENDIF
 
@@ -4167,7 +4167,7 @@ CONTAINS
           CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
        ENDIF
 
-       IF ( Input_Opt%VerboseAndRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', TRIM( NOX_FILE )
           CALL DEBUG_MSG( TRIM(DBGMSG) )
        ENDIF
@@ -4361,7 +4361,7 @@ CONTAINS
     id_SO4   = Ind_('SO4'       )
 
     ! Print info
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6,'(a)') REPEAT( '=', 79 )
        WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
        WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
@@ -4543,7 +4543,7 @@ CONTAINS
        ENDIF
 
        !! Debug
-       !IF ( Input_Opt%VerboseAndRoot ) THEN
+       !IF ( Input_Opt%Verbose ) THEN
        !   WRITE(DBGMSG,'(a,I03,a,3(F6.2,x))') '### UCX: Exgrid: J-', &
        !     JOUT, '->',JMIN_OUT,JMAX_OUT,JDIF_OUT
        !   CALL DEBUG_MSG( TRIM(DBGMSG) )

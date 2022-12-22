@@ -312,7 +312,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( Input_Opt%VerboseAndRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDUST: a DRY_SETTLING' )
     ENDIF
 
@@ -638,7 +638,7 @@ CONTAINS
           STOP
 
        ELSE
-          IF ( Input_Opt%VerboseAndRoot ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
           ENDIF
        ENDIF
