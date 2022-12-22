@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -n 24
 #SBATCH -N 1
 #SBATCH -t 0-03:30
 #SBATCH -p REQUESTED_PARTITION
@@ -66,6 +66,9 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 
     # Set number of cores to those requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+
+    # Cannon-specific setting to get around connection issues at high # cores
+    export OMPI_MCL_btl=openib
 
 elif [[ "x${scheduler}" == "xLSF" ]]; then
 
@@ -169,10 +172,41 @@ for runDir in *; do
 	    # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
-            # Run the code if the executable is present.  Then update the
-            # pass/fail counters and write a message to the results log file.
-            run_gchp_job "${itRoot}" "${runDir}" "${exeFile}"
-            if [[ $? -eq 0 ]]; then
+	    # Change to the run directory
+	    cd "${itRoot}/${runDir}"
+
+	    # Copy the executable file here
+	    cp "${itRoot}/exe_files/${exeFile}" .
+
+	    # Redirect the log file
+	    log="${itRoot}/logs/execute.${runDir}.log"
+	    rm -f "${log}"
+
+	    # Remove any leftover files in the run dir
+	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+
+	    # Link to the environment file
+	    ./setEnvironmentLink.sh "${itRoot}/gchp.env"
+
+	    # Update config files, set links, load environment, sanity checks
+	    . setCommonRunSettings.sh    >> "${log}" 2>&1
+	    . source setRestartLink.sh   >> "${log}" 2>&1
+	    . source gchp.env            >> "${log}" 2>&1
+	    . source checkRunSettings.sh >> "${log}" 2>&1
+
+	    # Run GCHP and evenly distribute tasks across nodes
+	    if [[ "x${scheduler}" == "xSLURM" ]]; then
+		srun -n "${SLURM_NTASKS}" -N "${SLURM_NNODES}" \
+		     --mpi=pmix ./${exeFile} >> "${log}" 2>&1
+	    elif [[ "x${scheduler}" == "xLSF" ]]; then
+		# Need to figure out the LSF commands
+		mpirun -n 24 ./{exeFile} >> "${log}" 2>&1
+	    else
+		mpirun -n 24 ./{exeFile} >> "${log}" 2>&1
+	    fi
+
+	    # Update pass/failed counts and write to results.log
+	    if [[ $? -eq 0 ]]; then
                 let passed++
                 print_to_log "${passMsg}" "${results}"
             else
@@ -181,7 +215,7 @@ for runDir in *; do
             fi
 
             # Change to root directory for next iteration
-            cd ${itRoot}
+            cd "${itRoot}"
 
         else
 
