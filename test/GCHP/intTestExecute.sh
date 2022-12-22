@@ -60,29 +60,32 @@ scheduler="none"
 
 if [[ "x${scheduler}" == "xSLURM" ]]; then
 
-    #--------------------
-    # Run via SLURM
-    #--------------------
-
-    # Set number of cores to those requested with #SBATCH -c
-    export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+    #---------------------------------
+    # Run via SLURM (Harvard Cannon)
+    #---------------------------------
 
     # Cannon-specific setting to get around connection issues at high # cores
     export OMPI_MCL_btl=openib
 
 elif [[ "x${scheduler}" == "xLSF" ]]; then
 
-    #--------------------
-    # Run via LSF (TODO)
-    #--------------------
-    echo "LSF support coming soon!"
-    exit 1
+    #---------------------------------
+    # Run via LSF (WashU Compute1)
+    #---------------------------------
+
+    # Unlimit resources to prevent OS killing GCHP due to resource usage/
+    # Alternatively you can put this in your environment file.
+    ulimit -c 0                  # coredumpsize
+    ulimit -l unlimited          # memorylocked
+    ulimit -u 50000              # maxproc
+    ulimit -v unlimited          # vmemoryuse
+    ulimit -s unlimited          # stacksize
 
 else
 
-    #--------------------
+    #---------------------------------
     # Run interactively
-    #--------------------
+    #---------------------------------
 
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
@@ -189,20 +192,46 @@ for runDir in *; do
 	    ./setEnvironmentLink.sh "${itRoot}/gchp.env"
 
 	    # Update config files, set links, load environment, sanity checks
-	    . setCommonRunSettings.sh    >> "${log}" 2>&1
-	    . source setRestartLink.sh   >> "${log}" 2>&1
-	    . source gchp.env            >> "${log}" 2>&1
-	    . source checkRunSettings.sh >> "${log}" 2>&1
+	    . setCommonRunSettings.sh >> "${log}" 2>&1
+	    . setRestartLink.sh       >> "${log}" 2>&1
+	    . gchp.env                >> "${log}" 2>&1
+	    . checkRunSettings.sh     >> "${log}" 2>&1
 
 	    # Run GCHP and evenly distribute tasks across nodes
 	    if [[ "x${scheduler}" == "xSLURM" ]]; then
-		srun -n "${SLURM_NTASKS}" -N "${SLURM_NNODES}" \
-		     --mpi=pmix ./${exeFile} >> "${log}" 2>&1
+
+		#---------------------------------------------
+		# Executing GCHP on SLURM (Harvard Cannon)
+		#---------------------------------------------
+
+		# Compute parameters for srun
+		# See the gchp.run script in the folder:
+		#  runScriptSamples/operational_examples/harvard_cannon
+		NX=$(grep NX GCHP.rc | awk '{print $2}')
+		NY=$(grep NY GCHP.rc | awk '{print $2}')
+		coreCt=$(( ${NX} * ${NY} ))
+		planeCt=$(( ${coreCt} / ${SLURM_NNODES} ))
+		if [[ $(( ${coreCt} % ${SLURM_NNODES} )) > 0 ]]; then
+		    ${planeCt}=$(( ${planeCt} + 1 ))
+		fi
+
+		# Execute GCHP with srun
+		srun -n ${coreCt} -N ${SLURM_NNODES} -m plane=${planeCt} \
+		    --mpi=pmix ./${exeFile} >> "${log}" 2>&1
+
 	    elif [[ "x${scheduler}" == "xLSF" ]]; then
-		# Need to figure out the LSF commands
-		mpirun -n 24 ./{exeFile} >> "${log}" 2>&1
+
+		#---------------------------------------------
+		# Executing GCHP on LSF (WashU Compute1)
+		#---------------------------------------------
+		mpiexec -n 24 ./${exeFile} > "${log}" 2>&1
+
 	    else
-		mpirun -n 24 ./{exeFile} >> "${log}" 2>&1
+
+		#---------------------------------------------
+		# Executing GCHP interactively
+		#---------------------------------------------
+		mpirun -n 24 ./${exeFile} >> "${log}" 2>&1
 	    fi
 
 	    # Update pass/failed counts and write to results.log
@@ -257,6 +286,7 @@ fi
 #============================================================================
 
 # Free local variables
+unset coreCt
 unset exeFile
 unset failed
 unset failmsg
@@ -266,8 +296,11 @@ unset head_hco
 unset itRoot
 unset log
 unset numTests
+unset NX
+unset NY
 unset passed
 unset passMsg
+unset planeCt
 unset remain
 unset results
 unset scheduler
