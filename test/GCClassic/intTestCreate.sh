@@ -27,14 +27,14 @@
 #=============================================================================
 
 # Integration test root folder
-itRoot=${1}
+itRoot="${1}"
 if [[ "x${itRoot}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit 1
 fi
 
 # Environment file
-envFile=${2}
+envFile="${2}"
 if [[ "x${envFile}" == "x" ]]; then
     echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
     exit 1
@@ -45,7 +45,7 @@ if [[ ! -f ${envFile} ]]; then
 fi
 
 # Run a short integration test?
-quick=${3}
+quick="${3}"
 
 #=============================================================================
 # Global variable and function definitions

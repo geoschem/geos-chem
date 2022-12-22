@@ -45,7 +45,7 @@ if [[ ! -f "${envFile}" ]]; then
 fi
 
 # Run a short integration test?
-quick=${3}
+quick="${3}"
 
 #=============================================================================
 # Global variable and function definitions
@@ -148,6 +148,9 @@ create_rundir "1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # c24 merra2 fullchem_benchmark
 create_rundir "1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+
+# c24 merra2 fullchem_RRTMG
+create_rundir "1\n8\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 #=============================================================================
 # Cleanup and quit
