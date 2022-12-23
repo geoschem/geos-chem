@@ -96,13 +96,16 @@ CONTAINS
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
     USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : INTEGRATE
+    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
     USE GcKpp_Function
     USE GcKpp_Model
     USE GcKpp_Global
@@ -208,11 +211,14 @@ CONTAINS
     REAL(f4)               :: TROP_NOx_Tau
     REAL(f4)               :: TROPv_NOx_tau(State_Grid%NX,State_Grid%NY)
     REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
-    REAL(dp)               :: Vdotout(NVAR), localC(NSPEC)
+    REAL(dp)               :: localC(NSPEC)
 #endif
 #ifdef MODEL_WRF
     REAL(dp)               :: localC(NSPEC)
 #endif
+
+    ! Grid box integration time diagnostic
+    REAL(fp)               :: TimeStart, TimeEnd
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData => NULL()
@@ -263,6 +269,9 @@ CONTAINS
        IF (State_Diag%Archive_KppLuDecomps) State_Diag%KppLuDecomps   = 0.0_f4
        IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
+       IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
+                                      State_Diag%KppAutoReducerNVAR   = 0.0_f4
+       IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
     ENDIF
     
     ! Also zero satellite diagnostic archival arrays
@@ -420,6 +429,9 @@ CONTAINS
     ! define ICNTRL outside of the "SOLVE CHEMISTRY" parallel loop
     ! below because it is passed to KPP as INTENT(IN).
     ! (bmy, 3/28/16)
+    !
+    ! ICNTRL now needs to be updated within the TimeLoop for the AR solver
+    ! (hplin, 4/13/22)
     !========================================================================
 
     !%%%%% TIMESTEPS %%%%%
@@ -438,35 +450,6 @@ CONTAINS
 
     ! Relative tolerance
     RTOL      = 0.5e-2_dp
-
-    !%%%%% SOLVER OPTIONS %%%%%
-
-    ! Zero all slots of ICNTRL
-    ICNTRL    = 0
-
-    ! 0 - non-autonomous, 1 - autonomous
-    ICNTRL(1) = 1
-
-    ! 0 - vector tolerances, 1 - scalars
-    ICNTRL(2) = 0
-
-    ! Select Integrator
-    ! ICNTRL(3)  -> selection of a particular method.
-    ! For Rosenbrock, options are:
-    ! = 0 :  default method is Rodas3
-    ! = 1 :  method is  Ros2
-    ! = 2 :  method is  Ros3
-    ! = 3 :  method is  Ros4
-    ! = 4 :  method is  Rodas3
-    ! = 5:   method is  Rodas4
-    ICNTRL(3) = 4
-
-    ! 0 - adjoint, 1 - no adjoint
-    ICNTRL(7) = 1
-
-    ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
-    ! the integrator.  Rate updates are done before calling KPP.
-    ICNTRL(15) = -1
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -490,26 +473,36 @@ CONTAINS
        CALL Timer_Start( "  -> FlexChem loop", RC )
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! Always consider halogens as "fast" species for auto-reduce
+    !------------------------------------------------------------------------
+    IF ( FIRSTCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       IF ( Input_Opt%AutoReduce_Is_KeepActive ) THEN
+          CALL fullchem_AR_KeepHalogensActive( Input_Opt%amIRoot )
+       ENDIF
+    ENDIF
+
     !========================================================================
     ! MAIN LOOP: Compute reaction rates and call chemical solver
     !
     ! Variables not listed here are held THREADPRIVATE in gckpp_Global.F90
     ! !$OMP COLLAPSE(3) vectorizes the loop and !$OMP DYNAMIC(24) sends
     ! 24 boxes at a time to each core... then when that core is finished,
-    ! it gets a nother chunk of 24 boxes.  This should lead to better
+    ! it gets another chunk of 24 boxes.  This should lead to better
     ! load balancing, and will spread the sunrise/sunset boxes across
     ! more cores.
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,        J,        L,       N                           )&
+    !$OMP PRIVATE( ICNTRL                                                   )&
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc,  Vdotout, localC                    )&
+    !$OMP PRIVATE( NOxTau,     NOxConc, localC                              )&
     !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
 #endif
 #ifdef MODEL_WRF
@@ -527,7 +520,8 @@ CONTAINS
        !=====================================================================
        IERR      = 0                        ! KPP success or failure flag
        ISTATUS   = 0.0_dp                   ! Rosenbrock output
-       RCNTRL    = 0.0_fp                   ! Rosenbrock input
+       ICNTRL    = 0                        ! Rosenbrock input (integer)
+       RCNTRL    = 0.0_fp                   ! Rosenbrock input (real)
        RSTATE    = 0.0_dp                   ! Rosenbrock output
        SO4_FRAC  = 0.0_fp                   ! Frac of SO4 avail for photolysis
        P         = 0                        ! GEOS-Chem photolyis species ID
@@ -552,6 +546,16 @@ CONTAINS
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        localC    = 0.0_dp                   ! Local backup array for C
 #endif
+
+       ! Per discussions for Lin et al., force keepActive throughout the atmosphere
+       ! if keepActive option is enabled. (hplin, 2/9/22)
+       !keepActive = .true.
+       CALL fullchem_AR_SetKeepActive( option=.TRUE. )
+
+       ! Start measuring KPP-related routine timing for this grid box
+       IF ( State_Diag%Archive_KppTime ) THEN
+          call cpu_time(TimeStart)
+       ENDIF
 
        !=====================================================================
        ! Get photolysis rates (daytime only)
@@ -1005,8 +1009,53 @@ CONTAINS
        ! NOTE: Because RCNTRL(3) is set to an array value that
        ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
        ! within the OpenMP parallel loop and define it just
-       ! before the call to to Integrate. (bmy, 3/24/16)
+       ! before the call to Integrate. (bmy, 3/24/16)
+       !
+       ! Ditto for ICNTRL. (hplin, 4/13/22)
        !=====================================================================
+       !%%%%% SOLVER OPTIONS %%%%%
+       ! Zero all slots of ICNTRL
+       ICNTRL    = 0
+
+       ! 0 - non-autonomous, 1 - autonomous
+       ICNTRL(1) = 1
+
+       ! 0 - vector tolerances, 1 - scalars
+       ICNTRL(2) = 0
+
+       ! Select Integrator
+       ! ICNTRL(3)  -> selection of a particular method.
+       ! For Rosenbrock, options are:
+       ! = 0 :  default method is Rodas3
+       ! = 1 :  method is  Ros2
+       ! = 2 :  method is  Ros3
+       ! = 3 :  method is  Ros4
+       ! = 4 :  method is  Rodas3
+       ! = 5:   method is  Rodas4
+       ICNTRL(3) = 4
+
+       ! 0 - adjoint, 1 - no adjoint
+       ICNTRL(7) = 1
+
+       ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
+       ! the integrator.  Rate updates are done before calling KPP.
+       ICNTRL(15) = -1
+
+       !%%%%% AUTO-REDUCE OPTIONS %%%%%
+       !=====================================================================
+       ! Set options for auto-reduction of mechanism
+       !
+       ! RCNTRL(12) is the threshold for reduction. (hplin, 10/18/21)
+       !=====================================================================
+       ICNTRL(12) = 0
+       IF ( Input_Opt%USE_AUTOREDUCE .and. .not. FIRSTCHEM ) THEN
+          ICNTRL(12) = 1
+       ENDIF
+       ! Use append functionality?
+       ICNTRL(13) = 0
+       IF ( Input_Opt%AUTOREDUCE_IS_APPEND ) THEN
+          ICNTRL(13) = 1
+       ENDIF
 
        ! Zero all slots of RCNTRL
        RCNTRL    = 0.0_fp
@@ -1015,6 +1064,44 @@ CONTAINS
        ! size with the value of Hnew (the last predicted but not yet 
        ! taken timestep)  saved to the the restart file.
        RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
+
+       ! Auto-reduce threshold.
+       ! Pressure-dependent (method 1):
+       !                                                            Mid-Pressure at Level
+       !   Actual_Threshold = AUTOREDUCE_THRESHOLD (at surface) * --------------------------
+       !                                                           "Mid-Pressure" at Sfc.
+       IF ( .not. Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
+           IF ( Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
+              RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD * State_Met%PMID(I,J,L) / State_Met%PMID(I,J,1)
+           ENDIF
+           IF ( .not. Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
+              RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD
+           ENDIF
+        ENDIF
+
+       ! Method 2: Determine threshold dynamically by scaling rates of key species.
+       IF ( Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
+           ! Daytime target.
+           ICNTRL(14) = ind_OH        ! Assume OH is daytime target species.
+           RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_OH
+
+           ! 1e6 daytime conc ... testing shows 5e-5 as an offset here works best.
+           ! Use JNO2 as night determination.
+           ! RXN_NO2: NO2 + hv --> NO  + O
+           ! JNO2 ranges from 0 to 0.02 and is order ~ 1e-4 at the terminator. We set this threshold
+           ! to be slightly relaxed so it captures the terminator, but this needs some
+           ! tweaking.
+           !
+           ! For some reason, RXN_NO2 as a proxy fails to propagate the sunset terminator
+           ! even though all diagnostics seem fine, and after a while only the OH scheme applies.
+           ! Use SUNCOSmid as a proxy to fix this. (hplin, 4/20/22)
+           ! IF(ZPJ(L,RXN_NO2,I,J) .eq. 0.0_fp) THEN
+           IF(State_Met%SUNCOSmid(I,J) .le. -0.1391731e+0_fp) THEN
+              ICNTRL(14) = ind_NO2    ! NO2 is nighttime target species.
+              RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_NO2
+           ENDIF
+           ! Dynamic threshold boundary ratio in RCNTRL(14)
+       ENDIF
 
        !=====================================================================
        ! Integrate the box forwards
@@ -1099,6 +1186,12 @@ CONTAINS
           IF ( State_Diag%Archive_KppSmDecomps ) THEN
              State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
+
+          ! Update autoreduce solver statistics
+          ! (only if the autoreduction is turned on)
+          IF ( Input_Opt%Use_AutoReduce ) THEN
+             CALL fullchem_AR_UpdateKppDiags( I, J, L, RSTATE, State_Diag )
+          ENDIF
        ENDIF
 
        !=====================================================================
@@ -1115,6 +1208,11 @@ CONTAINS
           ! Retry the integration with non-optimized settings
           RCNTRL(3) = 0.0_dp
           C         = 0.0_dp
+
+          ! Disable auto-reduce solver for the second iteration for safety
+          IF ( Input_Opt%Use_AutoReduce ) THEN
+             RCNTRL(12) = -1.0_dp ! without using ICNTRL
+          ENDIF
 
           ! Update rates again
           CALL Update_RCONST( )
@@ -1254,7 +1352,14 @@ CONTAINS
        ! file.  For simulations that are broken into multiple stages,
        ! Hstart will be initialized to the value of Hnew from the restart
        ! file at startup (see above).
-       State_Chm%KPPHvalue(I,J,L) = RSTATE(3)
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
+
+       ! Save cpu time spent for bulk of KPP-related routines for History archival
+       ! (hplin, 11/8/21)
+       IF ( State_Diag%Archive_KppTime ) THEN
+          call cpu_time(TimeEnd)
+          State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
+       ENDIF
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
@@ -1333,11 +1438,14 @@ CONTAINS
        ! Archive NOx lifetime [h]
        !--------------------------------------------------------------------
        IF ( State_Diag%Archive_NoxTau .OR. State_Diag%Archive_TropNOxTau ) THEN
-          CALL Fun( C(1:NVAR), C(NVAR+1:NSPEC), RCONST,                          &
-                    Vloc,      Aout=Aout,       Vdotout=Vdotout )
-          NOxTau = Vdotout(ind_NO) + Vdotout(ind_NO2) + Vdotout(ind_NO3)         &
-                 + 2.*Vdotout(ind_N2O5) + Vdotout(ind_ClNO2) + Vdotout(ind_HNO2) &
-                 + Vdotout(ind_HNO4)
+          CALL Fun( V       = C(1:NVAR),                                     &
+                    F       = C(NVAR+1:NSPEC),                               &
+                    RCT     = RCONST,                                        &
+                    Vdot    = Vloc,                                          &
+                    Aout    = Aout                                          )
+          NOxTau = Vloc(ind_NO) + Vloc(ind_NO2) + Vloc(ind_NO3)         &
+                 + 2.*Vloc(ind_N2O5) + Vloc(ind_ClNO2) + Vloc(ind_HNO2) &
+                 + Vloc(ind_HNO4)
           NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
                   + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
           ! NOx chemical lifetime per grid cell
