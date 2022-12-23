@@ -475,7 +475,7 @@ Warnings:                    1
 0 CEDS_C2H6_TRA   /see/ExtData.rc                                C2H6_tra          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           3 2
 0 CEDS_C2H6_RCO   /see/ExtData.rc                                C2H6_rco          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           4 2
 0 CEDS_C2H6_SLV   /see/ExtData.rc                                C2H6_slv          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           1 2
-0 CEDS_C2H6_WST   /see/ExtData.rc                                C2H6_wst          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           4 2
+0 CEDS_C2H6_WST   /see/ExtData.rc                                C2H6_wst          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           9 2
 )))CEDS_C2H6
 
 #=======================================================================================================================================
