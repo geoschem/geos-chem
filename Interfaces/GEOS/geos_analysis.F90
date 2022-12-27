@@ -64,6 +64,8 @@ MODULE GEOS_Analysis
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
      INTEGER                      :: FileVarDry
      LOGICAL                      :: ApplyIncrement
+     INTEGER                      :: SpreadInc
+     INTEGER                      :: AnalysisWindow
      LOGICAL                      :: NonZeroIncOnly
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarNameInc
      LOGICAL                      :: InStrat
@@ -388,6 +390,7 @@ CONTAINS
   USE Input_Opt_Mod,         ONLY : OptInput
   USE State_Chm_Mod,         ONLY : ChmState         ! Chemistry State obj
   USE State_Met_Mod,         ONLY : MetState         ! Meteorology State obj
+  USE TIME_MOD,              ONLY : GET_TS_CHEM
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -444,6 +447,7 @@ CONTAINS
     INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
     REAL                       :: wgt, tropwgt, stratwgt
+    REAL                       :: DilFact, tsChem
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc
     REAL, ALLOCATABLE          :: mwSpc2(:)
@@ -475,10 +479,17 @@ CONTAINS
     TimeForAna = .FALSE. 
     CALL GetAnaTime_( Clock, iopt%ForwardLooking, yy, mm, dd, h, m, s, __RC__ )
     ThisHour = real(h)
+    DilFact  = 1.0
 
+    ! Always do analysis if spreading increment evenly
+    IF ( iopt%SpreadInc ) THEN
+       TimeForAna = .TRUE.
+       ! Calculate dilution factor, to be applied to analysis/increment weight
+       tsChem  = GET_TS_CHEM()
+       DilFact = 1. / ( real(iopt%AnalysisWindow)*(3600./tsChem) )
     ! If using observation hours, apply analysis every (full) hour
-    IF ( iopt%UseObsHour ) THEN
-       IF ( m==0 ) TimeForAna = .TRUE.
+    ELSEIF ( iopt%UseObsHour .AND. m==0 ) THEN
+       TimeForAna = .TRUE.
     ! Otherwise, use specified analysis frequency and hour/minute offsets
     ELSE 
        IF ( m==iopt%AnalysisMinute .AND. MOD(h,iopt%AnalysisFreq)==iopt%AnalysisHour ) TimeForAna = .TRUE. 
@@ -531,7 +542,10 @@ CONTAINS
        IF ( iopt%NonZeroIncOnly ) only_vars = TRIM(only_vars)//','//TRIM(iopt%FileVarNameInc)
        CALL GetAnaBundle_( am_I_Root, iopt%FileTemplate, 'AnaFld', yy, mm, dd, h, m, grid, &
                            VarBundle, HasBundle, ifile=ifile, fileTime=fileTime,    &
-                           only_vars=only_vars, err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, __RC__ )
+                           only_vars=only_vars, err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, RC=STATUS )
+       IF ( RC /= ESMF_SUCCESS ) THEN
+          WRITE(*,*) TRIM(Iam),": Error reading ",TRIM(only_vars)
+       ENDIF
 
        ! Read obs time using voting regridding method 
        IF ( HasBundle .AND. iopt%UseObsHour ) THEN
@@ -687,6 +701,9 @@ CONTAINS
              IF ( iopt%InStrat .AND. .NOT. iopt%InTrop .AND. iopt%StratSponge > 0 ) THEN
                 IF ( stratwgt > 0.0 .AND. StratCount <= iopt%StratSponge ) wgt = 0.0 
              ENDIF
+
+             ! Adjust weight by # of time steps if spreading evenly.
+             IF ( iopt%SpreadInc ) wgt = wgt / DilFact
 
              ! Fraction must be between 0 and 1
              wgt = max(0.0,min(1.0,wgt))
@@ -1164,6 +1181,9 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarDry,     Label='FileVarDry:'    , Default=-1,    __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ApplyIncrement:', Default=0,     __RC__ )
     AnaConfig(ispec)%ApplyIncrement = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='SpreadInc:'     , Default=-1,    __RC__ )
+    AnaConfig(ispec)%SpreadInc      = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnalysisWindow, Label='AnalysisWindow:', Default=6,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InStrat:'       , Default=1,     __RC__ )
     AnaConfig(ispec)%InStrat = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InTrop:'        , Default=1,     __RC__ )
@@ -1223,6 +1243,13 @@ CONTAINS
     ! Some logical checks
     IF ( AnaConfig(ispec)%ApplyIncrement ) AnaConfig(ispec)%NonZeroIncOnly = .FALSE.
 
+    ! Force some flags if spreading increments across observation window
+    IF ( AnaConfig(ispec)%SpreadInc ) THEN
+        AnaConfig(ispec)%UseObsHour  = .FALSE.
+        AnaConfig(ispec)%ReadAnaTime = .TRUE.
+        !AnaConfig(ispec)%AnaFraction = AnaConfig(ispec)%AnaFraction
+    ENDIF
+
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(*,*) '----------------------------------------'
@@ -1243,6 +1270,8 @@ CONTAINS
              WRITE(*,*) '- Observation hour name on file : ', TRIM(AnaConfig(ispec)%ObsHourName)
           ENDIF
           WRITE(*,*) '- Apply increments              : ', AnaConfig(ispec)%ApplyIncrement
+          WRITE(*,*) '- Spread increments             : ', AnaConfig(ispec)%SpreadInc
+          WRITE(*,*) '- Analysis window length [h]    : ', AnaConfig(ispec)%AnalysisWindow
           WRITE(*,*) '- Analysis where inc is not zero: ', AnaConfig(ispec)%NonZeroIncOnly
           IF ( AnaConfig(ispec)%NonZeroIncOnly ) THEN
              WRITE(*,*) '- Analysis inc variable name    : ', TRIM(AnaConfig(ispec)%FileVarNameInc)
