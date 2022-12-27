@@ -59,6 +59,7 @@ MODULE GEOS_Analysis
      INTEGER                      :: AnalysisMinute
      LOGICAL                      :: ForwardLooking
      LOGICAL                      :: ReadAnaTime 
+     LOGICAL                      :: SkipPredictor
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileTemplate 
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarName
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
@@ -454,7 +455,8 @@ CONTAINS
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
     LOGICAL                    :: UpdateSpec2
-
+    TYPE(ESMF_Alarm)           :: PredictorAlarm
+    LOGICAL                    :: PredictorActive
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
     INTEGER                    :: STATUS 
 
@@ -493,6 +495,13 @@ CONTAINS
     ! Otherwise, use specified analysis frequency and hour/minute offsets
     ELSE 
        IF ( m==iopt%AnalysisMinute .AND. MOD(h,iopt%AnalysisFreq)==iopt%AnalysisHour ) TimeForAna = .TRUE. 
+    ENDIF
+
+    ! Eventually skip during predictor step
+    IF ( iopt%SkipPredictor ) THEN
+       CALL ESMF_ClockGetAlarm(Clock, "PredictorActive", PredictorAlarm, __RC__)
+       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, __RC__ )
+       IF ( PredictorActive ) TimeForAna = .FALSE.
     ENDIF
 
     ! Initialize/reset diagnostics
@@ -1175,6 +1184,8 @@ CONTAINS
     AnaConfig(ispec)%ForwardLooking = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ReadAnaTime:'   , Default=0,     __RC__ )
     AnaConfig(ispec)%ReadAnaTime = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='SkipPredictor:' , Default=1,     __RC__ )
+    AnaConfig(ispec)%SkipPredictor = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileTemplate,   Label='FileTemplate:'  ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarName,    Label='FileVarName:'   ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarUnit,    Label='FileVarUnit:'   , Default='v/v', __RC__ )
@@ -1261,6 +1272,7 @@ CONTAINS
           WRITE(*,*) '- Analysis minute               : ',AnaConfig(ispec)%AnalysisMinute
           WRITE(*,*) '- Forward looking file read     : ', AnaConfig(ispec)%ForwardLooking
           WRITE(*,*) '- Read file analysis time stamp : ', AnaConfig(ispec)%ReadAnaTime
+          WRITE(*,*) '- Ignore during predictor step  : ', AnaConfig(ispec)%SkipPredictor
           WRITE(*,*) '- Use observation hour          : ', AnaConfig(ispec)%UseObsHour
           WRITE(*,*) '- File template                 : ', TRIM(AnaConfig(ispec)%FileTemplate)
           WRITE(*,*) '- Variable name on file         : ', TRIM(AnaConfig(ispec)%FileVarName)
