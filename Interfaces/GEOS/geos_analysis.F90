@@ -551,10 +551,7 @@ CONTAINS
        IF ( iopt%NonZeroIncOnly ) only_vars = TRIM(only_vars)//','//TRIM(iopt%FileVarNameInc)
        CALL GetAnaBundle_( am_I_Root, iopt%FileTemplate, 'AnaFld', yy, mm, dd, h, m, grid, &
                            VarBundle, HasBundle, ifile=ifile, fileTime=fileTime,    &
-                           only_vars=only_vars, err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, RC=STATUS )
-       IF ( RC /= ESMF_SUCCESS ) THEN
-          WRITE(*,*) TRIM(Iam),": Error reading ",TRIM(only_vars)
-       ENDIF
+                           only_vars=only_vars, err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, __RC__ )
 
        ! Read obs time using voting regridding method 
        IF ( HasBundle .AND. iopt%UseObsHour ) THEN
@@ -1014,6 +1011,7 @@ CONTAINS
     m_  = m
     ! If anatime is true, set time to closest analysis hour (0z, 6z, 12z, 18z)
     IF ( anatime_ ) THEN
+       m_ = 0
        IF (     h < 3  ) THEN
           h_ = 0
        ELSEIF ( h < 9  ) THEN
