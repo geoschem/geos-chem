@@ -65,7 +65,7 @@ MODULE GEOS_Analysis
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
      INTEGER                      :: FileVarDry
      LOGICAL                      :: ApplyIncrement
-     INTEGER                      :: SpreadInc
+     INTEGER                      :: IAU
      INTEGER                      :: AnalysisWindow
      LOGICAL                      :: NonZeroIncOnly
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarNameInc
@@ -484,11 +484,11 @@ CONTAINS
     DilFact  = 1.0
 
     ! Always do analysis if spreading increment evenly
-    IF ( iopt%SpreadInc ) THEN
+    IF ( iopt%IAU ) THEN
        TimeForAna = .TRUE.
        ! Calculate dilution factor, to be applied to analysis/increment weight
        tsChem  = GET_TS_CHEM()
-       DilFact = 1. / ( real(iopt%AnalysisWindow)*(3600./tsChem) )
+       DilFact = real(iopt%AnalysisWindow)*(3600./tsChem)
     ! If using observation hours, apply analysis every (full) hour
     ELSEIF ( iopt%UseObsHour .AND. m==0 ) THEN
        TimeForAna = .TRUE.
@@ -708,8 +708,8 @@ CONTAINS
                 IF ( stratwgt > 0.0 .AND. StratCount <= iopt%StratSponge ) wgt = 0.0 
              ENDIF
 
-             ! Adjust weight by # of time steps if spreading evenly.
-             IF ( iopt%SpreadInc ) wgt = wgt / DilFact
+             ! Adjust weight by # of time steps if spreading evenly using IAU.
+             IF ( iopt%IAU ) wgt = wgt / DilFact
 
              ! Fraction must be between 0 and 1
              wgt = max(0.0,min(1.0,wgt))
@@ -1182,7 +1182,7 @@ CONTAINS
     AnaConfig(ispec)%ForwardLooking = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ReadAnaTime:'   , Default=0,     __RC__ )
     AnaConfig(ispec)%ReadAnaTime = ( ThisInt == 1 )
-    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='SkipPredictor:' , Default=1,     __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='SkipPredictor:' , Default=0,     __RC__ )
     AnaConfig(ispec)%SkipPredictor = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileTemplate,   Label='FileTemplate:'  ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarName,    Label='FileVarName:'   ,                __RC__ )
@@ -1190,8 +1190,8 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarDry,     Label='FileVarDry:'    , Default=-1,    __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ApplyIncrement:', Default=0,     __RC__ )
     AnaConfig(ispec)%ApplyIncrement = ( ThisInt == 1 )
-    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='SpreadInc:'     , Default=-1,    __RC__ )
-    AnaConfig(ispec)%SpreadInc      = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='IAU:'           , Default=0,     __RC__ )
+    AnaConfig(ispec)%IAU = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnalysisWindow, Label='AnalysisWindow:', Default=6,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InStrat:'       , Default=1,     __RC__ )
     AnaConfig(ispec)%InStrat = ( ThisInt == 1 )
@@ -1253,7 +1253,7 @@ CONTAINS
     IF ( AnaConfig(ispec)%ApplyIncrement ) AnaConfig(ispec)%NonZeroIncOnly = .FALSE.
 
     ! Force some flags if spreading increments across observation window
-    IF ( AnaConfig(ispec)%SpreadInc ) THEN
+    IF ( AnaConfig(ispec)%IAU ) THEN
         AnaConfig(ispec)%UseObsHour  = .FALSE.
         AnaConfig(ispec)%ReadAnaTime = .TRUE.
         !AnaConfig(ispec)%AnaFraction = AnaConfig(ispec)%AnaFraction
@@ -1280,7 +1280,7 @@ CONTAINS
              WRITE(*,*) '- Observation hour name on file : ', TRIM(AnaConfig(ispec)%ObsHourName)
           ENDIF
           WRITE(*,*) '- Apply increments              : ', AnaConfig(ispec)%ApplyIncrement
-          WRITE(*,*) '- Spread increments             : ', AnaConfig(ispec)%SpreadInc
+          WRITE(*,*) '- Spread increments (IAU)       : ', AnaConfig(ispec)%IAU
           WRITE(*,*) '- Analysis window length [h]    : ', AnaConfig(ispec)%AnalysisWindow
           WRITE(*,*) '- Analysis where inc is not zero: ', AnaConfig(ispec)%NonZeroIncOnly
           IF ( AnaConfig(ispec)%NonZeroIncOnly ) THEN
