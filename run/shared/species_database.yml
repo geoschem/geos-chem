@@ -3623,6 +3623,11 @@ Pb210:
 Pb210Strat:
   << : *Pbproperties
   FullName: Lead-210 isotope in stratosphere
+PBCPI:
+  Formula: C
+  FullName: Production of hydrophilic black carbon aerosol
+  MW_g: 12.01
+  Is_Aerosol: true
 PbF1:
   << : *DST1properties
   Formula: Pb
@@ -3717,6 +3722,11 @@ POA2:
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_KcScaleFac_Luo: [0.0, 0.0, 0.0]
   WD_RainoutEff: [0.0, 0.0, 0.0]
+POCPI:
+  Formula: C
+  FullName: Production of hydrophilic organic carbon aerosol
+  MW_g: 12.01
+  Is_Aerosol: true
 POG1:
   DD_F0: 0.0
   DD_Hstar: 9.5
