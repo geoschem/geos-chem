@@ -467,76 +467,89 @@ CONTAINS
 
     ENDIF
 
+    !========================================================================
+    ! Do the following for the aerosol-only simulation
+    !========================================================================
+
     ! Evaluate offline fields from HEMCO every timestep to allow
     ! optional use of scaling or masking in HEMCO configuration file
-    IF ( IT_IS_AN_AEROSOL_SIM .AND. LSOA ) THEN
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-       ! Evaluate offline oxidant fields from HEMCO: global OH
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', OFFLINE_OH, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
+       !---------------------------------------------------------------------
+       ! If SOA species are included, get oxidant fields
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%LSOA ) THEN
+
+          ! Evaluate offline oxidant fields from HEMCO: global OH
+          CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                       &
+                              'GLOBAL_OH', OFFLINE_OH, RC                   )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
+             CALL GC_Error( ErrMsg, RC, LOC )
           RETURN
+          ENDIF
+
+          ! Evaluate offline oxidant fields from HEMCO: global O3
+          CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                       &
+                              'GLOBAL_O3', OFFLINE_O3, RC                   )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
+             CALL GC_Error( ErrMsg, RC, LOC )
+             RETURN
+          ENDIF
+
+          ! Evaluate offline oxidant fields from HEMCO: global NO3
+          CALL HCO_GC_EvalFld( Input_Opt,   State_Grid,                      &
+                              'GLOBAL_NO3', OFFLINE_NO3, RC                 )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
+             CALL GC_Error( ErrMsg, RC, LOC )
+             RETURN
+          ENDIF
+
        ENDIF
 
-       ! Evaluate offline oxidant fields from HEMCO: global O3
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', OFFLINE_O3, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
-          RETURN
+!TODO: Merge tje 4 subroutines below into 1, for efficiency
+       !---------------------------------------------------------------------
+       ! Conversion of hydrophobic GC to hydrophilic BC
+       !---------------------------------------------------------------------
+       IF ( id_BCPO > 0 ) THEN
+          CALL CHEM_BCPO( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_BCPO)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+          ENDIF
        ENDIF
 
-       ! Evaluate offline oxidant fields from HEMCO: global NO3
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', OFFLINE_NO3, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
-          RETURN
+       IF ( id_BCPI > 0 ) THEN
+          CALL CHEM_BCPI( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_BCPI)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+          ENDIF
        ENDIF
 
+       !---------------------------------------------------------------------
+       ! Conversion of hydrophobic OC to hydrophilic OC
+       !---------------------------------------------------------------------
+       IF ( id_OCPO > 0 ) THEN
+          CALL CHEM_OCPO( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_OCPO)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+          ENDIF
+       ENDIF
+
+       IF ( id_OCPI > 0 ) THEN
+          CALL CHEM_OCPI( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_OCPI)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+          ENDIF
+       ENDIF
     ENDIF
 
-    !=================================================================
-    ! Do chemistry for carbon aerosol species
-    !=================================================================
-
-    ! Chemistry for hydrophobic BC
-    IF ( id_BCPO > 0 ) THEN
-       CALL CHEM_BCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_BCPO)%Conc(:,:,:),   RC          )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
-       ENDIF
-    ENDIF
-
-    ! Chemistry for hydrophilic BC
-    IF ( id_BCPI > 0 ) THEN
-       CALL CHEM_BCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_BCPI)%Conc(:,:,:),   RC )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
-       ENDIF
-    ENDIF
-
-    ! Chemistry for hydrophobic OC (traditional POA only)
-    IF ( id_OCPO > 0 ) THEN
-       CALL CHEM_OCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_OCPO)%Conc(:,:,:),   RC          )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
-       ENDIF
-    ENDIF
-
-    ! Chemistry for hydrophilic OC (traditional POA only)
-    IF ( id_OCPI > 0 ) THEN
-       CALL CHEM_OCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_OCPI)%Conc(:,:,:),   RC )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
-       ENDIF
-    ENDIF
-
+!TODO: Abstract APM-specific code into a separate module
 #ifdef APM
     !=====================================================================
     ! APM Microphysics
@@ -807,6 +820,7 @@ CONTAINS
    IF ( id_SOAP > 0 ) THEN
       ! AGE SOAP -> SOA
 
+!TODO: Abstract TOMAS-specific code into a separate module
 #ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                     State_Met, 'CHECKMN from chemcarbon', RC)
@@ -861,13 +875,13 @@ CONTAINS
    ! %%% NOTE: We are not planning on using the SOA mechanism   %%%
    ! %%% with the ESMF interface at this point. (bmy, 11/14/12) %%%
    !=================================================================
-   IF ( LSOA ) THEN
+   IF ( Input_Opt%LSOA ) THEN
 
-      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          ! Compute time scaling arrays for offline OH, NO3
          ! but only if it hasn't been done in EMISSCARBON
-         IF ( LSOA .and. ( .not. LEMIS ) ) THEN
+         IF ( .not. Input_Opt%LEMIS ) ) THEN
             CALL OHNO3TIME( State_Grid )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
@@ -886,11 +900,6 @@ CONTAINS
          CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
-#ifdef BPCH_DIAG
-      ! NOTE: This is only needed for ND51, ND51b (bmy, 10/4/19)
-      ! Get total organic aerosol:
-      CALL OASAVE( SAVEOA, Input_Opt, State_Chm, State_Grid, State_Met, RC )
-#endif
    ENDIF
 
  END SUBROUTINE CHEMCARBON
@@ -7077,7 +7086,7 @@ CONTAINS
 
    ! Free pointer
    Spc => NULL()
-   
+
  END SUBROUTINE CHECK_MB
 !EOC
 !------------------------------------------------------------------------------
@@ -7297,7 +7306,7 @@ CONTAINS
 !
    REAL(fp) :: ISOP_MW_kg     ! kg C ISOP      / mol C
    REAL(fp) :: LISOPNO3_MW_kg ! kg C LISOPONO3 / mol Ckg
-      
+
    !=================================================================
    ! GET_ISOPNO3 begins here!
    !=================================================================
@@ -7324,7 +7333,7 @@ CONTAINS
 
          ! Otherwise set ISOPNO3=0
          ISOPNO3 = 0e+0_fp
-         
+
       ENDIF
 
    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -7816,13 +7825,13 @@ CONTAINS
                    STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_OH' )
          OFFLINE_OH = 0e+0_fp
-         
+
          ! Offline global O3
          ALLOCATE( OFFLINE_O3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
                    STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_O3' )
          OFFLINE_O3 = 0e+0_fp
-         
+
          ! Offline global NO3
          ALLOCATE( OFFLINE_NO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
                    STAT=AS)
@@ -8382,7 +8391,7 @@ CONTAINS
 
    ! Diameter of aerosol [um]
    REAL(fp)          :: Dp
-   
+
    ! Pressure * DP
    REAL(fp)          :: PDp
 
