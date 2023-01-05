@@ -40,6 +40,7 @@ COLLECTIONS: 'Restart',
              ##'DryDep',
              #'JValues',
              ##'KppDiags',
+             ##'KppARDiags',
              ##'LevelEdgeDiags',
              ##'ProdLoss',
              ##'RRTMG',
@@ -108,15 +109,19 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ALL?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              #'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE AdvFluxVert COLLECTION %%%%%
@@ -394,6 +399,22 @@ COLLECTIONS: 'Restart',
                               'KppLuDecomps                  ',
                               'KppSubsts                     ',
                               'KppSmDecomps                  ',
+                              'KppTime                       ',
+::
+#==============================================================================
+# %%%%% THE KppARDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver when auto-reduction solver is used.
+#
+# Available for full-chemistry simulations only if auto-reduce is enabled.
+#==============================================================================
+  KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  KppARDiags.frequency:       ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppARDiags.duration:        ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppARDiags.mode:            'time-averaged'
+  KppARDiags.fields:          'KppAutoReducerNVAR            ',
+                              'KppAutoReduceThres            ',
+                              'KppcNONZERO                   ',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%
@@ -740,9 +761,9 @@ COLLECTIONS: 'Restart',
   StratBM.frequency:      00000000 010000
   StratBM.duration:       00000001 000000
   StratBM.mode:           'time-averaged'
-  StratBM.fields:         'SpeciesConc_NO2                   ',
-                          'SpeciesConc_O3                    ',
-                          'SpeciesConc_ClO                   ',
+  StratBM.fields:         'SpeciesConcVV_NO2                 ',
+                          'SpeciesConcVV_O3                  ',
+                          'SpeciesConcVV_ClO                 ',
                           'Met_PSC2WET                       ',
                           'Met_BXHEIGHT                      ',
                           'Met_AIRDEN                        ',

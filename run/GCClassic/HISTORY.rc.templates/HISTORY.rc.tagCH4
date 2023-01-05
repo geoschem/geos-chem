@@ -64,15 +64,19 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
+                              'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
