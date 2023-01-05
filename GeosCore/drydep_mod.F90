@@ -2297,16 +2297,14 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Pick the proper Hplus value based on surface
-             !----------------------------------------------------------------
-             ! NOTE: Should be using these but the original code used LWI.
-             ! Leave this comment here for now (bmy, 08 Jul 2021)
-             !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
-             !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
-             !IF ( State_Met%IsIce(I,J)   ) Hplus = HPLUS_ice
-             !----------------------------------------------------------------
-             IF ( State_Met%LWI(I,J) == 0 ) Hplus = HPLUS_ocn
-             IF ( State_Met%LWI(I,J) == 1 ) Hplus = HPLUS_lnd
-             IF ( State_Met%LWI(I,J) == 2 ) Hplus = HPLUS_ice
+             IF ( State_Met%isIce(I,J) .OR. State_Met%isSnow(I,J) ) THEN
+                Hplus = HPLUS_ice
+             ELSEIF ( State_Met%IsWater(I,J) .AND. &
+                      ( State_Met%FROCEAN(I,J) > State_met%FRLAKE(I,J) ) ) THEN
+                Hplus = HPLUS_ocn
+             ELSE
+                Hplus = HPLUS_lnd ! includes lakes but not ice/snow
+             ENDIF
 
              ! Temperature terms
              tAq      = MAX( 253.0_f8, State_Met%TS(I,J) )
