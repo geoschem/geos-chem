@@ -4,6 +4,15 @@ This file documents all notable changes to the GEOS-Chem repository since versio
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+  - species_database.yml now contains entries for `PBCPI` and `POCPI`
+### Changed
+  - Conversion of hydrophobic BC/OC to hydrophilic is now done in the KPP fullchem mechanism
+  - `BCCONV` and `OCCONV` arrays are only used for the aerosol-only simulation
+### Removed
+  - Removed APM-specific routines `CHEM_{BCPI,BCPO,OCPI,OCPO}NEW`
+
 ## [Unreleased 14.1.0]
 ### Added
   - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication +

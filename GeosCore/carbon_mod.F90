@@ -275,11 +275,6 @@ MODULE CARBON_MOD
   INTEGER :: id_LISOPOH, id_LISOPNO3
   INTEGER :: id_SOAS,    id_SOAP
 
-#ifdef APM
-  REAL(fp), ALLOCATABLE :: BCCONVNEW(:,:,:)
-  REAL(fp), ALLOCATABLE :: OCCONVNEW(:,:,:)
-#endif
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -7669,13 +7664,18 @@ CONTAINS
       CALL ERROR_STOP('Too many NOx levels','carbon_mod.F90')
    ENDIF
 
-   ALLOCATE( BCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
-   BCCONV = 0e+0_fp
 
-   ALLOCATE( OCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
-   OCCONV = 0e+0_fp
+   ! These arrays are now only needed for the aerosol-only simulation.
+   !  -- Bob Yantosca (05 Jan 2023)
+   IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+      ALLOCATE( BCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
+      BCCONV = 0e+0_fp
+
+      ALLOCATE( OCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
+      OCCONV = 0e+0_fp
+   ENDIF
 
    ! semivolpoa2: for POA emissions (hotp 2/27/09)
    ! Store POG1 and POG2 separately (mps, 1/14/16)
@@ -7683,15 +7683,7 @@ CONTAINS
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
    POAEMISS = 0e+0_fp
 
-#ifdef APM
-   ALLOCATE( BCCONVNEW(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONVNEW' )
-   BCCONVNEW = 0e+0_fp
-   ALLOCATE( OCCONVNEW(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONVNEW' )
-   OCCONVNEW = 0e+0_fp
-#endif
-
+!TODO: Abstract TOMAS-related code out of carbon_mod.F90
    ! JKODROS
 #ifdef TOMAS
    !SFARINA the next six are introduced with the idea that
@@ -7881,10 +7873,7 @@ CONTAINS
    IF ( ALLOCATED( OFFLINE_OH    ) ) DEALLOCATE( OFFLINE_OH    )
    IF ( ALLOCATED( OFFLINE_O3    ) ) DEALLOCATE( OFFLINE_O3    )
    IF ( ALLOCATED( OFFLINE_NO3   ) ) DEALLOCATE( OFFLINE_NO3   )
-#ifdef APM
-   IF ( ALLOCATED( BCCONVNEW     ) ) DEALLOCATE( BCCONVNEW     )
-   IF ( ALLOCATED( OCCONVNEW     ) ) DEALLOCATE( OCCONVNEW     )
-#endif
+!TODO: Abstract TOMAS-related code out of carbon_mod
 #ifdef TOMAS
    IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )
    IF ( ALLOCATED( OCFF           )) DEALLOCATE( OCFF          )
@@ -7907,421 +7896,6 @@ CONTAINS
  END SUBROUTINE CLEANUP_CARBON
 !EOC
 #ifdef APM
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_bcponew
-!
-! !DESCRIPTION: Subroutine CHEM\_BCPONEW converts hydrophobic BC to hydrophilic
-!  BC and calculates the dry deposition of hydrophobic BC. Modified for
-!  APM simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_BCPONEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_grid         ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-phobic BC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC                 ! Success?
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL             :: LNLPBL
-   INTEGER             :: I,       J,   L,   N_TRACERS
-   REAL(fp)            :: DTCHEM, KBC,  FREQ
-   REAL(fp)            :: TC0,    CNEW, RKT, BL_FRAC
-!
-! !DEFINED PARAMETERS:
-!
-   REAL(fp), PARAMETER :: BC_LIFE = 1.15D0
-
-   !=================================================================
-   ! CHEM_BCPONEW begins here!
-   !=================================================================
-
-   ! Return if BCPO isn't defined
-   IF ( id_BCPO == 0 ) RETURN
-
-   ! Assume success
-   RC        = GC_SUCCESS
-
-   ! Initialize
-   KBC       = 1.0e+0_fp / ( 86400e+0_fp * BC_LIFE )
-   DTCHEM    = GET_TS_CHEM()
-
-   ! Zero BCPO -> BCPI conversion array
-   BCCONVNEW  = 0e+0_fp
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial BC mass [kg]
-      TC0  = TC(I,J,L)
-
-      ! Zero drydep freq
-      FREQ = 0e+0_fp
-
-      ! Amount of BCPO left after chemistry and drydep [kg]
-      RKT  = ( KBC + FREQ ) * DTCHEM
-      CNEW = TC0 * EXP( -RKT )
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Amount of BCPO converted to BCPI [kg/timestep]
-      BCCONVNEW(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
-
-      ! Store new concentration back into tracer array
-      TC(I,J,L) = CNEW
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
- END SUBROUTINE CHEM_BCPONEW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_bcpinew
-!
-! !DESCRIPTION: Subroutine CHEM\_BCPINEW calculates dry deposition of
-!  hydrophilic BC. Modified for APM simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_BCPINEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid        ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-philic BC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC               ! Success?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL  :: LNLPBL
-   INTEGER  :: I,      J,      L,       N_TRACERS
-   REAL(fp) :: DTCHEM, BL_FRAC
-   REAL(fp) :: TC0,    CNEW,   CCV,     FREQ
-
-   !=================================================================
-   ! CHEM_BCPINEW begins here!
-   !=================================================================
-
-   ! Return if BCPI isn't defined
-   IF ( id_BCPI == 0 ) RETURN
-
-   ! Assume success
-   RC     = GC_SUCCESS
-
-   ! Chemistry timestep [s]
-   DTCHEM = GET_TS_CHEM()
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, FREQ, BL_FRAC, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial H-philic BC [kg]
-      TC0 = TC(I,J,L)
-
-      ! H-philic BC that used to be H-phobic BC [kg]
-      CCV = BCCONVNEW(I,J,L)
-
-      ! Otherwise, omit the exponential to save on clock cycles
-      CNEW = TC0 + CCV
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Save new concentration of H-philic IC in tracer array
-      TC(I,J,L) = CNEW
-
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
-   ! Zero BCPO -> BCPI conversion array
-   BCCONVNEW = 0e+0_fp
-
- END SUBROUTINE CHEM_BCPINEW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_ocponew
-!
-! !DESCRIPTION: Subroutine CHEM\_OCPONEW converts hydrophobic OC to hydrophilic
-!  OC and calculates the dry deposition of hydrophobic OC. Modified for APM
-!  simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_OCPONEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid         ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-phobic OC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC                 ! Success?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL             :: LNLPBL
-   INTEGER             :: I,      J,    L,      N_TRACERS
-   REAL(fp)            :: DTCHEM, KOC,  BL_FRAC
-   REAL(fp)            :: TC0,    FREQ, CNEW,   RKT
-!
-! !DEFINED PARAMETERS:
-!
-   REAL(fp), PARAMETER :: OC_LIFE = 1.15e+0_fp
-
-   !=================================================================
-   ! CHEM_OCPONEW begins here!
-   !=================================================================
-
-   ! Return if OCPO isn't defined
-   IF ( MAX(id_OCPO,id_POA1) == 0 ) RETURN
-
-   ! Assume success
-   RC        = GC_SUCCESS
-
-   ! Initialize
-   KOC       = 1.0e+0_fp / ( 86400e+0_fp * OC_LIFE )
-   DTCHEM    = GET_TS_CHEM()
-
-   ! Zero OCPO -> OCPI conversion array
-   OCCONVNEW = 0e+0_fp
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial OC [kg]
-      TC0  = TC(I,J,L)
-
-      ! Zero drydep freq
-      FREQ = 0e+0_fp
-
-      ! Amount of OCPO left after chemistry and drydep [kg]
-      RKT  = ( KOC + FREQ ) * DTCHEM
-      CNEW = TC0 * EXP( -RKT )
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Amount of OCPO converted to OCPI [kg/timestep]
-      OCCONVNEW(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
-
-      ! Store modified OC concentration back in tracer array
-      TC(I,J,L) = CNEW
-
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
- END SUBROUTINE CHEM_OCPONEW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_ocpinew
-!
-! !DESCRIPTION: Subroutine CHEM\_OCPINEW calculates dry deposition of
-!  hydrophilic OC. Modified for APM simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_OCPINEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid         ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-philic OC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC                 ! Success?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL  :: LNLPBL
-   INTEGER  :: I,      J,      L,   N_TRACERS
-   REAL(fp) :: DTCHEM, BL_FRAC
-   REAL(fp) :: TC0,    CNEW,   CCV, FREQ
-
-   !=================================================================
-   ! CHEM_OCPINEW begins here!
-   !=================================================================
-
-   ! Return if OCPI isn't defined
-   IF ( MAX(id_OCPI,id_POA1) == 0 ) RETURN
-
-   ! Assume success
-   RC        = GC_SUCCESS
-
-   ! Chemistry timestep [s]
-   DTCHEM = GET_TS_CHEM()
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial H-philic OC [kg]
-      TC0 = TC(I,J,L)
-
-      ! H-philic OC that used to be H-phobic OC [kg]
-      CCV = OCCONVNEW(I,J,L)
-
-      CNEW = TC0 + CCV
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Store modified concentration back in tracer array [kg]
-      TC(I,J,L) = CNEW
-
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
-   ! Zero OCPO -> OCPI conversion array
-   OCCONVNEW = 0e+0_fp
-
- END SUBROUTINE CHEM_OCPINEW
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
