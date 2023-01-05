@@ -1281,7 +1281,7 @@ CONTAINS
              ! If there are HEMCO lightning emissions in current grid box set
              ! lightning potential accordingly
              IF ( ASSOCIATED(PtrEmis) ) THEN
-                IF ( SfcTypeIndex(1) == 1 ) THEN
+                IF ( SfcTypeIndex == 1 ) THEN
                    lp1 = PtrEmis(I,J) / 1.0e-11 ! Land
                 ELSE
                    lp1 = PtrEmis(I,J) / 1.0e-13 ! Water/Ice
@@ -1291,7 +1291,7 @@ CONTAINS
 
              ! Lightning flash rate
              IF ( LFR(I,J) > 0.0 ) THEN
-                IF ( SfcTypeIndex(1) == 1 ) THEN
+                IF ( SfcTypeIndex == 1 ) THEN
                    lp2 = LFR(I,J) / 5.0e-07 ! Land
                 ELSE
                    lp2 = LFR(I,J) / 1.0e-08 ! Water/Ice

@@ -2244,7 +2244,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: I,     J,     K,       spcId,     SfcTypeIndex(1)
+    INTEGER             :: I,     J,     K,       spcId
     REAL(f8)            :: coeff, Hplus, inv_tAq, Ks1,  Ks2, tAq, t298_taq
 !
 ! !DEFINED PARAMETERS:
