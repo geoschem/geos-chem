@@ -12,13 +12,13 @@
 !\\
 ! !INTERFACE:
 !
-MODULE CARBON_MOD
+MODULE Carbon_Mod
 !
 ! !USES:
 !
-  USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
+  USE Aerosol_Mod, ONLY : OCFPOA, OCFOPOA   ! TODO, move to State_Che
   USE PhysConstants     ! Physical constants
-  USE PRECISION_MOD     ! For GEOS-Chem Precisions
+  USE Precision_Mod     ! For GEOS-Chem Precisions
 
   IMPLICIT NONE
   PRIVATE
@@ -153,8 +153,6 @@ MODULE CARBON_MOD
   REAL(fp), PARAMETER   :: SMALLNUM   = 1e-20_fp
 
   ! Indicate number of parent HC based on simulation species
-  ! (hotp 8/24/09)
-  !INTEGER, SAVE        :: MAXSIMHC
   ! Now loop over number of semivolatiles (hotp 5/13/10)
   INTEGER,  SAVE        :: MAXSIMSV
 
@@ -299,7 +297,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Error_Mod,            ONLY : DEBUG_MSG
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : SpcConc
@@ -391,100 +388,36 @@ CONTAINS
     ! Point to chemical species vector containing concentrations
     Spc      => State_Chm%Species
 
-    ! First-time initialization
+    !=================================================================
+    ! Perform initializations for the first chemistry call
+    !=================================================================
     IF ( FIRSTCHEM ) THEN
 
-       ! Zero SOG4 and SOA4 (SOA from ISOP in gas & aerosol form)
-       ! for offline aerosol simulations.  Eventually we should have
-       ! archived isoprene oxidation fields available for offline
-       ! simulations but for now we just set them to zero.
-       ! (dkh, bmy, 6/1/06)
-       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
-          ! lumped arom/IVOC (hotp 5/17/10)
-          ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
-          IF ( id_ASOAN > 0 ) Spc(id_ASOAN)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOA1 > 0 ) Spc(id_ASOA1)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOA2 > 0 ) Spc(id_ASOA2)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOA3 > 0 ) Spc(id_ASOA3)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOG1 > 0 ) Spc(id_ASOG1)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOG2 > 0 ) Spc(id_ASOG2)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOG3 > 0 ) Spc(id_ASOG3)%Conc(:,:,:) = 0.0_fp
-
-          ! initialize SOA Precursor and SOA for simplified SOA sims
-          IF ( id_SOAP > 0 ) THEN
-             Spc(id_SOAP)%Conc(:,:,:) = 0e+0_fp
-             Spc(id_SOAS)%Conc(:,:,:) = 0e+0_fp
-          ENDIF
-       ENDIF
-
-       ! Determine number of semivolatile parent HC (hotp 8/24/09)
-       !MAXSIMHC = 0 ! for non-volatile sim
-       ! Now use SV instead of HC (hotp 5/13/10)
-       MAXSIMSV = 0
-       IF ( Input_Opt%LSOA ) THEN
-          ! updated (hotp 5/20/10) new mtp
-          MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
-          IF ( id_POA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
-          IF ( id_OPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
-          IF ( MAXSIMSV > MSV ) THEN
-             errMsg = 'ERROR: You''ve got a problem with semivolatiles!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
-          ENDIF
-
-          ! Print to log for record
-          IF ( prtDebug ) THEN
-             print*,'Number of SOA semivols (MAXSIMSV): ', MAXSIMSV
-             print*,'This number should be 5 for semivol POA' ! hotp 5/20/10
-          ENDIF
+       ! First-time init
+       CALL Init_on_First_Chem_Call( Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg= 'Error encountered in routine "Init_on_First_Chem_Call"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        ! Reset first-time flag
        FIRSTCHEM = .FALSE.
-
     ENDIF
 
     !========================================================================
     ! Do the following for the aerosol-only simulation
     !========================================================================
-
-    ! Evaluate offline fields from HEMCO every timestep to allow
-    ! optional use of scaling or masking in HEMCO configuration file
     IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-       !---------------------------------------------------------------------
-       ! If SOA species are included, get oxidant fields
-       !---------------------------------------------------------------------
-       IF ( Input_Opt%LSOA ) THEN
-
-          ! Evaluate offline oxidant fields from HEMCO: global OH
-          CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                       &
-                              'GLOBAL_OH', OFFLINE_OH, RC                   )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
-             CALL GC_Error( errMsg, RC, thisLoc )
+       ! Evaluate offline fields from HEMCO every timestep to allow
+       ! optional use of scaling or masking in HEMCO configuration file
+       CALL Get_Oxidants_for_Aerosol_Sim( Input_Opt,  State_Chm,             &
+                                          State_Grid, RC                    )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg= 'Error encountered in "Get_Oxidants_for_Aerosol_Sim"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
-          ENDIF
-
-          ! Evaluate offline oxidant fields from HEMCO: global O3
-          CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                       &
-                              'GLOBAL_O3', OFFLINE_O3, RC                   )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
-          ENDIF
-
-          ! Evaluate offline oxidant fields from HEMCO: global NO3
-          CALL HCO_GC_EvalFld( Input_Opt,   State_Grid,                      &
-                              'GLOBAL_NO3', OFFLINE_NO3, RC                 )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
-          ENDIF
-
        ENDIF
 
 !TODO: Merge tje 4 subroutines below into 1, for efficiency
@@ -8367,4 +8300,203 @@ CONTAINS
  END SUBROUTINE OCDRY_SETTLINGBIN
 #endif
 !EOC
-      END MODULE CARBON_MOD
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_for_Aerosol_Sim
+!
+! !DESCRIPTION: Performs extra initializations on the first chemistry call
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_on_First_Chem_Call( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+
+    !========================================================================
+    ! Init_on_First_Chem_Call begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Init_on_First_Chem_Call (in module GeosCore/carbon_mod.F90)'
+
+    !========================================================================
+    ! Zero SOA from ISOP in gas & aerosol form) for offline aerosol
+    ! simulations.  Eventually we should have archived isoprene oxidation
+    ! fields available for offline simulations but for now we just set them
+    ! to zero. (dkh, bmy, 6/1/06)
+    !========================================================================
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       ! Complex SOA: lumped arom/IVOC not supported for offline sims
+       IF ( id_ASOAN > 0 ) State_Chm%Species(id_ASOAN)%Conc = 0.0_fp
+       IF ( id_ASOA1 > 0 ) State_Chm%Species(id_ASOA1)%Conc = 0.0_fp
+       IF ( id_ASOA2 > 0 ) State_Chm%Species(id_ASOA2)%Conc = 0.0_fp
+       IF ( id_ASOA3 > 0 ) State_Chm%Species(id_ASOA3)%Conc = 0.0_fp
+       IF ( id_ASOG1 > 0 ) State_Chm%Species(id_ASOG1)%Conc = 0.0_fp
+       IF ( id_ASOG2 > 0 ) State_Chm%Species(id_ASOG2)%Conc = 0.0_fp
+       IF ( id_ASOG3 > 0 ) State_Chm%Species(id_ASOG3)%Conc = 0.0_fp
+
+       ! Simple SOA
+       IF ( id_SOAP > 0  ) State_Chm%Species(id_SOAP )%Conc = 0.0_fp
+       IF ( id_SOAS > 0  ) State_Chm%Species(id_SOAS )%Conc = 0.0_fp
+    ENDIF
+
+    !========================================================================
+    ! Determine number of semivolatile parent HC (hotp 8/24/09)
+    !========================================================================
+
+    ! Assume no semivolatile parent HC's are found at first
+    MAXSIMSV = 0
+
+    IF ( Input_Opt%LSOA ) THEN
+
+       ! updated (hotp 5/20/10) new mtp
+       MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
+       IF ( id_POA1  > 0   ) MAXSIMSV = MAXSIMSV + 1
+       IF ( id_OPOA1 > 0   ) MAXSIMSV = MAXSIMSV + 1
+       IF ( MAXSIMSV > MSV ) THEN
+          errMsg = 'ERROR: You''ve got a problem with semivolatiles!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Print to log for record
+       IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+          print*,'Number of SOA semivols (MAXSIMSV): ', MAXSIMSV
+          print*,'This number should be 5 for semivol POA' ! hotp 5/20/10
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Init_on_First_Chem_Call
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Oxidants_for_Aerosol_Sim
+!
+! !DESCRIPTION: Evaluates offline oxidant fields via HEMCO for the
+!  aerosol-only simulation.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Oxidants_for_Aerosol_Sim( Input_Opt,  State_Chm,            &
+                                           State_Grid, RC                   )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Right now State_Chm is not used but we may eventually migrate the offline
+!  aerosol field arrays to State_Chm.  Pass the argument for future-proofing.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !========================================================================
+    ! Get_Oxidants_for_Aerosol_Sim begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Get_Oxidants_for_Aerosol_Sim (in module GeosCore/carbon_mod.F90)'
+
+    !========================================================================
+    ! Exit if the aerosol simulation does not use SOA species
+    !========================================================================
+    IF ( .not. Input_Opt%LSOA ) RETURN
+
+    !========================================================================
+    ! Evaluate global OH field
+    !========================================================================
+    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                             &
+                        'GLOBAL_OH', OFFLINE_OH, RC                         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Evaluate global O3 field
+    !========================================================================
+    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                             &
+                        'GLOBAL_O3', OFFLINE_O3, RC                         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Evaluate global NO3 field
+    !========================================================================
+    CALL HCO_GC_EvalFld( Input_Opt,   State_Grid,                            &
+                        'GLOBAL_NO3', OFFLINE_NO3, RC                       )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Get_Oxidants_for_Aerosol_Sim
+!EOC
+END MODULE Carbon_Mod
