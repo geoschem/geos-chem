@@ -471,6 +471,8 @@ SO4        = IGNORE; {SO4; Sulfate}
 SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
+SOAP       = IGNORE; {SOA Precursor -- lumped species for simple SOA scheme}
+SOAS       = IGNORE; {SOA Simple -- lumped species for simple SOA scheme}
 TOLU       = IGNORE; {C7H8; Toluene}
 TRO2       = IGNORE; {Peroxy radical from TOLU oxidation}
 XYLE       = IGNORE; {C8H10; Xylene}
@@ -1490,6 +1492,8 @@ MO2  + NO3 = NO2 + CH2O + HO2 :              1.20d-12;                          
 //
 BCPO = BCPI :                                k_Cphob_to_Cphil;                                                                   {2023/01/04; from carbon_mod; BMY}
 OCPO = OCPI :                                k_Cphob_to_Cphil;                                                                   {2023/01/04; from carbon_mod; BMY}
+SOAP = SOAS :                                k_SOAP_to_SOAS;                                                                     {2023/01/04: from carbon_mod; BMY}
+
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Heterogeneous chemistry reactions                               %%%%%

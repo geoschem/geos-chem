@@ -426,8 +426,6 @@ COLLECTIONS: 'Restart',
   ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   ProdLoss.mode:              'time-averaged'
   ProdLoss.fields:            'Prod_?PRD?                    ',
-                              'ProdBCPIfromBCPO              ',
-                              'ProdOCPIfromOCPO              ',
                               'ProdHMSfromSO2andHCHOinCloud  ',
                               'ProdSO2andHCHOfromHMSinCloud  ',
                               'ProdSO4fromHMSinCloud         ',

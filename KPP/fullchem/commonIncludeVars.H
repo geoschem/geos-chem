@@ -6,9 +6,13 @@
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
   REAL(dp), PARAMETER :: CON_R = 0.083144598_dp
 
-  ! Conversion of hydrophobic BC/OC to hydrophilic BC/OC uses an e-folding
-  ! time of 1.15 [days^-1].  Compute this constant once for efficiency.
+  ! Rate constant [1/s] for BCPO -> BCPI and OCPO -> OCPI
+  ! (based on a 1.15 day lifetime)
   REAL(dp), PARAMETER :: k_Cphob_to_Cphil = 1.0_dp / ( 86400.0_dp * 1.15_dp )
+
+  ! Rate constant [1/s] for SOAP -> SOAS
+  ! (based on a 1 day lifetime)
+  REAL(dp), PARAMETER :: k_SOAP_to_SOAS = 1.0_dp / 86400.0_dp
 
   !==========================================================================
   ! Molecular weights and Henry's law constants

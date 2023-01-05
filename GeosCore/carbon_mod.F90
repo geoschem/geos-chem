@@ -292,24 +292,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEMCARBON( Input_Opt,  State_Chm, State_Diag, &
-                         State_Grid, State_Met, RC )
+  SUBROUTINE ChemCarbon( Input_Opt,  State_Chm, State_Diag,                  &
+                         State_Grid, State_Met, RC                          )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE Error_Mod,            ONLY : DEBUG_MSG
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState                      ! APM: for HEMCO diags
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : SpcConc
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE Species_Mod,          ONLY : SpcConc
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
 #ifdef APM
     USE APM_INIT_MOD,         ONLY : APMIDS
     USE APM_INIT_MOD,         ONLY : NBCOC,CEMITBCOC1
@@ -317,12 +316,9 @@ CONTAINS
     USE HCO_TYPES_MOD,        ONLY : DiagnCont
     USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
 #endif
-#ifdef BPCH_DIAG
-    USE CMN_O3_MOD,           ONLY : SAVEOA
-#endif
 #ifdef TOMAS
-    USE TOMAS_MOD,            ONLY : SOACOND, IBINS              !(win, 1/25/10)
-    USE TOMAS_MOD,            ONLY : CHECKMN                     !(sfarina)
+    USE TOMAS_MOD,            ONLY : SOACOND, IBINS
+    USE TOMAS_MOD,            ONLY : CHECKMN
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
 #endif
 !
@@ -353,59 +349,47 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVED scalars
-    LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+    LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
 
     ! Scalars
-    LOGICAL            :: prtDebug
-    LOGICAL            :: IT_IS_AN_AEROSOL_SIM
-    LOGICAL            :: LSOA
-    LOGICAL            :: LEMIS
-    LOGICAL            :: FND
-    REAL(fp)           :: NEWSOA
-    REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
-    REAL(fp)           :: CONC_SUM
-    INTEGER            :: L
+    LOGICAL                  :: prtDebug
+    LOGICAL                  :: FND
+    REAL(fp)                 :: NEWSOA
+    REAL(fp)                 :: DTCHEM
+    REAL(fp)                 :: CONC_SUM
+    INTEGER                  :: L
 
-#ifdef TOMAS
-    INTEGER            :: I, J
-    REAL*4             :: BOXVOL, TEMPTMS, PRES
-#endif
+    ! Strings
+    CHARACTER(LEN=255)       :: errMsg, thisLoc
 
     ! Pointers
-    TYPE(SpcConc), POINTER  :: Spc(:)
-
-    ! For getting fields from HEMCO
-    CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F90)'
-    CHARACTER(LEN=255) :: ErrMsg
+    TYPE(SpcConc),   POINTER :: Spc(:)
 
 #ifdef APM
     TYPE(DiagnCont), POINTER :: DiagnCnt
-    INTEGER            :: FLAG,I,J,N,IDCARBON
-    REAL(fp)           :: A_M2, E_CARBON, DTSRCE
-    REAL(fp)           :: EMITRATE(State_Grid%NX,State_Grid%NY)
+    INTEGER                  :: FLAG,I,J,N,IDCARBON
+    REAL(fp)                 :: A_M2, E_CARBON, DTSRCE
+    REAL(fp)                 :: EMITRATE(State_Grid%NX,State_Grid%NY)
+#endif
+#ifdef TOMAS
+    INTEGER                  :: I, J
+    REAL*4                   :: BOXVOL, TEMPTMS, PRES
+    REAL(fp),      PARAMETER :: SOAP_LIFETIME = 86400.0_fp  ! 1 day lifetime
 #endif
 
     !=================================================================
     ! CHEMCARBON begins here!
     !=================================================================
 
-    ! Assume success
-    RC                   = GC_SUCCESS
-
-    ! Copy fields from INPUT_OPT to local variables for use below
-    LSOA                 = Input_Opt%LSOA
-    LEMIS                = Input_Opt%DoEmissions
-    IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
-
-    DTCHEM               = GET_TS_CHEM()
-    !                      ( days )*(hrs/day)*(mins/hr)*(sec/min)
-    SOAP_LIFETIME        = 1.00_fp * 24.0_fp * 60.0_fp * 60.0_fp
-
-    ! Do we have to print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    ! Initialization
+    RC       = GC_SUCCESS
+    DTCHEM   = GET_TS_CHEM()
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    errMsg   = ''
+    thisLoc  = ' -> at ChemCarbon (in module GeosCore/carbon_mod.F90)'
 
     ! Point to chemical species vector containing concentrations
-    Spc                  => State_Chm%Species
+    Spc      => State_Chm%Species
 
     ! First-time initialization
     IF ( FIRSTCHEM ) THEN
@@ -415,7 +399,7 @@ CONTAINS
        ! archived isoprene oxidation fields available for offline
        ! simulations but for now we just set them to zero.
        ! (dkh, bmy, 6/1/06)
-       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
           ! lumped arom/IVOC (hotp 5/17/10)
           ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
@@ -427,27 +411,26 @@ CONTAINS
           IF ( id_ASOG2 > 0 ) Spc(id_ASOG2)%Conc(:,:,:) = 0.0_fp
           IF ( id_ASOG3 > 0 ) Spc(id_ASOG3)%Conc(:,:,:) = 0.0_fp
 
-
           ! initialize SOA Precursor and SOA for simplified SOA sims
           IF ( id_SOAP > 0 ) THEN
              Spc(id_SOAP)%Conc(:,:,:) = 0e+0_fp
              Spc(id_SOAS)%Conc(:,:,:) = 0e+0_fp
           ENDIF
-
        ENDIF
 
        ! Determine number of semivolatile parent HC (hotp 8/24/09)
        !MAXSIMHC = 0 ! for non-volatile sim
        ! Now use SV instead of HC (hotp 5/13/10)
        MAXSIMSV = 0
-       IF ( LSOA ) THEN
+       IF ( Input_Opt%LSOA ) THEN
           ! updated (hotp 5/20/10) new mtp
           MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
           IF ( id_POA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
           IF ( id_OPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
           IF ( MAXSIMSV > MSV ) THEN
-             CALL ERROR_STOP('YOUVE GOT A PROBLEM W/ SEMIVOLATILES', &
-                             'carbon_mod.F90')
+             errMsg = 'ERROR: You''ve got a problem with semivolatiles!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
           ENDIF
 
           ! Print to log for record
@@ -480,7 +463,7 @@ CONTAINS
                               'GLOBAL_OH', OFFLINE_OH, RC                   )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
-             CALL GC_Error( ErrMsg, RC, LOC )
+             CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
           ENDIF
 
@@ -489,7 +472,7 @@ CONTAINS
                               'GLOBAL_O3', OFFLINE_O3, RC                   )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
-             CALL GC_Error( ErrMsg, RC, LOC )
+             CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
 
@@ -498,7 +481,7 @@ CONTAINS
                               'GLOBAL_NO3', OFFLINE_NO3, RC                 )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
-             CALL GC_Error( ErrMsg, RC, LOC )
+             CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
 
@@ -794,6 +777,7 @@ CONTAINS
    ENDIF
 #endif
 
+!TODO: Abstract TOMAS-specific code out of carbon_mod
 #ifdef TOMAS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, 'CHECKMN from chemcarbon', RC)
@@ -810,13 +794,13 @@ CONTAINS
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
    ENDIF
-#endif
 
+   !=========================================================================
+   ! Conversion of SOAP -> SOAS for TOMAS simulations
+   !
+   ! NOTE: for other fullchem simulations, this is now done in KPP.
+   !=========================================================================
    IF ( id_SOAP > 0 ) THEN
-      ! AGE SOAP -> SOA
-
-!TODO: Abstract TOMAS-specific code into a separate module
-#ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                     State_Met, 'CHECKMN from chemcarbon', RC)
 
@@ -841,34 +825,18 @@ CONTAINS
       ENDDO
       ENDDO
       !$OMP END PARALLEL DO
-#else
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, NEWSOA )
-      DO L = 1, State_Grid%NZ
-         !NEWSOA used in a different context than above.
-         !above is absolute mass, here is a relative decay factor
-         NEWSOA = DEXP(-DTCHEM/SOAP_LIFETIME)
-         Spc(id_SOAS)%Conc(:,:,L) = Spc(id_SOAS)%Conc(:,:,L) + &
-                              Spc(id_SOAP)%Conc(:,:,L) * (1.0_fp - NEWSOA)
-         Spc(id_SOAP)%Conc(:,:,L) = Spc(id_SOAP)%Conc(:,:,L) * NEWSOA
-      ENDDO
-      !$OMP END PARALLEL DO
-#endif
 
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: SIMPLIFIED SOA')
       ENDIF
    ENDIF
+#endif
 
    ! Free pointer
    Spc => NULL()
 
    !=================================================================
    ! Do chemistry for secondary organic aerosols
-   !
-   ! %%% NOTE: We are not planning on using the SOA mechanism   %%%
-   ! %%% with the ESMF interface at this point. (bmy, 11/14/12) %%%
    !=================================================================
    IF ( Input_Opt%LSOA ) THEN
 
@@ -876,7 +844,7 @@ CONTAINS
 
          ! Compute time scaling arrays for offline OH, NO3
          ! but only if it hasn't been done in EMISSCARBON
-         IF ( .not. Input_Opt%LEMIS ) ) THEN
+         IF ( .not. Input_Opt%DoEmissions ) THEN
             CALL OHNO3TIME( State_Grid )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
@@ -897,7 +865,7 @@ CONTAINS
 
    ENDIF
 
- END SUBROUTINE CHEMCARBON
+ END SUBROUTINE ChemCarbon
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
