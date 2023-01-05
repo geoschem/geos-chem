@@ -6,6 +6,10 @@
   ! NOTE: Make sure this is consistent w/ the value in physconsts.F90!
   REAL(dp), PARAMETER :: CON_R = 0.083144598_dp
 
+  ! Conversion of hydrophobic BC/OC to hydrophilic BC/OC uses an e-folding
+  ! time of 1.15 [days^-1].  Compute this constant once for efficiency.
+  REAL(dp), PARAMETER :: k_Cphob_to_Cphil = 1.0_dp / ( 86400.0_dp * 1.15_dp )
+
   !==========================================================================
   ! Molecular weights and Henry's law constants
   !==========================================================================
@@ -63,7 +67,6 @@
   ! Used by fullchem and Hg mechanisms
   REAL(dp) :: PHOTOL(200)
   !$OMP THREADPRIVATE( PHOTOL )
-
 
   !=========================================================================
   ! Variables specific to the "fullchem" mechanism

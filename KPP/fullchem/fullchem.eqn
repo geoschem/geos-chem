@@ -199,6 +199,8 @@ ATO2       = IGNORE; {CH3C(O)CH2O2; RO2 from acetone}
 ATOOH      = IGNORE; {CH3C(O)CH2OOH; ATO2 peroxide}
 B3O2       = IGNORE; {CH3CH(OO)CH3; Secondary RO2 from C3H8}
 BALD       = IGNORE; {benzaldehyde and tolualdehyde}
+BCPI       = IGNORE; {C: Hydrophilic black carbon}
+BCPO       = IGNORE; {C: Hydrophobic black carbon}
 BENZ       = IGNORE; {C6H6; Benzene}
 BENZO      = IGNORE; {C6H5O radical}
 BENZO2     = IGNORE; {C6H5O2 radical}
@@ -422,6 +424,8 @@ O3         = IGNORE; {O3; Ozone}
 O3A        = IGNORE; {O3; Ozone in accum seasalt}
 O3C        = IGNORE; {O3; Ozone in coarse seasalt}
 OClO       = IGNORE; {OClO; Chlorine dioxide}
+OCPI       = IGNORE; {C: Hydrophilic organic carbon}
+OCPO       = IGNORE; {C: Hydrophobic organic carbon}
 OCS        = IGNORE; {COS; Carbonyl sulfide}
 OH         = IGNORE; {OH; Hydroxyl radical}
 OIO        = IGNORE; {OIO; Iodine dioxide}
@@ -1481,6 +1485,11 @@ TRO2 + NO  = NO + LTRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0)
 XRO2 + HO2 = HO2 + LXRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 XRO2 + NO  = NO + LXRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 MO2  + NO3 = NO2 + CH2O + HO2 :              1.20d-12;                                                                         {2022/10/18: IUPAC ROO_19; KHB,BMY}
+//
+// Carbon and SOA equations
+//
+BCPO = BCPI :                                k_Cphob_to_Cphil;                                                                   {2023/01/04; from carbon_mod; BMY}
+OCPO = OCPI :                                k_Cphob_to_Cphil;                                                                   {2023/01/04; from carbon_mod; BMY}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Heterogeneous chemistry reactions                               %%%%%
