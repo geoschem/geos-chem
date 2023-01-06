@@ -604,8 +604,11 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: TARG_MONTH
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  At some later point we should attempt to rewrite the parallel DO loop so
@@ -1514,7 +1517,11 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,  INTENT(IN)  :: I,J,L      ! Location indices
-    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT VARIABLES:
 !
