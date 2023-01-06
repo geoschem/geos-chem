@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Changed MW_g value of CH4 from 16.05 to 16.04
   - Added "WD_CoarseAer:true" for SO4s and NITs in species_database.yml
   - Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
+  - Fixed bug where State_Met%FRSNO (fraction snow) was all zeros in GCHP
 
 
 ## [14.0.2] - 2022-11-29
