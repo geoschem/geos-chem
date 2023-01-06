@@ -145,7 +145,7 @@ for runDir in *; do
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
-        log="${ptRoot}/logs/execute.${runDir}.log"
+        log="${ptRoot}/logs/parallel.${runDir}.log"
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -192,7 +192,7 @@ for runDir in *; do
 	    rename_end_restart_file "${allThreads}"
 
 	    # Clean the run directory
-	    ./cleanRunDir.sh
+	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 	    
             #----------------------------------------------------------------
             # Second test: Use fewer cores
@@ -208,7 +208,7 @@ for runDir in *; do
 	    fi
 
 	    # Rename the end-of-run restart file
-	    rename_end_restart_file "${allThreads}"
+	    rename_end_restart_file "${fewerThreads}"
 
             #----------------------------------------------------------------
             # Score the test

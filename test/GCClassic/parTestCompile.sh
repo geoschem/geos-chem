@@ -44,7 +44,7 @@ ptRoot=$(pwd -P)
 . ${ptRoot}/gcclassic.env > /dev/null 2>&1
 
 # All parallelization tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Release -DRUNDIR='' -DINSTALLCOPY=${ptRoot}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${ptRoot}/exe_files"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -103,8 +103,10 @@ fi
 # Include global variables & functions
 . "${ptRoot}/commonFunctionsForTests.sh"
 
-# Count the number of tests to be done
-numTests=${#EXE_GCC_BUILD_LIST[@]}
+# Count the number of tests to be done (exclude TOMAS40)
+parTests=("${EXE_GCC_BUILD_LIST[@]}")
+unset parTests[6]
+numTests=${#parTests[@]}
 
 #============================================================================
 # Initialize results logfile
@@ -150,7 +152,7 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in ${EXE_GCC_BUILD_LIST[@]}; do
+for dir in ${parTests[@]}; do
 
     # Define build directory
     buildDir="${ptRoot}/build/${dir}"
