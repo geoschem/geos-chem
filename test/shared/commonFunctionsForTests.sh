@@ -13,6 +13,11 @@
 # !REVISION HISTORY:
 #  03 Nov 2020 - R. Yantosca - Initial version
 #  See the subsequent Git history with the gitk browser!
+#
+# !REMARKS:
+#  NOTE: Integration tests and parallelization tests run for 1 hour.
+#  The exceptions are the nested-grid simulation tests, which run for 20
+#  minutes due to the smaller dynamic timestep.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -51,7 +56,9 @@ EXE_GCC_BUILD_LIST=("default" "apm"   "hg"                     \
 #EXE_GCC_BUILD_LIST=("default" "apm"   "carboncycle" "hg"       \
 #                   "luowd"   "rrtmg" "tomas15"     "tomas40" )
 EXE_GCHP_BUILD_LIST=("default" "rrtmg")
-
+END_hhmm_1h="0100z.nc4"
+END_hhmm_20m="0020z.nc4"
+PAR_TEST_SUFFIX="threads"
 
 function sed_ie() {
     #========================================================================
@@ -565,4 +572,48 @@ function build_model() {
 
     # Switch back to the root directory
     cd "${itRoot}"
+}
+
+
+function rename_end_restart_file() {
+    #========================================================================
+    # Appends a suffix to the ending restart file in order to denote
+    # the number of cores that were used.
+    #
+    # 1st argument: Number of OpenMP threads
+    #========================================================================
+    suffix="${1}${PAR_TEST_SUFFIX}"
+
+    # Rename the ending restart file
+    for r in Restarts/*.nc4; do
+	if [[ "${r}" =~ "${END_hhmm_1h}" || "${r}" =~ "${END_hhmm_20m}" ]]; then
+	    newRstFile="${r}.${suffix}"
+	    mv -f "${r}" "${newRstFile}"
+	    [[ -f "${newRstFile}" ]] && return 0
+	fi
+    done
+    return 1
+}
+
+
+function score_parallelization_test() {
+    #========================================================================
+    # Determines if the parallelization test was successful by checking
+    # that the restart files from both runs are bitwise identical.
+    #
+    # 1st argument: Number of OpenMP threads used in 1st parallel test run
+    # 2nd argument: Number of OpenMP threads used in 2nd parallel test run
+    #========================================================================
+
+    # Restart file names from both parallel test runs
+    rstFile1=$(ls -1 Restarts/*.nc4* | grep "${1}${PAR_TEST_SUFFIX}")
+    rstFile2=$(ls -1 Restarts/*.nc4* | grep "${2}${PAR_TEST_SUFFIX}")
+
+    # Exit if eiher restart file does not exist
+    [[ ! -f "$rstFile1" ]] && return 1
+    [[ ! -f "$rstFile2" ]] && return 1
+
+    # If the files are bitwise identical then the parallel test is successful
+    diff "$rstFile1" "$rstFile2"
+    return $?
 }

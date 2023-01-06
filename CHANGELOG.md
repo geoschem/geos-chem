@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased TBD]
 ### Added
 - New integration test functions `run_gcclassic_job` and `run_gchp_job` in `test/shared/commonFunctionsForTests.sh`
+- New parallelization test functions in `test/GCClassic`
 
 ### Changed
 - GCClassic integration tests now use a single set of scripts

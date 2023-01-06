@@ -77,7 +77,7 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 
 # Echo header
 printf "${SEP_MAJOR}\n"
-printf "Creating GCHP Integration Tests\n\n"
+printf "Creating GEOS-Chem Classic Integration Tests\n\n"
 printf "GCClassic #${head_gcc}\n"
 printf "GEOS_Chem #${head_gc}\n"
 printf "HEMCO     #${head_hco}\n"
