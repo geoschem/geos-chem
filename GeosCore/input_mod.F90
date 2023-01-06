@@ -2460,6 +2460,107 @@ CONTAINS
     ENDIF
     Input_Opt%GAMMA_HO2 = Cast_and_RoundOff( v_str, places=2 )
 
+    !------------------------------------------------------------------------
+    ! Auto-reduce solver options (hplin, 10/3/22)
+    ! autoreduce_solver:
+    !   activate: false
+    !   use_target_threshold:
+    !     activate: true
+    !     oh_tuning_factor: 0.00005
+    !     no2_tuning_factor: 0.0001
+    !   use_absolute_threshold:
+    !     scale_by_pressure: true
+    !     absolute_threshold: 100.0
+    !   keep_halogens_active: false
+    !   append_in_internal_timestep: false
+    !------------------------------------------------------------------------
+    key   = "operations%chemistry%autoreduce_solver%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%USE_AUTOREDUCE = v_bool
+
+    ! Use target species (OH, NO2) based threshold?
+    key   = "operations%chemistry%autoreduce_solver%use_target_threshold%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD = v_bool
+
+    ! ... OH and NO2 tuning factors?
+    key   = "operations%chemistry%autoreduce_solver%use_target_threshold%oh_tuning_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_TUNING_OH = Cast_and_RoundOff( v_str, places=0 )
+
+    key   = "operations%chemistry%autoreduce_solver%use_target_threshold%no2_tuning_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_TUNING_NO2 = Cast_and_RoundOff( v_str, places=0 )
+
+    ! If not target species, absolute rate threshold
+    key   = "operations%chemistry%autoreduce_solver%use_absolute_threshold%absolute_threshold"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_THRESHOLD = Cast_and_RoundOff( v_str, places=0 )
+
+    ! Would this absolute threshold be scaled by pressure?
+    key   = "operations%chemistry%autoreduce_solver%use_absolute_threshold%scale_by_pressure"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD = v_bool
+
+    ! Keep halogens active?
+    key   = "operations%chemistry%autoreduce_solver%keep_halogens_active"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_KEEPACTIVE = v_bool
+
+    ! Append species over the course of the external time step
+    ! (aka. in internal timesteps?)
+    key   = "operations%chemistry%autoreduce_solver%append_in_internal_timestep"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_APPEND = v_bool
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -2475,6 +2576,17 @@ CONTAINS
        WRITE( 6,100 ) 'Online strat. H2O?          : ', Input_Opt%LACTIVEH2O
        WRITE( 6,100 ) 'Use robust strat H2O BC?    : ', Input_Opt%LStaticH2OBC
        WRITE( 6,110 ) 'GAMMA HO2                   : ', Input_Opt%GAMMA_HO2
+       WRITE( 6,100 ) 'Use auto-reduce solver?     : ', Input_Opt%USE_AUTOREDUCE
+       IF ( Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
+         WRITE( 6,100 ) 'Use target species threshold: ', Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD
+         WRITE( 6,130 ) 'OH tuning factor:             ', Input_Opt%AUTOREDUCE_TUNING_OH
+         WRITE( 6,130 ) 'NO2 tuning factor:            ', Input_Opt%AUTOREDUCE_TUNING_NO2
+       ELSE
+         WRITE( 6,120 ) 'Absolute AR threshold       : ', Input_Opt%AUTOREDUCE_THRESHOLD
+         WRITE( 6,100 ) 'Use prs. dependent thres?   : ', Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD
+       ENDIF
+       WRITE( 6,100 ) 'Keep halogen spec. active?  : ', Input_Opt%AUTOREDUCE_IS_KEEPACTIVE
+       WRITE( 6,100 ) 'Use append in auto-reduce?  : ', Input_Opt%AUTOREDUCE_IS_APPEND
     ENDIF
 
     ! FORMAT statements
@@ -2482,6 +2594,8 @@ CONTAINS
 95  FORMAT( A       )
 100 FORMAT( A, L5   )
 110 FORMAT( A, F4.2 )
+120 FORMAT( A, F5.1 )
+130 FORMAT( A, ES7.1 )
 
   END SUBROUTINE Config_Chemistry
 !EOC
@@ -4694,7 +4808,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AIRS_CH4_OBS = Input_Opt%GOSAT_CH4_OBS
+    Input_Opt%AIRS_CH4_OBS = v_bool
 
     !------------------------------------------------------------------------
     ! Use GOSAT observational operator?
@@ -4725,7 +4839,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Do an analytical inversion?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%activate"
+    key    = "ch4_simulation_options%analytical_inversion%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4738,7 +4852,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Emission perturbation
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%emission_perturbation"
+    key   = "ch4_simulation_options%analytical_inversion%emission_perturbation"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4751,7 +4865,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Current state vector element number
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%state_vector_element_number"
+    key   = "ch4_simulation_options%analytical_inversion%state_vector_element_number"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4764,7 +4878,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use emission scale factor?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_emission_scale_factor"
+    key    = "ch4_simulation_options%analytical_inversion%use_emission_scale_factor"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4777,7 +4891,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use OH scale factors?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_OH_scale_factors"
+    key    = "ch4_simulation_options%analytical_inversion%use_OH_scale_factors"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4793,8 +4907,8 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
        WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
        WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis

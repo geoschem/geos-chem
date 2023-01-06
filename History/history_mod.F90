@@ -1674,7 +1674,7 @@ CONTAINS
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
 
-                  ! Create the a HISTORY ITEM object for this diagnostic
+                   ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
                    CALL History_AddItemToCollection(                         &
                             Input_Opt    = Input_Opt,                        &
@@ -1813,7 +1813,6 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-
     ENDDO
 
     !=======================================================================
@@ -2393,6 +2392,10 @@ CONTAINS
     ! Increment number of HISTORY ITEMS in this collection
     Collection%nHistItems = Collection%nHistItems + 1
 
+    ! Free Item (we have added it to the container and don't need it anymore)
+    DEALLOCATE( Item )
+    Item => NULL()
+
     ! Free pointers
     Ptr0d   => NULL()
     Ptr0d_8 => NULL()
@@ -2853,6 +2856,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod,           ONLY : To_UpperCase
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod,          ONLY : HistItem
@@ -2893,6 +2897,8 @@ CONTAINS
     ! Scalars
     LOGICAL                          :: DoClose
     LOGICAL                          :: DoWrite
+    LOGICAL                          :: isBndCond
+    LOGICAL                          :: isRestart
     INTEGER                          :: S, N
 
 
@@ -2900,6 +2906,7 @@ CONTAINS
     CHARACTER(LEN=20)                :: TmpUnits
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
+    CHARACTER(LEN=255)               :: cName
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -2932,12 +2939,17 @@ CONTAINS
        ! Point to the HISTORY CONTAINER object in this COLLECTION
        Container => Collection%Container
 
+       ! Identify the BoundaryConditions and Restart collectiond
+       cName     = To_UpperCase( TRIM( Container%Name ) )
+       isBndCond = ( TRIM( cName ) == 'BOUNDARYCONDITIONS' )
+       isRestart = ( TRIM( cName ) == 'RESTART'            )
+
        ! Force define write alarm for creating and saving boundary
        ! conditions to ensure first file of the simulation has the
        ! correct file name and number of entries.
-       IF ( Container%ElapsedSec .eq. 0.0 ) THEN
-          IF ( TRIM(Container%Name) .eq. 'BoundaryConditions' ) THEN
-             Container%FileWriteAlarm = 0.0
+       IF ( Container%ElapsedSec < EPS ) THEN
+          IF ( isBndCond ) THEN
+             Container%FileWriteAlarm = 0.0_fp
           ELSE
              RETURN
           ENDIF
@@ -3075,6 +3087,22 @@ CONTAINS
           Container%FileWriteAlarm = Container%FileWriteAlarm                &
                                    + Container%FileWriteIvalSec
 
+          !-----------------------------------------------------------------
+          ! SPECIAL HANDLING FOR RESTART COLLECTION
+          ! Make sure to close the restart file after writing, to avoid
+          ! incompletly-flushed files.  Need to implement a more general
+          ! way of doing this for other types of collections later.
+          !  -- Bob Yantosca (17 Nov 2022)
+          !-----------------------------------------------------------------
+          IF ( isRestart ) THEN
+             CALL History_Netcdf_Close( Container = Container,               &
+                                        RC        = RC                      )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
        ENDIF
 
        ! Skip to the next collection

@@ -109,9 +109,13 @@ MODULE State_Diag_Mod
 
      !%%%%%  Concentrations %%%%%
 
-     REAL(f8),           POINTER :: SpeciesConc(:,:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_SpeciesConc
-     LOGICAL                     :: Archive_SpeciesConc
+     REAL(f8),           POINTER :: SpeciesConcVV(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesConcVV
+     LOGICAL                     :: Archive_SpeciesConcVV
+
+     REAL(f8),           POINTER :: SpeciesConcMND(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_SpeciesConcMND
+     LOGICAL                     :: Archive_SpeciesConcMND
 
      !%%%%%  ML diagnostics %%%%%
      REAL(f8),           POINTER :: ConcBeforeChem(:,:,:,:)
@@ -661,6 +665,19 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
+
+     !%%%%% KPP auto-reduce solver diagnostics %%%%%
+     REAL(f4),           POINTER :: KppAutoReducerNVAR(:,:,:)
+     LOGICAL                     :: Archive_KppAutoReducerNVAR
+
+     REAL(f4),           POINTER :: KppAutoReduceThres(:,:,:)
+     LOGICAL                     :: Archive_KppAutoReduceThres
+
+     REAL(f4),           POINTER :: KppTime(:,:,:)
+     LOGICAL                     :: Archive_KppTime
+
+     REAL(f4),           POINTER :: KppcNONZERO(:,:,:)
+     LOGICAL                     :: Archive_KppcNONZERO
 
      LOGICAL                     :: Archive_KppDiags
 
@@ -1313,9 +1330,15 @@ CONTAINS
     State_Diag%Map_SpeciesBC                       => NULL()
     State_Diag%Archive_SpeciesBC                   = .FALSE.
 
-    State_Diag%SpeciesConc                         => NULL()
-    State_Diag%Map_SpeciesConc                     => NULL()
-    State_Diag%Archive_SpeciesConc                 = .FALSE.
+    ! v/v dry VMR of species array
+    State_Diag%SpeciesConcVV                       => NULL()
+    State_Diag%Map_SpeciesConcVV                   => NULL()
+    State_Diag%Archive_SpeciesConcVV               = .FALSE.
+
+    ! molec/cm3 diagnostic
+    State_Diag%SpeciesConcMND                      => NULL()
+    State_Diag%Map_SpeciesConcMND                  => NULL()
+    State_Diag%Archive_SpeciesConcMND              = .FALSE.
 
     State_Diag%ConcBeforeChem                      => NULL()
     State_Diag%Map_ConcBeforeChem                  => NULL()
@@ -1856,6 +1879,18 @@ CONTAINS
 
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
+
+    State_Diag%KppAutoReducerNVAR                  => NULL()
+    State_Diag%Archive_KppAutoReducerNVAR          = .FALSE.
+
+    State_Diag%KppAutoReduceThres                  => NULL()
+    State_Diag%Archive_KppAutoReduceThres          = .FALSE.
+
+    State_Diag%KppcNONZERO                         => NULL()
+    State_Diag%Archive_KppcNONZERO                 = .FALSE.
+
+    State_Diag%KppTime                             => NULL()
+    State_Diag%Archive_KppTime                     = .FALSE.
 
     State_Diag%Archive_KppDiags                    = .FALSE.
 
@@ -2484,9 +2519,9 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Species concentration diagnostic
+    ! Species concentration diagnostic (v/v dry)
     !------------------------------------------------------------------------
-    diagId  = 'SpeciesConc'
+    diagId  = 'SpeciesConcVV'
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -2494,9 +2529,33 @@ CONTAINS
          State_Grid     = State_Grid,                                        &
          DiagList       = Diag_List,                                         &
          TaggedDiagList = TaggedDiag_List,                                   &
-         Ptr2Data       = State_Diag%SpeciesConc,                            &
-         archiveData    = State_Diag%Archive_SpeciesConc,                    &
-         mapData        = State_Diag%Map_SpeciesConc,                        &
+         Ptr2Data       = State_Diag%SpeciesConcVV,                          &
+         archiveData    = State_Diag%Archive_SpeciesConcVV,                  &
+         mapData        = State_Diag%Map_SpeciesConcVV,                      &
+         diagId         = diagId,                                            &
+         diagFlag       = 'S',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Species concentration diagnostic (MND)
+    !------------------------------------------------------------------------
+    diagId  = 'SpeciesConcMND'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SpeciesConcMND,                         &
+         archiveData    = State_Diag%Archive_SpeciesConcMND,                 &
+         mapData        = State_Diag%Map_SpeciesConcMND,                     &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -5883,6 +5942,94 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReducerNVAR'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReducerNVAR,                  &
+            archiveData    = State_Diag%Archive_KppAutoReducerNVAR,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Computed reduction threshold (molec cm-3 s-1)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReduceThres'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReduceThres,                  &
+            archiveData    = State_Diag%Archive_KppAutoReduceThres,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Number of nonzero entries in LU decomp (cNONZERO)
+       !-------------------------------------------------------------------
+       diagID = 'KppcNONZERO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppcNONZERO,                         &
+            archiveData    = State_Diag%Archive_KppcNONZERO,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! CPU time spent in grid box for KPP
+       !-------------------------------------------------------------------
+       diagID = 'KppTime'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppTime,                             &
+            archiveData    = State_Diag%Archive_KppTime,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
        !--------------------------------------------------------------------
        ! KPP error flag
@@ -5989,6 +6136,14 @@ CONTAINS
                 diagID = 'NOxTau'
              CASE( 34 )
                 diagID = 'TropNOxTau'
+             CASE( 35 )
+                diagID = 'KppAutoReducerNVAR'
+             CASE( 36 )
+                diagID = 'KppTime'
+             CASE( 37 )
+                diagID = 'KppcNONZERO'
+             CASE( 38 )
+                diagID = 'KppAutoReduceThres'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -10158,14 +10313,18 @@ CONTAINS
                                    State_Diag%Archive_DryDepRaALT1     .and. &
                                    State_Diag%Archive_DryDepVelForALT1      )
 
-    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts    .or.  &
-                                    State_Diag%Archive_KppJacCounts    .or.  &
-                                    State_Diag%Archive_KppTotSteps     .or.  &
-                                    State_Diag%Archive_KppAccSteps     .or.  &
-                                    State_Diag%Archive_KppRejSteps     .or.  &
-                                    State_Diag%Archive_KppLuDecomps    .or.  &
-                                    State_Diag%Archive_KppSubsts       .or.  &
-                                    State_Diag%Archive_KppSmDecomps    .or.  &
+    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts       .or. &
+                                    State_Diag%Archive_KppJacCounts       .or. &
+                                    State_Diag%Archive_KppTotSteps        .or. &
+                                    State_Diag%Archive_KppAccSteps        .or. &
+                                    State_Diag%Archive_KppRejSteps        .or. &
+                                    State_Diag%Archive_KppLuDecomps       .or. &
+                                    State_Diag%Archive_KppSubsts          .or. &
+                                    State_Diag%Archive_KppSmDecomps       .or. &
+                                    State_Diag%Archive_KppAutoReducerNVAR .or. &
+                                    State_Diag%Archive_KppAutoReduceThres .or. &
+                                    State_Diag%Archive_KppcNONZERO        .or. &
+                                    State_Diag%Archive_KppTime            .or. &
                                     State_Diag%Archive_KppDiags             )
 
     State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
@@ -10267,9 +10426,15 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'SpeciesConc',                                 &
-                   Ptr2Data = State_Diag%SpeciesConc,                        &
-                   mapData  = State_Diag%Map_SpeciesConc,                    &
+    CALL Finalize( diagId   = 'SpeciesConcVV',                               &
+                   Ptr2Data = State_Diag%SpeciesConcVV,                      &
+                   mapData  = State_Diag%Map_SpeciesConcVV,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SpeciesConcMND',                              &
+                   Ptr2Data = State_Diag%SpeciesConcMND,                     &
+                   mapData  = State_Diag%Map_SpeciesConcMND,                 &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -11926,9 +12091,16 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC' ) THEN
-       IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONCVV' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isSrcType ) SrcType  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONCMND' ) THEN
+       IF ( isDesc    ) Desc  = 'Concentration of species'
+       IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
@@ -11940,8 +12112,8 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
-
 #endif
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBEFORECHEM' ) THEN
        IF ( isDesc    ) Desc  = 'Concentration before chemistry of species'
        IF ( isUnits   ) Units = 'molec cm-3'
@@ -12218,7 +12390,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATE' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
-       IF ( isUnits   ) Units = 's-1'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
@@ -13212,6 +13384,26 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
        IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPAUTOREDUCERNVAR' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of species in auto-reduced mechanism'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPAUTOREDUCETHRES' ) THEN
+       IF ( isDesc    ) Desc  = 'Auto-reduction threshold'
+       IF ( isUnits   ) Units = 'molecules cm-3 s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPCNONZERO' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of nonzero elements in LU decomposition AR only'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPTIME' ) THEN
+       IF ( isDesc    ) Desc  = 'Time KPP spent in grid box'
+       IF ( isUnits   ) Units = 's'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPOCPOBYGASPHASE' ) THEN
@@ -14557,7 +14749,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -14759,7 +14951,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -14973,7 +15165,7 @@ CONTAINS
     DO N = 1, nTags
 
        ! Get the diagnostic name and description
-       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
        CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
                               State_Chm  = State_Chm,                        &
                               metadataId = metadataId,                       &
@@ -15156,7 +15348,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -15367,7 +15559,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the diagnostic name and description
-          ! plus tag (e.g. "SpeciesConc_O3". etc.)
+          ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
           CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                     &
                                  State_Chm  = State_Chm,                     &
                                  metadataId = metadataId,                    &
@@ -15582,7 +15774,7 @@ CONTAINS
     DO N = 1, nTags
 
        ! Get the diagnostic name and description
-       ! plus tag (e.g. "SpeciesConc_O3". etc.)
+       ! plus tag (e.g. "SpeciesConcVV_O3". etc.)
        CALL Get_DiagNameDesc( Input_Opt  = Input_Opt,                        &
                               State_Chm  = State_Chm,                        &
                               metadataId = metadataId,                       &

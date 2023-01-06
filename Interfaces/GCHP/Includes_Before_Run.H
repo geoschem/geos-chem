@@ -62,17 +62,6 @@
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
 
-  ! Set LWI based on land type fractions in imports: 0=water, 1=land, 2=ice
-  DO J=1,State_Grid%NY
-  DO I=1,State_Grid%NX
-     IMAXLOC = MAXLOC( (/ FRLAND(I,J) + FRLANDIC(I,J) + FRLAKE(I,J),  &
-                          FRSEAICE(I,J),                              &
-                          FROCEAN(I,J) - FRSEAICE(I,J) /) )
-     IF ( IMAXLOC(1) == 3 ) IMAXLOC(1) = 0 ! reset ocean to 0
-     State_Met%LWI(I,J) = FLOAT( IMAXLOC(1) )
-  ENDDO
-  ENDDO
-
   ! Get UV albedo for photolysis
   Ptr2d => NULL()
   CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
