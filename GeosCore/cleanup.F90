@@ -43,7 +43,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
   USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
-  USE UCX_MOD,                 ONLY : CLEANUP_UCX
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
   USE VDiff_Mod,               ONLY : Cleanup_Vdiff
@@ -116,11 +115,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
-
-  ! UCX needs to be cleaned up before emissions, because the UCX
-  ! restart variables needs to be passed to the HEMCO diagnostics
-  ! first.
-  CALL CLEANUP_UCX()
 
   !=================================================================
   ! Cleanup HEMCO
