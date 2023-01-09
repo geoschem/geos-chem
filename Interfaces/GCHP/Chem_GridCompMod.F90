@@ -1356,6 +1356,7 @@ CONTAINS
                           nhmsE     = nhmsE,      & ! hhmmss   @ end of run
                           tsChem    = tsChem,     & ! Chemical timestep [s]
                           tsDyn     = tsDyn,      & ! Dynamic  timestep [s]
+                          tsRad     = tsRad,      & ! RRTMG    timestep [s]
                           lonCtr    = lonCtr,     & ! Lon centers [radians]
                           latCtr    = latCtr,     & ! Lat centers [radians]
 #if !defined( MODEL_GEOS )
