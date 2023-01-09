@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added capability to write species metadata to YAML file
   - Added satellite diagnostic (SatDiagn) collection, to archive several fields within a user-defined local-time interval. CAVEAT: For now, only one local-time interval is permitted.
   - Added adaptive solver (`rosenbrock_autoreduce`) option for fullchem mechanism
+  - Added entries for BALD, BENZP, BZCO3H, NPHEN to JValues collection in HISTORY.rc for GCHP
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
