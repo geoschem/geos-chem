@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
   - Fixed bug where State_Met%FRSNO (fraction snow) was all zeros in GCHP
 
+### Removed
+  - Removed LRED_JNO2 and AERO_HG2_PARTITON switches from HEMCO_Config.rc (and related code) 
+
 
 ## [14.0.2] - 2022-11-29
 ### Fixed
