@@ -136,13 +136,14 @@ Warnings:                    1
 #==============================================================================
 # --- GMA 2018 emissions ---
 #
-#  NOTE: HgP emissions are added to Hg2 emissions!
-#  NOTE: Hg2 and HgP emissions are 0 everywhere for ASGM source
+#  NOTES:
+#  - HgP emissions are added to Hg2 emissions!
+#  - Hg2 and HgP emissions are 0 everywhere for ASGM source and are not read
 #==============================================================================
 (((GMA_ASGM
 0 GMA_ASGM_HG0     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_asgm 2015/1/1/0 C xy kg/m2/s Hg0    - 8 1
-0 GMA_ASGM_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_asgm 2015/1/1/0 C xy *       HgCl2  - 8 1
-0 GMA_ASGM_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_asgm 2015/1/1/0 C xy *       Hg2ClP - 8 1
+#0 GMA_ASGM_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_asgm 2015/1/1/0 C xy *       HgCl2  - 8 1
+#0 GMA_ASGM_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_asgm 2015/1/1/0 C xy *       Hg2ClP - 8 1
 )))GMA_ASGM
 
 (((GMA_INDS
