@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added GCHP run script and environment files for MIT clusters Hex and Svante
   - Added operational GCHP and GCClassic environment and run scripts for the University of York cluster, Viking
   - Added tagO3 run directory for GCHP
+  - Added upwards mass flux diagnostic to GCHP History collection LevelEdgeDiags
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
