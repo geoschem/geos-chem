@@ -3873,7 +3873,8 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%obspack%output_species"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str,                         &
+                         "",     RC,          dynamic_size=.TRUE.           )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
