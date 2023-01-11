@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
 
+## [Unreleased]
+  - Added timestep menu to GCHP `geoschem_config.yml` template files
+
 ## [Unreleased 14.1.0]
 ### Added
   - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication +
@@ -28,7 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added capability to write species metadata to YAML file
   - Added satellite diagnostic (SatDiagn) collection, to archive several fields within a user-defined local-time interval. CAVEAT: For now, only one local-time interval is permitted.
   - Added adaptive solver (`rosenbrock_autoreduce`) option for fullchem mechanism
-  - Added timestep menu to GCHP `geoschem_config.yml` template files
+  - Added entries for BALD, BENZP, BZCO3H, NPHEN to JValues collection in HISTORY.rc for GCHP
+  - Added GCHP run script and environment files for MIT clusters Hex and Svante
+  - Added operational GCHP and GCClassic environment and run scripts for the University of York cluster, Viking
+  - Added tagO3 run directory for GCHP
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
@@ -43,7 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added "WD_CoarseAer:true" for SO4s and NITs in species_database.yml
   - Fixed bug in computing State_Met surface type logicals (IsLand, IsWater, etc)
   - Fixed bug where State_Met%FRSNO (fraction snow) was all zeros in GCHP
-
+  - Fixed HCFC141b and HCFC142b names in GCHP HISTORY.rc
+  - Fixed list of complex SOA species checked in input_mod.F90
 
 ## [14.0.2] - 2022-11-29
 ### Fixed

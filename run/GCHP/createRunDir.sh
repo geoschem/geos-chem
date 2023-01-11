@@ -128,6 +128,8 @@ printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   4. Tagged O3\n"
+
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -138,6 +140,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=tagO3
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -219,7 +223,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
-
 
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
@@ -469,7 +472,7 @@ printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   mak
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ ${sim_name} = "fullchem" || ${sim_name} = "tagO3" ]]; then
     start_date='20190701'
     restart_dir='GC_14.0.0'
 elif [[ ${sim_name} = "TransportTracers" ]]; then
