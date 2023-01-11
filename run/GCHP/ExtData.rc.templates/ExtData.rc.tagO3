@@ -309,12 +309,13 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 # --- Time zones (offset to UTC) ---
 #==============================================================================
 TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
-#FRLAKE
+#
 #==============================================================================
 #--- Prod/Loss rates from the fullchem simulation ---
 #==============================================================================
-O3_PROD  1  N Y %y4-%m2-%d2T12:00:00 none none Prod_Ox ./HcoDir/GCHP_Output/13.0.0/GEOSChem.ProdLoss.%y4%m2%d2_0000z.nc4
-O3_LOSS  1  N Y %y4-%m2-%d2T12:00:00 none none Loss_Ox ./HcoDir/GCHP_Output/13.0.0/GEOSChem.ProdLoss.%y4%m2%d2_0000z.nc4
+O3_PROD  1  N Y %y4-%m2-%d2T12:00:00 none none Prod_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m2%d2_0000z.nc4
+O3_LOSS  1  N Y %y4-%m2-%d2T12:00:00 none none Loss_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m2%d2_0000z.nc4
+#
 #==============================================================================
 # --- Oceanic ozone deposition ---
 #==============================================================================
