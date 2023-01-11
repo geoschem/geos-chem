@@ -17,6 +17,9 @@ simulation:
 
 #============================================================================
 # Timesteps settings
+#
+# These timesteps are determined in setCommonRunSettings.sh since they are
+# resolution-dependent for GCHP
 #============================================================================
 timesteps:
   transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
