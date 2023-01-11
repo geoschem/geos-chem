@@ -18,12 +18,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added tagO3 run directory for GCHP
   - Added upwards mass flux diagnostic to GCHP History collection LevelEdgeDiags
   - Added timestep menu to GCHP `geoschem_config.yml` template files
+  - Added HTAPv3 inventory as a global emissions option (off by default)
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
   - Moved in-module variables in hco_interface_gc_mod.F90 to State_Met and State_Chm
   - Modified SpeciesConc diagnostic to include option to output units in v/v or molec/cm3
   - Rebuilt fullchem and Hg mechanisms with KPP 3.0.0
+  - Changed HEMCO timecycle flag for QFED and offline emissions from EF to EFY
 
 ### Fixed
   - Fixed sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O
