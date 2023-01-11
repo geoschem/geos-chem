@@ -24,7 +24,6 @@ MODULE Mercury_Mod
   USE Ocean_Mercury_Mod, ONLY : LGEIA05
   USE Ocean_Mercury_Mod, ONLY : LVEGEMIS
   USE Ocean_Mercury_Mod, ONLY : LBrCHEM
-  USE Ocean_Mercury_Mod, ONLY : LRED_JNO2
   USE Ocean_Mercury_Mod, ONLY : LRED_CLOUDONLY
   USE Ocean_Mercury_Mod, ONLY : LHALOGENCHEM
   USE Ocean_Mercury_Mod, ONLY : LHgAQCHEM
@@ -3830,9 +3829,6 @@ CONTAINS
     ! Switch for only doing reduction in cloud water
     LRED_CLOUDONLY = .TRUE.
 
-    ! Switches for new reduction parameterization
-    LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
-
     ! Switch for using GEOS-Chem tropospheric bromine fields,
     ! ref. Parrella et al. 2012, instead of older TOMCAT fields
     LGCBROMINE = .TRUE.
@@ -3991,17 +3987,6 @@ CONTAINS
     ! Set the value of chemistry flags depending on whether or not
     ! the HEMCO collection LFLAGNAME is activated
     !-----------------------------------------------------------------
-    CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2', &
-                    OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       errMsg = 'LRED_JNO2 not found in HEMCO_Config.rc file!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    IF ( .not. FOUND ) THEN
-       LRED_JNO2 = .FALSE.
-    ENDIF
-
     CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM', &
                     OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -4125,7 +4110,6 @@ CONTAINS
     !-----------------------------------------------------------------
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     WRITE( 6, 100   )
-    WRITE( 6, 110   ) LRED_JNO2
     WRITE( 6, 120   ) LGCBROMINE
     WRITE( 6, 130   ) LNEI2005
     WRITE( 6, 140   ) LInPlume
@@ -4136,7 +4120,6 @@ CONTAINS
     WRITE( 6, 190   ) LOHO3CHEM
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 100 FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
-110 FORMAT( 'LRED_JNO2  is set to ', L1                          )
 120 FORMAT( 'LGCBROMINE is set to ', L1                          )
 130 FORMAT( 'LNEI2005   is set to ', L1                          )
 140 FORMAT( 'LInPlume   is set to ', L1                          )

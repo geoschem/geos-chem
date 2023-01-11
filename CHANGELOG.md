@@ -33,6 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed HCFC141b and HCFC142b names in GCHP HISTORY.rc
   - Fixed list of complex SOA species checked in input_mod.F90
 
+### Removed
+  - Removed LRED_JNO2 and AERO_HG2_PARTITON switches from HEMCO_Config.rc (and related code)
+
 ## [14.0.2] - 2022-11-29
 ### Fixed
   - Added fix for writing dry-run header to log file
