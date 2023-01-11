@@ -9,7 +9,7 @@
 #SBATCH --partition=nodes
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=20
-#SBATCH --mem-per-cpu=2G
+#SBATCH --mem=40G
 #SBATCH --time=JOB_TIME
 #===============================================================================
 set -e
@@ -17,11 +17,12 @@ set -e
 # SET UP CLEAN MODULES:
 source runScriptSamples/operational_examples/york_viking/gcclassic.intel.2021b.viking.env
 
-# SET LARGE OPENMP STACK SIZE:
+# SET OPENMP VARIABLES:
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
 export OMP_STACKSIZE=500m
 
 # CHANGE USER LIMITS:
 ulimit -s unlimited
 
 # RUN GC CLASSIC:
-srun -n ${SLURM_CPUS_PER_TASK} ./gcclassic
+srun ./gcclassic
