@@ -137,6 +137,9 @@ printf "\nCreating new run directories:\n"
 # c24 geosfp TransportTracers
 create_rundir "2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
+# c24 merra2 fullchem tagO3
+create_rundir "4\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
     cd ${thisDir}
