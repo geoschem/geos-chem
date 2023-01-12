@@ -472,16 +472,23 @@ printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   mak
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
-if [[ ${sim_name} = "fullchem" || ${sim_name} = "tagO3" ]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     start_date='20190701'
     restart_dir='GC_14.0.0'
-elif [[ ${sim_name} = "TransportTracers" ]]; then
+    restart_name="${sim_name}"
+elif [[ "x${sim_name}" == "xtagO3" ]]; then
+    # NOTE: we use the fullchem restart file for tagO3
+    start_date='20190701'
+    restart_dir='GC_14.0.0'
+    restart_name="fullchem"
+elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
     restart_dir='GC_14.0.0'
+    restart_name="${sim_name}"
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GEOSChem.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${restart_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
