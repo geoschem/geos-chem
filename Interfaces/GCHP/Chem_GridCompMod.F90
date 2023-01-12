@@ -540,7 +540,8 @@ CONTAINS
     DO WHILE ( LEN_TRIM( line ) > 0 )
        READ( IU_GEOS, '(a)', IOSTAT=IOS ) LINE
        EOF = IOS < 0
-       IF ( EOF ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
+       IF ( EOF ) EXIT !Simply exit when the file ends (bmy, 12 Jan 2023)
+       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
        LINE = ADJUSTL( ADJUSTR( LINE ) )
        IF ( INDEX( LINE, 'passive_species' ) > 0 ) EXIT
        CALL STRSPLIT( LINE, '-', SUBSTRS, N )
