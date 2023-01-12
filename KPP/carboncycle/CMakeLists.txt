@@ -1,8 +1,8 @@
 
-# KPP/ccycle/CMakeLists.txt
+# KPP/carboncycle/CMakeLists.txt
 
 #----------------------------------------------------------------------------
-# Add libKPPFirstPass.a -- carbon cycle (ccycle) mechanism
+# Add libKPPFirstPass.a -- carbon cycle (carboncycle) mechanism
 #----------------------------------------------------------------------------
 add_library(KPP_FirstPass
   STATIC EXCLUDE_FROM_ALL
@@ -18,7 +18,7 @@ target_link_libraries(KPP_FirstPass
 )
 
 #----------------------------------------------------------------------------
-# Add libKPP.a -- carbon cycle (ccycle) mechanism
+# Add libKPP.a -- carbon cycle (carboncycle) mechanism
 #----------------------------------------------------------------------------
 add_library(KPP 
   STATIC EXCLUDE_FROM_ALL
@@ -41,6 +41,7 @@ add_library(KPP
   # These are symbolic links to files in the ../stubs folder.
   #
   stub_aciduptake_DustChemFuncs.F90
+  stub_fullchem_AutoReduceFuncs.F90
   stub_fullchem_HetStateFuncs.F90
   stub_fullchem_SulfurChemFuncs.F90
   stub_Hg_HetStateFuncs.F90

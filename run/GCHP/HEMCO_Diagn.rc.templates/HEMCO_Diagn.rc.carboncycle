@@ -9,11 +9,7 @@
 #\\
 #\\
 # !REMARKS:
-#  Customized for the ccycle simulation.
-#
-# !REVISION HISTORY:
-#  18 Oct 2018 - R. Yantosca - Added comment header and longname metadata.
-#                              Also changed output unit to kg/m2/s.
+#  Customized for the carboncycle simulation.
 #EOP
 #------------------------------------------------------------------------------
 #BOC

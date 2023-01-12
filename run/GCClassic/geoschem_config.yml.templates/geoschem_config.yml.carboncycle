@@ -1,9 +1,6 @@
 ---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "ccycle" mechanism.
-###
-### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
-### parsers will confuse this with a negative "no" value.
+### Customized for simulations using the KPP "carboncycle" mechanism.
 
 #============================================================================
 # Simulation settings

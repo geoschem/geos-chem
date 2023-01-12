@@ -903,7 +903,7 @@ CONTAINS
        !
        ! Production and loss of CO
        !
-       ! NOTE: Call functions in KPP/carboncycle/carbonccycle_Funcs.F90 so
+       ! NOTE: Call functions in KPP/carboncycle/carboncarboncycle_Funcs.F90 so
        ! that we avoid bringing in KPP species indices into this module.
        ! This avoids compile-time dependency errors.
        !=====================================================================
@@ -1347,7 +1347,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ch4_distrib_ccycle
+! !IROUTINE: ch4_distrib_carboncycle
 !
 ! !DESCRIPTION: Allocates the chemistry sink to different emission species.
 !  (Only called if there are tagged CH4 species.)
@@ -1499,7 +1499,7 @@ CONTAINS
     xnumol_OH  = 1.0_fp
     errMsg     = ''
     thisLoc    = &
-     ' -> at Init_CarbonCycle (in module GeosCore/ccyclechem_mod.F90)'
+     ' -> at Init_CarbonCycle (in module GeosCore/carboncycle_mod.F90)'
 
     !========================================================================
     ! Define GEOS-Chem species indices

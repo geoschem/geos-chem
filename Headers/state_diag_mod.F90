@@ -8090,7 +8090,7 @@ CONTAINS
     !
     ! (1) All simulations implemented as KPP chemical mechanisms
     !     - fullchem (including extra options like benchmark, *SOA*, etc.)
-    !     - ccycle
+    !     - carboncycle
     !     - Hg
     ! (2) The Tagged CO specialty simulation
     ! (3) The Tagged O3 specialty simulation
