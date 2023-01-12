@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed HCFC141b and HCFC142b names in GCHP HISTORY.rc
   - Fixed list of complex SOA species checked in input_mod.F90
   - Now use a string array for reading the list of ObsPack diagnostic species (in `GeosCore/input_mod.F90`)
+  - Fixed bug in logic that caused restart files not to be linked to the Restarts/ folder of the GCHP tagO3 run directory
 
 ### Removed
   - Removed LRED_JNO2 and AERO_HG2_PARTITON switches from HEMCO_Config.rc (and related code)
