@@ -82,7 +82,7 @@ Warnings:                    1
     --> CMIP6_SHIP             :       false    # 1850-2100
     --> BB4MIPS                :       false    # 1850-2100
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
-    --> GMI_CH4_LOSS           :       true     # 1985
+    --> CH4_LOSS               :       true     # 2010-2019
     --> GLOBAL_OH              :       true     # 2010-2019
     --> GLOBAL_CL              :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
@@ -511,9 +511,9 @@ Warnings:                    1
 # --- Quantities needed for CH4 chemistry ---
 #==============================================================================
 (((CHEMISTRY_INPUT
-(((GMI_CH4_LOSS
+(((CH4_LOSS
 ${RUNDIR_CH4_LOSS}
-)))GMI_CH4_LOSS
+)))CH4_LOSS
 (((GLOBAL_OH
 * GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH

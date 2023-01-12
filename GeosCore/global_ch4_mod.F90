@@ -1345,8 +1345,8 @@ CONTAINS
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
-    ! Array for monthly average CH4 loss freq [1/s] (from HEMCO)
-    REAL(fp)          :: CH4LOSS(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    ! Array for monthly average CH4 loss freq [molec/cm3/s] (from HEMCO)
+    REAL(fp) :: CH4LOSS(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     !=================================================================
     ! CH4_STRAT begins here!
@@ -1404,7 +1404,7 @@ CONTAINS
           GCH4 = Spc(1)%Conc(I,J,L) * Spc2GCH4
 
           ! Loss rate [molec/cm3/s]
-          LRATE = GCH4 * CH4LOSS( I,J,L )
+          LRATE = CH4LOSS( I, J, L )
 
           ! Update Methane concentration in this grid box [molec/cm3]
           GCH4 = GCH4 - ( LRATE * DT )
