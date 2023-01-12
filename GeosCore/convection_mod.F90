@@ -167,7 +167,8 @@ CONTAINS
     DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
     FSOL       = 0e+0_fp                                ! Zero the FSOL array
     DoConvFlux = State_Diag%Archive_CloudConvFlux       ! Save mass flux?
-    DoWetLoss  = State_Diag%Archive_WetLossConv         ! Save wet loss?
+    DoWetLoss  = ( State_Diag%Archive_WetLossConv                       .or. &
+                   State_Diag%Archive_SatDiagnWetLossConv )
 
     ! Number of advected species
     nAdvect = State_Chm%nAdvect
@@ -309,6 +310,17 @@ CONTAINS
 #else
                 State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
 #endif
+             ENDDO
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic
+       ! Loss of soluble species in convective updrafts [kg/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossConv ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnWetLossConv%nSlots
+             NW = State_Diag%Map_SatDiagnWetLossConv%slot2id(S)
+             DO L = 1, State_Grid%NZ
+                State_Diag%SatDiagnWetLossConv(I,J,L,S) = Diag38(L,NW)
              ENDDO
           ENDDO
        ENDIF

@@ -1,4 +1,4 @@
-###############################################################################
+<###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -40,10 +40,12 @@ COLLECTIONS: 'Restart',
              ##'DryDep',
              #'JValues',
              ##'KppDiags',
+             ##'KppARDiags',
              ##'LevelEdgeDiags',
              ##'ProdLoss',
              ##'RRTMG',
              ##'RxnRates',
+             ##'SatDiagn',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
@@ -107,15 +109,19 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ALL?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              #'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE AdvFluxVert COLLECTION %%%%%
@@ -393,6 +399,22 @@ COLLECTIONS: 'Restart',
                               'KppLuDecomps                  ',
                               'KppSubsts                     ',
                               'KppSmDecomps                  ',
+                              'KppTime                       ',
+::
+#==============================================================================
+# %%%%% THE KppARDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver when auto-reduction solver is used.
+#
+# Available for full-chemistry simulations only if auto-reduce is enabled.
+#==============================================================================
+  KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  KppARDiags.frequency:       ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppARDiags.duration:        ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppARDiags.mode:            'time-averaged'
+  KppARDiags.fields:          'KppAutoReducerNVAR            ',
+                              'KppAutoReduceThres            ',
+                              'KppcNONZERO                   ',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%
@@ -531,6 +553,77 @@ COLLECTIONS: 'Restart',
                        'RxnRate_EQ002                           ',
 ::
 #==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_ISOP              ',
+                              'SatDiagnConc_CH2O              ',
+                              'SatDiagnConc_MVK               ',
+                              'SatDiagnConc_MACR              ',
+                              'SatDiagnConc_MOH               ',
+                              'SatDiagnConc_CO                ',
+                              'SatDiagnConc_NO                ',
+                              'SatDiagnConc_NO2               ',
+                              'SatDiagnConc_NO3               ',
+                              'SatDiagnConc_O3                ',
+                              'SatDiagnConc_HO2               ',
+                              'SatDiagnOH                     ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_CH2O         ',
+                              'SatDiagnWetLossConv_CH2O       ',
+                              'SatDiagnJval_CH2O              ',
+                              'SatDiagnJval_NO2               ',
+                              'SatDiagnJval_NO3               ',
+                              'SatDiagnJval_O3                ',
+                              'SatDiagnJvalO3O1D              ',
+                              'SatDiagnJvalO3O3P              ',
+                              'SatDiagnDryDep_CH2O            ',
+                              'SatDiagnDryDep_NO2             ',
+                              'SatDiagnDryDep_O3              ',
+                              'SatDiagnDryDepVel_CH2O         ',
+                              'SatDiagnDryDepVel_NO2          ',
+                              'SatDiagnDryDepVel_O3           ',
+                              'SatDiagnOHreactivity           ',
+                              'SatDiagnColEmis_ISOP           ',
+                              'SatDiagnSurfFlux_ISOP          ',
+                              'SatDiagnColEmis_CH2O           ',
+                              'SatDiagnSurfFlux_CH2O          ',
+                              'SatDiagnColEmis_NO             ',
+                              'SatDiagnSurfFlux_NO            ',
+                              'SatDiagnProd_?PRD?             ',
+                              'SatDiagnLoss_?LOS?             ',
+                              'SatDiagnRxnRate_EQ385          ',
+                              'SatDiagnRxnRate_EQ386          ',
+                              'SatDiagnRxnRate_EQ387          ',
+                              'SatDiagnRxnRate_EQ388          ',
+::
+#==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%
 #
 # Fields of the State_Chm object (see also Aerosols collection)
@@ -604,7 +697,6 @@ COLLECTIONS: 'Restart',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
                               'Met_LAI                       ',
-                              'Met_LWI                       ',
                               'Met_PARDR                     ',
                               'Met_PARDF                     ',
                               'Met_PBLTOPL                   ',
@@ -670,9 +762,9 @@ COLLECTIONS: 'Restart',
   StratBM.frequency:      00000000 010000
   StratBM.duration:       00000001 000000
   StratBM.mode:           'time-averaged'
-  StratBM.fields:         'SpeciesConc_NO2                   ',
-                          'SpeciesConc_O3                    ',
-                          'SpeciesConc_ClO                   ',
+  StratBM.fields:         'SpeciesConcVV_NO2                 ',
+                          'SpeciesConcVV_O3                  ',
+                          'SpeciesConcVV_ClO                 ',
                           'Met_PSC2WET                       ',
                           'Met_BXHEIGHT                      ',
                           'Met_AIRDEN                        ',

@@ -61,9 +61,6 @@ TSKIN     K             N Y F0;003000 none  none TS         ./MetDir/Y%y4/M%m2/D
 U10M      m_s-1         N Y F0;003000 none  none U10M       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
 V10M      m_s-1         N Y F0;003000 none  none V10M       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
 
-# tavg3_2d_chm_Nx
-LWI       1             N Y F0;013000 none  none LWI        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_2d_chm_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
-
 # tavg3_3d_asm_Nv
 OMEGA     Pa_s-1        N Y F0;013000 none  none OMEGA      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
 QI        kg_kg-1       N Y F0;013000 none  none QI         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00

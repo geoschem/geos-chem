@@ -80,6 +80,7 @@ Diag_Collections=(SpeciesConc    \
                   Emissions      \
                   JValues        \
                   KppDiags       \
+                  KppARDiags     \
                   LevelEdgeDiags \
                   Metrics        \
                   ProdLoss       \

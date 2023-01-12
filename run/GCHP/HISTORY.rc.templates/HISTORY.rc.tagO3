@@ -1,0 +1,133 @@
+
+EXPID:  OutputDir/GEOSChem
+EXPDSC: GEOS-Chem_devel
+CoresPerNode: 6
+VERSION: 1
+
+#==============================================================================
+# Define grid labels
+#
+# Define output grids different from the native cubed sphere in this section.
+# Each diagnostics collection is output on the native resolution global cubed
+# sphere grid unless a different grid defined here is set for that collection
+# in the collections section of this file.
+#
+# See the examples below for defining different types of grid at different
+# resolutions.
+#
+# See the collections section later on in this file for instructions on
+# using an alternative grid for output.
+#==============================================================================
+GRID_LABELS: PE24x144-CF
+             PC360x181-DC
+             REGIONAL1x1
+    ::
+
+    # Example of cubed-sphere grid at c24 resolution
+    PE24x144-CF.GRID_TYPE: Cubed-Sphere
+    PE24x144-CF.IM_WORLD: 24
+    PE24x144-CF.JM_WORLD: 144
+    PE24x144-CF.LM: 72
+
+    # Example of lat-lon global grid at 1x1 resolution
+    PC360x181-DC.GRID_TYPE: LatLon
+    PC360x181-DC.IM_WORLD: 360
+    PC360x181-DC.JM_WORLD: 181
+    PC360x181-DC.POLE: PC
+    PC360x181-DC.DATELINE: DC
+    PC360x181-DC.LM: 72
+
+    # Example of lat-lon regional grid at 1x1 resolution
+    REGIONAL1x1.GRID_TYPE: LatLon
+    REGIONAL1x1.IM_WORLD: 80
+    REGIONAL1x1.JM_WORLD: 40
+    REGIONAL1x1.POLE: XY
+    REGIONAL1x1.DATELINE: XY
+    REGIONAL1x1.LON_RANGE:   0 80
+    REGIONAL1x1.LAT_RANGE: -30 10
+    REGIONAL1x1.LM: 72
+
+#==============================================================================
+# Declare collection names
+#
+# You can disable collections by commenting out with #
+#
+# WARNING: Some diagnostic collections have a subset of output fields
+# commented out by default. Inspect fields of collections you turn on
+# before running to ensure you will get the output you intend.
+#==============================================================================
+COLLECTIONS:  'SpeciesConc',
+::
+#==============================================================================
+# Define collections
+#
+# The rest of this file consists of collection definitions.
+# Above collections whose declarations are commented out will be ignored.
+# You can skip individual diagnostics by commenting out their names.
+#
+# WARNING: Frequency, duration, and mode will be over-written with
+# settings in setCommonRunSettings.sh. Edit settings in that file. You can execute the
+# script to update this file and then inspect results before submitting a
+# run. Collection names are hard-coded in that file; if you add more
+# collections then you must also add them there for auto-update, or manually
+# change settings for the new collection in this file.
+#
+# NOTES:
+#    (1) Template keyword defines suffix of output filename, appended to
+#        GCHP.{collection}.
+#
+#    (2) Frequency keyword sets frequency of data in each output file
+#
+#    (3) Duration keyword sets frequency of output file
+#
+#    (4) Mode keyword may be 'time-averaged' or 'instantaneous'
+#
+#    (5) See the GRID_LABELS sections above for details about output grids
+#
+#    (6) To output data on a grid other than native res global cubed sphere
+#        include the 'grid_label' field. For example,
+#
+#           SpeciesConc.grid_label:   REGIONAL1x1
+#
+#    (7) If you are outputting on a lat/lon grid, be sure to specify
+#        conservative regridding. Otherwise regridding will be bi-linear.
+#
+#           SpeciesConc.conservative: 1
+#
+#    (8) To output a reduced set of levels, use the levels keyword, e.g.:
+#
+#           SpeciesConc.levels: 1 2 3
+#
+#==============================================================================
+
+#==============================================================================
+# %%%%% THE SpeciesConc COLLECTION %%%%%
+#
+# GEOS-Chem species concentrations
+#
+# Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.timestampStart: .true.
+  SpeciesConc.monthly:        1
+  SpeciesConc.frequency:      010000
+  SpeciesConc.duration:       240000
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConcVV_O3           ', 'GCHPchem',
+                              'SpeciesConcVV_O3Strat      ', 'GCHPchem',
+                              'SpeciesConcVV_O3ut         ', 'GCHPchem',
+                              'SpeciesConcVV_O3mt         ', 'GCHPchem',
+                              'SpeciesConcVV_O3row        ', 'GCHPchem',
+                              'SpeciesConcVV_O3pcbl       ', 'GCHPchem',
+                              'SpeciesConcVV_O3nabl       ', 'GCHPchem',
+                              'SpeciesConcVV_O3atbl       ', 'GCHPchem',
+                              'SpeciesConcVV_O3eubl       ', 'GCHPchem',
+                              'SpeciesConcVV_O3afbl       ', 'GCHPchem',
+                              'SpeciesConcVV_O3asbl       ', 'GCHPchem',
+                              'SpeciesConcVV_O3init       ', 'GCHPchem',
+                              'SpeciesConcVV_O3usa        ', 'GCHPchem',
+::

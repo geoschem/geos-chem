@@ -292,15 +292,16 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNO(I,J) - State_Met%FRLANDIC(I,J)
+       ! Land without snow or ice
+       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNO(I,J)
 
        ! Water without sea ice
        FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)
       
-       ! Land and sea ice 
+       ! Land ice and sea ice
        FRICE = State_Met%FRLANDIC(I,J) + State_Met%FRSEAICE(I,J)
       
-       ! Land snow
+       ! Snow
        FRSNO = State_Met%FRSNO(I,J)
       
        ! Set IsLand, IsWater, IsIce, IsSnow based on max fractional area

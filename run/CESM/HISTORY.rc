@@ -26,7 +26,7 @@
 #
 # 2) Mixing ratio diagnostics are always available without using this file.
 #    For example, you may output ozone mixing ratio by specifying
-#    'O3' in CESM file 'user_nl_cam' rather than 'SpeciesConc_O3'.
+#    'O3' in CESM file 'user_nl_cam' rather than 'SpeciesConcVV_O3'.
 #    The SpeciesConc collection is therefore excluded. Note that the CESM
 #    mixing ratio diagnostics are computed from State_Chm%Species(N)%Conc
 #    rather than State_Diag%SpeciesConc.
@@ -657,7 +657,6 @@ COLLECTIONS: 'Metrics',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
                               'Met_LAI                       ',
-                              'Met_LWI                       ',
                               'Met_PARDR                     ',
                               'Met_PARDF                     ',
                               'Met_PBLTOPL                   ',
@@ -723,9 +722,9 @@ COLLECTIONS: 'Metrics',
   StratBM.frequency:      00000000 010000
   StratBM.duration:       00000001 000000
   StratBM.mode:           'time-averaged'
-  StratBM.fields:         'SpeciesConc_NO2                   ',
-                          'SpeciesConc_O3                    ',
-                          'SpeciesConc_ClO                   ',
+  StratBM.fields:         'SpeciesConcVV_NO2                 ',
+                          'SpeciesConcVV_O3                  ',
+                          'SpeciesConcVV_ClO                 ',
                           'Met_PSC2WET                       ',
                           'Met_BXHEIGHT                      ',
                           'Met_AIRDEN                        ',

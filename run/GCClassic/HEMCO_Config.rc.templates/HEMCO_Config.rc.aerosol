@@ -67,7 +67,7 @@ Warnings:                    1
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
     --> EDGARv43               :       false    # 1970-2010
-    --> HTAP                   :       false    # 2008-2010
+    --> HTAPv3                 :       false    # 2000-2018
     --> GEIA_NH3               :       true     # 1990
     --> SEABIRD_NH3            :       true     # 1990
     --> DECAYING_PLANTS        :       true     # 1985
@@ -106,7 +106,7 @@ Warnings:                    1
     --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
-    --> HTAP_SHIP              :       false    # 2008-2010
+    --> HTAPv3_SHIP            :       false    # 2008-2018
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
@@ -1085,7 +1085,7 @@ Warnings:                    1
 # --- CEDS v2 ---
 #
 # %%% This is the default global inventory. You may select either CEDS,
-# EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
+# EDGAR, HTAPv3 or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
 #==============================================================================
 (((CEDSv2
 0 CEDS_SOAP_ENE   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_ene            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280    1 5
@@ -1277,7 +1277,7 @@ Warnings:                    1
 # --- EDGAR v4.3 ---
 #
 # %%% This is an optional inventory. You may select either CEDS, EDGAR,
-#  or HTAP for the global base emissions %%%
+#  or HTAPv3 for the global base emissions %%%
 #
 # The following emissions are not included in EDGAR and will be added:
 #  * Wiedinmyer et al. (2014) global trash emissions
@@ -1384,49 +1384,92 @@ Warnings:                    1
 )))EDGARv43
 
 #==============================================================================
-# --- HTAP v2 ---
+# --- HTAP v3 ---
 #
 # %%% This is an optional inventory. You may select either CEDS, EDGAR,
-#  or HTAP for the global base emissions %%%
+#  or HTAPv3 for the global base emissions %%%
 #
-# ==> HTAP ship emissions are listed in the ship emissions section below
-# ==> Disable aircraft emissions and get them from AEIC instead.
+# ==> HTAPv3 ship emissions are listed in the ship emissions section below
 #==============================================================================
-(((HTAP
-0 HTAP_SOAP_IND  $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_INDUSTRY.generic.01x01.nc      emi_co  2008-2010/1-12/1/0 C xy kg/m2/s SOAP 6/28/26/280  1 4
-0 HTAP_SOAP_POW  $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_ENERGY.generic.01x01.nc        emi_co  2008-2010/1-12/1/0 C xy kg/m2/s SOAP 6/28/26/280  1 4
-0 HTAP_SOAP_RES  $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_RESIDENTIAL.generic.01x01.nc   emi_co  2008-2010/1-12/1/0 C xy kg/m2/s SOAP 6/28/26/280  1 4
-0 HTAP_SOAP_TRA  $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_TRANSPORT.generic.01x01.nc     emi_co  2008-2010/1-12/1/0 C xy kg/m2/s SOAP 6/28/26/280  1 4
-#0 HTAP_SOAP_AIR1 $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc      emi_co  2008-2010/1/1/0    C xy kg/m2/s SOAP 6/28/26/280  1 4
-#0 HTAP_SOAP_AIR2 $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc      emi_co  2008-2010/1/1/0    C xy kg/m2/s SOAP 6/28/26/280  1 4
-#0 HTAP_SOAP_AIR3 $ROOT/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc      emi_co  2008-2010/1/1/0    C xy kg/m2/s SOAP 6/28/26/280  1 4
-0 HTAP_SO2_IND   $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_INDUSTRY.generic.01x01.nc    emi_so2 2008-2010/1-12/1/0 C xy kg/m2/s SO2  11/29        1 4
-0 HTAP_SO4_IND   -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-0 HTAP_pFe_IND   -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-0 HTAP_SO2_POW   $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_ENERGY.generic.01x01.nc      emi_so2 2008-2010/1-12/1/0 C xy kg/m2/s SO2  11/29        1 4
-0 HTAP_SO4_POW   -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-0 HTAP_pFe_POW   -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-0 HTAP_SO2_RES   $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_RESIDENTIAL.generic.01x01.nc emi_so2 2008-2010/1-12/1/0 C xy kg/m2/s SO2  11/29        1 4
-0 HTAP_SO4_RES   -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-0 HTAP_pFe_RES   -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-0 HTAP_SO2_TRA   $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_TRANSPORT.generic.01x01.nc   emi_so2 2008-2010/1-12/1/0 C xy kg/m2/s SO2  11/29        1 4
-0 HTAP_SO4_TRA   -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-0 HTAP_pFe_TRA   -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-#0 HTAP_SO2_AIR1 $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_AIR_LTO.generic.01x01.nc     emi_so2 2008-2010/1/1/0    C xy kg/m2/s SO2  11/29        1 4
-#0 HTAP_SO4_AIR1 -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-#0 HTAP_pFe_AIR1 -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-#0 HTAP_SO2_AIR2 $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_AIR_CDS.generic.01x01.nc     emi_so2 2008-2010/1/1/0    C xy kg/m2/s SO2  11/29        1 4
-#0 HTAP_SO4_AIR2 -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-#0 HTAP_pFe_AIR2 -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-#0 HTAP_SO2_AIR3 $ROOT/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_AIR_CRS.generic.01x01.nc     emi_so2 2008-2010/1/1/0    C xy kg/m2/s SO2  11/29        1 4
-#0 HTAP_SO4_AIR3 -                                                                   -       -                  - -  -       SO4  11/29/63     1 4
-#0 HTAP_pFe_AIR3 -                                                                   -       -                  - -  -       pFe  11/29/66     1 4
-0 HTAP_NH3_IND   $ROOT/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_INDUSTRY.generic.01x01.nc    emi_nh3 2008-2010/1-12/1/0 C xy kg/m2/s NH3  -            1 4
-0 HTAP_NH3_POW   $ROOT/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_ENERGY.generic.01x01.nc      emi_nh3 2008-2010/1-12/1/0 C xy kg/m2/s NH3  -            1 4
-0 HTAP_NH3_RES   $ROOT/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_RESIDENTIAL.generic.01x01.nc emi_nh3 2008-2010/1-12/1/0 C xy kg/m2/s NH3  -            1 4
-0 HTAP_NH3_TRA   $ROOT/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_TRANSPORT.generic.01x01.nc   emi_nh3 2008-2010/1-12/1/0 C xy kg/m2/s NH3  -            1 4
-0 HTAP_NH3_AGR   $ROOT/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_AGRICULTURE.generic.01x01.nc emi_nh3 2008-2010/1-12/1/0 C xy kg/m2/s NH3  -            1 4
-)))HTAP
+(((HTAPv3
+0 HTAPv3_SOAP_AGR $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_AGR  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_ENE $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_ENE  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_IND $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_IND  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_TRA $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_TRA  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_RCO $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_RCO  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_SLV $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_SLV  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SOAP_WST $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc   CO_WST  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280   1 4
+0 HTAPv3_SO2_AGR  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_AGR 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_AGR  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_AGR  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_SO2_ENE  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_ENE 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_ENE  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_ENE  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_SO2_IND  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_IND 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_IND  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_IND  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_SO2_TRA  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_TRA 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_TRA  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_TRA  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_SO2_RCO  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_RCO 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_RCO  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_RCO  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_SO2_SLV  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_SLV 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_SLV  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_SLV  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_SO2_WST  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc  SO2_WST 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -        1 4
+0 HTAPv3_SO4_WST  -                                                        -       -                  - -  -       SO4   63       1 4
+0 HTAPv3_pFe_WST  -                                                        -       -                  - -  -       pFe   66       1 4
+0 HTAPv3_NH3_AGR  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_AGR 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_NH3_ENE  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_ENE 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_NH3_IND  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_IND 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_NH3_TRA  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_TRA 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_NH3_RCO  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_RCO 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_NH3_SLV  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_SLV 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_NH3_WST  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc  NH3_WST 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -        1 4
+0 HTAPv3_BCPI_AGR $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_AGR  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_AGR -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_BCPI_ENE $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_ENE  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_ENE -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_BCPI_IND $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_IND  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_IND -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_BCPI_TRA $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_TRA  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_TRA -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_BCPI_RCO $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_RCO  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_RCO -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_BCPI_SLV $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_SLV  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_SLV -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_BCPI_WST $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc   BC_WST  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70       1 4
+0 HTAPv3_BCPO_WST -                                                        -       -                  - -  -       BCPO  71       1 4
+0 HTAPv3_OCPI_AGR $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_AGR  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_AGR -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_AGR -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_AGR -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+0 HTAPv3_OCPI_ENE $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_ENE  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_ENE -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_ENE -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_ENE -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+0 HTAPv3_OCPI_IND $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_IND  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_IND -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_IND -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_IND -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+0 HTAPv3_OCPI_TRA $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_TRA  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_TRA -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_TRA -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_TRA -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+0 HTAPv3_OCPI_RCO $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_RCO  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_RCO -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_RCO -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_RCO -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+0 HTAPv3_OCPI_SLV $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_SLV  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_SLV -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_SLV -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_SLV -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+0 HTAPv3_OCPI_WST $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc   OC_WST  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72       1 4
+0 HTAPv3_OCPO_WST -                                                        -       -                  - -  -       OCPO  73       1 4
+0 HTAPv3_POG1_WST -                                                        -       -                  - -  -       POG1  73/74/76 1 4
+0 HTAPv3_POG2_WST -                                                        -       -                  - -  -       POG2  73/74/77 1 4
+)))HTAPv3
 
 #==============================================================================
 # --- GEIA NH3 from natural sources ---
@@ -1465,10 +1508,17 @@ Warnings:                    1
 0 CORBETT_SHIP_SO2     $ROOT/CORBETT_SHIP/v2014-07/CORBETT_ship.geos.1x1.nc            SO2_SHIP        1985/1-12/1/0          C xy kg/m2/s  SO2  -           10 3
 )))CORBETT_SHIP
 
-(((HTAP_SHIP
-0 HTAP_SHIP_SO2        $ROOT/HTAP/v2015-03/EDGAR_HTAP_SO2_SHIPS.generic.01x01.nc       emi_so2         2008-2010/1/1/0        C xy kg/m2/s  SO2  11/29       10 4
-0 HTAP_SHIP_SOAP       $ROOT/HTAP/v2015-03/EDGAR_HTAP_CO_SHIPS.generic.01x01.nc        emi_co          2008-2010/1/1/0        C xy kg/m2/s  SOAP 6/28/280    10 4
-)))HTAP_SHIP
+(((HTAPv3_SHIP
+0 HTAPv3_SOAP_SHP $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc  CO_SHP  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 4
+0 HTAPv3_SO2_SHP  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_SO2_0.1x0.1_$YYYY.nc SO2_SHP 2000-2018/1-12/1/0 C xy kg/m2/s SO2   -      10 4
+0 HTAPv3_SO4_SHP  -                                                       -       -                  - -  -       SO4   63     10 4
+0 HTAPv3_pFe_SHP  -                                                       -       -                  - -  -       pFe   66     10 4
+0 HTAPv3_NH3_SHP  $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_NH3_0.1x0.1_$YYYY.nc NH3_SHP 2000-2018/1-12/1/0 C xy kg/m2/s NH3   -      10 4
+0 HTAPv3_BCPI_SHP $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_BC_0.1x0.1_$YYYY.nc  BC_SHP  2000-2018/1-12/1/0 C xy kg/m2/s BCPI  70     10 4
+0 HTAPv3_BCPO_SHP -                                                       -       -                  - -  -       BCPO  71     10 4
+0 HTAPv3_OCPI_SHP $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_OC_0.1x0.1_$YYYY.nc  OC_SHP  2000-2018/1-12/1/0 C xy kg/m2/s OCPI  72     10 4
+0 HTAPv3_OCPO_SHP -                                                       -       -                  - -  -       OCPO  73     10 4
+)))HTAPv3_SHIP
 
 (((CEDSv2_SHIP
 0 CEDS_SOAP_SHP   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_shp            1750-2019/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 5
@@ -1581,22 +1631,22 @@ Warnings:                    1
 # --- QFED2 biomass burning (v2.5r1) ---
 #==============================================================================
 (((QFED2
-0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
-0 QFED_BCPO_PBL  -                                                                 -       -                             -  -             -       BCPO 71/75/311     5 2
-0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
-0 QFED_BCPO_FT   -                                                                 -       -                             -  -             -       BCPO 71/75/312     5 2
-0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
-0 QFED_OCPO_PBL  -                                                                 -       -                             -  -             -       OCPO 73/75/311     5 2
-0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
-0 QFED_OCPO_FT   -                                                                 -       -                             -  -             -       OCPO 73/75/312     5 2
-0 QFED_SOAP_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SOAP 54/75/281/311 5 2
-0 QFED_SOAP_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SOAP 54/75/281/312 5 2
-0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s NH3  75/311        5 2
-0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
-0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s SO2  75/311        5 2
-0 QFED_pFe_PBL   -                                                                 -       -                             -  -             -       pFe  75/311/66     5 2
-0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
-0 QFED_pFe_FT    -                                                                 -       -                             -  -             -       pF3  75/312/66     5 2
+0 QFED_BCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s BCPI 70/75/311     5 2
+0 QFED_BCPO_PBL  -                                                                 -       -                             -   -             -       BCPO 71/75/311     5 2
+0 QFED_BCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_bc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s BCPI 70/75/312     5 2
+0 QFED_BCPO_FT   -                                                                 -       -                             -   -             -       BCPO 71/75/312     5 2
+0 QFED_OCPI_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s OCPI 72/75/311     5 2
+0 QFED_OCPO_PBL  -                                                                 -       -                             -   -             -       OCPO 73/75/311     5 2
+0 QFED_OCPI_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_oc.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s OCPI 72/75/312     5 2
+0 QFED_OCPO_FT   -                                                                 -       -                             -   -             -       OCPO 73/75/312     5 2
+0 QFED_SOAP_PBL  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s SOAP 54/75/281/311 5 2
+0 QFED_SOAP_FT   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s SOAP 54/75/281/312 5 2
+0 QFED_NH3_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s NH3  75/311        5 2
+0 QFED_NH3_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s NH3  75/312        5 2
+0 QFED_SO2_PBL   $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s SO2  75/311        5 2
+0 QFED_pFe_PBL   -                                                                 -       -                             -   -             -       pFe  75/311/66     5 2
+0 QFED_SO2_FT    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s SO2  75/312        5 2
+0 QFED_pFe_FT    -                                                                 -       -                             -   -             -       pF3  75/312/66     5 2
 )))QFED2
 
 #==============================================================================
@@ -1645,10 +1695,10 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* EY xy kg/m2/s DST1 - 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* EY xy kg/m2/s DST2 - 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* EY xy kg/m2/s DST3 - 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* EY xy kg/m2/s DST4 - 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST1 - 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST2 - 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST3 - 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST4 - 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -1656,27 +1706,27 @@ Warnings:                    1
 # --- Offline biogenic VOC emissions ---
 #==============================================================================
 (((OFFLINE_BIOGENICVOC
-0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s ACET -   4 2
-0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s ALD2 -   4 2
-0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s C2H4 -   4 2
-0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2022/1-12/1-31/* EY xy kg/m2/s EOH  -   4 2
-0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s ISOP -   4 2
-0 BIOGENIC_ISOP_SOAP -                                                                                                            -             -                     -  -  -       SOAP 610 4 2
-0 BIOGENIC_ISOP_SOAS -                                                                                                            -             -                     -  -  -       SOAS 610 4 2
-0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s LIMO -   4 2
-0 BIOGENIC_LIMO_SOAP -                                                                                                            -             -                     -  -  -       SOAP 611 4 2
-0 BIOGENIC_LIMO_SOAS -                                                                                                            -             -                     -  -  -       SOAS 611 4 2
-0 BIOGENIC_MOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MOH_MEGAN     1980-2022/1-12/1-31/* EF xy kg/m2/s MOH  -   4 2
-0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s MTPA -   4 2
-0 BIOGENIC_MTPA_SOAP -                                                                                                            -             -                     -  -  -       SOAP 611 4 2
-0 BIOGENIC_MTPA_SOAS -                                                                                                            -             -                     -  -  -       SOAS 611 4 2
-0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s MTPO -   4 2
-0 BIOGENIC_MTPO_SOAP -                                                                                                            -             -                     -  -  -       SOAP 611 4 2
-0 BIOGENIC_MTPO_SOAS -                                                                                                            -             -                     -  -  -       SOAS 611 4 2
-0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s PRPE -   4 2
-0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2022/1-12/1-31/* EY xy kg/m2/s SESQ -   4 2
-0 BIOGENIC_SESQ_SOAP -                                                                                                            -             -                     -  -  -       SOAP 612 4 2
-0 BIOGENIC_SESQ_SOAS -                                                                                                            -             -                     -  -  -       SOAS 612 4 2
+0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ACET -   4 2
+0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ALD2 -   4 2
+0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s C2H4 -   4 2
+0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2022/1-12/1-31/* EFY xy kg/m2/s EOH  -   4 2
+0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ISOP -   4 2
+0 BIOGENIC_ISOP_SOAP -                                                                                                            -             -                     -   -  -       SOAP 610 4 2
+0 BIOGENIC_ISOP_SOAS -                                                                                                            -             -                     -   -  -       SOAS 610 4 2
+0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s LIMO -   4 2
+0 BIOGENIC_LIMO_SOAP -                                                                                                            -             -                     -   -  -       SOAP 611 4 2
+0 BIOGENIC_LIMO_SOAS -                                                                                                            -             -                     -   -  -       SOAS 611 4 2
+0 BIOGENIC_MOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MOH_MEGAN     1980-2022/1-12/1-31/* EFY xy kg/m2/s MOH  -   4 2
+0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s MTPA -   4 2
+0 BIOGENIC_MTPA_SOAP -                                                                                                            -             -                     -   -  -       SOAP 611 4 2
+0 BIOGENIC_MTPA_SOAS -                                                                                                            -             -                     -   -  -       SOAS 611 4 2
+0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s MTPO -   4 2
+0 BIOGENIC_MTPO_SOAP -                                                                                                            -             -                     -   -  -       SOAP 611 4 2
+0 BIOGENIC_MTPO_SOAS -                                                                                                            -             -                     -   -  -       SOAS 611 4 2
+0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s PRPE -   4 2
+0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s SESQ -   4 2
+0 BIOGENIC_SESQ_SOAP -                                                                                                            -             -                     -   -  -       SOAP 612 4 2
+0 BIOGENIC_SESQ_SOAS -                                                                                                            -             -                     -   -  -       SOAS 612 4 2
 )))OFFLINE_BIOGENICVOC
 
 #==============================================================================
@@ -1684,17 +1734,17 @@ Warnings:                    1
 #==============================================================================
 (((OFFLINE_SEASALT
 (((.not.SeaSalt
-0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2022/1-12/1-31/* EY xy kg/m2/s SALA    -   3 2
-0 SEASALT_SALAAL  -                                                                                                              -            -                     -  -  -       SALAAL  615 3 2
-0 SEASALT_SALACL  -                                                                                                              -            -                     -  -  -       SALACL  616 3 2
+0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2022/1-12/1-31/* EFY xy kg/m2/s SALA    -   3 2
+0 SEASALT_SALAAL  -                                                                                                              -            -                     -   -  -       SALAAL  615 3 2
+0 SEASALT_SALACL  -                                                                                                              -            -                     -   -  -       SALACL  616 3 2
 (((CalcBrSeasalt
-0 SEASALT_BrSALA  -                                                                                                              -            -                     -  -  -       BrSALA  617 3 2
+0 SEASALT_BrSALA  -                                                                                                              -            -                     -   -  -       BrSALA  617 3 2
 )))CalcBrSeasalt
-0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2022/1-12/1-31/* EY xy kg/m2/s SALC    -   3 2
-0 SEASALT_SALCAL  -                                                                                                              -            -                     -  -  -       SALCAL  615 3 2
-0 SEASALT_SALCCL  -                                                                                                              -            -                     -  -  -       SALCCL  616 3 2
+0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2022/1-12/1-31/* EFY xy kg/m2/s SALC    -   3 2
+0 SEASALT_SALCAL  -                                                                                                              -            -                     -   -  -       SALCAL  615 3 2
+0 SEASALT_SALCCL  -                                                                                                              -            -                     -   -  -       SALCCL  616 3 2
 (((CalcBrSeasalt
-0 SEASALT_BrSALC  -                                                                                                              -            -                     -  -  -       BrSALC  617 3 2
+0 SEASALT_BrSALC  -                                                                                                              -            -                     -   -  -       BrSALC  617 3 2
 )))CalcBrSeasalt
 ))).not.SeaSalt
 )))OFFLINE_SEASALT
@@ -2165,20 +2215,10 @@ ${RUNDIR_TES_CLIM_N2O}
 #==============================================================================
 # --- Annual scale factors ---
 #==============================================================================
-(((HTAP.or.XIAO_C3H8
-1  TOTFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 1985-2010/1/1/0 C xy 1  1
-5  TOTFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2002/1/1/0      C xy 1 -1
-27 TOTFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc NOxscalar 2008-2010/1/1/0 C xy 1 -1
+(((XIAO_C3H8
 6  LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
 7  LIQFUEL_1985      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985/1/1/0      C xy 1 -1
-9  LIQFUEL_2006      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2006/1/1/0      C xy 1 -1
-10 LIQFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2002/1/1/0      C xy 1 -1
-28 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
-11 SOLFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 1985-2010/1/1/0 C xy 1  1
-15 SOLFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2002/1/1/0      C xy 1 -1
-19 SOLFUEL_2008      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008/1/1/0      C xy 1 -1
-29 SOLFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc SO2scalar 2008-2010/1/1/0 C xy 1 -1
-)))HTAP.or.XIAO_C3H8
+)))XIAO_C3H8
 
 #==============================================================================
 # --- Diurnal scale factors ---

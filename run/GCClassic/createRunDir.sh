@@ -1071,8 +1071,8 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 
     elif [[ "x${sim_name}" == "xcarboncycle" ]]; then
 
-	# For carboncycle, point to the restarts in v2022-10
-	sample_rst=${rst_root}/v2022-10/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+	# For carboncycle, point to the restarts in v2023-01
+	sample_rst=${rst_root}/v2023-01/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     else
 

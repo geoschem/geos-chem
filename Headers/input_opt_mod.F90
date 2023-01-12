@@ -69,6 +69,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: MetField
      CHARACTER(LEN=255)          :: SimulationName
      CHARACTER(LEN=255)          :: SpcDatabaseFile
+     CHARACTER(LEN=255)          :: SpcMetaDataOutFile
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
@@ -193,6 +194,14 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
+     LOGICAL                     :: USE_AUTOREDUCE
+     LOGICAL                     :: AUTOREDUCE_IS_KEEPACTIVE
+     LOGICAL                     :: AUTOREDUCE_IS_KEY_THRESHOLD
+     LOGICAL                     :: AUTOREDUCE_IS_PRS_THRESHOLD
+     LOGICAL                     :: AUTOREDUCE_IS_APPEND
+     REAL(f8)                    :: AUTOREDUCE_THRESHOLD
+     REAL(f8)                    :: AUTOREDUCE_TUNING_OH
+     REAL(f8)                    :: AUTOREDUCE_TUNING_NO2
 #ifdef MODEL_GEOS
      LOGICAL                     :: LGMIOZ
 #endif
@@ -571,6 +580,7 @@ CONTAINS
     Input_Opt%MetField               = ''
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
+    Input_Opt%SpcMetaDataOutFile     = ''
     Input_Opt%ITS_A_CARBONCYCLE_SIM  = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
@@ -714,6 +724,14 @@ CONTAINS
     Input_Opt%USE_ONLINE_O3          = .FALSE.
     Input_Opt%USE_O3_FROM_MET        = .FALSE.
     Input_Opt%USE_TOMS_O3            = .FALSE.
+
+    Input_Opt%USE_AUTOREDUCE                = .FALSE.
+    Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD   = .TRUE.
+    Input_Opt%AUTOREDUCE_TUNING_OH          = 5e-5_fp
+    Input_Opt%AUTOREDUCE_TUNING_NO2         = 1e-4_fp
+    Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD   = .TRUE.
+    Input_Opt%AUTOREDUCE_IS_KEEPACTIVE      = .FALSE.
+    Input_Opt%AUTOREDUCE_IS_APPEND          = .FALSE.
 
     !----------------------------------------
     ! PHOTOLYSIS MENU fields

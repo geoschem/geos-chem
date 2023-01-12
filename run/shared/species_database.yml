@@ -725,7 +725,7 @@ CH4_PROP: &CH4properties
   Formula: CH4
   Is_Advected: true
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -1395,7 +1395,7 @@ HCOOH:
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
 Hg0_PROP: &Hg0properties
-  DD_F0: 1.0e-5
+  DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
   Is_Advected: true
@@ -2657,7 +2657,7 @@ LBRO2N:
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
@@ -3352,6 +3352,7 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
+  WD_CoarseAer: true
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -4387,6 +4388,7 @@ SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
   MW_g: 31.4
+  WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
