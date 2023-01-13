@@ -105,7 +105,7 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : Integrate, NHnew
+    USE GcKpp_Integrator,         ONLY : Integrate
     USE GcKpp_Function
     USE GcKpp_Model
     USE GcKpp_Global
@@ -225,6 +225,12 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS
 !
+    ! Defines the slot in which the H-value from the KPP integrator is stored
+    ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
+    ! (assuming Rosenbrock solver).  Define this locally in order to break
+    ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
+    INTEGER,    PARAMETER :: Nhnew = 3
+
     !========================================================================
     ! Do_FullChem begins here!
     ! NOTE: FlexChem timer is started in DO_CHEMISTRY (the calling routine)
