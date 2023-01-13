@@ -58,5 +58,20 @@ CONTAINS
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
     !
   END SUBROUTINE fullchem_AR_UpdateKppDiags
+
+  SUBROUTINE fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,         &
+                                               FirstChem, ICNTRL,    RCNTRL )
+    !
+    USE gckpp_Parameters
+    USE gckpp_Precision
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+    !
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
+    TYPE(ChmState), INTENT(IN)    :: State_Chm
+    LOGICAL,        INTENT(IN)    :: FirstChem
+    INTEGER,        INTENT(INOUT) :: ICNTRL(20)
+    REAL(dp),       INTENT(INOUT) :: RCNTRL(20)
+  END SUBROUTINE fullchem_AR_SetIntegratorOptions
 !EOC
 END MODULE fullchem_AutoReduceFuncs
