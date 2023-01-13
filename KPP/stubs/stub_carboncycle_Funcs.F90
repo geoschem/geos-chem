@@ -33,9 +33,12 @@ CONTAINS
   END SUBROUTINE carboncycle_ConvertKgToMolecCm3
   !
   SUBROUTINE carboncycle_ComputeRateConstants(                               &
-             I,        J,           L,           bCl,       bOH,             &
-             CH4loss,  GMI_Prod_CO, GMI_Loss_CO, PCO_nmVOC, PCO_CH4,         &
-             LPCO_CH4, dtChem,      tCosZ,       State_Chm, State_Met       )
+             I,             J,                 L,                            &
+             ConcClMnd,     ConcOHMnd,         LCH4_by_OH,                   &
+             LCO_in_Strat,  OHdiurnalFac,      PCO_fr_CH4_use,               &
+             PCO_fr_CH4,    PCO_fr_NMVOC_use,  PCO_fr_NMVOC,                 &
+             PCO_in_Strat,  dtChem,            State_Chm,                    &
+             State_Met                                                      )
     !
     ! Stub for routine carboncycle_ComputeRateConstants,
     ! needed to satisfy compile-time dependencies
@@ -43,19 +46,20 @@ CONTAINS
     USE State_Chm_Mod, ONLY : ChmState
     USE State_Met_Mod, ONLY : MetState
     !
-    INTEGER,        INTENT(IN)    :: I, J, L
-    REAL(fp),       INTENT(IN)    :: bCl
-    REAL(fp),       INTENT(IN)    :: bOH
-    REAL(fp),       INTENT(IN)    :: CH4loss
-    REAL(fp),       INTENT(IN)    :: GMI_Prod_CO
-    REAL(fp),       INTENT(IN)    :: GMI_Loss_CO
-    REAL(fp),       INTENT(IN)    :: PCO_NMVOC
-    LOGICAL,        INTENT(IN)    :: LPCO_CH4
-    REAL(fp),       INTENT(IN)    :: PCO_CH4
-    REAL(fp),       INTENT(IN)    :: dtChem
-    REAL(fp),       INTENT(IN)    :: tCosZ
-    TYPE(ChmState), INTENT(IN)    :: State_Chm
-    TYPE(MetState), INTENT(IN)    :: State_Met
+    INTEGER,        INTENT(IN) :: I, J, L
+    REAL(fp),       INTENT(IN) :: ConcClMnd
+    REAL(fp),       INTENT(IN) :: ConcOHmnd
+    REAL(fp),       INTENT(IN) :: LCH4_by_OH
+    REAL(fp),       INTENT(IN) :: LCO_in_Strat
+    REAL(fp),       INTENT(IN) :: OHdiurnalFac
+    LOGICAL,        INTENT(IN) :: PCO_fr_CH4_use
+    REAL(fp),       INTENT(IN) :: PCO_fr_CH4
+    LOGICAL,        INTENT(IN) :: PCO_fr_NMVOC_use
+    REAL(fp),       INTENT(IN) :: PCO_fr_NMVOC
+    REAL(fp),       INTENT(IN) :: PCO_in_Strat
+    REAL(fp),       INTENT(IN) :: dtChem
+    TYPE(ChmState), INTENT(IN) :: State_Chm
+    TYPE(MetState), INTENT(IN) :: State_Met
   END SUBROUTINE carboncycle_ComputeRateConstants
   !
   SUBROUTINE carboncycle_ConvertMolecCm3ToKg(                                &
