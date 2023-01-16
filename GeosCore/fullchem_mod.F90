@@ -104,11 +104,10 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
-    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
+    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES, EQN_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,         ONLY : Integrate
     USE GcKpp_Function
-    USE GcKpp_Model
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
@@ -1017,7 +1016,9 @@ CONTAINS
        ! This now needs to be done within the parallel loop
        !=====================================================================
        CALL fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,          &
-                                              FirstChem, ICNTRL,    RCNTRL  )
+                                              State_Met, FirstChem,          &
+                                              I,         J,         L,       &
+                                              ICNTRL,    RCNTRL             )
 
        !=====================================================================
        ! Integrate the box forwards

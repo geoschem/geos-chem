@@ -200,8 +200,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,           &
-                                               FirstChem, ICNTRL,    RCNTRL   )
+  SUBROUTINE fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,      &
+                                               State_Met, FirstChem,      &
+                                               I,         J,         L,   &
+                                               ICNTRL,    RCNTRL          )
 !
 ! !USES:
 !
@@ -209,12 +211,15 @@ CONTAINS
     USE gckpp_Precision
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Chm_Mod, ONLY : ChmState
+    USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object 
     TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
     LOGICAL,        INTENT(IN)    :: FirstChem    ! Is it the 1st chem timestep
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
