@@ -896,6 +896,7 @@ cd ${rundir}
 if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xCH4"    ||
       "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xcarboncycle" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'
     enddate='20190201'
