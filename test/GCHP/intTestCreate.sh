@@ -187,8 +187,8 @@ sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCom
 # Carboncycle run directories
 #=============================================================================
 
-dir="carboncycle_merra2_c24"
-create_rundir "4\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
+dir="gchp_carboncycle_merra2_c24"
+create_rundir "5\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
 ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
 cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
 sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
