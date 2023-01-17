@@ -184,23 +184,6 @@ sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
 sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
 
 #=============================================================================
-# Carboncycle run directories
-#=============================================================================
-
-dir="gchp_carboncycle_merra2_c24"
-create_rundir "5\n1\n${root}\n${dir}\nn\n" ${root} ${dir} ${log}
-ln -s ${root}/gchp.env ${root}/${dir}/gchp.env
-cp ${testDir}/gchp.slurm.sh ${root}/${dir}/gchp.slurm.sh
-sed -i -e "s/CS_RES=.*/CS_RES=24/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/TOTAL_CORES=.*/TOTAL_CORES=24/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/NUM_NODES=.*/NUM_NODES=1/" ${root}/${dir}/setCommonRunSettings.sh
-sed -i -e "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/" ${root}/${dir}/setCommonRunSettings.sh
-
-#=============================================================================
 # Cleanup and quit
 #=============================================================================
 
