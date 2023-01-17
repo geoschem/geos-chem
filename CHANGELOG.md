@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Rebuilt fullchem and Hg mechanisms with KPP 3.0.0
   - Changed HEMCO timecycle flag for QFED and offline emissions from EF to EFY
   - Updated the time refresh settings for `O3_PROD` and `O3_LOSS` in `ExtData.rc.tagO3` to read data on the first of each month.
+  - Initialize CO2 to ambient value of 400ppm instead of zero in `fullchem_mod.F90`
 
 ### Fixed
   - Fixed sign of Arrhenius "A" coefficient in reaction ETO = HO2 + 2CH2O

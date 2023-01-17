@@ -316,25 +316,20 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! Zero out certain species:
-    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
-    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
-    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
-    !      (dkh, 10/06/06)
-    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    ! Adjust certain species concentrations every timesetp
     !========================================================================
     DO N = 1, State_Chm%nSpecies
 
        ! Get info about this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
 
-       ! isoprene oxidation counter species
+       ! Zero out isoprene oxidation counter species
        IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
             TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
           State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
-       ! aromatic oxidation counter species
+       ! Zero out aromatic oxidation counter species
        IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
           SELECT CASE ( TRIM( SpcInfo%Name ) )
              CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
@@ -343,11 +338,9 @@ CONTAINS
           END SELECT
        ENDIF
 
-       ! Temporary fix for CO2
-       ! CO2 is a dead species and needs to be set to zero to
-       ! match the old SMVGEAR code (mps, 6/14/16)
+       ! Set CO2 to 400 ppm (msl, mps, 1/17/23)
        IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
-          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
+          State_Chm%Species(N)%Conc(:,:,:) = 400.0e-6_fp ! v/v
        ENDIF
 
        ! Free pointer
