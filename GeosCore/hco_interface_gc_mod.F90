@@ -3609,6 +3609,7 @@ CONTAINS
          Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
          Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
          Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
+         Input_Opt%ITS_A_CARBONCYCLE_SIM  .or.                               &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
 
 
@@ -3625,7 +3626,7 @@ CONTAINS
           nSpc = nSpc + 1
        ENDIF
 
-       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       !%%%%% FOR THE CARBONCYCLE OR TAGGED CO SIMULATIONS %%%%%
        ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
           nSpc = nSpc + 5

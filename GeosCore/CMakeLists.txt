@@ -42,6 +42,7 @@ add_library(GeosCore
   aerosol_mod.F90
   airs_ch4_mod.F90
   carbon_mod.F90
+  carboncycle_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
   cleanup.F90
@@ -121,7 +122,7 @@ target_link_libraries(GeosCore PUBLIC
   History 
   Isorropia 
   KPP
-  $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the other TURs
+  $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
   $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true

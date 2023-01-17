@@ -53,10 +53,6 @@ operations:
   convection:
     activate: true
 
-  dry_deposition:
-    activate: true
-    diag_alt_above_sfc_in_m: 10
-
   pbl_mixing:
      activate: true
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
@@ -82,10 +78,10 @@ operations:
       - COnmvoc
 
 #============================================================================
-# Settings specific to the tagged CO simulation
+# Options for CO
 #============================================================================
 
-tagged_CO_simulation_options:
+CO_simulation_options:
   use_fullchem_PCO_from_CH4: true
   use_fullchem_PCO_from_NMVOC: true
 
