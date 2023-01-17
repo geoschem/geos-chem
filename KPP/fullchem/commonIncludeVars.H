@@ -175,7 +175,8 @@
      REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
      REAL(dp) :: rIce           ! Ice radius
      REAL(dp) :: rLiq           ! Liquid radius
-     REAL(dp) :: ssAlk(2)       ! Sea salt alk'nty (1=fine, 2=coarse)
+     REAL(dp) :: f_Alk_SSA      ! fraction of fine sea salt that is alkaline
+     REAL(dp) :: f_Alk_SSC      ! fraction of coarse sea salt that is alkaline
      LOGICAL  :: SSA_is_Alk     ! Is fine sea-salt alkaline?
      LOGICAL  :: SSA_is_Acid    ! Is fine sea-salt acidic?
      LOGICAL  :: SSC_is_Alk     ! Is coarse sea-salt alkaline?

@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed bug in logic that caused restart files not to be linked to the Restarts/ folder of the GCHP tagO3 run directory
   - Fixed timestamp for GCClassic History diagnostic so time-averaged collections match the reference time
   - Fixed double-titration of seasalt alkalinity
+  - Added fix to so that seasalt alkalinity will be appropriately considered in the calculation of heterogenous acid-catalyzed reactions of halogens on seasalt aerosols.
 
 ### Removed
   - Removed LRED_JNO2 and AERO_HG2_PARTITON switches from HEMCO_Config.rc (and related code)
