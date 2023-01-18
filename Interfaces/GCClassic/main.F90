@@ -759,7 +759,7 @@ PROGRAM GEOS_Chem
   IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                                &
        Input_Opt%ITS_AN_AEROSOL_SIM      .or.                                &
        Input_Opt%ITS_A_MERCURY_SIM       .or.                                &
-       Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+       Input_Opt%ITS_A_CARBON_SIM )      THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 
      ! Trap potential errors

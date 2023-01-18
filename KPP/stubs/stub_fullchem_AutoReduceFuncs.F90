@@ -7,7 +7,7 @@
 !
 ! !DESCRIPTION: Stub routines corresponding to fullchem_AutoReduceFuncs.F90.
 !  This allows us to satisfy compilation requirements for fullchem_mod.F90
-!  when building other KPP mechanisms (e.g. Hg, carboncycle, etc.)
+!  when building other KPP mechanisms (e.g. Hg, carbon, etc.)
 !\\
 !\\
 ! !INTERFACE:

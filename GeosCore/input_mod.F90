@@ -242,8 +242,8 @@ CONTAINS
     ! Get settings for specialty simulations from the YAML Config object
     !========================================================================
 
-    ! CH4/carboncycle simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_CarbonCycle_Sim ) THEN
+    ! CH4/carbon simulation settings
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -255,7 +255,7 @@ CONTAINS
     ENDIF
 
     ! CO simulation settings
-    IF ( Input_Opt%Its_A_TagCO_Sim .or. Input_Opt%Its_A_CarbonCycle_Sim ) THEN
+    IF ( Input_Opt%Its_A_TagCO_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO"!'
@@ -267,8 +267,8 @@ CONTAINS
     ENDIF
 
 
-    ! CO2/carboncycle simulation settings
-    IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_CarbonCycle_Sim ) THEN
+    ! CO2/carbon simulation settings
+    IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO2( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO2"!'
@@ -498,11 +498,11 @@ CONTAINS
          TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
          TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
          TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'             .and. &
-         TRIM(Sim) /= 'CARBONCYCLE'                                  ) THEN
+         TRIM(Sim) /= 'CARBON'                                       ) THEN
          
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, carboncycle, CH4, CO2, fullchem, Hg, POPs,'    // &
+                ' aerosol, carbon, CH4, CO2, fullchem, Hg, POPs,'    // &
                 ' TransportTracers, TagCO, TagCH4, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
@@ -520,7 +520,7 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CARBONCYCLE_SIM= ( TRIM(Sim) == 'CARBONCYCLE'           )
+    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
 
     !------------------------------------------------------------------------
     ! Species database file
@@ -806,7 +806,7 @@ CONTAINS
          TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
          TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
          TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'CARBONCYCLE'                                    .and. &
+         TRIM(Sim) /= 'CARBON'                                         .and. &
          TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
        ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
@@ -829,7 +829,7 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CARBONCYCLE_SIM  = ( TRIM(SIM) == 'CARBONCYCLE'         )
+    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(SIM) == 'CARBON'                )
 
     !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
@@ -1589,7 +1589,7 @@ CONTAINS
     ! Split into tagged species (turn off for full-chemistry)
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        Input_Opt%LSPLIT = .FALSE.                     ! No tagged species
-    ELSE IF ( Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
     ELSE
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species

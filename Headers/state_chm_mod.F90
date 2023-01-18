@@ -1556,7 +1556,7 @@ CONTAINS
     !========================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                              &
          Input_Opt%ITS_A_MERCURY_SIM       .or.                              &
-         Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+         Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        chmId = 'KPPHvalue'
        CALL Init_and_Register(                                               &
@@ -6472,7 +6472,7 @@ CONTAINS
        State_Chm%nProd = 0
 
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
-              Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+              Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !------------------------------
        ! Tagged O3 simulation
@@ -6626,7 +6626,7 @@ CONTAINS
        State_Chm%Map_Prod  => NULL()
 
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
-              Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+              Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !--------------------------------------------------------------------
        ! Tagged O3 simulations

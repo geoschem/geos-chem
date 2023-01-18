@@ -56,7 +56,7 @@ COLLECTIONS: 'Emissions',
              'SpeciesConc',
              #'Metrics',
              #'Budget',
-             #'CarbonCycle',
+             #'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
@@ -165,18 +165,18 @@ COLLECTIONS: 'Emissions',
                               'BudgetConvectionPBL_OCS ', 'GCHPchem',
 ::
 #==============================================================================
-# Prod and loss terms from the carboncycle simulation (plus OH conc)
-  CarbonCycle.template:        '%y4%m2%d2_%h2%n2z.nc4',
-  CarbonCycle.format:          'CFIO',
-  CarbonCycle.timestampStart:  .true.
-  CarbonCycle.monthly:         1
-  CarbonCycle.frequency:       010000
-  CarbonCycle.duration:        010000
-  CarbonCycle.mode:            'time-averaged'
-  CarbonCycle.fields:          'OHconcAfterChem', 'GCHPchem',
-                               'ProdCOfromCH4  ', 'GCHPchem',
-                               'ProdCOfromNMVOC', 'GCHPchem',
-                               'ProdCO2fromCO  ', 'GCHPchem',
+# Prod and loss terms from the carbon simulation (plus OH conc)
+  Carbon.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  Carbon.format:          'CFIO',
+  Carbon.timestampStart:  .true.
+  Carbon.monthly:         1
+  Carbon.frequency:       010000
+  Carbon.duration:        010000
+  Carbon.mode:            'time-averaged'
+  Carbon.fields:          'OHconcAfterChem', 'GCHPchem',
+                          'ProdCOfromCH4  ', 'GCHPchem',
+                          'ProdCOfromNMVOC', 'GCHPchem',
+                          'ProdCO2fromCO  ', 'GCHPchem',
 ::
 #===============================================================================
 # Cloud convective fluxes

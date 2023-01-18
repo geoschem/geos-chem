@@ -1,8 +1,8 @@
 
-# KPP/carboncycle/CMakeLists.txt
+# KPP/carbon/CMakeLists.txt
 
 #----------------------------------------------------------------------------
-# Add libKPPFirstPass.a -- carbon cycle (carboncycle) mechanism
+# Add libKPPFirstPass.a -- carbon mechanism
 #----------------------------------------------------------------------------
 add_library(KPP_FirstPass
   STATIC EXCLUDE_FROM_ALL
@@ -18,11 +18,11 @@ target_link_libraries(KPP_FirstPass
 )
 
 #----------------------------------------------------------------------------
-# Add libKPP.a -- carbon cycle (carboncycle) mechanism
+# Add libKPP.a -- carbon mechanism
 #----------------------------------------------------------------------------
 add_library(KPP 
   STATIC EXCLUDE_FROM_ALL
-  carboncycle_Funcs.F90
+  carbon_Funcs.F90
   gckpp_Function.F90
   gckpp_Global.F90
   gckpp_Initialize.F90

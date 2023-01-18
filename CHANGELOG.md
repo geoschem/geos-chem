@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added upwards mass flux diagnostic to GCHP History collection LevelEdgeDiags
   - Added timestep menu to GCHP `geoschem_config.yml` template files
   - Added HTAPv3 inventory as a global emissions option (off by default)
-  - Added carboncycle simulation for CO-CO2-CH4-OCS
+  - Added carbon simulation and KPP mechanism for CO-CO2-CH4-OCS
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm

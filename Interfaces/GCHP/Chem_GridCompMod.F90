@@ -630,10 +630,10 @@ CONTAINS
 
 !-- Add all non-advected species from KPP-based simulations
 !-- (but don't add dummy species).  KPP-based simulations now
-!-- include fullchem, Hg, and carboncycle.
+!-- include fullchem, Hg, and carbon.
     IF ( TRIM( simType ) == 'fullchem'      .or.                            &
          TRIM( simType ) == 'Hg'            .or.                            &
-         TRIM( simType ) == 'carboncycle' ) THEN
+         TRIM( simType ) == 'carbon' ) THEN
        DO I=1,NSPEC
           FOUND = .false.
 

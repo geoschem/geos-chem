@@ -1,9 +1,9 @@
-{ carboncycle.eqn
+{ carbon.eqn
 ===============================================================================
 DESCRIPTION
 ===============================================================================
 
-GEOS-Chem KPP file containing species and equations for the carbon cycle
+GEOS-Chem KPP file containing species and equations for the carbon
 chemistry mechanism
 
 ===============================================================================
@@ -12,10 +12,6 @@ FILE HISTORY
 
 v14.1.0 (release TBD)
 ---------------------
-(1) Renamed species to remove underscores; updated comments (BMY)
-
-v13.4 (Mar. 31, 2022)
-----------------------
 (1) Initial version (MSL)
 
 }

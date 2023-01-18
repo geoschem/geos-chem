@@ -9,7 +9,7 @@
 #\\
 #\\
 # !REMARKS:
-#  Customized for the carboncycle simulation.
+#  Customized for the carbon simulation.
 #EOP
 #------------------------------------------------------------------------------
 #BOC

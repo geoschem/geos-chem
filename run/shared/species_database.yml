@@ -929,7 +929,7 @@ CO2se:
 CO2fromOH:
   << : *CO2properties
   Background_VV: 1.0e-20
-  FullName: Carbon dioxide loss by OH (carboncycle mechanism)
+  FullName: Carbon dioxide loss by OH (carbon mechanism)
 CO_PROP: &COproperties
   Formula: CO
   Is_Advected: true
@@ -1022,11 +1022,11 @@ COus:
 COfromCH4:
   << : *COproperties
   Background_VV: 1.0e-20
-  FullName: CO produced from methane oxidation (carboncycle mechanism)
+  FullName: CO produced from methane oxidation (carbon mechanism)
 COfromNMVOC:
   << : *COproperties
   Background_VV: 1.0e-20
-  FullName: CO produced from non-methane VOCs oxidation (carboncycle mechanism)
+  FullName: CO produced from non-methane VOCs oxidation (carbon mechanism)
 CSL:
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
@@ -1081,17 +1081,17 @@ DSTAL4:
   FullName: Dust alkalinity, Reff = 4.5 microns
   MW_g: 29.0
 Dummy:
-  FullName: Dummy species (carboncycle mechanism)
+  FullName: Dummy species (carbon mechanism)
   Is_Gas: true
   MW_g: 1.0
 DummyCH4:
   << : *CH4properties
   Background_VV: 1.8e-6
-  FullName: Methane (external input for carboncycle mechanism)
+  FullName: Methane (external input for carbon mechanism)
 DummyNMVOC:
   << : *COproperties
   Background_VV: 1.0e-20
-  FullName: CO produced from NMVOC oxidation (external input for carboncycle mechanism)
+  FullName: CO produced from NMVOC oxidation (external input for carbon mechanism)
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -1200,14 +1200,14 @@ FeF2:
   MW_g: 55.84
 FixedCl:
   Formula: Cl
-  FullName: Atomic chlorine (external input for carboncycle mechanism)
+  FullName: Atomic chlorine (external input for carbon mechanism)
   Is_Advected: true
   Is_Gas: true
   MW_g: 35.45
 FixedOH:
   Background_VV: 4.0e-15
   Formula: OH
-  FullName: Hydroxyl radical (external input for carboncycle mechanism)
+  FullName: Hydroxyl radical (external input for carbon mechanism)
   Is_Gas: true
   MW_g: 17.01
 GlobEmis90dayTracer:

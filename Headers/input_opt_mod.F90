@@ -80,7 +80,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
-     LOGICAL                     :: ITS_A_CARBONCYCLE_SIM
+     LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: LPRT
      LOGICAL                     :: useTimers
 
@@ -581,7 +581,7 @@ CONTAINS
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
     Input_Opt%SpcMetaDataOutFile     = ''
-    Input_Opt%ITS_A_CARBONCYCLE_SIM  = .FALSE.
+    Input_Opt%ITS_A_CARBON_SIM       = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.

@@ -207,7 +207,7 @@ create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 dir="gc_2x25_metals_merra2"
 create_rundir "11\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
-dir="gc_2x25_carboncycle_merra2"
+dir="gc_2x25_carbon_merra2"
 create_rundir "12\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
@@ -343,7 +343,7 @@ create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 dir="gc_4x5_metals_merra2"
 create_rundir "11\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
-dir="gc_4x5_carboncycle_merra2"
+dir="gc_4x5_carbon_merra2"
 create_rundir "12\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
@@ -421,7 +421,7 @@ create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 #dir="gc_4x5_metals_geosfp"
 #create_rundir "11\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
-dir="gc_4x5_carboncycle_geosfp"
+dir="gc_4x5_carbon_geosfp"
 create_rundir "12\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================

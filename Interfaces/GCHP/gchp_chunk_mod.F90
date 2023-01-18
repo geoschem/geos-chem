@@ -516,7 +516,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM      .or. &
          Input_Opt%ITS_A_MERCURY_SIM       .or. &
-         Input_Opt%ITS_A_CARBONCYCLE_SIM ) THEN
+         Input_Opt%ITS_A_CARBON_SIM      ) THEN
        CALL INIT_CHEMISTRY ( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')

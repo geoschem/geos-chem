@@ -1,6 +1,6 @@
-MODULE carboncycle_Funcs
+MODULE carbon_Funcs
   !
-  ! Stub module for KPP/carboncycle/carboncycle_Funcs.F90
+  ! Stub module for KPP/carbon/carbon_Funcs.F90
   !
   USE gckpp_Precision
   USE gckpp_Parameters
@@ -10,12 +10,12 @@ MODULE carboncycle_Funcs
   !
 CONTAINS
   !
-  SUBROUTINE carboncycle_ConvertKgToMolecCm3(                                &
+  SUBROUTINE carbon_ConvertKgToMolecCm3(                                &
              I,        J,          L,          id_CH4,    id_CO,             &
              id_CO2,   xnumol_CH4, xnumol_CO2, xnumol_CO, State_Chm,         &
              State_Met                                                      )
     !
-    ! Stub routine for carboncycle_ConvertKgToMolecCm3,
+    ! Stub routine for carbon_ConvertKgToMolecCm3,
     ! needed to satisfy compile-time dependencies
     !
     USE State_Chm_Mod, ONLY : ChmState
@@ -30,9 +30,9 @@ CONTAINS
     REAL(fp),       INTENT(IN) :: xnumol_CO2
     TYPE(MetState), INTENT(IN) :: State_Met
     TYPE(ChmState), INTENT(IN) :: State_Chm
-  END SUBROUTINE carboncycle_ConvertKgToMolecCm3
+  END SUBROUTINE carbon_ConvertKgToMolecCm3
   !
-  SUBROUTINE carboncycle_ComputeRateConstants(                               &
+  SUBROUTINE carbon_ComputeRateConstants(                               &
              I,             J,                 L,                            &
              ConcClMnd,     ConcOHMnd,         LCH4_by_OH,                   &
              LCO_in_Strat,  OHdiurnalFac,      PCO_fr_CH4_use,               &
@@ -40,7 +40,7 @@ CONTAINS
              PCO_in_Strat,  dtChem,            State_Chm,                    &
              State_Met                                                      )
     !
-    ! Stub for routine carboncycle_ComputeRateConstants,
+    ! Stub for routine carbon_ComputeRateConstants,
     ! needed to satisfy compile-time dependencies
     !
     USE State_Chm_Mod, ONLY : ChmState
@@ -60,14 +60,14 @@ CONTAINS
     REAL(fp),       INTENT(IN) :: dtChem
     TYPE(ChmState), INTENT(IN) :: State_Chm
     TYPE(MetState), INTENT(IN) :: State_Met
-  END SUBROUTINE carboncycle_ComputeRateConstants
+  END SUBROUTINE carbon_ComputeRateConstants
   !
-  SUBROUTINE carboncycle_ConvertMolecCm3ToKg(                                &
+  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                &
              I,         J,          L,         id_CH4,     id_CO,            &
              id_COch4,  id_COnmvoc, id_CO2,    xnumol_CH4, xnumol_CO2,       &
              xnumol_CO, State_Chm,  State_Met                               )
     !
-    ! Stub for carboncycle_ConvertMolecCm3ToKg,
+    ! Stub for carbon_ConvertMolecCm3ToKg,
     ! needed to satisfy compile-time dependencies
     !
     USE State_Chm_Mod, ONLY : ChmState
@@ -83,42 +83,42 @@ CONTAINS
     REAL(fp),       INTENT(IN)    :: xnumol_CO2
     TYPE(MetState), INTENT(IN)    :: State_Met
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
-  END SUBROUTINE carboncycle_ConvertMolecCm3ToKg
+  END SUBROUTINE carbon_ConvertMolecCm3ToKg
 
-  FUNCTION carboncycle_Get_COfromCH4_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_COfromCH4_Flux( dtChem ) RESULT ( flux )
     !
-    ! Stub for carboncycle_Get_CO_CH4_Flux
+    ! Stub for carbon_Get_CO_CH4_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION carboncycle_Get_COfromCH4_Flux
+  END FUNCTION carbon_Get_COfromCH4_Flux
 
-  FUNCTION carboncycle_Get_COfromNMVOC_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_COfromNMVOC_Flux( dtChem ) RESULT ( flux )
     !
-    ! Stub for carboncycle_Get_CO_NMVOC_Flux
+    ! Stub for carbon_Get_CO_NMVOC_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION carboncycle_Get_COfromNMVOC_Flux
+  END FUNCTION carbon_Get_COfromNMVOC_Flux
 
-  FUNCTION  carboncycle_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
+  FUNCTION  carbon_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
     !
-    ! Stub for carboncycle_Get_CO_NMVOC_Flux
+    ! Stub for carbon_Get_CO_NMVOC_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION carboncycle_Get_CO2fromOH_Flux
+  END FUNCTION carbon_Get_CO2fromOH_Flux
 
-  FUNCTION ccarboncycle_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
     !
-    ! Stub for ccarboncycle_Get_OH_E_Flux
+    ! Stub for ccarbon_Get_OH_E_Flux
     ! needed to satisfy compile-time dependencies
     !
     REAL(dp), INTENT(IN) :: dtChem
     REAL(dp)             :: flux
-  END FUNCTION ccarboncycle_Get_FixedOH_Flux
+  END FUNCTION carbon_Get_FixedOH_Flux
 
-END MODULE carboncycle_Funcs
+END MODULE carbon_Funcs

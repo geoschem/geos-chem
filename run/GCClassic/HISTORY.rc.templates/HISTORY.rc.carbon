@@ -1,5 +1,5 @@
 ###############################################################################
-###  HISTORY.rc file for GEOS-Chem carboncycle simulation                   ###
+###  HISTORY.rc file for GEOS-Chem carbon simulation                   ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
@@ -31,7 +31,7 @@ COLLECTIONS: 'Restart',
              'Metrics',
              'SpeciesConc',
              #'Budget',
-	     #'CarbonCycle',
+	     #'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
@@ -52,7 +52,7 @@ COLLECTIONS: 'Restart',
 #
 # Available for all simulations
 #
-# NOTE: Chem_KPPHvalue isn't needed since the carboncycle simulation uses
+# NOTE: Chem_KPPHvalue isn't needed since the carbon simulation uses
 # the forward Euler solver instead of Rosenbrock.
 #==============================================================================
   Restart.filename:     './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
@@ -134,18 +134,18 @@ COLLECTIONS: 'Restart',
                               'BudgetWetDepPBL_?WET?         ',
 ::
 #==============================================================================
-# %%%%% THE CarbonCycle COLLECTION %%%%%
+# %%%%% THE Carbon COLLECTION %%%%%
 #
-# Production and loss fields from the carboncycle simulation via KPP
+# Production and loss fields from the carbon simulation via KPP
 #==============================================================================
-  CarbonCycle.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  CarbonCycle.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
-  CarbonCycle.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
-  CarbonCycle.mode:           'time-averaged'
-  CarbonCycle.fields:         'OHconcAfterChem               ',
-                              'ProdCOfromCH4                 ', 
-                              'ProdCOfromNMVOC               ', 
-                              'ProdCO2fromCO                 ',  
+  Carbon.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  Carbon.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Carbon.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  Carbon.mode:           'time-averaged'
+  Carbon.fields:         'OHconcAfterChem               ',
+                         'ProdCOfromCH4                 ', 
+                         'ProdCOfromNMVOC               ', 
+                         'ProdCO2fromCO                 ',  
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%

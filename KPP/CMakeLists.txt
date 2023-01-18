@@ -9,10 +9,10 @@ if("${MECH}" STREQUAL fullchem)
 endif()
 
 #-----------------------------------------------------------------------------
-# Build the carboncycle mechanism if configured with -DMECH=carbonycle
+# Build the carbon mechanism if configured with -DMECH=carbon
 #-----------------------------------------------------------------------------
-if("${MECH}" STREQUAL carboncycle)
-  add_subdirectory(carboncycle)
+if("${MECH}" STREQUAL carbon)
+  add_subdirectory(carbon)
 endif()
 
 #-----------------------------------------------------------------------------

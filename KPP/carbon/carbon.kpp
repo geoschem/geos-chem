@@ -7,7 +7,7 @@
 #MEX          off         { MEX is for Matlab, so skip it                }
 #STOICMAT     off         { Do not create stoichiometric matrix          }
 
-#INCLUDE carboncycle.eqn  { Chemical reactions for carboncycle mechanism }
+#INCLUDE carbon.eqn       { Chemical reactions for carbon mechanism      }
 
 #FAMILIES                 { Chemical families for prod/loss diagnostic   }
 PCO : CO;

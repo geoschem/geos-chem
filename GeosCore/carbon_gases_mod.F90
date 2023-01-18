@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: carboncycle_mod.F90
+! !MODULE: carbon_gases_mod.F90
 !
-! !DESCRIPTION: Module CARBONCYCLE_MOD contains variables and routines
+! !DESCRIPTION: Module CARBON_GASES_MOD contains variables and routines
 ! for simulating CH4, CO, CO2, and OCS with an online calculation of the
 ! chemistry between them using KPP. It was adapted directly from
 ! the module CH4_CO_CO2_MOD.F provided by Beata Bukosa.
@@ -13,7 +13,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE CarbonCycle_Mod
+MODULE Carbon_Gases_Mod
 !
 ! !USES:
 !
@@ -27,10 +27,10 @@ MODULE CarbonCycle_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Emiss_CarbonCycle
-  PUBLIC :: Chem_CarbonCycle
-  PUBLIC :: Init_CarbonCycle
-  PUBLIC :: Cleanup_CarbonCycle
+  PUBLIC :: Emiss_Carbon_Gases
+  PUBLIC :: Chem_Carbon_Gases
+  PUBLIC :: Init_Carbon_Gases
+  PUBLIC :: Cleanup_Carbon_Gases
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -76,7 +76,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emiss_carboncycle
+! !IROUTINE: emiss_carbon_gases
 !
 ! !DESCRIPTION: Places emissions of CH4, CO, CO2, OCS [kg] into the
 !  chemical species array.
@@ -84,8 +84,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emiss_CarbonCycle( Input_Opt,  State_Chm, State_Diag,            &
-                                State_Grid, State_Met, RC                    )
+  SUBROUTINE Emiss_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,            &
+                                 State_Grid, State_Met, RC                    )
 !
 ! !USES:
 !
@@ -158,7 +158,7 @@ CONTAINS
     REAL(fp),    PARAMETER :: xnumol_C = AVO / 12.0e-3_fp
 
     !========================================================================
-    ! Emiss_CarbonCycle begins here!
+    ! Emiss_Carbon_Gases begins here!
     !========================================================================
 
     ! Initialize
@@ -168,7 +168,7 @@ CONTAINS
     Spc      => NULL()
     errMsg   =  ''
     thisLoc  =  &
-     ' -> at Emiss_CarbonCycle (in module GeosCore/carboncycle_mod.F90)'
+     ' -> at Emiss_Carbon_Gases (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Exit with error if we can't find the HEMCO state object
     IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
@@ -352,26 +352,26 @@ CONTAINS
     Spc   => NULL()
     Ptr2D => NULL()
 
-  END SUBROUTINE Emiss_CarbonCycle
+  END SUBROUTINE Emiss_Carbon_Gases
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: chem_carboncycle
+! !IROUTINE: chem_carbon_gases
 !
 ! !DESCRIPTION: Computes the chemical loss of carbon species (sources - sinks)
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Chem_CarbonCycle( Input_Opt,  State_Met,  State_Chm,            &
+  SUBROUTINE Chem_Carbon_Gases( Input_Opt,  State_Met,  State_Chm,            &
                                State_Grid, State_Diag, RC                   )
 !
 ! !USES:
 !
-    USE carboncycle_Funcs
+    USE carbon_Funcs
     USE gckpp_Global
     USE gckpp_Integrator,     ONLY : Integrate
    !USE gckpp_Monitor,        ONLY : Spc_Names
@@ -483,7 +483,7 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! Chem_Carboncycle begins here!
+    ! Chem_Carbon_Gases begins here!
     !========================================================================
 
     ! Initialize
@@ -493,7 +493,7 @@ CONTAINS
     Spc      => State_Chm%Species
     errMsg   = ''
     thisLoc  = &
-     ' -> at Chem_CarbonCycle (in module GeosCore/carboncycle_mod.F90)'
+     ' -> at Chem_Carbon_Gases (in module GeosCore/carbon_gases_mod.F90)'
 
     ! First-time only safety checks
     IF ( first ) THEN
@@ -592,19 +592,6 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-! NOTE: This routine looks like it is not needed here
-!    !========================================================================
-!    ! Save OH concentrations [molec/cm3] for metrics (CH4 only)
-!    !========================================================================
-!    IF ( id_CH4 > 0 ) THEN
-!       CALL CH4_OhSave_CarbonCycle(                                          &
-!            Global_OH  = Global_OH,                                          &
-!            State_Chm  = State_Chm,                                          &
-!            State_Grid = State_Grid,                                         &
-!            State_Met  = State_Met,                                          &
-!            sumOfCosSza  = sumOfCosSza                                          )
-!    ENDIF
-
 #ifdef ACTIVATE_TAGGED_SPECIES
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%% TAGGED SPECIES HANDLING
@@ -678,7 +665,7 @@ CONTAINS
        !=====================================================================
 
        ! Convert units
-       CALL carboncycle_ConvertKgtoMolecCm3(                                 &
+       CALL carbon_ConvertKgtoMolecCm3(                                      &
             I          = I,                                                  &
             J          = J,                                                  &
             L          = L,                                                  &
@@ -705,7 +692,7 @@ CONTAINS
        ENDIF
 
        ! Compute the rate constants that will be used
-       CALL carboncycle_ComputeRateConstants(                                &
+       CALL carbon_ComputeRateConstants(                                     &
             I                = I,                                            &
             J                = J,                                            &
             L                = L,                                            &
@@ -814,7 +801,7 @@ CONTAINS
        ENDIF
 
        ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
-       CALL carboncycle_ConvertMolecCm3ToKg(                                 &
+       CALL carbon_ConvertMolecCm3ToKg(                                      &
             I            = I,                                                &
             J            = J,                                                &
             L            = L,                                                &
@@ -903,7 +890,7 @@ CONTAINS
        !
        ! Production and loss of CO
        !
-       ! NOTE: Call functions in KPP/carboncycle/carboncarboncycle_Funcs.F90 so
+       ! NOTE: Call functions in KPP/carbon/carbon_Funcs.F90 so
        ! that we avoid bringing in KPP species indices into this module.
        ! This avoids compile-time dependency errors.
        !=====================================================================
@@ -912,20 +899,20 @@ CONTAINS
        IF ( Input_Opt%LCHEMCO2 ) THEN
           IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
              State_Diag%ProdCO2fromCO(I,J,L) =                               &
-                carboncycle_Get_CO2fromOH_Flux( dtChem )
+                carbon_Get_CO2fromOH_Flux( dtChem )
           ENDIF
        ENDIF
 
        ! Production of CO from CH4
        IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
           State_Diag%ProdCOfromCH4(I,J,L) =                                  &
-             carboncycle_Get_COfromCH4_Flux( dtChem )
+             carbon_Get_COfromCH4_Flux( dtChem )
        ENDIF
 
        ! Units: [kg/s] Production of CO from NMVOCs
        IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
           State_Diag%ProdCOfromNMVOC(I,J,L) =                                &
-             carboncycle_Get_COfromNMVOC_Flux( dtChem )
+             carbon_Get_COfromNMVOC_Flux( dtChem )
        ENDIF
 
 #ifdef ACTIVATE_TAGGED_SPECIES
@@ -964,7 +951,7 @@ CONTAINS
     !@@@ Allocate the CH4 chemistry sink to different tagged CH4 species
     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     IF ( Input_Opt%LSPLIT .and. id_CH4 > 0 ) THEN
-       CALL CH4_Distrib_CarbonCycle(                                         &
+       CALL CH4_Distrib_Carbon(                                              &
             PrevCh4    = PrevCh4,                                            &
             Input_Opt  = Input_Opt,                                          &
             State_Chm  = State_Chm,                                          &
@@ -975,7 +962,7 @@ CONTAINS
     ! Free pointers for safety's sake
     Spc => NULL()
 
-  END SUBROUTINE Chem_CarbonCycle
+  END SUBROUTINE Chem_Carbon_Gases
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -985,7 +972,7 @@ CONTAINS
 ! !IROUTINE: ReadChemInputFields
 !
 ! !DESCRIPTION: Calls HCO_EvalFld to read the various oxidant and other
-!  non-emissions fields needed for the carboncycle simulation
+!  non-emissions fields needed for the carbon simulation
 !\\
 !\\
 ! !INTERFACE:
@@ -1065,7 +1052,7 @@ CONTAINS
     dgnName = ''
     errMsg  = ''
     thisLoc = &
-     ' -> at ReadInputChemFields (in module GeosCore/carboncycle_mod.F90)'
+     ' -> at ReadInputChemFields (in module GeosCore/carbon_gases_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Loss frequencies of CH4
@@ -1131,7 +1118,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! P(CO) from GMI:
     ! Input via HEMCO ("GMI_PROD_CO" field) as [v/v/s]
-    ! Units will be converted in carboncycle_ComputeRateConstants
+    ! Units will be converted in carbon_ComputeRateConstants
     !------------------------------------------------------------------------
     DgnName = 'GMI_PROD_CO'
     CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
@@ -1187,167 +1174,13 @@ CONTAINS
 
   END SUBROUTINE ReadChemInputFields
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ch4_ohsave_carboncycle
-!
-! !DESCRIPTION: Subroutine CH4\_OHSAVE archives the CH3CCl3 lifetime from the
-!  OH used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01, 7/20/04)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CH4_OhSave_CarbonCycle( State_Met,  State_Chm,                  &
-                                     State_Grid, Global_OH, OHdiurnalFac    )
-!
-! !USES:
-!
-    USE Species_Mod,        ONLY : SpcConc
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(MetState), INTENT(IN)  :: State_Met       ! Meteorology State object
-    TYPE(ChmState), INTENT(IN)  :: State_Chm       ! Chemistry State object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
-    REAL(fp),       INTENT(IN)  :: Global_OH(                                &
-                                    State_Grid%NX,                           &
-                                    State_Grid%NY,                           &
-                                    State_Grid%NZ) ! OH [molec/cm3]
-    REAL(fp),       INTENT(IN) :: OHdiurnalFac(                              &
-                                    State_Grid%NX,                           &
-                                    State_Grid%NY) ! OH diurnal factor [1]
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER                :: I,       J,           L
-    INTEGER                :: Thread
-    REAL(fp)               :: MASST,   AREA_M2
-    REAL(fp)               :: KCLO,    LOSS,        OHMASS
-    REAL(fp)               :: KCH4,    CH4LOSE,     CH4MASS
-    REAL(fp)               :: CH4EMIS, CH4TROPMASS, BOXVL
-    REAL(fp)               :: C_OH,    DT,          FAC_DIURNAL
-    REAL(fp)               :: SUNCOS,  tsPerDay
-
-    ! Pointers
-    TYPE(SpcConc), POINTER :: Spc(:)
-
-    !========================================================================
-    ! CH4_OHSAVE begins here!
-    !========================================================================
-
-    ! Chemistry timestep [s] and timesteps per day
-    DT = GET_TS_CHEM()
-
-    ! Point to chemical species array [kg/kg dry]
-    Spc => State_Chm%Species
-
-    ! Calculate OH mass and total air mass
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,           J,       L,       BOXVL,   C_OH             )&
-    !$OMP PRIVATE( OHMASS,      MASST,   KCLO,    LOSS,    KCH4             )&
-    !$OMP PRIVATE( CH4TROPMASS, CH4MASS, CH4LOSE, CH4EMIS, AREA_M2          )&
-    !$OMP COLLAPSE( 3                                                       )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       !---------------------------------------------------------------------
-       ! Initialize loop variables
-       !---------------------------------------------------------------------
-       BOXVL       = 0.0_fp
-       C_OH        = 0.0_fp
-       OHMASS      = 0.0_fp
-       MASST       = 0.0_fp
-       KCLO        = 0.0_fp
-       LOSS        = 0.0_fp
-       CH4TROPMASS = 0.0_fp
-       CH4LOSE     = 0.0_fp
-       CH4EMIS     = 0.0_fp
-       CH4MASS     = Spc(id_CH4)%Conc(I,J,L) * XNUMOL_CH4
-
-       !---------------------------------------------------------------------
-       ! Only process tropospheric boxes (bmy, 4/17/00)
-       !---------------------------------------------------------------------
-       IF ( State_Met%InChemGrid(I,J,L) ) THEN
-
-          ! Grid box volume [cm3]
-          BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-          ! OH concentration [molec/cm3], with daily scale factor
-          C_OH = Global_OH(I,J,L) * OHdiurnalFac(I,J)
-
-          ! Calculate OH mass [molec]
-          OHMASS = C_OH * State_Met%AIRNUMDEN(I,J,L) * BOXVL
-
-          ! Calculate total air mass [molec]
-          MASST  = State_Met%AIRNUMDEN(I,J,L) * BOXVL
-
-          ! Calculate CH3CCl3 + OH rate constant from JPL '06
-          ! [cm3/molec/s]
-          KCLO = 1.64e-12_fp * EXP( -1520.0_fp / State_Met%T(I,J,L))
-
-          ! Calculate Loss term [molec/s]
-          LOSS   = KCLO                       * C_OH                         &
-                 * State_Met%AIRNUMDEN(I,J,L) * BOXVL
-
-          ! Calculate CH4 + OH rate constant from JPL '06
-          ! [cm3 / molec / s]
-          KCH4 = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L) )
-
-          ! Calculate CH4 mass [molec / box] from [kg / box]
-          CH4TROPMASS = Spc(id_CH4)%Conc(I,J,L) * XNUMOL_CH4
-          CH4MASS     = Spc(id_CH4)%Conc(I,J,L) * XNUMOL_CH4
-
-          ! Calculate loss term  [molec /box / s]
-          CH4LOSE = KCH4                       * C_OH  * &
-                    State_Met%AIRNUMDEN(I,J,L) * BOXVL
-
-          ! Calculate CH4 emissions [molec / box / s]
-          !   Only for surface level
-          ! Grid box surface area [cm2]
-          ! HEMCO update: CH4_EMIS now in kg/m2/s (ckeller, 9/12/2014)
-          IF ( L == 1 ) THEN
-             CH4EMIS = CH4_EMIS_J(I,J,1)                                     &
-                     * State_Grid%Area_M2(I,J)                               &
-                     * XNUMOL_CH4
-          ENDIF
-       ENDIF
-
-       ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
-       ! which calculates mass-weighted mean [OH] and CH3CCl3
-       ! lifetime.
-!         CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, &
-!              CH4LOSE, CH4TROPMASS, CH4EMIS, CH4MASS )
-
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Free pointer
-    Spc => NULL()
-
-  END SUBROUTINE CH4_OhSave_CarbonCycle
-!EOC
 #ifdef ACTIVATE_TAGGED_SPECIES
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ch4_distrib_carboncycle
+! !IROUTINE: ch4_distrib
 !
 ! !DESCRIPTION: Allocates the chemistry sink to different emission species.
 !  (Only called if there are tagged CH4 species.)
@@ -1355,8 +1188,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CH4_Distrib_CarbonCycle( PrevCh4,   Input_Opt,                  &
-                                      State_Chm, State_Grid                 )
+  SUBROUTINE CH4_Distrib( PrevCh4, Input_Opt, State_Chm, State_Grid )
 !
 ! !USES:
 !
@@ -1433,7 +1265,7 @@ CONTAINS
     ! Free pointer
     Spc => NULL()
 
-  END SUBROUTINE CH4_DISTRIB_CarbonCycle
+  END SUBROUTINE CH4_DISTRIB
 !EOC
 #endif
 !------------------------------------------------------------------------------
@@ -1441,15 +1273,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_carboncycle
+! !IROUTINE: init_carbon_gases
 !
 ! !DESCRIPTION: Allocates and zeroes module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_CarbonCycle( Input_Opt,  State_Chm, State_Diag,             &
-                               State_Grid, RC                                )
+  SUBROUTINE Init_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,             &
+                                State_Grid, RC                                )
 !
 ! !USES:
 !
@@ -1499,7 +1331,7 @@ CONTAINS
     xnumol_OH  = 1.0_fp
     errMsg     = ''
     thisLoc    = &
-     ' -> at Init_CarbonCycle (in module GeosCore/carboncycle_mod.F90)'
+     ' -> at Init_Carbon_Gases (in module GeosCore/carbon_gases_mod.F90)'
 
     !========================================================================
     ! Define GEOS-Chem species indices
@@ -1545,7 +1377,7 @@ CONTAINS
     ! Initialize variables for COchemistry
     !========================================================================
     ALLOCATE( sumOfCosSza( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'carboncycle_mod.F90:sumOfCosSza', 0, RC )
+    CALL GC_CheckVar( 'carbon_gases_mod.F90:sumOfCosSza', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     sumOfCosSza = 0.0_fp
 
@@ -1555,7 +1387,7 @@ CONTAINS
     IF ( id_CH4 > 0 ) THEN
        ALLOCATE( CH4_EMIS_J( State_Grid%NX, State_Grid%NY, N_CH4_DIAGS ),    &
             STAT=RC )
-       CALL GC_CheckVar( 'carboncycle_mod.F90:CH4_EMIS', 0, RC )
+       CALL GC_CheckVar( 'carbon_gases_mod.F90:CH4_EMIS', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        CH4_EMIS_J = 0.0_fp
     ENDIF
@@ -1570,14 +1402,14 @@ CONTAINS
     !========================================================================
     ! none yet
 
-  END SUBROUTINE Init_CarbonCycle
+  END SUBROUTINE Init_Carbon_Gases
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_carboncycle
+! !IROUTINE: cleanup_carbon_gases
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_CH4 deallocates module arrays.
 !  (bmy, 1/16/01)
@@ -1585,7 +1417,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_CarbonCycle( RC )
+  SUBROUTINE Cleanup_Carbon_Gases( RC )
 !
 ! !USES:
 !
@@ -1599,7 +1431,7 @@ CONTAINS
 !BOC
 !
     !=================================================================
-    ! Cleanup_CarbonCycle begins here!
+    ! Cleanup_Carbon_Gases begins here!
     !=================================================================
 
     ! Initialize
@@ -1608,17 +1440,17 @@ CONTAINS
     ! Deallocate
     IF ( ALLOCATED( CH4_EMIS_J ) ) THEN
        DEALLOCATE( CH4_EMIS_J, STAT=RC )
-       CALL GC_CheckVar( 'carboncycle_mod.F90:CH4_EMIS', 2, RC )
+       CALL GC_CheckVar( 'carbon_gases_mod.F90:CH4_EMIS', 2, RC )
        RETURN
     ENDIF
 
     IF ( ALLOCATED( sumOfCosSza ) ) THEN
        DEALLOCATE( sumOfCosSza, STAT=RC )
-       CALL GC_CheckVar( 'carboncycle_mod.F90:sumOfCosSza', 2, RC )
+       CALL GC_CheckVar( 'carbon_gases_mod.F90:sumOfCosSza', 2, RC )
        RETURN
     ENDIF
 
-  END SUBROUTINE Cleanup_CarbonCycle
+  END SUBROUTINE Cleanup_Carbon_Gases
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1840,7 +1672,7 @@ CONTAINS
 ! !REMARKS:
 !  This has to be called on the first chemistry timestep, because the HEMCO
 !  Configuration file (HEMCO_Config.rc) will not have been read when
-!  Init_CarbonCycle is called.
+!  Init_Carbon_Gases is called.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1863,7 +1695,7 @@ CONTAINS
     RC       = GC_SUCCESS
     errMsg   = ''
     thisLoc  = &
-     ' -> at InquireGlobalOHversion (in module GeosCore/carboncycle_mod.F90)'
+     ' -> at InquireGlobalOHversion (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Test if any Global OH option is on
     optVal   = HCO_GC_GetOption( "GLOBAL_OH", extNr=0 )
@@ -1885,15 +1717,15 @@ CONTAINS
           ELSE
              WRITE( 6, 100 ) 'GLOBAL_OH'
           ENDIF
- 100   FORMAT( 'CarbonCycle: Using global OH oxidant field option: ', a )
+ 100   FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
 
        ELSE
           WRITE( 6, 110 )
- 110      FORMAT( 'CarbonCycle: Global OH is set to zero!' )
+ 110      FORMAT( 'Carbon_Gases: Global OH is set to zero!' )
        ENDIF
 
     ENDIF
 
   END SUBROUTINE InquireGlobalOHversion
 !EOC
-END MODULE CarbonCycle_Mod
+END MODULE Carbon_Gases_Mod

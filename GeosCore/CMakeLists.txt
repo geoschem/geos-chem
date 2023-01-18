@@ -42,7 +42,7 @@ add_library(GeosCore
   aerosol_mod.F90
   airs_ch4_mod.F90
   carbon_mod.F90
-  carboncycle_mod.F90
+  carbon_gases_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
   cleanup.F90

@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: carboncycle_Funcs
+! !MODULE: carbon_Funcs
 !
 ! !DESCRIPTION: Module containing routines for passing data from GEOS-Chem
-!  to the carboncycle chemical mechanism solver code.
+!  to the carbon chemical mechanism solver code.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE carboncycle_Funcs
+MODULE carbon_Funcs
 !
 ! !USES:
 !
@@ -30,7 +30,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_ConvertKgToMolecCm3
+! !IROUTINE: carbon_ConvertKgToMolecCm3
 !
 ! !DESCRIPTION: Converts species from kg to molec/cm3 and stores into
 !  the "C" concentration array used by the KPP-generated solver code.
@@ -38,7 +38,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carboncycle_ConvertKgToMolecCm3(                                &
+  SUBROUTINE carbon_ConvertKgToMolecCm3(                                &
              I,         J,          L,          id_CH4,     id_CO2,          &
              id_CO,     xnumol_CH4, xnumol_CO,  xnumol_CO2, State_Chm,       &
              State_Met                                                      )
@@ -73,7 +73,7 @@ CONTAINS
     TYPE(SpcConc), POINTER :: Spc(:)
 
     !========================================================================
-    ! carboncycle_ConvertKgToMolecCm3 begins here!
+    ! carbon_ConvertKgToMolecCm3 begins here!
     !========================================================================
 
     ! Point to species array
@@ -108,22 +108,22 @@ CONTAINS
     ! Free pointer
     Spc => NULL()
 
-  END SUBROUTINE carboncycle_ConvertKgToMolecCm3
+  END SUBROUTINE carbon_ConvertKgToMolecCm3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_ComputeRateConstants
+! !IROUTINE: carbon_ComputeRateConstants
 !
-! !DESCRIPTION: Computes the rate constants used in the carboncycle chemical
+! !DESCRIPTION: Computes the rate constants used in the carbon chemical
 !  mechanism.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carboncycle_ComputeRateConstants(                               &
+  SUBROUTINE carbon_ComputeRateConstants(                               &
              I,             J,                 L,                            &
              ConcClMnd,     ConcOHMnd,         LCH4_by_OH,                   &
              LCO_in_Strat,  OHdiurnalFac,      PCO_fr_CH4_use,               &
@@ -163,7 +163,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     !========================================================================
-    ! carboncycle_ComputeRateConstants begins here!
+    ! carbon_ComputeRateConstants begins here!
     !========================================================================
 
     ! Initialize
@@ -247,21 +247,21 @@ CONTAINS
                   * 1.0e-6_dp
     ENDIF
 
-  END SUBROUTINE carboncycle_ComputeRateConstants
+  END SUBROUTINE carbon_ComputeRateConstants
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_ConvertMolecCm3ToKg
+! !IROUTINE: carbon_ConvertMolecCm3ToKg
 !
 ! !DESCRIPTION: Converts species concentrations (after chemistry) from kg to
 !  molec/cm3 and stores into the State_Chm%Species concentration array.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carboncycle_ConvertMolecCm3ToKg(                                &
+  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                &
              I,         J,          L,        id_CH4,     id_CO,             &
              id_COch4,  id_COnmvoc, id_CO2,   xnumol_CH4, xnumol_CO2,        &
              xnumol_CO, State_Chm,  State_Met                               )
@@ -301,7 +301,7 @@ CONTAINS
     TYPE(SpcConc), POINTER :: Spc(:)
 
     !========================================================================
-    ! carboncycle__ConvertMolecCm3ToKg begins here!
+    ! carbon__ConvertMolecCm3ToKg begins here!
     !========================================================================
 
     ! Point to species array
@@ -336,21 +336,21 @@ CONTAINS
     ! Free pointer
     Spc => NULL()
 
-  END SUBROUTINE carboncycle_ConvertMolecCm3ToKg
+  END SUBROUTINE carbon_ConvertMolecCm3ToKg
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_get_co_ch4_flux
+! !IROUTINE: carbon_get_co_ch4_flux
 !
 ! !DESCRIPTION: Returns the flux of CO_CH4 in molec/cm3/s for diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carboncycle_Get_COfromCH4_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_COfromCH4_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -365,21 +365,21 @@ CONTAINS
 
     flux = C(ind_COfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION carboncycle_Get_COfromCH4_Flux
+  END FUNCTION carbon_Get_COfromCH4_Flux
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_get_cofromnmvoc_flux
+! !IROUTINE: carbon_get_cofromnmvoc_flux
 !
 ! !DESCRIPTION: Returns the flux of CO_NMVOC in molec/cm3/s for diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carboncycle_Get_COfromNMVOC_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_COfromNMVOC_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -395,21 +395,21 @@ CONTAINS
 
     flux = C(ind_COfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION carboncycle_Get_COfromNMVOC_Flux
+  END FUNCTION carbon_Get_COfromNMVOC_Flux
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_get_co2fromoh_flux
+! !IROUTINE: carbon_get_co2fromoh_flux
 !
 ! !DESCRIPTION: Returns the flux of CO2_OH in molec/cm3/s for diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carboncycle_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -425,21 +425,21 @@ CONTAINS
 
     flux = C(ind_CO2fromOH) / dtChem     ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION carboncycle_Get_CO2fromOH_Flux
+  END FUNCTION carbon_Get_CO2fromOH_Flux
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carboncycle_get_oh_e_flux
+! !IROUTINE: carbon_get_oh_e_flux
 !
 ! !DESCRIPTION: Returns the flux of OH_E in molec/cm3/s for diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ccarboncycle_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
+  FUNCTION carbon_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
 !
 ! !INPUT PARAMETERS:
 !
@@ -455,7 +455,7 @@ CONTAINS
 
     flux = C(ind_FixedOH) / dtChem       ! molec/cm3 --> molec/cm3/s
 
-  END FUNCTION ccarboncycle_Get_FixedOH_Flux
+  END FUNCTION carbon_Get_FixedOH_Flux
 
 
   !==========================================================================
@@ -492,4 +492,4 @@ CONTAINS
 
   END FUNCTION GC_OHCO
 
-END MODULE carboncycle_Funcs
+END MODULE carbon_Funcs

@@ -199,7 +199,7 @@
   !$OMP THREADPRIVATE( State_Het )
 
   !==========================================================================
-  ! Variables specific to the carboncycle mechanism
+  ! Variables specific to the carbon mechanism
   !==========================================================================
 
   ! Array for strat CH4/CO/CO2 rates

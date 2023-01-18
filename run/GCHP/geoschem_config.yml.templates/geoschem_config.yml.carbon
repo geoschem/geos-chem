@@ -1,6 +1,6 @@
 ---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
-### Customized for simulations using the KPP "carboncycle" mechanism.
+### Customized for simulations using the KPP carbon mechanism.
 
 #============================================================================
 # Simulation settings
