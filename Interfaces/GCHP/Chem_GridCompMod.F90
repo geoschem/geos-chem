@@ -147,6 +147,7 @@ MODULE Chem_GridCompMod
 
   ! When to do the analysis
   INTEGER                          :: ANAPHASE
+  INTEGER, PARAMETER               :: CHEMPHASE = 2
 #else
   LOGICAL                          :: isProvider ! provider to AERO, RATS, ANOX?
   LOGICAL                          :: calcOzone  ! if PTR_GCCTO3 is associated
@@ -246,6 +247,7 @@ CONTAINS
     USE GEOS_Interface,       ONLY : MetVars_For_Lightning_Init, &
                                      GEOS_CheckRATSandOx 
     USE GEOS_AeroCoupler,     ONLY : GEOS_AeroSetServices
+    USE GEOS_CarbonInterface, ONLY : GEOS_CarbonSetServices
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -387,7 +389,8 @@ CONTAINS
     _VERIFY(STATUS)
 
 #if defined(MODEL_GEOS)
-    CALL GEOS_AeroSetServices( GC, DoAERO, __RC__ )
+    CALL GEOS_AeroSetServices  ( GC, DoAERO, __RC__ )
+    CALL GEOS_CarbonSetServices( GC, myState%myCF, __RC__ )
 #endif
 
     !=======================================================================
@@ -1042,8 +1045,9 @@ CONTAINS
     USE TIME_MOD,  ONLY : GET_TS_DYN,  GET_TS_CONV
     USE TIME_MOD,  ONLY : GET_TS_RAD
 #if defined( MODEL_GEOS )
-    USE GEOS_INTERFACE,   ONLY : GEOS_AddSpecInfoForMoist
-    USE GEOS_AeroCoupler, ONLY : GEOS_AeroInit
+    USE GEOS_INTERFACE,       ONLY : GEOS_AddSpecInfoForMoist
+    USE GEOS_AeroCoupler,     ONLY : GEOS_AeroInit
+    USE GEOS_CarbonInterface, ONLY : GEOS_CarbonInit
 !    USE TENDENCIES_MOD, ONLY : Tend_CreateClass
 !    USE TENDENCIES_MOD, ONLY : Tend_Add
 #endif
@@ -1762,6 +1766,9 @@ CONTAINS
     ! These are needed by MOIST for wet scavenging (if this is enabled).
     CALL GEOS_AddSpecInfoForMoist ( am_I_Root, GC, GeosCF, Input_Opt, State_Chm, __RC__ )
 
+    ! Initialize carbon coupling / CO production from CO2 photolysis (if used) 
+    CALL GEOS_CarbonInit( GC, GeosCF, State_Chm, State_Grid, __RC__ ) 
+
     !=======================================================================
     ! All done
     !=======================================================================
@@ -1960,6 +1967,8 @@ CONTAINS
                                         GEOS_RATSandOxDiags,       &
                                         GEOS_PreRunChecks
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
+    USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonGetConc,        &
+                                        GEOS_CarbonRunPhoto
 #endif
 
 !
@@ -2630,6 +2639,13 @@ CONTAINS
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
              State_Met=State_Met, State_Grid=State_Grid, __RC__ )
 
+       ! Import CO2 concentrations from external field (e.g., GOCART)
+       ! Note: comment out for now and call this below immediately before doing
+       ! CO2 photolysis. Reason for this is that CO2 is currently hardcoded to 
+       ! 0.0 in fullchem to match the old SMVGEAR code (??)
+!       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+!                                State_Met, State_Diag, State_Grid, __RC__ )
+
        ! Eventually initialize species concentrations from external field.
        IsFirst = ( FIRST .OR. FIRSTREWIND )
        IF ( InitFromFile ) THEN
@@ -2868,10 +2884,22 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
-
        !=======================================================================
        ! GEOS post-run procedures
        !=======================================================================
+
+       ! Import CO2 concentrations from external field (e.g., GOCART)
+       ! Note: this call should be moved to the beginning of the routine once
+       ! CO2 is not hardcoded to 0.0 anymore (in fullchem)
+       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+                                State_Met, State_Diag, State_Grid, __RC__ )
+
+       IF ( PHASE == CHEMPHASE ) THEN
+          ! CO production from CO2 photolysis, using StratChem code
+          CALL GEOS_CarbonRunPhoto( Input_Opt,  State_Chm,  State_Met, &
+                                    State_Diag, State_Grid, __RC__      )
+       ENDIF
+
        IF ( PHASE == ANAPHASE ) THEN
           ! Call GEOS analysis routine
           CALL GEOS_AnaRun( GC, Import, INTSTATE, Export, Clock, &

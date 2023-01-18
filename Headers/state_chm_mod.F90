@@ -279,6 +279,29 @@ MODULE State_Chm_Mod
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
      TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
 
+     !-----------------------------------------------------------------------
+     ! Carbon stuff for GEOS 
+     !-----------------------------------------------------------------------
+#if defined( MODEL_GEOS )
+     INTEGER            :: CO2fromGOCART
+     CHARACTER(LEN=255) :: impCO2name
+     INTEGER            :: numphoto
+     INTEGER            :: nxdo
+     INTEGER            :: nlam
+     INTEGER            :: nsza
+     INTEGER            :: numo3
+     INTEGER            :: nts
+     INTEGER            :: aqsize
+
+     REAL, POINTER      :: sdat(:,:,:,:)
+     REAL, POINTER      :: o2jdat(:,:,:)
+     REAL, POINTER      :: sza_tab(:)
+     REAL, POINTER      :: o3_tab(:,:)
+     REAL, POINTER      :: xtab(:,:,:)
+     REAL, POINTER      :: CH2O_aq(:)
+     REAL, POINTER      :: rlam(:)
+#endif
+
   END TYPE ChmState
 !
 ! !REMARKS:
@@ -486,6 +509,25 @@ CONTAINS
     ! FALSE = use KPP computations
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
+
+#if defined( MODEL_GEOS )
+    State_Chm%CO2fromGOCART     = .FALSE.
+    State_Chm%impCO2name        = "unknown" 
+    State_Chm%numphoto          = 0
+    State_Chm%nxdo              = 0
+    State_Chm%nlam              = 0
+    State_Chm%nsza              = 0
+    State_Chm%numo3             = 0
+    State_Chm%nts               = 0
+    State_Chm%aqsize            = 0
+    State_Chm%sdat              => NULL()
+    State_Chm%o2jdat            => NULL()
+    State_Chm%sza_tab           => NULL()
+    State_Chm%o3_tab            => NULL()
+    State_Chm%xtab              => NULL()
+    State_Chm%CH2O_aq           => NULL()
+    State_Chm%rlam              => NULL()
+#endif
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -3197,16 +3239,60 @@ CONTAINS
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 3, RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepRa2m => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%DryDepRa10m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa10m, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 3, RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepRa10m => NULL()
+    ENDIF
+
+    ! CO2 photolysis stuff
+    IF ( ASSOCIATED( State_Chm%sdat ) ) THEN
+       DEALLOCATE( State_Chm%sdat, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%sdat', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%sdat => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%o2jdat ) ) THEN
+       DEALLOCATE( State_Chm%o2jdat, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%o2jdat', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%o2jdat => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%sza_tab ) ) THEN
+       DEALLOCATE( State_Chm%sza_tab, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%sza_tab', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%sza_tab => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%o3_tab ) ) THEN
+       DEALLOCATE( State_Chm%o3_tab, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%o3_tab', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%o3_tab => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%xtab ) ) THEN
+       DEALLOCATE( State_Chm%xtab, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%xtab', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%xtab => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%CH2O_aq ) ) THEN
+       DEALLOCATE( State_Chm%CH2O_aq, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH2O_aq', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%CH2O_aq => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%rlam ) ) THEN
+       DEALLOCATE( State_Chm%rlam, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%rlam', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%rlam => NULL()
     ENDIF
 #endif
 

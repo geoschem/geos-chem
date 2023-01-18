@@ -397,7 +397,7 @@ CONTAINS
 !
     TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
     TYPE(ESMF_State),    INTENT(INOUT)         :: Import    ! Import State
-    TYPE(ESMF_STATE),    INTENT(INOUT)         :: Internal  ! Internal state
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Internal  ! Internal state
     TYPE(ESMF_State),    INTENT(INOUT)         :: Export    ! Export State
     TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock     ! ESMF Clock object
     INTEGER,             INTENT(IN)            :: ispec     ! analysis species index

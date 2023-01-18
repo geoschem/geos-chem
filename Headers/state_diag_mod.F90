@@ -1101,6 +1101,13 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TotCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TotCol
      LOGICAL                     :: Archive_TotCol
+
+     ! Carbon stuff
+     REAL(f4),           POINTER :: COincCO2phot(:,:,:)
+     LOGICAL                     :: Archive_COincCO2phot
+
+     REAL(f4),           POINTER :: CO2photrate(:,:,:)
+     LOGICAL                     :: Archive_CO2photrate
 #endif
 
 #ifdef MODEL_WRF
@@ -2120,6 +2127,12 @@ CONTAINS
     State_Diag%TotCol                              => NULL()
     State_Diag%Map_TotCol                          => NULL()
     State_Diag%Archive_TotCol                      = .FALSE.
+
+    State_Diag%COincCO2phot                        => NULL()
+    State_Diag%Archive_COincCO2phot                = .FALSE.
+
+    State_Diag%CO2photrate                         => NULL()
+    State_Diag%Archive_CO2photrate                 = .FALSE.
 #endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
@@ -6798,6 +6811,50 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! CO2 photolysis rate 
+       !--------------------------------------------------------------------
+       diagID = 'CO2photrate'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%CO2photrate,                         &
+            archiveData    = State_Diag%Archive_CO2photrate,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CO relative increase due to CO2 photolysis 
+       !--------------------------------------------------------------------
+       diagID = 'COincCO2phot'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%COincCO2phot,                        &
+            archiveData    = State_Diag%Archive_COincCO2phot,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 #endif
 
        !-------------------------------------------------------------------
@@ -10706,6 +10763,16 @@ CONTAINS
                    mapData  = State_Diag%Map_PblCol,                         &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CO2photrate',                                 &
+                   Ptr2Data = State_Diag%CO2photrate,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'COincCO2phot',                                &
+                   Ptr2Data = State_Diag%COincCO2phot,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
@@ -11679,6 +11746,16 @@ CONTAINS
        IF ( isUnits   ) Units = '1.0e15 molec cm-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'COINCCO2PHOT' ) THEN
+       IF ( isDesc    ) Desc  = 'Relative change of CO due to CO2 photolysis'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CO2PHOTRATE' ) THEN
+       IF ( isDesc    ) Desc  = 'CO2 photolysis rate' 
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  =  3
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
