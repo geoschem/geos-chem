@@ -1108,7 +1108,8 @@ CONTAINS
                             RC        = RC                                  )
        ENDIF
 
-       ! Call the KPP integrator
+       ! Call the Rosenbrock integrator
+       ! (with optional auto-reduce functionality)
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
@@ -1137,6 +1138,8 @@ CONTAINS
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
+       !
+       ! !TODO: Abstract this into a separate routine
        !=====================================================================
        IF ( State_Diag%Archive_KppDiags ) THEN
 
@@ -1192,7 +1195,7 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-          ! Zero the first time step (Hnew, used by Rosenbrock).  Also reset
+          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
           ! C with concentrations prior to the 1st call to "Integrate".
           RCNTRL(3) = 0.0_dp
           C         = C_before_integrate
@@ -1213,7 +1216,7 @@ CONTAINS
                                RC        = RC                               )
           ENDIF
 
-          ! Integrate again
+          ! Call the Rosenbrock integrator (w/ auto-reduction disabled)
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
 
@@ -1228,6 +1231,8 @@ CONTAINS
           !==================================================================
           ! HISTORY: Archive KPP solver diagnostics
           ! This time, add to the existing value
+          !
+          ! !TODO: Abstract this into a separate routine
           !==================================================================
           IF ( State_Diag%Archive_KppDiags ) THEN
 
@@ -1289,8 +1294,8 @@ CONTAINS
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
-             ! Revert to start values
              ELSE
+                ! Revert to concentrations prior to 1st call to "Integrate"
                 C = C_before_integrate
              ENDIF
              IF ( ASSOCIATED(State_Diag%KppError) ) THEN

@@ -689,9 +689,7 @@ CONTAINS
     REAL(dp)               :: RSTATE(20)
     REAL(dp)               :: Vloc(NVAR)
     REAL(dp)               :: Aout(NREACT)
-#ifdef MODEL_GEOS
-    REAL(dp)               :: localC(NSPEC)
-#endif
+    REAL(dp)               :: C_before_integrate(NSPEC)
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -952,7 +950,7 @@ CONTAINS
     !$OMP PRIVATE( I,        J,        L,       N                           )&
     !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
     !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
-    !$OMP PRIVATE( Vloc,     Aout,     NN                                   )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -1082,25 +1080,12 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_RxnRate ) THEN
 
-#ifdef MODEL_GEOS
-          !------------------------------------------
-          ! GEOS-Chem in GEOS: Get Aout and Vdotout
-          !------------------------------------------
-          CALL Fun ( V       = C(1:NVAR),                                    &
-                     F       = C(NVAR+1:NSPEC),                              &
-                     RCT     = RCONST,                                       &
-                     Vdot    = Vloc,                                         &
-                     Aout    = Aout )
-#else
-          !------------------------------------------
-          ! All other contexts: Get Aout only
-          !------------------------------------------
+          ! Get the reaction rates as Aout
           CALL Fun ( V       = C(1:NVAR),                                    &
                      F       = C(NVAR+1:NSPEC),                              &
                      RCT     = RCONST,                                       &
                      Vdot    = Vloc,                                         &
                      Aout    = Aout                                         )
-#endif
 
           ! Only save requested equation rates
           DO S = 1, State_Diag%Map_RxnRate%nSlots
@@ -1125,6 +1110,12 @@ CONTAINS
        !=====================================================================
        ! Integrate the box forwards
        !=====================================================================
+
+       ! Store concentrations before the call to "Integrate".  This will
+       ! let us reset concentrations before calling "Integrate" a 2nd time.
+       C_before_integrate = C
+
+       ! Call the Rosenbrock integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
@@ -1138,21 +1129,15 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( IERR < 0 ) THEN
 
-#ifdef MODEL_GEOS
-          ! Save a backup copy of C (for GEOS-Chem in GEOS only)
-          localC    = C
-#endif
-
-          ! Reset first time step and start concentrations
-          ! Retry the integration with non-optimized
-          ! settings
-          RCNTRL(3) = 0e+0_fp
-          C         = 0.0_dp
+          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
+          ! C with concentrations prior to the 1st call to "Integrate".
+          RCNTRL(3) = 0.0_dp
+          C         = C_before_integrate
 
           ! Update rate constants again
           CALL Update_RCONST( )
 
-          ! Integrate again
+          ! Call the Rosenbrock integrator again
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
 
@@ -1165,9 +1150,9 @@ CONTAINS
 #ifdef MODEL_GEOS
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
-                ! Revert to start values
              ELSE
-                C = localC
+                ! Revert to concentrations prior to 1st call to "Integrate"
+                C = C_before_integrate
              ENDIF
              IF ( ASSOCIATED(State_Diag%KppError) ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
