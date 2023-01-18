@@ -119,6 +119,7 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
+! Inline common variables into gckpp_Global.F90
 #include "commonIncludeVars.H"
 
 ! INLINED global variable declarations
