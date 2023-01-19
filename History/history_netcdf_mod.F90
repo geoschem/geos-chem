@@ -93,7 +93,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(MetaHIstItem), POINTER :: Current
+    TYPE(MetaHistItem), POINTER :: Current
 
     !=======================================================================
     ! Initialize
@@ -781,11 +781,12 @@ CONTAINS
                                TimeBaseJsec = Container%ReferenceJsec,       &
                                ElapsedSec   = Container%TimeStamp           )
 
-    ! For time-averaged collections, offset the timestamp
-    ! by 1/2 of the file averaging interval in minutes
+    ! For time-averaged collections, we need to subtract the file write
+    ! interval from the current time.  This will make sure that time[0] = 0,
+    ! or in other words, that the first time slice matches up to the
+    ! reference datetime.  -- Bob Yantosca (13 Jan 2023)
     IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
-       Container%TimeStamp = Container%TimeStamp -                           &
-                             ( Container%FileWriteIvalSec * 0.5_f8 )
+       Container%TimeStamp = Container%TimeStamp - Container%FileWriteIvalSec
     ENDIF
 
     ! Convert to minutes since the reference time
@@ -1698,6 +1699,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Free Item now that we have added it to IndexVarList
+       DEALLOCATE( Item )
+       Item => NULL()
     ENDDO
 
   END SUBROUTINE IndexVarList_Create

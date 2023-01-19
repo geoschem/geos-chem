@@ -1,21 +1,21 @@
 MODULE fullchem_HetStateFuncs
   !
-  ! Stub module to avoid compilation errors
+  ! Contains stub routines to satisfy compilation requirements in
+  ! fullchem_mod.F90 when building other KPP-based mechanisms.
   !
   IMPLICIT NONE
   PRIVATE
   !
-  PUBLIC :: Fullchem_SetStateHet
+  PUBLIC :: fullchem_SetStateHet
   !
 CONTAINS
   !
-  SUBROUTINE FullChem_SetStateHet( I,         J,         L,                  &
+  SUBROUTINE fullchem_SetStateHet( I,         J,         L,                  &
                                    Input_Opt, State_Chm, State_Met,          &
                                    H,         RC                            )
     !
     ! Stub routine to avoid compilation errors
     !
-
     USE GcKpp_Global,     ONLY : HetState
     USE GcKpp_Precision
     USE Input_Opt_Mod,    ONLY : OptInput
@@ -32,6 +32,6 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC
     !
     RC = 0
-  END SUBROUTINE FullChem_SetStateHet
+  END SUBROUTINE fullchem_SetStateHet
   !
 END MODULE fullchem_HetStateFuncs

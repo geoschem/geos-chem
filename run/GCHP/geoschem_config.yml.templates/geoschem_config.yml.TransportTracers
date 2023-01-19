@@ -16,6 +16,16 @@ simulation:
   debug_printout: false
 
 #============================================================================
+# Timesteps settings
+#
+# These timesteps are determined in setCommonRunSettings.sh since they are
+# resolution-dependent for GCHP
+#============================================================================
+timesteps:
+  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
+  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
+
+#============================================================================
 # Settings for GEOS-Chem operations
 #============================================================================
 operations:

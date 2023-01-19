@@ -686,10 +686,10 @@ CONTAINS
           isWildcard = .FALSE.
           wildcard   = ''
           IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
+#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS ) || defined( MODEL_CESM )
              ! Exit with an error if using GCHP and wildcard is present
              ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
-                      'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
+                      'implemented in GCHP/CESM: ' // TRIM(name) // '. Replace ' // &
                       'wildcard with a specific tag.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN

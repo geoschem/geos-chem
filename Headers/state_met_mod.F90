@@ -77,7 +77,6 @@ MODULE State_Met_Mod
      LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
-     REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
      REAL(fp), POINTER :: PARDR         (:,:  ) ! Direct photsynthetically
                                                 !  active radiation [W/m2]
      REAL(fp), POINTER :: PARDF         (:,:  ) ! Diffuse photsynthetically
@@ -380,7 +379,6 @@ CONTAINS
     State_Met%IsIce          => NULL()
     State_Met%IsSnow         => NULL()
     State_Met%LAI            => NULL()
-    State_Met%LWI            => NULL()
     State_Met%PARDR          => NULL()
     State_Met%PARDF          => NULL()
     State_Met%PBLH           => NULL()
@@ -1066,24 +1064,6 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%LAI,                                         &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! LWI [1]
-    !------------------------------------------------------------------------
-    metId = 'LWI'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%LWI,                                         &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3465,13 +3445,6 @@ CONTAINS
        State_Met%LAI => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%LWI ) ) THEN
-       DEALLOCATE( State_Met%LWI, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%LWI', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%LWI => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Met%PARDR ) ) THEN
        DEALLOCATE( State_Met%PARDR, STAT=RC )
        CALL GC_CheckVar( 'State_Met%PARDR', 2, RC )
@@ -4697,11 +4670,6 @@ CONTAINS
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'LWI' )
-          IF ( isDesc  ) Desc  = 'Land-water-ice indices'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 2
-
        CASE ( 'PARDR' )
           IF ( isDesc  ) Desc  = 'Direct photosynthetically-active radiation'
           IF ( isUnits ) Units = 'W m-2'
@@ -4982,7 +4950,7 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AIRVOL' )
-          IF ( isDesc  ) Desc  = 'Volume of dry air in grid box'
+          IF ( isDesc  ) Desc  = 'Volume of grid box'
           IF ( isUnits ) Units = 'm3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
@@ -4994,7 +4962,7 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'BXHEIGHT' )
-          IF ( isDesc  ) Desc  = 'Grid box height (w/r/t dry air)'
+          IF ( isDesc  ) Desc  = 'Grid box height'
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
