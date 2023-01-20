@@ -196,7 +196,6 @@ PROGRAM GEOS_Chem
   LOGICAL                  :: prtDebug
   LOGICAL                  :: TimeForEmis
   LOGICAL                  :: notDryRun
-  LOGICAL                  :: LSETH2O
 
   ! Integers
   INTEGER                  :: I,             IOS,         J
@@ -310,9 +309,6 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Read_Input_File"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-
-  ! Set a local variable for Input_Opt%LSETH2O
-  LSETH2O = Input_Opt%LSETH2O
 
   !--------------------------------------------------------------------------
   ! Initialize GEOS-Chem timers
@@ -1188,7 +1184,7 @@ PROGRAM GEOS_Chem
              ENDIF
 
              ! Only force strat once
-             IF ( LSETH2O ) LSETH2O = .FALSE.
+             IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
           ENDIF
 
           ! Compute the cosine of the solar zenith angle array

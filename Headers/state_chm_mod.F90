@@ -1555,8 +1555,7 @@ CONTAINS
     ! Allocate and initialize KPPHvalue (used by KPP-based simulations)
     !========================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                              &
-         Input_Opt%ITS_A_MERCURY_SIM       .or.                              &
-         Input_Opt%ITS_A_CARBON_SIM      ) THEN
+         Input_Opt%ITS_A_MERCURY_SIM     ) THEN
 
        chmId = 'KPPHvalue'
        CALL Init_and_Register(                                               &
