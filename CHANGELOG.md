@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added timestep menu to GCHP `geoschem_config.yml` template files
   - Added HTAPv3 inventory as a global emissions option (off by default)
   - Added carbon simulation and KPP mechanism for CO-CO2-CH4-OCS
+  - Added GCHP run script and environment file for UCI Australia cluster Gadi
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
