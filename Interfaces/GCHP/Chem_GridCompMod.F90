@@ -540,7 +540,8 @@ CONTAINS
     DO WHILE ( LEN_TRIM( line ) > 0 )
        READ( IU_GEOS, '(a)', IOSTAT=IOS ) LINE
        EOF = IOS < 0
-       IF ( EOF ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
+       IF ( EOF ) EXIT !Simply exit when the file ends (bmy, 12 Jan 2023)
+       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
        LINE = ADJUSTL( ADJUSTR( LINE ) )
        IF ( INDEX( LINE, 'passive_species' ) > 0 ) EXIT
        CALL STRSPLIT( LINE, '-', SUBSTRS, N )
@@ -628,9 +629,12 @@ CONTAINS
     ENDDO
     CLOSE( IU_GEOS )
 
-!-- Add all additional species in KPP (careful not to add dummy species)
-    ! Hg is now a KPP specialty simulation, so we need to get KPP species
-    IF ( TRIM( simType ) == 'fullchem' .or. TRIM( simType ) == 'Hg' ) THEN
+!-- Add all non-advected species from KPP-based simulations
+!-- (but don't add dummy species).  KPP-based simulations now
+!-- include fullchem, Hg, and carbon.
+    IF ( TRIM( simType ) == 'fullchem'      .or.                            &
+         TRIM( simType ) == 'Hg'            .or.                            &
+         TRIM( simType ) == 'carbon' ) THEN
        DO I=1,NSPEC
           FOUND = .false.
 

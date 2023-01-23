@@ -50,11 +50,8 @@ CMP_FAIL_STR='Configure & Build.....FAIL'
 EXE_PASS_STR='Execute Simulation....PASS'
 EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
-EXE_GCC_BUILD_LIST=("default" "apm"   "hg"                     \
+EXE_GCC_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
                     "luowd"   "rrtmg" "tomas15" "tomas40" )
-# Future development -- add carboncycle
-#EXE_GCC_BUILD_LIST=("default" "apm"   "carboncycle" "hg"       \
-#                   "luowd"   "rrtmg" "tomas15"     "tomas40" )
 EXE_GCHP_BUILD_LIST=("default" "rrtmg")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
@@ -432,8 +429,8 @@ function config_options() {
     # Pick the proper build options
     if [[ ${dir} =~ "apm" ]]; then
 	options="${baseOptions} -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "carboncycle" ]]; then
-	options="${baseOptions} -DMECH=carboncycle -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "carbon" ]]; then
+	options="${baseOptions} -DMECH=carbon -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "hg" ]]; then
 	options="${baseOptions} -DMECH=Hg -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "luowd" ]]; then

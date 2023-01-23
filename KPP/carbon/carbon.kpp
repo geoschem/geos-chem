@@ -1,0 +1,20 @@
+#MINVERSION   2.5.0       { Need this version of KPP or later            }
+#INTEGRATOR   feuler      { Use Forward Euler integration method         }
+#LANGUAGE     Fortran90   { Generate solver code in Fortran90 ...        }
+#UPPERCASEF90 on          { ... with .F90 suffix (instead of .f90)       }
+#DRIVER       none        { Do not create gckpp_Main.F90                 }
+#HESSIAN      off         { Do not create the Hessian matrix             }
+#MEX          off         { MEX is for Matlab, so skip it                }
+#STOICMAT     off         { Do not create stoichiometric matrix          }
+
+#INCLUDE carbon.eqn       { Chemical reactions for carbon mechanism      }
+
+#FAMILIES                 { Chemical families for prod/loss diagnostic   }
+PCO : CO;
+LCO : CO;
+LCH4 : CH4;
+
+#INLINE F90_GLOBAL
+! Inline common variables into gckpp_Global.F90
+#include "commonIncludeVars.H"
+#ENDINLINE

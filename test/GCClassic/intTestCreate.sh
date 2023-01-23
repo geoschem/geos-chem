@@ -144,6 +144,9 @@ create_rundir "4\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 # 4x5 merra2 aerosol
 create_rundir "2\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
+# 4x5 merra2 carbon
+create_rundir "12\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
     cd ${thisDir}
@@ -208,9 +211,6 @@ create_rundir "10\n1\n1\n1\n${itRoot}\n${dir}\nn\n" "${log}" "${itRoot}"
 
 # 4x5 merra2 metals
 create_rundir "11\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
-
-##4x5 merra2 carbon -- COMING SOON
-#create_rundir "12\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 #=============================================================================
 # Create individual run directories: 4x5 and 47L (MERRA2)
