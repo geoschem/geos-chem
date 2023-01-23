@@ -690,7 +690,9 @@ CONTAINS
 
              ! Skip cell if concentration change is too small
              IF ( iopt%ApplyIncrement .AND. ABS(AnaPtr(I,J,L)) < MinConc ) CYCLE 
-             IF ( iopt%NonZeroIncOnly .AND. ABS(IncPtr(I,J,L)) < MinConc ) CYCLE
+             IF ( iopt%NonZeroIncOnly ) THEN
+                IF ( ABS(IncPtr(I,J,L)) < MinConc ) CYCLE
+             ENDIF
 
              ! Default weight to be given to analysis.
              wgt = iopt%AnaFraction
