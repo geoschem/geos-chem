@@ -129,6 +129,7 @@ printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
 printf "   4. Tagged O3\n"
+printf "   5. Carbon\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -142,6 +143,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=CO2
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -484,6 +487,10 @@ elif [[ "x${sim_name}" == "xtagO3" ]]; then
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
     restart_dir='GC_14.0.0'
+    restart_name="${sim_name}"
+elif [[ ${sim_name} = "carbon" ]]; then
+    start_date='20190101'
+    restart_dir='v2023-01'
     restart_name="${sim_name}"
 fi
 for N in 24 48 90 180 360

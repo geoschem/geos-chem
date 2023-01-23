@@ -148,7 +148,7 @@ Warnings:                    1
 )))FOSSIL_CDIAC
 
 (((FOSSIL_ODIAC
-0 FOSSILCO2_ODIAC   $ROOT/CO2/v2019-12/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2018/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
+0 FOSSILCO2_ODIAC   $ROOT/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2018/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
 0 FOSSILCO2FF_ODIAC -                                                            -   -                  - -  -       CO2ff 40/41/80 1 2
 )))FOSSIL_ODIAC
 
@@ -162,14 +162,14 @@ Warnings:                    1
 # ---> Recommended option: scaled ocean exchange (set OCEAN_EXCH_SCALED = true)
 #==============================================================================
 (((OCEAN_EXCH_TAKA09
-0 OCEANCO2_TAKA_ANNUAL    $ROOT/CO2/v2014-09/OCEAN/Taka2009_CO2_Annual.nc      CO2 2000/1/1/0         C xy kg/m2/s CO2   - 2 1
+0 OCEANCO2_TAKA_ANNUAL    $ROOT/CO2/v2022-11/OCEAN/Taka2009_CO2_Annual.nc      CO2 2000/1/1/0         C xy kg/m2/s CO2   - 2 1
 0 OCEANCO2OC_TAKA_ANNUAL  -                                                    -   -                  - -  -       CO2oc - 2 1
-0 OCEANCO2_TAKA_MONTHLY   $ROOT/CO2/v2014-09/OCEAN/Taka2009_CO2_Monthly.nc     CO2 2000/1-12/1/0      C xy kg/m2/s CO2   - 2 2
+0 OCEANCO2_TAKA_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Taka2009_CO2_Monthly.nc     CO2 2000/1-12/1/0      C xy kg/m2/s CO2   - 2 2
 0 OCEANCO2OC_TAKA_MONTHLY -                                                    -   -                  - -  -       CO2oc - 2 2
 )))OCEAN_EXCH_TAKA09
 
 (((OCEAN_EXCH_SCALED
-0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2015-04/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
+0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
 0 OCEANCO2OC_SCALED_MONTHLY -                                                    -   -                  - -  -       CO2oc - 2 3
 )))OCEAN_EXCH_SCALED
 
@@ -191,7 +191,7 @@ Warnings:                    1
 )))BBIO_DIURNAL
 
 (((BBIO_SIB3
-0 SIB_BBIO_CO2    $ROOT/CO2/v2015-04/BIO/SiB3_3hr_NEP.nc CO2 2006-2010/1-12/1-31/0-23 C xy kg/m2/s CO2    - 3 1
+0 SIB_BBIO_CO2    $ROOT/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc CO2 2006-2010/1-12/1-31/0-23 C xy kg/m2/s CO2    - 3 1
 0 SIB_BBIO_CO2BAL -                                      -   -                        - -  -       CO2bal - 3 1
 )))BBIO_SIB3
 
@@ -204,7 +204,7 @@ Warnings:                    1
 #      inversion/assimilation
 #==============================================================================
 (((NET_TERR_EXCH
-0 CO2_NET_TERRESTRIAL    $ROOT/CO2/v2015-04/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2nte - 5 1
+0 CO2_NET_TERRESTRIAL    $ROOT/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2nte - 5 1
 0 CO2NTE_NET_TERRESTRIAL -                                                                 -   -          - -  -       CO2    - 5 1
 )))NET_TERR_EXCH
 
@@ -257,21 +257,21 @@ Warnings:                    1
 # to make these emissions negative, so that they will be subtracted.
 ===============================================================================
 (((CO2CORR
-0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2019-12/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2018/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
+0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2018/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
 0 FOSSILCO2CORR_MONTHLY -                                                          -       -                  - -  -       CO2corr 10/40/41/80/90 8 1
-0 CO2_LIVESTOCK         $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_004 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_LIVESTOCK         $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_004 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_LIVESTOCK     -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_WASTE             $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_005 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_WASTE             $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_005 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_WASTE         -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_RICE              $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_007 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_RICE              $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_007 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_RICE          -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_WETLANDS          $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_010 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_WETLANDS          $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_010 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_WETLANDS      -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_NATURAL           $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_012 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_NATURAL           $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_012 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_NATURAL       -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_ISOPRENE          $ROOT/CO2/v2015-04/CHEM/Isoprene-2004.geos.2x25.nc         ISOP    2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
+0 CO2_ISOPRENE          $ROOT/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc         ISOP    2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
 0 CO2CORR_ISOPRENE      -                                                          -       -                  - -  -       CO2corr 21/30/90       8 1
-0 CO2_MONOTERP          $ROOT/CO2/v2015-04/CHEM/Monoterpene-2004.geos.2x25.nc      MONOT   2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
+0 CO2_MONOTERP          $ROOT/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc      MONOT   2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
 0 CO2CORR_MONOTERP      -                                                          -       -                  - -  -       -       21/30/90       8 1
 )))CO2CORR
 
