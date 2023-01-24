@@ -1544,7 +1544,34 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 # --- GFAS biomass burning (GFAS) ---
 # GFAS is off by default in HEMCO_Config.rc; fill in this section if turning on
 #==============================================================================
-#
+#GFAS_CO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_SOAP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_NO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none noxfire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_BCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_BCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_OCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_OCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CO2   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none co2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CH4   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch4fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_SO2   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_pFe   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_NH3   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none nh3fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ACET  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6ofire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ALD2  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4ofire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ALK4  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkanesfire ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_PRPE1 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkenesfire ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_PRPE2 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_C2H6  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_C3H8  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CH2O  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch2ofire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_C2H4  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ISOP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c5h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_DMS   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6sfire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_TOLU  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c7h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_BENZ  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c6h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_XYLE  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c8h10fire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_EMITL m       N Y F%y4-%m2-%d2T00:00:00 none none mami          ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+
 #==============================================================================
 # --- Anthropogenic dust emissions (AFCID)---
 #==============================================================================

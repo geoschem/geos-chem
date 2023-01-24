@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added HTAPv3 inventory as a global emissions option (off by default)
   - Added carbon simulation and KPP mechanism for CO-CO2-CH4-OCS
   - Added GCHP run script and environment file for UCI Australia cluster Gadi
+  - Added GFAS entries in GCHP config file ExtData.rc
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
@@ -42,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed bug in logic that caused restart files not to be linked to the Restarts/ folder of the GCHP tagO3 run directory
   - Fixed timestamp for GCClassic History diagnostic so time-averaged collections match the reference time
   - Fixed double-titration of seasalt alkalinity
+  - Fixed bug in GFAS pFe by applying work-around in config files
 
 ### Removed
   - Removed LRED_JNO2 and AERO_HG2_PARTITON switches from HEMCO_Config.rc (and related code)
