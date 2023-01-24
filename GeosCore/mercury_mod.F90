@@ -925,6 +925,7 @@ CONTAINS
 
     ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
     ! the integrator.  Rate updates are done before calling KPP.
+    !  -- Bob Yantosca (03 May 2022)
     ICNTRL(15) = -1
 
     !=======================================================================
@@ -3506,7 +3507,6 @@ CONTAINS
     ! INIT_MERCURY begins here!
     !========================================================================
 
-    ! Initialize
     ! Assume success
     RC = GC_SUCCESS
 

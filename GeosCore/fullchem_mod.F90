@@ -99,15 +99,15 @@ CONTAINS
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetIntegratorOptions
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
-    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
+    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES, EQN_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
+    USE GcKpp_Integrator,         ONLY : Integrate
     USE GcKpp_Function
-    USE GcKpp_Model
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
@@ -219,6 +219,14 @@ CONTAINS
 
     ! Objects
     TYPE(DgnMap),  POINTER :: mapData => NULL()
+!
+! !DEFINED PARAMETERS
+!
+    ! Defines the slot in which the H-value from the KPP integrator is stored
+    ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
+    ! (assuming Rosenbrock solver).  Define this locally in order to break
+    ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
+    INTEGER,     PARAMETER :: Nhnew = 3
 
     !========================================================================
     ! Do_FullChem begins here!
@@ -993,104 +1001,13 @@ CONTAINS
        ENDIF
 
        !=====================================================================
-       ! Set options for the KPP Integrator (M. J. Evans)
-       !
-       ! NOTE: Because RCNTRL(3) is set to an array value that
-       ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
-       ! within the OpenMP parallel loop and define it just
-       ! before the call to Integrate. (bmy, 3/24/16)
-       !
-       ! Ditto for ICNTRL. (hplin, 4/13/22)
+       ! Set options for the KPP integrator in vectors ICNTRL and RCNTRL
+       ! This now needs to be done within the parallel loop
        !=====================================================================
-       !%%%%% SOLVER OPTIONS %%%%%
-       ! Zero all slots of ICNTRL
-       ICNTRL    = 0
-
-       ! 0 - non-autonomous, 1 - autonomous
-       ICNTRL(1) = 1
-
-       ! 0 - vector tolerances, 1 - scalars
-       ICNTRL(2) = 0
-
-       ! Select Integrator
-       ! ICNTRL(3)  -> selection of a particular method.
-       ! For Rosenbrock, options are:
-       ! = 0 :  default method is Rodas3
-       ! = 1 :  method is  Ros2
-       ! = 2 :  method is  Ros3
-       ! = 3 :  method is  Ros4
-       ! = 4 :  method is  Rodas3
-       ! = 5:   method is  Rodas4
-       ICNTRL(3) = 4
-
-       ! 0 - adjoint, 1 - no adjoint
-       ICNTRL(7) = 1
-
-       ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
-       ! the integrator.  Rate updates are done before calling KPP.
-       ICNTRL(15) = -1
-
-       !%%%%% AUTO-REDUCE OPTIONS %%%%%
-       !=====================================================================
-       ! Set options for auto-reduction of mechanism
-       !
-       ! RCNTRL(12) is the threshold for reduction. (hplin, 10/18/21)
-       !=====================================================================
-       ICNTRL(12) = 0
-       IF ( Input_Opt%USE_AUTOREDUCE .and. .not. FIRSTCHEM ) THEN
-          ICNTRL(12) = 1
-       ENDIF
-       ! Use append functionality?
-       ICNTRL(13) = 0
-       IF ( Input_Opt%AUTOREDUCE_IS_APPEND ) THEN
-          ICNTRL(13) = 1
-       ENDIF
-
-       ! Zero all slots of RCNTRL
-       RCNTRL    = 0.0_fp
-
-       ! Initialize Hstart (the starting value of the integration step
-       ! size with the value of Hnew (the last predicted but not yet 
-       ! taken timestep)  saved to the the restart file.
-       RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
-
-       ! Auto-reduce threshold.
-       ! Pressure-dependent (method 1):
-       !                                                            Mid-Pressure at Level
-       !   Actual_Threshold = AUTOREDUCE_THRESHOLD (at surface) * --------------------------
-       !                                                           "Mid-Pressure" at Sfc.
-       IF ( .not. Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
-           IF ( Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
-              RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD * State_Met%PMID(I,J,L) / State_Met%PMID(I,J,1)
-           ENDIF
-           IF ( .not. Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
-              RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD
-           ENDIF
-        ENDIF
-
-       ! Method 2: Determine threshold dynamically by scaling rates of key species.
-       IF ( Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
-           ! Daytime target.
-           ICNTRL(14) = ind_OH        ! Assume OH is daytime target species.
-           RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_OH
-
-           ! 1e6 daytime conc ... testing shows 5e-5 as an offset here works best.
-           ! Use JNO2 as night determination.
-           ! RXN_NO2: NO2 + hv --> NO  + O
-           ! JNO2 ranges from 0 to 0.02 and is order ~ 1e-4 at the terminator. We set this threshold
-           ! to be slightly relaxed so it captures the terminator, but this needs some
-           ! tweaking.
-           !
-           ! For some reason, RXN_NO2 as a proxy fails to propagate the sunset terminator
-           ! even though all diagnostics seem fine, and after a while only the OH scheme applies.
-           ! Use SUNCOSmid as a proxy to fix this. (hplin, 4/20/22)
-           ! IF(ZPJ(L,RXN_NO2,I,J) .eq. 0.0_fp) THEN
-           IF(State_Met%SUNCOSmid(I,J) .le. -0.1391731e+0_fp) THEN
-              ICNTRL(14) = ind_NO2    ! NO2 is nighttime target species.
-              RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_NO2
-           ENDIF
-           ! Dynamic threshold boundary ratio in RCNTRL(14)
-       ENDIF
+       CALL fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,          &
+                                              State_Met, FirstChem,          &
+                                              I,         J,         L,       &
+                                              ICNTRL,    RCNTRL             )
 
        !=====================================================================
        ! Integrate the box forwards

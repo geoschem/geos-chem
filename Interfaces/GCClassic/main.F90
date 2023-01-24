@@ -193,24 +193,6 @@ PROGRAM GEOS_Chem
   !-----------------------------
 
   ! Logicals
-  LOGICAL                  :: ITS_A_FULLCHEM_SIM
-  LOGICAL                  :: ITS_A_MERCURY_SIM
-  LOGICAL                  :: ITS_A_TAGCO_SIM
-  LOGICAL                  :: ITS_AN_AEROSOL_SIM
-  LOGICAL                  :: DO_DIAG_WRITE
-  LOGICAL                  :: LCHEM
-  LOGICAL                  :: LCONV
-  LOGICAL                  :: LDRYD
-  LOGICAL                  :: LDYNOCEAN
-  LOGICAL                  :: LGTMM
-  LOGICAL                  :: LLINOZ
-  LOGICAL                  :: LNLPBL
-  LOGICAL                  :: LSTDRUN
-  LOGICAL                  :: LINEAR_CHEM
-  LOGICAL                  :: LSETH2O
-  LOGICAL                  :: LTRAN
-  LOGICAL                  :: LTURB
-  LOGICAL                  :: LWETD
   LOGICAL                  :: prtDebug
   LOGICAL                  :: TimeForEmis
   LOGICAL                  :: notDryRun
@@ -443,28 +425,7 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
-  ! Copy values from Input_Opt.  These replace the variables
-  ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
-  ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
-  ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
-  ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM
-  ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
-  DO_DIAG_WRITE       =  Input_Opt%DO_DIAG_WRITE
-  LCHEM               =  Input_Opt%LCHEM
-  LCONV               =  Input_Opt%LCONV
-  LDRYD               =  Input_Opt%LDRYD
-  LDYNOCEAN           =  Input_Opt%LDYNOCEAN
-  LGTMM               =  Input_Opt%LGTMM
-  LLINOZ              =  Input_Opt%LLINOZ
-  LNLPBL              =  Input_Opt%LNLPBL
-  LINEAR_CHEM         =  Input_Opt%LINEAR_CHEM
-  LSETH2O             =  Input_Opt%LSETH2O
-  LSTDRUN             =  Input_Opt%LSTDRUN
-  LTRAN               =  Input_Opt%LTRAN
-  LTURB               =  Input_Opt%LTURB
-  LWETD               =  Input_Opt%LWETD
-
-  ! Set a flag to denote if we should print ND70 debug output
+  ! Set a flag to denote if we should print debug output
   prtDebug            = ( Input_Opt%LPRT .and. am_I_Root )
 
   ! Turn off debug output for the dry-runs simulation
@@ -667,7 +628,7 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   ! Added to read input file for Linoz O3
   !--------------------------------------------------------------------------
-  IF ( LLINOZ ) THEN
+  IF ( Input_Opt%LLINOZ ) THEN
      CALL Linoz_Read( Input_Opt, RC )
 
      ! Trap potential errors
@@ -791,7 +752,10 @@ PROGRAM GEOS_Chem
   ! Moved here because some of the variables are used for non-local
   ! PBL mixing BEFORE the first call of the chemistry routines
   ! (ckeller, 05/19/14).
-  IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM .OR. ITS_A_MERCURY_SIM ) THEN
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                                &
+       Input_Opt%ITS_AN_AEROSOL_SIM      .or.                                &
+       Input_Opt%ITS_A_MERCURY_SIM       .or.                                &
+       Input_Opt%ITS_A_CARBON_SIM )      THEN
      CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 
      ! Trap potential errors
@@ -810,7 +774,7 @@ PROGRAM GEOS_Chem
   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
   ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-  IF ( LINEAR_CHEM .and. notDryRun ) THEN
+  IF ( Input_Opt%LINEAR_CHEM .and. notDryRun ) THEN
      CALL Init_Linear_Chem( Input_Opt,  State_Chm, State_Met, State_Grid, RC )
 
      ! Trap potential errors
@@ -1075,13 +1039,13 @@ PROGRAM GEOS_Chem
           CALL SET_DIAGe( TAU )
 
           ! Write bpch file
-          IF ( DO_DIAG_WRITE ) THEN
+          IF ( Input_Opt%DO_DIAG_WRITE ) THEN
              ! Write data to the "trac_avg." bpch file
              CALL DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
              ! Flush file units
-             CALL CTM_FLUSH()
-          ENDIF
+            CALL CTM_FLUSH()
+         ENDIF
 
           ! Set time at beginning of next diagnostic timestep
           CALL SET_DIAGb( TAU )
@@ -1179,7 +1143,7 @@ PROGRAM GEOS_Chem
           ! If we are not doing transport, then make sure that
           ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
           ! Now also includes PSC2_DRY (ewl, 5/4/16)
-          IF ( .not. LTRAN ) THEN
+          IF ( .not. Input_Opt%LTRAN ) THEN
              CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
              ! Trap potential errors
@@ -1208,9 +1172,9 @@ PROGRAM GEOS_Chem
           ! NOTE: Specific humidity may change in SET_H2O_TRAC and
           ! therefore this routine may call AIRQNT again to update
           ! air quantities and tracer concentrations (ewl, 10/28/15)
-          IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
-             CALL Set_H2O_Trac( LSETH2O, &
-                                Input_Opt, State_Chm, State_Grid, &
+          IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
+             CALL Set_H2O_Trac( Input_Opt%LSETH2O,                           &
+                                Input_Opt, State_Chm, State_Grid,            &
                                 State_Met, RC )
 
              ! Trap potential errors
@@ -1220,7 +1184,7 @@ PROGRAM GEOS_Chem
              ENDIF
 
              ! Only force strat once
-             IF ( LSETH2O ) LSETH2O = .FALSE.
+             IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
           ENDIF
 
           ! Compute the cosine of the solar zenith angle array
@@ -1249,11 +1213,12 @@ PROGRAM GEOS_Chem
        ! take these calls out of the emissions sequence.
        ! (ckeller, 4/01/15)
        !---------------------------------------------------------------------
-       IF ( LCHEM .and. ITS_A_NEW_MONTH() .and. notDryRun ) THEN
+       IF ( Input_Opt%LCHEM .and. ITS_A_NEW_MONTH() .and. notDryRun ) THEN
 
           ! The following only apply when photolysis is used,
           ! that is for fullchem or aerosol simulations.
-          IF ( ITS_A_FULLCHEM_SIM  .or. ITS_AN_AEROSOL_SIM ) THEN
+          IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.                           &
+               Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
              ! Copy UV Albedo data (for photolysis) into the
              ! State_Met%UVALBEDO field. (bmy, 3/20/15)
@@ -1266,27 +1231,12 @@ PROGRAM GEOS_Chem
              ENDIF
 
           ENDIF
-
-          ! Read data required for Hg2 gas-particle partitioning
-          ! (H Amos, 25 Oct 2011)
-!>>          IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
-!>>             CALL Read_Hg2_Partitioning( Input_Opt, State_Grid, State_Met, &
-!>>                                         MONTH,     RC )
-!>>
-!>>             ! Trap potential errors
-!>>             IF ( RC /= GC_SUCCESS ) THEN
-!>>                ErrMsg = 'Error encountered in "Read_Hg2_Partitioning"!'
-!>>                CALL Error_Stop( ErrMsg, ThisLoc )
-!>>             ENDIF
-!>>
-!>>             IF ( prtDebug ) THEN
-!>>                CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
-!>>             ENDIF
-!>>          ENDIF
        ENDIF
 
        ! Prescribe methane surface concentrations throughout PBL
-       IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0 .and. notDryRun ) THEN
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
+            id_CH4 > 0                     .and.                             &
+            notDryRun                     ) THEN
 
           IF ( prtDebug ) THEN
              CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
@@ -1344,7 +1294,7 @@ PROGRAM GEOS_Chem
           !--------------------------------------------------------------------
 
           ! Call the appropriate version of TPCORE
-          IF ( LTRAN ) THEN
+          IF ( Input_Opt%LTRAN ) THEN
              CALL Do_Transport( Input_Opt,  State_Chm, State_Diag, &
                                 State_Grid, State_Met, RC )
 
@@ -1374,7 +1324,9 @@ PROGRAM GEOS_Chem
 #else
           ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
           ! ... convection or wet scavenging or chemistry are turned on ...
-          IF ( LCONV .or. LWETD .or. LCHEM ) THEN
+          IF ( Input_Opt%LCONV   .or.                                        & 
+               Input_Opt%LWETD   .or.                                        & 
+               Input_Opt%LCHEM ) THEN
              CALL Setup_WetScav( Input_Opt, State_Chm, State_Grid, &
                                  State_Met, RC )
 
@@ -1447,7 +1399,7 @@ PROGRAM GEOS_Chem
           !==================================================================
           !            ***** D R Y   D E P O S I T I O N *****
           !==================================================================
-          IF ( LDRYD .and. notDryRun ) THEN
+          IF ( Input_Opt%LDRYD .and. notDryRun ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_Start( "Dry deposition", RC )
@@ -1569,7 +1521,7 @@ PROGRAM GEOS_Chem
           !==================================================================
           !           ***** C L O U D   C O N V E C T I O N *****
           !==================================================================
-          IF ( LCONV ) THEN
+          IF ( Input_Opt%LCONV ) THEN
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_Start( "Convection", RC )
              ENDIF
@@ -1624,7 +1576,7 @@ PROGRAM GEOS_Chem
 #endif
 
              ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
-             IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
+             IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
                 CALL Set_H2O_Trac( .FALSE., &
                                    Input_Opt , State_Chm,    &
                                    State_Grid, State_Met, RC )
@@ -1656,7 +1608,7 @@ PROGRAM GEOS_Chem
        !=====================================================================
        !    ***** W E T   D E P O S I T I O N  (rainout + washout) *****
        !=====================================================================
-       IF ( LWETD .and. ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
+       IF ( Input_Opt%LWETD .and. ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Wet deposition", RC )
@@ -2250,7 +2202,7 @@ PROGRAM GEOS_Chem
 
 #ifdef GTMM_Hg
   ! Deallocate arrays from GTMM model for mercury simulation
-  IF ( LGTMM ) CALL CleanupCASAarrays()
+  IF ( Input_Opt%LGTMM ) CALL CleanupCASAarrays()
 #endif
 
   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a CLEANUP' )
@@ -2542,11 +2494,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! FAST-J is only used for fullchem and offline aerosol, skip otherwise
-    IF ( ITS_A_FULLCHEM_SIM .or. ITS_AN_AEROSOL_SIM  .or. ITS_A_MERCURY_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.                                 &
+         Input_Opt%ITS_AN_AEROSOL_SIM   .or.                                 & 
+         Input_Opt%ITS_A_MERCURY_SIM  ) THEN
 
        ! Only execute this if we are doing chemistry
        ! and if it we are at a chemistry timestep
-       IF ( LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
+       IF ( Input_Opt%LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
 
           ! Get the overhead O3 column for FAST-J.  Take either the
           ! TOMS O3 data or the column O3 directly from the met fields

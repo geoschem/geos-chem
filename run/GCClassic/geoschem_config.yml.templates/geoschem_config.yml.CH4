@@ -66,9 +66,9 @@ operations:
       - CH4
 
 #============================================================================
-# Settings specific to the CH4 simulation / Integrated Methane Inversion
+# Options for CH4
 #============================================================================
-ch4_simulation_options:
+CH4_simulation_options:
 
   use_observational_operators:
     AIRS: false
