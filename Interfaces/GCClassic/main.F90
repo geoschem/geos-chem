@@ -195,6 +195,7 @@ PROGRAM GEOS_Chem
   ! Logicals
   LOGICAL                  :: TimeForEmis
   LOGICAL                  :: notDryRun
+  LOGICAL                  :: VerboseAndRoot
 
   ! Integers
   INTEGER                  :: I,             IOS,         J
