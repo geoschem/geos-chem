@@ -457,7 +457,9 @@ CONTAINS
     ATOL      = 1e-2_dp
 
     ! Relative tolerance
-    RTOL      = 0.5e-2_dp
+    ! Changed to 0.5e-3 to avoid integrate errors by halogen chemistry
+    !  -- Becky Alexander & Bob Yantosca (24 Jan 2023)
+    RTOL      = 0.5e-3_dp
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%

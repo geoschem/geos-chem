@@ -2528,20 +2528,6 @@ CONTAINS
     gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
     k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
     !
-    ! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
-    IF ( H%SSA_is_Alk ) THEN
-       area  = H%ClearFr * H%xArea(SSA)
-       gamma = 0.01_dp
-       k = k + Ars_L1K( area, H%xRadi(SSA), gamma, srMw )
-    ENDIF
-    !
-    ! Alkaline coarse sea salt (use gamma from Sherwen et al 2016)
-    IF ( H%SSC_is_Alk ) THEN
-       area  = H%ClearFr * H%xArea(SSC)
-       gamma = 0.01_dp
-       k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )
-    ENDIF
-    !
     ! Stratospheric liquid aerosol
     k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
     !
