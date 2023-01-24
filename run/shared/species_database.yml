@@ -725,7 +725,7 @@ CH4_PROP: &CH4properties
   Formula: CH4
   Is_Advected: true
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -926,6 +926,10 @@ CO2se:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
+CO2fromOH:
+  << : *CO2properties
+  Background_VV: 1.0e-20
+  FullName: Carbon dioxide loss by OH (carbon mechanism)
 CO_PROP: &COproperties
   Formula: CO
   Is_Advected: true
@@ -1015,6 +1019,14 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
+COfromCH4:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from methane oxidation (carbon mechanism)
+COfromNMVOC:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from non-methane VOCs oxidation (carbon mechanism)
 CSL:
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
@@ -1068,6 +1080,18 @@ DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
   MW_g: 29.0
+Dummy:
+  FullName: Dummy species (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0
+DummyCH4:
+  << : *CH4properties
+  Background_VV: 1.8e-6
+  FullName: Methane (external input for carbon mechanism)
+DummyNMVOC:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from NMVOC oxidation (external input for carbon mechanism)
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -1174,6 +1198,18 @@ FeF2:
   Formula: Fe
   Fullname: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
+FixedCl:
+  Formula: Cl
+  FullName: Atomic chlorine (external input for carbon mechanism)
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 35.45
+FixedOH:
+  Background_VV: 4.0e-15
+  Formula: OH
+  FullName: Hydroxyl radical (external input for carbon mechanism)
+  Is_Gas: true
+  MW_g: 17.01
 GlobEmis90dayTracer:
   FullName: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
   Is_Advected: true
@@ -1359,7 +1395,7 @@ HCOOH:
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
 Hg0_PROP: &Hg0properties
-  DD_F0: 1.0e-5
+  DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
   Is_Advected: true
@@ -2621,7 +2657,7 @@ LBRO2N:
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
@@ -3316,6 +3352,7 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
+  WD_CoarseAer: true
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -4351,6 +4388,7 @@ SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
   MW_g: 31.4
+  WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0

@@ -220,7 +220,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, id_CH4, Cat, HcoID, N
+    INTEGER            :: ExtNr,    id_CH4,   Cat,  HcoID,  N
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_CH4 (hcoi_gc_diagn_mod.F90)'
@@ -230,10 +230,11 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC = HCO_SUCCESS
+    RC       = HCO_SUCCESS
 
     ! Exit if the CH4 simulation is not selected
-    IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM ) ) RETURN
+    IF ( ( .not. Input_Opt%ITS_A_CH4_SIM      ) .and. &
+         ( .not. Input_Opt%ITS_A_CARBON_SIM ) ) RETURN
 
     ! Get default HEMCO species ID for CH4
     id_CH4 = HCO_GetHcoID( 'CH4', HcoState )
