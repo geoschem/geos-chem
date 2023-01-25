@@ -85,7 +85,11 @@ The integration test scripts and parallelization test scripts accept the followi
 
 `-e /path/to/env-file` specifies the file that is used to initialize the software environment.  This file will typically contain either `module load` or `spack load` commands.
 
-`-p partition` specifies the partition for the SLURM or LSF scheduler.  You may omit this for running interactively
+`-l` specifies that the LSF scheduler will be used to run the integration/parallelization test scripts.
+
+`-p partition` specifies the partition for the SLURM or LSF scheduler.  You may omit this for running interactively.
+
+`-s` specifies that the SLURM scheduler will be used to run the integration/parallelization test scripts.
 
 You can also use long names for the option switches:
 - `--directory` instead of `-d`
