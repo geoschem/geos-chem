@@ -147,14 +147,15 @@ create_rundir "2\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 # 4x5 merra2 carbon
 create_rundir "12\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
+# 4x5 merra2 fullchem
+create_rundir "1\n1\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
     cd ${thisDir}
     exit 0
 fi
 
-# 4x5 merra2 fullchem
-create_rundir "1\n1\n1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # 4x5 merra2 fullchem_LuoWd
 dir="gc_4x5_merra2_fullchem_LuoWd"

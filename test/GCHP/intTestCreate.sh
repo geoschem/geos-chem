@@ -94,7 +94,7 @@ itRoot=$(absolute_path "${itRoot}")
 # Get absolute path of the environment file
 envFile=$(absolute_path "${envFile}")
 
-# Remove run directories in the te folder
+# Remove run directories in the test folder
 cleanup_files "${itRoot}"
 
 # Make the build directory
@@ -154,6 +154,10 @@ create_rundir "1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 # c24 merra2 fullchem_RRTMG
 create_rundir "1\n8\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+
+# Placeholder for carbon simulation
+# c24 merra2 carbon
+#create_rundir "12\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 
 #=============================================================================
 # Cleanup and quit
