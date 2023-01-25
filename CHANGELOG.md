@@ -4,25 +4,23 @@ This file documents all notable changes to the GEOS-Chem repository since versio
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased TBD]
+## [Unreleased 14.1.1]
 ### Added
 - New integration test functions `run_gcclassic_job` and `run_gchp_job` in `test/shared/commonFunctionsForTests.sh`
-- Added an integration test for the GCHP tagO3 simulation
+- Added GCHP integration test for the tagO3 simulation
+- Added GCHP and GCClassic integration tests for the carbon simulation
 - New parallelization test functions in `test/GCClassic`
 
 ### Changed
 - GCClassic integration tests now use a single set of scripts
 - GCHP integration tests now use a single set of scripts
 - `test/GCClassic/README` is now a Markdown file: `test/GCClassic/README.md`
-- `test/GCHP/README` is now a Markdown file: `test/GCHP/README.md`
+- `test/GCHP/README` and `test/GCClassic/README` have been converted to MarkDown format (e.g. `README.md`)
 - Integration test run directories are created with the default names assigned by `createRunDir.sh`
 - Several bash functions in `test/shared/commonFunctionsForTests.sh` have been combined so that they will work for both GCClassic and GCHP integration tests
 
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
-
-## [Unreleased]
-  - Added timestep menu to GCHP `geoschem_config.yml` template files
 
 ## [Unreleased 14.1.0]
 ### Added
