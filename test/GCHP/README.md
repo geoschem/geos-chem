@@ -4,9 +4,9 @@
 
 This directory contains scripts to submit automated GCHP integration tests, which will test the following processes:
 
-    - GCHP run directory creation
-    - GCHP code configuration and compilation
-    - GCHP execution
+- GCHP run directory creation
+- GCHP code configuration and compilation
+- GCHP execution
 
 Integration tests are short GCHP simulations.  Executables are compiled with all debugging options.  This should reveal any coding errors or run-directory configuration errors.
 
@@ -40,21 +40,24 @@ Before you submit any GCHP integration tests, please take a moment to:
 ### With the SLURM scheduler
 
 ```console
-$ cd test/GCClassic
+$ cd /path/to/gchp   # Path to the GCHP superproject directory
+$ cd test
 $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file -s -p partition
 ```
 
 ### With the LSF scheduler
 
 ```console
-$ cd test/GCClassic
+$ cd /path/to/gchp   # Path to the GCHP superproject directory
+$ cd test
 $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file -l -p partition
 ```
 
 ### Interactively at the command line
 
 ```console
-$ cd test/GCClassic
+$ cd /path/to/gchp   # Path to the GCHP superproject directory
+$ cd test
 $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file
 ```
 

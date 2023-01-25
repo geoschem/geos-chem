@@ -57,7 +57,8 @@ Before you submit any GEOS-Chem Classic integration or parallelization tests, pl
 ### With the SLURM scheduler
 
 ```console
-$ cd test/GCClassic
+$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
+$ cd test
 $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file -s -p partition   # Integration tests
 $ ./parTest.sh -d /path/to/test/dir -e /path/to/env-file -s -p partition   # Parallelization tests
 ```
@@ -65,7 +66,8 @@ $ ./parTest.sh -d /path/to/test/dir -e /path/to/env-file -s -p partition   # Par
 ### With the LSF scheduler
 
 ```console
-$ cd test/GCClassic
+$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
+$ cd test
 $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file -l -p partition   # Integration tests
 $ ./parTest.sh -d /path/to/test/dir -e /path/to/env-file -l -p partition   # Parallelization tests
 ```
@@ -73,7 +75,8 @@ $ ./parTest.sh -d /path/to/test/dir -e /path/to/env-file -l -p partition   # Par
 ### Interactively at the command line
 
 ```console
-$ cd test/GCClassic
+$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
+$ cd test
 $ ./intTest.sh -d /path/to/test/dir -e /path/to/env-file   # Integration tests
 $ ./parTest.sh -d /path/to/test/dir -e /path/to/env-file   # Parallelization tests
 ```
