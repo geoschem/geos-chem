@@ -52,7 +52,7 @@ EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
 EXE_GCC_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
                     "luowd"   "rrtmg" "tomas15" "tomas40" )
-EXE_GCHP_BUILD_LIST=("default" "rrtmg")
+EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
 PAR_TEST_SUFFIX="threads"
@@ -473,8 +473,8 @@ function compiletest_name() {
     # Pick the proper build options
     if [[ "${buildDir}" =~ "apm" ]]; then
 	result="${displayName} with APM"
-    elif [[ "${buildDir}" =~ "carboncycle" ]]; then
-	result="${displayName} with carboncycle (as a KPP mechanism)"
+    elif [[ "${buildDir}" =~ "carbon" ]]; then
+	result="${displayName} w/ carbon gases (as a KPP mechanism)"
     elif [[ "${buildDir}" =~ "luowd" ]]; then
 	result="${displayName} with Luo et al wetdep"
     elif [[ "${buildDir}" =~ "hg" ]]; then
