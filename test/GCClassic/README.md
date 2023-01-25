@@ -47,11 +47,12 @@ Parallelization tests are similar to integration tests, except that each simulat
 
 ## Running GEOS-Chem Classic Integration and/or Parallelization Tests
 
-Before you submit any GEOS-Chem Classic integration or parallelization tests, take a moment and make sure that:
+Before you submit any GEOS-Chem Classic integration or parallelization tests, please take a moment to:
 
-1. The `GCClassic` superproject is checked out to the correct branch and commit.
-2. The `GEOS-Chem` submodule is checked out to the correct branch and commit.
-3. The `HEMCO` submodule is checked out to the correct branch and commit.
+1. Verify that the `GCClassic` superproject is checked out to the correct branch and commit.
+2. Run `git submodule update --init --recursive` in order to update all submodules.
+3. Verify that the `HEAD` commit of the `GEOS-Chem` submodule contains the code that you wish to test. (If not, then check out the proper branch.)
+4. Verify that the `HEAD` commit of the `HEMCO` submodule contains the code that you wish to test. (If not, then check out the proper branch.)
 
 ### With the SLURM scheduler
 
