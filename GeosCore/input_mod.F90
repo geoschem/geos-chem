@@ -2564,6 +2564,19 @@ CONTAINS
     ! Return success
     RC = GC_SUCCESS
 
+    ! If we are not using the auto-reduce feature, then set all other
+    ! auto-reduce parameters to either 0 or false.  This will prevent
+    ! incorrect values from being copied to the KPP ICNTRL option vector.
+    IF ( .not. Input_Opt%USE_AUTOREDUCE ) THEN
+       Input_Opt%AUTOREDUCE_IS_APPEND        = .FALSE.
+       Input_Opt%AUTOREDUCE_IS_KEEPACTIVE    = .FALSE.
+       Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD = .FALSE.
+       Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD = .FALSE.
+       Input_Opt%AUTOREDUCE_THRESHOLD        = 0.0_fp
+       Input_Opt%AUTOREDUCE_TUNING_OH        = 0.0_fp
+       Input_Opt%AUTOREDUCE_TUNING_NO2       = 0.0_fp
+    ENDIF
+
     !========================================================================
     ! Print to screen
     !========================================================================
