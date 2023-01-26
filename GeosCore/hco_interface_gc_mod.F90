@@ -2248,23 +2248,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! WLI (LWI)
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%WLI, 'LWI', &
-                     HMRC,     FIRST=FIRST )
-#else
-    CALL ExtDat_Set( HcoState, ExtState%WLI, 'WLI_FOR_EMIS', &
-                     HMRC,     FIRST,        State_Met%LWI )
-#endif
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( WLI_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     ! T2M
 #if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M', &
@@ -3626,6 +3609,7 @@ CONTAINS
          Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
          Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
          Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
+         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
 
 
@@ -3642,7 +3626,7 @@ CONTAINS
           nSpc = nSpc + 1
        ENDIF
 
-       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       !%%%%% FOR THE CARBON OR TAGGED CO SIMULATIONS %%%%%
        ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
           nSpc = nSpc + 5

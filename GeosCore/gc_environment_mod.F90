@@ -412,6 +412,7 @@ CONTAINS
 !
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
+    USE Carbon_Gases_Mod,   ONLY : Init_Carbon_Gases
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE DiagList_Mod,       ONLY : DgnList
@@ -419,6 +420,7 @@ CONTAINS
     USE Dust_Mod,           ONLY : Init_Dust
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Debug_Msg
+    USE FullChem_Mod,       ONLY : Init_FullChem
     USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
@@ -528,22 +530,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Print extra info message for Hg simulation
-       IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT ) THEN
-          WRITE ( 6, 120 )
-          WRITE ( 6, 121 )
-       ENDIF
     ENDIF
 
     ! Exit for dry-run simulations
     IF ( Input_Opt%DryRun ) RETURN
-
-    ! FORMAT strings
-120 FORMAT( /, 'All tagged Hg2 species have the same dep velocity '          &
-               'as the total Hg2 species.' )
-121 FORMAT( 'All tagged HgP species have the same dep velocity '             &
-            'as the total HgP species.' )
 
     !=================================================================
     ! Call setup routines for wetdep
@@ -657,8 +647,71 @@ CONTAINS
     ENDIF
 
     !=================================================================
-    ! Initialize specialty simulation modules here
+    ! Initialize simulation modules here
     !=================================================================
+
+    !-----------------------------------------------------------------
+    ! Fullchem via KPP
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_FullChem"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Carbon gases via KPP
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
+       CALL Init_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,             &
+                               State_Grid, RC                                )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Carbon_Gases"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Mercury via KPP
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+       ! Main mercury module
+       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Mercury"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Land mercury module
+       CALL Init_Land_Mercury( Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Land_Mercury"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Mercury deposition module
+       CALL Init_Depo_Mercury( Input_Opt, State_Chm, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Depo_Mercury"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Ocean mercury module
+       CALL Init_Ocean_Mercury( Input_Opt, State_Chm, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Ocean_Mercury"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     !-----------------------------------------------------------------
     ! CO2
@@ -696,6 +749,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+
     !-----------------------------------------------------------------
     ! Tagged O3
     !-----------------------------------------------------------------
@@ -716,44 +770,6 @@ CONTAINS
     ! Initialize the TOMAS microphysics package, if necessary
     CALL Init_Tomas_Microphysics( Input_Opt, State_Chm, State_Grid, RC )
 #endif
-
-    !-----------------------------------------------------------------
-    ! Mercury
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-       ! Main mercury module
-       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Mercury"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Land mercury module
-       CALL Init_Land_Mercury( Input_Opt, State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Land_Mercury"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Mercury deposition module
-       CALL Init_Depo_Mercury( Input_Opt, State_Chm, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Depo_Mercury"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Ocean mercury module
-       CALL Init_Ocean_Mercury( Input_Opt, State_Chm, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Ocean_Mercury"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
 
     !-----------------------------------------------------------------
     ! POPs

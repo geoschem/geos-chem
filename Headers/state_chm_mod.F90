@@ -1552,13 +1552,11 @@ CONTAINS
     ENDIF ! ITS_A_FULLCHEM_SUM or ITS_AN_AEROSOL_SIM
 
     !========================================================================
-    ! Allocate and initialize fields only needed for FULLCHEM simulations
+    ! Allocate and initialize KPPHvalue (used by KPP-based simulations)
     !========================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                              &
+         Input_Opt%ITS_A_MERCURY_SIM     ) THEN
 
-       !---------------------------------------------------------------------
-       ! KPPHvalue
-       !---------------------------------------------------------------------
        chmId = 'KPPHvalue'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -1573,6 +1571,12 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Allocate and initialize fields for FULLCHEM or MERCURY simulations
+    !========================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !---------------------------------------------------------------------
        ! STATE_PSC (polar stratospheric clouds)
@@ -6466,7 +6470,8 @@ CONTAINS
        ! array fields of the State_Diag object (e.g. ProdCOfromISOP, etc.)
        State_Chm%nProd = 0
 
-    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
+              Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !------------------------------
        ! Tagged O3 simulation
@@ -6619,7 +6624,8 @@ CONTAINS
        State_Chm%Name_Prod => NULL()
        State_Chm%Map_Prod  => NULL()
 
-    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
+              Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !--------------------------------------------------------------------
        ! Tagged O3 simulations
