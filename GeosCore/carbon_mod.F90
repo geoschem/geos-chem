@@ -1687,7 +1687,7 @@ CONTAINS
       RTEMP  = State_Met%T(I,J,L)
 
       !======================================================================
-      ! Kinetic calculation
+      ! Kinetic calculation (eventually pull out to KPP)
       !=====================================================================
 
       ! Get SOA yield parameters
@@ -2604,7 +2604,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE SOA_Equilib_Coeffs( I, J, L, TK, KOM, KRO2NO, KRO2HO2 )
+ SUBROUTINE SOA_Equilib_Coeffs( I, J, L, TK, KOM )
 !
 ! !USES:
 !
@@ -2685,7 +2685,7 @@ CONTAINS
    KOM(1,5) = SemiVol45TempAdjKOM( KOM_REF_1_5, HEAT_VAPOR )
    KOM(2,5) = SemiVol45TempAdjKOM( KOM_REF_2_5, HEAT_VAPOR )
 
- END SUBROUTINE SOA_PARA
+ END SUBROUTINE SOA_Equilib_Coeffs
 
  FUNCTION SemiVol13TempAdjKOM( kom_ref, heat_vapor ) RESULT( kom )
    !
