@@ -3,7 +3,7 @@
 #SBATCH -c 8
 #SBATCH -N 1
 #SBATCH -t 0-12:00
-#SBATCH -p huce_intel
+#SBATCH -p seas_compute
 #SBATCH --mem=15000
 #SBATCH --mail-type=END
 

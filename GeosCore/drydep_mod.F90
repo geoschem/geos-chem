@@ -160,7 +160,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
   INTEGER                        :: id_ACET,  id_ALD2,  id_O3
   INTEGER                        :: id_MENO3, id_ETNO3, id_MOH
-  INTEGER                        :: id_NK1
+  INTEGER                        :: id_NK1,   id_Hg0
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
   INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
 
@@ -601,12 +601,13 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Set diagnostics - cnsider moving?
-    IF ( State_Diag%Archive_DryDepVel .OR. &
-         State_Diag%Archive_DryDepVelForALT1 ) THEN
+    IF ( State_Diag%Archive_DryDepVel                                   .or. &
+         State_Diag%Archive_DryDepVelForALT1                            .or. &
+         State_Diag%Archive_SatDiagnDryDepVel                         ) THEN 
 
-       !$OMP PARALLEL DO                                           &
-       !$OMP DEFAULT( SHARED                                     ) &
-       !$OMP PRIVATE( D, S, N, A, NDVZ )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( D, S, N, A, NDVZ                                      )
        DO D = 1, State_Chm%nDryDep
 
           ! Point to State_Chm%DryDepVel [m/s]
@@ -616,8 +617,17 @@ CONTAINS
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
              IF ( S > 0 ) THEN
-                State_Diag%DryDepVel(:,:,S) = &
-                           State_Chm%DryDepVel(:,:,NDVZ) * 100._f4
+                State_Diag%DryDepVel(:,:,S)   =                              &
+                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
+             ENDIF
+          ENDIF
+
+          ! Satellite diagnostic: Dry dep velocity [cm/s]
+          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
+             IF ( S > 0 ) THEN
+                State_Diag%SatDiagnDryDepVel(:,:,S)   =                      &
+                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
              ENDIF
           ENDIF
 
@@ -1016,7 +1026,7 @@ CONTAINS
     REAL(f8), INTENT(IN) :: TEMP   (State_Grid%NX,State_Grid%NY) ! Temperature [K]
     REAL(f8), INTENT(IN) :: SUNCOS (State_Grid%NX,State_Grid%NY) ! Cos of solar zenith angle
     LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
-    REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
+    REAL(f8), INTENT(INOUT) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                  !  of biological substances
     REAL(f8), INTENT(IN) :: HSTAR  (NUMDEP)      ! Henry's law constant
     REAL(f8), INTENT(IN) :: XMW    (NUMDEP)      ! Molecular weight [kg/mol]
@@ -1558,6 +1568,20 @@ CONTAINS
              ELSE IF ((N_SPC .EQ. ID_O3) .AND. (State_Met%isSnow(I,J))) THEN
                  RSURFC(K,LDT) = 10000.0_f8
              ELSE
+                ! Check latitude and longitude, alter F0 only for Amazon rainforest for Hg0
+                ! (see reference: Feinberg et al., ESPI, 2022: Evaluating atmospheric mercury (Hg) uptake by vegetation in a
+                ! chemistry-transport model)
+                IF (N_SPC .EQ. ID_Hg0) THEN ! Check for Hg0
+                   IF ( II .EQ. 6 .AND. & ! if rainforest land type
+                        State_Grid%XMid(I,J) > -82 .AND. & ! bounding box of Amazon
+                        State_Grid%XMid(I,J) < -33  .AND. &
+                        State_Grid%YMid(I,J) >  -34  .AND. &
+                        State_Grid%YMid(I,J) <  14 ) THEN
+                      F0(K) = 2.0e-01_f8 ! increase reactivity, as inferred from observations
+                   ELSE
+                      F0(K) = 3.0e-05_f8 ! elsewhere, lower reactivity 
+                   ENDIF
+                ENDIF
 
                 !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
                 XMWH2O = H2OMW * 1.e-3_f8
@@ -2273,16 +2297,14 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Pick the proper Hplus value based on surface
-             !----------------------------------------------------------------
-             ! NOTE: Should be using these but the original code used LWI.
-             ! Leave this comment here for now (bmy, 08 Jul 2021)
-             !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
-             !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
-             !IF ( State_Met%IsIce(I,J)   ) Hplus = HPLUS_ice
-             !----------------------------------------------------------------
-             IF ( State_Met%LWI(I,J) == 0 ) Hplus = HPLUS_ocn
-             IF ( State_Met%LWI(I,J) == 1 ) Hplus = HPLUS_lnd
-             IF ( State_Met%LWI(I,J) == 2 ) Hplus = HPLUS_ice
+             IF ( State_Met%isIce(I,J) .OR. State_Met%isSnow(I,J) ) THEN
+                Hplus = HPLUS_ice
+             ELSEIF ( State_Met%IsWater(I,J) .AND. &
+                      ( State_Met%FROCEAN(I,J) > State_met%FRLAKE(I,J) ) ) THEN
+                Hplus = HPLUS_ocn
+             ELSE
+                Hplus = HPLUS_lnd ! includes lakes but not ice/snow
+             ENDIF
 
              ! Temperature terms
              tAq      = MAX( 253.0_f8, State_Met%TS(I,J) )
@@ -4503,6 +4525,7 @@ CONTAINS
     id_MENO3  = 0
     id_ETNO3  = 0
     id_MOH    = 0
+    id_Hg0    = 0
     id_HNO3   = Ind_('HNO3'  )
     id_PAN    = Ind_('PAN'   )
     id_IHN1   = Ind_('IHN1'  )
@@ -4676,6 +4699,10 @@ CONTAINS
              CASE( 'MOH' )
                 ! Flag the species ID of MOH for use above.
                 id_MOH = SpcInfo%ModelId
+
+             CASE( 'HG0', 'Hg0' )
+                ! for finding Hg0 drydep veloc
+                id_Hg0 = SpcInfo%ModelId
 
              CASE( 'NITs', 'NITS' )
                 ! DEPNAME for NITs has to be in all caps, for

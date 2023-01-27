@@ -41,8 +41,14 @@ if [[ "x${ENV_FILE}" == "x" ]]; then
     exit
 fi
 
-# 3rd argument: Run a short integration test (for development)?
-SHORT=${3}
+# 3rd argument: partition
+PARTITION=${3}
+if [[ "x${PARTITION}" == "x" ]]; then
+    PARTITION=huce_intel
+fi
+
+# 4th argument: Run a short integration test (for development)?
+SHORT=${4}
 
 #=============================================================================
 # Load file with utility functions to setup configuration files
@@ -74,6 +80,13 @@ else
     echo "ERROR: ${INT_TEST_ROOT} is not a valid directory!  Exiting..."
     exit 1
 fi
+
+#=============================================================================
+# Replace the "REQUESTED_PARTITION" string with the specified partition
+# in the intTestCompile_slurm.sh and intTestExecute_slurm.sh scripts
+#=============================================================================
+sed_ie s/REQUESTED_PARTITION/${PARTITION}/ intTestCompile_slurm.sh
+sed_ie s/REQUESTED_PARTITION/${PARTITION}/ intTestExecute_slurm.sh
 
 #=============================================================================
 # Submit compilation tests script

@@ -1,0 +1,52 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for GCHP simulations using the tagged O3 mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: ${RUNDIR_SIM_NAME}
+  chem_inputs_dir: ./ChemDir/
+  species_database_file: ./species_database.yml
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
+  debug_printout: false
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  dry_deposition:
+    activate: true
+    diag_alt_above_sfc_in_m: 10
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
+
+  transport:
+    activate: true
+    transported_species:
+      - O3
+      - O3Strat
+      - O3ut
+      - O3mt
+      - O3row
+      - O3pcbl
+      - O3nabl
+      - O3atbl
+      - O3eubl
+      - O3afbl
+      - O3asbl
+      - O3init
+      - O3usa

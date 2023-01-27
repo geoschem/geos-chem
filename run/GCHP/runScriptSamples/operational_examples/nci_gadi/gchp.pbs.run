@@ -1,0 +1,49 @@
+#!/bin/bash
+#PBS -P m19
+#PBS -q normal
+#PBS -N GCHP
+#PBS -l wd
+#PBS -l storage=gdata/m19
+#PBS -l ncpus=384
+#PBS -l mem=1500GB
+#PBS -l walltime=4:00:00
+#PBS -j oe
+
+# Unlimit resources (to prevent OS killing GCHP due to resource usage)
+ulimit -c 0                  # coredumpsize
+ulimit -l unlimited          # memorylocked
+ulimit -u 50000              # maxproc
+ulimit -v unlimited          # vmemoryuse
+ulimit -s unlimited          # stacksize
+
+# Exit if command fails, and log all commands
+set -xe
+
+# Define log name to include simulation start date
+start_str=$(sed 's/ /_/g' cap_restart)
+log=gchp.${start_str:0:13}z.log
+echo "Writing output to ${log}"
+
+# Update config files, set restart symlink, load run env, and do sanity checks
+source setCommonRunSettings.sh > ${log}
+source setRestartLink.sh >> ${log}
+source gchp.env >> ${log}
+source checkRunSettings.sh >> ${log}
+
+# Run the code
+mpirun ./gchp >> $log
+
+# Rename and move restart file and update restart symlink if new start time ok
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh
+fi
+
+trap times EXIT
+
+

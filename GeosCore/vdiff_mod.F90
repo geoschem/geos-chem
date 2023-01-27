@@ -1922,7 +1922,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE Species_Mod,        ONLY : Species

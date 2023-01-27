@@ -26,15 +26,10 @@ MODULE GLOBAL_CH4_MOD
   PUBLIC :: EMISSCH4
   PUBLIC :: CHEMCH4
   PUBLIC :: INIT_GLOBAL_CH4
-  PUBLIC :: CLEANUP_GLOBAL_CH4
 !
 ! !PUBLIC DATA MEMBERS:
 !
   REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3 ! hard-coded MW
-
-  ! Make CH4_EMIS now public so that it can be used by vdiff_mod.F90
-  ! Methane emissions units are [kg/m2/s]
-  REAL(fp),  ALLOCATABLE, PUBLIC :: CH4_EMIS(:,:,:)
 !
 ! !REVISION HISTORY:
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
@@ -46,10 +41,7 @@ MODULE GLOBAL_CH4_MOD
 !
   !========================================================================
   ! Module Variables:
-  ! BOH        : Array for OH values                        [molec/cm3]
-  ! BCl        : Array for Cl values                        [v/v]
   ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
-  ! CH4_EMIS   : Array for CH4 Emissions                    [kg/m2/s]
   !========================================================================
 
   REAL(fp), PARAMETER   :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
@@ -61,10 +53,6 @@ MODULE GLOBAL_CH4_MOD
   ! Scalars
   INTEGER               :: id_CH4
   REAL(fp)              :: TROPOCH4
-
-  ! Various arrays
-  REAL(fp), ALLOCATABLE :: BOH(:,:,:)
-  REAL(fp), ALLOCATABLE :: BCl(:,:,:)
 
 CONTAINS
 !EOC
@@ -81,7 +69,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EMISSCH4( Input_Opt, State_Grid, State_Met, RC )
+  SUBROUTINE EMISSCH4( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -89,12 +77,14 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE ErrCode_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
     USE State_Met_Mod,        ONLY : MetState
     USE State_Grid_Mod,       ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
@@ -207,7 +197,7 @@ CONTAINS
     !
     !                                              (ckeller, 9/12/2013)
     ! =================================================================
-    CH4_EMIS(:,:,:) = 0e+0_fp
+    State_Chm%CH4_EMIS(:,:,:) = 0e+0_fp
 
     !-------------------
     ! Oil
@@ -224,7 +214,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,2) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,2) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -243,7 +233,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,3) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,3) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -262,7 +252,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,4) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,4) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -281,7 +271,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,5) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,5) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -300,7 +290,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,6) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,6) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -319,7 +309,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,7) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,7) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -338,7 +328,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,8) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,8) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -357,7 +347,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc = ThisLoc )
     ELSE
-       CH4_EMIS(:,:,9) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,9) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -376,7 +366,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,10) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,10) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -395,7 +385,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,11) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,11) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -414,7 +404,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,12) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,12) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -433,7 +423,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,13) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,13) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -452,7 +442,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,14) =  Ptr2D(:,:)
+       State_Chm%CH4_EMIS(:,:,14) =  Ptr2D(:,:)
     ENDIF
     Ptr2D => NULL()
 
@@ -471,7 +461,7 @@ CONTAINS
        ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
        CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
     ELSE
-       CH4_EMIS(:,:,15) =  Ptr2D(:,:) * -1.0_fp
+       State_Chm%CH4_EMIS(:,:,15) =  Ptr2D(:,:) * -1.0_fp
     ENDIF
     Ptr2D => NULL()
 
@@ -480,25 +470,25 @@ CONTAINS
     ! We have to substract soil absorption twice because it is added
     ! to other emissions in the SUM function. (ccc, 7/23/09)
     ! =================================================================
-    CH4_EMIS(:,:,1) = SUM(CH4_EMIS, 3) - (2 * CH4_EMIS(:,:,15))
+    State_Chm%CH4_EMIS(:,:,1) = SUM(State_Chm%CH4_EMIS, 3) - (2 * State_Chm%CH4_EMIS(:,:,15))
 
     IF ( prtDebug ) THEN
        WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
-       WRITE(*,*) 'Total        : ', SUM(CH4_EMIS(:,:,1))
-       WRITE(*,*) 'Oil          : ', SUM(CH4_EMIS(:,:,2))
-       WRITE(*,*) 'Gas          : ', SUM(CH4_EMIS(:,:,3))
-       WRITE(*,*) 'Coal         : ', SUM(CH4_EMIS(:,:,4))
-       WRITE(*,*) 'Livestock    : ', SUM(CH4_EMIS(:,:,5))
-       WRITE(*,*) 'Landfills    : ', SUM(CH4_EMIS(:,:,6))
-       WRITE(*,*) 'Wastewater   : ', SUM(CH4_EMIS(:,:,7))
-       WRITE(*,*) 'Rice         : ', SUM(CH4_EMIS(:,:,8))
-       WRITE(*,*) 'Other anth   : ', SUM(CH4_EMIS(:,:,9))
-       WRITE(*,*) 'Biomass burn : ', SUM(CH4_EMIS(:,:,10))
-       WRITE(*,*) 'Wetlands     : ', SUM(CH4_EMIS(:,:,11))
-       WRITE(*,*) 'Seeps        : ', SUM(CH4_EMIS(:,:,12))
-       WRITE(*,*) 'Lakes        : ', SUM(CH4_EMIS(:,:,13))
-       WRITE(*,*) 'Termites     : ', SUM(CH4_EMIS(:,:,14))
-       WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS(:,:,15))
+       WRITE(*,*) 'Total        : ', SUM(State_Chm%CH4_EMIS(:,:,1))
+       WRITE(*,*) 'Oil          : ', SUM(State_Chm%CH4_EMIS(:,:,2))
+       WRITE(*,*) 'Gas          : ', SUM(State_Chm%CH4_EMIS(:,:,3))
+       WRITE(*,*) 'Coal         : ', SUM(State_Chm%CH4_EMIS(:,:,4))
+       WRITE(*,*) 'Livestock    : ', SUM(State_Chm%CH4_EMIS(:,:,5))
+       WRITE(*,*) 'Landfills    : ', SUM(State_Chm%CH4_EMIS(:,:,6))
+       WRITE(*,*) 'Wastewater   : ', SUM(State_Chm%CH4_EMIS(:,:,7))
+       WRITE(*,*) 'Rice         : ', SUM(State_Chm%CH4_EMIS(:,:,8))
+       WRITE(*,*) 'Other anth   : ', SUM(State_Chm%CH4_EMIS(:,:,9))
+       WRITE(*,*) 'Biomass burn : ', SUM(State_Chm%CH4_EMIS(:,:,10))
+       WRITE(*,*) 'Wetlands     : ', SUM(State_Chm%CH4_EMIS(:,:,11))
+       WRITE(*,*) 'Seeps        : ', SUM(State_Chm%CH4_EMIS(:,:,12))
+       WRITE(*,*) 'Lakes        : ', SUM(State_Chm%CH4_EMIS(:,:,13))
+       WRITE(*,*) 'Termites     : ', SUM(State_Chm%CH4_EMIS(:,:,14))
+       WRITE(*,*) 'Soil absorb  : ', SUM(State_Chm%CH4_EMIS(:,:,15))
     ENDIF
 
     ! =================================================================
@@ -510,7 +500,7 @@ CONTAINS
 
        ! Don't optimize for soil absorption so remove from the total
        ! emissions array
-       CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) + CH4_EMIS(:,:,15)
+       State_Chm%CH4_EMIS(:,:,1) = State_Chm%CH4_EMIS(:,:,1) + State_Chm%CH4_EMIS(:,:,15)
 
        ! Rescale emissions
        !$OMP PARALLEL DO       &
@@ -524,7 +514,7 @@ CONTAINS
           !------------------------------------------------------------
           IF ( Input_Opt%UseEmisSF ) THEN
              ! Scale total emissions
-             CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * EMIS_SF(I,J)
+             State_Chm%CH4_EMIS(I,J,1) = State_Chm%CH4_EMIS(I,J,1) * EMIS_SF(I,J)
           ENDIF
 
           !------------------------------------------------------------
@@ -536,7 +526,7 @@ CONTAINS
              ! element number
              IF ( Input_Opt%StateVectorElement .GT. 0 ) THEN
                 IF ( STATE_VECTOR(I,J) == Input_Opt%StateVectorElement ) THEN
-                   CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * Input_Opt%PerturbEmis
+                   State_Chm%CH4_EMIS(I,J,1) = State_Chm%CH4_EMIS(I,J,1) * Input_Opt%PerturbEmis
                    !Print*, 'Analytical Inversion: Scaled state vector element ', &
                    !        Input_Opt%StateVectorElement, ' by ', &
                    !        Input_Opt%PerturbEmis
@@ -550,7 +540,7 @@ CONTAINS
 
        ! Now that we've done the emission factor scaling, add soil absorption
        ! back to the total emissions array
-       CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) - CH4_EMIS(:,:,15)
+       State_Chm%CH4_EMIS(:,:,1) = State_Chm%CH4_EMIS(:,:,1) - State_Chm%CH4_EMIS(:,:, 15)
 
     ENDIF
 
@@ -677,7 +667,7 @@ CONTAINS
     !================================================================
 
     ! Evalulate the global OH from HEMCO
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', BOH, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', State_Chm%BOH, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'GLOBAL_OH not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -685,7 +675,7 @@ CONTAINS
     ENDIF
 
     ! Evalulate the global Cl from HEMCO
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', BCl, RC )
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_Cl', State_Chm%BCl, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'GLOBAL_Cl not found in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -704,7 +694,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
              State_Diag%OHconcAfterChem(I,J,L) = &
-                  ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+                  ( State_Chm%BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
           ELSE
              State_Diag%OHconcAfterChem(I,J,L) = 0.0_f4
           ENDIF
@@ -770,6 +760,7 @@ CONTAINS
 
     ! Free pointer
     Spc => NULL()
+
 
     ! Set FIRSTCHEM to FALSE
     FIRSTCHEM = .FALSE.
@@ -933,7 +924,7 @@ CONTAINS
 
           ! OH in [molec/cm3]
           ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
-          C_OH = BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+          C_OH = State_Chm%BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
           ! Apply scale factors from analytical inversion
           IF ( Input_Opt%UseOHSF ) THEN
@@ -943,7 +934,7 @@ CONTAINS
 
           ! Cl in [molec/cm3]
           ! BCl from HEMCO in units of mol/mol, convert to molec/cm3
-          C_Cl = BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+          C_Cl = State_Chm%BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
           TROPOCH4 = TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
                               + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
@@ -1167,7 +1158,7 @@ CONTAINS
           CH4conc_mcm3 = CH4conc_kgm3 / MCM3toKGM3_CH4
 
           ! OH concentration [kg m-3] and [molec cm-3]
-          OHconc_kgm3  = BOH(I,J,L)
+          OHconc_kgm3  = State_Chm%BOH(I,J,L)
           OHconc_mcm3  = OHconc_kgm3 /  MCM3toKGM3_OH
 
           ! Airmass-weighted OH [kg air * (kg OH  m-3)]
@@ -1213,7 +1204,7 @@ CONTAINS
              ! the various lifetime metrics in post-processing
              !---------------------------------------------------------------
              IF ( L == 1 .and. State_Diag%Archive_CH4emission ) THEN
-                State_Diag%CH4emission(I,J) = CH4_EMIS(I,J,id_CH4)           &
+                State_Diag%CH4emission(I,J) = State_Chm%CH4_EMIS(I,J,id_CH4)           &
                                             * State_Grid%Area_M2(I,J)
              ENDIF
           ENDIF
@@ -1533,19 +1524,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_GLOBAL_CH4( Input_Opt, State_Diag, State_Grid, RC )
+  SUBROUTINE INIT_GLOBAL_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Chm_Mod,      ONLY : Ind_, ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1590,76 +1582,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ALLOCATE( CH4_EMIS( State_Grid%NX, State_Grid%NY, 15 ), STAT=RC )
-    CALL GC_CheckVar( 'global_ch4_mod.F90:CH4_EMIS', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    CH4_EMIS = 0e+0_fp
-
-    ALLOCATE( BOH( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'global_ch4_mod.F90:BOH', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    BOH = 0e+0_fp
-
-    ALLOCATE( BCl( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'global_ch4_mod.F90:BCl', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    BCl = 0e+0_fp
-
     ! Initialize tropoch4 (counts total decay of CH4 due to OH)
     TROPOCH4 = 0e+0_fp
 
   END SUBROUTINE INIT_GLOBAL_CH4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_global_ch4
-!
-! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_CH4 deallocates module arrays.
-!  (bmy, 1/16/01)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CLEANUP_GLOBAL_CH4( RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-    ! Initialize
-    RC = GC_SUCCESS
-
-    IF ( ALLOCATED( CH4_EMIS ) ) THEN
-       DEALLOCATE( CH4_EMIS, STAT=RC )
-       CALL GC_CheckVar( 'global_ch4_mod.F90:CH4_EMIS', 2, RC )
-       RETURN
-    ENDIF
-
-    IF ( ALLOCATED( BOH ) ) THEN
-       DEALLOCATE( BOH, STAT=RC )
-       CALL GC_CheckVar( 'global_ch4_mod.F90:BOH', 2, RC )
-       RETURN
-    ENDIF
-
-    IF ( ALLOCATED( BCl ) ) THEN
-       DEALLOCATE( BCl, STAT=RC )
-       CALL GC_CheckVar( 'global_ch4_mod.F90:BCl', 2, RC )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE CLEANUP_GLOBAL_CH4
 !EOC
 END MODULE GLOBAL_CH4_MOD

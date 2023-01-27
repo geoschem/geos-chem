@@ -12,7 +12,18 @@ simulation:
   name: ${RUNDIR_SIM_NAME}
   chem_inputs_dir: ./ChemDir/
   species_database_file: ./species_database.yml
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
   debug_printout: false
+
+#============================================================================
+# Timesteps settings
+#
+# These timesteps are determined in setCommonRunSettings.sh since they are
+# resolution-dependent for GCHP
+#============================================================================
+timesteps:
+  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
+  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
 
 #============================================================================
 # Settings for GEOS-Chem operations

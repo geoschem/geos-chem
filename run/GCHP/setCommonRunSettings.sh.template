@@ -72,6 +72,7 @@ Diag_Collections=(SpeciesConc    \
                   AerosolMass    \
                   Aerosols       \
                   Budget         \
+                  Carbon         \
                   CloudConvFlux  \
                   ConcAfterChem  \
                   DryDep         \
@@ -79,6 +80,7 @@ Diag_Collections=(SpeciesConc    \
                   Emissions      \
                   JValues        \
                   KppDiags       \
+                  KppARDiags     \
                   LevelEdgeDiags \
                   Metrics        \
                   ProdLoss       \

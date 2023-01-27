@@ -2523,7 +2523,8 @@ CONTAINS
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
-    State_Chm%pHcloud    =  0.0_fp
+!    State_Chm%pHcloud    =  0.0_fp
+    State_Chm%pHcloud    =  4.5_fp
     State_Chm%QLxpHcloud =  0.0_fp
 #ifdef LUO_WETDEP
     State_Chm%pHrain     =  5.6_fp
@@ -2822,6 +2823,7 @@ CONTAINS
        IF ( ( DO_SEASALT_CHEM ) .and. ( ALK    > MINDAT )  .and.             &
             ( SO2_cd > MINDAT ) .and. ( SO2_cd < O3     ) ) THEN
 
+
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
           CALL SEASALT_CHEM( I,          J,          L,         ALK1,        &
@@ -2844,33 +2846,6 @@ CONTAINS
           PACL(I,J,L)  = 0.0_fp
           PCCL(I,J,L)  = 0.0_fp
 
-       ENDIF
-
-       ! We must store alkalinity first for gas phase chemistry
-       ! (convert from kg to equivalents) -- Xuan Wang 6/9/19
-       IF ( .NOT. FullRun ) Then
-
-          ! Fine mode seasalt alkalinity
-          State_Chm%SSAlk(I,J,L,1)                                           &
-               =  AlkA                                                       &
-               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
-               / ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
-
-          ! Coarse mode seasalt alkalinity
-          State_Chm%SSAlk(I,J,L,2)                                           &
-               = AlkC                                                        &
-               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
-               / ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
-
-          ! We also need to update the SALAAL and SALCAL species here
-          ! when we are using KPP to perform sulfur chemistry, otherwise
-          ! SALAAL and SALCAL will not get set properly.  Think about
-          ! a better way to abstract this code later.
-          !   -- Bob Yantosca (09 Sep 2021)
-          IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
-             Spc(id_SALAAL)%Conc(I,J,L) = AlkA
-             Spc(id_SALCAL)%Conc(I,J,L) = AlkC
-          ENDIF
        ENDIF
 
        ! If we are not using KPP to compute seasalt reaction rates,

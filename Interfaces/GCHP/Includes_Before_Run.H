@@ -37,6 +37,7 @@
   State_Met%FRLAKE              = FRLAKE                     ! 1
   State_Met%FRLANDIC            = FRLANDIC                   ! 1
   State_Met%FRSEAICE            = FRSEAICE                   ! 1
+  State_Met%FRSNO               = FRSNO                      ! 1
   State_Met%QV2M                = QV2M                       ! 1
   State_Met%PHIS                = PHIS / 9.80665d0           ! m
   State_Met%GWETROOT            = GWETROOT                   ! 1
@@ -61,17 +62,6 @@
   State_Met%USTAR               = USTAR                      ! m/s
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
-
-  ! Set LWI based on land type fractions in imports: 0=water, 1=land, 2=ice
-  DO J=1,State_Grid%NY
-  DO I=1,State_Grid%NX
-     IMAXLOC = MAXLOC( (/ FRLAND(I,J) + FRLANDIC(I,J) + FRLAKE(I,J),  &
-                          FRSEAICE(I,J),                              &
-                          FROCEAN(I,J) - FRSEAICE(I,J) /) )
-     IF ( IMAXLOC(1) == 3 ) IMAXLOC(1) = 0 ! reset ocean to 0
-     State_Met%LWI(I,J) = FLOAT( IMAXLOC(1) )
-  ENDDO
-  ENDDO
 
   ! Get UV albedo for photolysis
   Ptr2d => NULL()

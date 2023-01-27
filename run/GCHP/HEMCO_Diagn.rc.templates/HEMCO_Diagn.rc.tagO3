@@ -1,0 +1,23 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the tagCO simulation.
+#
+# !REVISION HISTORY:
+#  13 Mar 2019 - M. Sulprizio- Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name              Spec   ExtNr Cat Hier Dim OutUnit  LongName
+
+EmisO3_Total        O3     -1    -1  -1   3   kg/m2/s  O3_emission_flux_from_all_sectors
+
+#EOC

@@ -22,6 +22,7 @@ target_link_libraries(KPP_FirstPass
 add_library(KPP
   STATIC EXCLUDE_FROM_ALL
   commonIncludeVars.H
+  fullchem_AutoReduceFuncs.F90
   fullchem_HetStateFuncs.F90
   fullchem_RateLawFuncs.F90
   fullchem_SulfurChemFuncs.F90
@@ -44,6 +45,7 @@ add_library(KPP
   # These are symbolic links to files in the ../stubs folder.
   #
   stub_aciduptake_DustChemFuncs.F90
+  stub_carbon_Funcs.F90
   stub_Hg_HetStateFuncs.F90
 )
 

@@ -1,4 +1,5 @@
 !------------------------------------------------------------------------------
+
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -12,13 +13,13 @@
 !\\
 ! !INTERFACE:
 !
-MODULE CARBON_MOD
+MODULE Carbon_Mod
 !
 ! !USES:
 !
-  USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
+  USE Aerosol_Mod, ONLY : OCFPOA, OCFOPOA   ! TODO, move to State_Che
   USE PhysConstants     ! Physical constants
-  USE PRECISION_MOD     ! For GEOS-Chem Precisions
+  USE Precision_Mod     ! For GEOS-Chem Precisions
 
   IMPLICIT NONE
   PRIVATE
@@ -153,8 +154,6 @@ MODULE CARBON_MOD
   REAL(fp), PARAMETER   :: SMALLNUM   = 1e-20_fp
 
   ! Indicate number of parent HC based on simulation species
-  ! (hotp 8/24/09)
-  !INTEGER, SAVE        :: MAXSIMHC
   ! Now loop over number of semivolatiles (hotp 5/13/10)
   INTEGER,  SAVE        :: MAXSIMSV
 
@@ -191,8 +190,6 @@ MODULE CARBON_MOD
   INTEGER               :: NNOX(MSV)  !hotp 5/13/10
   ! now only 4 offline oxidations (hotp 5/20/10)
   REAL(fp)              :: KO3_REF(4), KOH_REF(4), KNO3_REF(4)
-  ! KOM_REF now has dims of MPROD, MSV (hotp 5/22/10)
-  REAL(fp)              :: KOM_REF(MPROD,MSV)
   REAL(fp)              :: ALPHA(MNOX,MPROD,MHC)
 
   ! Array for mapping parent HC to semivolatiles (SV) (hotp 5/14/10)
@@ -275,11 +272,6 @@ MODULE CARBON_MOD
   INTEGER :: id_LISOPOH, id_LISOPNO3
   INTEGER :: id_SOAS,    id_SOAP
 
-#ifdef APM
-  REAL(fp), ALLOCATABLE :: BCCONVNEW(:,:,:)
-  REAL(fp), ALLOCATABLE :: OCCONVNEW(:,:,:)
-#endif
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -297,24 +289,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEMCARBON( Input_Opt,  State_Chm, State_Diag, &
-                         State_Grid, State_Met, RC )
+  SUBROUTINE ChemCarbon( Input_Opt,  State_Chm, State_Diag,                  &
+                         State_Grid, State_Met, RC                          )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : DEBUG_MSG
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
-    USE HCO_State_GC_Mod,   ONLY : HcoState                      ! APM: for HEMCO diags
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : SpcConc
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE Error_Mod,            ONLY : DEBUG_MSG
+    USE HCO_State_GC_Mod,     ONLY : HcoState
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE Species_Mod,          ONLY : SpcConc
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,             ONLY : GET_TS_CHEM
 #ifdef APM
     USE APM_INIT_MOD,         ONLY : APMIDS
     USE APM_INIT_MOD,         ONLY : NBCOC,CEMITBCOC1
@@ -322,12 +312,9 @@ CONTAINS
     USE HCO_TYPES_MOD,        ONLY : DiagnCont
     USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
 #endif
-#ifdef BPCH_DIAG
-    USE CMN_O3_MOD,           ONLY : SAVEOA
-#endif
 #ifdef TOMAS
-    USE TOMAS_MOD,            ONLY : SOACOND, IBINS              !(win, 1/25/10)
-    USE TOMAS_MOD,            ONLY : CHECKMN                     !(sfarina)
+    USE TOMAS_MOD,            ONLY : SOACOND, IBINS
+    USE TOMAS_MOD,            ONLY : CHECKMN
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
 #endif
 !
@@ -358,185 +345,121 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVED scalars
-    LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+    LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
 
     ! Scalars
-    LOGICAL            :: prtDebug
-    LOGICAL            :: IT_IS_AN_AEROSOL_SIM
-    LOGICAL            :: LSOA
-    LOGICAL            :: LEMIS
-    LOGICAL            :: FND
-    REAL(fp)           :: NEWSOA
-    REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
-    REAL(fp)           :: CONC_SUM
-    INTEGER            :: L
+    LOGICAL                  :: prtDebug
+    LOGICAL                  :: FND
+    REAL(fp)                 :: NEWSOA
+    REAL(fp)                 :: DTCHEM
+    REAL(fp)                 :: CONC_SUM
+    INTEGER                  :: L
 
-#ifdef TOMAS
-    INTEGER            :: I, J
-    REAL*4             :: BOXVOL, TEMPTMS, PRES
-#endif
+    ! Strings
+    CHARACTER(LEN=255)       :: errMsg, thisLoc
 
     ! Pointers
-    TYPE(SpcConc), POINTER  :: Spc(:)
-
-    ! For getting fields from HEMCO
-    CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F90)'
-    CHARACTER(LEN=255) :: ErrMsg
+    TYPE(SpcConc),   POINTER :: Spc(:)
 
 #ifdef APM
     TYPE(DiagnCont), POINTER :: DiagnCnt
-    INTEGER            :: FLAG,I,J,N,IDCARBON
-    REAL(fp)           :: A_M2, E_CARBON, DTSRCE
-    REAL(fp)           :: EMITRATE(State_Grid%NX,State_Grid%NY)
+    INTEGER                  :: FLAG,I,J,N,IDCARBON
+    REAL(fp)                 :: A_M2, E_CARBON, DTSRCE
+    REAL(fp)                 :: EMITRATE(State_Grid%NX,State_Grid%NY)
+#endif
+#ifdef TOMAS
+    INTEGER                  :: I, J
+    REAL*4                   :: BOXVOL, TEMPTMS, PRES
+    REAL(fp),      PARAMETER :: SOAP_LIFETIME = 86400.0_fp  ! 1 day lifetime
 #endif
 
     !=================================================================
     ! CHEMCARBON begins here!
     !=================================================================
 
-    ! Assume success
-    RC                   = GC_SUCCESS
-
-    ! Copy fields from INPUT_OPT to local variables for use below
-    LSOA                 = Input_Opt%LSOA
-    LEMIS                = Input_Opt%DoEmissions
-    IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
-
-    DTCHEM               = GET_TS_CHEM()
-    !                      ( days )*(hrs/day)*(mins/hr)*(sec/min)
-    SOAP_LIFETIME        = 1.00_fp * 24.0_fp * 60.0_fp * 60.0_fp
-
-    ! Do we have to print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    ! Initialization
+    RC       = GC_SUCCESS
+    DTCHEM   = GET_TS_CHEM()
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    errMsg   = ''
+    thisLoc  = ' -> at ChemCarbon (in module GeosCore/carbon_mod.F90)'
 
     ! Point to chemical species vector containing concentrations
-    Spc                  => State_Chm%Species
+    Spc      => State_Chm%Species
 
-    ! First-time initialization
+    !=================================================================
+    ! Perform initializations for the first chemistry call
+    !=================================================================
     IF ( FIRSTCHEM ) THEN
 
-       ! Zero SOG4 and SOA4 (SOA from ISOP in gas & aerosol form)
-       ! for offline aerosol simulations.  Eventually we should have
-       ! archived isoprene oxidation fields available for offline
-       ! simulations but for now we just set them to zero.
-       ! (dkh, bmy, 6/1/06)
-       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
-          ! lumped arom/IVOC (hotp 5/17/10)
-          ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
-          IF ( id_ASOAN > 0 ) Spc(id_ASOAN)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOA1 > 0 ) Spc(id_ASOA1)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOA2 > 0 ) Spc(id_ASOA2)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOA3 > 0 ) Spc(id_ASOA3)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOG1 > 0 ) Spc(id_ASOG1)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOG2 > 0 ) Spc(id_ASOG2)%Conc(:,:,:) = 0.0_fp
-          IF ( id_ASOG3 > 0 ) Spc(id_ASOG3)%Conc(:,:,:) = 0.0_fp
-
-
-          ! initialize SOA Precursor and SOA for simplified SOA sims
-          IF ( id_SOAP > 0 ) THEN
-             Spc(id_SOAP)%Conc(:,:,:) = 0e+0_fp
-             Spc(id_SOAS)%Conc(:,:,:) = 0e+0_fp
-          ENDIF
-
-       ENDIF
-
-       ! Determine number of semivolatile parent HC (hotp 8/24/09)
-       !MAXSIMHC = 0 ! for non-volatile sim
-       ! Now use SV instead of HC (hotp 5/13/10)
-       MAXSIMSV = 0
-       IF ( LSOA ) THEN
-          ! updated (hotp 5/20/10) new mtp
-          MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
-          IF ( id_POA1  > 0 ) MAXSIMSV = MAXSIMSV + 1
-          IF ( id_OPOA1 > 0 ) MAXSIMSV = MAXSIMSV + 1
-          IF ( MAXSIMSV > MSV ) THEN
-             CALL ERROR_STOP('YOUVE GOT A PROBLEM W/ SEMIVOLATILES', &
-                             'carbon_mod.F90')
-          ENDIF
-
-          ! Print to log for record
-          IF ( prtDebug ) THEN
-             print*,'Number of SOA semivols (MAXSIMSV): ', MAXSIMSV
-             print*,'This number should be 5 for semivol POA' ! hotp 5/20/10
-          ENDIF
+       ! First-time init
+       CALL Init_on_First_Chem_Call( Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg= 'Error encountered in routine "Init_on_First_Chem_Call"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
        ! Reset first-time flag
        FIRSTCHEM = .FALSE.
-
     ENDIF
 
-    ! Evaluate offline fields from HEMCO every timestep to allow
-    ! optional use of scaling or masking in HEMCO configuration file
-    IF ( IT_IS_AN_AEROSOL_SIM .AND. LSOA ) THEN
+    !========================================================================
+    ! Do the following for the aerosol-only simulation
+    !========================================================================
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-       ! Evaluate offline oxidant fields from HEMCO: global OH
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', OFFLINE_OH, RC )
+       ! Evaluate offline fields from HEMCO every timestep to allow
+       ! optional use of scaling or masking in HEMCO configuration file
+       CALL Get_Oxidants_for_Aerosol_Sim( Input_Opt,  State_Chm,             &
+                                          State_Grid, RC                    )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
+          errMsg= 'Error encountered in "Get_Oxidants_for_Aerosol_Sim"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
 
-       ! Evaluate offline oxidant fields from HEMCO: global O3
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', OFFLINE_O3, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
-          RETURN
+!TODO: Merge tje 4 subroutines below into 1, for efficiency
+       !---------------------------------------------------------------------
+       ! Conversion of hydrophobic GC to hydrophilic BC
+       !---------------------------------------------------------------------
+       IF ( id_BCPO > 0 ) THEN
+          CALL CHEM_BCPO( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_BCPO)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+          ENDIF
        ENDIF
 
-       ! Evaluate offline oxidant fields from HEMCO: global NO3
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', OFFLINE_NO3, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
-          RETURN
+       IF ( id_BCPI > 0 ) THEN
+          CALL CHEM_BCPI( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_BCPI)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+          ENDIF
        ENDIF
 
-    ENDIF
-
-    !=================================================================
-    ! Do chemistry for carbon aerosol species
-    !=================================================================
-
-    ! Chemistry for hydrophobic BC
-    IF ( id_BCPO > 0 ) THEN
-       CALL CHEM_BCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_BCPO)%Conc(:,:,:),   RC          )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+       !---------------------------------------------------------------------
+       ! Conversion of hydrophobic OC to hydrophilic OC
+       !---------------------------------------------------------------------
+       IF ( id_OCPO > 0 ) THEN
+          CALL CHEM_OCPO( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_OCPO)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+          ENDIF
        ENDIF
-    ENDIF
 
-    ! Chemistry for hydrophilic BC
-    IF ( id_BCPI > 0 ) THEN
-       CALL CHEM_BCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_BCPI)%Conc(:,:,:),   RC )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
-       ENDIF
-    ENDIF
-
-    ! Chemistry for hydrophobic OC (traditional POA only)
-    IF ( id_OCPO > 0 ) THEN
-       CALL CHEM_OCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_OCPO)%Conc(:,:,:),   RC          )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+       IF ( id_OCPI > 0 ) THEN
+          CALL CHEM_OCPI( Input_Opt, State_Diag,    State_Grid,              &
+                          Spc(id_OCPI)%Conc(:,:,:), RC                      )
+          IF ( prtDebug ) THEN
+             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+          ENDIF
        ENDIF
     ENDIF
 
-    ! Chemistry for hydrophilic OC (traditional POA only)
-    IF ( id_OCPI > 0 ) THEN
-       CALL CHEM_OCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_OCPI)%Conc(:,:,:),   RC )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
-       ENDIF
-    ENDIF
-
+!TODO: Abstract APM-specific code into a separate module
 #ifdef APM
     !=====================================================================
     ! APM Microphysics
@@ -786,6 +709,7 @@ CONTAINS
    ENDIF
 #endif
 
+!TODO: Abstract TOMAS-specific code out of carbon_mod
 #ifdef TOMAS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, 'CHECKMN from chemcarbon', RC)
@@ -802,12 +726,13 @@ CONTAINS
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
    ENDIF
-#endif
 
+   !=========================================================================
+   ! Conversion of SOAP -> SOAS for TOMAS simulations
+   !
+   ! NOTE: for other fullchem simulations, this is now done in KPP.
+   !=========================================================================
    IF ( id_SOAP > 0 ) THEN
-      ! AGE SOAP -> SOA
-
-#ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                     State_Met, 'CHECKMN from chemcarbon', RC)
 
@@ -832,42 +757,26 @@ CONTAINS
       ENDDO
       ENDDO
       !$OMP END PARALLEL DO
-#else
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, NEWSOA )
-      DO L = 1, State_Grid%NZ
-         !NEWSOA used in a different context than above.
-         !above is absolute mass, here is a relative decay factor
-         NEWSOA = DEXP(-DTCHEM/SOAP_LIFETIME)
-         Spc(id_SOAS)%Conc(:,:,L) = Spc(id_SOAS)%Conc(:,:,L) + &
-                              Spc(id_SOAP)%Conc(:,:,L) * (1.0_fp - NEWSOA)
-         Spc(id_SOAP)%Conc(:,:,L) = Spc(id_SOAP)%Conc(:,:,L) * NEWSOA
-      ENDDO
-      !$OMP END PARALLEL DO
-#endif
 
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: SIMPLIFIED SOA')
       ENDIF
    ENDIF
+#endif
 
    ! Free pointer
    Spc => NULL()
 
    !=================================================================
    ! Do chemistry for secondary organic aerosols
-   !
-   ! %%% NOTE: We are not planning on using the SOA mechanism   %%%
-   ! %%% with the ESMF interface at this point. (bmy, 11/14/12) %%%
    !=================================================================
-   IF ( LSOA ) THEN
+   IF ( Input_Opt%LSOA ) THEN
 
-      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          ! Compute time scaling arrays for offline OH, NO3
          ! but only if it hasn't been done in EMISSCARBON
-         IF ( LSOA .and. ( .not. LEMIS ) ) THEN
+         IF ( .not. Input_Opt%DoEmissions ) THEN
             CALL OHNO3TIME( State_Grid )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
@@ -886,14 +795,9 @@ CONTAINS
          CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
-#ifdef BPCH_DIAG
-      ! NOTE: This is only needed for ND51, ND51b (bmy, 10/4/19)
-      ! Get total organic aerosol:
-      CALL OASAVE( SAVEOA, Input_Opt, State_Chm, State_Grid, State_Met, RC )
-#endif
    ENDIF
 
- END SUBROUTINE CHEMCARBON
+ END SUBROUTINE ChemCarbon
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1782,15 +1686,18 @@ CONTAINS
       ! Temperature [K]
       RTEMP  = State_Met%T(I,J,L)
 
+      !======================================================================
+      ! Kinetic calculation (eventually pull out to KPP)
+      !=====================================================================
+
       ! Get SOA yield parameters
-      ! ALPHA is a module variable now. (ccc, 2/2/10)
-      ! add arguments for RO2+NO, RO2+HO2 rates (hotp 5/7/10)
-      CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM, &
-                     I,     J,   L,   KRO2NO, KRO2HO2, State_Met )
+      CALL SOA_Kinetic_Rates( I,     J,      L,                              &
+                              RTEMP, KO3,    KOH,                            &
+                              KNO3,  KRO2NO, KRO2HO2                        )
 
       ! Partition mass of gas & aerosol species
       ! according to 5 VOC classes & 3 oxidants
-      CALL SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
+      CALL SOA_Partition( I, J, L, GM0, AM0, State_Chm )
 
       ! hotp diagnostic (3/11/09)
       GLOB_AM0_POA_0(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
@@ -1799,20 +1706,23 @@ CONTAINS
       ! ALPHA is a module variable now (ccc, 2/2/10)
       ! semivolpoa2: emit POA into semivolatiles here (hotp 2/27/09)
       ! add RO2+NO,HO2 rate constants (hotp 5/7/10)
-      CALL CHEM_NVOC( I,          J,         L,          &
-                      KO3,        KOH,       KNO3,       &
-                      GM0,        KRO2NO,    KRO2HO2,    &
-                      Input_Opt,  State_Chm, State_Diag, &
-                      State_Grid, State_Met, RC          )
+      CALL CHEM_NVOC( I,          J,         L,                              &
+                      KO3,        KOH,       KNO3,                           &
+                      GM0,        KRO2NO,    KRO2HO2,                        &
+                      Input_Opt,  State_Chm, State_Diag,                     &
+                      State_Grid, State_Met, RC                             )
 
-      !==============================================================
+      !=====================================================================
       ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
-      !==============================================================
+      !=====================================================================
+
+      ! Get SOA yield parameters
+      CALL SOA_Equilib_Coeffs( I, J, L, RTEMP, KOM )
 
       ! Initialize other arrays to be safe  (dkh, 11/10/06)
       ! update dims (hotp 5/22/10)
-      ORG_AER(:,:) = 0e+0_fp
-      ORG_GAS(:,:) = 0e+0_fp
+      ORG_AER(:,:) = 0.0_fp
+      ORG_GAS(:,:) = 0.0_fp
 
       ! Individual SOA's: convert from [kg] to [ug/m3] or [kgC] to [ugC/m3]
       DO JSV = 1, MAXSIMSV
@@ -2591,46 +2501,40 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: soa_para
+! !IROUTINE: soa_kinetic_rates
 !
-! !DESCRIPTION: Subroutine SOA\_PARA gves mass-based stoichiometric
-!  coefficients for semi-volatile products from the oxidation of hydrocarbons.
-!  It calculates secondary organic aerosol yield parameters.  Temperature
-!  effects are included.  Original code from the CALTECH group and modified for
-!  inclusion to GEOS-CHEM. (rjp, bmy, 7/8/04, 6/30/08)
+! !DESCRIPTION: Computes kinetic reaction rates for lumped semivolatile and
+!  RO2 oxidation reactions.
 !\\
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM, II, JJ, LL, &
-                      KRO2NO, KRO2HO2, State_Met )
+ SUBROUTINE SOA_Kinetic_Rates( I, J, L, TK, KO3, KOH, KNO3, KRO2NO, KRO2HO2 )
 !
 ! !USES:
 !
-   USE State_Met_Mod,      ONLY : MetState
+   USE gckpp_Global,          ONLY : INV_K298,       INV_K300
+   USE gckpp_Global,          ONLY : INV_K310,       INV_TEMP
+   USE gckpp_Global,          ONLY : TEMP_OVER_K298, TEMP_OVER_K300
+   USE gckpp_Global,          ONLY : TEMP_OVER_K300, TEMP
+   USE gckpp_Global,          ONLY : dp
+   USE fullchem_RateLawFuncs, ONLY : SemiVolOxidation
+   USE rateLawUtilFuncs,      ONLY : GCARR_ac
 !
 ! !INPUT PARAMETERS:
 !
-   INTEGER,        INTENT(IN)  :: II              ! Longitude index
-   INTEGER,        INTENT(IN)  :: JJ              ! Latitude index
-   INTEGER,        INTENT(IN)  :: LL              ! Altitude index
-   REAL(fp),       INTENT(IN)  :: TEMP            ! Temperature [k]
-   TYPE(MetState), INTENT(IN)  :: State_Met       ! Meteorology State object
+   INTEGER,  INTENT(IN)  :: I               ! Longitude index
+   INTEGER,  INTENT(IN)  :: J               ! Latitude index
+   INTEGER,  INTENT(IN)  :: L               ! Altitude index
+   REAL(fp), INTENT(IN)  :: TK              ! Temperature [K]
 !
 ! !OUTPUT PARAMETERS:
 !
-   REAL(fp),       INTENT(OUT) :: KO3(MHC)        ! Rxn rate for HC oxidation
-                                                  !  by O3 [cm3/molec/s]
-   REAL(fp),       INTENT(OUT) :: KOH(MHC)        ! Rxn rate for HC oxidation
-                                                  !  by OH [cm3/molec/s]
-   REAL(fp),       INTENT(OUT) :: KNO3(MHC)       ! Rxn rate for HC oxidation
-                                                  !  by NO3 [cm3/molec/s]
-   REAL(fp),       INTENT(OUT) :: KOM(MPROD,MSV)  ! Equilibrium gas-aerosol
-                                                  !  partition coeff [m3/ug]
-
-   ! RO2+NO,HO2 rate constants (hotp 5/7/10)
-   REAL(fp),       INTENT(OUT) :: KRO2NO          ! RO2+NO  rate constant
-   REAL(fp),       INTENT(OUT) :: KRO2HO2         ! RO2+HO2 rate constant
+   REAL(fp), INTENT(OUT) :: KO3(MHC)  ! Semivol + O3  rates [cm3/molec/s]
+   REAL(fp), INTENT(OUT) :: KOH(MHC)  ! Semivol + OH  rates [cm3/molec/s]
+   REAL(fp), INTENT(OUT) :: KNO3(MHC) ! Semivol + NO3 rates [cm3/molec/s]
+   REAL(fp), INTENT(OUT) :: KRO2NO    ! RO2     + NO  rate
+   REAL(fp), INTENT(OUT) :: KRO2HO2   ! RO2     + HO2 rate
 !
 ! !REMARKS:
 !  References:
@@ -2642,279 +2546,180 @@ CONTAINS
 !  (4 ) Some are reproduced in Table 1 of Griffin, et al., JGR 104: 3555-3567
 !  (5 ) Chung and Seinfeld (2002)
 !                                                                             .
-!  ACTIVATION ENERGIES come from:
-!  (6 ) Atkinson, R. (1994) Gas-Phase Tropospheric Chemistry of Organic
-!        Compounds.  J. Phys. Chem. Ref. Data, Monograph No.2, 1-216.
-!  (7 ) They are also reproduced in Tables B.9 and B.10 of Seinfeld and
-!        Pandis (1988).
-!                                                                             .
-!  PARAMETERS FOR ISOPRENE:
-!  (8 ) Kroll et al., GRL, 109, L18808 (2005)
-!  (9 ) Kroll et al., Environ Sci Tech, in press (2006)
-!  (10) Henze and Seinfeld, GRL, submitted (2006)
-!
-! !REVISION HISTORY:
-!  08 Jul 2004 - R. Park - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
+!------------------------------------------------------------------------------
+!BOC
+   !=========================================================================
+   ! SOA_Kinetic_Rates begins here!
+   !=========================================================================
+
+   ! Save to variables in gckpp_Global, for the rate-law functions
+   ! We will eventually pull all of these rates to KPP
+   TEMP           = TK
+   INV_TEMP       = 1.0_dp / TK
+   TEMP_OVER_K298 = TK     / 298.0_dp
+   TEMP_OVER_K300 = TK     / 300.0_dp
+   
+   !=========================================================================
+   ! Kinetic reaction rates [cm3/molec/s]
+   !=========================================================================
+
+   ! Rxn rate for oxidation of SV classes by O3 [cm3/molec/s]
+   !                           kPhotolysis        Activ energy/R
+   KO3(1)  = SemiVolOxidation(    63.668e-18_dp,  732.0_dp )
+   KO3(2)  = SemiVolOxidation(   200.000e-18_dp,  732.0_dp )
+   KO3(3)  = SemiVolOxidation(  1744.500e-18_dp,  732.0_dp )
+   KO3(4)  = SemiVolOxidation( 11650.000e-18_dp,  732.0_dp )
+
+   ! Rxn rate for oxidation of SV classes by OH [cm3/molec/s]
+   KOH(1)  = SemiVolOxidation(    71.026e-12_dp, -400.0_dp )
+   KOH(2)  = SemiVolOxidation(   171.000e-12_dp, -400.0_dp )
+   KOH(3)  = SemiVolOxidation(   227.690e-12_dp, -400.0_dp )
+   KOH(4)  = SemiVolOxidation(   245.000e-12_dp, -400.0_dp )
+
+   ! Rxn rate for oxidation of SV classes by NO3 [cm3/molec/s]
+   KNO3(1) = SemiVolOxidation(     6.021e-12_fp, -490.0_dp )
+   KNO3(2) = SemiVolOxidation(    12.200e-12_fp, -490.0_dp )
+   KNO3(3) = SemiVolOxidation(    33.913e-12_fp, -490.0_dp )
+   KNO3(4) = SemiVolOxidation(    27.000e-12_fp, -490.0_dp )
+
+   ! RO2 + NO (cf Henze et al 2008, ACP)
+   KRO2NO  = GCARR_ac( 2.6e-12_dp, 350.0_dp )  ! RO2 + NO
+
+   ! RO2 + H2O2 (cf Henze et al 2008, ACP)
+   KRO2HO2 = GCARR_ac( 1.4e-12_dp, 700.0_dp )  ! RO2 + H2O2
+
+ END SUBROUTINE SOA_Kinetic_Rates
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: soa_equilib_coeffs
+!
+! !DESCRIPTION: Computes the equilibrium gas-particle coefficients for
+!  lumped semivolatiles.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE SOA_Equilib_Coeffs( I, J, L, TK, KOM )
+!
+! !USES:
+!
+   USE gckpp_Global,     ONLY : INV_K298,       INV_K300
+   USE gckpp_Global,     ONLY : INV_K310,       INV_TEMP
+   USE gckpp_Global,     ONLY : TEMP_OVER_K298, TEMP_OVER_K300
+   USE gckpp_Global,     ONLY : TEMP_OVER_K300, TEMP
+   USE gckpp_Global,     ONLY : dp
+!
+! !INPUT PARAMETERS:
+!
+   INTEGER,  INTENT(IN)  :: I               ! Longitude index
+   INTEGER,  INTENT(IN)  :: J               ! Latitude index
+   INTEGER,  INTENT(IN)  :: L               ! Altitude index
+   REAL(fp), INTENT(IN)  :: TK              ! Temperature [K]
+!
+! !OUTPUT PARAMETERS:
+!
+   REAL(fp), INTENT(OUT) :: KOM(MPROD,MSV)  ! Equilibrium gas-aerosol
+                                            !  partition coeff [m3/ug]
+! !REMARK:
+!  ACTIVATION ENERGIES come from:
+!  (1) Atkinson, R. (1994) Gas-Phase Tropospheric Chemistry of Organic
+!       Compounds.  J. Phys. Chem. Ref. Data, Monograph No.2, 1-216.
+!  (2) They are also reproduced in Tables B.9 and B.10 of Seinfeld and
+!       Pandis (1988).
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-   ! Activation Energy/R [K] for O3, OH, NO3 (see Refs #6-7)
-   REAL(fp), PARAMETER :: ACT_O3     =  732.0e+0_fp
-   REAL(fp), PARAMETER :: ACT_OH     = -400.0e+0_fp
-   REAL(fp), PARAMETER :: ACT_NO3    = -490.0e+0_fp
-
    ! Heat of vaporization (from CRC Handbook of Chemistry & Physics)
-   REAL(fp), PARAMETER :: HEAT_VAPOR = 5.e+3_fp
+   REAL(fp), PARAMETER   :: HEAT_VAPOR  = 5.0e+3_fp
 
-   ! Reciprocal reference temperatures at 298K and 310K
-   !REAL(fp), PARAMETER :: REF295     = 1e+0_fp / 295e+0_fp !hotp 5/21/10
-   REAL(fp), PARAMETER :: REF298     = 1e+0_fp / 298e+0_fp
-   !REAL(fp), PARAMETER :: REF310     = 1e+0_fp / 310e+0_fp !hotp 5/21/10
-   ! semivolpoa2: reference T for POA (hotp 2/27/09)
-   REAL(fp), PARAMETER :: REF300     = 1e+0_fp / 300e+0_fp
-!
-! !LOCAL VARIABLES:
-!
-   INTEGER             :: IPR,  JHC
-   INTEGER             :: JSV ! (hotp 5/13/10)
-   REAL(fp)            :: TMP1, TMP2, TMP3, OVER
+   ! Reference coefficients (only do computation once)
+   REAL(fp), PARAMETER   :: KOM_REF_1_4 = 1.0_dp      / 1646.0_dp
+   REAL(dp), PARAMETER   :: KOM_REF_2_4 = 1.0_dp      /   20.0_dp
+   REAL(dp), PARAMETER   :: KOM_REF_1_5 = KOM_REF_1_4 *  100.0_dp
+   REAL(dp), PARAMETER   :: KOM_REF_2_5 = KOM_REF_2_4 *  100.0_dp
 
-   !=================================================================
-   ! SOA_PARA begins here!
-   !=================================================================
+   !=========================================================================
+   ! SOA_Equilib_Coeffs begins here!
+   !=========================================================================
 
-   ! move to SOA_PARA_INIT (dkh, 11/12/06)
-   !! Photo-oxidation rates of O3 [cm3/molec/s] (See Refs #1-4)
-   !KO3(1) = 56.15d-18
-   !KO3(2) = 200.d-18
-   !KO3(3) = 7707.d-18
-   !KO3(4) = 422.5d-18
-   !KO3(5) = ( 11600.D0 + 11700.e+0_fp ) / 2.e+0_fp * 1.D-18
+   ! Save to variables in gckpp_Global, for the rate-law functions
+   ! We will eventually pull all of these rates to KPP
+   TEMP           = TK
+   INV_TEMP       = 1.0_dp / TK
+   TEMP_OVER_K298 = TK     / 298.0_dp
+   TEMP_OVER_K300 = TK     / 300.0_dp
+
+   !=========================================================================
+   ! Equilibrium gas-particle partition coefficients of
+   ! semi-volatile compounds [ug-1 m**3]
+   !=========================================================================
+   
+   ! Initialize
+   KOM      = 0.0_fp
+
+   ! Semivolatile 1: MTPA, LIMO, MTPO, SESQ
+   KOM(1,1) = SemiVol13TempAdjKOM(      1.0_dp, HEAT_VAPOR ) ! C* = 1 
+   KOM(2,1) = SemiVol13TempAdjKOM(      0.1_dp, HEAT_VAPOR ) ! C* = 10
+   KOM(3,1) = SemiVol13TempAdjKOM(     0.01_dp, HEAT_VAPOR ) ! C* = 100
+   KOM(4,1) = SemiVol13TempAdjKOM(     10.0_dp, HEAT_VAPOR ) ! C* = 0.1
+
+   ! Semivolatile 2: ISOP, now skipped
+   ! Semivolatile 3: BENZ,TOLU,XYLE,(NAP)
+   KOM(1,3) = SemiVol13TempAdjKOM(      1.0_dp, HEAT_VAPOR ) ! C* = 1 
+   KOM(2,3) = SemiVol13TempAdjKOM(      0.1_dp, HEAT_VAPOR ) ! C* = 10
+   KOM(3,3) = SemiVol13TempAdjKOM(     0.01_dp, HEAT_VAPOR ) ! C* = 100
+   KOM(4,3) = SemiVol13TempAdjKOM(  1.0e+10_dp, HEAT_VAPOR ) ! Low NOx, nonvol
+
+   ! Lumped semivolatile 4: POA (primary semivolatiles)
+   KOM(1,4) = SemiVol45TempAdjKOM( KOM_REF_1_4, HEAT_VAPOR )
+   KOM(2,4) = SemiVol45TempAdjKOM( KOM_REF_2_4, HEAT_VAPOR )
+
+   ! Lumped semivolatile 5: OPOA (oxidized semivolatiles)
+   KOM(1,5) = SemiVol45TempAdjKOM( KOM_REF_1_5, HEAT_VAPOR )
+   KOM(2,5) = SemiVol45TempAdjKOM( KOM_REF_2_5, HEAT_VAPOR )
+
+ END SUBROUTINE SOA_Equilib_Coeffs
+
+ FUNCTION SemiVol13TempAdjKOM( kom_ref, heat_vapor ) RESULT( kom )
    !
-   !! Photo-oxidation rates of OH [cm3/molec/s] (See Refs #1-4)
-   !KOH(1) = 84.4d-12
-   !KOH(2) = 171.d-12
-   !KOH(3) = 255.d-12
-   !KOH(4) = 199.d-12
-   !KOH(5) = ( 197.e+0_fp + 293.e+0_fp ) / 2.e+0_fp * 1.d-12
+   ! Multiplies the reference KOM (equilibrium coefficient)
+   ! by the heat of vaporization and temperature terms.
+   ! For lumped semivolatiles 1 and 3.
+   ! 
+   USE gckpp_Global, ONLY : dp, INV_TEMP, INV_K298, TEMP_OVER_K298
    !
-   !! Photo-oxidation rate of NO3 [cm3/molec/s] (See Refs #1-4)
-   !KNO3(1) = 6.95d-12
-   !KNO3(2) = 12.2d-12
-   !KNO3(3) = 88.7d-12
-   !KNO3(4) = 14.7d-12
-   !KNO3(5) = ( 19.e+0_fp + 35.e+0_fp ) / 2.e+0_fp * 1.d-12
-
-   !=================================================================
-   ! Temperature Adjustments of KO3, KOH, KNO3
-   !=================================================================
-
-   ! Initialize to zero (hotp 5/21/10)
-   KO3  = 0e+0_fp
-   KOH  = 0e+0_fp
-   KNO3 = 0e+0_fp
-
-   ! Reciprocal temperature [1/K]
-   OVER = 1.0e+0_fp / TEMP
-
-   ! Compute the exponentials once outside the DO loop
-   TMP1 = EXP( ACT_O3  * ( REF298 - OVER ) )
-   TMP2 = EXP( ACT_OH  * ( REF298 - OVER ) )
-   TMP3 = EXP( ACT_NO3 * ( REF298 - OVER ) )
-
-   ! Multiply photo-oxidation rates by exponential of temperature
-   !(dkh, 10/08/05)
-   !DO JHC = 1, 5
-   DO JHC = 1, 4 ! now 4 (hotp 5/21/10)
-      !KO3(JHC)  = KO3(JHC)  * TMP1
-      !KOH(JHC)  = KOH(JHC)  * TMP2
-      !KNO3(JHC) = KNO3(JHC) * TMP3
-      KO3(JHC)  = KO3_REF(JHC)  * TMP1
-      KOH(JHC)  = KOH_REF(JHC)  * TMP2
-      KNO3(JHC) = KNO3_REF(JHC) * TMP3
-   ENDDO
-
-   !=================================================================
-   ! Calculate KRO2NO, KRO2HO2 at TEMPERATURE (hotp 5/7/10)
-   !=================================================================
-   KRO2NO  = AARO2NO  * EXP( BBRO2NO  * OVER )
-   KRO2HO2 = AARO2HO2 * EXP( BBRO2HO2 * OVER )
-
-   !!=================================================================
-   !! SOA YIELD PARAMETERS
-   !!
-   !! Aerosol yield parameters for photooxidation of biogenic organics
-   !! The data (except for C7-C10 n-carbonyls, aromatics, and higher
-   !! ketones are from:
-   !!
-   !! (7) Tables 1 and 2 of Griffin, et al., Geophys. Res. Lett.
-   !!      26: (17)2721-2724 (1999)
-   !!
-   !! These parameters neglect contributions of the photooxidation
-   !! by NO3.
-   !!
-   !! For the aromatics, the data are from
-   !! (8) Odum, et al., Science 276: 96-99 (1997).
-   !!
-   !! Isoprene (dkh, bmy, 5/22/06)
-   !! Unlike the other species, we consider oxidation by purely OH.
-   !! CHEM_NVOC has been adjusted accordingly. There's probably
-   !! significant SOA formed from NO3 oxidation, but we don't know
-   !! enough to include that yet.  Data for the high NOX and low NOX
-   !! parameters are given in Kroll 05 and Kroll 06, respectively.
-   !! The paramters for low NOX are given in Table 1 of Henze 06.
-   !!=================================================================
+   REAL(dp), INTENT(IN) :: kom_ref
+   REAL(dp), INTENT(IN) :: heat_vapor
+   REAL(dp)             :: kom
    !
-   !! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
-   !RALPHA(1,1) = 0.067e+0_fp
-   !RALPHA(2,1) = 0.35425e+0_fp
-   !
-   !! LIMONENE
-   !RALPHA(1,2) = 0.239e+0_fp
-   !RALPHA(2,2) = 0.363e+0_fp
-   !
-   !! Average of TERPINENES and TERPINOLENE
-   !RALPHA(1,3) = 0.0685e+0_fp
-   !RALPHA(2,3) = 0.2005e+0_fp
-   !
-   !! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
-   !RALPHA(1,4) = 0.06675e+0_fp
-   !RALPHA(2,4) = 0.135e+0_fp
-   !
-   !! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
-   !RALPHA(1,5) = 1.0e+0_fp
-   !RALPHA(2,5) = 0.0e+0_fp
-   !
-   !! Using BETA-PINENE for all species for NO3 oxidation
-   !! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
-   !RALPHA(3,:) = 1.e+0_fp
-   !
-   !! Here we define some alphas for isoprene (dkh, bmy, 5/22/06)
-   !
-   !! high NOX  [Kroll et al, 2005]
-   !!RALPHA(1,6) = 0.264e+0_fp
-   !!RALPHA(2,6) = 0.0173e+0_fp
-   !!RALPHA(3,6) = 0e+0_fp
-   !
-   !! low NOX   [Kroll et al, 2006; Henze and Seinfeld, 2006]
-   !RALPHA(1,6) = 0.232e+0_fp
-   !RALPHA(2,6) = 0.0288e+0_fp
-   !RALPHA(3,6) = 0e+0_fp
-   !
-   !!=================================================================
-   !! Equilibrium gas-particle partition coefficients of
-   !! semi-volatile compounds [ug-1 m**3]
-   !!=================================================================
-   !
-   !! Average of ALPHA-PINENE, BETA-PINENE, SABINENE, D3-CARENE
-   !KOM(1,1) = 0.1835e+0_fp
-   !KOM(2,1) = 0.004275e+0_fp
-   !
-   !! LIMONENE
-   !KOM(1,2) = 0.055e+0_fp
-   !KOM(2,2) = 0.0053e+0_fp
-   !
-   !! Average of TERPINENES and TERPINOLENE
-   !KOM(1,3) = 0.133e+0_fp
-   !KOM(2,3) = 0.0035e+0_fp
-   !
-   !! Average of MYRCENE, LINALOOL, TERPINENE-4-OL, OCIMENE
-   !KOM(1,4) = 0.22375e+0_fp
-   !KOM(2,4) = 0.0082e+0_fp
-   !
-   !! Average of BETA-CARYOPHYLLENE and and ALPHA-HUMULENE
-   !KOM(1,5) = ( 0.04160e+0_fp + 0.0501e+0_fp ) / 2.e+0_fp
-   !KOM(2,5) = 0.0e+0_fp
-   !
-   !! NOT APPLICABLE -- using BETA-PINENE for all species
-   !! Data from Table 4 of Griffin, et al., JGR 104 (D3): 3555-3567 (1999)
-   !KOM(3,:) = 0.0163e+0_fp
-   !
-   !! Again, for isoprene we only consider two products,
-   !! both from OH oxidation. (dkh, bmy, 5/22/06)
-   !
-   !! High NOX
-   !!KOM(1,6) = 0.00115e+0_fp
-   !!KOM(2,6) = 1.52e+0_fp
-   !!KOM(3,6) = 0e+0_fp
-   !
-   !! Low NOX
-   !KOM(1,6) = 0.00862e+0_fp
-   !KOM(2,6) = 1.62e+0_fp
-   !KOM(3,6) = 0e+0_fp
+   kom = kom_ref                                                             &
+       * TEMP_OVER_K298                                                      &
+       * EXP( heat_vapor * ( INV_TEMP - INV_K298 ) )
+ END FUNCTION SemiVol13TempAdjKOM
 
-   !=================================================================
-   ! Temperature Adjustments of KOM
-   !=================================================================
-
-   !--------------------------------------------------------
-   ! Lumped semivolatiles 1-3 (hotp 5/21/10)
-   !--------------------------------------------------------
-   ! First 3 semivolatile systems are at Tref = 298K
-   ! SV 1: MTPA,LIMO,MTPO,SESQ
-   ! SV 2: ISOP
-   ! SV 3: BENZ,TOLU,XYLE,(NAP)
-
-   ! Reciprocal temperature [1/K]
-   OVER = 1.0e+0_fp / TEMP
-
-   !! Divide TEMP by 310K outside the DO loop
-   !TMP1 = ( TEMP / 310.e+0_fp )
-   ! Divide TEMP by 298K outside the DO loop
-   TMP1 = ( TEMP / 298.e+0_fp )
-
-   ! Compute the heat-of-vaporization exponential term outside the DO loop
-   !TMP2 = EXP( HEAT_VAPOR * ( OVER - REF310 ) )
-   TMP2 = EXP( HEAT_VAPOR * ( OVER - REF298 ) )
-
-   ! Multiply KOM by the temperature and heat-of-vaporization terms
-   ! now use JSV (hotp 5/21/10)
-   ! update dims (hotp 5/22/10)
-   DO JSV = 1, 3
-   DO IPR = 1, NPROD(JSV)
-      KOM(IPR,JSV) = KOM_REF(IPR,JSV) * TMP1 * TMP2
-   ENDDO
-   ENDDO
-
-   !--------------------------------------------------------
-   ! POA (primary semivolatiles) (hotp 5/13/10)
-   !--------------------------------------------------------
-   ! semivolpoa2: reference for POA is 300 K (hotp 2/27/09)
-   ! Divide TEMP by 300K outside the DO loop
-   TMP1 = ( TEMP / 300.e+0_fp )
-
-   ! Compute the heat-of-vaporization exponential term outside the DO loop
-   TMP2 = EXP( HEAT_VAPOR * ( OVER - REF300 ) )
-
-   ! Multiply KOM by the temperature and heat-of-vaporization terms
-   ! Adjust POA from reference of 300K
-   JHC = PARENTPOA
-   JSV = IDSV(JHC)
-   DO IPR = 1, NPROD(JSV)
-      KOM(IPR,JSV) = KOM_REF(IPR,JSV) * TMP1 * TMP2
-   ENDDO
-
-   !--------------------------------------------------------
-   ! OPOA (oxidized semivolatiles) (hotp 5/13/10)
-   !--------------------------------------------------------
-   ! Divide TEMP by 300K outside the DO loop
-   TMP1 = ( TEMP / 300.e+0_fp )
-
-   ! Compute the heat-of-vaporization exponential term outside the DO loop
-   TMP2 = EXP( HEAT_VAPOR * ( OVER - REF300 ) )
-
-   ! Adjust OPOA KOM
-   JHC = PARENTOPOA
-   JSV = IDSV(JHC)
-   DO IPR = 1, NPROD(JSV)
-      KOM(IPR,JSV) = KOM_REF(IPR,JSV) * TMP1 * TMP2
-   ENDDO
-
- END SUBROUTINE SOA_PARA
+ FUNCTION SemiVol45TempAdjKOM( kom_ref, heat_vapor ) RESULT( kom )
+   !
+   ! Multiplies the reference KOM (equilibrium coefficient)
+   ! by the heat of vaporization and temperature terms.
+   ! For lumped semivolatiles 1 and 3.
+   !
+   USE gckpp_Global, ONLY : dp, INV_TEMP, INV_K300, TEMP_OVER_K300
+   !
+   REAL(dp), INTENT(IN) :: kom_ref
+   REAL(dp), INTENT(IN) :: heat_vapor
+   REAL(dp)             :: kom
+   !
+   kom = kom_ref                                                             &
+       * TEMP_OVER_K300                                                      &
+       * EXP( heat_vapor * ( INV_TEMP - INV_K300 ) )
+ END FUNCTION SemiVol45TempAdjKOM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2960,46 +2765,6 @@ CONTAINS
    !=================================================================
    ! SOA_PARA_INIT begins here!
    !=================================================================
-
-   ! update reaction rates
-   ! Still based on same underlying data (as summarized by
-   ! Griffin 1999 and Chung 2002) but lumped by contribution of HC to
-   ! global emissions for that category (hotp 5/21/10)
-   ! K(MTPA) = K_REF(1) =
-   !      0.53*K(A-PINE) + 0.25*K(B-PINE) + 0.12*K(SABI) + 0.10*K(CAR)
-   ! K(LIMO) = K_REF(2)
-   ! K(MTPO) = K_REF(3) =
-   !      0.11*K(TERPINENE) + 0.11*K(TERPINOLENE) + 0.11*K(MYRCENE) +
-   !      0.11*K(LINALOOL) + 0.11*K(terpinene-4-ol) + 0.45*K(OCIMENE)
-   ! K(SESQ) = K_REF(4) = 0.5*K(B-CARYOPHYLLENE) + 0.5*K(A-HUMULENE)
-
-   ! Photo-oxidation rates of O3 [cm3/molec/s] (See Refs #1-4)
-   KO3_REF(1) =    63.668e-18_fp
-   KO3_REF(2) =   200.000e-18_fp
-   KO3_REF(3) =  1744.500e-18_fp
-   KO3_REF(4) = 11650.000e-18_fp
-
-   ! Photo-oxidation rates of OH [cm3/molec/s] (See Refs #1-4)
-   KOH_REF(1) =    71.026e-12_fp
-   KOH_REF(2) =   171.000e-12_fp
-   KOH_REF(3) =   227.690e-12_fp
-   KOH_REF(4) =   245.000e-12_fp
-
-   ! Photo-oxidation rate of NO3 [cm3/molec/s] (See Refs #1-4)
-   KNO3_REF(1) =    6.021e-12_fp
-   KNO3_REF(2) =   12.200e-12_fp
-   KNO3_REF(3) =   33.913e-12_fp
-   KNO3_REF(4) =   27.000e-12_fp
-
-   ! Rate constants for branching ratio (hotp 5/7/10)
-   ! k=A*exp(B/T)
-   ! Reference: Henze et al., 2008 ACP
-   ! RO2+NO
-   AARO2NO = 2.6e-12_fp
-   BBRO2NO = 350.e+0_fp
-   ! RO2+HO2
-   AARO2HO2 = 1.4e-12_fp
-   BBRO2HO2 = 700.e+0_fp
 
    !=================================================================
    ! SOA YIELD PARAMETERS
@@ -3192,67 +2957,6 @@ CONTAINS
    ! Ox = HO2
    ALPHA(2,4,PARENTNAP) = 0.73e+0_fp
 
-   !=================================================================
-   ! Equilibrium gas-particle partition coefficients of
-   ! semi-volatile compounds [ug-1 m**3]
-   !=================================================================
-
-   ! SOAupdate: KOM for semivolatile systems
-   ! Initialize to zero (hotp 5/12/10)
-   ! KOM_REF are indexed by SEMIVOLATILE SPECIES (hotp 5/13/10)
-   KOM_REF = 0e+0_fp
-
-   !---------------------------------------
-   ! SEMIVOLATILE 1: MTPA, LIMO, MTPO, SESQ
-   ! (hotp 5/21/10)
-   !---------------------------------------
-   KOM_REF(1,IDSV(PARENTMTPA)) = 1.0e+0_fp/1.0e+0_fp
-   KOM_REF(2,IDSV(PARENTMTPA)) = 1.0e+0_fp/10.0e+0_fp
-   KOM_REF(3,IDSV(PARENTMTPA)) = 1.0e+0_fp/100.0e+0_fp
-   KOM_REF(4,IDSV(PARENTMTPA)) = 1.0e+0_fp/0.1e+0_fp ! C*=0.1 hotp 6/12/10
-
-   !---------------------------------------
-   ! SEMIVOLATILE 2: ISOP
-   ! (hotp 5/21/10)
-   !---------------------------------------
-   KOM_REF(1,IDSV(PARENTISOP)) = 1.0e+0_fp/1.0e+0_fp
-   KOM_REF(2,IDSV(PARENTISOP)) = 1.0e+0_fp/10.0e+0_fp
-   KOM_REF(3,IDSV(PARENTISOP)) = 1.0e+0_fp/100.0e+0_fp
-
-   !---------------------------------------
-   ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
-   !---------------------------------------
-   ! Update aromatics to new fits (hotp 5/12/10)
-   ! BENZ, TOLU, XYLE, NAP/IVOC all lumped together
-   KOM_REF(1,IDSV(PARENTBENZ)) = 1.0e+0_fp/1.0e+0_fp
-   KOM_REF(2,IDSV(PARENTBENZ)) = 1.0e+0_fp/10.0e+0_fp
-   KOM_REF(3,IDSV(PARENTBENZ)) = 1.0e+0_fp/100.0e+0_fp
-   ! Low NOX (HO2) non-volatile
-   !KOM_REF(4,IDSV(PARENTBENZ)) = 1.d6
-   KOM_REF(4,IDSV(PARENTBENZ)) = 1.e+10_fp ! more non-vol (hotp 5/28/10)
-
-   !---------------------------------------
-   ! SEMIVOLATILE 4: POA/SVOCs
-   !---------------------------------------
-   ! semivolpoa2: KOM for POA (hotp 2/27/09)
-   ! based on Shrivastava et al. 2006 ES&T
-   ! Only 2 products (wood smoke)
-   ! Tref is 27 C = 300 K
-   KOM_REF(1,IDSV(PARENTPOA)) = 1e+0_fp/1646e+0_fp
-   KOM_REF(2,IDSV(PARENTPOA)) = 1e+0_fp/20e+0_fp
-   ! No high NOx parameters
-   ! remove semivolpoa3 changes (hotp 3/27/09)
-   ! semivolpoa3: add diesel/anthropogenic POA (hotp 3/13/09)
-   !KOM_REF(2:MNOX,1:MPROD,10) = 0e+0_fp
-
-   !---------------------------------------
-   ! SEMIVOLATILE 5: OPOA/O-SVOCs
-   !---------------------------------------
-   ! semivolpoa4opoa: OPOA parameters (hotp 3/18/09)
-   ! parameters are a factor of 100 more than POA param
-   KOM_REF(1,IDSV(PARENTOPOA)) = KOM_REF(1,IDSV(PARENTPOA)) * 100e+0_fp
-   KOM_REF(2,IDSV(PARENTOPOA)) = KOM_REF(2,IDSV(PARENTPOA)) * 100e+0_fp
-
    ! debug print checks (hotp 7/22/09)
    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
       print*, 'Semivolatile POA settings:---------------'
@@ -3272,14 +2976,6 @@ CONTAINS
          print*,'Alpha', bj,cl,ai
          print*, ALPHA(bj,cl,ai)
       ENDDO
-      ENDDO
-      ENDDO
-
-      ! Check KOM_REF (hotp 5/13/10)
-      DO ai = 1, MSV
-      DO cl = 1, MPROD
-         print*,'KOM_REF', cl,ai
-         print*, KOM_REF(cl,ai)
       ENDDO
       ENDDO
    ENDIF
@@ -3434,6 +3130,56 @@ CONTAINS
    !=================================================================
    ! Change in NVOC concentration due to photooxidation [kg]
    !=================================================================
+! PARENTMTPA = 1  ! bicyclic monoterpenes
+! PARENTLIMO = 2  ! limonene
+! PARENTMTPO = 3  ! other monoterpenes
+! PARENTSESQ = 4  ! sesquiterpenes
+! PARENTISOP = 5  ! isoprene
+! PARENTBENZ = 6  ! aromatic benzene
+! PARENTTOLU = 7  ! aromatic toluene
+! PARENTXYLE = 8  ! aromatic xylene
+! PARENTPOA  = 9  ! SVOCs (primary SVOCs)
+! PARENTOPOA = 10 ! oxidized SVOCs (secondary SVOCs)
+! PARENTNAP  = 11 ! IVOC surrogate (naphthalene)
+!
+!  ! Some parent hydrocarbons are lumped together into 1 or more
+!  ! semivolatiles. Map the parent HC to lumped semivolatiles here
+!  ! (hotp 5/13/10)
+!  ! mono + sesq
+!  IDSV(PARENTMTPA) = 1
+!  IDSV(PARENTLIMO) = 1
+!  IDSV(PARENTMTPO) = 1
+!  IDSV(PARENTSESQ) = 1
+!  ! isoprene
+!  IDSV(PARENTISOP) = 2
+!  ! Lumped arom/IVOC
+!  IDSV(PARENTBENZ) = 3
+!  IDSV(PARENTTOLU) = 3
+!  IDSV(PARENTXYLE) = 3
+!  IDSV(PARENTNAP ) = 3
+!  ! More individuals
+!  IDSV(PARENTPOA ) = 4
+!  IDSV(PARENTOPOA) = 5
+!
+!  ! Define number of products per semivolatile (hotp 5/14/10)
+!  NPROD(IDSV(PARENTMTPA)) = 4 ! 3 add C*=0.1 product (hotp 6/12/10)
+!  NPROD(IDSV(PARENTISOP)) = 3
+!  NPROD(IDSV(PARENTBENZ)) = 4
+!  NPROD(IDSV(PARENTPOA )) = 2
+!  NPROD(IDSV(PARENTOPOA)) = 2
+!  ! Check to make sure NPROD doesn't exceed max
+!  IF ( MAXVAL(NPROD(:)) > MPROD ) THEN
+!     CALL ERROR_STOP('Too many PRODs per SV','carbon_mod.F90')
+!  ENDIF
+!
+!  ! Define number of NOx/Ox conditions per semivolatile
+!  ! (hotp 5/14/10)
+!  NNOX(IDSV(PARENTMTPA)) = 3 ! high NOx, low NOx, NO3
+!  NNOX(IDSV(PARENTISOP)) = 2 ! low  NOx, NO3
+!  NNOX(IDSV(PARENTBENZ)) = 2 ! high NOx, low NOx
+!  NNOX(IDSV(PARENTPOA )) = 1 ! just OH
+!  NNOX(IDSV(PARENTOPOA)) = 1 ! just OH
+
 
    ! semivolpoa2: update for POA (hotp 2/27/09)
    ! add POA emissions to GMO here (not to Spc in EMITHIGH)
@@ -3456,6 +3202,7 @@ CONTAINS
       JSV = IDSV(JHC)
 
       ! update for new mtp (hotp 5/22/10)
+      !NOTE: JHC = 1-4
       IF ( JHC == PARENTMTPA .or. JHC == PARENTLIMO .or. &
            JHC == PARENTMTPO .or. JHC == PARENTSESQ      ) THEN
 
@@ -3792,24 +3539,6 @@ CONTAINS
    AM0(2,JSV)=Spc(id_TSOA2)%Conc(I,J,L)
    AM0(3,JSV)=Spc(id_TSOA3)%Conc(I,J,L)
    AM0(4,JSV)=Spc(id_TSOA0)%Conc(I,J,L)
-
-   !---------------------------------------------------------------------------
-   ! Prior to 7/15/19:
-   ! Remove isoprene from VBS (mps, 7/15/19)
-   !!---------------------------------------
-   !! SEMIVOLATILE 2: ISOP
-   !!---------------------------------------
-   !JHC = PARENTISOP
-   !JSV = IDSV(JHC)
-   !! gas phase
-   !GM0(1,JSV)=Spc(id_ISOG1)%Conc(I,J,L)
-   !GM0(2,JSV)=Spc(id_ISOG2)%Conc(I,J,L)
-   !GM0(3,JSV)=Spc(id_ISOG3)%Conc(I,J,L)
-   !! aerosol phase
-   !AM0(1,JSV)=Spc(id_ISOA1)%Conc(I,J,L)
-   !AM0(2,JSV)=Spc(id_ISOA2)%Conc(I,J,L)
-   !AM0(3,JSV)=Spc(id_ISOA3)%Conc(I,J,L)
-   !---------------------------------------------------------------------------
 
    !---------------------------------------
    ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
@@ -7077,7 +6806,7 @@ CONTAINS
 
    ! Free pointer
    Spc => NULL()
-   
+
  END SUBROUTINE CHECK_MB
 !EOC
 !------------------------------------------------------------------------------
@@ -7297,7 +7026,7 @@ CONTAINS
 !
    REAL(fp) :: ISOP_MW_kg     ! kg C ISOP      / mol C
    REAL(fp) :: LISOPNO3_MW_kg ! kg C LISOPONO3 / mol Ckg
-      
+
    !=================================================================
    ! GET_ISOPNO3 begins here!
    !=================================================================
@@ -7324,7 +7053,7 @@ CONTAINS
 
          ! Otherwise set ISOPNO3=0
          ISOPNO3 = 0e+0_fp
-         
+
       ENDIF
 
    ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
@@ -7660,13 +7389,18 @@ CONTAINS
       CALL ERROR_STOP('Too many NOx levels','carbon_mod.F90')
    ENDIF
 
-   ALLOCATE( BCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
-   BCCONV = 0e+0_fp
 
-   ALLOCATE( OCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
-   OCCONV = 0e+0_fp
+   ! These arrays are now only needed for the aerosol-only simulation.
+   !  -- Bob Yantosca (05 Jan 2023)
+   IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+      ALLOCATE( BCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
+      BCCONV = 0e+0_fp
+
+      ALLOCATE( OCCONV(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
+      OCCONV = 0e+0_fp
+   ENDIF
 
    ! semivolpoa2: for POA emissions (hotp 2/27/09)
    ! Store POG1 and POG2 separately (mps, 1/14/16)
@@ -7674,15 +7408,7 @@ CONTAINS
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
    POAEMISS = 0e+0_fp
 
-#ifdef APM
-   ALLOCATE( BCCONVNEW(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONVNEW' )
-   BCCONVNEW = 0e+0_fp
-   ALLOCATE( OCCONVNEW(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
-   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONVNEW' )
-   OCCONVNEW = 0e+0_fp
-#endif
-
+!TODO: Abstract TOMAS-related code out of carbon_mod.F90
    ! JKODROS
 #ifdef TOMAS
    !SFARINA the next six are introduced with the idea that
@@ -7816,13 +7542,13 @@ CONTAINS
                    STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_OH' )
          OFFLINE_OH = 0e+0_fp
-         
+
          ! Offline global O3
          ALLOCATE( OFFLINE_O3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
                    STAT=AS)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OFFLINE_O3' )
          OFFLINE_O3 = 0e+0_fp
-         
+
          ! Offline global NO3
          ALLOCATE( OFFLINE_NO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ), &
                    STAT=AS)
@@ -7872,10 +7598,7 @@ CONTAINS
    IF ( ALLOCATED( OFFLINE_OH    ) ) DEALLOCATE( OFFLINE_OH    )
    IF ( ALLOCATED( OFFLINE_O3    ) ) DEALLOCATE( OFFLINE_O3    )
    IF ( ALLOCATED( OFFLINE_NO3   ) ) DEALLOCATE( OFFLINE_NO3   )
-#ifdef APM
-   IF ( ALLOCATED( BCCONVNEW     ) ) DEALLOCATE( BCCONVNEW     )
-   IF ( ALLOCATED( OCCONVNEW     ) ) DEALLOCATE( OCCONVNEW     )
-#endif
+!TODO: Abstract TOMAS-related code out of carbon_mod
 #ifdef TOMAS
    IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )
    IF ( ALLOCATED( OCFF           )) DEALLOCATE( OCFF          )
@@ -7898,421 +7621,6 @@ CONTAINS
  END SUBROUTINE CLEANUP_CARBON
 !EOC
 #ifdef APM
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_bcponew
-!
-! !DESCRIPTION: Subroutine CHEM\_BCPONEW converts hydrophobic BC to hydrophilic
-!  BC and calculates the dry deposition of hydrophobic BC. Modified for
-!  APM simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_BCPONEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_grid         ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-phobic BC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC                 ! Success?
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL             :: LNLPBL
-   INTEGER             :: I,       J,   L,   N_TRACERS
-   REAL(fp)            :: DTCHEM, KBC,  FREQ
-   REAL(fp)            :: TC0,    CNEW, RKT, BL_FRAC
-!
-! !DEFINED PARAMETERS:
-!
-   REAL(fp), PARAMETER :: BC_LIFE = 1.15D0
-
-   !=================================================================
-   ! CHEM_BCPONEW begins here!
-   !=================================================================
-
-   ! Return if BCPO isn't defined
-   IF ( id_BCPO == 0 ) RETURN
-
-   ! Assume success
-   RC        = GC_SUCCESS
-
-   ! Initialize
-   KBC       = 1.0e+0_fp / ( 86400e+0_fp * BC_LIFE )
-   DTCHEM    = GET_TS_CHEM()
-
-   ! Zero BCPO -> BCPI conversion array
-   BCCONVNEW  = 0e+0_fp
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial BC mass [kg]
-      TC0  = TC(I,J,L)
-
-      ! Zero drydep freq
-      FREQ = 0e+0_fp
-
-      ! Amount of BCPO left after chemistry and drydep [kg]
-      RKT  = ( KBC + FREQ ) * DTCHEM
-      CNEW = TC0 * EXP( -RKT )
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Amount of BCPO converted to BCPI [kg/timestep]
-      BCCONVNEW(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
-
-      ! Store new concentration back into tracer array
-      TC(I,J,L) = CNEW
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
- END SUBROUTINE CHEM_BCPONEW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_bcpinew
-!
-! !DESCRIPTION: Subroutine CHEM\_BCPINEW calculates dry deposition of
-!  hydrophilic BC. Modified for APM simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_BCPINEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid        ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-philic BC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC               ! Success?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL  :: LNLPBL
-   INTEGER  :: I,      J,      L,       N_TRACERS
-   REAL(fp) :: DTCHEM, BL_FRAC
-   REAL(fp) :: TC0,    CNEW,   CCV,     FREQ
-
-   !=================================================================
-   ! CHEM_BCPINEW begins here!
-   !=================================================================
-
-   ! Return if BCPI isn't defined
-   IF ( id_BCPI == 0 ) RETURN
-
-   ! Assume success
-   RC     = GC_SUCCESS
-
-   ! Chemistry timestep [s]
-   DTCHEM = GET_TS_CHEM()
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, FREQ, BL_FRAC, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial H-philic BC [kg]
-      TC0 = TC(I,J,L)
-
-      ! H-philic BC that used to be H-phobic BC [kg]
-      CCV = BCCONVNEW(I,J,L)
-
-      ! Otherwise, omit the exponential to save on clock cycles
-      CNEW = TC0 + CCV
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Save new concentration of H-philic IC in tracer array
-      TC(I,J,L) = CNEW
-
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
-   ! Zero BCPO -> BCPI conversion array
-   BCCONVNEW = 0e+0_fp
-
- END SUBROUTINE CHEM_BCPINEW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_ocponew
-!
-! !DESCRIPTION: Subroutine CHEM\_OCPONEW converts hydrophobic OC to hydrophilic
-!  OC and calculates the dry deposition of hydrophobic OC. Modified for APM
-!  simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_OCPONEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid         ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-phobic OC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC                 ! Success?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL             :: LNLPBL
-   INTEGER             :: I,      J,    L,      N_TRACERS
-   REAL(fp)            :: DTCHEM, KOC,  BL_FRAC
-   REAL(fp)            :: TC0,    FREQ, CNEW,   RKT
-!
-! !DEFINED PARAMETERS:
-!
-   REAL(fp), PARAMETER :: OC_LIFE = 1.15e+0_fp
-
-   !=================================================================
-   ! CHEM_OCPONEW begins here!
-   !=================================================================
-
-   ! Return if OCPO isn't defined
-   IF ( MAX(id_OCPO,id_POA1) == 0 ) RETURN
-
-   ! Assume success
-   RC        = GC_SUCCESS
-
-   ! Initialize
-   KOC       = 1.0e+0_fp / ( 86400e+0_fp * OC_LIFE )
-   DTCHEM    = GET_TS_CHEM()
-
-   ! Zero OCPO -> OCPI conversion array
-   OCCONVNEW = 0e+0_fp
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial OC [kg]
-      TC0  = TC(I,J,L)
-
-      ! Zero drydep freq
-      FREQ = 0e+0_fp
-
-      ! Amount of OCPO left after chemistry and drydep [kg]
-      RKT  = ( KOC + FREQ ) * DTCHEM
-      CNEW = TC0 * EXP( -RKT )
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Amount of OCPO converted to OCPI [kg/timestep]
-      OCCONVNEW(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
-
-      ! Store modified OC concentration back in tracer array
-      TC(I,J,L) = CNEW
-
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
- END SUBROUTINE CHEM_OCPONEW
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: chem_ocpinew
-!
-! !DESCRIPTION: Subroutine CHEM\_OCPINEW calculates dry deposition of
-!  hydrophilic OC. Modified for APM simulation.
-!\\
-!\\
-! !INTERFACE:
-!
- SUBROUTINE CHEM_OCPINEW( Input_Opt, State_Grid, TC, RC )
-!
-! !USES:
-!
-   USE ErrCode_Mod
-   USE Input_Opt_Mod,  ONLY : OptInput
-   USE State_Grid_Mod, ONLY : GrdState
-   USE APM_INIT_MOD,   ONLY : APMIDS
-   USE TIME_MOD,       ONLY : GET_TS_CHEM
-!
-! !INPUT PARAMETERS:
-!
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt          ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid         ! Grid State
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   ! H-philic OC [kg]
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-! !OUTPUT PARAMETERS:
-!
-   INTEGER,        INTENT(OUT)   :: RC                 ! Success?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-   ! Scalars
-   LOGICAL  :: LNLPBL
-   INTEGER  :: I,      J,      L,   N_TRACERS
-   REAL(fp) :: DTCHEM, BL_FRAC
-   REAL(fp) :: TC0,    CNEW,   CCV, FREQ
-
-   !=================================================================
-   ! CHEM_OCPINEW begins here!
-   !=================================================================
-
-   ! Return if OCPI isn't defined
-   IF ( MAX(id_OCPI,id_POA1) == 0 ) RETURN
-
-   ! Assume success
-   RC        = GC_SUCCESS
-
-   ! Chemistry timestep [s]
-   DTCHEM = GET_TS_CHEM()
-
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
-   DO L = 1, State_Grid%NZ
-   DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
-
-      ! Initial H-philic OC [kg]
-      TC0 = TC(I,J,L)
-
-      ! H-philic OC that used to be H-phobic OC [kg]
-      CCV = OCCONVNEW(I,J,L)
-
-      CNEW = TC0 + CCV
-
-      ! Prevent underflow condition
-      IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
-
-      ! Store modified concentration back in tracer array [kg]
-      TC(I,J,L) = CNEW
-
-   ENDDO
-   ENDDO
-   ENDDO
-   !$OMP END PARALLEL DO
-
-   ! Zero OCPO -> OCPI conversion array
-   OCCONVNEW = 0e+0_fp
-
- END SUBROUTINE CHEM_OCPINEW
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8382,7 +7690,7 @@ CONTAINS
 
    ! Diameter of aerosol [um]
    REAL(fp)          :: Dp
-   
+
    ! Pressure * DP
    REAL(fp)          :: PDp
 
@@ -8816,4 +8124,203 @@ CONTAINS
  END SUBROUTINE OCDRY_SETTLINGBIN
 #endif
 !EOC
-      END MODULE CARBON_MOD
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_for_Aerosol_Sim
+!
+! !DESCRIPTION: Performs extra initializations on the first chemistry call
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_on_First_Chem_Call( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+
+    !========================================================================
+    ! Init_on_First_Chem_Call begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Init_on_First_Chem_Call (in module GeosCore/carbon_mod.F90)'
+
+    !========================================================================
+    ! Zero SOA from ISOP in gas & aerosol form) for offline aerosol
+    ! simulations.  Eventually we should have archived isoprene oxidation
+    ! fields available for offline simulations but for now we just set them
+    ! to zero. (dkh, bmy, 6/1/06)
+    !========================================================================
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+       ! Complex SOA: lumped arom/IVOC not supported for offline sims
+       IF ( id_ASOAN > 0 ) State_Chm%Species(id_ASOAN)%Conc = 0.0_fp
+       IF ( id_ASOA1 > 0 ) State_Chm%Species(id_ASOA1)%Conc = 0.0_fp
+       IF ( id_ASOA2 > 0 ) State_Chm%Species(id_ASOA2)%Conc = 0.0_fp
+       IF ( id_ASOA3 > 0 ) State_Chm%Species(id_ASOA3)%Conc = 0.0_fp
+       IF ( id_ASOG1 > 0 ) State_Chm%Species(id_ASOG1)%Conc = 0.0_fp
+       IF ( id_ASOG2 > 0 ) State_Chm%Species(id_ASOG2)%Conc = 0.0_fp
+       IF ( id_ASOG3 > 0 ) State_Chm%Species(id_ASOG3)%Conc = 0.0_fp
+
+       ! Simple SOA
+       IF ( id_SOAP > 0  ) State_Chm%Species(id_SOAP )%Conc = 0.0_fp
+       IF ( id_SOAS > 0  ) State_Chm%Species(id_SOAS )%Conc = 0.0_fp
+    ENDIF
+
+    !========================================================================
+    ! Determine number of semivolatile parent HC (hotp 8/24/09)
+    !========================================================================
+
+    ! Assume no semivolatile parent HC's are found at first
+    MAXSIMSV = 0
+
+    IF ( Input_Opt%LSOA ) THEN
+
+       ! updated (hotp 5/20/10) new mtp
+       MAXSIMSV = 3  ! mono+sesq (1) + isop (2) + aromatics (3)
+       IF ( id_POA1  > 0   ) MAXSIMSV = MAXSIMSV + 1
+       IF ( id_OPOA1 > 0   ) MAXSIMSV = MAXSIMSV + 1
+       IF ( MAXSIMSV > MSV ) THEN
+          errMsg = 'ERROR: You''ve got a problem with semivolatiles!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Print to log for record
+       IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+          print*,'Number of SOA semivols (MAXSIMSV): ', MAXSIMSV
+          print*,'This number should be 5 for semivol POA' ! hotp 5/20/10
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Init_on_First_Chem_Call
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Oxidants_for_Aerosol_Sim
+!
+! !DESCRIPTION: Evaluates offline oxidant fields via HEMCO for the
+!  aerosol-only simulation.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Oxidants_for_Aerosol_Sim( Input_Opt,  State_Chm,            &
+                                           State_Grid, RC                   )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Right now State_Chm is not used but we may eventually migrate the offline
+!  aerosol field arrays to State_Chm.  Pass the argument for future-proofing.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !========================================================================
+    ! Get_Oxidants_for_Aerosol_Sim begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Get_Oxidants_for_Aerosol_Sim (in module GeosCore/carbon_mod.F90)'
+
+    !========================================================================
+    ! Exit if the aerosol simulation does not use SOA species
+    !========================================================================
+    IF ( .not. Input_Opt%LSOA ) RETURN
+
+    !========================================================================
+    ! Evaluate global OH field
+    !========================================================================
+    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                             &
+                        'GLOBAL_OH', OFFLINE_OH, RC                         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Evaluate global O3 field
+    !========================================================================
+    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid,                             &
+                        'GLOBAL_O3', OFFLINE_O3, RC                         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Evaluate global NO3 field
+    !========================================================================
+    CALL HCO_GC_EvalFld( Input_Opt,   State_Grid,                            &
+                        'GLOBAL_NO3', OFFLINE_NO3, RC                       )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Get_Oxidants_for_Aerosol_Sim
+!EOC
+END MODULE Carbon_Mod

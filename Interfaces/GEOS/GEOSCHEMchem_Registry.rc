@@ -63,7 +63,6 @@
   WET2               |     1	   | xy  |   |    |   |   |	|      |    | root_soil_wetness
   SH                 |    W/m2     | xy  |   |    |   |   |	|      |    | sensible_heat_flux_from_turbulence
   LHFX               |    W/m2     | xy  |   |    |   |   |	|      |    | latent_heat_flux_from_turbulence 
-  LWI                |     1	   | xy  |   |    |   |   |	|      |    | land-ocean-ice_mask
   ITY                |     1	   | xy  |   |    |   |   |	|      |    | land type index
   DRPAR              |    W/m2     | xy  |   |    |   |   |	|      |    | surface_downwelling_par_beam_flux
   DFPAR              |    W/m2     | xy  |   |    |   |   |	|      |    | surface_downwelling_par_diffuse_flux

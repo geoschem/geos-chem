@@ -22,8 +22,8 @@ MODULE fullchem_HetStateFuncs
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Fullchem_SetStateHet
-
+  PUBLIC :: fullchem_SetStateHet
+!
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP

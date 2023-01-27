@@ -179,8 +179,8 @@ CONTAINS
     RC            = GC_SUCCESS
     k_ex          = 0.0_dp
     K_MT          = 0.0_dp
-    SALAAL_gt_0_1 = ( State_Chm%Species(id_SALAAL)%Conc(I,J,L) > 0.1_dp )
-    SALCAL_gt_0_1 = ( State_Chm%Species(id_SALCAL)%Conc(I,J,L) > 0.1_dp )
+    SALAAL_gt_0_1 = ( C(ind_SALAAL) > 0.1_dp )
+    SALCAL_gt_0_1 = ( C(ind_SALCAL) > 0.1_dp )
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
@@ -204,8 +204,7 @@ CONTAINS
                        srMw   = SR_MW(ind_SO2)                              )
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
-       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%Species(id_SALAAL)%Conc(I,J,L)
+       K_MT(1) = kIIR1Ltd( C(ind_SO2), C(ind_SALAAL), k_ex ) / C(ind_O3)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -260,8 +259,7 @@ CONTAINS
                        srMw   = SR_MW(ind_SO2)                              )
 
        ! Assume SO2 is limiting, so recompute rxn rate accordingly
-       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_O3), k_ex )                     &
-               / State_Chm%Species(id_SALCAL)%Conc(I,J,L)
+       K_MT(4) = kIIR1Ltd( C(ind_SO2), C(ind_SALCAL), k_ex ) / C(ind_O3)
     ENDIF
 
     !------------------------------------------------------------------------

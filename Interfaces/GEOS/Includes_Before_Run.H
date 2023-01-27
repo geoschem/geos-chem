@@ -61,7 +61,6 @@
 !  ELSEWHERE
 !     State_Met%LAI     = 0.0e0                               ! unitless
 !  ENDWHERE
-  State_Met%LWI        = LWI                                 ! unitless
   State_Met%PARDR      = DRPAR                               ! W/m2
   State_Met%PARDF      = DFPAR                               ! W/m2
   State_Met%PBLH       = ZPBL                                ! m

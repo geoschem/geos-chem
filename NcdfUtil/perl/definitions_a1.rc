@@ -102,11 +102,6 @@ LAI:long_name           = Leaf area index
 LAI:units               = m2 m-2
 LAI:gamap_category      = GMAO-2D
 #-
-LWI                     = REAL*4::lon,lat,time
-LWI:long_name           = Land/water/ice flags
-LWI:units               = unitless
-LWI:gamap_category      = GMAO-2D
-#-
 LWGNT                   = REAL*4::lon,lat,time
 LWGNT:long_name         = Net longwave flux at the ground
 LWGNT:units             = W m-2

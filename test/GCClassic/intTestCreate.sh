@@ -109,7 +109,7 @@ mkdir -p ${root}/exe_files
 
 # Make the build directories
 if [[ ! -d ${root}/build ]]; then
-    for dir in apm bpch default hg luowd rrtmg tomas15 tomas40; do
+    for dir in ${EXE_BUILD_LIST[@]}; do
 	echo " ... ${root}/build/${dir}"
 	mkdir -p ${root}/build/${dir}
     done
@@ -206,6 +206,9 @@ create_rundir "10\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 dir="gc_2x25_metals_merra2"
 create_rundir "11\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
+dir="gc_2x25_carbon_merra2"
+create_rundir "12\n1\n2\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
 # Create individual run directories: 2x25 - GEOSFP - 72L
@@ -340,6 +343,9 @@ create_rundir "10\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 dir="gc_4x5_metals_merra2"
 create_rundir "11\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
+dir="gc_4x5_carbon_merra2"
+create_rundir "12\n1\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
 #=============================================================================
 # Create individual run directories: 4x5 - GEOSFP - 72L
 #=============================================================================
@@ -414,6 +420,9 @@ create_rundir "10\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 # the metals simulation with GEOS-FP met for now (bmy, 07 Jul 2021)
 #dir="gc_4x5_metals_geosfp"
 #create_rundir "11\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
+
+dir="gc_4x5_carbon_geosfp"
+create_rundir "12\n2\n1\n1\n${root}\n${dir}\nn\n"         ${root} ${dir} ${log}
 
 #=============================================================================
 # Create individual run directories: 4x5 and 47L (both MERRA2 and GEOSFP)

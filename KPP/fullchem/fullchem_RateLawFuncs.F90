@@ -3426,5 +3426,18 @@ CONTAINS
     ENDIF
   END FUNCTION VOCuptk1stOrd
 
+  FUNCTION SemiVolOxidation( kPhot, a_r ) RESULT( k )
+    !
+    ! Computes the reaction rate for the oxidation of SVOA species
+    ! (with oxidants O3, OH, NO3).
+    !
+    !
+    REAL(dp), INTENT(IN) :: kPhot  ! Photo-oxidation rate   [cm3/molec/s]
+    REAL(dp), INTENT(IN) :: a_r    ! Activation energy / R  [K          ]
+    REAL(dp)             :: k      ! Oxidation rate         [cm3/molec/s]
+    !
+    k = kPhot * EXP( a_r * ( INV_K298 - INV_TEMP ) )
+   END FUNCTION SemiVolOxidation
+
 END MODULE fullchem_RateLawFuncs
 !EOC

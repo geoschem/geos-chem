@@ -18,7 +18,7 @@
 #BOC
 
 # Global variables
-FILL=$(printf '.%.0s' {1..44})
+FILL=$(printf '.%.0s' {1..47})
 SEP_MAJOR=$(printf '=%.0s' {1..78})
 SEP_MINOR=$(printf '\055%.0s' {1..78})
 SED_CONFIG_1='s/end_date: \[20110201, 000000\]/end_date: \[20110101, 010000\]/'
@@ -40,11 +40,14 @@ SED_RUN_CONFIG_3='s/20190201 000000/20190101 010000/'
 SED_RUN_CONFIG_4='s/00000100 000000/00000000 010000/'
 SED_RUN_CONFIG_5='s/7440000/010000/'
 SED_RUN_CONFIG_6='s/1680000/010000/'
-CMP_PASS_STR='Configure & Build......PASS'
-CMP_FAIL_STR='Configure & Build......FAIL'
-EXE_PASS_STR='Execute Simulation.....PASS'
-EXE_FAIL_STR='Execute Simulation.....FAIL'
-EXE_TBD_STR='Execute Simulation.....TBD'
+CMP_PASS_STR='Configure & Build.....PASS'
+CMP_FAIL_STR='Configure & Build.....FAIL'
+EXE_PASS_STR='Execute Simulation....PASS'
+EXE_FAIL_STR='Execute Simulation....FAIL'
+EXE_TBD_STR='Execute Simulation....TBD'
+EXE_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
+                "luowd"   "rrtmg" "tomas15" "tomas40" )
+
 
 function sed_ie() {
     #========================================================================
@@ -320,7 +323,7 @@ function gcclassic_exe_name() {
     exeFileName="gcclassic"
 
     # Append a suffix to the executable file name for specific directories
-    for suffix in apm bpch hg luowd rrtmg tomas15 tomas40; do
+    for suffix in ${EXE_BUILD_LIST[@]}; do
 	if [[ ${1} =~ ${suffix} ]]; then
 	    exeFileName+=".${suffix}"
 	    break
@@ -355,8 +358,8 @@ function gcclassic_config_options() {
     # Pick the proper build options
     if [[ ${dir} =~ "apm" ]]; then
 	options="${baseOptions} -DAPM=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "bpch" ]]; then
-	options="${baseOptions} -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "carbon" ]]; then
+	options="${baseOptions} -DMECH=carbon -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "hg" ]]; then
 	options="${baseOptions} -DMECH=Hg -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "luowd" ]]; then
@@ -395,8 +398,8 @@ function gcclassic_compiletest_name() {
     # Pick the proper build options
     if [[ ${dir} =~ "apm" ]]; then
 	result="GCClassic with APM"
-    elif [[ ${dir} =~ "bpch" ]]; then
-	result="GCClassic with BPCH diagnostics"
+    elif [[ ${dir} =~ "carbon" ]]; then
+	result="GCClassic with carbon (as a KPP mechanism)"
     elif [[ ${dir} =~ "luowd" ]]; then
 	result="GCClassic with Luo et al wetdep"
     elif [[ ${dir} =~ "hg" ]]; then
