@@ -14,6 +14,11 @@
   ! (based on a 1 day lifetime)
   REAL(dp), PARAMETER :: k_SOAP_to_SOAS = 1.0_dp / 86400.0_dp
 
+  ! Inverse of 298K, 300K, 310K temperatures
+  REAL(dp), PARAMETER :: INV_K298 = 1.0_dp / 298.0_dp
+  REAL(dp), PARAMETER :: INV_K300 = 1.0_dp / 300.0_dp
+  REAL(dp), PARAMETER :: INV_K310 = 1.0_dp / 310.0_dp
+
   !==========================================================================
   ! Molecular weights and Henry's law constants
   !==========================================================================
@@ -39,6 +44,10 @@
   ! Square root of Temperature [K**0.5]
   REAL(dp) :: SR_TEMP
   !$OMP THREADPRIVATE( SR_TEMP )
+
+  ! TEMP_OVER_K300 - Temperature [K] / 300.0
+  REAL(dp) :: TEMP_OVER_K298
+  !$OMP THREADPRIVATE( TEMP_OVER_K298 )
 
   ! TEMP_OVER_K300 - Temperature [K] / 300.0
   REAL(dp) :: TEMP_OVER_K300
