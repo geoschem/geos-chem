@@ -136,6 +136,7 @@ printf "   8. Tagged CO\n"
 printf "   9. Tagged O3\n"
 printf "  10. TransportTracers\n"
 printf "  11. Trace metals\n"
+printf "  12. Carbon\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -163,6 +164,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "11" ]]; then
 	sim_name=metals
+    elif [[ ${sim_num} = "12" ]]; then
+	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -893,6 +896,7 @@ cd ${rundir}
 if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xCH4"    ||
       "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'
     enddate='20190201'
@@ -1043,7 +1047,7 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-	    sample_rst=${rst_root}/GC_14.0.0/1yr_benchmark/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
@@ -1053,7 +1057,7 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 
     elif [[ "x${sim_name}" == "xHg" ]]; then
 
-	# For Hg, point to the restert file w/ KPP species (in v2021-12)
+	# For Hg, point to the restart file w/ KPP species (in v2021-12)
 	sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     elif [[ "x${sim_name}" == "xPOPs" ]]; then
@@ -1065,6 +1069,11 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 
 	# For metals, use the extra option is in the restart file name
 	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
+    elif [[ "x${sim_name}" == "xcarbon" ]]; then
+
+	# For carbon, point to the restarts in v2023-01
+	sample_rst=${rst_root}/v2023-01/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     else
 

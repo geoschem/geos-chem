@@ -86,7 +86,7 @@ MODULE DiagList_Mod
   INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
   LOGICAL,           PUBLIC  :: IsFullChem    ! Is it a fullchem simulation?
   LOGICAL,           PUBLIC  :: IsHg          ! Is it a Hg simulation?
-  LOGICAL,           PUBLIC  :: IsCarbonCycle ! Is it a carboncycle sim?
+  LOGICAL,           PUBLIC  :: IsCarbon      ! Is it a carbon sim?
   CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
@@ -229,7 +229,7 @@ CONTAINS
     nRadOut         =  0
     IsFullChem      = .FALSE.
     IsHg            = .FALSE.
-    IsCarbonCycle   = .FALSE.
+    IsCarbon        = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
     Name            =  ''
@@ -268,9 +268,9 @@ CONTAINS
        CALL QFYAML_CleanUp( ConfigAnchored  )
        RETURN
     ENDIF
-    IsFullChem    = ( To_UpperCase( v_str ) == "FULLCHEM"    )
-    IsHg          = ( To_UpperCase( v_str ) == "HG"          )
-    IsCarbonCycle = ( To_UpperCase( v_str ) == "CARBONCYCLE" )
+    IsFullChem  = ( To_UpperCase( v_str ) == "FULLCHEM"    )
+    IsHg        = ( To_UpperCase( v_str ) == "HG"          )
+    IsCarbon    = ( To_UpperCase( v_str ) == "CARBON" )
 
     ! Read the altitude above the surface in meters for drydep diags
     key   = "operations%dry_deposition%diag_alt_above_sfc_in_m"
@@ -686,10 +686,10 @@ CONTAINS
           isWildcard = .FALSE.
           wildcard   = ''
           IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
+#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS ) || defined( MODEL_CESM )
              ! Exit with an error if using GCHP and wildcard is present
              ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
-                      'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
+                      'implemented in GCHP/CESM: ' // TRIM(name) // '. Replace ' // &
                       'wildcard with a specific tag.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN

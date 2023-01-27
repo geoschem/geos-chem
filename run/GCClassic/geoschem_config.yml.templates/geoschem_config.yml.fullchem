@@ -15,6 +15,7 @@ simulation:
   root_data_dir: ${RUNDIR_DATA_ROOT}
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
   debug_printout: false
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
 
@@ -56,6 +57,17 @@ operations:
       activate: true
       use_static_bnd_cond: true
     gamma_HO2: 0.2
+    autoreduce_solver:
+      activate: false
+      use_target_threshold:
+        activate: true
+        oh_tuning_factor: 0.00005
+        no2_tuning_factor: 0.0001
+      use_absolute_threshold:
+        scale_by_pressure: true
+        absolute_threshold: 100.0
+      keep_halogens_active: false
+      append_in_internal_timestep: false
 
   convection:
     activate: true
@@ -386,19 +398,19 @@ extra_diagnostics:
     output_file: plane.log.YYYYMMDD
 
   legacy_bpch:                #          1         2         3
-     output_menu:             # 1234567890123456789012345678901
-       schedule_output_for_JAN: 3000000000000000000000000000000
-       schedule_output_for_FEB: 30000000000000000000000000000
-       schedule_output_for_MAR: 3000000000000000000000000000000
-       schedule_output_for_APR: 300000000000000000000000000000
-       schedule_output_for_MAY: 3000000000000000000000000000000
-       schedule_output_for_JUN: 300000000000000000000000000000
-       schedule_output_for_JUL: 3000000000000000000000000000000
-       schedule_output_for_AUG: 3000000000000000000000000000000
-       schedule_output_for_SEP: 300000000000000000000000000000
-       schedule_output_for_OCT: 3000000000000000000000000000000
-       schedule_output_for_NOV: 300000000000000000000000000000
-       schedule_output_for_DEC: 3000000000000000000000000000000
+    output_menu:             # 1234567890123456789012345678901
+      schedule_output_for_JAN: 3000000000000000000000000000000
+      schedule_output_for_FEB: 30000000000000000000000000000
+      schedule_output_for_MAR: 3000000000000000000000000000000
+      schedule_output_for_APR: 300000000000000000000000000000
+      schedule_output_for_MAY: 3000000000000000000000000000000
+      schedule_output_for_JUN: 300000000000000000000000000000
+      schedule_output_for_JUL: 3000000000000000000000000000000
+      schedule_output_for_AUG: 3000000000000000000000000000000
+      schedule_output_for_SEP: 300000000000000000000000000000
+      schedule_output_for_OCT: 3000000000000000000000000000000
+      schedule_output_for_NOV: 300000000000000000000000000000
+      schedule_output_for_DEC: 3000000000000000000000000000000
 
     gamap:
       diaginfo_dat_file: ./diaginfo.dat

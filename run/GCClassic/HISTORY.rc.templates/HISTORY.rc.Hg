@@ -37,6 +37,7 @@ COLLECTIONS: 'Restart',
              #'DryDep',
              #'LevelEdgeDiags',
              #'ProdLoss',
+             #'SatDiagn',
              #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
@@ -76,15 +77,19 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              #'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -240,6 +245,52 @@ COLLECTIONS: 'Restart',
   ProdLoss.fields:            'Prod_?PRD?                    ',
 ::
 #==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_Hg0               ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_Hg0          ',
+                              'SatDiagnWetLossConv_Hg0        ',
+                              'SatDiagnJval_Hg0               ',
+                              'SatDiagnDryDep_Hg0             ',
+                              'SatDiagnOHreactivity           ',
+                              'SatDiagnColEmis_Hg0            ',
+                              'SatDiagnSurfFlux_Hg0           ',
+                              'SatDiagnColEmis_CH2O           ',
+                              'SatDiagnSurfFlux_CH2O          ',
+                              'SatDiagnColEmis_NO             ',
+                              'SatDiagnSurfFlux_NO            ',
+                              'SatDiagnProd_?PRD?             ',
+                              'SatDiagnLoss_?LOS?             ',
+::
+#==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the LevelEdgeDiags collection)
@@ -276,7 +327,6 @@ COLLECTIONS: 'Restart',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
                               'Met_LAI                       ',
-                              'Met_LWI                       ',
                               'Met_PARDR                     ',
                               'Met_PARDF                     ',
                               'Met_PBLTOPL                   ',

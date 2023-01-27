@@ -34,6 +34,7 @@ MODULE Diagnostics_mod
 ! !PRIVATE MEMBER FUNCTIONS
 !
   PRIVATE :: Set_SpcConc_Diags_VVDry
+  PRIVATE :: Set_SpcConc_Diags_MND
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - Initial version
@@ -56,17 +57,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
-                                            State_Grid, State_Met, RC )
+  SUBROUTINE Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm,           &
+                                            State_Diag, State_Grid,          &
+                                            State_Met,  RC )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Met_Mod,    ONLY : MetState
     USE State_Chm_Mod,    ONLY : ChmState, Ind_
-    USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Diag_Mod,   ONLY : DgnState, DgnMap
     USE State_Grid_Mod,   ONLY : GrdState
-    USE PhysConstants,    ONLY : AIRMW
+    USE PhysConstants,    ONLY : AIRMW,  AVO
+    USE TIME_MOD,         ONLY : GET_LOCALTIME
 !
 ! !INPUT PARAMETERS:
 !
@@ -94,19 +97,22 @@ CONTAINS
 !
     ! Scalars
     INTEGER                 :: I, J, L, N, S
-    REAL(fp)                :: ToPptv
+    REAL(fp)                :: ToPptv, LT
 
     ! SAVEd scalars
     INTEGER, SAVE           :: id_Hg2 = -1
     INTEGER, SAVE           :: id_HgP = -1
-    LOGICAL, SAVE           :: FIRST  = .TRUE.
+    LOGICAL, SAVE           :: FIRST_Hg  = .TRUE.
 
     ! Strings
     CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
 
-    !=======================================================================
+    ! Objects
+    TYPE(DgnMap), POINTER   :: mapData
+
+    !========================================================================
     ! Set_Diagnostics_EndofTimestep begins here
-    !=======================================================================
+    !========================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
@@ -114,16 +120,30 @@ CONTAINS
     ThisLoc = &
       ' -> at Set_Diagnostics_EndofTimestep (in GeosCore/diagnostics_mod.F90)'
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Set species concentration for diagnostics in units of
     ! v/v dry air = mol/mol dry air
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,         &
                                   State_Grid, State_Met, RC                 )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered setting species concentration diagnostic'
+       ErrMsg = 'Error encountered setting SpeciesConcVV diagnostic'
+       CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Set species concentration for diagnostics in units of
+    ! molec/cm3 (hplin, 11/21/21)
+    !-----------------------------------------------------------------------
+    CALL Set_SpcConc_Diags_MND  ( Input_Opt,  State_Chm, State_Diag,         &
+                                  State_Grid, State_Met, RC                 )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered setting SpeciesConcMND diagnostic'
        CALL GC_ERROR( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -133,46 +153,64 @@ CONTAINS
     ! Set species concentration diagnostic in units specified in state_diag_mod
     !-----------------------------------------------------------------------
     IF ( State_Diag%Archive_SpeciesAdj ) THEN
-       ! if (Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-       !    write(*,*) 'Before diagnostic ',  &
-       !         State_Chm%SpeciesAdj(Input_Opt%IFD,Input_Opt%JFD,Input_Opt%LFD,Input_opt%NFD)
-       ! ENDIF
        CALL Set_SpcAdj_Diagnostic( Input_Opt,  State_Chm, State_Diag,         &
                                    State_Grid, State_Met, RC                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered setting species adoint diagnostic'
+          ErrMsg = 'Error encountered setting SpeciesAdj diagnostic'
           CALL GC_ERROR( ErrMsg, RC, ThisLoc )
        ENDIF
     ENDIF
 #endif
-    !-----------------------------------------------------------------------
+
+    !------------------------------------------------------------------------
     ! Set total dry deposition flux
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_DryDep ) THEN
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, N, S )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, S                                               )&
+       !$OMP COLLAPSE( 3                                                    )
        DO S = 1, State_Diag%Map_DryDep%nSlots
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             State_Diag%DryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)          &
-                                      + State_Diag%DryDepMix(I,J,S)
-          ENDDO
-          ENDDO
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          State_Diag%DryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)             &
+                                   + State_Diag%DryDepMix(I,J,S)
+       ENDDO
+       ENDDO
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Set total dry deposition flux
+    !------------------------------------------------------------------------
+    IF ( State_Diag%Archive_SatDiagnDryDep ) THEN
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, S                                               )&
+       !$OMP COLLAPSE( 3                                                    )
+       DO S = 1, State_Diag%Map_SatDiagnDryDep%nSlots
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          State_Diag%SatDiagnDryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)  &
+                                           + State_Diag%DryDepMix(I,J,S)
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Compute fraction of time each grid box spent in the troposphere
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_FracOfTimeInTrop ) THEN
-       !$OMP PARALLEL DO            &
-       !$OMP DEFAULT( SHARED      ) &
-       !$OMP SCHEDULE( DYNAMIC, 8 ) &
-       !$OMP PRIVATE( I, J, L )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )&
+       !$OMP PRIVATE( I, J, L                                               )&
+       !$OMP COLLAPSE( 3                                                    )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -187,16 +225,16 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Diagnostics for the mercury and tagged mercury simulations
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Get species indices for Hg2 and HgP
-       IF ( FIRST ) THEN
+       IF ( FIRST_Hg ) THEN
           id_Hg2 = Ind_('Hg2')
           id_HgP = Ind_('HgP')
-          FIRST  = .FALSE.
+          FIRST_Hg  = .FALSE.
        ENDIF
 
        !--------------------------------------------
@@ -229,6 +267,23 @@ CONTAINS
                      State_Chm%Species(id_HgP)%Conc(:,:,:) * ToPptv
        ENDIF
     ENDIF
+
+    !========================================================================
+    ! Archive quantities for satellite diagnostics (if requested)
+    !========================================================================
+    IF ( State_Diag%Archive_SatDiagn ) THEN
+       CALL Do_Archive_SatDiagn( Input_Opt,  State_Chm,  State_Diag,         &
+                                 State_Grid, State_Met,  RC                 )
+    ENDIF
+
+
+    ! Error handling
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error converting species units for archiving diagnostics #2'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
 
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
@@ -344,14 +399,14 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine Set_SpcAdj\_Diagnostic sets the passed species
 !  adjoint diagnostic array stored in State_Diag to the instantaneous
-!  State_Chm%SpeciesAdj values converted to the diagnostic unit stored in 
+!  State_Chm%SpeciesAdj values converted to the diagnostic unit stored in
 !  the State_Diag metadata.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE Set_SpcAdj_Diagnostic( Input_Opt, State_Chm, State_Diag,    &
-                                    State_Grid, State_Met, RC           )  
+                                    State_Grid, State_Met, RC           )
 !
 ! !USES:
 !
@@ -361,9 +416,8 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
     TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
@@ -380,7 +434,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  15 Dec 2019 - C. Lee - Initial version
 !  17 Dec 2020 - C. Lee - Updated to account for changes to Set_SpcConcs
 !EOP
@@ -391,18 +445,14 @@ CONTAINS
 !
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: D, I, J, L, N, S
-    REAL(fp)              :: TmpVal, Conv
+    INTEGER               :: N, S
+    REAL(fp)              :: LT,  GOOD
 
     ! Strings
-    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
-
-    ! Arrays
-    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
-                                       State_Grid%NZ,State_Chm%nSpecies)
 
     !====================================================================
     ! Set_SpcAdj_Diagnostic begins here!
@@ -413,7 +463,6 @@ CONTAINS
     Found   = .FALSE.
     ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
 
-
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
        ErrMsg = 'Incorrect species units in Set_SpcAdj_Diags_VVDry!' // trim( State_Chm%Spc_Units)
@@ -421,29 +470,12 @@ CONTAINS
        RETURN
     ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N )
-       DO N = 1, State_Chm%nSpecies
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          ! Forward code
-          ! TmpSpcArr(I,J,L,N) = State_Chm%Species(N)%Conc(I,J,L) *   &
-          !                     ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
-          TmpSpcArr(I,J,L,N) = State_Chm%SpeciesAdj(I,J,L,N)
-       ENDDO
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
     !=======================================================================
-    ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
+    ! Copy species to SpeciesAdj (concentrations diagnostic) [v/v dry]
     !=======================================================================
     IF ( Input_Opt%Is_Adjoint ) THEN
 
-       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       ! Point to mapping obj specific to SpeciesAdj diagnostic collection
        mapData => State_Diag%Map_SpeciesAdj
 
        !$OMP PARALLEL DO       &
@@ -451,7 +483,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesAdj(:,:,:,S) = TmpSpcArr(:,:,:,N)
+          State_Diag%SpeciesAdj(:,:,:,S) = State_Chm%SpeciesAdj(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -460,11 +492,49 @@ CONTAINS
 
     ENDIF
 
-    ! Error handling
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error converting species units for archiving diagnostics #2'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    !=======================================================================
+    ! Copy species to SatDiagn (satellite diagnostic output) [v/v dry]
+    !=======================================================================
+    IF ( State_Diag%Archive_SatDiagnConc ) THEN
+
+       ! Point to mapping obj specific to species boundary conditions
+       mapData => State_Diag%Map_SatDiagnConc
+
+       ! Loop over the number of advected species that we wish
+       ! to save at a user-specified local time range
+       ! Loop over longitudes:
+       DO I = 1, State_Grid%NX
+
+          ! Get local time in hours:
+          LT = GET_LOCALTIME(I, 1, 1, State_Grid)
+          IF ( LT < 0  ) LT = LT + 24e+0_fp
+          ! Check if local time is during satellite overpass time:
+          IF ( LT >= State_Diag%SatDiagn_StartHr .and. &
+               LT <= State_Diag%SatDiagn_EndHr ) THEN
+
+             ! GOOD = 1 if during local time range, 0 otherwise:
+             GOOD = 1e+0_fp
+
+          ELSE
+
+             GOOD = 0e+0_fp
+
+          ENDIF
+
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( N, S   )
+          DO S = 1, mapData%nSlots
+             N = mapData%slot2id(S)
+             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
+          ENDDO
+          !$OMP END PARALLEL DO
+
+       ENDDO
+
+       ! Free pointer
+       mapData => NULL()
+
     ENDIF
 
   END SUBROUTINE Set_SpcAdj_Diagnostic
@@ -496,7 +566,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+    USE Time_Mod,       ONLY : Get_LocalTime
 !
 ! !INPUT PARAMETERS:
 !
@@ -525,10 +595,10 @@ CONTAINS
     ! Scalars
     LOGICAL               :: Found
     INTEGER               :: D, I, J, L, N, S
-    REAL(fp)              :: TmpVal, Conv
+    REAL(fp)              :: TmpVal, Conv, LT, GOOD
 
     ! Strings
-    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
@@ -545,7 +615,7 @@ CONTAINS
     RC      =  GC_SUCCESS
     Found   = .FALSE.
     ThisLoc = &
-         ' -> at Set_SpcConc_Diagnostics (in GeosCore/diagnostics_mod.F90)'
+         ' -> at Set_SpcConc_Diags_VVDry (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
@@ -555,19 +625,21 @@ CONTAINS
     ENDIF
 
     ! Store species in v/v dry as temporary variable if diagnostics on
-    IF ( State_Diag%Archive_SpeciesConc .OR. &
-         State_Diag%Archive_SpeciesBC   .OR. &
-         State_Diag%Archive_SpeciesRst  .OR. &
-         State_Diag%Archive_ConcAboveSfc ) THEN
+    IF ( State_Diag%Archive_SpeciesConcVV                               .or. &
+         State_Diag%Archive_SpeciesBC                                   .or. &
+         State_Diag%Archive_SpeciesRst                                  .or. &
+         State_Diag%Archive_ConcAboveSfc                                .or. & 
+         State_Diag%Archive_SatDiagnConc                              ) THEN
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, N                                            )&
+       !$OMP COLLAPSE( 4                                                    )
        DO N = 1, State_Chm%nSpecies
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          TmpSpcArr(I,J,L,N) = State_Chm%Species(N)%Conc(I,J,L) *     &
+          TmpSpcArr(I,J,L,N) = State_Chm%Species(N)%Conc(I,J,L) *            &
                                ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
        ENDDO
        ENDDO
@@ -580,23 +652,53 @@ CONTAINS
     !=======================================================================
     ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
     !=======================================================================
-    IF ( State_Diag%Archive_SpeciesConc ) THEN
+    IF ( State_Diag%Archive_SpeciesConcVV ) THEN
 
-       ! Point to mapping obj specific to SpeciesConc diagnostic collection
-       mapData => State_Diag%Map_SpeciesConc
+       ! Point to mapping obj specific to SpeciesConcVV diagnostic collection
+       mapData => State_Diag%Map_SpeciesConcVV
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesConc(:,:,:,S) = TmpSpcArr(:,:,:,N)
+          State_Diag%SpeciesConcVV(:,:,:,S) = TmpSpcArr(:,:,:,N)
        ENDDO
        !$OMP END PARALLEL DO
 
        ! Free pointer
        mapData => NULL()
 
+    ENDIF
+
+    !=======================================================================
+    ! Copy species to SatDiagn (satellite diagnostic output) [v/v dry]
+    !=======================================================================
+    IF ( State_Diag%Archive_SatDiagnConc ) THEN
+
+       ! Loop over longitudes
+       !$OMP PARALLEL DO                                                    &
+       !$OMP DEFAULT( SHARED                                               )&
+       !$OMP PRIVATE( I, LT, GOOD, S, N                                    )
+       DO I = 1, State_Grid%NX
+
+          ! Get local time in hours
+          LT = Get_LocalTime( I, 1, 1, State_Grid )
+          IF ( LT < 0  ) LT = LT + 24.0_fp
+
+          ! Check if local time is during satellite overpass time:
+          ! GOOD = 1 if during local time range, 0 otherwise
+          GOOD = 0e+0_fp
+          IF ( LT >= State_Diag%SatDiagn_StartHr .and.                      &
+               LT <= State_Diag%SatDiagn_EndHr ) GOOD = 1e+0_fp
+
+          ! Archie into SatDiagnConc diagnostic array
+          DO S = 1, State_Diag%Map_SatDiagnConc%nSlots
+             N = State_Diag%Map_SatDiagnConc%slot2id(S)
+             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
+          ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
     ENDIF
 
     !=======================================================================
@@ -696,14 +798,114 @@ CONTAINS
 
     ENDIF
 
-    ! Error handling
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error converting species units for archiving diagnostics #2'
+  END SUBROUTINE Set_SpcConc_Diags_VVDry
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_SpcConc_Diags_MND
+!
+! !DESCRIPTION: Subroutine Set_SpcConc\_Diags\_MND sets several species
+!  concentration diagnostic arrays stored in State_Diag to the instantaneous
+!  State_Chm%Species values (in units of "v/v, dry air").
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_SpcConc_Diags_MND  ( Input_Opt,  State_Chm, State_Diag,     &
+                                      State_Grid, State_Met, RC            )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AVO
+    USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnMap
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnsotics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  21 Nov 2021 - H.P. Lin    - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER               :: N, S
+    REAL(fp)              :: MW_kg
+
+    ! Strings
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, OrigUnit
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapData
+
+    !====================================================================
+    ! Set_SpcConc_Diags_MND begins here!
+    !====================================================================
+
+    ! Assume success
+    RC      =  GC_SUCCESS
+    ThisLoc = &
+         ' -> at Set_SpcConc_Diags_MND (in GeosCore/diagnostics_mod.F90)'
+
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_MND!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-  END SUBROUTINE Set_SpcConc_Diags_VVDry
+    !=======================================================================
+    ! Copy species to SpeciesConcMND (concentrations diagnostic) [molec/cm3]
+    !=======================================================================
+    IF ( State_Diag%Archive_SpeciesConcMND ) THEN
+
+       ! Point to mapping obj specific to SpeciesConcMND diagnostic collection
+       mapData => State_Diag%Map_SpeciesConcMND
+
+       !$OMP PARALLEL DO            &
+       !$OMP DEFAULT( SHARED      ) &
+       !$OMP PRIVATE( N, S, MW_kg )
+       DO S = 1, mapData%nSlots
+          N = mapData%slot2id(S)
+
+          ! Molecular weight for the species [kg]
+          MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
+
+          State_Diag%SpeciesConcMND(:,:,:,S) =                      &
+               State_Chm%Species(N)%Conc(:,:,:) *                   &
+               State_Met%AIRDEN(:,:,:) * ( AVO / MW_kg ) / 1e+6_fp
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+
+    ENDIF
+
+  END SUBROUTINE Set_SpcConc_Diags_MND
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1048,5 +1250,410 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE Compute_Budget_Diagnostics
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Do_Archive_SatDiagn
+!
+! !DESCRIPTION: Masks satellite diagnostic fields by the requested local
+!  time window.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Do_Archive_SatDiagn( Input_Opt,  State_Chm,  State_Diag,        &
+                                  State_Grid, State_Met,  RC                )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AVO
+    USE Species_Mod,    ONLY : SpcConc
+    USE State_Chm_Mod,  ONLY : ChmState, Ind_
+    USE State_Diag_Mod, ONLY : DgnState, DgnMap
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod,       ONLY : Get_LocalTime
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostic State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! SAVEd scalars
+    LOGICAL, SAVE          :: first = .TRUE.
+    INTEGER, SAVE          :: id_OH = -1
+
+    ! Scalars
+    INTEGER                :: I,    N,      S
+    REAL(fp)               :: good, locTime
+
+    ! Strings
+    CHARACTER(LEN=255)     :: thisLoc
+    CHARACTER(LEN=512)     :: errMsg
+
+    ! Pointers & Objects
+    TYPE(SpcConc), POINTER :: Spc(:)
+
+    !=======================================================================
+    ! Do_Archive_SatDiagn begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      =  GC_SUCCESS
+    good    =  0.0_fp
+    locTime =  0.0_fp
+    Spc     => State_Chm%Species
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Do_Archive_SatDiagn (in module GeosCore/diagnostics_mod.F90)'
+
+    ! Get the species ID for OH if this is the first call
+    IF ( first ) THEN
+       id_OH  = Ind_('OH')
+       IF ( id_OH < 0 ) THEN
+          errMsg = 'OH is not a defined species in this simulation!!!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       first= .FALSE.
+    ENDIF
+
+    !========================================================================
+    ! Archive satellite diagnostics
+    !========================================================================
+
+    ! Loop over longitudes
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, locTime, good, S, N                                   )
+    DO I = 1, State_Grid%NX
+
+       !---------------------------------------------------------------------
+       ! Local time
+       !---------------------------------------------------------------------
+
+       ! Get local time (and make sure it isn't negative)
+       locTime = Get_LocalTime( I, 1, 1, State_Grid )
+       IF ( locTime < 0 ) locTime = locTime + 24.0_fp
+
+       ! Determine whether during satellite overpass time window:
+       ! good = 1 if during local time range, 0 otherwise:
+       !
+       !%%% TODO This should be a property of the HISTORY container
+       !%%% rather than SatDiagn.  This will prevent multiple SatDiagn
+       !%%% collections from being run at once.  Fix this later.
+       !%%%   -- Bob Yantosca (01 Nov 2022)
+       good = 0.0_fp
+       IF ( locTime >= State_Diag%SatDiagn_StartHr  .and.                    &
+            locTime <= State_Diag%SatDiagn_EndHr   ) good = 1.0_fp
+
+       !---------------------------------------------------------------------
+       ! SatDiagnCount: Count number of local times
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnCount ) THEN
+          State_Diag%SatDiagnCount(I,:,:) = &
+          State_Diag%SatDiagnCount(I,:,:) + good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagnOH: OH concentration [molec/cm3]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnOH ) THEN
+          State_Diag%SatDiagnOH(I,:,1:State_Grid%MaxChemLev) =               &
+               ( Spc(id_OH)%Conc(I,:,1:State_Grid%MaxChemLev) * good  *      &
+               State_Met%AIRDEN(I,:,1:State_Grid%MaxChemLev)  * AVO ) /      &
+               ( State_Chm%SpcData(id_OH)%Info%MW_g ) / 1.0e+3_fp
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagnRH: Relative humidity [%]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnRH ) THEN
+          State_Diag%SatDiagnRH(I,:,:) = State_Met%RH(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagnAirDen: Air density [molec/cm3]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnAirDen ) THEN
+          State_Diag%SatDiagnAirDen(I,:,:) =                                 &
+               State_Met%AirNumDen(I,:,:)  * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Grid box height [m]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnBoxHeight ) THEN
+          State_Diag%SatDiagnBoxHeight(I,:,:) =                              &
+               State_Met%BXHEIGHT(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Pressure edges [hPa]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPEdge ) THEN
+          State_Diag%SatDiagnPEdge(I,:,:) = &
+               State_Met%PEDGE(I,:,1:State_Grid%NZ) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Tropopause pressure [hPa]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
+          State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! PBL Height [m]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPBLHeight ) THEN
+          State_Diag%SatDiagnPBLHeight(I,:) = State_Met%PBLH(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! PBL Top [m]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPBLTop ) THEN
+          State_Diag%SatDiagnPBLTop(I,:) = State_Met%PBL_TOP_m(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Air temperature [K]: Temperature Interpolated to Current Time
+       ! This temperture is interpolated from 3 h Met Field (TMPU1 and TMPU2)
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTAir ) THEN
+          State_Diag%SatDiagnTAir(I,:,:) = State_Met%T(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Root Zone Soil Moisture (or Wetness) [fraction]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnGWETROOT ) THEN
+          State_Diag%SatDiagnGWETROOT(I,:) = State_Met%GWETROOT(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Topsoil Moisture (or Wetness) [fraction]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnGWETTOP ) THEN
+          State_Diag%SatDiagnGWETTOP(I,:) = State_Met%GWETTOP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Direct Photosynthetically Active Radiation [W/m2]:
+       ! Aka Surface downward PAR beam flux
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPARDR ) THEN
+          State_Diag%SatDiagnPARDR(I,:) = State_Met%PARDR(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Diffuse Photosynthetically Active Radiation [W/m2]:
+       ! Aka Surface downward PAR diffuse flux
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPARDF ) THEN
+          State_Diag%SatDiagnPARDF(I,:) = State_Met%PARDF(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Total Precipitation (at surface) [mm/day]:
+       ! Documentation says this variable is converted from original
+       ! units of kg/m2/s
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPRECTOT ) THEN
+          State_Diag%SatDiagnPRECTOT(I,:) = State_Met%PRECTOT(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Sea Level Pressure [hPa]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnSLP ) THEN
+          State_Diag%SatDiagnSLP(I,:) = State_Met%SLP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Specific Humidity Interpolated to Current Time [g H2O/kg air]:
+       ! Linearly interpolated from 3 h met field (SPHU1 and SPHU2)
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnSPHU ) THEN
+          State_Diag%SatDiagnSPHU(I,:,:) = State_Met%SPHU(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Surface Temperature at 2m [K]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTS ) THEN
+          State_Diag%SatDiagnTS(I,:) = State_Met%TS(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! PBL Top Height [Levels]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPBLTOPL ) THEN
+          State_Diag%SatDiagnPBLTOPL(I,:) = State_Met%PBL_TOP_L(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! MODIS Daily LAI [m2/m2]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnMODISLAI ) THEN
+          State_Diag%SatDiagnMODISLAI(I,:) = State_Met%MODISLAI(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for WetLossLS [units of kg/s as per WetLossLS]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnWetLossLS%nSlots
+             State_Diag%SatDiagnWetLossLS(I,:,:,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,:,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for WetLossConv [units of kg/s as per WetLossConv]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnWetLossConv ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnWetLossConv%nSlots
+             State_Diag%SatDiagnWetLossConv(I,:,:,S) =                       &
+             State_Diag%SatDiagnWetLossConv(I,:,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for Jval [units of s-1 as per Jval]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnJval ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnJval%nSlots
+             State_Diag%SatDiagnJval(I,:,:,S) =                              &
+             State_Diag%SatDiagnJval(I,:,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for JvalO3O1D [units of s-1 as per JvalO3O1D]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+          State_Diag%SatDiagnJvalO3O1D(I,:,:) =                              &
+          State_Diag%SatDiagnJvalO3O1D(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for JvalO3O3P [units of s-1 as per JvalO3O3P]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+          State_Diag%SatDiagnJvalO3O3P(I,:,:) =                              &
+          State_Diag%SatDiagnJvalO3O3P(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for DryDep [units of molec cm-2 s-1 as per DryDep]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnDryDep ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnDryDep%nSlots
+             State_Diag%SatDiagnDryDep(I,:,S) =                              &
+             State_Diag%SatDiagnDryDep(I,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for DryDepVel [units of cm s-1 as per DryDepVel]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnDryDepVel%nSlots
+             State_Diag%SatDiagnDryDepVel(I,:,S) =                           &
+             State_Diag%SatDiagnDryDepVel(I,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for OH Reactivity [units of s-1]
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
+          State_Diag%SatDiagnOHreactivity(I,:,:) =                           &
+          State_Diag%SatDiagnOHreactivity(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for Column Emissions (ColEmis) [units of kg/m2/s]:
+       ! From surface to maximum vertical level for advected species
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
+             State_Diag%SatDiagnColEmis(I,:,S) =                             &
+             State_Diag%SatDiagnColEmis(I,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for Total Surface Fluxes [units of kg/m2/s]:
+       ! From surface to top of the PBL for Advected Species
+       ! (eflx (emis) - dflx(drydep)))
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnSurfFlux%nSlots
+             State_Diag%SatDiagnSurfFlux(I,:,:) =                            &
+             State_Diag%SatDiagnSurfFlux(I,:,:) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for Chemical Loss
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             State_Diag%SatDiagnLoss(I,:,:,S) =                              &
+             State_Diag%SatDiagnLoss(I,:,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for Chemical Production
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             State_Diag%SatDiagnProd(I,:,:,S) =                              &
+             State_Diag%SatDiagnProd(I,:,:,S) * good
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SatDiagn Diagnostic for Reaction Rates
+       ! SatDiagnRxnRate was previously defined in fullchem_mod.F90
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
+             State_Diag%SatDiagnRxnRate(I,:,:,S) =                           &
+             State_Diag%SatDiagnRxnRate(I,:,:,S) * good
+          ENDDO
+       ENDIF
+
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Free pointers for safety's sake
+    Spc => NULL()
+
+  END SUBROUTINE Do_Archive_SatDiagn
 !EOC
 END MODULE Diagnostics_mod

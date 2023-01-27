@@ -41,6 +41,8 @@ MODULE HCO_Utilities_GC_Mod
   PUBLIC   :: HCO_GC_EvalFld     ! Shim interface for HCO_EvalFld
   PUBLIC   :: HCO_GC_GetPtr      ! Shim interface for HCO_GetPtr
   PUBLIC   :: HCO_GC_GetDiagn    ! Shim interface for GetHcoDiagn
+  PUBLIC   :: HCO_GC_GetOption   ! Shim interface for HCO_GetOpt
+  PUBLIC   :: HCO_GC_HcoStateOK  ! Test if HCO_State is allocated
 
 #if defined( MODEL_CLASSIC )
   !=========================================================================
@@ -2917,4 +2919,83 @@ CONTAINS
   END SUBROUTINE Init_IMGrid
 !EOC
 #endif
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_GetOption
+!
+! !DESCRIPTION: Shim interface for HCO_GetOpt.  Used to return a value
+!  from the HEMCO config file into GEOS-Chem.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_GC_GetOption( optName, extNr ) RESULT( optVal )
+!
+! !USES:
+!
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_ExtList_Mod,  ONLY : HCO_GetOpt
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: optName
+    INTEGER,          OPTIONAL   :: extNr
+!
+! !RETURN VALUE:
+!
+    CHARACTER(LEN=255)           :: optVal
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    INTEGER :: extension
+
+    ! Extension number
+    extension = 0
+    IF ( PRESENT( extNr ) ) extension = extNr
+
+    ! Return character variable
+    optVal = HCO_GetOpt( HcoState%Config%ExtList, optName, extNr=extension )
+
+  END FUNCTION HCO_GC_GetOption
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_HcoStateOK
+!
+! !DESCRIPTION: Returns TRUE if the HcoState object is allocated, or FALSE
+!  otherwise.  This allows us to abstract the HcoState object out of
+!  GEOS-Chem source code.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_GC_HcoStateOk() RESULT( HcoStateIsOk )
+!
+! !USES:
+!
+    USE HCO_State_GC_Mod, ONLY : HcoState
+!
+! !RETURN VALUE:
+!
+    LOGICAL :: HcoStateIsOK
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Return status of HcoState
+    HcoStateIsOK = ASSOCIATED( HcoState )
+
+  END FUNCTION HCO_GC_HcoStateOk
+!EOC
+
 END MODULE HCO_Utilities_GC_Mod

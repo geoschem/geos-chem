@@ -58,7 +58,7 @@ CONTAINS
 !
   SUBROUTINE GCHP_Chunk_Init( nymdB,         nhmsB,      nymdE,           &
                               nhmsE,         tsChem,     tsDyn,           &
-                              lonCtr,        latCtr,                      &
+                              tsRad,         lonCtr,     latCtr,          &
 #if !defined( MODEL_GEOS )
                               GC,            EXPORT,                      &
 #endif
@@ -108,6 +108,7 @@ CONTAINS
     INTEGER,            INTENT(IN)    :: nhmsE       ! hhmmss   @ end of run
     REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep [s]
     REAL,               INTENT(IN)    :: tsDyn       ! Chemistry timestep [s]
+    REAL,               INTENT(IN)    :: tsRad       ! Chemistry timestep [s]
     REAL(ESMF_KIND_R4), INTENT(IN)    :: lonCtr(:,:) ! Lon centers [radians]
     REAL(ESMF_KIND_R4), INTENT(IN)    :: latCtr(:,:) ! Lat centers [radians]
 !
@@ -200,6 +201,7 @@ CONTAINS
     Input_Opt%TS_EMIS = INT( tsChem )   ! Chemistry timestep [sec]
     Input_Opt%TS_DYN  = INT( tsDyn  )   ! Dynamic   timestep [sec]
     Input_Opt%TS_CONV = INT( tsDyn  )   ! Dynamic   timestep [sec]
+    Input_Opt%TS_RAD  = INT( tsRad  )   ! RRTMG     timestep [sec]
 
     ! Read geoschem_config.yml at very beginning of simulation on every CPU
     CALL Read_Input_File( Input_Opt, State_Grid, RC )
@@ -511,7 +513,10 @@ CONTAINS
 #endif
 
     ! Initialize chemistry mechanism
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM      .or. &
+         Input_Opt%ITS_A_MERCURY_SIM       .or. &
+         Input_Opt%ITS_A_CARBON_SIM      ) THEN
        CALL INIT_CHEMISTRY ( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')

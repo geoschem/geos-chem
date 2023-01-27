@@ -24,7 +24,6 @@ MODULE Mercury_Mod
   USE Ocean_Mercury_Mod, ONLY : LGEIA05
   USE Ocean_Mercury_Mod, ONLY : LVEGEMIS
   USE Ocean_Mercury_Mod, ONLY : LBrCHEM
-  USE Ocean_Mercury_Mod, ONLY : LRED_JNO2
   USE Ocean_Mercury_Mod, ONLY : LRED_CLOUDONLY
   USE Ocean_Mercury_Mod, ONLY : LHALOGENCHEM
   USE Ocean_Mercury_Mod, ONLY : LHgAQCHEM
@@ -691,7 +690,6 @@ CONTAINS
     REAL(dp)               :: Vloc(NVAR)
     REAL(dp)               :: Aout(NREACT)
 #ifdef MODEL_GEOS
-    REAL(dp)               :: Vdotout(NVAR)
     REAL(dp)               :: localC(NSPEC)
 #endif
 
@@ -817,7 +815,10 @@ CONTAINS
     ! leftover values from the last timestep near the top of the chemgrid
     IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
     IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnLoss   ) State_Diag%SatDiagnLoss   = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnProd   ) State_Diag%SatDiagnProd   = 0.0_f4
     IF (State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnJVal   ) State_Diag%SatDiagnJVal   = 0.0_f4
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
@@ -926,6 +927,7 @@ CONTAINS
 
     ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
     ! the integrator.  Rate updates are done before calling KPP.
+    !  -- Bob Yantosca (03 May 2022)
     ICNTRL(15) = -1
 
     !=======================================================================
@@ -952,9 +954,6 @@ CONTAINS
     !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
     !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
     !$OMP PRIVATE( Vloc,     Aout,     NN                                   )&
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( Vdotout                                                  )&
-#endif
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -1029,10 +1028,21 @@ CONTAINS
                 State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)          &
                                          + PHOTOL(N)
              ENDIF
+
+             ! J_values for satellite diagnostics
+             IF ( State_Diag%Archive_SatDiagnJVal ) THEN
+
+                ! GC photolysis species index
+                P = GC_Photo_Id(N)
+
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                State_Diag%SatDiagnJVal(I,J,L,P) =                           &
+                State_Diag%SatDiagnJVal(I,J,L,P) + PHOTOL(N)
+             ENDIF
+
           ENDDO
        ENDIF
-
-
 
        !====================================================================
        ! Copy values at each gridbox into variables in gckpp_Global.F90
@@ -1065,7 +1075,7 @@ CONTAINS
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Archive KPP equation rates (Aout).  For GEOS-Chem in GEOS, also
-       ! archive the time derivative of variable species (Vdotout).
+       ! archive the time derivative of variable species (Vdot).
        !
        ! NOTE: Replace VAR with C(1:NVAR) and FIX with C(NVAR+1:NSPEC),
        ! because VAR and FIX are now local to the integrator
@@ -1081,8 +1091,7 @@ CONTAINS
                      F       = C(NVAR+1:NSPEC),                              &
                      RCT     = RCONST,                                       &
                      Vdot    = Vloc,                                         &
-                     Aout    = Aout,                                         &
-                     Vdotout = Vdotout                                      )
+                     Aout    = Aout )
 #else
           !------------------------------------------
           ! All other contexts: Get Aout only
@@ -1250,6 +1259,21 @@ CONTAINS
           ENDDO
        ENDIF
 
+       ! Satellite diagnostic: chemical loss of species/families [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             KppId = State_Diag%Map_SatDiagnLoss%slot2Id(S)
+             State_Diag%SatdiagnLoss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: chemical prod of species/families [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             KppID = State_Diag%Map_SatDiagnProd%slot2Id(S)
+             State_Diag%SatDiagnProd(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
@@ -3498,7 +3522,6 @@ CONTAINS
     ! INIT_MERCURY begins here!
     !========================================================================
 
-    ! Initialize
     ! Assume success
     RC = GC_SUCCESS
 
@@ -3806,9 +3829,6 @@ CONTAINS
     ! Switch for only doing reduction in cloud water
     LRED_CLOUDONLY = .TRUE.
 
-    ! Switches for new reduction parameterization
-    LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
-
     ! Switch for using GEOS-Chem tropospheric bromine fields,
     ! ref. Parrella et al. 2012, instead of older TOMCAT fields
     LGCBROMINE = .TRUE.
@@ -3967,17 +3987,6 @@ CONTAINS
     ! Set the value of chemistry flags depending on whether or not
     ! the HEMCO collection LFLAGNAME is activated
     !-----------------------------------------------------------------
-    CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2', &
-                    OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       errMsg = 'LRED_JNO2 not found in HEMCO_Config.rc file!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    IF ( .not. FOUND ) THEN
-       LRED_JNO2 = .FALSE.
-    ENDIF
-
     CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM', &
                     OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -4101,7 +4110,6 @@ CONTAINS
     !-----------------------------------------------------------------
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     WRITE( 6, 100   )
-    WRITE( 6, 110   ) LRED_JNO2
     WRITE( 6, 120   ) LGCBROMINE
     WRITE( 6, 130   ) LNEI2005
     WRITE( 6, 140   ) LInPlume
@@ -4112,7 +4120,6 @@ CONTAINS
     WRITE( 6, 190   ) LOHO3CHEM
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 100 FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
-110 FORMAT( 'LRED_JNO2  is set to ', L1                          )
 120 FORMAT( 'LGCBROMINE is set to ', L1                          )
 130 FORMAT( 'LNEI2005   is set to ', L1                          )
 140 FORMAT( 'LInPlume   is set to ', L1                          )
