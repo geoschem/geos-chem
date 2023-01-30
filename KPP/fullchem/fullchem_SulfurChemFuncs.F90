@@ -951,7 +951,7 @@ CONTAINS
     REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
     ! (qjc, 04/10/16)
-    REAL(fp)              :: L5,L5S,SRo3,SRhobr
+    REAL(fp)              :: L5,L5S
     REAL(fp)              :: L5_1,L5S_1,L3_1,L3S_1,KaqO3_1
     REAL(fp)              :: HSO3aq, SO3aq
     REAL(fp)              :: SO2_AfterSS0, rSIV, fupdateHOBr_0
@@ -964,7 +964,7 @@ CONTAINS
     REAL(fp)              :: Fe_ant, Fe_nat,  Fe_tot
     REAL(fp)              :: Fe_d_ant, Fe_d_nat
 
-    REAL(fp)              :: L6,L6S,SRhocl,L6_1,L6S_1      !XW
+    REAL(fp)              :: L6,L6S,L6_1,L6S_1      !XW
     REAL(fp)              :: fupdateHOCl_0  !XW
     REAL(fp)              :: HCHOCl, KHOCl, f_srhocl, HOCl0 !XW
 
