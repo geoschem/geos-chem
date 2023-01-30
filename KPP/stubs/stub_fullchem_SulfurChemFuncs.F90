@@ -35,7 +35,6 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(MetState), INTENT(IN)    :: State_Met
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
-    REAL(dp),       INTENT(OUT)   :: SR
   END SUBROUTINE fullchem_HetDropChem
   !
   SUBROUTINE fullchem_InitSulfurChem( RC )
