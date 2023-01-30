@@ -21,7 +21,7 @@ CONTAINS
     !
   END SUBROUTINE fullchem_ConvertEquivToAlk
   !
-  SUBROUTINE fullchem_HetDropChem( I,         J,         L,         SR,      &
+  SUBROUTINE fullchem_HetDropChem( I,         J,         L,                  &
                                    Input_Opt, State_Met, State_Chm          )
     !
     ! Stub for GeosCore/fullchem_mod.F90:fullchem_HetDropChem
