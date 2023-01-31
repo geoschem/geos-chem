@@ -4320,19 +4320,19 @@ ${RUNDIR_TES_CLIM_N2O}
 # --- EPA NEI day-of-week scale factors ---
 #==============================================================================
 (((NEI2016_MONMEAN
-210 NEI99_DOW_NOX     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc NOX  1999/1-12/WD/0 C xy 1 1
-211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc CO   1999/1-12/WD/0 C xy 1 1
-212 NEI99_DOW_ALK4    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc ALK4 1999/1-12/WD/0 C xy 1 1
-213 NEI99_DOW_ACET    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc ACET 1999/1-12/WD/0 C xy 1 1
-214 NEI99_DOW_MEK     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc MEK  1999/1-12/WD/0 C xy 1 1
-215 NEI99_DOW_PRPE    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc PRPE 1999/1-12/WD/0 C xy 1 1
-216 NEI99_DOW_C3H8    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc C3H8 1999/1-12/WD/0 C xy 1 1
-217 NEI99_DOW_C2H6    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc C2H6 1999/1-12/WD/0 C xy 1 1
-218 NEI99_DOW_SO2     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc SO2  1999/1-12/WD/0 C xy 1 1
-219 NEI99_DOW_SO4     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc SO4  1999/1-12/WD/0 C xy 1 1
-220 NEI99_DOW_MSA     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc MSA  1999/1-12/WD/0 C xy 1 1
-221 NEI99_DOW_BCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc BCPI 1999/1-12/WD/0 C xy 1 1
-222 NEI99_DOW_OCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc OCPI 1999/1-12/WD/0 C xy 1 1
+210 NEI99_DOW_NOX   $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc NOX  1999/1-12/WD/0 C xy 1 1
+211 NEI99_DOW_CO    $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc CO   1999/1-12/WD/0 C xy 1 1
+212 NEI99_DOW_ALK4  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc ALK4 1999/1-12/WD/0 C xy 1 1
+213 NEI99_DOW_ACET  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc ACET 1999/1-12/WD/0 C xy 1 1
+214 NEI99_DOW_MEK   $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc MEK  1999/1-12/WD/0 C xy 1 1
+215 NEI99_DOW_PRPE  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc PRPE 1999/1-12/WD/0 C xy 1 1
+216 NEI99_DOW_C3H8  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc C3H8 1999/1-12/WD/0 C xy 1 1
+217 NEI99_DOW_C2H6  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc C2H6 1999/1-12/WD/0 C xy 1 1
+218 NEI99_DOW_SO2   $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc SO2  1999/1-12/WD/0 C xy 1 1
+219 NEI99_DOW_SO4   $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc SO4  1999/1-12/WD/0 C xy 1 1
+220 NEI99_DOW_MSA   $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc MSA  1999/1-12/WD/0 C xy 1 1
+221 NEI99_DOW_BCPI  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc BCPI 1999/1-12/WD/0 C xy 1 1
+222 NEI99_DOW_OCPI  $ROOT/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc OCPI 1999/1-12/WD/0 C xy 1 1
 )))NEI2016_MONMEAN
 
 #==============================================================================

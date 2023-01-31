@@ -509,6 +509,9 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 AVIATION_SURF_CORR      1       2004 Y F%y2-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
 OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc
 
+# --- NEI 2005 scale factors ---
+#NEI99_DOW_CO 1 D N F1999-%m2-01T00:00:00 none none CO ./HcoDir/NEI2005/v2023-02/scaling/NEI99.dow.geos.1x1.corrected.012023.nc
+
 ###############################################################################
 ###
 ### Masks (update if HEMCO_Config.rc changes)
