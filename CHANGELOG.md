@@ -13,8 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.1.0]
 ### Added
-  - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication +
-    AMAP emissions
+  - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
   - Added MO2 + NO3 = NO2 + CH2O + HO2 reaction
   - Added capability to write species metadata to YAML file
   - Added satellite diagnostic (SatDiagn) collection, to archive several fields within a user-defined local-time interval. CAVEAT: For now, only one local-time interval is permitted.
@@ -26,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added upwards mass flux diagnostic to GCHP History collection LevelEdgeDiags
   - Added timestep menu to GCHP `geoschem_config.yml` template files
   - Added HTAPv3 inventory as a global emissions option (off by default)
+  - Added carbon simulation and KPP mechanism for CO-CO2-CH4-OCS
+  - Added GCHP run script and environment file for UCI Australia cluster Gadi
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
