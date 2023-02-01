@@ -3,4 +3,4 @@
 ## Contents
 
 `integration`
-- Contains scripts for running integration tests for GEOS-Chem Classic.
+- Contains scripts for running integration tests for GCHP.
