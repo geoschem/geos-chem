@@ -1,10 +1,10 @@
 # Changelog
 
-This file documents all notable changes to the GEOS-Chem repository since version 13.4.1, including all GEOS-Chem Classic and GCHP run directory updates.
+This file documents all notable changes to the GEOS-Chem repository starting in version 14.0.0, including all GEOS-Chem Classic and GCHP run directory updates.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.1.0]
+## [14.1.0] - 2023-02-01
 ### Added
   - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
   - Added MO2 + NO3 = NO2 + CH2O + HO2 reaction
