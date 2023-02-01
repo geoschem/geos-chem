@@ -5,15 +5,15 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestCreate.sh
+# !MODULE: integrationTestCreate.sh
 #
 # !DESCRIPTION: Creates GCHP integration test run directories in a
 #  user-specified root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestCreate.sh /path/to/int/test/root /path/to/env-file           or
-#  ./intTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
 #
 # !REVISION HISTORY:
 #  09 Oct 2020 - R. Yantosca - Initial version
@@ -56,7 +56,7 @@ thisDir=$(pwd -P)
 cd ${thisDir}
 
 # GCClassic superproject directory
-cd ../../../../../..
+cd ../../../../../../
 superProjectDir=$(pwd -P)
 cd "${superProjectDir}"
 
@@ -111,11 +111,12 @@ fi
 # Copying the run scripts to the root test folder
 printf "\nCopying run scripts to: ${itRoot}\n"
 cp -f ${envFile}                            ${itRoot}/gchp.env
-cp -f ${thisDir}/intTest*.sh                ${itRoot}
+cp -f ${thisDir}/integrationTest*.sh                ${itRoot}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}
 
 # Create a symbolic link to the code from the Integration Test root folder
-ln -s "${superProjectDir}" "${itRoot}/CodeDir"
+[[ -L ${itRoot}/CodeDir ]] && unlink ${itRoot}/CodeDir
+ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
 # Create log directory
 if [[ !(-d "${itRoot}/logs") ]]; then

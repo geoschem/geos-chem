@@ -18,16 +18,16 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestExecute.sh
+# !MODULE: integrationTestExecute.sh
 #
 # !DESCRIPTION: Runs execution tests on various GEOS-Chem Classic
 #  run directories (interactively or using a scheduler)
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestExecute.sh        # Interactive command-line execution
-#  bsub intTestExecute.sh     # Execution via LSF
-#  sbatch intTestExecute.sh   # Execution via SLURM
+#  ./integrationTestExecute.sh        # Interactive command-line execution
+#  bsub integrationTestExecute.sh     # Execution via LSF
+#  sbatch integrationTestExecute.sh   # Execution via SLURM
 #EOP
 #------------------------------------------------------------------------------
 #BOC

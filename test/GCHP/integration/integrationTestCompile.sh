@@ -18,16 +18,16 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestCompile.sh
+# !MODULE: integrationTestCompile.sh
 #
 # !DESCRIPTION: Runs compilation tests on various GCHP
 #  run directories (using the SLURM scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestCompile.sh        # Interactive command-line execution
-#  bsub intTestCompile.sh     # Execution via LSF
-#  sbatch intTestCompile.sh   # Execution via SLURM
+#  ./integrationTestCompile.sh        # Interactive command-line execution
+#  bsub integrationTestCompile.sh     # Execution via LSF
+#  sbatch integrationTestCompile.sh   # Execution via SLURM
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -209,7 +209,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     if [[ "x${scheduler}" == "xnone" ]]; then
         echo ""
         echo "Execution tests are running..."
-        ./intTestExecute.sh &
+        ./integrationTestExecute.sh &
     fi
 
 else
