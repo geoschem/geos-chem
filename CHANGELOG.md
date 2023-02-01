@@ -4,6 +4,24 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
+- New parallelization test functions in `test/GCClassic/parallel`
+- Added `README.md` files for integration and parallelization tests in the `test` folder structure
+- Added GCHP integration test for the tagO3 simulation
+- Added GCHP and GCClassic integration tests for the carbon simulation
+
+### Changed
+- GCClassic integration tests now use a single set of scripts
+- GCHP integration tests now use a single set of scripts
+- Integration test run directories are created with the default names assigned by `createRunDir.sh`
+- Several bash functions in `test/shared/commonFunctionsForTests.sh` have been combined so that they will work for both GCClassic and GCHP integration tests
+- `./cleanRunDir.sh` functions now take an argument for non-interactive execution (facilitates integration & parallelization tests)
+
+### Removed
+- Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
+
 ## [14.1.0] - 2023-02-01
 ### Added
   - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
