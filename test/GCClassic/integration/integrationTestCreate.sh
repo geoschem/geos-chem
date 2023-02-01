@@ -89,7 +89,7 @@ cp -f ${thisDir}/integrationTest*.sh        ${itRoot}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}
 
 # Create a symbolic link to the code from the Integration Test itRoot folder
-[[ -L ${itRoot}/CodeDir ]] && ${itRoot}/CodeDir
+[[ -L ${itRoot}/CodeDir ]] && unlink ${itRoot}/CodeDir
 ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
 # Create log directory

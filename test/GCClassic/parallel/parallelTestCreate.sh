@@ -113,7 +113,7 @@ cp -f ${thisDir}/parallelTest*.sh           ${ptRoot}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${ptRoot}
 
 # Create a symbolic link to the code from the Parallelization Test ptRoot folder
-[[ -L ${itRoot}/CodeDir ]] && ${itRoot}/CodeDir
+[[ -L ${ptRoot}/CodeDir ]] && unlink ${ptRoot}/CodeDir
 ln -s "${superProjectDir}" ${ptRoot}/CodeDir
 
 # Create log directory
