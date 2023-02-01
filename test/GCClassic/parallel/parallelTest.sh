@@ -5,31 +5,32 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: paralleltest.sh
+# !MODULE: parallelTest.sh
 #
 # !DESCRIPTION: Runs parallelization tests on the various GEOS-Chem Classic
 #  run directories (interactively, or with a scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./parallelTest.sh -d root-directory -e env-file [-l] [-p partition] [-q] [-s]
+#  ./parallelTest.sh -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]
 #
 #  Where the command-line arguments are as follows:
 #
-#    -d root-directory : Specify the root folder for parallelization tests
-#    -e env-file       : Specitify the environment file (w/ module loads)
-#    -p partition      : Select partition for SLURM or LSF schedulers
-#    -q                : Run a quick set of parallelization tests (for testing)
-#    -s scheduler      : Specify the scheduler (SLURM or LSF)
+#    -d root-dir  : Specify the root folder for parallelization tests
+#    -e env-file  : Specitify the environment file (w/ module loads)
+#    -h           : Display a help message
+#    -p partition : Select partition for SLURM or LSF schedulers
+#    -q           : Run a quick set of parallelization tests (for testing)
+#    -s scheduler : Specify the scheduler (SLURM or LSF)
 #
 #  NOTE: you can also use the following long name options:
 #
-#    --directory root-directory (instead of -d root-directory)
-#    --env-file  env-file       (instead of -e env-file      )
-#    --lsf                      (instead of -l               )
-#    --partition partition      (instead of -p partition     )
-#    --quick                    (instead of -q               )
-#    --slurm                    (instead of -s scheduler     )
+#    --directory root-dir  (instead of -d root-dir )
+#    --env-file  env-file  (instead of -e env-file )
+#    --help                (instead of -h          )
+#    --partition partition (instead of -p partition)
+#    --quick               (instead of -q          )
+#    --scheduler scheduler (instead of -s scheduler)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -38,7 +39,7 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-directory -e env-file [-l] [-p partition] [-s] [-q]"
+usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]"
 ptRoot="none"
 envFile="none"
 scheduler="none"
