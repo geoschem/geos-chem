@@ -18,10 +18,9 @@
 #
 #    -d root-directory : Specify the root folder for integration tests
 #    -e env-file       : Specitify the environment file (w/ module loads)
-#    -l                : Select the LSF scheduler
 #    -p partition      : Select partition for SLURM or LSF schedulers
 #    -q                : Run a quick set of integration tests (for testing)
-#    -s scheduler      : Specify the scheduler to use (SLURM or LSF)
+#    -s scheduler      : Specify the scheduler (SLURM or LSF)
 #
 #  NOTE: you can also use the following long name options:
 #
@@ -30,7 +29,7 @@
 #    --lsf                      (instead of -l               )
 #    --partition partition      (instead of -p partition     )
 #    --quick                    (instead of -q               )
-#    --scheduler scheduler      (instead of -s               )
+#    --scheduler scheduler      (instead of -s scheduler     )
 #EOP
 #------------------------------------------------------------------------------
 #BOC
