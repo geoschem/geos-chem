@@ -97,7 +97,7 @@ while [ : ]; do
 	# -s or --scheduler selects the scheduler
 	-s | --slurm)
 	    scheduler="${2^^}"
-            shift
+            shift 2
             ;;
 
 	--) shift;

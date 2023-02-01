@@ -56,7 +56,7 @@ thisDir=$(pwd -P)
 cd ${thisDir}
 
 # GCClassic superproject directory
-cd ../../../../../../
+cd ../../../../../../../
 superProjectDir=$(pwd -P)
 cd "${superProjectDir}"
 

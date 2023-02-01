@@ -82,18 +82,18 @@ while [ : ]; do
             exit 1
             ;;
 
-	# -q or --quick runs a quick set of parallelization tests (for testing)
-	-q | --quick)
-	    quick="yes"
-            shift
-	    ;;
-
 	# -p or --partition replaces REQUESTED_PARTITON w/ the user's choice
 	-p | --partition)
 	    sedCmd="s/REQUESTED_PARTITION/${2}/"
 	    shift 2
 	    ;;
 
+	# -q or --quick runs a quick set of parallelization tests (for testing)
+	-q | --quick)
+	    quick="yes"
+            shift
+	    ;;
+	
 	# -s or --scheduler selects the scheduler to use
 	-s | --scheduler)
 	    scheduler="${2^^}"
