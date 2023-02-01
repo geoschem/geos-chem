@@ -18,16 +18,16 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: parTestCompile.sh
+# !MODULE: integrationTestCompile.sh
 #
 # !DESCRIPTION: Runs compilation tests on various GEOS-Chem Classic
 #  run directories (interactively or using a scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./parTestCompile.sh        # Interactive command-line execution
-#  bsub parTestCompile.sh     # Execution via LSF
-#  sbatch parTestCompile.sh   # Execution via SLURM
+#  ./integrationTestCompile.sh        # Interactive command-line execution
+#  bsub integrationTestCompile.sh     # Execution via LSF
+#  sbatch integrationTestCompile.sh   # Execution via SLURM
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -36,15 +36,15 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the parallelization test folder
-ptRoot=$(pwd -P)
+# Get the long path of the integration test folder
+itRoot=$(pwd -P)
 
 # Load the user-environment and the software environment
 . ~/.bashrc               > /dev/null 2>&1
-. ${ptRoot}/gcclassic.env > /dev/null 2>&1
+. ${itRoot}/gcclassic.env > /dev/null 2>&1
 
-# All parallelization tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${ptRoot}/exe_files"
+# All integration tests will use debugging features
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${itRoot}/exe_files"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -101,19 +101,17 @@ fi
 #============================================================================
 
 # Include global variables & functions
-. "${ptRoot}/commonFunctionsForTests.sh"
+. "${itRoot}/commonFunctionsForTests.sh"
 
-# Count the number of tests to be done (exclude TOMAS40)
-parTests=("${EXE_GCC_BUILD_LIST[@]}")
-unset parTests[6]
-numTests=${#parTests[@]}
+# Count the number of tests to be done
+numTests=${#EXE_GCC_BUILD_LIST[@]}
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-results="${ptRoot}/logs/results.compile.log"
+results="${itRoot}/logs/results.compile.log"
 rm -f ${results}
 
 # Print header to results log file
@@ -144,7 +142,7 @@ print_to_log "Compiliation tests:" "${results}"
 print_to_log "${SEP_MINOR}"        "${results}"
 
 # Change to the top-level build directory
-cd "${ptRoot}"
+cd "${itRoot}"
 
 # Keep track of the number of tests that passed & failed
 let passed=0
@@ -152,18 +150,18 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in ${parTests[@]}; do
+for dir in ${EXE_GCC_BUILD_LIST[@]}; do
 
     # Define build directory
-    buildDir="${ptRoot}/build/${dir}"
+    buildDir="${itRoot}/build/${dir}"
 
     # Define log file
-    log="${ptRoot}/logs/compile.${dir}.log"
+    log="${itRoot}/logs/compile.${dir}.log"
     rm -f "${log}"
 
     # Configure and build GEOS-Chem Classic source code
     # and increment pass/fail/remain counters
-    build_model "gcclassic"      "${ptRoot}" "${buildDir}" \
+    build_model "gcclassic"      "${itRoot}" "${buildDir}" \
                 "${baseOptions}" "${log}"    "${results}"
     if [[ $? -eq 0 ]]; then
         let passed++
@@ -200,7 +198,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     if [[ "x${scheduler}" == "xnone" ]]; then
         echo ""
         echo "Compilation tests finished!"
-        ./parTestExecute.sh &
+        ./integrationTestExecute.sh &
     fi
 
 else
@@ -225,11 +223,11 @@ unset dir
 unset head_gcc
 unset head_gc
 unset head_hco
+unset itRoot
 unset kernel
 unset log
 unset numTests
 unset passed
-unset ptRoot
 unset remain
 unset results
 unset scheduler

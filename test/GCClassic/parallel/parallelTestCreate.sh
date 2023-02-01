@@ -5,18 +5,17 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: parTestCreate.sh
+# !MODULE: paralleltestCreate.sh
 #
 # !DESCRIPTION: Creates parallelization test run directories in a user-specified
 #  root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./parTestCreate.sh /path/to/int/test/root /path/to/env-file           or
-#  ./parTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./paralleltestCreate.sh /path/to/int/test/root /path/to/env-file
+#  ./paralleltestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
 #
 # !REVISION HISTORY:
-#  09 Oct 2020 - R. Yantosca - Initial version
 #  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
@@ -56,7 +55,7 @@ thisDir=$(pwd -P)
 cd "${thisDir}"
 
 # GCClassic superproject directory
-cd ../../../..
+cd ../../../../../
 superProjectDir=$(pwd -P)
 cd ${superProjectDir}
 
@@ -110,10 +109,11 @@ fi
 # Copying the run scripts to the parallelization test root folder
 printf "\nCopying run scripts to: ${ptRoot}\n"
 cp -f ${envFile}                            ${ptRoot}/gcclassic.env
-cp -f ${thisDir}/parTest*.sh                ${ptRoot}
+cp -f ${thisDir}/parallelTest*.sh           ${ptRoot}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${ptRoot}
 
 # Create a symbolic link to the code from the Parallelization Test ptRoot folder
+[[ -L ${itRoot}/CodeDir ]] && ${itRoot}/CodeDir
 ln -s "${superProjectDir}" ${ptRoot}/CodeDir
 
 # Create log directory
@@ -123,7 +123,7 @@ if [[ !(-d "${ptRoot}/logs") ]]; then
 fi
 
 # Log file with echoback from rundir creation
-log="${ptRoot}/logs/createParTests.log"
+log="${ptRoot}/logs/createParallelTests.log"
 
 # Switch to folder where rundir creation scripts live
 cd "${geosChemDir}/run/GCClassic"

@@ -2,13 +2,13 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-2:00
+#SBATCH -t 0-03:30
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=90000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 24
-#BSUB -W 2:00
+#BSUB -W 3:30
 #BSUB -R "rusage[mem=90GB] span[ptile=1] select[mem < 2TB]"
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt
@@ -18,16 +18,16 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestExecute_slurm.sh
+# !MODULE: parallelTestExecute.sh
 #
 # !DESCRIPTION: Runs execution tests on various GEOS-Chem Classic
 #  run directories (using the SLURM scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestExecute.sh        # Interactive command-line execution
-#  bsub intTestExecute.sh     # Execution via LSF
-#  sbatch intTestExecute.sh   # Execution via SLURM
+#  ./parallelTestExecute.sh        # Interactive command-line execution
+#  bsub parallelTestExecute.sh     # Execution via LSF
+#  sbatch parallelTestExecute.sh   # Execution via SLURM
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -36,12 +36,12 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the integration test root folder
-itRoot=$(pwd -P)
+# Get the long path of the parallelization test root folder
+ptRoot=$(pwd -P)
 
 # Load the environment and the software environment
 . ~/.bashrc               > /dev/null 2>&1
-. ${itRoot}/gcclassic.env > /dev/null 2>&1
+. ${ptRoot}/gcclassic.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -56,41 +56,32 @@ scheduler="none"
 [[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
 [[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
 
+# Define the full number of cores to use for the parallelization tests
 if [[ "x${scheduler}" == "xSLURM" ]]; then
 
-    #-----------------------
-    # SLURM settings
-    #-----------------------
-
-    # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
-    export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+    # SLURM
+    export allThreads=${SLURM_CPUS_PER_TASK}
 
 elif [[ "x${scheduler}" == "xLSF" ]]; then
 
-    #-----------------------
-    # LSF settings
-    #-----------------------
-
-    # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
-    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
+    # LSF
+    export allThreads=${$LSB_DJOB_NUMPROC}
 
 else
 
-    #-----------------------
-    # Interactive settings
-    #-----------------------
+    # Interactive
     echo ""
-    echo "Execution tests running..."
+    echo "Parallelization tests running..."
+    allThreads=8
 
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
-    [[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
-
+    [[ "x${kernel}" == "xaws" ]] && export allThreads=$(nproc)
 fi
 
-# Sanity check: Set OMP_NUM_THREADS to 8 if it is not set
-# (this may happen when running interactively)
-[[ "x${OMP_NUM_THREADS}" == "x" ]] && export OMP_NUM_THREADS=8
+# Number of cores fore the 2nd run (cannot be a divisor of ALL_CORES)
+fewerThreads=$(( ${allThreads} / 2 ))
+[[ $(( ${fewerThreads} % 2 )) -eq 0 ]] && let fewerThreads+=1
 
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
@@ -100,45 +91,46 @@ fi
 #============================================================================
 
 # Include global variables & functions
-. "${itRoot}/commonFunctionsForTests.sh"
+. "${ptRoot}/commonFunctionsForTests.sh"
 
 # Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${itRoot}")
+numTests=$(count_rundirs "${ptRoot}")
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-results="${itRoot}/logs/results.execute.log"
+results="${ptRoot}/logs/results.parallel.log"
 rm -f "${results}"
 
 # Print header to results log file
-print_to_log "${SEP_MAJOR}"                                "${results}"
-print_to_log "GEOS-Chem Classic: Execution Test Results"   "${results}"
-print_to_log ""                                            "${results}"
-print_to_log "GCClassic #${head_gcc}"                      "${results}"
-print_to_log "GEOS-Chem #${head_gc}"                       "${results}"
-print_to_log "HEMCO     #${head_hco}"                      "${results}"
-print_to_log ""                                            "${results}"
-print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     "${results}"
-print_to_log "Number of execution tests: ${numTests}"      "${results}"
-print_to_log ""                                            "${results}"
+print_to_log "${SEP_MAJOR}"                                     "${results}"
+print_to_log "GEOS-Chem Classic: Parallelization Test Results"  "${results}"
+print_to_log ""                                                 "${results}"
+print_to_log "GCClassic #${head_gcc}"                           "${results}"
+print_to_log "GEOS-Chem #${head_gc}"                            "${results}"
+print_to_log "HEMCO     #${head_hco}"                           "${results}"
+print_to_log ""                                                 "${results}"
+print_to_log "1st run uses ${allThreads} OpenMP threads"        "${results}"
+print_to_log "2nd run uses ${fewerThreads} OpenMP threads"      "${results}"
+print_to_log "Number of parallelization tests: ${numTests}"     "${results}"
+print_to_log ""                                                 "${results}"
 if [[ "x${scheduler}" == "xSLURM" ]]; then
-    print_to_log "Submitted as SLURM job: ${SLURM_JOBID}"  "${results}"
+    print_to_log "Submitted as SLURM job: ${SLURM_JOBID}"       "${results}"
 elif  [[ "x${scheduler}" == "xLSF" ]]; then
-    print_to_log "Submitted as LSF job: ${LSB_JOBID}"      "${results}"
+    print_to_log "Submitted as LSF job: ${LSB_JOBID}"           "${results}"
 else
-    print_to_log "Submitted as interactive job"            "${results}"
+    print_to_log "Submitted as interactive job"                 "${results}"
 fi
-print_to_log "${SEP_MAJOR}"                                "${results}"
+print_to_log "${SEP_MAJOR}"                                     "${results}"
 
 #============================================================================
 # Run the GEOS-Chem executable in each GEOS-Chem run directory
 #============================================================================
-print_to_log " "                 "${results}"
-print_to_log "Execution tests:"  "${results}"
-print_to_log "${SEP_MINOR}"      "${results}"
+print_to_log " "                       "${results}"
+print_to_log "Parallelization tests:"  "${results}"
+print_to_log "${SEP_MINOR}"            "${results}"
 
 # Keep track of the number of tests that passed & failed
 let passed=0
@@ -149,11 +141,11 @@ let remain=${numTests}
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${itRoot}/${runDir}")
+    expr=$(is_valid_rundir "${ptRoot}/${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
-        log="${itRoot}/logs/execute.${runDir}.log"
+        log="${ptRoot}/logs/parallel.${runDir}.log"
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -164,34 +156,64 @@ for runDir in *; do
         exeFile=$(exe_name "gcclassic" "${runDir}")
 
         # Test if the executable exists
-        if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
+        if [[ -f "${ptRoot}/exe_files/${exeFile}" ]]; then
 
             #----------------------------------------------------------------
-            # If the executable file exists, we can do the test
+            # If the executable file exists, we can do the tests
             #----------------------------------------------------------------
 
 	    # Change to this run directory
-	    cd "${itRoot}/${runDir}"
+	    cd "${ptRoot}/${runDir}"
 
 	    # Copy the executable file here
-	    cp -f "${itRoot}/exe_files/${exeFile}" .
+	    cp -f "${ptRoot}/exe_files/${exeFile}" .
 
 	    # Remove any leftover files in the run dir
 	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
 	    # Redirect the log file
-	    log="${itRoot}/logs/execute.${runDir}.log"
+	    log="${ptRoot}/logs/execute.${runDir}.log"
 	    rm -f "${log}"
 
-            # Run the code if the executable is present.  Then update the
-            # pass/fail counters and write a message to the results log file.
+            #----------------------------------------------------------------
+            # First test: Use all available threads
+            #----------------------------------------------------------------
+
+	    # Run GEOS-Chem Classic
+	    export OMP_NUM_THREADS=${allThreads}
+	    echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
 	    if [[ "x{$scheduler}" == "xSLURM" ]]; then
-		srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
+		srun -c ${allThreads} ./${exeFile} >> "${log}" 2>&1
 	    else
 		./${exeFile} >> "${log}" 2>&1
 	    fi
 
-	    # Determine if the job succeeded or failed
+	    # Rename the end-of-run restart file
+	    rename_end_restart_file "${allThreads}"
+
+	    # Clean the run directory
+	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+	    
+            #----------------------------------------------------------------
+            # Second test: Use fewer cores
+            #----------------------------------------------------------------
+
+	    # Run GEOS-Chem Classic
+	    export OMP_NUM_THREADS=${fewerThreads}
+	    echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
+	    if [[ "x{$scheduler}" == "xSLURM" ]]; then
+		srun -c ${fewerThreads} ./${exeFile} >> "${log}" 2>&1
+	    else
+		./${exeFile} >> "${log}" 2>&1
+	    fi
+
+	    # Rename the end-of-run restart file
+	    rename_end_restart_file "${fewerThreads}"
+
+            #----------------------------------------------------------------
+            # Score the test
+            #----------------------------------------------------------------
+	    score_parallelization_test "${allThreads}" "${fewerThreads}"
 	    if [[ $? -eq 0 ]]; then
                 let passed++
                 print_to_log "${passMsg}" "${results}"
@@ -200,8 +222,8 @@ for runDir in *; do
                 print_to_log "${failMsg}" "${results}"
             fi
 
-            # Change to itRoot directory for next iteration
-            cd "${itRoot}"
+            # Change to ptRoot directory for next iteration
+            cd "${ptRoot}"
 
         else
 
@@ -225,12 +247,12 @@ done
 #============================================================================
 
 # Print summary to log
-print_to_log " "                                            "${results}"
-print_to_log "Summary of test results:"                     "${results}"
-print_to_log "${SEP_MINOR}"                                 "${results}"
-print_to_log "Execution tests passed: ${passed}"            "${results}"
-print_to_log "Execution tests failed: ${failed}"            "${results}"
-print_to_log "Execution tests not yet completed: ${remain}" "${results}"
+print_to_log " "                                                  "${results}"
+print_to_log "Summary of test results:"                           "${results}"
+print_to_log "${SEP_MINOR}"                                       "${results}"
+print_to_log "Parallelization tests passed: ${passed}"            "${results}"
+print_to_log "Parallelization tests failed: ${failed}"            "${results}"
+print_to_log "Parallelization tests not yet completed: ${remain}" "${results}"
 
 # Check for success
 if [[ "x${passed}" == "x${numTests}" ]]; then
@@ -238,15 +260,15 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     #--------------------------
     # Successful execution
     #--------------------------
-    print_to_log ""                                         "${results}"
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
-    print_to_log "%%%  All execution tests passed!  %%%"    "${results}"
-    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
+    print_to_log ""                                               "${results}"
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
+    print_to_log "%%%  All parallelization tests passed!  %%%"    "${results}"
+    print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
 
     # Print success (if interactive)
     if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
         echo ""
-        echo "Execution tests finished!"
+        echo "Parallelization tests finished!"
     fi
 
 else
@@ -256,7 +278,7 @@ else
     #--------------------------
     if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
         echo ""
-        echo "Execution tests failed!  Exiting ..."
+        echo "Parallelization tests failed!  Exiting ..."
     fi
 fi
 
@@ -271,11 +293,11 @@ unset failmsg
 unset head_gcc
 unset head_gc
 unset head_hco
-unset itRoot
 unset log
 unset numTests
 unset passed
 unset passMsg
+unset ptRoot
 unset remain
 unset results
 unset scheduler

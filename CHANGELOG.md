@@ -6,10 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.1.1]
 ### Added
-- New integration test functions `run_gcclassic_job` and `run_gchp_job` in `test/shared/commonFunctionsForTests.sh`
+- New integration test functions in `test/GCClassic/integration`
+- New parallelization test functions in `test/GCClassic/parallel`
+- Added `README.md` files for GCClassic integration and parallelization tests
 - Added GCHP integration test for the tagO3 simulation
 - Added GCHP and GCClassic integration tests for the carbon simulation
-- New parallelization test functions in `test/GCClassic`
 
 ### Changed
 - GCClassic integration tests now use a single set of scripts

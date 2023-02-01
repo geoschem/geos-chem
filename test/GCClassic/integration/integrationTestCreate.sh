@@ -5,19 +5,15 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTestCreate.sh
+# !MODULE: integrationTestCreate.sh
 #
 # !DESCRIPTION: Creates integration test run directories in a user-specified
 #  root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTestCreate.sh /path/to/int/test/root /path/to/env-file           or
-#  ./intTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
-#
-# !REVISION HISTORY:
-#  09 Oct 2020 - R. Yantosca - Initial version
-#  See the subsequent Git history with the gitk browser!
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -56,7 +52,7 @@ thisDir=$(pwd -P)
 cd "${thisDir}"
 
 # GCClassic superproject directory
-cd ../../../..
+cd ../../../../../
 superProjectDir=$(pwd -P)
 cd ${superProjectDir}
 
@@ -79,27 +75,6 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 printf "${SEP_MAJOR}\n"
 printf "Creating GEOS-Chem Classic Integration Tests\n\n"
 printf "GCClassic #${head_gcc}\n"
-printf "GEOS_Chem #${head_gc}\n"
-printf "HEMCO     #${head_hco}\n"
-printf "${SEP_MAJOR}\n"
-
-#=============================================================================
-# Initial setup of integration test directory
-#=============================================================================
-
-# Create integration test root folder if it doesn't exist
-itRoot=$(absolute_path "${itRoot}")
-[[ ! -d "${itRoot}" ]] && mkdir -p "${itRoot}"
-
-# Remove everything in the integration test root folder
-cleanup_files "${itRoot}"
-
-# Make the directory for the executables
-printf "\nCreating new build and executable directories:\n"
-echo " ... ${itRoot}/exe_files"
-mkdir -p "${itRoot}/exe_files"
-
-# Make the build directories
 if [[ ! -d "${itRoot}/build" ]]; then
     for dir in ${EXE_GCC_BUILD_LIST[@]}; do
 	echo " ... ${itRoot}/build/${dir}"
@@ -110,10 +85,11 @@ fi
 # Copying the run scripts to the integration test root folder
 printf "\nCopying run scripts to: ${itRoot}\n"
 cp -f ${envFile}                            ${itRoot}/gcclassic.env
-cp -f ${thisDir}/intTest*.sh                ${itRoot}
+cp -f ${thisDir}/integrationTest*.sh        ${itRoot}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}
 
 # Create a symbolic link to the code from the Integration Test itRoot folder
+[[ -L ${itRoot}/CodeDir ]] && ${itRoot}/CodeDir
 ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
 # Create log directory
@@ -123,7 +99,7 @@ if [[ !(-d "${itRoot}/logs") ]]; then
 fi
 
 # Log file with echoback from rundir creation
-log="${itRoot}/logs/createIntTests.log"
+log="${itRoot}/logs/createIntegrationTests.log"
 
 # Switch to folder where rundir creation scripts live
 cd "${geosChemDir}/run/GCClassic"
@@ -155,7 +131,6 @@ if [[ "x${quick}" == "xyes" ]]; then
     cd ${thisDir}
     exit 0
 fi
-
 
 # 4x5 merra2 fullchem_LuoWd
 dir="gc_4x5_merra2_fullchem_LuoWd"

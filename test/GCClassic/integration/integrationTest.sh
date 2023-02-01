@@ -5,14 +5,14 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intTest.sh
+# !MODULE: integrationTest.sh
 #
 # !DESCRIPTION: Runs integration tests on the various GEOS-Chem Classic
 #  run directories (interactively, or with a scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./intTest.sh -d root-directory -e env-file [-l] [-p partition] [-q] [-s]
+#  ./integrationTest.sh -d root-directory -e env-file [-l] [-p partition] [-q] [-s]
 #
 #  Where the command-line arguments are as follows:
 #
@@ -21,7 +21,7 @@
 #    -l                : Select the LSF scheduler
 #    -p partition      : Select partition for SLURM or LSF schedulers
 #    -q                : Run a quick set of integration tests (for testing)
-#    -s                : Use the SLURM scheduler
+#    -s scheduler      : Specify the scheduler to use (SLURM or LSF)
 #
 #  NOTE: you can also use the following long name options:
 #
@@ -30,7 +30,7 @@
 #    --lsf                      (instead of -l               )
 #    --partition partition      (instead of -p partition     )
 #    --quick                    (instead of -q               )
-#    --slurm                    (instead of -s               )
+#    --scheduler scheduler      (instead of -s               )
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -39,7 +39,7 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-directory -e env-file [-l] [-p partition] [-s] [-q]"
+usage="Usage: ${this} -d root-directory -e env-file [-p partition] [-s scheduler] [-q]"
 itRoot="none"
 envFile="none"
 scheduler="none"
@@ -53,8 +53,8 @@ quick="no"
 
 # Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
-validArgs=$(getopt --options d:e:hlp:qs \
-  --long directory:,env-file:,help,lsf,partition:,quick,slurm -- "$@")
+validArgs=$(getopt --options d:e:hp:qs: \
+  --long directory:,env-file:,help,partition:,quick,scheduler: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
@@ -82,28 +82,22 @@ while [ : ]; do
             exit 1
             ;;
 
-	# -l or --lsf selects the LSF scheduler
-	-l | --lsf)
-	    scheduler="LSF"
-            shift
-            ;;
-
 	# -q or --quick runs a quick set of integration tests (for testing)
 	-q | --quick)
 	    quick="yes"
             shift
 	    ;;
 
-	# -p or --partition edits the SLURM and LSF tags
+	# -p or --partition replaces REQUESTED_PARTITION with the user's choice
 	-p | --partition)
 	    sedCmd="s/REQUESTED_PARTITION/${2}/"
 	    shift 2
 	    ;;
 
-	# -s or --slurm selects the SLURM scheduler
-	-s | --slurm)
-	    scheduler="SLURM"
-            shift
+	# -s or --scheduler selects the scheduler
+	-s | --scheduler)
+	    scheduler="${2^^}"
+            shift 2
             ;;
 
 	--) shift;
@@ -158,7 +152,7 @@ thisDir=$(pwd -P)
 itRoot=$(absolute_path "${itRoot}")
 
 # Create GEOS-Chem run directories in the integration test root folder
-./intTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
+./integrationTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
 if [[ $? -ne 0 ]]; then
    echo "ERROR: Could not create integration test run directories!"
    exit 1
@@ -182,38 +176,38 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${itRoot}/intTestCompile.sh"
-    sed_ie '/#BSUB -n 8/d'                   "${itRoot}/intTestCompile.sh"
-    sed_ie '/#BSUB -W 00:30/d'               "${itRoot}/intTestCompile.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${itRoot}/intTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -n 8/d'                   "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -W 00:30/d'               "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${itRoot}/integrationTestCompile.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
-	"${itRoot}/intTestCompile.sh"
+	"${itRoot}/integrationTestCompile.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${itRoot}/intTestCompile.sh"
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${itRoot}/intTestExecute.sh"
-    sed_ie '/#BSUB -n 24/d'                  "${itRoot}/intTestExecute.sh"
-    sed_ie '/#BSUB -W 2:00/d'                "${itRoot}/intTestExecute.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${itRoot}/intTestExecute.sh"
+	"${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -n 24/d'                  "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -W 2:00/d'                "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${itRoot}/integrationTestExecute.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
-	"${itRoot}/intTestExecute.sh"
+	"${itRoot}/integrationTestExecute.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${itRoot}/intTestExecute.sh"
+	"${itRoot}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${itRoot}/intTestCompile.sh"
-    sed_ie "${sedCmd}" "${itRoot}/intTestExecute.sh"
+    sed_ie "${sedCmd}" "${itRoot}/integrationTestCompile.sh"
+    sed_ie "${sedCmd}" "${itRoot}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch intTestCompile.sh)
+    output=$(sbatch integrationTestCompile.sh)
     output=($output)
     cmpId=${output[3]}
 
     # Submit execution tests script as a job dependency
-    output=$(sbatch --dependency=afterok:${cmpId} intTestExecute.sh)
+    output=$(sbatch --dependency=afterok:${cmpId} integrationTestExecute.sh)
     output=($output)
     exeId=${output[3]}
 
@@ -228,33 +222,33 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-------------------------------------------------------------------------
 
     # Remove SLURM #SBATCH tags
-    sed_ie '/#SBATCH -c 8/d'                   "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH -t 0-00:30/d'             "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH --mem=8000/d'             "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${itRoot}/intTestCompile.sh"
-    sed_ie '/#SBATCH -c 24/d'                  "${itRoot}/intTestExecute.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${itRoot}/intTestExecute.sh"
-    sed_ie '/#SBATCH -t 0-2:00/d'              "${itRoot}/intTestExecute.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/intTestExecute.sh"
-    sed_ie '/#SBATCH --mem=90000/d'            "${itRoot}/intTestExecute.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${itRoot}/intTestExecute.sh"
+    sed_ie '/#SBATCH -c 8/d'                   "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-00:30/d'             "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH --mem=8000/d'             "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -c 24/d'                  "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-2:00/d'              "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH --mem=90000/d'            "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${itRoot}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${itRoot}/intTestCompile.sh"
-    sed_ie "${sedCmd}" "${itRoot}/intTestExecute.sh"
+    sed_ie "${sedCmd}" "${itRoot}/integrationTestCompile.sh"
+    sed_ie "${sedCmd}" "${itRoot}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(bsub intTestCompile.sh)
+    output=$(bsub integrationTestCompile.sh)
     output=($output)
     cmpId=${output[1]}
     cmpId=${cmpId/<}
     cmpId=${cmpId/>}
 
     # Submit execution tests script as a job dependency
-    output=$(bsub -w "exit(${cmpId},0)" intTestExecute.sh)
+    output=$(bsub -w "exit(${cmpId},0)" integrationTestExecute.sh)
     output=($output)
     exeId=${output[1]}
     exeId=${exeId/<}
@@ -269,7 +263,7 @@ else
     # Run compilation tests
     echo ""
     echo "Compiliation tests are running..."
-    ./intTestCompile.sh &
+    ./integrationTestCompile.sh &
 
     # Change back to this directory
     cd "${thisDir}"
