@@ -174,7 +174,7 @@ for dir in ${EXE_GCC_BUILD_LIST[@]}; do
     if [[ $? -eq 0 ]]; then
         let passed++
     else
-        let failed<++
+        let failed++
     fi
     let remain--
 done
@@ -206,7 +206,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     if [[ "x${scheduler}" == "xnone" ]]; then
         echo ""
         echo "Compilation tests finished!"
-#        ${scriptsDir}/integrationTestExecute.sh &
+        ${scriptsDir}/integrationTestExecute.sh &
     fi
 
 else

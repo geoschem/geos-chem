@@ -2,25 +2,23 @@
 
 ## Directories
 
-In order to minimize clutter, the various components of GEOS-Chem
-Classic integration tests have been separated into these directories.
+Components of GEOS-Chem Classic integration tests have been separated into these directories:
 
 `bin`
 
-  - Contains GEOS-Chem Classic executable files
+  - Contains GEOS-Chem Classic executable files.
 
 `build`
 
-  - Directories for building GEOS-Chem Classic executables
+  - Directories for building GEOS-Chem Classic executables.
 
 `CodeDir`
 
-  - Symbolic link to the `GCClassic` superproject directory
+  - Symbolic link to the `GCClassic` superproject directory.
 
 `env`
 
-  - Contains an environment file.  This loads the required libraries
-    for GEOS-Chem Classic into the software environment.
+  - Contains an environment file that loads the software libraries needed to run GEOS-Chem Classic.
 
 `logs`
 

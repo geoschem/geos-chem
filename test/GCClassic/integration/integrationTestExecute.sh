@@ -82,7 +82,7 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-----------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
-    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
+    export OMP_NUM_THREADS=${LSB_DJOB_NUMPROC}
 
 else
 
@@ -298,7 +298,6 @@ unset scheduler
 # Free imported global variables
 unset FILL
 unset LINE
-unset LINELC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

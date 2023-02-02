@@ -288,6 +288,7 @@ unset cmpId
 unset envFile
 unset exeId
 unset itRoot
+unset logsDir
 unset quick
 unset output
 unset scheduler

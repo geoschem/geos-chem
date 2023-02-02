@@ -83,6 +83,10 @@ printf "${SEP_MAJOR}\n"
 # Create integration test folder and subdirectories
 #=============================================================================
 
+# Create integration test root folder if it doesn't exist
+itRoot=$(absolute_path "${itRoot}")
+[[ ! -d "${itRoot}" ]] && mkdir -p "${itRoot}"
+
 # Create local convenience variables
 binDir="${itRoot}/${BIN_DIR}"
 buildDir="${itRoot}/${BUILD_DIR}"
@@ -122,6 +126,10 @@ mkdir -p "${scriptsDir}"
 printf "Creating rundirs directory   ${rundirsDir}\n"
 mkdir -p "${rundirsDir}"
 
+# Create a symbolic link to the code from the Integration Test root folder
+printf "Linking to superproject      ${itRoot}/CodeDir\n"
+ln -s "${superProjectDir}" ${itRoot}/CodeDir
+
 #=============================================================================
 # Copy files to the proper folders
 #=============================================================================
@@ -131,10 +139,6 @@ cp -f ${envFile}                            ${itRoot}/${ENV_DIR}/gcclassic.env
 cp -f ${thisDir}/integrationTest*.sh        ${itRoot}/${SCRIPTS_DIR}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}/${SCRIPTS_DIR}
 cp -f ${thisDir)/README.template.md         ${itRoot}/README.md
-
-# Create a symbolic link to the code from the Integration Test itRoot folder
-[[ -L ${itRoot}/CodeDir ]] && unlink ${itRoot}/CodeDir
-ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
 # Log file with echoback from rundir creation
 log="${itRoot}/logs/createIntegrationTests.log"
@@ -259,8 +263,8 @@ unset geosChemDir
 unset itRoot
 unset log
 unset logsDir
+unset rundirsDir
 unset superProjectDir
-unset rundirsDirsDir
 unset scriptsDir
 unset thisDir
 
