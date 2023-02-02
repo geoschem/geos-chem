@@ -96,6 +96,9 @@ logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
+# Get absolute path of the environment file
+envFile=$(absolute_path "${envFile}")
+
 # Remove run directories in the test folder
 cleanup_files "${itRoot}"
 
