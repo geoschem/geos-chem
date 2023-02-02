@@ -156,13 +156,13 @@ let remain=${numTests}
 cd "${rundirsDir}"
 
 # Loop over rundirs and run GEOS-Chem
-for dir in *; do
+for runDir in *; do
 
-    # Expand to absolute path
-    runDir="${rundirsDir}/${dir}"
+    # Expand rundir to absolute path
+    runAbsPath="${rundirsDir}/${runDir}"
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${runDir}")
+    expr=$(is_valid_rundir "${runAbsPath")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
@@ -174,7 +174,7 @@ for dir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gcclassic" "${runDir}")
+        exeFile=$(exe_name "gcclassic" "${runAbsPath}")
 
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
@@ -184,7 +184,7 @@ for dir in *; do
             #----------------------------------------------------------------
 
             # Change to this run directory
-            cd "${runDir}"
+            cd "${runAbsPath}"
 
             # Copy the executable file here
             cp -f "${binDir}/${exeFile}" .
@@ -199,18 +199,18 @@ for dir in *; do
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
             if [[ "x${scheduler}" == "xSLURM" ]]; then
-		srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
+                srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
             else
 		./${exeFile} >> "${log}" 2>&1
             fi
 
             # Determine if the job succeeded or failed
             if [[ $? -eq 0 ]]; then
-		let passed++
-		print_to_log "${passMsg}" "${results}"
+                let passed++
+	        print_to_log "${passMsg}" "${results}"
             else
-		let failed++
-		print_to_log "${failMsg}" "${results}"
+                let failed++
+                print_to_log "${failMsg}" "${results}"
             fi
 
             # Navigate back to the folder containing run directories
@@ -278,6 +278,7 @@ fi
 #============================================================================
 
 # Free local variables
+unset absRunPath
 unset binDir
 unset codeDir
 unset envDir

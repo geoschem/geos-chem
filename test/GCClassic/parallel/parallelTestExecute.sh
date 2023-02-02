@@ -148,13 +148,13 @@ let remain=${numTests}
 cd "${rundirsDir}"
 
 # Loop over rundirs and run GEOS-Chem
-for dir in *; do
+for runDir in *; do
 
     # Expand to absolute path
-    runDir="${rundirsDir}/${dir}"
+    runAbsPath="${rundirsDir}/${dir}"
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${runDir}")
+    expr=$(is_valid_rundir "${runAbsPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
@@ -166,7 +166,7 @@ for dir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gcclassic" "${runDir}")
+        exeFile=$(exe_name "gcclassic" "${runAbsPath}")
 
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
@@ -176,7 +176,7 @@ for dir in *; do
             #----------------------------------------------------------------
 
             # Change to this run directory
-            cd "${runDir}"
+            cd "${runAbsPath}"
 
             # Copy the executable file here
             cp -f "${binDir}/${exeFile}" .
@@ -196,9 +196,9 @@ for dir in *; do
             export OMP_NUM_THREADS=${allThreads}
             echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
             if [[ "x${scheduler}" == "xSLURM" ]]; then
-		srun -c ${allThreads} ./${exeFile} >> "${log}" 2>&1
+                srun -c ${allThreads} ./${exeFile} >> "${log}" 2>&1
             else
-		./${exeFile} >> "${log}" 2>&1
+                ./${exeFile} >> "${log}" 2>&1
             fi
 
             # Rename the end-of-run restart file
@@ -215,9 +215,9 @@ for dir in *; do
             export OMP_NUM_THREADS=${fewerThreads}
             echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
             if [[ "x${scheduler}" == "xSLURM" ]]; then
-		srun -c ${fewerThreads} ./${exeFile} >> "${log}" 2>&1
+                srun -c ${fewerThreads} ./${exeFile} >> "${log}" 2>&1
             else
-		./${exeFile} >> "${log}" 2>&1
+                ./${exeFile} >> "${log}" 2>&1
             fi
 
             # Rename the end-of-run restart file
