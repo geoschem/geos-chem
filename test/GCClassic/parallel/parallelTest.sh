@@ -167,8 +167,8 @@ else
 fi
 
 # Define local convenience variables
-logsDir="${itRoot}/${LOGS_DIR}"
-scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+logsDir="${ptRoot}/${LOGS_DIR}"
+scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
 
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
