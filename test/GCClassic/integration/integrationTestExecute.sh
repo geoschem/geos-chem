@@ -43,7 +43,7 @@ itRoot=$(cd ..; pwd)
 . "${itRoot}/scripts/commonFunctionsForTests.sh"
 
 # Create local convenience variables
-binDir="${itRoot}/${BUILD_DIR}"
+binDir="${itRoot}/${BIN_DIR}"
 envDir="${itRoot}/${ENV_DIR}"
 codeDir="${itRoot}/CodeDir"
 logsDir="${itRoot}/${LOGS_DIR}"
@@ -156,7 +156,10 @@ let remain=${numTests}
 cd "${rundirsDir}"
 
 # Loop over rundirs and run GEOS-Chem
-for runDir in *; do
+for dir in *; do
+
+    # Expand to absolute path
+    runDir=$"{rundirsDir}/${dir}"
 
     # Do the following if for only valid GEOS-Chem run dirs
     expr=$(is_valid_rundir "${runDir}")
@@ -180,34 +183,34 @@ for runDir in *; do
             # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
-	    # Change to this run directory
-	    cd "${runDir}"
+            # Change to this run directory
+            cd "${runDir}"
 
-	    # Copy the executable file here
-	    cp -f "${binDir}/${exeFile}" .
+            # Copy the executable file here
+            cp -f "${binDir}/${exeFile}" .
 
-	    # Remove any leftover files in the run dir
-	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+            # Remove any leftover files in the run dir
+            ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
-	    # Redirect the log file
-	    log="${logsDir}/execute.${runDir}.log"
-	    rm -f "${log}"
+            # Redirect the log file
+            log="${logsDir}/execute.${runDir}.log"
+            rm -f "${log}"
 
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-	    if [[ "x${scheduler}" == "xSLURM" ]]; then
+            if [[ "x${scheduler}" == "xSLURM" ]]; then
 		srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
-	    else
-		./${exeFile} >> "${log}" 2>&1
-	    fi
-
-	    # Determine if the job succeeded or failed
-	    if [[ $? -eq 0 ]]; then
-                let passed++
-                print_to_log "${passMsg}" "${results}"
             else
-                let failed++
-                print_to_log "${failMsg}" "${results}"
+		./${exeFile} >> "${log}" 2>&1
+            fi
+
+            # Determine if the job succeeded or failed
+            if [[ $? -eq 0 ]]; then
+		let passed++
+		print_to_log "${passMsg}" "${results}"
+            else
+		let failed++
+		print_to_log "${failMsg}" "${results}"
             fi
 
             # Navigate back to the folder containing run directories

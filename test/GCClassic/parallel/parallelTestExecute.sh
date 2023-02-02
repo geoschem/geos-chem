@@ -43,7 +43,7 @@ ptRoot=$(cd ..; pwd)
 . "${ptRoot}/scripts/commonFunctionsForTests.sh"
 
 # Create local convenience variables
-binDir="${ptRoot}/${BUILD_DIR}"
+binDir="${ptRoot}/${BIN_DIR}"
 envDir="${ptRoot}/${ENV_DIR}"
 codeDir="${ptRoot}/CodeDir"
 logsDir="${ptRoot}/${LOGS_DIR}"
@@ -148,7 +148,10 @@ let remain=${numTests}
 cd "${rundirsDir}"
 
 # Loop over rundirs and run GEOS-Chem
-for runDir in *; do
+for dir in *; do
+
+    # Expand to absolute path
+    runDir=$"{rundirsDir}/${dir}"
 
     # Do the following if for only valid GEOS-Chem run dirs
     expr=$(is_valid_rundir "${runDir}")
@@ -172,59 +175,59 @@ for runDir in *; do
             # If the executable file exists, we can do the tests
             #----------------------------------------------------------------
 
-	    # Change to this run directory
-	    cd "${runDir}"
+            # Change to this run directory
+            cd "${runDir}"
 
-	    # Copy the executable file here
-	    cp -f "${binDir}/${exeFile}" .
+            # Copy the executable file here
+            cp -f "${binDir}/${exeFile}" .
 
-	    # Remove any leftover files in the run dir
-	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+            # Remove any leftover files in the run dir
+            ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
-	    # Redirect the log file
-	    log="${logsDir}/execute.${runDir}.log"
-	    rm -f "${log}"
+            # Redirect the log file
+            log="${logsDir}/execute.${runDir}.log"
+            rm -f "${log}"
 
             #----------------------------------------------------------------
             # First test: Use all available threads
             #----------------------------------------------------------------
 
-	    # Run GEOS-Chem Classic
-	    export OMP_NUM_THREADS=${allThreads}
-	    echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
-	    if [[ "x${scheduler}" == "xSLURM" ]]; then
+            # Run GEOS-Chem Classic
+            export OMP_NUM_THREADS=${allThreads}
+            echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
+            if [[ "x${scheduler}" == "xSLURM" ]]; then
 		srun -c ${allThreads} ./${exeFile} >> "${log}" 2>&1
-	    else
+            else
 		./${exeFile} >> "${log}" 2>&1
-	    fi
+            fi
 
-	    # Rename the end-of-run restart file
-	    rename_end_restart_file "${allThreads}"
+            # Rename the end-of-run restart file
+            rename_end_restart_file "${allThreads}"
 
-	    # Clean the run directory
-	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
-	    
+            # Clean the run directory
+            ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+
             #----------------------------------------------------------------
             # Second test: Use fewer cores
             #----------------------------------------------------------------
 
-	    # Run GEOS-Chem Classic
-	    export OMP_NUM_THREADS=${fewerThreads}
-	    echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
-	    if [[ "x${scheduler}" == "xSLURM" ]]; then
+            # Run GEOS-Chem Classic
+            export OMP_NUM_THREADS=${fewerThreads}
+            echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
+            if [[ "x${scheduler}" == "xSLURM" ]]; then
 		srun -c ${fewerThreads} ./${exeFile} >> "${log}" 2>&1
-	    else
+            else
 		./${exeFile} >> "${log}" 2>&1
-	    fi
+            fi
 
-	    # Rename the end-of-run restart file
-	    rename_end_restart_file "${fewerThreads}"
+            # Rename the end-of-run restart file
+            rename_end_restart_file "${fewerThreads}"
 
             #----------------------------------------------------------------
             # Score the test
             #----------------------------------------------------------------
-	    score_parallelization_test "${allThreads}" "${fewerThreads}"
-	    if [[ $? -eq 0 ]]; then
+            score_parallelization_test "${allThreads}" "${fewerThreads}"
+            if [[ $? -eq 0 ]]; then
                 let passed++
                 print_to_log "${passMsg}" "${results}"
             else

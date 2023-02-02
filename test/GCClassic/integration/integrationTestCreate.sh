@@ -135,9 +135,9 @@ ln -s "${superProjectDir}" ${itRoot}/CodeDir
 #=============================================================================
 
 printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
-cp -f ${envFile}                            ${itRoot}/${ENV_DIR}/gcclassic.env
-cp -f ${thisDir}/integrationTest*.sh        ${itRoot}/${SCRIPTS_DIR}
-cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}/${SCRIPTS_DIR}
+cp -f ${envFile}                            ${envDir}/gcclassic.env
+cp -f ${thisDir}/integrationTest*.sh        ${scriptsDir}
+cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
 cp -f ${thisDir}/README.template.md         ${itRoot}/README.md
 
 # Log file with echoback from rundir creation
