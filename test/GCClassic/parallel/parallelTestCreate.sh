@@ -141,17 +141,15 @@ cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
 cp -f ${thisDir}/README.template.md         ${ptRoot}/README.md
 
 # Log file with echoback from rundir creation
-log="${ptRoot}/logs/createParallelTests.log"
+log="${logsDir}/createParallelTests.log"
 
 # Switch to folder where rundir creation scripts live
 cd "${geosChemDir}/run/GCClassic"
 
-# Change to the directory where we will create the rundirs
-printf "\nCreating new run directories:\n"
-
 #=============================================================================
 # Create individual run directories: 4x5 - MERRA2 - 72L
 #=============================================================================
+printf "\nCreating new run directories:\n"
 
 # 4x5 merra2 aerosol
 create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
