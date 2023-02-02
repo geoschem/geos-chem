@@ -195,7 +195,7 @@ for runDir in *; do
 
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-	    if [[ "x{$scheduler}" == "xSLURM" ]]; then
+	    if [[ "x${scheduler}" == "xSLURM" ]]; then
 		srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
 	    else
 		./${exeFile} >> "${log}" 2>&1
