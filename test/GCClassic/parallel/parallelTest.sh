@@ -209,7 +209,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch $scriptsDir}/parallelTestCompile.sh)
+    output=$(sbatch ${scriptsDir}/parallelTestCompile.sh)
     output=($output)
     cmpId=${output[3]}
 
