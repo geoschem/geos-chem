@@ -36,23 +36,34 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the integration test folder
-itRoot=$(pwd -P)
+# This script starts executing 1 level lower than $itRoot
+itRoot=$(cd ..; pwd)
+
+# Include global variables & functions
+. "${itRoot}/scripts/commonFunctionsForTests.sh"
+
+# Create local convenience variables
+binDir="${itRoot}/${BIN_DIR}"
+buildDir="${itRoot}/${BUILD_DIR}"
+envDir="${itRoot}/${ENV_DIR}"
+codeDir="${itRoot}/CodeDir"
+logsDir="${itRoot}/${LOGS_DIR}"
+scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 
 # Load the user-environment and the software environment
 . ~/.bashrc               > /dev/null 2>&1
-. ${itRoot}/gcclassic.env > /dev/null 2>&1
+. ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # All integration tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${itRoot}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "${codeDir}" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
 # Determine the scheduler from the job ID (or lack of one)
 scheduler="none"
@@ -100,9 +111,6 @@ fi
 # Load common variables and functions for tesets
 #============================================================================
 
-# Include global variables & functions
-. "${itRoot}/commonFunctionsForTests.sh"
-
 # Count the number of tests to be done
 numTests=${#EXE_GCC_BUILD_LIST[@]}
 
@@ -111,7 +119,7 @@ numTests=${#EXE_GCC_BUILD_LIST[@]}
 #============================================================================
 
 # Results logfile name
-results="${itRoot}/logs/results.compile.log"
+results="${logsDir}/results.compile.log"
 rm -f ${results}
 
 # Print header to results log file
@@ -153,20 +161,20 @@ let remain=${numTests}
 for dir in ${EXE_GCC_BUILD_LIST[@]}; do
 
     # Define build directory
-    buildDir="${itRoot}/build/${dir}"
+    thisBuildDir="${buildDir}/${dir}"
 
     # Define log file
-    log="${itRoot}/logs/compile.${dir}.log"
+    log="${logsDir}/compile.${dir}.log"
     rm -f "${log}"
 
     # Configure and build GEOS-Chem Classic source code
     # and increment pass/fail/remain counters
-    build_model "gcclassic"      "${itRoot}" "${buildDir}" \
+    build_model "gcclassic"      "${itRoot}" "${thisBuildDir}" \
                 "${baseOptions}" "${log}"    "${results}"
     if [[ $? -eq 0 ]]; then
         let passed++
     else
-        let failed++
+        let failed<++
     fi
     let remain--
 done
@@ -198,7 +206,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     if [[ "x${scheduler}" == "xnone" ]]; then
         echo ""
         echo "Compilation tests finished!"
-        ./integrationTestExecute.sh &
+#        ${scriptsDir}/integrationTestExecute.sh &
     fi
 
 else
@@ -218,18 +226,24 @@ fi
 
 # Free local variables
 unset baseOptions
+unset binDir
+unset buildDir
+unset codeDir
 unset failed
 unset dir
+unset envDir
 unset head_gcc
 unset head_gc
 unset head_hco
 unset itRoot
 unset kernel
 unset log
+unset logsDir
 unset numTests
 unset passed
 unset remain
 unset results
+unset scriptsDir
 unset scheduler
 
 # Free imported variables

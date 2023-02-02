@@ -94,7 +94,7 @@ while [ : ]; do
             shift
 	    ;;
 
-	# -s or --scheduler selects the scheduler
+	# -s or --scheduler selects the scheduler (case-insensitive)
 	-s | --scheduler)
 	    scheduler="${2^^}"
             shift 2
@@ -158,13 +158,20 @@ if [[ $? -ne 0 ]]; then
    exit 1
 fi
 
-# Change to the integration test root folder
-if [[ -d ${itRoot} ]]; then
+# Navigate to the root test folder
+if [[ -d "${itRoot}" ]]; then
     cd "${itRoot}"
 else
     echo "ERROR: ${itRoot} is not a valid directory!  Exiting..."
     exit 1
 fi
+
+# Define local convenience variables
+logsDir="${itRoot}/${LOGS_DIR}"
+scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+
+# Navigate to the logs directory (so all output will be placed there)
+cd "${logsDir}"
 
 #=============================================================================
 # Compile the code and run the integration tests
@@ -176,41 +183,42 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#BSUB -n 8/d'                   "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#BSUB -W 00:30/d'               "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${itRoot}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -n 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -W 00:30/d'               "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
-	"${itRoot}/integrationTestCompile.sh"
+	"${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#BSUB -n 24/d'                  "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#BSUB -W 2:00/d'                "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${itRoot}/integrationTestExecute.sh"
+	"${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -W 2:00/d'                "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
-	"${itRoot}/integrationTestExecute.sh"
+	"${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${itRoot}/integrationTestExecute.sh"
+	"${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${itRoot}/integrationTestCompile.sh"
-    sed_ie "${sedCmd}" "${itRoot}/integrationTestExecute.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch integrationTestCompile.sh)
+    output=$(sbatch ${scriptsDir}/integrationTestCompile.sh)
     output=($output)
     cmpId=${output[3]}
 
     # Submit execution tests script as a job dependency
-    output=$(sbatch --dependency=afterok:${cmpId} integrationTestExecute.sh)
+    output=$(sbatch --dependency=afterok:${cmpId} ${scriptsDir}/integrationTestExecute.sh)
     output=($output)
     exeId=${output[3]}
 
+    # Echo SLURM jobIDs
     echo ""
     echo "Compilation tests submitted as SLURM job ${cmpId}"
     echo "Execution   tests submitted as SLURM job ${exeId}"
@@ -222,33 +230,33 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-------------------------------------------------------------------------
 
     # Remove SLURM #SBATCH tags
-    sed_ie '/#SBATCH -c 8/d'                   "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -t 0-00:30/d'             "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH --mem=8000/d'             "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${itRoot}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -c 24/d'                  "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH -t 0-2:00/d'              "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH --mem=90000/d'            "${itRoot}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${itRoot}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-00:30/d'             "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-2:00/d'              "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${itRoot}/integrationTestCompile.sh"
-    sed_ie "${sedCmd}" "${itRoot}/integrationTestExecute.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(bsub integrationTestCompile.sh)
+    output=$(bsub ${scriptsDir}/integrationTestCompile.sh)
     output=($output)
     cmpId=${output[1]}
     cmpId=${cmpId/<}
     cmpId=${cmpId/>}
 
     # Submit execution tests script as a job dependency
-    output=$(bsub -w "exit(${cmpId},0)" integrationTestExecute.sh)
+    output=$(bsub -w "exit(${cmpId},0)" ${scriptsDir}/integrationTestExecute.sh)
     output=($output)
     exeId=${output[1]}
     exeId=${exeId/<}
@@ -263,12 +271,13 @@ else
     # Run compilation tests
     echo ""
     echo "Compiliation tests are running..."
-    ./integrationTestCompile.sh &
-
-    # Change back to this directory
-    cd "${thisDir}"
+    ${scriptsDir}/integrationTestCompile.sh &
 
 fi
+
+# Change back to this directory
+cd "${thisDir}"
+
 
 #=============================================================================
 # Cleanup and quit
@@ -282,6 +291,7 @@ unset itRoot
 unset quick
 unset output
 unset scheduler
+unset scriptsDir
 unset thisDir
 
 # Free imported variables

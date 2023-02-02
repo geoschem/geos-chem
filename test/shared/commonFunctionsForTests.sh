@@ -56,6 +56,13 @@ EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg" "tagO3")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
 PAR_TEST_SUFFIX="threads"
+BIN_DIR="bin"
+BUILD_DIR="build"
+ENV_DIR="env"
+LOGS_DIR="logs"
+RUNDIRS_DIR="rundirs"
+SCRIPTS_DIR="scripts"
+
 
 function sed_ie() {
     #========================================================================
@@ -127,13 +134,13 @@ function count_rundirs() {
     #========================================================================
     # Returns the number of run directories in the root folder.
     #
-    # 1st argument: Root directory containing several GC run directories
+    # 1st argument: Top-level folder where run directories are created
     #========================================================================
-    itRoot="${1}"
+    rundirsDir="${1}"
     thisDir=$(pwd -P)
 
     # Count run directories
-    cd "${itRoot}"
+    cd "${rundirsDir}"
     declare -i x=0
     for runDir in *; do
 	expr=$(is_valid_rundir "${runDir}")
@@ -156,7 +163,6 @@ function update_gchp_config_files() {
     # 2nd argument: Integration test root directory
     #========================================================================
     runPath=$(absolute_path "${1}")           # GCHP run dir (abs path)
-    itRoot=$(absolute_path "${2}")            # Int test root dir (abs path)
     file="${runPath}/setCommonRunSettings.sh" # config file to edit
 
     # Replace text in config file
@@ -184,7 +190,6 @@ function update_config_files() {
     # 2nd argument = GEOS-Chem run directory name
     #========================================================================
     runPath=$(absolute_path "${1}")     # GEOS-Chem rundir (abs path)
-    itRoot=$(absolute_path "${2}")      # Int test root folder (abs path)
 
     #------------------------------------------------------------------------
     # Replace text in geoschem_config.yml
@@ -272,7 +277,6 @@ function create_rundir() {
     #========================================================================
     cmd="${1}"                     # Command for createRunDir.sh
     log=$(absolute_path "${2}")    # Log file for output of createRunDir.sh
-    itRoot=$(absolute_path "${3}") # Int test root folder
     logTmp="${log}.tmp"            # Temporary log file
     logTmp2="${log}.tmp.tmp"       # Temporary log file
     runPath=""                     # Path to run directory (abs path)
@@ -296,13 +300,13 @@ function create_rundir() {
     fi
 
     # Change start & end dates etc. in rundir configuration files
-    update_config_files "${runPath}" "${itRoot}"
+    update_config_files "${runPath}"
 
     # If this is a GCHP run directory, then also replace text in
     # GCHP-specific rundir configuration files etc.
     expr=$(is_gchp_rundir "${runPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
-	update_gchp_config_files "${runPath}" "${itRoot}"
+	update_gchp_config_files "${runPath}"
     fi
 
     # Remove temporary logs
@@ -336,17 +340,10 @@ function cleanup_files() {
 
 	# Remove files and unlink links
 	printf "Removing ...\n"
-	for file in ${itRoot}/*; do
-	    if [[ -h ${file} ]]; then
-		unlink ${file}
-	    else
-		path=$(absolute_path "${file}")
-		if [[ -e ${path} ]]; then
-		    printf " ... ${path}\n";
-		    rm -rf "${path}"
-		fi
-		unset path
-	    fi
+	for entry in ${itRoot}/*; do
+	    printf " ... ${entry}\n";
+	    [[ -L ${entry} ]] && unlink ${entry}
+	    [[ -e ${entry} ]] && rm -rf ${entry}
 	done
     fi
 }
@@ -504,7 +501,7 @@ function build_model() {
     #
     # 1st argument = Model name ('gcclassic' or 'gchp')
     # 2nd argument = Root folder for tests (w/ many rundirs etc)
-    # 3rd argument = GEOS_Chem Classic build directory
+    # 3rd argument = CMake build directory
     # 4th argument = Base compilation options
     # 5th argument = Log file where stderr and stdout will be redirected
     # 6th argument = Log file where results will be printed
@@ -513,7 +510,7 @@ function build_model() {
     # Arguments
     model="${1}"
     itRoot=$(absolute_path "${2}")
-    buildDir="${3}"
+    thisBuildDir="${3}"
     baseOptions="${4}"
     log="${5}"
     results="${6}"
@@ -527,13 +524,13 @@ function build_model() {
 
     # Local variables
     codeDir="${itRoot}/CodeDir"
-    configOptions=$(config_options "${model}" "${buildDir}" "${baseOptions}")
-    message=$(compiletest_name "${model}" "${buildDir}")
+    configOptions=$(config_options "${model}" "${thisBuildDir}" "${baseOptions}")
+    message=$(compiletest_name "${model}" "${thisBuildDir}")
     passMsg="$message${FILL:${#message}}.....${CMP_PASS_STR}"
     failMsg="$message${FILL:${#message}}.....${CMP_FAIL_STR}"
 
     # Change to the build directory
-    cd "${buildDir}"
+    cd "${thisBuildDir}"
 
     #---------------------------------------
     # Code configuration
@@ -566,9 +563,6 @@ function build_model() {
     # If we have gotten this far, the run passed,
     # so update the results log file accordingly
     print_to_log "${passMsg}" "${results}"
-
-    # Switch back to the root directory
-    cd "${itRoot}"
 }
 
 

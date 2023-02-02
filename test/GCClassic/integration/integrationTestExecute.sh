@@ -36,20 +36,30 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the integration test root folder
-itRoot=$(pwd -P)
+# This script starts executing 1 level lower than $itRoot
+itRoot=$(cd ..; pwd)
+
+# Include global variables & functions
+. "${itRoot}/scripts/commonFunctionsForTests.sh"
+
+# Create local convenience variables
+binDir="${itRoot}/${BUILD_DIR}"
+envDir="${itRoot}/${ENV_DIR}"
+codeDir="${itRoot}/CodeDir"
+logsDir="${itRoot}/${LOGS_DIR}"
+rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
 # Load the environment and the software environment
 . ~/.bashrc               > /dev/null 2>&1
-. ${itRoot}/gcclassic.env > /dev/null 2>&1
+. ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "${codeDir}/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
 # Determine the scheduler from the job ID (or lack of one)
 scheduler="none"
@@ -99,18 +109,15 @@ fi
 # Load common variables and functions for tesets
 #============================================================================
 
-# Include global variables & functions
-. "${itRoot}/commonFunctionsForTests.sh"
-
 # Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${itRoot}")
+numTests=$(count_rundirs "${rundirsDir}")
 
 #============================================================================
 # Initialize results logfile
 #============================================================================
 
 # Results logfile name
-results="${itRoot}/logs/results.execute.log"
+results="${logsDir}/results.execute.log"
 rm -f "${results}"
 
 # Print header to results log file
@@ -145,15 +152,18 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
+# Navigate to the directory containing individiual run directories
+cd "${rundirsDir}"
+
 # Loop over rundirs and run GEOS-Chem
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${itRoot}/${runDir}")
+    expr=$(is_valid_rundir "${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
-        log="${itRoot}/logs/execute.${runDir}.log"
+        log="${logsDir}/execute.${runDir}.log"
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -164,23 +174,23 @@ for runDir in *; do
         exeFile=$(exe_name "gcclassic" "${runDir}")
 
         # Test if the executable exists
-        if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
+        if [[ -f "${binDir}/${exeFile}" ]]; then
 
             #----------------------------------------------------------------
             # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
 	    # Change to this run directory
-	    cd "${itRoot}/${runDir}"
+	    cd "${runDir}"
 
 	    # Copy the executable file here
-	    cp -f "${itRoot}/exe_files/${exeFile}" .
+	    cp -f "${binDir}/${exeFile}" .
 
 	    # Remove any leftover files in the run dir
 	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
 	    # Redirect the log file
-	    log="${itRoot}/logs/execute.${runDir}.log"
+	    log="${logsDir}/execute.${runDir}.log"
 	    rm -f "${log}"
 
             # Run the code if the executable is present.  Then update the
@@ -200,8 +210,8 @@ for runDir in *; do
                 print_to_log "${failMsg}" "${results}"
             fi
 
-            # Change to itRoot directory for next iteration
-            cd "${itRoot}"
+            # Navigate back to the folder containing run directories
+            cd "${rundirsDir}"
 
         else
 
@@ -265,6 +275,9 @@ fi
 #============================================================================
 
 # Free local variables
+unset binDir
+unset codeDir
+unset envDir
 unset exeFile
 unset failed
 unset failmsg
@@ -273,11 +286,13 @@ unset head_gc
 unset head_hco
 unset itRoot
 unset log
+unset logsDir
 unset numTests
 unset passed
 unset passMsg
 unset remain
 unset results
+unset rundirsDir
 unset scheduler
 
 # Free imported global variables

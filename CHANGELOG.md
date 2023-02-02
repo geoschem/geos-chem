@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `README.md` files for integration and parallelization tests in the `test` folder structure
 - Added GCHP integration test for the tagO3 simulation
 - Added GCHP and GCClassic integration tests for the carbon simulation
+- Integration and parallelization test folders have been separated into subdirectories to minimize clutter.
 
 ### Changed
 - GCClassic integration tests now use a single set of scripts

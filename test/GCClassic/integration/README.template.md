@@ -1,0 +1,48 @@
+# README for GEOS-Chem Classic Integration Tests
+
+## Directories
+
+In order to minimize clutter, the various components of GEOS-Chem
+Classic integration tests have been separated into these directories.
+
+`bin`
+
+  - Contains GEOS-Chem Classic executable files
+
+`build`
+
+  - Directories for building GEOS-Chem Classic executables
+
+`CodeDir`
+
+  - Symbolic link to the `GCClassic` superproject directory
+
+`env`
+
+  - Contains an environment file.  This loads the required libraries
+    for GEOS-Chem Classic into the software environment.
+
+`logs`
+
+  - Contains log files from the integration tests.
+
+    - `results.compile.log`: Results of GEOS-Chem Classic compilation tests.
+    - `results.execute.log`: Results of GEOS-Chem Classic execution tests.
+    - `compile.*.log`: Output of individual compilation tests
+    - `execute.*.log`: Output of individual execution tests
+    - `lsf-*.txt`: LSF scheduler job logs
+    - `slurm*.out`: SLURM scheduler job logs
+
+`rundirs`
+
+  - Contains individual GEOS-Chem Classic run directories.
+
+`scripts`
+
+  - Contains the scripts that are used for running the GEOS-Chem Classic integration tests.  These are copied from the `test/GCClassic/integration` folder of the GEOS-Chem "science codebase" repository.
+
+## For more information
+
+Please see the README.md file in the `test/GCClassic/integration`
+folder for detailed instructions on how to run GEOS-Chem Classic
+integration tests.
