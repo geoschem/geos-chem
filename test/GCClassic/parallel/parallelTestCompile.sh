@@ -36,23 +36,34 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the parallelization test folder
-ptRoot=$(pwd -P)
+# This script starts executing 1 level lower than $itRoot
+ptRoot=$(cd ..; pwd)
+
+# Include global variables & functions
+. "${ptRoot}/scripts/commonFunctionsForTests.sh"
+
+# Create local convenience variables
+binDir="${ptRoot}/${BIN_DIR}"
+buildDir="${ptRoot}/${BUILD_DIR}"
+envDir="${ptRoot}/${ENV_DIR}"
+codeDir="${ptRoot}/CodeDir"
+logsDir="${ptRoot}/${LOGS_DIR}"
+scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
 
 # Load the user-environment and the software environment
 . ~/.bashrc               > /dev/null 2>&1
-. ${ptRoot}/gcclassic.env > /dev/null 2>&1
+. ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # All parallelization tests will use debugging features
-baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${ptRoot}/exe_files"
+baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "${codeDir}/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
 # Determine the scheduler from the job ID (or lack of one)
 scheduler="none"
@@ -100,9 +111,6 @@ fi
 # Load common variables and functions for tesets
 #============================================================================
 
-# Include global variables & functions
-. "${ptRoot}/commonFunctionsForTests.sh"
-
 # Count the number of tests to be done (exclude TOMAS40)
 parallelTests=("${EXE_GCC_BUILD_LIST[@]}")
 unset parallelTests[6]
@@ -113,7 +121,7 @@ numTests=${#parallelTests[@]}
 #============================================================================
 
 # Results logfile name
-results="${ptRoot}/logs/results.compile.log"
+results="${logsDir}/results.compile.log"
 rm -f ${results}
 
 # Print header to results log file
@@ -155,15 +163,15 @@ let remain=${numTests}
 for dir in ${parallelTests[@]}; do
 
     # Define build directory
-    buildDir="${ptRoot}/build/${dir}"
+    thisBuildDir="${buildDir}/${dir}"
 
     # Define log file
-    log="${ptRoot}/logs/compile.${dir}.log"
+    log="${logsDir}/compile.${dir}.log"
     rm -f "${log}"
 
     # Configure and build GEOS-Chem Classic source code
     # and increment pass/fail/remain counters
-    build_model "gcclassic"      "${ptRoot}" "${buildDir}" \
+    build_model "gcclassic"      "${ptRoot}" "${thisBuildDir}" \
                 "${baseOptions}" "${log}"    "${results}"
     if [[ $? -eq 0 ]]; then
         let passed++
@@ -200,7 +208,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     if [[ "x${scheduler}" == "xnone" ]]; then
         echo ""
         echo "Compilation tests finished!"
-        ./parallelTestExecute.sh &
+        ${scriptsDir}/parallelTestExecute.sh &
     fi
 
 else
@@ -220,8 +228,12 @@ fi
 
 # Free local variables
 unset baseOptions
+unset binDir
+unset buildDir
+unset codeDir
 unset failed
 unset dir
+unset envDir
 unset head_gcc
 unset head_gc
 unset head_hco
@@ -232,6 +244,7 @@ unset passed
 unset ptRoot
 unset remain
 unset results
+unset scriptsDir
 unset scheduler
 
 # Free imported variables

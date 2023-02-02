@@ -36,12 +36,22 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the parallelization test root folder
-ptRoot=$(pwd -P)
+# This script starts executing 1 level lower than $itRoot
+ptRoot=$(cd ..; pwd)
+
+# Include global variables & functions
+. "${ptRoot}/scripts/commonFunctionsForTests.sh"
+
+# Create local convenience variables
+binDir="${ptRoot}/${BUILD_DIR}"
+envDir="${ptRoot}/${ENV_DIR}"
+codeDir="${ptRoot}/CodeDir"
+logsDir="${ptRoot}/${LOGS_DIR}"
+rundirsDir="${ptRoot}/${RUNDIRS_DIR}"
 
 # Load the environment and the software environment
 . ~/.bashrc               > /dev/null 2>&1
-. ${ptRoot}/gcclassic.env > /dev/null 2>&1
+. ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -65,7 +75,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 elif [[ "x${scheduler}" == "xLSF" ]]; then
 
     # LSF
-    export allThreads=${$LSB_DJOB_NUMPROC}
+    export allThreads=${LSB_DJOB_NUMPROC}
 
 else
 
@@ -90,11 +100,8 @@ fewerThreads=$(( ${allThreads} / 2 ))
 # Load common variables and functions for tesets
 #============================================================================
 
-# Include global variables & functions
-. "${ptRoot}/commonFunctionsForTests.sh"
-
 # Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${ptRoot}")
+numTests=$(count_rundirs "${rundirsDir}")
 
 #============================================================================
 # Initialize results logfile
@@ -137,15 +144,18 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
+# Navigate to the directory containing individiual run directories
+cd "${rundirsDir}"
+
 # Loop over rundirs and run GEOS-Chem
 for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${ptRoot}/${runDir}")
+    expr=$(is_valid_rundir "${runDir}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
-        log="${ptRoot}/logs/parallel.${runDir}.log"
+        log="${logsDir}/parallel.${runDir}.log"
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -156,23 +166,23 @@ for runDir in *; do
         exeFile=$(exe_name "gcclassic" "${runDir}")
 
         # Test if the executable exists
-        if [[ -f "${ptRoot}/exe_files/${exeFile}" ]]; then
+        if [[ -f "${binDir}/${exeFile}" ]]; then
 
             #----------------------------------------------------------------
             # If the executable file exists, we can do the tests
             #----------------------------------------------------------------
 
 	    # Change to this run directory
-	    cd "${ptRoot}/${runDir}"
+	    cd "${runDir}"
 
 	    # Copy the executable file here
-	    cp -f "${ptRoot}/exe_files/${exeFile}" .
+	    cp -f "${binDir}/${exeFile}" .
 
 	    # Remove any leftover files in the run dir
 	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
 	    # Redirect the log file
-	    log="${ptRoot}/logs/execute.${runDir}.log"
+	    log="${logsDir}/execute.${runDir}.log"
 	    rm -f "${log}"
 
             #----------------------------------------------------------------
@@ -182,7 +192,7 @@ for runDir in *; do
 	    # Run GEOS-Chem Classic
 	    export OMP_NUM_THREADS=${allThreads}
 	    echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
-	    if [[ "x{$scheduler}" == "xSLURM" ]]; then
+	    if [[ "x${scheduler}" == "xSLURM" ]]; then
 		srun -c ${allThreads} ./${exeFile} >> "${log}" 2>&1
 	    else
 		./${exeFile} >> "${log}" 2>&1
@@ -201,7 +211,7 @@ for runDir in *; do
 	    # Run GEOS-Chem Classic
 	    export OMP_NUM_THREADS=${fewerThreads}
 	    echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
-	    if [[ "x{$scheduler}" == "xSLURM" ]]; then
+	    if [[ "x${scheduler}" == "xSLURM" ]]; then
 		srun -c ${fewerThreads} ./${exeFile} >> "${log}" 2>&1
 	    else
 		./${exeFile} >> "${log}" 2>&1
@@ -222,8 +232,8 @@ for runDir in *; do
                 print_to_log "${failMsg}" "${results}"
             fi
 
-            # Change to ptRoot directory for next iteration
-            cd "${ptRoot}"
+            # Navigate back to the folder containing run directories
+            cd "${rundirsDir}"
 
         else
 
@@ -287,6 +297,9 @@ fi
 #============================================================================
 
 # Free local variables
+unset binDir
+unset codeDir
+unset envDir
 unset exeFile
 unset failed
 unset failmsg
@@ -294,18 +307,19 @@ unset head_gcc
 unset head_gc
 unset head_hco
 unset log
+unset logsDir
 unset numTests
 unset passed
 unset passMsg
 unset ptRoot
 unset remain
 unset results
+unset rundirsDir
 unset scheduler
 
 # Free imported global variables
 unset FILL
 unset LINE
-unset LINELC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

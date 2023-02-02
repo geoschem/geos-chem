@@ -166,6 +166,13 @@ else
     exit 1
 fi
 
+# Define local convenience variables
+logsDir="${itRoot}/${LOGS_DIR}"
+scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+
+# Navigate to the logs directory (so all output will be placed there)
+cd "${logsDir}"
+
 #=============================================================================
 # Compile the code and run the parallelization tests
 #=============================================================================
@@ -176,38 +183,38 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -n 8/d'                   "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -W 00:30/d'               "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${ptRoot}/parallelTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#BSUB -n 8/d'                   "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#BSUB -W 00:30/d'               "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/parallelTestCompile.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
-	"${ptRoot}/parallelTestCompile.sh"
+	"${scriptsDir}/parallelTestCompile.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#BSUB -n 24/d'                  "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#BSUB -W 3:30/d'                "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${ptRoot}/parallelTestExecute.sh"
+	"${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#BSUB -W 3:30/d'                "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/parallelTestExecute.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
-	"${ptRoot}/parallelTestExecute.sh"
+	"${scriptsDir}/parallelTestExecute.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${ptRoot}/parallelTestExecute.sh"
+	"${scriptsDir}/parallelTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${ptRoot}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${ptRoot}/parallelTestExecute.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch parallelTestCompile.sh)
+    output=$(sbatch $scriptsDir}/parallelTestCompile.sh)
     output=($output)
     cmpId=${output[3]}
 
     # Submit execution tests script as a job dependency
-    output=$(sbatch --dependency=afterok:${cmpId} parallelTestExecute.sh)
+    output=$(sbatch --dependency=afterok:${cmpId} $scriptsDir}/parallelTestExecute.sh)
     output=($output)
     exeId=${output[3]}
 
@@ -222,33 +229,33 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-------------------------------------------------------------------------
 
     # Remove SLURM #SBATCH tags
-    sed_ie '/#SBATCH -c 8/d'                   "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -t 0-00:30/d'             "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH --mem=8000/d'             "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${ptRoot}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -c 24/d'                  "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH -t 0-03:30/d'             "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH --mem=90000/d'            "${ptRoot}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${ptRoot}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-00:30/d'             "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-03:30/d'             "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/parallelTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${ptRoot}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${ptRoot}/parallelTestExecute.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(bsub parallelTestCompile.sh)
+    output=$(bsub $scriptsDir}/parallelTestCompile.sh)
     output=($output)
     cmpId=${output[1]}
     cmpId=${cmpId/<}
     cmpId=${cmpId/>}
 
     # Submit execution tests script as a job dependency
-    output=$(bsub -w "exit(${cmpId},0)" parallelTestExecute.sh)
+    output=$(bsub -w "exit(${cmpId},0)" ${scriptsDir}/parallelTestExecute.sh)
     output=($output)
     exeId=${output[1]}
     exeId=${exeId/<}
@@ -263,13 +270,13 @@ else
     # Run compilation tests
     echo ""
     echo "Compiliation tests are running..."
-    ./parallelTestCompile.sh &
-
-    # Change back to this directory
-    cd "${thisDir}"
+    ${scriptsDir}/parallelTestCompile.sh &
 
 fi
 
+# Change back to this directory
+cd "${thisDir}"
+						      
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
@@ -278,10 +285,12 @@ fi
 unset cmpId
 unset envFile
 unset exeId
+unset logsDir
 unset ptRoot
 unset quick
 unset output
 unset scheduler
+unset scriptsDir
 unset thisDir
 
 # Free imported variables
