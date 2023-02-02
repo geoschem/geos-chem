@@ -162,7 +162,7 @@ for runDir in *; do
     runAbsPath="${rundirsDir}/${runDir}"
 
     # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_valid_rundir "${runAbsPath")
+    expr=$(is_valid_rundir "${runAbsPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
