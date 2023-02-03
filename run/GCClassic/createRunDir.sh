@@ -241,7 +241,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
@@ -1222,6 +1221,20 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "Input not recognized. Try again.\n"
     fi
 done
+
+#---------------------------------------------------------------------------
+# Add reminders to compile with CMake options for simulations that need them
+#---------------------------------------------------------------------------
+hdr="\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n"
+[[ "x${sim_name}" == "xcarbon" ]] && printf "${hdr} -DMECH=carbon ${ftr}"
+[[ "x${sim_name}" == "xHg"     ]] && printf "${hdr} -DMECH=Hg ${ftr}"
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && printf "${hdr} -DAPM=y ${ftr}"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && printf "${hdr} -DRRTMG=y ${ftr}"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && printf "${hdr} -DTOMAS=y -DTOMAS_BINS=15 ${ftr}"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && printf "${hdr} -DTOMAS=y -DTOMAS_BINS=40 ${ftr}"
+fi
 
 #-----------------------------------------------------------------
 # Add the version info to the top of the rundir configuration log
