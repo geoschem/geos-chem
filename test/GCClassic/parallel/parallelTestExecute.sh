@@ -151,7 +151,7 @@ cd "${rundirsDir}"
 for runDir in *; do
 
     # Expand to absolute path
-    runAbsPath="${rundirsDir}/${dir}"
+    runAbsPath="${rundirsDir}/${runDir}"
 
     # Do the following if for only valid GEOS-Chem run dirs
     expr=$(is_valid_rundir "${runAbsPath}")
