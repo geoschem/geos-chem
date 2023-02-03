@@ -105,10 +105,6 @@ fi
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
-#============================================================================
-# Load common variables and functions for tesets
-#============================================================================
-
 # Count the number of tests to be run (same as the # of run directories)
 numTests=$(count_rundirs "${rundirsDir}")
 

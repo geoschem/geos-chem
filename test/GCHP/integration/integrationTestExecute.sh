@@ -36,22 +36,32 @@
 # Global variable and function definitions
 #============================================================================
 
-# Get the long path of the integration test root folder
-itRoot=$(pwd -P)
+# This script starts executing 1 level lower than $itRoot
+itRoot=$(cd ..; pwd)
+
+# Include global variables & functions
+. "${itRoot}/scripts/commonFunctionsForTests.sh"
+
+# Create local convenience variables
+binDir="${itRoot}/${BIN_DIR}"
+envDir="${itRoot}/${ENV_DIR}"
+codeDir="${itRoot}/CodeDir"
+logsDir="${itRoot}/${LOGS_DIR}"
+rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
 # Load the environment and the software environment
 . ~/.bashrc          > /dev/null 2>&1
-. ${itRoot}/gchp.env > /dev/null 2>&1
+. ${envDir}/gchp.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
-head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir" log --oneline --no-decorate -1)
+head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
+           git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem" \
-              log --oneline --no-decorate -1)
+          git -C "${codeDir}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem" \
+          log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
-               log --oneline --no-decorate -1)
+           git -C "${codeDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
+           log --oneline --no-decorate -1)
 
 # Determine the scheduler from the job ID (or lack of one)
 scheduler="none"
@@ -100,13 +110,6 @@ fi
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
-#============================================================================
-# Load common variables and functions for tesets
-#============================================================================
-
-# Include global variables & functions
-. ${itRoot}/commonFunctionsForTests.sh
-
 # Count the number of tests to be run (same as the # of run directories)
 numTests=$(count_rundirs "${itRoot}")
 
@@ -115,14 +118,14 @@ numTests=$(count_rundirs "${itRoot}")
 #============================================================================
 
 # Results logfile name
-results="${itRoot}/logs/results.execute.log"
+results="${logsDir}/results.execute.log"
 rm -f "${results}"
 
 # Print header to results log file
 print_to_log "${SEP_MAJOR}"                               "${results}"
 print_to_log "GCHP: Execution Test Results"               "${results}"
 print_to_log ""                                           "${results}"
-print_to_log "GCClassic #${head_gcc}"                     "${results}"
+print_to_log "GCClassic #${head_gchp}"                    "${results}"
 print_to_log "GEOS-Chem #${head_gc}"                      "${results}"
 print_to_log "HEMCO     #${head_hco}"                     "${results}"
 print_to_log ""                                           "${results}"
@@ -149,15 +152,21 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
+# Navigate to the directory containing individiual run directories
+cd "${rundirsDir}"
+
 # Loop over rundirs and run GEOS-Chem
 for runDir in *; do
 
-    # Do the following if for only valid GEOS-Chem run dirs
-    expr=$(is_gchp_rundir "${itRoot}/${runDir}")
+    # Expand rundir to absolute path
+    runAbsPath="${rundirsDir}/${runDir}"
+    
+    # Do the following if for only valid GCHP run dirs
+    expr=$(is_gchp_rundir "${runAbsPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
 
         # Define log file
-        log="${itRoot}/logs/execute.${runDir}.log"
+        log="${logsDir}/execute.${runDir}.log"
         rm -f "${log}"
 
         # Messages for execution pass & fail
@@ -165,30 +174,26 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gchp" "${runDir}")
+        exeFile=$(exe_name "gchp" "${runAbsPath}")
 
         # Test if the executable exists
-        if [[ -f "${itRoot}/exe_files/${exeFile}" ]]; then
+        if [[ -f "${binDir}/${exeFile}" ]]; then
 
 	    #----------------------------------------------------------------
 	    # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
 	    # Change to the run directory
-	    cd "${itRoot}/${runDir}"
+	    cd "${runAbsPath}"
 
 	    # Copy the executable file here
-	    cp "${itRoot}/exe_files/${exeFile}" .
-
-	    # Redirect the log file
-	    log="${itRoot}/logs/execute.${runDir}.log"
-	    rm -f "${log}"
+	    cp "${binDir}/${exeFile}" .
 
 	    # Remove any leftover files in the run dir
 	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
 	    # Link to the environment file
-	    ./setEnvironmentLink.sh "${itRoot}/gchp.env"
+	    ./setEnvironmentLink.sh "${envDir}/gchp.env"
 
 	    # Update config files, set links, load environment, sanity checks
 	    . setCommonRunSettings.sh >> "${log}" 2>&1
@@ -243,7 +248,7 @@ for runDir in *; do
             fi
 
             # Change to root directory for next iteration
-            cd "${itRoot}"
+            cd "${rundirsDir}"
 
         else
 
@@ -278,6 +283,22 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${results}
     print_to_log "%%%  All execution tests passed!  %%%"    ${results}
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    ${results}
+
+    # Print success (if interactive)
+    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+        echo ""
+        echo "Execution tests finished!"
+    fi
+
+else
+
+    #--------------------------
+    # Unsuccessful execution
+    #--------------------------
+    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+        echo ""
+        echo "Execution tests failed!  Exiting ..."
+    fi
 fi
 
 #============================================================================
@@ -285,15 +306,20 @@ fi
 #============================================================================
 
 # Free local variables
+unset absRunPath
+unset binDir
+unset codeDir
+unset envDir
 unset coreCt
 unset exeFile
 unset failed
 unset failmsg
-unset head_gcc
+unset head_gchp
 unset head_gc
 unset head_hco
 unset itRoot
 unset log
+unset logsDir
 unset numTests
 unset NX
 unset NY
@@ -302,12 +328,12 @@ unset passMsg
 unset planeCt
 unset remain
 unset results
+unset rundirsDir
 unset scheduler
 
 # Free imported global variables
 unset FILL
 unset LINE
-unset LINELC
 unset CMP_PASS_STR
 unset CMP_FAIL_STR
 unset EXE_PASS_STR

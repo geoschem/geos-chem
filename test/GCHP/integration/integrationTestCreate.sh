@@ -14,10 +14,6 @@
 # !CALLING SEQUENCE:
 #  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
 #  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
-#
-# !REVISION HISTORY:
-#  09 Oct 2020 - R. Yantosca - Initial version
-#  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -91,41 +87,64 @@ printf "${SEP_MAJOR}\n"
 itRoot=$(absolute_path "${itRoot}")
 [[ ! -d "${itRoot}" ]] && mkdir -p "${itRoot}"
 
+# Create local convenience variables
+binDir="${itRoot}/${BIN_DIR}"
+buildDir="${itRoot}/${BUILD_DIR}"
+envDir="${itRoot}/${ENV_DIR}"
+execDir="${itRoot}/${EXEC_DIR}"
+logsDir="${itRoot}/${LOGS_DIR}"
+scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+rundirsDir="${itRoot}/${RUNDIRS_DIR}"
+
 # Get absolute path of the environment file
 envFile=$(absolute_path "${envFile}")
 
 # Remove run directories in the test folder
 cleanup_files "${itRoot}"
 
-# Make the build directory
-printf "\nCreating new build and executable directories:\n"
-echo " ... ${itRoot}/exe_files"
-mkdir -p "${itRoot}/exe_files"
-if [[ ! -d "${itRoot}/build" ]]; then
-     for dir in ${EXE_GCHP_BUILD_LIST[@]}; do
-	echo " ... ${itRoot}/build/${dir}"
-	mkdir -p "${itRoot}/build/${dir}"
-     done
-fi
+# Subdir for CMake builds (note: will create ${itRoot}
+printf "\nCreating CMake build directories:\n"
+for dir in ${EXE_GCC_BUILD_LIST[@]}; do
+    printf " ... ${buildDir}/${dir}\n"
+    mkdir -p "${buildDir}/${dir}"
+done
 
-# Copying the run scripts to the root test folder
-printf "\nCopying run scripts to: ${itRoot}\n"
-cp -f ${envFile}                            ${itRoot}/gchp.env
-cp -f ${thisDir}/integrationTest*.sh                ${itRoot}
-cp -f ${thisDir}/commonFunctionsForTests.sh ${itRoot}
+# Subdir for executables
+printf "\nCreating exe files directory ${binDir}\n"
+mkdir -p "${binDir}"
+
+# Subdir for env files
+printf "Creating env files directory ${envDir}\n"
+mkdir -p "${envDir}"
+
+# Subdir for log files
+printf "Creating logs directory      ${logsDir}\n"
+mkdir -p "${logsDir}"
+
+# Subdir for scripts
+printf "Creating scripts directory   ${scriptsDir}\n"
+mkdir -p "${scriptsDir}"
+
+# Subdir for run directories
+printf "Creating rundirs directory   ${rundirsDir}\n"
+mkdir -p "${rundirsDir}"
 
 # Create a symbolic link to the code from the Integration Test root folder
-[[ -L ${itRoot}/CodeDir ]] && unlink ${itRoot}/CodeDir
+printf "Linking to superproject      ${itRoot}/CodeDir\n"
 ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
-# Create log directory
-if [[ !(-d "${itRoot}/logs") ]]; then
-    printf "\nCreating log directory: ${itRoot}/logs\n"
-    mkdir "${itRoot}/logs"
-fi
+#=============================================================================
+# Copy files to the proper folders
+#=============================================================================
 
-# Log file for containing echo-back from createRunDir.sh
-log="${itRoot}/logs/createIntTests.log"
+printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
+cp -f ${envFile}                            ${envDir}/gchp.env
+cp -f ${thisDir}/integrationTest*.sh        ${scriptsDir}
+cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
+cp -f ${thisDir}/README.template.md         ${itRoot}/README.md
+
+# Log file with echoback from rundir creation
+log="${logsDir}/createIntegrationTests.log"
 
 # Switch to folder where rundir creation scripts live
 cd "${geosChemDir}/run/GCHP"
@@ -136,10 +155,10 @@ cd "${geosChemDir}/run/GCHP"
 printf "\nCreating new run directories:\n"
 
 # c24 geosfp TransportTracers
-create_rundir "2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # c24 merra2 fullchem tagO3
-create_rundir "4\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
@@ -148,17 +167,17 @@ if [[ "x${quick}" == "xyes" ]]; then
 fi
 
 # c24 merra2 fullchem_standard
-create_rundir "1\n1\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # c24 merra2 fullchem_benchmark
-create_rundir "1\n2\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # c24 merra2 fullchem_RRTMG
-create_rundir "1\n8\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # Placeholder for carbon simulation
 # c24 merra2 carbon
-#create_rundir "12\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
+#create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 #=============================================================================
 # Cleanup and quit
@@ -168,11 +187,17 @@ create_rundir "1\n8\n1\n${itRoot}\n\nn\n" "${log}" "${itRoot}"
 cd "${thisDir}"
 
 # Free local variables
+unset binDir
+unset buildDir
+unset dir
+unset envDir
 unset geosChemDir
-unset hemcoDir
 unset itRoot
 unset log
+unset logsDir
+unset rundirsDir
 unset superProjectDir
+unset scriptsDir
 unset thisDir
 
 # Free imported variables
