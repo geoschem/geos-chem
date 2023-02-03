@@ -141,7 +141,8 @@ printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
 cp -f ${envFile}                            ${envDir}/gchp.env
 cp -f ${thisDir}/integrationTest*.sh        ${scriptsDir}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
-cp -f ${thisDir}/README.template.md         ${itRoot}/README.md
+cp -f ${thisDir}/README.md                  ${scriptsDir}
+cp -f ${thisDir}/README.testroot.md         ${itRoot}/README.md
 
 # Log file with echoback from rundir creation
 log="${logsDir}/createIntegrationTests.log"

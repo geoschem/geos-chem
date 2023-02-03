@@ -41,4 +41,4 @@ Components of GEOS-Chem Classic parallelization tests have been separated into t
 
 ## For more information
 
-Please see the README.md file in the `test/GCClassic/parallel` folder for detailed instructions on how to run GEOS-Chem Classic parallelization tests.
+Please see the `scripts/README.md` file for detailed instructions on running GEOS-Chem Classic parallelization tests.

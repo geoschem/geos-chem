@@ -41,6 +41,4 @@ Components of GEOS-Chem Classic integration tests have been separated into these
 
 ## For more information
 
-Please see the README.md file in the `test/GCClassic/integration`
-folder for detailed instructions on how to run GEOS-Chem Classic
-integration tests.
+Please see the `scripts/README.md` file for detailed instructions on running GEOS-Chem Classic integration tests.

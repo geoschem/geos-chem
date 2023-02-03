@@ -138,7 +138,8 @@ printf "\nCopying run scripts to: ${ptRoot}\n"
 cp -f ${envFile}                            ${envDir}/gcclassic.env
 cp -f ${thisDir}/parallelTest*.sh           ${scriptsDir}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
-cp -f ${thisDir}/README.template.md         ${ptRoot}/README.md
+cp -f ${thisDir}/README.md                  ${scriptsDir}
+cp -f ${thisDir}/README.testroot.md         ${ptRoot}/README.md
 
 # Log file with echoback from rundir creation
 log="${logsDir}/createParallelTests.log"

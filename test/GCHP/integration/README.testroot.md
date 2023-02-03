@@ -41,4 +41,4 @@ Components of GCHP integration tests have been separated into these directories:
 
 ## For more information
 
-Please see the README.md file in the `test/GCClassic/integration` folder for detailed instructions on how to run GCHP integration tests.
+Please see the `scripts/README.md` file for detailed instructions on running GCHP integration tests.
