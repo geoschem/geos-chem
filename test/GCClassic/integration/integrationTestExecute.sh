@@ -192,10 +192,6 @@ for runDir in *; do
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
-            # Redirect the log file
-            log="${logsDir}/execute.${runDir}.log"
-            rm -f "${log}"
-
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
             if [[ "x${scheduler}" == "xSLURM" ]]; then

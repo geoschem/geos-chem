@@ -55,11 +55,11 @@ rundirsDir="${ptRoot}/${RUNDIRS_DIR}"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir" log --oneline --no-decorate -1)
+           git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "./CodeDir/src/GEOS-Chem" log --oneline --no-decorate -1)
+          git -C "${codeDir}/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "./CodeDir/src/HEMCO" log --oneline --no-decorate -1)
+           git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
 # Determine the scheduler from the job ID (or lack of one)
 scheduler="none"
@@ -108,7 +108,7 @@ numTests=$(count_rundirs "${rundirsDir}")
 #============================================================================
 
 # Results logfile name
-results="${ptRoot}/logs/results.parallel.log"
+results="${logsDir}/results.parallel.log"
 rm -f "${results}"
 
 # Print header to results log file
@@ -183,10 +183,6 @@ for runDir in *; do
 
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
-
-            # Redirect the log file
-            log="${logsDir}/execute.${runDir}.log"
-            rm -f "${log}"
 
             #----------------------------------------------------------------
             # First test: Use all available threads
