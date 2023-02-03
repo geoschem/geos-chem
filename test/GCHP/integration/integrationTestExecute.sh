@@ -111,7 +111,7 @@ fi
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
 # Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${itRoot}")
+numTests=$(count_rundirs "${rundirsDir}")
 
 #============================================================================
 # Initialize results logfile
