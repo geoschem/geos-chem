@@ -214,7 +214,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     cmpId=${output[3]}
 
     # Submit execution tests script as a job dependency
-    output=$(sbatch --dependency=afterok:${cmpId} $scriptsDir}/parallelTestExecute.sh)
+    output=$(sbatch --dependency=afterok:${cmpId} ${scriptsDir}/parallelTestExecute.sh)
     output=($output)
     exeId=${output[3]}
 
