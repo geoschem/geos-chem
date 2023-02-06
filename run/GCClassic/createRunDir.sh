@@ -881,10 +881,6 @@ fi
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
 
-# Create build directory
-mkdir ${rundir}/build
-printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
-
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
 #--------------------------------------------------------------------
@@ -1227,14 +1223,34 @@ done
 #---------------------------------------------------------------------------
 hdr="\n>>>> REMINDER: You must compile with options:"
 ftr="<<<<\n"
-[[ "x${sim_name}" == "xcarbon" ]] && printf "${hdr} -DMECH=carbon ${ftr}"
-[[ "x${sim_name}" == "xHg"     ]] && printf "${hdr} -DMECH=Hg ${ftr}"
+
+EXTRA_CMAKE_OPTIONS=""
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg"
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    [[ "x${sim_extra_option}" == "xAPM"     ]] && printf "${hdr} -DAPM=y ${ftr}"
-    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && printf "${hdr} -DRRTMG=y ${ftr}"
-    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && printf "${hdr} -DTOMAS=y -DTOMAS_BINS=15 ${ftr}"
-    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && printf "${hdr} -DTOMAS=y -DTOMAS_BINS=40 ${ftr}"
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
 fi
+
+# Add to RUNDIR_VARS
+RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
+
+# Print a reminder to compile with extra CMake options, if necessary
+[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+
+#---------------------------------------------------------------------------
+# Create build directory README file
+#---------------------------------------------------------------------------
+mkdir -p "${rundir}/build"
+msg="To build GEOS-Chem, type:\n\n"
+msg+="$ cmake ../CodeDir\n"
+msg+="$ cmake . -DRUNDIR=.. ${EXTRA_CMAKE_OPTIONS}\n"
+msg+="$ make -j\n"
+msg+="$ make install\n"
+printf "${msg}" > ${rundir}/build/README
+unset msg
 
 #-----------------------------------------------------------------
 # Add the version info to the top of the rundir configuration log
