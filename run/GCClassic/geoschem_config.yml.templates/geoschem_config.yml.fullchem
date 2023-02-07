@@ -134,6 +134,7 @@ operations:
       - BrO
       - BrSALA
       - BrSALC
+      - BUTDI
       - BZCO3H
       - BZPAN
       - C2H2
@@ -180,6 +181,7 @@ operations:
       - ETHP
       - ETNO3
       - ETP
+      - FURA
       - GLYC
       - GLYX
       - H1211

@@ -11,10 +11,70 @@ GEOS-Chem KPP  file containing species and equations for the full chemistry
 FILE HISTORY
 ===============================================================================
 
-v11-01g (Sep 2016)
+14.2.0
+------
+  (1) Add lumped furan (Carter2022)
+
+14.1.0
+------
+  (1) Add MO2 + NO3 reaction (IUPAC ROO_19)
+  (2) Bug fix: the "a" coefficient in rxn ETO = HO2 + 2.000CH2O was changed
+      from 9.5d-13 (incorrect) to 9.5d+13.  See geoschem/geos-chem #1274.
+  (3) Bug fixes: HOBr + SO2 and HOCl + SO2 should produce SO4 (not SO4s)
+
+13.3.0
+------
+  (1) Add HMS chemistry (Moch2020)
+       -- note, currently done in sulfate_mod, equations are commented out
+  (2) Add C2H2/C2H4 chemistry (Kwon2020)
+  (3) Add CH3O2 + OH reaction (Bates2021a)
+  (4) Add sulfur reactions for future development (commented out)
+  (5) Add aromatic SOA reactions (Bates2021b)
+
+13.1.0
+------
+ (1) Use double precision numeric constants to each numeric value (e.g.
+     1.0d0 instead of 1.0e0).  This will prevent having to call the DBLE()
+     functions in the rate law functions, which wastes CPU cycles, and
+     also is a "lossy" conversion. (BMY)
+
+12.8.0
+------
+ (1) Update isoprene chemistry from Bates2019 (KHB)
+
+12.7.0
+------
+ (1) Add MENO3, ETNO3, PRNO3 chemistry from Fisher2018 (JAF)
+ (2) Remove old MNO3 (same as MENO3 but not actually used (JAF)
+ (3) Add "OTHRO2" that is equivalent to ETO2 but is not derived from C2H6
+     oxidation. Necessary to prevent overestimates of ETNO3. All ETO2
+     reactions are duplicated except ETO2+NO->ETNO3 channel (JAF)
+ (4) Add MOH as active species (XC, DBM)
+
+12.6.0
+------
+
+ (1) Add photolysis of NITs (off by default) (TMS, PK)
+ (2) Aerosol heterogeneous uptake for NOx (CDH)
+
+v11-02d
+-------
+
+ (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
+ (2) Add HOBr + S(IV) from Chen2017 (QJC)
+
+v11-02c (Jul 2017)
 ----------------------
 
- (1) Initial version for FlexChem (MSL,MJE,MPS,EWL)
+ (1) Add isoprene SOA updates from Marais2016 (EAM,MPS)
+ (2) Update isoprene and monoterpene chemistry (KRT,JAF,CCM,EAM,KHB,RHS)
+      - Based on Travis2016, Fisher2016, ChanMiller2017, Marais2016
+      - Add Bates2014 epoxide scheme
+      - Update isoprene nitrate chemistry following Lee2014
+      - Add Muller2014 fast photolysis of carbonyl nitrates
+      - Add HNO2 chemistry from Lee2014
+      - Updated product yields and rx rate for RIO2+RIO2 (Xie2013)
+ (3) Add fixes for carbon-creating reactions (SAS,BHH,MJE)
 
 v11-02a (Mar 2017)
 ----------------------
@@ -30,66 +90,10 @@ v11-02a (Mar 2017)
        mechanism (Goliff et al., 2013), lumping terpenes with one double bond
        (alpha-pinene, beta-pinene, sabinene, delta-3-carene) into one proxy.
 
-v11-02c (Jul 2017)
-----------------------
+v11-01g
+-------
 
- (1) Add isoprene SOA updates from Marais2016 (EAM,MPS)
- (2) Update isoprene and monoterpene chemistry (KRT,JAF,CCM,EAM,KHB,RHS)
-      - Based on Travis2016, Fisher2016, ChanMiller2017, Marais2016
-      - Add Bates2014 epoxide scheme
-      - Update isoprene nitrate chemistry following Lee2014
-      - Add Muller2014 fast photolysis of carbonyl nitrates
-      - Add HNO2 chemistry from Lee2014
-      - Updated product yields and rx rate for RIO2+RIO2 (Xie2013)
- (3) Add fixes for carbon-creating reactions (SAS,BHH,MJE)
-
-v11-02d (Sep 2017)
-----------------------
-
- (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
- (2) Add HOBr + S(IV) from Chen2017 (QJC)
-
-12.6.0 (Jul 2019)
------------------------
-
- (1) Add photolysis of NITs (off by default) (TMS, PK)
- (2) Aerosol heterogeneous uptake for NOx (CDH)
-
-12.7.0 (Dec 2019)
------------------------
- (1) Add MENO3, ETNO3, PRNO3 chemistry from Fisher2018 (JAF)
- (2) Remove old MNO3 (same as MENO3 but not actually used (JAF)
- (3) Add "OTHRO2" that is equivalent to ETO2 but is not derived from C2H6
-     oxidation. Necessary to prevent overestimates of ETNO3. All ETO2
-     reactions are duplicated except ETO2+NO->ETNO3 channel (JAF)
- (4) Add MOH as active species (XC, DBM)
-
-12.8.0 (Feb 2020)
-----------------------
- (1) Update isoprene chemistry from Bates2019 (KHB)
-
-Version 13.y.z (actual version TBA) (Dec 2020 onward)
------------------------------------------------------
- (1) Use double precision numeric constants to each numeric value (e.g.
-     1.0d0 instead of 1.0e0).  This will prevent having to call the DBLE()
-     functions in the rate law functions, which wastes CPU cycles, and
-     also is a "lossy" conversion. (BMY)
-
-13.3.0 (Sep 2021)
-------------------
-  (1) Added HMS chemistry (Moch2020)
-       -- note, currently done in sulfate_mod, equations are commented out
-  (2) Added C2H2/C2H4 chemistry (Kwon2020)
-  (3) Added CH3O2 + OH reaction (Bates2021a)
-  (4) Added sulfur reactions for future development (commented out)
-  (5) Added aromatic SOA reactions (Bates2021b)
-
-14.1.0
-------
-  (1) Added MO2 + NO3 reaction (IUPAC ROO_19)
-  (2) Bug fix: the "a" coefficient in rxn ETO = HO2 + 2.000CH2O was changed
-      from 9.5d-13 (incorrect) to 9.5d+13.  See geoschem/geos-chem #1274.
-  (3) Bug fixes: HOBr + SO2 and HOCl + SO2 should produce SO4 (not SO4s)
+ (1) Initial version for FlexChem (MSL,MJE,MPS,EWL)
 
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
@@ -123,6 +127,7 @@ RHS : Rebecca Schwantes;       rschwant@caltech.edu
 SAS : Sarah Safieddine;        sarahsaf@mit.edu
 SDE : Sebastian Eastham;       seastham@seas.harvard.edu
 TMS : Tomas Sherwen;           tomas.sherwen@york.ac.uk
+TSC : Therese Carter;          tscarter@mit.edu
 XC  : Xin Chen;                chen3849@umn.edu
 XW  : Xuan Wang;               wangx@seas.harvard.edu
 
@@ -136,6 +141,7 @@ REFERENCES (alphabetical order)
 * Bates2021b:   Bates et al, ACP, https://doi.org/10.5194/acp-2021-605, 2021.
 * Browne2011:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-11-4209-2011, 2011.
 * Browne2014:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-14-1225-2014, 2014.
+* Carter2022:   Carter et al., Atmos. Chem. Phys., doi:10.5194/acp-22-12093-2022, 2022.
 * Chen2017:     Chen et al., Geophys. Res. Lett., doi:10.1002/2017GL073812, 2017.
 * Crounse2012:  Crounse et al., J. Phys. Chem. A, doi:10.1021/jp211560u, 2012.
 * Eastham2014:  Eastham et al., Atmos. Env., doi:10.1016/j.atmosenv.2014.02.001, 2014.
@@ -212,6 +218,7 @@ BrO        = IGNORE; {BrO; Bromine monoxide}
 BRO2       = IGNORE; {C6H5O2 ; Peroxy radical from BENZ oxidation}
 BrSALA     = IGNORE; {Br; Fine sea salt bromine}
 BrSALC     = IGNORE; {Br; Course sea salt bromine}
+BUTDI      = IGNORE; {Butenedial}
 BZCO3      = IGNORE; {benzoylperoxy radical}
 BZCO3H     = IGNORE; {perbenzoic acid}
 BZPAN      = IGNORE; {peroxybenzoyl nitrate}
@@ -262,6 +269,7 @@ ETO        = IGNORE; {hydroxy-alkoxy-ethane radical}
 ETOO       = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
 ETP        = IGNORE; {CH3CH2OOH; Ethylhydroperoxide}
+FURA       = IGNORE; {FURAN conglomerate}
 GLYC       = IGNORE; {HOCH2CHO; Glycoaldehyde}
 GLYX       = IGNORE; {CHOCHO; Glyoxal}
 H          = IGNORE; {H; Atomic hydrogen}
@@ -1481,6 +1489,7 @@ TRO2 + NO  = NO + LTRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0)
 XRO2 + HO2 = HO2 + LXRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 XRO2 + NO  = NO + LXRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
 MO2  + NO3 = NO2 + CH2O + HO2 :              1.20d-12;                                                                         {2022/10/18: IUPAC ROO_19; KHB,BMY}
+FURA + OH = BUTDI :                          GCARR_ac(1.32d-11,334.0d0);                                                       {2023/02/07; Carter2022; TSC}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Heterogeneous chemistry reactions                               %%%%%
