@@ -162,7 +162,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug,   IsLocNoon, Size_Res, Failed2x
+    LOGICAL                :: IsLocNoon, Size_Res, Failed2x
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
@@ -241,7 +241,6 @@ CONTAINS
     ErrMsg    =  ''
     ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
     SpcInfo   => NULL()
-    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Day       =  Get_Day()    ! Current day
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
@@ -388,7 +387,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after FAST_JX' )
     ENDIF
 
@@ -1571,7 +1570,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### Do_FullChem: after OHSAVE' )
        ENDIF
     ENDIF
@@ -1589,7 +1588,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after Diag_Metrics' )
     ENDIF
 
@@ -1630,12 +1629,12 @@ CONTAINS
     ! photolysis approximations outside the chemistry grid
     !=======================================================================
     CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
     ENDIF
 
     CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
 
@@ -1685,8 +1684,8 @@ CONTAINS
     ! Exit if we are not on the first chemistry timestep
     IF ( .not. FirstChem ) RETURN
 
-    ! Print on the root CPU only
-    IF ( Input_Opt%AmIRoot ) THEN
+    ! Print on the root CPU only (only if debug printout is on)
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Write header
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -2537,7 +2536,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: KppId,    N
-    LOGICAL            :: prtDebug
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
@@ -2559,10 +2557,9 @@ CONTAINS
     !=======================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Debug output
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 100 )
 100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays' )
 

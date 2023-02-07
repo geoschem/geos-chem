@@ -134,7 +134,6 @@ CONTAINS
     INTEGER            :: MONTH
     INTEGER            :: YEAR
     INTEGER            :: WAVELENGTH
-    LOGICAL            :: prtDebug
     INTEGER            :: TS_Chem
     REAL(f8)           :: DT_Chem, sDTFC, fDTFC
 #ifdef APM
@@ -156,7 +155,6 @@ CONTAINS
     ! Initialize
     RC        = GC_SUCCESS
     ErrMsg    = ''
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ThisLoc   = ' -> at Do_Chemistry  (in module GeosCore/chemistry_mod.F90)'
 
     ! Save species ID"s on first call
@@ -1058,7 +1056,7 @@ CONTAINS
           ENDIF
 
           !### Debug
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL Debug_Msg( '### MAIN: a CHEMISTRY' )
           ENDIF
 
@@ -1182,7 +1180,6 @@ CONTAINS
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
     LOGICAL            :: LCARB, LCHEM,  LDUST
     LOGICAL            :: LSSALT, LSULF, LSOA
-    LOGICAL            :: prtDebug
     INTEGER            :: MONTH, YEAR,   WAVELENGTH
 
     ! Strings
@@ -1196,7 +1193,6 @@ CONTAINS
     RC       = GC_SUCCESS
     MONTH    = GET_MONTH()
     YEAR     = GET_YEAR()
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at Recompute_OD  (in module GeosCore/chemistry_mod.F90)'
 
@@ -1241,7 +1237,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL Debug_Msg( '### RECOMPUTE_OD: after RDAER' )
              ENDIF
 
@@ -1270,7 +1266,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
              ENDIF
           ENDIF
@@ -1331,7 +1327,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtDebug
     LOGICAL             :: Is_HalfLife
     INTEGER             :: I,       J,      L
     INTEGER             :: N,       GCId,   Id
@@ -1353,7 +1348,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F90)'
@@ -1404,7 +1398,7 @@ CONTAINS
 
        !### Debug output
        IF ( First ) THEN
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
                             GcId, Rate
  100         FORMAT( '     -  Pass. species name, Id, loss rate: ',          &

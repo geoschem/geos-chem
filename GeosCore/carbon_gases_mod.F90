@@ -163,7 +163,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Ptr2D    => NULL()
     Spc      => NULL()
     errMsg   =  ''
@@ -253,7 +252,7 @@ CONTAINS
        CH4_EMIS_J(:,:,1) = SUM( CH4_EMIS_J, 3 )                              &
                          - ( 2.0_fp * CH4_EMIS_J(:,:,15) )
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
           WRITE(*,*) 'Total        : ', SUM( CH4_EMIS_J(:,:,1 ) )
           WRITE(*,*) 'Oil          : ', SUM( CH4_EMIS_J(:,:,2 ) )

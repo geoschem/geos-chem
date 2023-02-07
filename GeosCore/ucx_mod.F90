@@ -313,9 +313,6 @@ CONTAINS
     LOGICAL              :: CYCLEBOX
     CHARACTER(LEN=255)   :: DBGMSG
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL              :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
@@ -325,9 +322,6 @@ CONTAINS
     !=================================================================
     ! UCX_NOX begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to GEOS-Chem species array
     Spc => State_Chm%Species
@@ -587,7 +581,7 @@ CONTAINS
     ENDDO ! L
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        ! Print mean NOx tendency in mesosphere
        DBGMSG = ' ### UCX_NOX: Mesospheric NOx processed'
        CALL DEBUG_MSG(TRIM(DBGMSG))
@@ -676,15 +670,9 @@ CONTAINS
     TYPE(FILE_DESC_T)  :: ncid
 #endif
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL                               :: prtDebug
-
     !=================================================================
     ! GET_NOXCOEFF begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Clear interpolated arrays
     NOX_O = 0e+0_fp
@@ -1438,18 +1426,12 @@ CONTAINS
     REAL(fp)           :: INVAIR
     REAL(fp)           :: SO4_MW_G
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL            :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CALC_H2SO4_GAS begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = Input_Opt%LPRT .and. Input_Opt%amIRoot
 
     ! Copy fields from species database
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
@@ -1520,7 +1502,9 @@ CONTAINS
     ! Free pointer
     NULLIFY( Spc )
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
+    ENDIF
 
   END SUBROUTINE CALC_H2SO4_GAS
 !EOC
@@ -1694,7 +1678,6 @@ CONTAINS
     INTEGER                 :: I, J, L, K
 
     ! Local variables for quantities from Input_Opt
-    LOGICAL                 :: prtDebug
     LOGICAL                 :: LHOMNUCNAT
     LOGICAL                 :: LSOLIDPSC
     LOGICAL                 :: LACTIVEH2O
@@ -1719,9 +1702,6 @@ CONTAINS
     LSOLIDPSC   = Input_Opt%LSOLIDPSC
     LACTIVEH2O  = Input_Opt%LACTIVEH2O
 
-    ! Do we have to print debug output?
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
     ! Copy fields from species database
     NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%MW_g   ! g/mol
     HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%MW_g  ! g/mol
@@ -1736,7 +1716,7 @@ CONTAINS
     ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
     STATE_PSC => State_Chm%STATE_PSC
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
     ENDIF
 
@@ -4011,7 +3991,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug, FileExists
+    LOGICAL            :: FileExists
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
@@ -4030,9 +4010,6 @@ CONTAINS
     !=================================================================
     ! NOXCOEFF_INIT begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! --------------------------------------------------------------
     ! Input data sources
@@ -4190,7 +4167,7 @@ CONTAINS
           CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', TRIM( NOX_FILE )
           CALL DEBUG_MSG( TRIM(DBGMSG) )
        ENDIF
@@ -4349,9 +4326,6 @@ CONTAINS
     REAL(fp)           :: JRATIO
     REAL(fp)           :: DEG_SUM
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL            :: prtDebug
-
     ! Strings
     CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
 
@@ -4365,9 +4339,6 @@ CONTAINS
     ! Exit unless we are doing a full-chemistry or aerosol-only simulation
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM                            .and. &
          .not. Input_Opt%ITS_AN_AEROSOL_SIM ) RETURN
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize species ID flags
     id_BCPI  = Ind_('BCPI'      )
@@ -4390,7 +4361,7 @@ CONTAINS
     id_SO4   = Ind_('SO4'       )
 
     ! Print info
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6,'(a)') REPEAT( '=', 79 )
        WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
        WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
@@ -4572,7 +4543,7 @@ CONTAINS
        ENDIF
 
        !! Debug
-       !IF ( prtDebug ) THEN
+       !IF ( Input_Opt%Verbose ) THEN
        !   WRITE(DBGMSG,'(a,I03,a,3(F6.2,x))') '### UCX: Exgrid: J-', &
        !     JOUT, '->',JMIN_OUT,JMAX_OUT,JDIF_OUT
        !   CALL DEBUG_MSG( TRIM(DBGMSG) )

@@ -2139,23 +2139,23 @@ CONTAINS
     !========================================================================
     ! Print out the list of registered fields
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 10 )
  10    FORMAT( /, 'Registered variables contained within the State_Chm object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
+       
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Chm%Registry,                &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
 
-    ! Print registered fields
-    CALL Registry_Print( Input_Opt   = Input_Opt,             &
-                         Registry    = State_Chm%Registry,    &
-                         ShortFormat = .TRUE.,                &
-                         RC          = RC                    )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in routine "Registry Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
@@ -2164,11 +2164,6 @@ CONTAINS
 
     ! Free pointer for safety's sake
     ThisSpc => NULL()
-
-    ! Echo output
-    IF ( Input_Opt%amIRoot ) THEN
-       print*, REPEAT( '#', 79 )
-    ENDIF
 
     ! Format statement
 100 FORMAT( I3, 2x, A31 )
@@ -2217,10 +2212,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: C,      N
+    INTEGER                :: C,       N
 
     ! Strings
-    CHARACTER(LEN=255)     :: errMsg, thisLoc
+    CHARACTER(LEN=10 )     :: inds(6)
+    CHARACTER(LEN=255)     :: errMsg,  thisLoc
 
     ! Objects
     TYPE(Species), POINTER :: ThisSpc
@@ -2370,9 +2366,11 @@ CONTAINS
     ! Set up the species mapping vectors
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
-       WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
-       WRITE( 6,'(  a)' ) '  #  Species Name'
+       WRITE( 6,'(  a)' ) REPEAT( '=', 79 )
+       WRITE( 6,'(a,/)' ) 'SPECIES NAMES AND INDICES'
+       WRITE( 6,'(  a)' ) &
+ 'Name               ModelId  DryDepId  WetDepId  PhotolId HygGrthId  KppSpcId'
+       WRITE( 6,'(  a)' ) REPEAT( '-', 79 )
     ENDIF
 
     ! Loop over all species
@@ -2389,13 +2387,6 @@ CONTAINS
           ! Update the mapping vector of advected species
           C                       = ThisSpc%AdvectId
           State_Chm%Map_Advect(C) = ThisSpc%ModelId
-
-          ! Print to screen
-          IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name
- 100         FORMAT( I3, 2x, A31 )
-          ENDIF
-
        ENDIF
 
        !---------------------------------------------------------------------
@@ -2490,10 +2481,29 @@ CONTAINS
           State_Chm%Map_WetDep(C) = ThisSpc%ModelId
        ENDIF
 
+       !---------------------------------------------------------------------
+       ! Write out species names and IDs
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%amIRoot ) THEN
+          inds = '         -'
+          IF ( ThisSpc%ModelId   > 0 ) WRITE( inds(1), 100 ) ThisSpc%ModelId
+          IF ( ThisSpc%DryDepId  > 0 ) WRITE( inds(2), 100 ) ThisSpc%DryDepId
+          IF ( ThisSpc%WetDepId  > 0 ) WRITE( inds(3), 100 ) ThisSpc%WetDepId
+          IF ( ThisSpc%PhotolId  > 0 ) WRITE( inds(4), 100 ) ThisSpc%PhotolId
+          IF ( ThisSpc%HygGrthId > 0 ) WRITE( inds(5), 100 ) ThisSpc%HygGrthId
+          IF ( ThisSpc%KppSpcId  > 0 ) WRITE( inds(6), 100 ) ThisSpc%KppSpcId
+          WRITE( 6, 110 ) ThisSpc%Name(1:14), ( inds(C), C=1,6               )
+ 100      FORMAT( i10                                                        )
+ 110      FORMAT( a14, 2x, 6a10                                              )
+       ENDIF
+
        ! Free pointer
        ThisSpc => NULL()
 
     ENDDO
+
+    ! Write closing line
+    WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
 
     !------------------------------------------------------------------------
     ! Set up the mapping for UVFlux Diagnostics

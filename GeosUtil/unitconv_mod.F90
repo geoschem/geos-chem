@@ -200,7 +200,7 @@ CONTAINS
     IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units
 
     ! Debugging print
-    IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,'(a)') '     ### Species Unit Conversion: ' // &
                       TRIM(InUnit) // ' -> ' // TRIM(OutUnit) // ' ###'
     ENDIF
