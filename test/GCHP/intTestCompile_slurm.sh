@@ -124,6 +124,12 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     for runDir in *; do
 	expr=$(is_gchp_rundir "${root}/${runDir}")
 	if [[ "x${expr}" == "xTRUE" ]]; then
+
+	    # BMY KLUDGE!  Change EFYO to CYS in HEMCO_Config.rc
+	    # We will make the same chane in 14.1.1
+	    #  -- Bob Yantosca (08 Feb 2023)
+	    sed_ie 's/EFYO/CYS/' ${root}/${rundir}/HEMCO_Config.rc
+	    
 	    jobId=$(submit_gchp_slurm_job ${root} ${runDir} ${jobId})
 	    print_to_log "${runDir} submitted as job ${jobId}" ${log}
 	fi

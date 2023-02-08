@@ -106,6 +106,11 @@ for runDir in *; do
 	    # Copy the executable file here
 	    cp -f ${root}/exe_files/${exeFile} .
 
+	    # BMY KLUDGE!  Change EFYO to CYS in HEMCO_Config.rc
+	    # We will make the same chane in 14.1.1
+	    #  -- Bob Yantosca (08 Feb 2023)
+	    sed_ie 's/EFYO/CYS/' ./HEMCO_Config.rc
+
 	    # Run the code if the executable is present.  Then update the
 	    # pass/fail counters and write a message to the results log file.
 	    srun -c ${OMP_NUM_THREADS} ./${exeFile} >> ${log} 2>&1
