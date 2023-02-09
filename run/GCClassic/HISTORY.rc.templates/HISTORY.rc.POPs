@@ -7,7 +7,7 @@
 # EXPID allows you to specify the beginning of the file path corresponding
 # to each diagnostic collection.  For example:
 #
-#   EXPID: ./GEOSChem 
+#   EXPID: ./GEOSChem
 #      Will create netCDF files whose names begin "GEOSChem",
 #      in this run directory.
 #
@@ -33,8 +33,8 @@ COLLECTIONS: 'Restart',
              #'Budget',
              #'CloudConvFlux',
              #'DryDep',
-             #'LevelEdgeDiags',      
-             #'StateMet',      
+             #'LevelEdgeDiags',
+             #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
              #'BoundaryConditions',
@@ -59,19 +59,25 @@ COLLECTIONS: 'Restart',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
                               'Met_DELPDRY                    ',
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              #'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -86,24 +92,24 @@ COLLECTIONS: 'Restart',
   Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
   Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
-  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
-                       'BudgetEmisDryDepTrop_?ADV?           ',  
-                       'BudgetEmisDryDepPBL_?ADV?            ',  
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
                        'BudgetChemistryFull_?ADV?            ',
                        'BudgetChemistryTrop_?ADV?            ',
-                       'BudgetChemistryPBL_?ADV?             ',  
+                       'BudgetChemistryPBL_?ADV?             ',
                        'BudgetTransportFull_?ADV?            ',
                        'BudgetTransportTrop_?ADV?            ',
-                       'BudgetTransportPBL_?ADV?             ',  
+                       'BudgetTransportPBL_?ADV?             ',
                        'BudgetMixingFull_?ADV?               ',
                        'BudgetMixingTrop_?ADV?               ',
-                       'BudgetMixingPBL_?ADV?                ',    
+                       'BudgetMixingPBL_?ADV?                ',
                        'BudgetConvectionFull_?ADV?           ',
                        'BudgetConvectionTrop_?ADV?           ',
-                       'BudgetConvectionPBL_?ADV?            ',  
+                       'BudgetConvectionPBL_?ADV?            ',
                        'BudgetWetDepFull_?WET?               ',
                        'BudgetWetDepTrop_?WET?               ',
-                       'BudgetWetDepPBL_?WET?                ',  
+                       'BudgetWetDepPBL_?WET?                ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -215,7 +221,6 @@ COLLECTIONS: 'Restart',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
                               'Met_LAI                       ',
-                              'Met_LWI                       ',
                               'Met_PARDR                     ',
                               'Met_PARDF                     ',
                               'Met_PBLTOPL                   ',

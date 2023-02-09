@@ -65,7 +65,11 @@ Warnings:                    1
     --> AMAP_COMB              :       false    # 2010
     --> AMAP_INDS              :       false    # 2010
     --> AMAP_INTW              :       false    # 2010
-    --> WHET                   :       true     # 2010
+    --> GMA_ASGM               :       true     # 2015
+    --> GMA_POWERGEN           :       true     # 2015
+    --> GMA_INDS               :       true     # 2015
+    --> GMA_INTW               :       true     # 2015
+    --> WHET                   :       false    # 2010
     --> STREETS                :       false    # 2015
     --> ARTISANAL              :       false    # 1985
     --> NATURAL                :       true     # 1985
@@ -86,10 +90,6 @@ Warnings:                    1
     --> EDGAR_WASTE            :       false    # 1970-2012
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> OXIDANT_FIELDS         :       true     # 2010-2019
-    --> BrOx_GC                :       true     # 2010-2019
-    --> JBrO                   :       true     # 2010-2019
-    --> LRED_JNO2              :       true     # 2005
-    --> AERO_HG2_PARTITION     :       true     # 2010-2019
     --> OCEAN_Hg               :       true     # 1985,2003,2009
     --> TOMS_SBUV_O3           :       true     # 1971-2010
     --> LHALOGENCHEM           :       true
@@ -132,6 +132,37 @@ Warnings:                    1
 #==============================================================================
 # NOTE: HgP emissions must be added as Hg2 emissions under the Species column
 #==============================================================================
+
+#==============================================================================
+# --- GMA 2018 emissions ---
+#
+#  NOTES:
+#  - HgP emissions are added to Hg2 emissions!
+#  - Hg2 and HgP emissions are 0 everywhere for ASGM source and are not read
+#==============================================================================
+(((GMA_ASGM
+0 GMA_ASGM_HG0     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_asgm 2015/1/1/0 C xy kg/m2/s Hg0    - 8 1
+#0 GMA_ASGM_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_asgm 2015/1/1/0 C xy *       HgCl2  - 8 1
+#0 GMA_ASGM_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_asgm 2015/1/1/0 C xy *       Hg2ClP - 8 1
+)))GMA_ASGM
+
+(((GMA_INDS
+0 GMA_IND_HG0      $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_inds 2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 GMA_IND_HG2      $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_inds 2015/1/1/0 C xy *       HgCl2  - 1 1
+0 GMA_IND_HGP      $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_inds 2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))GMA_INDS
+
+(((GMA_INTW
+0 GMA_INTW_HG0     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_intw 2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 GMA_INTW_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_intw 2015/1/1/0 C xy *       HgCl2  - 1 1
+0 GMA_INTW_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_intw 2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))GMA_INTW
+
+(((GMA_POWERGEN
+0 GMA_POWERGEN_HG0 $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_pg   2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 GMA_POWERGEN_HG2 $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_pg   2015/1/1/0 C xy *       HgCl2  - 1 1
+0 GMA_POWERGEN_HGP $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_pg   2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))GMA_POWERGEN
 
 #==============================================================================
 # --- AMAP/UNEP emissions ---
@@ -369,8 +400,8 @@ Warnings:                    1
 # --- QFED2 biomass burning ---
 #==============================================================================
 (((QFED2
-0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
-0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
+0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
+0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
 )))QFED2
 
 ###############################################################################
@@ -476,11 +507,11 @@ Warnings:                    1
 (((CHEMISTRY_INPUT
 
 #==============================================================================
-# --- Oxidant fields ---
+# --- Oxidant fields (from GEOS-Chem 13.0.0 10-yr benchmark output) ---
 #==============================================================================
 (((OXIDANT_FIELDS
 
-# --- 2016 oxidant fields [molec/cm3] ---
+# --- Oxidant fields [molec/cm3], for 2010-2019 ---
 # Consider supplying other years as necessary
 ${RUNDIR_Hg_GLOBAL_Br}
 ${RUNDIR_Hg_GLOBAL_BrO}
@@ -494,7 +525,7 @@ ${RUNDIR_Hg_GLOBAL_NO2}
 ${RUNDIR_Hg_GLOBAL_O3}
 ${RUNDIR_Hg_GLOBAL_OH}
 
-# --- 2016 aerosol optical depths [unitless] ---
+# --- Aerosol optical depths [unitless], for 2010-2019 ---
 # Consider supplying other years as necessary
 ${RUNDIR_Hg_GLOBAL_AOD_BC}     
 ${RUNDIR_Hg_GLOBAL_AOD_BGSULF} 
@@ -511,7 +542,7 @@ ${RUNDIR_Hg_GLOBAL_AOD_SO4}
 ${RUNDIR_Hg_GLOBAL_AOD_SSA}    
 ${RUNDIR_Hg_GLOBAL_AOD_SSC}    
 
-# --- 2016 aerosol areas [cm2/cm3] ---
+# --- Aerosol areas [cm2/cm3], for 2010-2019 ---
 # Consider supplying other years as necessary
 ${RUNDIR_Hg_GLOBAL_AREA_BC}     
 ${RUNDIR_Hg_GLOBAL_AREA_BGSULF} 
@@ -528,7 +559,7 @@ ${RUNDIR_Hg_GLOBAL_AREA_SO4}
 ${RUNDIR_Hg_GLOBAL_AREA_SSA}    
 ${RUNDIR_Hg_GLOBAL_AREA_SSC}   
 
-# --- 2016 aerosol radii [cm] ---
+# --- Aerosol radii [cm], for 2010-2019 ---
 # Consider supplying other years as necessary
 ${RUNDIR_Hg_GLOBAL_RADI_BC}     
 ${RUNDIR_Hg_GLOBAL_RADI_BGSULF} 
@@ -553,43 +584,6 @@ ${RUNDIR_Hg_GLOBAL_OCEAN}
 ${RUNDIR_Hg_GLOBAL_PM25}
 ${RUNDIR_Hg_GLOBAL_RH}
 )))OXIDANT_FIELDS
-
-#==============================================================================
-# --- BrOx fields --
-#==============================================================================
-(((BrOx_GC
-${RUNDIR_Br_GC}
-${RUNDIR_BrO_GC}
-)))BrOx_GC
-
-(((.not.BrOx_GC
-${RUNDIR_Br_TOMCAT}
-${RUNDIR_BrO_TOMCAT}
-))).not.BrOx_GC
-
-#==============================================================================
-# --- J-value fields ---
-#==============================================================================
-(((JBrO
-${RUNDIR_JBrO}
-)))JBrO
-(((LRED_JNO2
-${RUNDIR_JNO2}
-)))LRED_JNO2
-
-#==============================================================================
-# --- Aerosol data for Hg2 partitioning ---
-#==============================================================================
-(((AERO_HG2_PARTITION
-${RUNDIR_AERO_SO4}
-${RUNDIR_AERO_NH4}
-${RUNDIR_AERO_NIT}
-${RUNDIR_AERO_BCPI}
-${RUNDIR_AERO_BCPO}
-${RUNDIR_AERO_OCPI}
-${RUNDIR_AERO_OCPO}
-${RUNDIR_AERO_DST1}
-)))AERO_HG2_PARTITION
 
 #==============================================================================
 # --- Data for the ocean mercury module ---

@@ -114,7 +114,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Chemical species
      !-----------------------------------------------------------------------
-     TYPE(SpcConc),     POINTER :: Species (:      ) ! Vector for species
+     TYPE(SpcConc),     POINTER :: Species (:      )    ! Vector for species
                                                         ! concentrations
                                                         !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
@@ -271,6 +271,14 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
+
+     !-----------------------------------------------------------------------
+     ! Fields for CH4 specialty simulation
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: BOH        (:,:,:  ) ! OH values [molec/cm3]
+     REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
+     REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  ) ! CH4 emissions [kg/m2/s].
+                                                        ! third dim is cat, total 15
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -459,6 +467,9 @@ CONTAINS
     State_Chm%TO3_DAILY         => NULL()
     State_Chm%TOMS1             => NULL()
     State_Chm%TOMS2             => NULL()
+    State_Chm%BOH               => NULL()
+    State_Chm%BCl               => NULL()
+    State_Chm%CH4_EMIS          => NULL()
     State_Chm%SFC_CH4           => NULL()
 
     ! Emissions and drydep quantities
@@ -805,14 +816,18 @@ CONTAINS
     !========================================================================
     ! Allocate and initialize chemical species fields
     !========================================================================
-
-    ! Allocate the array
     ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
+#if defined ( MODEL_GCHPCTM )
+       ! Species concentration array pointers will be set to point to MAPL internal state
+       ! every timestep when intstate level values are flipped to match GEOS-Chem standard
+       State_Chm%Species(N)%Conc => NULL()
+#else
        ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
                                             State_Grid%NY, &
                                             State_Grid%NZ ), STAT=RC )
        State_Chm%Species(N)%Conc = 0.0_f8
+#endif
     ENDDO
 
 #ifdef ADJOINT
@@ -1579,13 +1594,11 @@ CONTAINS
     ENDIF ! ITS_A_FULLCHEM_SUM or ITS_AN_AEROSOL_SIM
 
     !========================================================================
-    ! Allocate and initialize fields only needed for FULLCHEM simulations
+    ! Allocate and initialize KPPHvalue (used by KPP-based simulations)
     !========================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                              &
+         Input_Opt%ITS_A_MERCURY_SIM     ) THEN
 
-       !---------------------------------------------------------------------
-       ! KPPHvalue
-       !---------------------------------------------------------------------
        chmId = 'KPPHvalue'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -1600,6 +1613,12 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Allocate and initialize fields for FULLCHEM or MERCURY simulations
+    !========================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        !---------------------------------------------------------------------
        ! STATE_PSC (polar stratospheric clouds)
@@ -2087,6 +2106,59 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "Init_Hg_Simulation_Fields"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! Initialize State_Chm quantities pertinent to CH4 simulations
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+        ! CH4_EMIS
+        chmId = 'CH4_EMIS'
+        CALL Init_and_Register(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%CH4_EMIS,                                 &
+            nSlots     = 15,                                                 &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       ! Global OH and Cl from HEMCO input
+       chmId = 'BOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%BOH,                                      &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       chmId = 'BCl'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%BCl,                                      &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
     ENDIF
@@ -2906,15 +2978,17 @@ CONTAINS
     IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
        DO N = 1, State_Chm%nSpecies
           IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
+#if !defined( MODEL_GCHPCTM )
              DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
              IF ( RC /= GC_SUCCESS ) RETURN
+#endif
              State_Chm%Species(N)%Conc => NULL()
           ENDIF
        ENDDO
        DEALLOCATE( State_Chm%Species )
        CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%Species => NULL()    
+       State_Chm%Species => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
@@ -3322,6 +3396,27 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%TLSTT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%TLSTT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BOH ) ) THEN
+       DEALLOCATE( State_Chm%BOH, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BOH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BOH => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCl ) ) THEN
+       DEALLOCATE( State_Chm%BCl, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCl', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BCl => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%CH4_EMIS ) ) THEN
+       DEALLOCATE( State_Chm%CH4_EMIS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH4_EMIS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%CH4_EMIS => NULL()
     ENDIF
 
 #ifdef LUO_WETDEP
@@ -4311,6 +4406,21 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
+
+       CASE( 'CH4_EMIS' )
+          IF ( isDesc  ) Desc  = 'CH4 emissions by sector, CH4 specialty simulation only'
+          IF ( isUnits ) Units = 'kg/m2/s'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'BOH' )
+          IF ( isDesc  ) Desc  = 'OH values, CH4 specialty simulation only'
+          IF ( isUnits ) Units = 'molec/cm3'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'BCL' )
+          IF ( isDesc  ) Desc  = 'Cl values, CH4 specialty simulation only'
+          IF ( isUnits ) Units = 'v/v'
+          IF ( isRank  ) Rank  = 3
 
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
@@ -6446,7 +6556,8 @@ CONTAINS
        ! array fields of the State_Diag object (e.g. ProdCOfromISOP, etc.)
        State_Chm%nProd = 0
 
-    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
+              Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !------------------------------
        ! Tagged O3 simulation
@@ -6599,7 +6710,8 @@ CONTAINS
        State_Chm%Name_Prod => NULL()
        State_Chm%Map_Prod  => NULL()
 
-    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
+              Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !--------------------------------------------------------------------
        ! Tagged O3 simulations

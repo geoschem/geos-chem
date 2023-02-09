@@ -55,9 +55,6 @@ MODULE Chem_GridCompMod
   USE Input_Opt_Mod                                  ! Input Options obj
   USE GCHP_Chunk_Mod                                 ! GCHP IRF methods
   USE GCHP_HistoryExports_Mod
-#if !defined( MODEL_GEOS )
-  USE GCHP_ProviderServices_Mod
-#endif
   USE ErrCode_Mod                                    ! Error numbers
   USE State_Chm_Mod                                  ! Chemistry State obj
   USE State_Diag_Mod                                 ! Diagnostics State obj
@@ -148,9 +145,6 @@ MODULE Chem_GridCompMod
   ! When to do the analysis
   INTEGER                          :: ANAPHASE
   INTEGER, PARAMETER               :: CHEMPHASE = 2
-#else
-  LOGICAL                          :: isProvider ! provider to AERO, RATS, ANOX?
-  LOGICAL                          :: calcOzone  ! if PTR_GCCTO3 is associated
 #endif
 
   ! Number of run phases, 1 or 2. Set in the rc file; else default is 2.
@@ -176,9 +170,6 @@ MODULE Chem_GridCompMod
 
   ! Pointers to import, export and internal state data. Declare them as
   ! module variables so that we have to assign them only on first call.
-  ! NOTE: Any provider-related exports (e.g. H2O_TEND) are now handled within
-  ! gchp_providerservices_mod.F90. Pointers are manually declared there and
-  ! those declared in the .h file included below are not used. (ewl, 11/3/2017)
 
 #if defined( MODEL_GEOS )
 # include "GEOSCHEMCHEM_DeclarePointer___.h"
@@ -553,7 +544,8 @@ CONTAINS
     DO WHILE ( LEN_TRIM( line ) > 0 )
        READ( IU_GEOS, '(a)', IOSTAT=IOS ) LINE
        EOF = IOS < 0
-       IF ( EOF ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
+       IF ( EOF ) EXIT !Simply exit when the file ends (bmy, 12 Jan 2023)
+       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
        LINE = ADJUSTL( ADJUSTR( LINE ) )
        IF ( INDEX( LINE, 'passive_species' ) > 0 ) EXIT
        CALL STRSPLIT( LINE, '-', SUBSTRS, N )
@@ -641,9 +633,12 @@ CONTAINS
     ENDDO
     CLOSE( IU_GEOS )
 
-!-- Add all additional species in KPP (careful not to add dummy species)
-    ! Hg is now a KPP specialty simulation, so we need to get KPP species
-    IF ( TRIM( simType ) == 'fullchem' .or. TRIM( simType ) == 'Hg' ) THEN
+!-- Add all non-advected species from KPP-based simulations
+!-- (but don't add dummy species).  KPP-based simulations now
+!-- include fullchem, Hg, and carbon.
+    IF ( TRIM( simType ) == 'fullchem'      .or.                            &
+         TRIM( simType ) == 'Hg'            .or.                            &
+         TRIM( simType ) == 'carbon' ) THEN
        DO I=1,NSPEC
           FOUND = .false.
 
@@ -958,8 +953,6 @@ CONTAINS
     ! Analysis options
     CALL GEOS_AnaInit( am_I_Root, GC, myState%myCF, ANAPHASE, __RC__ )
 
-#else
-    CALL Provider_SetServices( MAPL_am_I_Root(), GC, isProvider, __RC__ )
 #endif
 
     ! OLSON
@@ -1372,6 +1365,7 @@ CONTAINS
                           nhmsE     = nhmsE,      & ! hhmmss   @ end of run
                           tsChem    = tsChem,     & ! Chemical timestep [s]
                           tsDyn     = tsDyn,      & ! Dynamic  timestep [s]
+                          tsRad     = tsRad,      & ! RRTMG    timestep [s]
                           lonCtr    = lonCtr,     & ! Lon centers [radians]
                           latCtr    = latCtr,     & ! Lat centers [radians]
 #if !defined( MODEL_GEOS )
@@ -1403,11 +1397,6 @@ CONTAINS
        CALL GEOS_AeroInit( GC, MaplCF, INTSTATE, EXPORT, Grid, __RC__ )
     ENDIF
 
-#else
-    IF ( isProvider ) THEN
-       CALL Provider_Initialize( am_I_Root, State_Chm, State_Grid, &
-                                 INTSTATE,  EXPORT,    __RC__ )
-    ENDIF
 #endif
 
     !=======================================================================
@@ -2094,7 +2083,6 @@ CONTAINS
     TYPE(ESMF_FieldBundle)       :: trcBUNDLE
     REAL              , POINTER  :: fPtrArray(:,:,:)
     REAL(ESMF_KIND_R8), POINTER  :: fPtrVal, fPtr1D(:)
-    INTEGER                      :: IMAXLOC(1)
     INTEGER                      :: z_lb, z_ub
 
 #endif
@@ -2251,11 +2239,6 @@ CONTAINS
 
        !IF ( IsCTM ) THEN
        call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
-       !ENDIF
-
-       ! Set up pointers if GEOS-Chem is a provider
-       !IF ( isProvider ) THEN
-       CALL Provider_SetPointers( am_I_Root, EXPORT, calcOzone, __RC__ )
        !ENDIF
 
        ! Pass IMPORT/EXPORT object to HEMCO state object
@@ -2443,14 +2426,11 @@ CONTAINS
 
 #if defined( MODEL_GCHPCTM )
        !=======================================================================
-       ! Pass species from internal state to GEOS-Chem tracers array
+       ! Point GEOS-Chem species concentration arrays to internal state
        !=======================================================================
        DO I = 1, SIZE(Int2Spc,1)
           IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-          DO L = 1, State_Grid%NZ
-             State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,L) = &
-                Int2Spc(I)%Internal(:,:,State_Grid%NZ-L+1)
-          ENDDO
+          State_Chm%Species(Int2Spc(I)%ID)%Conc => Int2Spc(I)%Internal(:,:,State_Grid%NZ:1:-1)
        ENDDO
 
 #ifdef ADJOINT
@@ -2505,12 +2485,6 @@ CONTAINS
                 State_Chm%Species(IND)%Conc(:,:,:) = 1d-26
                 CYCLE
              ENDIF
-             DO L = 1, State_Grid%NZ
-                State_Chm%Species(IND)%Conc(:,:,L) = &
-                   Ptr3D_R8(:,:,State_Grid%NZ-L+1)
-             ENDDO
-             if ( MAPL_am_I_Root()) WRITE(*,*)                                &
-             'Initialized species from INTERNAL state: ', TRIM(ThisSpc%Name)
 
              ! Determine if species in restart file
              CALL ESMF_StateGet( INTERNAL, TRIM(SPFX) // TRIM(ThisSpc%Name),  &
@@ -2532,7 +2506,6 @@ CONTAINS
                       ! For all other cases, use the background value in spc db
                       State_Chm%Species(IND)%Conc(I,J,L) = ThisSpc%BackgroundVV
                    ENDIF
-                   PTR3D_R8(I,J,State_Grid%NZ-L+1) = State_Chm%Species(IND)%Conc(I,J,L)
                 ENDDO
                 ENDDO
                 ENDDO
@@ -2555,25 +2528,25 @@ CONTAINS
              State_Chm%H2O2AfterChem = Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
-          
+
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%SO2AfterChem) ) THEN
              State_Chm%SO2AfterChem = Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
-          
+
           CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
              State_Chm%DryDepNitrogen = Ptr2d_R8
           ENDIF
           Ptr2d_R8 => NULL()
-          
+
           CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%WetDepNitrogen) ) THEN
              State_Chm%WetDepNitrogen = Ptr2d_R8
           ENDIF
           Ptr2d_R8 => NULL()
-          
+
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%KPPHvalue) ) THEN
              State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev) =       &
@@ -2724,13 +2697,6 @@ CONTAINS
        IF ( PHASE /= 1 ) THEN
           CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
        ENDIF
-#else
-       IF ( calcOzone ) THEN
-          IF ( FIRST ) THEN
-             CALL CalcTotalOzone( am_I_Root, PLE, GCCTROPP, __RC__ )
-          ENDIF
-          CALL SetStateMetTO3( am_I_Root, State_Met, __RC__ )
-       ENDIF
 #endif
 
        !=======================================================================
@@ -2768,7 +2734,7 @@ CONTAINS
           IF ( Input_Opt%haveImpRst ) THEN
 #endif
 
-#if !defined( MDOEL_GEOS )
+#if !defined( MODEL_GEOS )
              ! Optional memory prints (level >= 2)
              if ( MemDebugLevel > 0 ) THEN
                 call ESMF_VMBarrier(vm, RC=STATUS)
@@ -2930,14 +2896,6 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GCHPCTM )
-       DO I = 1, SIZE(Int2Spc,1)
-          IF ( Int2Spc(I)%ID <= 0 ) CYCLE
-          DO L = 1, State_Grid%NZ
-             Int2Spc(I)%Internal(:,:,State_Grid%NZ-L+1) = &
-                State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,L)
-          ENDDO
-       ENDDO
-       ! ---
 #ifdef ADJOINT
        IF (Input_Opt%Is_Adjoint) THEN
           State_Chm%SpeciesAdj = State_Chm%SpeciesAdj(:,:,State_Grid%NZ:1:-1,:)
@@ -2950,47 +2908,121 @@ CONTAINS
        ENDIF
 #endif
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
-#endif
 
+       ! Update non-species dynamic internal state arrays post-run
+       ! every timestep, except for area which can be set first run only
+       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen)) THEN
+          Ptr2d_R8 = State_Chm%DryDepNitrogen
+       ENDIF
+       Ptr2d_R8 => NULL()
+       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%WetDepNitrogen)) THEN
+          Ptr2d_R8 = State_Chm%WetDepNitrogen
+       ENDIF
+       Ptr2d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%H2O2AfterChem)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%H2O2AfterChem
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%SO2AfterChem)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%SO2AfterChem
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%KPPHvalue)) THEN
+          Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
+          Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1)=&
+             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'AeroH2O_SNA', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%AeroH2O)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Chm%AeroH2O(:,:,1:State_Grid%NZ,NDUST+1)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'ORVCSESQ', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%ORVCsesq)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Chm%ORVCsesq(:,:,1:State_Grid%NZ)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JOH', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JOH)) THEN
+          Ptr2d_R8(:,:) = State_Chm%JOH(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JNO2', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JNO2)) THEN
+          Ptr2d_R8(:,:) = State_Chm%JNO2(:,:)
+       ENDIF
+       Ptr2D_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'STATE_PSC', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3D) .AND. ASSOCIATED(State_Chm%State_PSC)) THEN
+          Ptr3d(:,:,LM:1:-1) = State_Chm%State_PSC(:,:,:)
+       ENDIF
+       Ptr3D => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT' ,&
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%BXHEIGHT)) THEN
+          Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Met%BXHEIGHT(:,:,1:State_Grid%NZ)
+       ENDIF
+       Ptr3d_R8 => NULL()
+
+       CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF (ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%TropLev)) THEN
+          Ptr2d_R8 = State_Met%TropLev
+       ENDIF
+       Ptr2d_R8 => NULL()
+
+       ! Only update area the first timestep
+       IF ( FIRST ) THEN
+          CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'AREA', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%AREA_M2) ) THEN
+             Ptr2d_R8 = State_Met%AREA_M2
+          ENDIF
+          Ptr2d_R8 => NULL()
+       ENDIF
+#endif
        
        ! Stop timer
        ! ----------
        CALL MAPL_TimerOff(STATE, "RUN"  )
 
-#if !defined( MODEL_GEOS )
-       ! Fill bundles only on chemistry time steps and after phase 2
-       ! -----------------------------------------------------------
-       IF ( IsTendTime ) THEN
-
-          IF ( isProvider ) THEN
-             CALL Provider_FillBundles( am_I_Root, tsChem,    PLE, GCCTROPP, &
-                                        STATE,     Input_Opt, GC,  EXPORT,   &
-                                        __RC__ )
-          ENDIF
-
-          IF ( calcOzone ) THEN
-             !================================================================
-             ! Total ozone and total tropospheric ozone for export [dobsons].
-             ! 2.69E+20 per dobson.
-             !================================================================
-             CALL CalcTotalOzone( am_I_Root, PLE, GCCTROPP, __RC__ )
-          ENDIF
-
-       ENDIF ! IsTendTime
-#endif
-
     ENDIF RunningGEOSChem
-
-#if !defined( MODEL_GEOS )
-    !=======================================================================
-    ! If we were not doing chemistry, make sure that all tendencies are
-    ! zero. We ignore the tendencies that may arise due to physical
-    ! processes covered by GEOS-Chem (e.g. convection).
-    !=======================================================================
-    IF ( .NOT. IsTendTime ) THEN
-       CALL Provider_ZeroTendencies( am_I_Root, __RC__ )
-    ENDIF
-#endif
 
     !=======================================================================
     ! Copy HISTORY.rc diagnostic data to exports. Includes HEMCO emissions
@@ -3008,6 +3040,18 @@ CONTAINS
     ENDIF
     CALL CopyGCStates2Exports( am_I_Root, Input_Opt, HistoryConfig, STATUS )
     _VERIFY(STATUS)
+
+#if defined( MODEL_GCHPCTM )
+    !=======================================================================
+    ! Nullify GEOS-Chem species concentration pointers
+    !=======================================================================
+    DO I = 1, SIZE(Int2Spc,1)
+       IF ( Int2Spc(I)%ID <= 0 ) CYCLE
+       IF ( ASSOCIATED( State_Chm%Species(Int2Spc(I)%ID)%Conc ) ) THEN
+          State_Chm%Species(Int2Spc(I)%ID)%Conc => NULL()
+       ENDIF
+    ENDDO
+#endif
 
     !=======================================================================
     ! All done
@@ -3200,158 +3244,6 @@ CONTAINS
                    localPET = myPet,   &    ! PET # we are on now
                    __RC__ )
 
-#if !defined( MODEL_GEOS )
-    !=========================================================================
-    ! Archive species in internal state. Also include certain State_Chm
-    ! and State_Met arrays needed for continuity across runs (ewl, 12/13/18)
-    !=========================================================================
-
-    ! Get Internal state
-    CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
-
-    ! Loop over all species
-    DO I = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the species database
-       ThisSpc => State_Chm%SpcData(I)%Info
-
-       ! Skip if empty
-       IF ( TRIM(ThisSpc%Name) == '' ) CYCLE
-
-       ! Is this a tracer?
-       IND = IND_( TRIM(ThisSpc%Name) )
-#ifndef ADJOINT
-       IF ( IND >= 0 ) CYCLE
-#else
-       IF ( IND >= 0 ) THEN
-          ! Get data from internal state and copy to species array
-          CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(SPFX) // &
-               TRIM(ThisSpc%Name), &
-               notFoundOK=.TRUE., __RC__ )
-          IF ( .NOT. ASSOCIATED(Ptr3D_R8) .and. MAPL_am_I_Root() ) &
-               WRITE(*,999) TRIM(SPFX) // TRIM(ThisSpc%Name), IND
-          IF ( .NOT. ASSOCIATED(Ptr3D_R8) ) CYCLE
-999       FORMAT(' No INTERNAL pointer found for ', a12, ' with IND ', i3)
-
-          DO L = 1, State_Grid%NZ
-             State_Chm%Species(IND)%Conc(:,:,L) = Ptr3D_R8(:,:,State_Grid%NZ-L+1)
-          ENDDO
-          ! Verbose 
-          if ( MAPL_am_I_Root()) write(*,*)                &
-               'Species copied from INTERNAL state: ',  &
-               TRIM(ThisSpc%Name)
-       ELSE
-#endif
-
-       ! Get data from internal state and copy to species array
-       CALL MAPL_GetPointer( INTSTATE, Ptr3D_R8, TRIM(ThisSpc%Name), &
-                             notFoundOK=.TRUE., __RC__ )
-       DO L = 1, State_Grid%NZ
-          Ptr3D_R8(:,:,State_Grid%NZ-L+1) = State_Chm%Species(IND)%Conc(:,:,L)
-       ENDDO
-       Ptr3D_R8 => NULL()
-
-       ! Verbose
-       if ( MAPL_am_I_Root()) write(*,*)                &
-                'Species written to INTERNAL state: ',  &
-                TRIM(ThisSpc%Name)
-#ifdef ADJOINT
-       endif
-#endif
-
-    ENDDO
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
-       Ptr2d_R8 = State_Chm%DryDepNitrogen
-    ENDIF
-    Ptr2d_R8 => NULL()
-    
-    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%WetDepNitrogen) ) THEN
-       Ptr2d_R8 = State_Chm%WetDepNitrogen
-    ENDIF
-    Ptr2d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%H2O2AfterChem
-    ENDIF
-    Ptr3d_R8 => NULL()
-    
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%SO2AfterChem) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%SO2AfterChem
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%KPPHvalue) ) THEN
-       Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
-       Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
-          State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev)
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'AeroH2O_SNA', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%AeroH2O) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%AeroH2O(:,:,1:State_Grid%NZ,NDUST+1)
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'ORVCSESQ', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%ORVCsesq) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Chm%ORVCsesq(:,:,1:State_Grid%NZ)
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JOH', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JOH) ) THEN
-       Ptr2d_R8(:,:) = State_Chm%JOH(:,:)
-    ENDIF
-    Ptr2D_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr2D_R8, 'JNO2', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2D_R8) .AND. ASSOCIATED(State_Chm%JNO2) ) THEN
-       Ptr2d_R8(:,:) = State_Chm%JNO2(:,:)
-    ENDIF
-    Ptr2D_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3D, 'STATE_PSC', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(State_Chm%State_PSC) ) THEN
-       Ptr3d(:,:,LM:1:-1) = State_Chm%State_PSC(:,:,:)
-    ENDIF
-    Ptr3D => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'AREA', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%AREA_M2) ) THEN
-       Ptr2d_R8 = State_Met%AREA_M2
-    ENDIF
-    Ptr2d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT' , notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%BXHEIGHT) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                 State_Met%BXHEIGHT(:,:,1:State_Grid%NZ)
-    ENDIF
-    Ptr3d_R8 => NULL()
-
-    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', notFoundOK=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%TropLev) ) THEN
-       Ptr2d_R8 = State_Met%TropLev
-    ENDIF
-    Ptr2d_R8 => NULL()
-#endif
-
     ! Destroy the internal alarms
     call ESMF_UserCompGetInternalState(GC,'gcchem_internal_alarms',GC_alarm_wrapper,status)
     _ASSERT(status==0,'Could not find GC alarms for destruction')
@@ -3484,11 +3376,6 @@ CONTAINS
 
     ! Deallocate the history interface between GC States and ESMF Exports
     CALL Destroy_HistoryConfig( am_I_Root, HistoryConfig, RC )
-
-#if !defined( MODEL_GEOS )
-    ! Deallocate provide pointers and arrays
-    CALL Provider_Finalize( am_I_Root, __RC__ )
-#endif
 
 #if defined( MODEL_GEOS )
     ! Cleanup GEOS analysis module

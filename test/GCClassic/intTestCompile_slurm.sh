@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH -c 24
+#SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -t 0-01:00
-#SBATCH -p huce_cascade
+#SBATCH -t 0-00:30
+#SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=8000
 #SBATCH --mail-type=END
 
@@ -47,8 +47,8 @@ fi
 # Load common functions for tests
 . ${root}/commonFunctionsForTests.sh
 
-# Count the number of tests to be done = number of run directories
-numTests=$(ls -1 "${root}/build" | wc -l)
+# Count the number of tests to be done
+numTests=${#EXE_BUILD_LIST[@]}
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${root}/exe_files"
@@ -85,7 +85,7 @@ let failed=0
 let remain=${numTests}
 
 # Loop over build directories
-for dir in default apm bpch hg luowd rrtmg tomas15 tomas40; do
+for dir in ${EXE_BUILD_LIST[@]}; do
 
     # Define build directory
     buildDir="${root}/build/${dir}"

@@ -96,15 +96,18 @@ CONTAINS
     USE ERROR_MOD
     USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
     USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
+    USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetIntegratorOptions
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_HetDropChem
-    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES
+    USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES, EQN_NAMES
     USE GcKpp_Parameters
-    USE GcKpp_Integrator,         ONLY : INTEGRATE, NHnew
+    USE GcKpp_Integrator,         ONLY : Integrate
     USE GcKpp_Function
-    USE GcKpp_Model
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
@@ -219,6 +222,14 @@ CONTAINS
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData => NULL()
+!
+! !DEFINED PARAMETERS
+!
+    ! Defines the slot in which the H-value from the KPP integrator is stored
+    ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
+    ! (assuming Rosenbrock solver).  Define this locally in order to break
+    ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
+    INTEGER,    PARAMETER :: Nhnew = 3
 
     !========================================================================
     ! Do_FullChem begins here!
@@ -256,6 +267,7 @@ CONTAINS
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
     IF (State_Diag%Archive_KppDiags) THEN
        IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
        IF (State_Diag%Archive_KppJacCounts) State_Diag%KppJacCounts   = 0.0_f4
@@ -265,8 +277,22 @@ CONTAINS
        IF (State_Diag%Archive_KppLuDecomps) State_Diag%KppLuDecomps   = 0.0_f4
        IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
-       IF (State_Diag%Archive_KppAutoReducerNVAR) State_Diag%KppAutoReducerNVAR   = 0.0_f4
+       IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
+                                      State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
+    ENDIF
+    
+    ! Also zero satellite diagnostic archival arrays
+    IF ( State_Diag%Archive_SatDiagnLoss ) State_Diag%SatDiagnLoss    = 0.0_f4
+    IF ( State_Diag%Archive_SatDiagnProd ) State_Diag%SatDiagnProd    = 0.0_f4
+    IF ( State_Diag%Archive_SatDiagnJval ) THEN
+       State_Diag%SatDiagnJval = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+       State_Diag%SatDiagnJvalO3O1D = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+       State_Diag%SatDiagnJvalO3O3P = 0.0_f4
     ENDIF
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
@@ -382,7 +408,7 @@ CONTAINS
     ! Archive concentrations before chemistry
     !=======================================================================
     IF ( State_Diag%Archive_ConcBeforeChem ) THEN
-       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       ! Point to mapping obj specific to ConcBeforeChem diagnostic collection
        mapData => State_Diag%Map_ConcBeforeChem
 
        !$OMP PARALLEL DO       &
@@ -455,55 +481,13 @@ CONTAINS
        CALL Timer_Start( "  -> FlexChem loop", RC )
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Keep species active functionality for auto-reduce
-    ! only available for full-chemistry simulations currently
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
+    ! Always consider halogens as "fast" species for auto-reduce
+    !------------------------------------------------------------------------
     IF ( FIRSTCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       IF ( Input_Opt%AUTOREDUCE_IS_KEEPACTIVE ) THEN
-           ! New halogens auto-reduce list hplin 01/27/22, 03/02/22
-           ! based off Shen et al. 2020 GMD Table 1, lines 10, 11, 12
-           keepSpcActive(ind_AERI )      = .true.  ! Iodine on aerosol
-           keepSpcActive(ind_Br)         = .true.
-           keepSpcActive(ind_Br2 )       = .true.
-           keepSpcActive(ind_BrCl)       = .true.
-           keepSpcActive(ind_BrNO2)      = .true.
-           keepSpcActive(ind_BrNO3)      = .true.
-           keepSpcActive(ind_BrO)        = .true.
-           keepSpcActive(ind_BrSALA)     = .true.
-           keepSpcActive(ind_BrSALC)     = .true.
-           keepSpcActive(ind_HBr )       = .true.
-           keepSpcActive(ind_HOBr)       = .true.
-           keepSpcActive(ind_Cl  )       = .true.
-           keepSpcActive(ind_Cl2)        = .true.
-           keepSpcActive(ind_Cl2O2)      = .true.
-           keepSpcActive(ind_ClNO2)      = .true.
-           keepSpcActive(ind_ClNO3)      = .true.
-           keepSpcActive(ind_ClO )       = .true.
-           keepSpcActive(ind_ClOO)       = .true.
-           keepSpcActive(ind_OClO)       = .true.
-           keepSpcActive(ind_HCl )       = .true.
-           keepSpcActive(ind_HOCl)       = .true.
-           keepSpcActive(ind_I)          = .true.
-           keepSpcActive(ind_I2   )      = .true.
-           keepSpcActive(ind_IO)         = .true.
-           keepSpcActive(ind_I2O2)       = .true.
-           keepSpcActive(ind_HI   )      = .true.
-           keepSpcActive(ind_ISALA)      = .true.
-           keepSpcActive(ind_ISALC)      = .true.
-           keepSpcActive(ind_I2O4 )      = .true.
-           keepSpcActive(ind_I2O3 )      = .true.
-           keepSpcActive(ind_INO  )      = .true.
-           keepSpcActive(ind_IONO)       = .true.
-           keepSpcActive(ind_IONO2)      = .true.
-           keepSpcActive(ind_ICl  )      = .true.
-           keepSpcActive(ind_IBr  )      = .true.
-           keepSpcActive(ind_HOI)        = .true.
-           keepSpcActive(ind_SALACl)     = .true.
-           keepSpcActive(ind_SALCCl)     = .true.
-           keepSpcActive(ind_SALAAL)     = .true.
-           keepSpcActive(ind_SALCAL)     = .true.
-        ENDIF
+       IF ( Input_Opt%AutoReduce_Is_KeepActive ) THEN
+          CALL fullchem_AR_KeepHalogensActive( Input_Opt%amIRoot )
+       ENDIF
     ENDIF
 
     !========================================================================
@@ -573,7 +557,8 @@ CONTAINS
 
        ! Per discussions for Lin et al., force keepActive throughout the atmosphere
        ! if keepActive option is enabled. (hplin, 2/9/22)
-       keepActive = .true.
+       !keepActive = .true.
+       CALL fullchem_AR_SetKeepActive( option=.TRUE. )
 
        ! Start measuring KPP-related routine timing for this grid box
        IF ( State_Diag%Archive_KppTime ) THEN
@@ -675,6 +660,17 @@ CONTAINS
                    ENDIF
                 ENDIF
 
+                ! Satellite diagnostics
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                IF ( State_Diag%Archive_SatDiagnJval ) THEN
+                   S = State_Diag%Map_SatDiagnJval%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%SatDiagnJval(I,J,L,S) =                     &
+                      State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
+                   ENDIF
+                ENDIF
+
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Met%IsLocalNoon(I,J) ) THEN
@@ -697,6 +693,12 @@ CONTAINS
                    State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
                 ENDIF
 
+                ! J(O3_O1D) for satellite diagnostics
+                IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+                   State_Diag%SatDiagnJvalO3O1D(I,J,L) =                     &
+                   State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
              ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
 
                 ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
@@ -705,6 +707,12 @@ CONTAINS
                 IF ( State_Diag%Archive_JvalO3O3P ) THEN
                    State_Diag%JvalO3O3P(I,J,L) =                             &
                    State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
+                ! J(O3_O3P) for satellite diagnostics
+                IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+                   State_Diag%SatDiagnJvalO3O3P(I,J,L) =                     &
+                   State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
                 ENDIF
 
              ENDIF
@@ -976,121 +984,41 @@ CONTAINS
        ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
        ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
        !=====================================================================
-       IF ( State_Diag%Archive_RxnRate ) THEN
-          !---------------------------------------------------
+       IF ( State_Diag%Archive_RxnRate                                  .or. &
+            State_Diag%Archive_SatDiagnRxnRate                        ) THEN
+  
           ! Get equation rates (Aout)
-          !---------------------------------------------------
           CALL Fun( V       = C(1:NVAR),                                     &
                     F       = C(NVAR+1:NSPEC),                               &
                     RCT     = RCONST,                                        &
                     Vdot    = Vloc,                                          &
                     Aout    = Aout                                          )
 
-          DO S = 1, State_Diag%Map_RxnRate%nSlots
-             N = State_Diag%Map_RxnRate%slot2Id(S)
-             State_Diag%RxnRate(I,J,L,S) = Aout(N)
-          ENDDO
+          ! Archive the RxnRate diagnostic collection
+          IF ( State_Diag%Archive_RxnRate ) THEN
+             DO S = 1, State_Diag%Map_RxnRate%nSlots
+                N = State_Diag%Map_RxnRate%slot2Id(S)
+                State_Diag%RxnRate(I,J,L,S) = Aout(N)
+             ENDDO
+          ENDIF
+
+          ! Archive the SatDiagnRxnRate diagnostic collection
+          IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+             DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
+                N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
+                State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
+             ENDDO
+          ENDIF
        ENDIF
 
        !=====================================================================
-       ! Set options for the KPP Integrator (M. J. Evans)
-       !
-       ! NOTE: Because RCNTRL(3) is set to an array value that
-       ! depends on (I,J,L), we must declare RCNTRL as PRIVATE
-       ! within the OpenMP parallel loop and define it just
-       ! before the call to Integrate. (bmy, 3/24/16)
-       !
-       ! Ditto for ICNTRL. (hplin, 4/13/22)
+       ! Set options for the KPP integrator in vectors ICNTRL and RCNTRL
+       ! This now needs to be done within the parallel loop
        !=====================================================================
-       !%%%%% SOLVER OPTIONS %%%%%
-       ! Zero all slots of ICNTRL
-       ICNTRL    = 0
-
-       ! 0 - non-autonomous, 1 - autonomous
-       ICNTRL(1) = 1
-
-       ! 0 - vector tolerances, 1 - scalars
-       ICNTRL(2) = 0
-
-       ! Select Integrator
-       ! ICNTRL(3)  -> selection of a particular method.
-       ! For Rosenbrock, options are:
-       ! = 0 :  default method is Rodas3
-       ! = 1 :  method is  Ros2
-       ! = 2 :  method is  Ros3
-       ! = 3 :  method is  Ros4
-       ! = 4 :  method is  Rodas3
-       ! = 5:   method is  Rodas4
-       ICNTRL(3) = 4
-
-       ! 0 - adjoint, 1 - no adjoint
-       ICNTRL(7) = 1
-
-       ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
-       ! the integrator.  Rate updates are done before calling KPP.
-       ICNTRL(15) = -1
-
-       !%%%%% AUTO-REDUCE OPTIONS %%%%%
-       !=====================================================================
-       ! Set options for auto-reduction of mechanism
-       !
-       ! RCNTRL(12) is the threshold for reduction. (hplin, 10/18/21)
-       !=====================================================================
-       ICNTRL(12) = 0
-       IF ( Input_Opt%USE_AUTOREDUCE .and. .not. FIRSTCHEM ) THEN
-          ICNTRL(12) = 1
-       ENDIF
-       ! Use append functionality?
-       ICNTRL(13) = 0
-       IF ( Input_Opt%AUTOREDUCE_IS_APPEND ) THEN
-          ICNTRL(13) = 1
-       ENDIF
-
-       ! Zero all slots of RCNTRL
-       RCNTRL    = 0.0_fp
-
-       ! Initialize Hstart (the starting value of the integration step
-       ! size with the value of Hnew (the last predicted but not yet 
-       ! taken timestep)  saved to the the restart file.
-       RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
-
-       ! Auto-reduce threshold.
-       ! Pressure-dependent (method 1):
-       !                                                            Mid-Pressure at Level
-       !   Actual_Threshold = AUTOREDUCE_THRESHOLD (at surface) * --------------------------
-       !                                                           "Mid-Pressure" at Sfc.
-       IF ( .not. Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
-           IF ( Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
-              RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD * State_Met%PMID(I,J,L) / State_Met%PMID(I,J,1)
-           ENDIF
-           IF ( .not. Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
-              RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD
-           ENDIF
-        ENDIF
-
-       ! Method 2: Determine threshold dynamically by scaling rates of key species.
-       IF ( Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
-           ! Daytime target.
-           ICNTRL(14) = ind_OH        ! Assume OH is daytime target species.
-           RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_OH
-
-           ! 1e6 daytime conc ... testing shows 5e-5 as an offset here works best.
-           ! Use JNO2 as night determination.
-           ! RXN_NO2: NO2 + hv --> NO  + O
-           ! JNO2 ranges from 0 to 0.02 and is order ~ 1e-4 at the terminator. We set this threshold
-           ! to be slightly relaxed so it captures the terminator, but this needs some
-           ! tweaking.
-           !
-           ! For some reason, RXN_NO2 as a proxy fails to propagate the sunset terminator
-           ! even though all diagnostics seem fine, and after a while only the OH scheme applies.
-           ! Use SUNCOSmid as a proxy to fix this. (hplin, 4/20/22)
-           ! IF(ZPJ(L,RXN_NO2,I,J) .eq. 0.0_fp) THEN
-           IF(State_Met%SUNCOSmid(I,J) .le. -0.1391731e+0_fp) THEN
-              ICNTRL(14) = ind_NO2    ! NO2 is nighttime target species.
-              RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_NO2
-           ENDIF
-           ! Dynamic threshold boundary ratio in RCNTRL(14)
-       ENDIF
+       CALL fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,          &
+                                              State_Met, FirstChem,          &
+                                              I,         J,         L,       &
+                                              ICNTRL,    RCNTRL             )
 
        !=====================================================================
        ! Integrate the box forwards
@@ -1152,12 +1080,12 @@ CONTAINS
           ENDIF
 
           ! # of accepted internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
+          IF ( State_Diag%Archive_KppAccSteps ) THEN
              State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
           ENDIF
 
           ! # of rejected internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
+          IF ( State_Diag%Archive_KppRejSteps ) THEN
              State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
           ENDIF
 
@@ -1176,19 +1104,10 @@ CONTAINS
              State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
 
-          ! # of species in auto-reduced mechanism
-          IF ( Input_Opt%USE_AUTOREDUCE .and. State_Diag%Archive_KppAutoReducerNVAR ) THEN
-             State_Diag%KppAutoReducerNVAR(I,J,L) = rNVAR
-          ENDIF
-
-          ! Computed threshold
-          IF ( Input_Opt%USE_AUTOREDUCE .and. State_Diag%Archive_KppAutoReduceThres ) THEN
-             State_Diag%KppAutoReduceThres(I,J,L) = RSTATE(NARthr)
-          ENDIF
-
-          ! # of nonzero elements in LU factorization of Jacobian, AR only
-          IF ( Input_Opt%USE_AUTOREDUCE .and. State_Diag%Archive_KppcNONZERO ) THEN
-             State_Diag%KppcNONZERO(I,J,L) = cNONZERO
+          ! Update autoreduce solver statistics
+          ! (only if the autoreduction is turned on)
+          IF ( Input_Opt%Use_AutoReduce ) THEN
+             CALL fullchem_AR_UpdateKppDiags( I, J, L, RSTATE, State_Diag )
           ENDIF
        ENDIF
 
@@ -1208,7 +1127,7 @@ CONTAINS
           C         = 0.0_dp
 
           ! Disable auto-reduce solver for the second iteration for safety
-          IF ( Input_Opt%USE_AUTOREDUCE) THEN
+          IF ( Input_Opt%Use_AutoReduce ) THEN
              RCNTRL(12) = -1.0_dp ! without using ICNTRL
           ENDIF
 
@@ -1260,13 +1179,13 @@ CONTAINS
              ENDIF
 
              ! # of accepted internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
+             IF ( State_Diag%Archive_KppAccSteps ) THEN
                 State_Diag%KppAccSteps(I,J,L) =                              &
                 State_Diag%KppAccSteps(I,J,L) + ISTATUS(4)
              ENDIF
 
              ! # of rejected internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
+             IF ( State_Diag%Archive_KppRejSteps ) THEN
                 State_Diag%KppRejSteps(I,J,L) =                              &
                 State_Diag%KppRejSteps(I,J,L) + ISTATUS(5)
              ENDIF
@@ -1502,6 +1421,22 @@ CONTAINS
           ENDDO
        ENDIF
 
+       ! Satellite diagnostic: Chemical loss [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             KppId = State_Diag%Map_SatDiagnLoss%slot2Id(S)
+             State_Diag%SatDiagnLoss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: Chemical production [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             KppID = State_Diag%Map_SatDiagnProd%slot2Id(S)
+             State_Diag%SatDiagnProd(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Archive prod/loss fields for the TagCO simulation [molec/cm3/s]
        ! (In practice, we only need to do this from benchmark simulations)
@@ -1549,7 +1484,8 @@ CONTAINS
        ! inverse of its life-time. In a crude ad-hoc approach, manually add
        ! all OH reactants (ckeller, 9/20/2017)
        !====================================================================
-       IF ( State_Diag%Archive_OHreactivity ) THEN
+       IF ( State_Diag%Archive_OHreactivity           .or.                   &
+            State_Diag%Archive_SatDiagnOHreactivity ) THEN
 
           ! Start timer
           IF ( Input_Opt%useTimers ) THEN
@@ -1561,7 +1497,12 @@ CONTAINS
 
           ! Archive OH reactivity diagnostic
           CALL Get_OHreactivity ( C, RCONST, OHreact )
-          State_Diag%OHreactivity(I,J,L) = OHreact
+          IF ( State_Diag%Archive_OHreactivity ) THEN
+             State_Diag%OHreactivity(I,J,L) = OHreact
+          ENDIF
+          IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
+             State_Diag%SatDiagnOHreactivity(I,J,L) = OHreact
+          ENDIF
 
           ! Stop timer
           IF ( Input_Opt%useTimers ) THEN
@@ -1656,7 +1597,7 @@ CONTAINS
     ! Archive concentrations after chemistry
     !=======================================================================
     IF ( State_Diag%Archive_ConcAfterChem ) THEN
-       ! Point to mapping obj specific to SpeciesConc diagnostic collection
+       ! Point to mapping obj specific to ConcAfterChem diagnostic collection
        mapData => State_Diag%Map_ConcAfterChem
 
        !$OMP PARALLEL DO       &

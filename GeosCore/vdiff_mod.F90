@@ -1922,7 +1922,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE Species_Mod,        ONLY : Species
@@ -2440,13 +2439,13 @@ CONTAINS
     IF ( ALLOCATED( ml2 ) ) THEN
        DEALLOCATE( ml2, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:ML2', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( qmincg ) ) THEN
        DEALLOCATE( qmincg, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:QMINCG', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
   END SUBROUTINE Cleanup_Vdiff

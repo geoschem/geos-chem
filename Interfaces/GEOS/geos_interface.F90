@@ -1118,6 +1118,7 @@ CONTAINS
     INTEGER                      :: indSpc
     INTEGER                      :: I,  J,  L, N, LB
     INTEGER                      :: IM, JM, LM
+    INTEGER                      :: SfcTypeIndex
 
     REAL, POINTER                :: Q(:,:,:)     => NULL()
     REAL, POINTER                :: PLE(:,:,:)   => NULL()
@@ -1131,7 +1132,6 @@ CONTAINS
     ! LFR diag
     REAL                         :: lp1, lp2      ! lightning potentials
     REAL, POINTER                :: PtrEmis(:,:)  => NULL()
-    REAL, POINTER                :: LWI(:,:)      => NULL()
     REAL, POINTER                :: LFR(:,:)      => NULL()
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
@@ -1262,7 +1262,6 @@ CONTAINS
        IF ( State_Diag%Archive_LGHTPOTENTIAL .AND. &
             ASSOCIATED(State_Diag%LightningPotential) ) THEN
           CALL MAPL_GetPointer( IMPORT, LFR,     'LFR_GCC', __RC__ )
-          CALL MAPL_GetPointer( IMPORT, LWI,     'LWI', __RC__ )
           CALL MAPL_GetPointer( IMPORT, CNV_FRC, 'CNV_FRC', __RC__ )
           CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT', NotFoundOk=.TRUE., __RC__ )
           State_Diag%LightningPotential(:,:) = 0.0
@@ -1271,10 +1270,18 @@ CONTAINS
              lp1 = 0.0
              lp2 = 0.0
 
+             ! Locally compute if over continuous land (formerly used LWI)
+             SfcTypeIndex = MAXLOC( (/                            &
+                State_Met%FRLAND(I,J) + State_Met%FRLANDIC(I,J)   &
+                + State_Met%FRLAKE(I,J),                          &
+                State_Met%FRSEAICE(I,J),                          &
+                State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)  &
+             /) )
+
              ! If there are HEMCO lightning emissions in current grid box set
              ! lightning potential accordingly
              IF ( ASSOCIATED(PtrEmis) ) THEN
-                IF ( LWI(I,J) == 1 ) THEN
+                IF ( SfcTypeIndex == 1 ) THEN
                    lp1 = PtrEmis(I,J) / 1.0e-11 ! Land
                 ELSE
                    lp1 = PtrEmis(I,J) / 1.0e-13 ! Water/Ice
@@ -1284,7 +1291,7 @@ CONTAINS
 
              ! Lightning flash rate
              IF ( LFR(I,J) > 0.0 ) THEN
-                IF ( LWI(I,J) == 1 ) THEN
+                IF ( SfcTypeIndex == 1 ) THEN
                    lp2 = LFR(I,J) / 5.0e-07 ! Land
                 ELSE
                    lp2 = LFR(I,J) / 1.0e-08 ! Water/Ice

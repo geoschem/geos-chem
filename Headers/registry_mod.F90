@@ -406,6 +406,10 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Free Item once we have attached it to the Registry linked list
+    DEALLOCATE( Item )
+    Item => NULL()
+
   END SUBROUTINE Registry_AddField
 !EOC
 !------------------------------------------------------------------------------

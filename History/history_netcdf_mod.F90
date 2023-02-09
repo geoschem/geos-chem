@@ -93,7 +93,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(MetaHIstItem), POINTER :: Current
+    TYPE(MetaHistItem), POINTER :: Current
 
     !=======================================================================
     ! Initialize
@@ -672,7 +672,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Write( Input_Opt, Container, RC )
+  SUBROUTINE History_Netcdf_Write( Input_Opt, State_Diag, Container, RC )
 !
 ! !USES:
 !
@@ -681,6 +681,7 @@ CONTAINS
     USE HistContainer_Mod,   ONLY : HistContainer
     USE History_Util_Mod
     USE Input_Opt_Mod,       ONLY : OptInput
+    USE State_Diag_Mod,      ONLY : DgnState
     USE M_Netcdf_Io_Write,   ONLY : NcWr
     USE MetaHistItem_Mod,    ONLY : MetaHistItem
     USE Registry_Params_Mod, ONLY : KINDVAL_F4
@@ -688,7 +689,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt ! Input Options object
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt  ! Input Options object
+    TYPE(DgnState),      INTENT(IN)  :: State_Diag ! Diagnostics state obj
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -779,11 +781,12 @@ CONTAINS
                                TimeBaseJsec = Container%ReferenceJsec,       &
                                ElapsedSec   = Container%TimeStamp           )
 
-    ! For time-averaged collections, offset the timestamp
-    ! by 1/2 of the file averaging interval in minutes
+    ! For time-averaged collections, we need to subtract the file write
+    ! interval from the current time.  This will make sure that time[0] = 0,
+    ! or in other words, that the first time slice matches up to the
+    ! reference datetime.  -- Bob Yantosca (13 Jan 2023)
     IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
-       Container%TimeStamp = Container%TimeStamp -                           &
-                             ( Container%FileWriteIvalSec * 0.5_f8 )
+       Container%TimeStamp = Container%TimeStamp - Container%FileWriteIvalSec
     ENDIF
 
     ! Convert to minutes since the reference time
@@ -850,6 +853,12 @@ CONTAINS
              Dim2 = SIZE( Item%Data_3d, 2 )
              Dim3 = SIZE( Item%Data_3d, 3 )
 
+             ! Get average for satellite diagnostic:
+             IF ( Container%name == 'SatDiagn' ) THEN
+                Item%Data_3d = Item%Data_3d / State_Diag%SatDiagnCount
+                Item%nUpdates = 1.0
+             ENDIF
+
              ! Allocate the 4-byte or 8-byte output array
              IF ( output4bytes ) THEN
                 ALLOCATE( NcData_3d4( Dim1, Dim2, Dim3 ), STAT=RC )
@@ -904,6 +913,12 @@ CONTAINS
              ! Get dimensions of data
              Dim1 = SIZE( Item%Data_2d, 1 )
              Dim2 = SIZE( Item%Data_2d, 2 )
+
+             ! Get average for satellite diagnostic:
+             IF ( Container%name == 'SatDiagn' ) THEN
+                Item%Data_2d = Item%Data_2d / State_Diag%SatDiagnCount(:,:,1)
+                Item%nUpdates = 1.0
+             ENDIF
 
              ! Allocate the 4-byte or 8-byte output array
              IF ( output4bytes ) THEN
@@ -1013,6 +1028,13 @@ CONTAINS
        Current => Current%Next
        Item    => NULL()
     ENDDO
+
+    !---------------------------------------------------------------------
+    ! Set count for satellite diagnostic to zero:
+    !---------------------------------------------------------------------
+    IF ( State_Diag%Archive_SatDiagnCount ) THEN
+       State_Diag%SatDiagnCount = 0.0e+0_fp
+    ENDIF
 
     !========================================================================
     ! Cleanup and quit
@@ -1677,6 +1699,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Free Item now that we have added it to IndexVarList
+       DEALLOCATE( Item )
+       Item => NULL()
     ENDDO
 
   END SUBROUTINE IndexVarList_Create

@@ -77,7 +77,6 @@ MODULE State_Met_Mod
      LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
-     REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
      REAL(fp), POINTER :: PARDR         (:,:  ) ! Direct photsynthetically
                                                 !  active radiation [W/m2]
      REAL(fp), POINTER :: PARDF         (:,:  ) ! Diffuse photsynthetically
@@ -129,6 +128,8 @@ MODULE State_Met_Mod
                                                 !  midpoint of chem timestep
      REAL(fp), POINTER :: SUNCOSsum     (:,:  ) ! Sum of COS(SZA) for HEMCO OH
                                                 !  diurnal variability
+     REAL(fp), POINTER :: SZAFACT       (:,:  ) ! Diurnal scale factor for HEMCO OH
+                                                !  diurnal variability (computed) [1]
      REAL(fp), POINTER :: SWGDN         (:,:  ) ! Incident radiation @ ground
                                                 !  [W/m2]
      REAL(fp), POINTER :: TO3           (:,:  ) ! Total overhead O3 column [DU]
@@ -378,7 +379,6 @@ CONTAINS
     State_Met%IsIce          => NULL()
     State_Met%IsSnow         => NULL()
     State_Met%LAI            => NULL()
-    State_Met%LWI            => NULL()
     State_Met%PARDR          => NULL()
     State_Met%PARDF          => NULL()
     State_Met%PBLH           => NULL()
@@ -414,6 +414,7 @@ CONTAINS
     State_Met%SUNCOS         => NULL()
     State_Met%SUNCOSmid      => NULL()
     State_Met%SUNCOSsum      => NULL()
+    State_Met%SZAFACT        => NULL()
     State_Met%SWGDN          => NULL()
     State_Met%TO3            => NULL()
     State_Met%TROPP          => NULL()
@@ -1072,24 +1073,6 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! LWI [1]
-    !------------------------------------------------------------------------
-    metId = 'LWI'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%LWI,                                         &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
     ! MODISLAI [1]
     !------------------------------------------------------------------------
     metId = 'MODISLAI'
@@ -1729,6 +1712,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%SUNCOSsum,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! SZAFACT [1] (for HEMCO)
+    !------------------------------------------------------------------------
+    metId = 'SZAFACT'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%SZAFACT,                                     &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3444,13 +3445,6 @@ CONTAINS
        State_Met%LAI => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%LWI ) ) THEN
-       DEALLOCATE( State_Met%LWI, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%LWI', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%LWI => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Met%PARDR ) ) THEN
        DEALLOCATE( State_Met%PARDR, STAT=RC )
        CALL GC_CheckVar( 'State_Met%PARDR', 2, RC )
@@ -4676,11 +4670,6 @@ CONTAINS
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'LWI' )
-          IF ( isDesc  ) Desc  = 'Land-water-ice indices'
-          IF ( isUnits ) Units = '1'
-          IF ( isRank  ) Rank  = 2
-
        CASE ( 'PARDR' )
           IF ( isDesc  ) Desc  = 'Direct photosynthetically-active radiation'
           IF ( isUnits ) Units = 'W m-2'
@@ -4863,6 +4852,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'SZAFACT' )
+          IF ( isDesc  ) Desc  = 'Diurnal scale factor from dividing the sza by the sum of the total sza per day (HEMCO)'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'SWGDN' )
           IF ( isDesc  ) Desc  = 'Incident shortwave radiation at ground'
           IF ( isUnits ) Units = 'W m-2'
@@ -4951,12 +4945,12 @@ CONTAINS
 
        CASE ( 'AIRNUMDEN' )
           IF ( isDesc  ) Desc  = 'Dry air density'
-          IF ( isUnits ) Units = 'm-3'
+          IF ( isUnits ) Units = 'molec cm-3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'AIRVOL' )
-          IF ( isDesc  ) Desc  = 'Volume of dry air in grid box'
+          IF ( isDesc  ) Desc  = 'Volume of grid box'
           IF ( isUnits ) Units = 'm3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
@@ -4968,7 +4962,7 @@ CONTAINS
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
        CASE ( 'BXHEIGHT' )
-          IF ( isDesc  ) Desc  = 'Grid box height (w/r/t dry air)'
+          IF ( isDesc  ) Desc  = 'Grid box height'
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter

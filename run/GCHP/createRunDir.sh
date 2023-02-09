@@ -128,6 +128,9 @@ printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   4. Tagged O3\n"
+printf "   5. Carbon\n"
+
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read sim_num
@@ -138,6 +141,10 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=tagO3
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -219,7 +226,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
-
 
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
@@ -424,7 +430,7 @@ mkdir -p ${rundir_config}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
+cp ./README.md                        ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -469,16 +475,27 @@ printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   mak
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     start_date='20190701'
-    restart_dir='v2021-09'
-elif [[ ${sim_name} = "TransportTracers" ]]; then
+    restart_dir='GC_14.0.0'
+    restart_name="${sim_name}"
+elif [[ "x${sim_name}" == "xtagO3" ]]; then
+    # NOTE: we use the fullchem restart file for tagO3
+    start_date='20190701'
+    restart_dir='GC_14.0.0'
+    restart_name="fullchem"
+elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_13.0.0'
+    restart_dir='GC_14.0.0'
+    restart_name="${sim_name}"
+elif [[ ${sim_name} = "carbon" ]]; then
+    start_date='20190101'
+    restart_dir='v2023-01'
+    restart_name="${sim_name}"
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${restart_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"

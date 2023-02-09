@@ -4,7 +4,7 @@
 #SBATCH -N 2
 #SBATCH --exclusive
 #SBATCH -t 0-8:00
-#SBATCH -p huce_cascade
+#SBATCH -p seas_compute
 #SBATCH --mem=180000
 #SBATCH --mail-type=END
 
@@ -38,7 +38,7 @@ time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix .
 # Rename and move restart file and update restart symlink if new start time ok
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
-   echo "ERROR: cap_restart either did not change or is empty."
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
