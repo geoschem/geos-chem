@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.2.0]
 ### Added
-  - Add a printout of GEOS-Chem species and indices
+  - Added a printout of GEOS-Chem species and indices
+  - Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
 
 ### Changed
   - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
@@ -14,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
   - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
+  - Removed the `NcdfUtil/perl` folder
 
 ## [14.1.0] - 2023-02-01
 ### Added
