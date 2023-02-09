@@ -1276,7 +1276,7 @@ CONTAINS
                 + State_Met%FRLAKE(I,J),                          &
                 State_Met%FRSEAICE(I,J),                          &
                 State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)  &
-             /) )
+             /), 1 )
 
              ! If there are HEMCO lightning emissions in current grid box set
              ! lightning potential accordingly
