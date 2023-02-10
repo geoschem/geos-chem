@@ -2,15 +2,14 @@
 name: Request a new GEOS-Chem feature or start a discussion
 ---
 
-<!--- Before submitting an issue please see:
+### Name and Institution (Required)
 
-- [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/reference/CONTRIBUTING.html)
+Name:
+Institution:
 
---->
+### Confirm you have reviewed the following documentation
 
-### Your name and institution
-
-We ask that users identify themselves and their institutions when submitting a new issue.
+- [ ] [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/reference/CONTRIBUTING.html)
 
 ### New GEOS-Chem feature or discussion
 

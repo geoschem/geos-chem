@@ -4,15 +4,14 @@ labels: 'never stale'
 
 ---
 
-<!--- Before submitting a pull request please see:
+### Name and Institution (Required)
 
-- [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/reference/CONTRIBUTING.html)
+Name:
+Institution:
 
---->
+### Confirm you have reviewed the following documentation
 
-### Your name and institution
-
-We ask that users identify themselves and their institutions when submitting a new pull request.
+- [ ] [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/reference/CONTRIBUTING.html)
 
 ### Describe the update
 
@@ -28,4 +27,4 @@ If this is a science update, please provide a literature citation.
 
 ### Related Github Issue(s)
 
-Please link to corresponding Github issue here. If fixing a bug, there should be an issue describing it with steps to reproduce.
+Please link to the corresponding Github issue here. If fixing a bug, there should be an issue describing it with steps to reproduce.
