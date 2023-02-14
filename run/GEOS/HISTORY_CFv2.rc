@@ -134,6 +134,11 @@ PC180x91-DC.LM: 72
                      'TotCol_NO2'               , 'GEOSCHEMCHEM'  ,
                      'PblCol_NO2'               , 'GEOSCHEMCHEM'  ,
                      'TropCol_NO2'              , 'GEOSCHEMCHEM'  ,
+                     'TotCol_SO2'               , 'GEOSCHEMCHEM'  ,
+                     'PblCol_SO2'               , 'GEOSCHEMCHEM'  ,
+                     'TropCol_SO2'              , 'GEOSCHEMCHEM'  ,
+                     'Met_PBLTOPL'              , 'GEOSCHEMCHEM'  , 'PBLTOPL'    , 
+                     'Met_TropLev'              , 'GEOSCHEMCHEM'  , 'TROPLEV'    , 
                      ::
 
   htf_inst_15mn_g1440x721_x1.format:     'CFIO' ,
