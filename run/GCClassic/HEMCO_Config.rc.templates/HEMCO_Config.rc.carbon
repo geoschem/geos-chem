@@ -1292,7 +1292,7 @@ ${RUNDIR_CO2_COPROD}
 # --- EPA NEI day-of-week scale factors ---
 #==============================================================================
 (((NEI2016_MONMEAN
-211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc      CO 1999/1-12/WD/0 C xy 1 1
+211 NEI99_DOW_CO  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.corrected.012023.1x1.nc CO 1999/1-12/WD/0 C xy 1 1
 )))NEI2016_MONMEAN
 #==============================================================================
 # --- EPA NEI2016 annual scale factors ---
