@@ -546,7 +546,8 @@ CONTAINS
     State_Chm%xtab              => NULL()
     State_Chm%CH2O_aq           => NULL()
     State_Chm%rlam              => NULL()
-#elif MODEL_CESM
+#endif
+#ifdef MODEL_CESM
     ! Add quantities for coupling to CESM
     State_Chm%H2SO4_PRDR        => NULL()
 #endif
