@@ -114,6 +114,8 @@ PC180x91-DC.LM: 72
                              'SpeciesConc_I2O4'            , 'GEOSCHEMCHEM'  ,
                              'SpeciesConc_IBr'             , 'GEOSCHEMCHEM'  ,
                              'SpeciesConc_ICl'             , 'GEOSCHEMCHEM'  ,
+                             'SpeciesConc_OClO'            , 'GEOSCHEMCHEM'  ,
+                             'SpeciesConc_HNO2'            , 'GEOSCHEMCHEM'  ,
                               ::
 
   gcc_dev.template:  '%y4%m2%d2_%h2%n2z.nc4',
