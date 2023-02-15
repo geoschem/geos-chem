@@ -1659,7 +1659,7 @@ Warnings:                    1
 0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75  5 3
 0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75  5 3
 0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75     5 3
-0 GFAS_pFe   -                                          -             -                     - -             -       pFe  75/66  5 3
+0 GFAS_pFe   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s pFe  75/66  5 3
 0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75     5 3
 0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75     5 3
 )))GFAS

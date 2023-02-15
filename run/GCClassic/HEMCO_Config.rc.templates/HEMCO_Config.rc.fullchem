@@ -3009,7 +3009,7 @@ Warnings:                    1
 0 GFAS_CO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc co2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO2  75       5 3
 0 GFAS_CH4   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch4fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH4  75       5 3
 0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75       5 3
-0 GFAS_pFe   -                                          -             -                     - -             -       pFe  75/66    5 3
+0 GFAS_pFe   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s pFe  75/66    5 3
 0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75       5 3
 0 GFAS_ACET  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6ofire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ACET 75       5 3
 0 GFAS_ALD2  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4ofire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALD2 75       5 3
