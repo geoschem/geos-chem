@@ -272,6 +272,13 @@ MODULE State_Chm_Mod
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
 
+#if defined(MODEL_CESM)
+     !-----------------------------------------------------------------------
+     ! Fields for CESM interface to GEOS-Chem
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: H2SO4_PRDR (:,:,:  ) ! H2SO4 prod rate [mol/mol]
+#endif
+
      !-----------------------------------------------------------------------
      ! Fields for CH4 specialty simulation
      !-----------------------------------------------------------------------
@@ -521,7 +528,8 @@ CONTAINS
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
+    ! Add quantities for coupling to the NASA/GEOS ESM
     State_Chm%CO2fromGOCART     = .FALSE.
     State_Chm%impCO2name        = "unknown" 
     State_Chm%numphoto          = 0
@@ -538,6 +546,9 @@ CONTAINS
     State_Chm%xtab              => NULL()
     State_Chm%CH2O_aq           => NULL()
     State_Chm%rlam              => NULL()
+#elif MODEL_CESM
+    ! Add quantities for coupling to CESM
+    State_Chm%H2SO4_PRDR        => NULL()
 #endif
 
   END SUBROUTINE Zero_State_Chm
@@ -2097,6 +2108,28 @@ CONTAINS
        RETURN
     ENDIF
 
+#if defined(MODEL_CESM)
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       !---------------------------------------------------------------------
+       ! H2SO4_PRDR: H2SO4 production rate [mol/mol] for MAM4 interface
+       !---------------------------------------------------------------------
+       chmId = 'H2SO4_PRDR'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%H2SO4_PRDR,                               &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+
     !=======================================================================
     ! Initialize State_Chm quantities pertinent to Hg simulations
     !=======================================================================
@@ -3484,6 +3517,15 @@ CONTAINS
        State_Chm%TOMS2 => NULL()
     ENDIF
 
+#if defined(MODEL_CESM)
+    IF ( ASSOCIATED( State_Chm%H2SO4_PRDR ) ) THEN
+       DEALLOCATE( State_Chm%H2SO4_PRDR, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%H2SO4_PRDR', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%H2SO4_PRDR => NULL()
+    ENDIF
+#endif
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -4446,6 +4488,13 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'QQRain'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+
+#if defined(MODEL_CESM)
+       CASE( 'H2SO4_PRDR' )
+          IF ( isDesc  ) Desc  = 'H2SO4 production rate in timestep'
+          IF ( isUnits ) Units = 'mol mol-1'
+          IF ( isRank  ) Rank  = 3
+#endif
 
        CASE DEFAULT
           Found = .False.
