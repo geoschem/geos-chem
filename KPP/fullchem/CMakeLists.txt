@@ -63,7 +63,7 @@ target_compile_options(KPP
 )
 
 # FOR GFORTRAN ONLY: Disable variable tracking for gckpp_Jacobian.F90 in the
-# KPP/fullchem mechanism generated with KPP 3.0.0.  This will avoid a compiler
+# KPP/fullchem mechanism generated with KPP.  This will avoid a compiler
 # warning and a restart of the KPP library build.  This only has to be done
 # for release types "Release" and "RelWithDebugInfo".
 #   -- Bob Yantosca (16 Feb 2023)
