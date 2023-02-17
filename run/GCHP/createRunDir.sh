@@ -681,9 +681,4 @@ msg+="$ make install\n"
 printf "${msg}" > ${rundir}/build/README
 unset msg
 
-#-----------------------------------------------------------------
-# Done!
-#-----------------------------------------------------------------
-printf "\nCreated ${rundir}\n"
-
 exit 0
