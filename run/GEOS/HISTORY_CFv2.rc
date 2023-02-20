@@ -498,7 +498,8 @@ PC180x91-DC.LM: 72
                               'EMIS_CO_IND+EMIS_CO_POW+EMIS_CO_TRA+EMIS_CO_RES+EMIS_CO_WST' , 'GEOSCHEMCHEM' , 'EMIS_CO_ANTH' ,
                               'EMIS_CO_AGR'               , 'GEOSCHEMCHEM' ,
                               'EMIS_CO_BB'                , 'GEOSCHEMCHEM' ,
-                              'EMIS_CO_BG'                , 'GEOSCHEMCHEM' ,
+# this is not emitted anymore
+##                               'EMIS_CO_BG'                , 'GEOSCHEMCHEM' ,
                               'EMIS_NH3'                  , 'GEOSCHEMCHEM' ,
                               'EMIS_NH3_IND+EMIS_NH3_POW+EMIS_NH3_TRA+EMIS_NH3_RES+EMIS_NH3_WST' , 'GEOSCHEMCHEM' , 'EMIS_NH3_ANTH' ,
                               'EMIS_NH3_AGR'               , 'GEOSCHEMCHEM' ,
