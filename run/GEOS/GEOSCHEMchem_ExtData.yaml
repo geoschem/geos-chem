@@ -257,6 +257,10 @@ Collections:
     template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
   GEOSCHEMchem_WOA_2013_salinity:
     template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/WOA_2013_salinity.nc
+  Jason_10.18.0_carbon_c90:
+    template: /discover/nobackup/cakelle2/tmp/methane_tags.20190101.nc4
+    #template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
+    #valid_range: "2001-01-01T00:00/2021-01-01T00:00"
 
 Exports:
   ACET_SEAWATER:
@@ -2626,4 +2630,9 @@ Exports:
     regrid: CONSERVE
     sample: gcc_persist 
     variable: s_mn
+  GEOS_CH4:
+    collection: Jason_10.18.0_carbon_c90
+    regrid: BILINEAR
+    sample: gcc_persist
+    variable: CH4_total_dry
 

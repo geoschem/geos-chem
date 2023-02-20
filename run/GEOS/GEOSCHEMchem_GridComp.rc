@@ -221,3 +221,8 @@ CO2photolysisFile: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/G
 #
 Import_CO2_from_GOCART: 0
 GOCART_CO2_FieldName: GOCART_CO2
+
+#
+# To set CH4 boundary condition from GEOS 
+# Note: if set to 1, need to make sure that an import named 'GEOS_CH4' is set in ExtData.
+CH4_from_GEOS: 0

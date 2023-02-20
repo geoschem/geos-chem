@@ -106,6 +106,13 @@ CONTAINS
     CHARACTER(LEN=255)  :: ErrMsg
     CHARACTER(LEN=255)  :: ThisLoc
 
+#if defined( MODEL_GEOS )
+    REAL(hp), ALLOCATABLE :: GEOS_CH4(:,:,:)
+    LOGICAL               :: USE_GEOS_CH4
+#endif
+    LOGICAL, SAVE         :: FIRST = .TRUE.
+    CHARACTER(LEN=255)    :: SRCNAME
+
     !=================================================================
     ! SET_CH4 begins here!
     !=================================================================
@@ -126,21 +133,37 @@ CONTAINS
     ! Get dynamic timestep
     DT = GET_TS_DYN()
 
+    FOUND   = .FALSE.
+    SRCNAME = ''
+#if defined( MODEL_GEOS )
+    ALLOCATE(GEOS_CH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+    GEOS_CH4(:,:,:) = 0.0
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GEOS_CH4', &
+                         GEOS_CH4, RC, FOUND=FOUND )
+    USE_GEOS_CH4 = FOUND
+    IF ( FOUND ) SRCNAME = 'GEOS_CH4'
+#endif
+
     ! Use the NOAA spatially resolved data where available
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', &
-                         State_Chm%SFC_CH4, RC, FOUND=FOUND )
+    IF (.NOT. FOUND ) THEN
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', &
+                            State_Chm%SFC_CH4, RC, FOUND=FOUND )
+       IF ( FOUND ) SRCNAME = 'NOAA_GMD_CH4'
+    ENDIF
     IF (.NOT. FOUND ) THEN
        FOUND = .TRUE.
        ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
        ! https://doi.org/10.5194/gmd-10-2057-2017a
        CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', &
                             State_Chm%SFC_CH4, RC, FOUND=FOUND )
+       IF ( FOUND ) SRCNAME = 'CMIPS_Sfc_CH4'
     ENDIF
     IF (.NOT. FOUND ) THEN
        FOUND = .TRUE.
        ! Use the CMIP6 data boundary conditions processed for GCAP 2.0
        CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'SfcVMR_CH4', &
                             State_Chm%SFC_CH4, RC, FOUND=FOUND )
+       IF ( FOUND ) SRCNAME = 'SfcVMR_CH4'
     ENDIF
     IF (.NOT. FOUND ) THEN
        ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
@@ -150,6 +173,13 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Add info to logfile
+    IF ( FOUND .AND. Input_Opt%amIRoot .AND. FIRST ) THEN
+       WRITE(*,*) 'Getting CH4 boundary conditions in GEOS-Chem from :'//TRIM(SRCNAME)
+       FIRST = .FALSE.
+    ENDIF 
+
 
     ! Convert species to [v/v dry] for this routine
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -182,6 +212,11 @@ CONTAINS
 
        ! Prescribe methane concentrations throughout PBL
        DO L=1,PBL_TOP
+
+       ! In GEOS, we may be getting CH4 from a 3D field 
+#if defined( MODEL_GEOS )
+          IF ( USE_GEOS_CH4 ) CH4 = GEOS_CH4(I,J,L)
+#endif
 
           ! Compute implied CH4 flux if diagnostic is on
           IF ( State_Diag%Archive_CH4pseudoFlux ) THEN
