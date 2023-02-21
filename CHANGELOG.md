@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed bug in where writing species metadata yaml file write was always attempted
+- Prevent a warning from being generated when compiling `gckpp_Jacobian.F90`
 
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
