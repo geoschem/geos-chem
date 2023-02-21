@@ -1155,7 +1155,7 @@ fi
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to
 # input_options.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
+    set_common_settings "${sim_extra_option}" "GCClassic"
 fi
 
 #
