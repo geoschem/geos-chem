@@ -111,6 +111,8 @@ function set_common_settings() {
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 
+	sed_ie 's|EFYO|CYS|'                          HEMCO_Config.rc  # Set missing species to background values
+
         sed_ie 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
 	sed_ie 's|SALA  0      3 |SALA  107    -1|'   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
 	sed_ie 's|SALC  0      3 |SALC  107    -1|'   HEMCO_Diagn.rc   #   "   "
