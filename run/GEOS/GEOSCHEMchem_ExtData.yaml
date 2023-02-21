@@ -4,7 +4,7 @@ Samplings:
   gcc_daily_clim:        {update_reference_time: "0", update_frequency: PT24H, time_interpolation: False, extrapolation: clim}
   gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: True, extrapolation: clim}
   gcc_monthly_clim:      {update_reference_time: "0", update_frequency: P1M, time_interpolation: False, extrapolation: clim}
-
+  gcc_3hr:               {time_interpolation: True, extrapolation: clim}
 
 Collections:
   GCC_ACET_seawater:
@@ -258,9 +258,11 @@ Collections:
   GEOSCHEMchem_WOA_2013_salinity:
     template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/WOA_2013_salinity.nc
   Jason_10.18.0_carbon_c90:
-    template: /discover/nobackup/cakelle2/tmp/methane_tags.20190101.nc4
-    #template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
-    #valid_range: "2001-01-01T00:00/2021-01-01T00:00"
+    #template: /discover/nobackup/cakelle2/tmp/methane_tags.20190101.nc4
+    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
+    ref_time: "2001-01-01T00:00"
+    freq: "PT3H"
+    valid_range: "2001-01-01T00:00/2020-12-31T21:00"
 
 Exports:
   ACET_SEAWATER:
@@ -2633,6 +2635,6 @@ Exports:
   GEOS_CH4:
     collection: Jason_10.18.0_carbon_c90
     regrid: BILINEAR
-    sample: gcc_persist
+    sample: gcc_3hr
     variable: CH4_total_dry
 
