@@ -598,7 +598,7 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+          SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
