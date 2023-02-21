@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Integration test run directories are created with the default names assigned by `createRunDir.sh`
 - Several bash functions in `test/shared/commonFunctionsForTests.sh` have been combined so that they will work for both GCClassic and GCHP integration tests
 - `./cleanRunDir.sh` functions now take an argument for non-interactive execution (facilitates integration & parallelization tests)
+- Moved several module variables from `GeosCore/ucx_mod.F90` to `Headers/state_chm_mod.F90`.  This facilitates using GEOS-Chem in CESM.
 
 ### Fixed
 - Fixed bug in where writing species metadata yaml file write was always attempted
@@ -28,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
 - Removed State_Met%LWI and input meteorology LWI from carbon simulation run config files
+- Removed function `CLEANUP_UCX`; deallocations are now done in `state_chm_mod.F90`
 
 ## [14.1.0] - 2023-02-01
 ### Added
