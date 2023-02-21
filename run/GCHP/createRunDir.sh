@@ -220,7 +220,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
@@ -467,10 +466,6 @@ fi
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
-# Create build directory
-mkdir ${rundir}/build
-printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
-
 #--------------------------------------------------------------------
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
@@ -651,5 +646,39 @@ printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+
+#---------------------------------------------------------------------------
+# Add reminders to compile with CMake options for simulations that need them
+#---------------------------------------------------------------------------
+hdr="\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n"
+
+EXTRA_CMAKE_OPTIONS=""
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg"
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+fi
+
+# Add to RUNDIR_VARS
+RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
+
+# Print a reminder to compile with extra CMake options, if necessary
+[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+
+#---------------------------------------------------------------------------
+# Create build directory README file
+#---------------------------------------------------------------------------
+mkdir -p "${rundir}/build"
+msg="To build GEOS-Chem, type:\n\n"
+msg+="$ cmake ../CodeDir\n"
+msg+="$ cmake . -DRUNDIR=.. ${EXTRA_CMAKE_OPTIONS}\n"
+msg+="$ make -j\n"
+msg+="$ make install\n"
+printf "${msg}" > ${rundir}/build/README
+unset msg
 
 exit 0
