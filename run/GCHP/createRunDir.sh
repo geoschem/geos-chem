@@ -571,7 +571,7 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
+    set_common_settings "${sim_extra_option}" "GCHP"
 fi
 
 # Call setCommonRunSettings.sh so that all config files are consistent with its

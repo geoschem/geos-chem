@@ -201,10 +201,6 @@ for runDir in *; do
 	    . gchp.env                >> "${log}" 2>&1
 	    . checkRunSettings.sh     >> "${log}" 2>&1
 
-	    # Change time cycle flag in HEMCO_Config.rc from EFYO to CYS,
-	    # to allow missing specis to be set a default value.
-	    sed_ie "s/EFYO/CYS/" HEMCO_Config.rc
-
 	    # Run GCHP and evenly distribute tasks across nodes
 	    if [[ "x${scheduler}" == "xSLURM" ]]; then
 
