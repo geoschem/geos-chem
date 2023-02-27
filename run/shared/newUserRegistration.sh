@@ -113,7 +113,7 @@ function registerNewUser() {
     research_interest=$(userInput)
 
     # Send information to database on AWS
-    postRegistration "${email}"             "${name}"       "${affiliation}"  \
+    postRegistration "${email}"             "${name}"       "${institution}"  \
                      "${name_of_pi}"        "${site}"       "${git_username}" \
                      "${research_interest}" "${model_type}" "${env_type}"
 
