@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Ask users for the name of their research institution at registration
 - Ask users for the name of their PI at registration
 - Do not compile GCHP for tagO3 integration tests; use the default build instead
+- Moved GC-Classic sample run scripts to operational_examples/harvard_cannon
 
 ### Fixed
 - Fixed bug in where writing species metadata yaml file write was always attempted
