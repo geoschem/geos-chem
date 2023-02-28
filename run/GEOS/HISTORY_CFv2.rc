@@ -835,6 +835,10 @@ PC180x91-DC.LM: 72
                               'AODSOAfromAqIsopreneWL1  ', 'GEOSCHEMCHEM',
                               'AODStratLiquidAerWL1     ', 'GEOSCHEMCHEM',
                               'AODPolarStratCloudWL1    ', 'GEOSCHEMCHEM',
+                              'AODANA'                   , 'GAAS',
+                              'AODBKG'                   , 'GAAS',
+                              'AODBKG_GCC'               , 'GAAS',
+                              'AODANA_GCC'               , 'GAAS',
                             ::
 
   flx_tavg_6hr_g1440x721_x1.template:   '%y4%m2%d2_%h2%n2z.nc4',

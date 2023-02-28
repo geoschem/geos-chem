@@ -110,6 +110,9 @@ Online_CLDLIQ: 1
 # Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
 Online_VUD: 1
 
+# Use GAAS on GEOS-Chem aerosols? 
+Species_friendly_to_GAAS: 0
+
 #
 # %%% Tuning parameter to reduce washout efficiency 
 # %%% of convective large-scale precip.
