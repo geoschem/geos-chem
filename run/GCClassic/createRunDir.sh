@@ -29,7 +29,7 @@
 srcrundir=$(pwd -P)
 cd ${srcrundir}
 
-# GEOS-Chem "science codebase"directory
+# GEOS-Chem "science codebase" directory
 cd ../..
 gcdir=$(pwd -P)
 
