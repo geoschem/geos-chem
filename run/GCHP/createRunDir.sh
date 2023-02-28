@@ -16,7 +16,7 @@
 # !REMARKS:
 #  If optional run directory name argument is not passed then the user
 #  will be prompted to enter a name interactively, or choose to use the
-#  default name gc_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
+#  default name gchp_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
 #
 # !REVISION HISTORY:
 #  Initial version: E. Lundgren,10/5/2018
