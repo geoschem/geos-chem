@@ -598,7 +598,7 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+          SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
@@ -1348,6 +1348,29 @@ CONTAINS
        ENDDO
 
 #endif
+#endif
+
+#ifdef MODEL_CESM
+       ! Calculate H2SO4 production rate for coupling to CESM (interface to MAM4 nucleation)
+       DO F = 1, NFAM
+
+          ! Determine dummy species index in KPP
+          KppID =  PL_Kpp_Id(F)
+
+          ! Calculate H2SO4 production rate [mol mol-1] in this timestep (hplin, 1/25/23)
+          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
+             ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3)
+             !         = mol/molAir
+             State_Chm%H2SO4_PRDR(I,J,L) = C(KppID) * AIRMW * 1e-3_fp * 1.0e+6_fp / &
+                                 (AVO * State_Met%AIRDEN(I,J,L))
+
+             IF ( State_Chm%H2SO4_PRDR(I,J,L) < 0.0d0) THEN
+               write(*,*) "H2SO4_PRDR negative in fullchem_mod.F90!!", &
+                  I, J, L, "was:", State_Chm%H2SO4_PRDR(I,J,L), "  setting to 0.0d0"
+               State_Chm%H2SO4_PRDR(I,J,L) = 0.0d0
+             ENDIF
+          ENDIF
+       ENDDO
 #endif
 
 #ifdef MODEL_GEOS

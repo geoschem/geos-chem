@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased 14.1.1]
 ### Added
 - New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
 - New parallelization test functions in `test/GCClassic/parallel`
@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP integration test for the tagO3 simulation
 - Added GCHP and GCClassic integration tests for the carbon simulation
 - Integration and parallelization test folders have been separated into subdirectories to minimize clutter.
+- GEOS-only updates
 
 ### Changed
 - GCClassic integration tests now use a single set of scripts
@@ -19,9 +20,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Integration test run directories are created with the default names assigned by `createRunDir.sh`
 - Several bash functions in `test/shared/commonFunctionsForTests.sh` have been combined so that they will work for both GCClassic and GCHP integration tests
 - `./cleanRunDir.sh` functions now take an argument for non-interactive execution (facilitates integration & parallelization tests)
+- Moved several module variables from `GeosCore/ucx_mod.F90` to `Headers/state_chm_mod.F90`.  This facilitates using GEOS-Chem in CESM.
+- Time cycle flags EFYO are changed to CYS for all GCClassic integration/parallel tests, and for GCClassic fullchem_benchmarksimulations.
+- Ask users for the name of their research institution at registration
+- Ask users for the name of their PI at registration
+- Do not compile GCHP for tagO3 integration tests; use the default build instead
+
+### Fixed
+- Fixed bug in where writing species metadata yaml file write was always attempted
+- Prevent a warning from being generated when compiling `gckpp_Jacobian.F90`
+- Fixed a bug in routine GET_IJ where X and Y were swapped in an IF comparison.
 
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
+- Removed State_Met%LWI and input meteorology LWI from carbon simulation run config files
+- Removed function `CLEANUP_UCX`; deallocations are now done in `state_chm_mod.F90`
 
 ## [14.1.0] - 2023-02-01
 ### Added
@@ -39,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added HTAPv3 inventory as a global emissions option (off by default)
   - Added carbon simulation and KPP mechanism for CO-CO2-CH4-OCS
   - Added GCHP run script and environment file for UCI Australia cluster Gadi
+  - Added GFAS entries in GCHP config file ExtData.rc
 
 ### Changed
   - Moved in-module variables in global_ch4_mod.F90 to State_Chm
@@ -61,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed bug in logic that caused restart files not to be linked to the Restarts/ folder of the GCHP tagO3 run directory
   - Fixed timestamp for GCClassic History diagnostic so time-averaged collections match the reference time
   - Fixed double-titration of seasalt alkalinity
+  - Fixed bug in GFAS pFe by applying work-around in config files
 
 ### Removed
   - Removed LRED_JNO2 and AERO_HG2_PARTITON switches from HEMCO_Config.rc (and related code)

@@ -188,6 +188,10 @@ for runDir in *; do
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
+	    # Change time cycle flag in HEMCO_Config.rc from EFYO to CYS,
+	    # to allow missing species to be set a default value.
+	    sed_ie "s/EFYO/CYS/" HEMCO_Config.rc
+
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
             if [[ "x${scheduler}" == "xSLURM" ]]; then
