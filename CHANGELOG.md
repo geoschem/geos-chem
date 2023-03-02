@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
   - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
   - Removed the `NcdfUtil/perl` folder
+  - Removed `X-HRS` output from log file
 
 ## [14.1.0] - 2023-02-01
 ### Added
