@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP and GCClassic integration tests for the carbon simulation
 - Integration and parallelization test folders have been separated into subdirectories to minimize clutter.
 - GEOS-only updates
+- Add `about` to GitHub issue templates (ensures they will be displayed)
+- Added `.github/ISSUE_TEMPLATE/config.yml` file w/ Github issue options
 
 ### Changed
 - GCClassic integration tests now use a single set of scripts
@@ -26,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Ask users for the name of their PI at registration
 - Do not compile GCHP for tagO3 integration tests; use the default build instead
 - Moved GC-Classic sample run scripts to operational_examples/harvard_cannon
+- The GitHub PR template is now named `./github/PULL_REQUEST_TEMPLATE.md`
 
 ### Fixed
 - Fixed bug in where writing species metadata yaml file write was always attempted
