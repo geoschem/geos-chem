@@ -1353,6 +1353,9 @@ CONTAINS
        ENDIF
 
     ENDIF
+    
+    ! Free pointer
+    p_pHCloud => NULL()
 #else
     !=================================================================
     ! %%% SPECIAL CASE %%%
@@ -1738,6 +1741,15 @@ CONTAINS
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
 #ifdef LUO_WETDEP
+
+    ! Initialize
+    Hplus  = 0.0_f8
+    HCSO2  = 0.0_f8
+    HCNH3  = 0.0_f8
+    Ks1    = 0.0_f8
+    Ks2    = 0.0_f8
+    T_Term = 0.0_f8
+
     IF ( SpcInfo%WD_Is_HNO3 ) THEN
 
        ! Washout is a kinetic process
