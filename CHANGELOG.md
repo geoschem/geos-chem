@@ -4,7 +4,9 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.1.1]
+## [Unreleased 14.2.0]
+
+## [14.1.1] - 2023-03-03
 ### Added
 - New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
 - New parallelization test functions in `test/GCClassic/parallel`
