@@ -1,9 +1,3 @@
----
-name: Submit updates to GEOS-Chem with a pull request
-labels: 'never stale'
-
----
-
 ### Name and Institution (Required)
 
 Name:

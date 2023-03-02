@@ -1,5 +1,6 @@
 ---
-name: Ask a question about or report an issue with GEOS-Chem
+name: Ask a question about GEOS-Chem or report an issue with GEOS-Chem
+about: Use this form to ask a question about GEOS-Chem or to report an issue
 ---
 
 ### Name and Institution (Required)
