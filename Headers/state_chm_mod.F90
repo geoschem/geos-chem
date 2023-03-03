@@ -266,11 +266,54 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: TOMS2      (:,:    )
 
      !-----------------------------------------------------------------------
+     ! Fields for UCX (moved from module)
+     ! Many of these fields are not sized NX x NY, and thus cannot be allocated
+     ! by Init_and_Register. They will be handled by Init_UCX as appropriate,
+     ! and only stored in State_Chm so they can be separated per chemistry state.
+     ! (hplin, 1/5/23)
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: UCX_REGRID (:,:    )
+     REAL(fp),          POINTER :: UCX_PLEVS  (:      ) ! Pressure levels of 2D data (hPa)
+     REAL(fp),          POINTER :: UCX_LATS   (:      ) ! Latitude edges of 2D data (deg)
+     REAL(fp),          POINTER :: RAD_AER    (:,:,:,:) ! Strat. aerosol radius (cm)
+     REAL(fp),          POINTER :: KG_AER     (:,:,:,:) ! Aerosol mass (kg/box)
+     REAL(fp),          POINTER :: SAD_AER    (:,:,:,:) ! Aerosol surface area density (cm2/cm3)
+     REAL(fp),          POINTER :: NDENS_AER  (:,:,:,:) ! Aerosol number density (#/m3)
+     REAL(fp),          POINTER :: RHO_AER    (:,:,:,:) ! Aerosol mass density (kg/m3 aerosol)
+     REAL(fp),          POINTER :: AERFRAC    (:,:,:,:) ! Mass fraction of species in liquid aerosols
+     INTEGER,           POINTER :: AERFRACIND (:      ) ! Indices of liquid aerosol species
+     REAL(fp),          POINTER :: NOX_O      (:,:,:,:) ! Monthly mean noontime O3P/O1D for NOx calcs
+     REAL(fp),          POINTER :: NOX_J      (:,:,:,:) ! Monthly mean noontime J-rates for NOx calcs
+     REAL(fp),          POINTER :: SO4_TOPPHOT(:,:    ) ! Photolysis rate at the top of the chemgrid (1/s)
+
+     !=================================================================
+     ! Variables to use NOx coefficients in ESMF / grid-independent
+     ! envionment. The NOx coefficients are climatological 2D
+     ! (lat/lev/12 months) data that are currently available for
+     ! horizontal (latitude) resolutions of 2 and 4 degrees. For other
+     ! resolutions, the horizontal data becomes mapped onto the
+     ! simulation grid (see GET_JJNOX).
+     ! Similar to the surface mixing ratio boundary conditions, we now
+     ! read all the NOx coefficients during initialization to avoid
+     ! additional I/O calls during run time (ckeller, 05/12/2014).
+     !=================================================================
+     REAL(fp),          POINTER :: NOXCOEFF   (:,:,:,:)
+     REAL(fp),          POINTER :: NOXLAT     (:      )
+     INTEGER                    :: JJNOXCOEFF
+
+     !-----------------------------------------------------------------------
      ! Switches to enable SO2 cloud chemistry and seasalt chemistry in
      ! sulfate_mod (TRUE) or in the KPP mechanism (FALSE).
      !-----------------------------------------------------------------------
      LOGICAL                    :: Do_SulfateMod_Cld
      LOGICAL                    :: Do_SulfateMod_SeaSalt
+
+#if defined(MODEL_CESM)
+     !-----------------------------------------------------------------------
+     ! Fields for CESM interface to GEOS-Chem
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: H2SO4_PRDR (:,:,:  ) ! H2SO4 prod rate [mol/mol]
+#endif
 
      !-----------------------------------------------------------------------
      ! Fields for CH4 specialty simulation
@@ -286,6 +329,29 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
      TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
+
+     !-----------------------------------------------------------------------
+     ! Carbon stuff for GEOS 
+     !-----------------------------------------------------------------------
+#if defined( MODEL_GEOS )
+     INTEGER            :: CO2fromGOCART
+     CHARACTER(LEN=255) :: impCO2name
+     INTEGER            :: numphoto
+     INTEGER            :: nxdo
+     INTEGER            :: nlam
+     INTEGER            :: nsza
+     INTEGER            :: numo3
+     INTEGER            :: nts
+     INTEGER            :: aqsize
+
+     REAL, POINTER      :: sdat(:,:,:,:)
+     REAL, POINTER      :: o2jdat(:,:,:)
+     REAL, POINTER      :: sza_tab(:)
+     REAL, POINTER      :: o3_tab(:,:)
+     REAL, POINTER      :: xtab(:,:,:)
+     REAL, POINTER      :: CH2O_aq(:)
+     REAL, POINTER      :: rlam(:)
+#endif
 
   END TYPE ChmState
 !
@@ -449,6 +515,21 @@ CONTAINS
     State_Chm%CH4_EMIS          => NULL()
     State_Chm%SFC_CH4           => NULL()
 
+    State_Chm%UCX_REGRID        => NULL()
+    State_Chm%UCX_PLEVS         => NULL()
+    State_Chm%UCX_LATS          => NULL()
+    State_Chm%RAD_AER           => NULL()
+    State_Chm%KG_AER            => NULL()
+    State_Chm%SAD_AER           => NULL()
+    State_Chm%NDENS_AER         => NULL()
+    State_Chm%RHO_AER           => NULL()
+    State_Chm%AERFRAC           => NULL()
+    State_Chm%AERFRACIND        => NULL()
+    State_Chm%NOX_O             => NULL()
+    State_Chm%NOX_J             => NULL()
+    State_Chm%NOXCOEFF          => NULL()
+    State_Chm%NOXLAT            => NULL()
+
     ! Emissions and drydep quantities
     State_Chm%Iodide            => NULL()
     State_Chm%Salinity          => NULL()
@@ -497,6 +578,30 @@ CONTAINS
     ! FALSE = use KPP computations
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
+
+#ifdef MODEL_GEOS
+    ! Add quantities for coupling to the NASA/GEOS ESM
+    State_Chm%CO2fromGOCART     = .FALSE.
+    State_Chm%impCO2name        = "unknown" 
+    State_Chm%numphoto          = 0
+    State_Chm%nxdo              = 0
+    State_Chm%nlam              = 0
+    State_Chm%nsza              = 0
+    State_Chm%numo3             = 0
+    State_Chm%nts               = 0
+    State_Chm%aqsize            = 0
+    State_Chm%sdat              => NULL()
+    State_Chm%o2jdat            => NULL()
+    State_Chm%sza_tab           => NULL()
+    State_Chm%o3_tab            => NULL()
+    State_Chm%xtab              => NULL()
+    State_Chm%CH2O_aq           => NULL()
+    State_Chm%rlam              => NULL()
+#endif
+#ifdef MODEL_CESM
+    ! Add quantities for coupling to CESM
+    State_Chm%H2SO4_PRDR        => NULL()
+#endif
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -2055,6 +2160,28 @@ CONTAINS
        RETURN
     ENDIF
 
+#if defined(MODEL_CESM)
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       !---------------------------------------------------------------------
+       ! H2SO4_PRDR: H2SO4 production rate [mol/mol] for MAM4 interface
+       !---------------------------------------------------------------------
+       chmId = 'H2SO4_PRDR'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%H2SO4_PRDR,                               &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+
     !=======================================================================
     ! Initialize State_Chm quantities pertinent to Hg simulations
     !=======================================================================
@@ -3281,16 +3408,60 @@ CONTAINS
 #ifdef MODEL_GEOS
     IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 3, RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepRa2m => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%DryDepRa10m ) ) THEN
        DEALLOCATE( State_Chm%DryDepRa10m, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 3, RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepRa10m => NULL()
+    ENDIF
+
+    ! CO2 photolysis stuff
+    IF ( ASSOCIATED( State_Chm%sdat ) ) THEN
+       DEALLOCATE( State_Chm%sdat, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%sdat', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%sdat => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%o2jdat ) ) THEN
+       DEALLOCATE( State_Chm%o2jdat, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%o2jdat', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%o2jdat => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%sza_tab ) ) THEN
+       DEALLOCATE( State_Chm%sza_tab, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%sza_tab', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%sza_tab => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%o3_tab ) ) THEN
+       DEALLOCATE( State_Chm%o3_tab, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%o3_tab', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%o3_tab => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%xtab ) ) THEN
+       DEALLOCATE( State_Chm%xtab, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%xtab', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%xtab => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%CH2O_aq ) ) THEN
+       DEALLOCATE( State_Chm%CH2O_aq, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH2O_aq', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%CH2O_aq => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%rlam ) ) THEN
+       DEALLOCATE( State_Chm%rlam, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%rlam', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%rlam => NULL()
     ENDIF
 #endif
 
@@ -3406,6 +3577,120 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%TOMS2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%TOMS2 => NULL()
+    ENDIF
+
+#if defined(MODEL_CESM)
+    IF ( ASSOCIATED( State_Chm%H2SO4_PRDR ) ) THEN
+       DEALLOCATE( State_Chm%H2SO4_PRDR, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%H2SO4_PRDR', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%H2SO4_PRDR => NULL()
+    ENDIF
+#endif
+
+    IF ( ASSOCIATED( State_Chm%RAD_AER ) ) THEN
+       DEALLOCATE( State_Chm%RAD_AER, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%RAD_AER', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%RAD_AER => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SAD_AER ) ) THEN
+       DEALLOCATE( State_Chm%SAD_AER, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SAD_AER', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SAD_AER => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%KG_AER ) ) THEN
+       DEALLOCATE( State_Chm%KG_AER, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KG_AER', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KG_AER => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%RHO_AER ) ) THEN
+       DEALLOCATE( State_Chm%RHO_AER, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%RHO_AER', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%RHO_AER => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NDENS_AER ) ) THEN
+       DEALLOCATE( State_Chm%NDENS_AER, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NDENS_AER', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NDENS_AER => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AERFRAC ) ) THEN
+       DEALLOCATE( State_Chm%AERFRAC, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AERFRAC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AERFRAC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AERFRACIND ) ) THEN
+       DEALLOCATE( State_Chm%AERFRACIND, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AERFRACIND', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AERFRACIND => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%UCX_REGRID ) ) THEN
+       DEALLOCATE( State_Chm%UCX_REGRID, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%UCX_REGRID', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%UCX_REGRID => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%UCX_PLEVS ) ) THEN
+       DEALLOCATE( State_Chm%UCX_PLEVS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%UCX_PLEVS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%UCX_PLEVS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%UCX_LATS ) ) THEN
+       DEALLOCATE( State_Chm%UCX_LATS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%UCX_LATS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%UCX_LATS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NOX_O ) ) THEN
+       DEALLOCATE( State_Chm%NOX_O, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NOX_O', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NOX_O => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NOX_J ) ) THEN
+       DEALLOCATE( State_Chm%NOX_J, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NOX_J', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NOX_J => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO4_TOPPHOT ) ) THEN
+       DEALLOCATE( State_Chm%SO4_TOPPHOT, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO4_TOPPHOT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO4_TOPPHOT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NOXCOEFF ) ) THEN
+       DEALLOCATE( State_Chm%NOXCOEFF, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NOXCOEFF', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NOXCOEFF => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NOXLAT ) ) THEN
+       DEALLOCATE( State_Chm%NOXLAT, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NOXLAT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NOXLAT => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -4370,6 +4655,13 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'QQRain'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
+
+#if defined(MODEL_CESM)
+       CASE( 'H2SO4_PRDR' )
+          IF ( isDesc  ) Desc  = 'H2SO4 production rate in timestep'
+          IF ( isUnits ) Units = 'mol mol-1'
+          IF ( isRank  ) Rank  = 3
+#endif
 
        CASE DEFAULT
           Found = .False.

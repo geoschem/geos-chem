@@ -91,10 +91,11 @@ ${NEW_LINE}"
 function set_common_settings() {
 
     # Check that simulation option is passed
-    if [[ $# == 1 ]]; then
-        sim_extra_option=${1}
+    if [[ $# == 2 ]]; then
+        sim_extra_option="${1}"
+	model="${2}"
     else
-       echo 'Usage: ./setupConfigFiles.sh {sim_extra_option}'
+       echo 'Usage: ./setupConfigFiles.sh {sim_extra_option} {model}'
        exit 1
     fi
 
@@ -111,7 +112,10 @@ function set_common_settings() {
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 
-	sed_ie 's|EFYO|CYS |'                         HEMCO_Config.rc  # Don't stop if species not found in restart file
+	# Change time cycle flag to allow missing species (GCClassic only)
+	if [[ "x${model}" == "xGCClassic" ]]; then
+	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
+	fi
 
         sed_ie 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
 	sed_ie 's|SALA  0      3 |SALA  107    -1|'   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)

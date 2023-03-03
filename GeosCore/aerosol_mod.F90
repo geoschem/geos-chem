@@ -186,7 +186,6 @@ CONTAINS
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
-    USE UCX_MOD,           ONLY : KG_STRAT_AER
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
     USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
@@ -249,6 +248,7 @@ CONTAINS
     REAL(fp),      POINTER   :: PMID(:,:,:)
     REAL(fp),      POINTER   :: T(:,:,:)
     REAL(fp),      POINTER   :: SOILDUST(:,:,:,:)
+    REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -316,6 +316,7 @@ CONTAINS
     PMID     => State_Met%PMID
     T        => State_Met%T
     SOILDUST => State_Chm%SoilDust
+    KG_STRAT_AER => State_Chm%KG_AER
 
     !=================================================================
     ! OM/OC ratio
@@ -1058,7 +1059,6 @@ CONTAINS
     USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
     USE UCX_MOD,        ONLY : GET_STRAT_OPT
-    USE UCX_MOD,        ONLY : NDENS_AER
     USE Species_Mod,    ONLY : Species
 
     IMPLICIT NONE
@@ -1720,7 +1720,7 @@ CONTAINS
                 !--------------------------------------------------------
 
                 ! Get aerosol effective radius
-                CALL GET_STRAT_OPT(I, J, L, ISTRAT, RAER, REFF, &
+                CALL GET_STRAT_OPT(State_Chm, I, J, L, ISTRAT, RAER, REFF, &
                                    SADSTRAT, XSASTRAT)
 
                 ! SDE 2014-02-04
@@ -1948,7 +1948,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           ! Get aerosol effective radius
-          CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+          CALL GET_STRAT_OPT(State_Chm, I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
           ! Moved this from a separate loop for clarity
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1984,7 +1984,7 @@ CONTAINS
              IF ( IsSLA ) THEN
                 IF ( State_Diag%Archive_AerNumDenSLA ) THEN
                    State_Diag%AerNumDenSLA(I,J,L) = &
-                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODSLAWL1 ) THEN
                    State_Diag%AODSLAWL1(I,J,L) = &
@@ -2001,7 +2001,7 @@ CONTAINS
              ELSEIF ( IsPSC ) THEN
                 IF ( State_Diag%Archive_AerNumDenPSC ) THEN
                    State_Diag%AerNumDenPSC(I,J,L) = &
-                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODPSCWL1 ) THEN
                    State_Diag%AODPSCWL1(I,J,L) = &
