@@ -419,7 +419,8 @@ CONTAINS
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L )
+    !$OMP PRIVATE( I, J, L ) &
+    !$OMP COLLAPSE( 2 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -3280,7 +3281,8 @@ CONTAINS
     !$OMP PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) &
     !$OMP PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC         ) &
     !$OMP PRIVATE( COND_WATER_CONTENT                               ) &
-    !$OMP SCHEDULE( DYNAMIC                                         )
+    !$OMP COLLAPSE( 2                                               ) &
+    !$OMP SCHEDULE( DYNAMIC, 24                                     )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -5837,10 +5839,11 @@ CONTAINS
     ! Only do computation if wetdep or convection is turned on
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, TK, PL ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO               &
+       !$OMP DEFAULT( SHARED          )&
+       !$OMP PRIVATE( I, J, L, TK, PL )&
+       !$OMP COLLAPSE( 3              )&
+       !$OMP SCHEDULE( DYNAMIC, 24    )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
