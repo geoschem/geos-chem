@@ -417,10 +417,10 @@ CONTAINS
     ! Initialize
     RC = GC_SUCCESS
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
     !$OMP PRIVATE( I, J, L ) &
-    !$OMP COLLAPSE( 2 )
+    !$OMP COLLAPSE( 3      )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
