@@ -5,6 +5,18 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased 14.2.0]
+### Added
+  - Added a printout of GEOS-Chem species and indices
+  - Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
+
+### Changed
+  - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
+  - `HEMCO_Config.rc` template files now use `Verbose: true` to toggle debug printout
+
+### Removed
+  - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
+  - Removed the `NcdfUtil/perl` folder
+  - Removed `X-HRS` output from log file
 
 ## [14.1.1] - 2023-03-03
 ### Added

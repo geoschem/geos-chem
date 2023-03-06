@@ -793,7 +793,7 @@ CONTAINS
     Container%TimeStamp = Container%TimeStamp / SECONDS_PER_MINUTE
 
     ! Debug output
-    IF ( Input_Opt%LPRT .and. Input_opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
 110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
     ENDIF
