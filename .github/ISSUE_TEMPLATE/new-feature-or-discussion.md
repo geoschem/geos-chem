@@ -1,5 +1,6 @@
 ---
 name: Request a new GEOS-Chem feature or start a discussion
+about: Use this form to request a new GEOS-Chem feature or start a discussion
 ---
 
 ### Name and Institution (Required)
