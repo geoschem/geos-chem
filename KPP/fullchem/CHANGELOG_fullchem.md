@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   from 9.5d-13 (incorrect) to 9.5d+13.  See geoschem/geos-chem #1274.
 - Bug fixes: HOBr + SO2 and HOCl + SO2 should produce SO4 (not SO4s)
 
-## [13.3.0] - (Sep 2021)
+## [13.3.0] - Sep 2021
 ### Added
 - HMS chemistry (Moch2020)
 - C2H2/C2H4 chemistry (Kwon2020)
@@ -84,7 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - ALK4 lumping issue in R4O2 + NO reaction (BHH)
 
-## [v11-01g] - [Sep 2016]
+## [v11-01g] - Sep 2016
 ### Added
 - Initial version for FlexChem (MSL,MJE,MPS,EWL)
 
