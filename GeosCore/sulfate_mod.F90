@@ -2654,16 +2654,18 @@ CONTAINS
     !$OMP PRIVATE( HCHO0,    HMSc,          HMS0,      OH0,      KaqHCHO    )&
     !$OMP PRIVATE( KaqHMS,   KaqHMS2,       L7,        L7S,      L7_b       )&
     !$OMP PRIVATE( L7S_b,    L8,            L8S,       LSTOT_HMS            )&
-    !$OMP SCHEDULE( DYNAMIC, 1                                              )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
        ! Initialize for safety's sake
-       Ld       = 0.0_fp
-       LSTOT0   = 0.0_fp
-       LSTOT    = 0.0_fp
-       LSTOT_HMS = 0.0_fp
+       Ld          = 0.0_fp
+       LSTOT0      = 0.0_fp
+       LSTOT       = 0.0_fp
+       LSTOT_HMS   = 0.0_fp
+       one_m_KRATE = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
