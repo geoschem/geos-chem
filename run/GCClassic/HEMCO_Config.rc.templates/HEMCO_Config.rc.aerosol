@@ -99,14 +99,14 @@ VerboseOnCores:              root       # Accepted values: root all
 # See additional notes in the AEIC scale factor section below.
 #------------------------------------------------------------------------------
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
-    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
-    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
+    --> AEIC2019_MONMEAN       :       ${RUNDIR_USE_AEIC}     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       ${RUNDIR_USE_AEIC}     # Scale to year in 1990-2019
 # ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
     --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
-    --> HTAPv3_SHIP            :       false    # 2008-2018
+    --> HTAPv3_SHIP            :       false    # 2000-2018
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
@@ -121,7 +121,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CMIP6_SFC_LAND_ANTHRO  :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> CMIP6_AIRCRAFT         :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> CMIP6_SHIP             :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
-# ----- BIOMASS BURNING EMISSIONS -----------------------------
+# ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
@@ -181,7 +181,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -211,7 +211,7 @@ VerboseOnCores:              root       # Accepted values: root all
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr	Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 
