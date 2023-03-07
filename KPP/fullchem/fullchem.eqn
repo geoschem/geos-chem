@@ -13,10 +13,88 @@ FILE HISTORY
 
 Version: 14.1.0
 
-Please see "CHANGELOG_fullchem.md" in this folder for:
-- The revision history of the "fullchem" mechanism;
-- The list of developers who worked on this mechanism; and
-- The list of references cited.
+Please see "CHANGELOG_fullchem.md" in this folder
+for the revision history of the fullchem mechanism.
+
+===============================================================================
+DEVELOPERS (initials and email/GitHub)
+===============================================================================
+* BHH  :  Barron Henderson         : @barronh
+* BMY  :  Bob Yantosca             : @yantosca
+* CCM  :  Christopher Chan Miller  : cmiller@fas.harvard.edu
+* CDH  :  Christopher Holmes       : @cdholmes
+* DBM  :  Dylan Millet             : @dylanbm
+* EAM  :  Eloise Marais            : @eamarais
+* ECB  :  Ellie Browne             : eleanor.browne@colorado.edu
+* EVF  :  Emily Fischer            : evf@rams.colostate.edu
+* EWL  :  Lizzie Lundgren          : @lizziel
+* FP   :  Fabien Paulot            : fabien.paulot@noaa.gov
+* HOTP :  Havala Pye               : pye.havala@epa.gov
+* JAF  :  Jenny Fisher             : @jennyfisher
+* JAS  :  Johan Schmidt            : johanalbrechtschmidt@gmail.com
+* JMAO :  Jingqiu Mao              : @jingqiumao
+* JMM  :  Jonathan Moch            : jmoch@g.harvard.edu
+* JPP  :  Justin Parrella          : justin.parrella@gmail.com
+* KHB  :  Kelvin Bates             : @kelvinhb
+* KRT  :  Katie Travis             : @ktravis213
+* LZHU :  Lei Zhu                  : leizhu@fas.harvard.edu
+* MJE  :  Mat Evans                : @msl3v
+* MPS  :  Melissa Sulprizio        : @msulprizio
+* MSL  :  Michael Long             : @msl3v
+* PK   :  Prasad Kasibhatla        : @pkasibhatla
+* QJC  :  Qianjie Chen             : chenqjie@uw.edu
+* RHS  :  Rebecca Schwantes        : rschwant@caltech.edu
+* SAS  :  Sarah Safieddine         : sarahsaf@mit.edu
+* SDE  :  Sebastian Eastham        : @sdeastham
+* TMS  :  Tomas Sherwen            : @tsherwen
+* XC   :  Xin Chen                 : @xin-chen-github
+* XW   :  Xuan Wang                : @xuanw0316
+
+===============================================================================
+REFERENCES (alphabetical order)
+===============================================================================
+* Atkinson2003   : https://doi.org/10.1021/cr0206420
+* Bates2014      : https://doi.org/10.1021/jp4107958
+* Bates2019      : https://doi.org/10.5194/acp-19-9613-2019
+* Bates2021a     : https://doi.org/10.1029/2020JD033439
+* Bates2021b     : https://doi.org/10.5194/acp-2021-605
+* Browne2011     : https://doi.org/10.5194/acp-11-4209-2011
+* Browne2014     : https://doi.org/10.5194/acp-14-1225-2014
+* Chen2017       : https://doi.org/10.1002/2017GL073812
+* Crounse2012    : https://doi.org/10.1021/jp211560u
+* Eastham2014    : https://doi.org/10.1016/j.atmosenv.2014.02.001
+* Fischer2014    : https://doi.org/10.5194/acp-14-2679-2014
+* Fisher2016     : https://doi.org/10.5194/acp-16-5969-2016
+* Fisher2018     : https://doi.org/10.1029/2018JD029046
+* Fry2014        : https://doi.org/10.1021/es502204x
+* Gill2002       : https://doi.org/10.1021/jp013532, 2002.
+* Goliff2013     : https://doi.org/10.1016/j.atmosenv.2012.11.038
+* Jacobs2014     : https://doi.org/10.5194/acp-14-8933-2014
+* Jenkin2015     : https://doi.org/10.5194/acp-15-11433-2015
+* Kasibhatla2018 : https://doi.org/10.5194/acp-18-11185-2018
+* IUPAC ROO_19   : https://iupac-aeris.ipsl.fr/htdocs/datasheets/pdf/ROO_19_CH3O2_NO3.pdf
+* JPL 10-6       : https://jpldataeval.jpl.nasa.gov/previous_evaluations.html
+* JPL 15-10      : https://jpldataeval.jpl.nasa.gov, 2015.
+* Kwon2020       : https://doi.org/10.1525/elementa.2021.00109
+* Lee2014        : https://doi.org/10.1021/jp4107603
+* Marais2016     : https://doi.org/10.5194/acp-16-1603-2016
+* Miller2017     : https://doi.org/10.5194/acp-2016-1042
+* Millet2015     : https://doi.org/10.5194/acp-15-6283-2015
+* Moch2020       : https;//doi.org/10.1029/2020JD032706, 2020.
+* Muller2014     : https://doi.org/10.5194/acp-14-2497-2014
+* Parrella2012   : https://doi.org/10.5194/acp-12-6723-2012
+* Paulot2009     : https://doi.org/10.5194/acp-9-1479-2009 and 
+                   https://doi.org/10.1126/science.1172910
+* Peeters2010    : https://doi.org/10.1039/C0CP00811G
+* Peeters2014    : https://doi.org/10.1021/jp5033146.
+* Pye2010        : https://doi.org/10.5194/acp-10-11261-2010
+* Roberts1992    : https://doi.org/10.1002/kin.550240307
+* Sherwen2016b   : https://doi.org/10.5194/acp-16-12239-2016
+* Sherwen2017    : https://doi.org/10.1039/C7FD00026J
+* StClair2016    : https://doi.org/10.1021/acs.jpca.5b065322016
+* Travis2016     : https://doi.org/10.5194/acp-16-13561-2016
+* Wolfe2012      : https://doi.org/ 10.1039/C2CP40388A, 2012
+* Xie2013        : https://doi.org/10.5194/acp-13-8439-2013
 
 ===============================================================================
 NOTES
