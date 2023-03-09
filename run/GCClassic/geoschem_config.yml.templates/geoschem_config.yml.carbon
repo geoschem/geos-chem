@@ -12,7 +12,10 @@ simulation:
   root_data_dir: ${RUNDIR_DATA_ROOT}
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
-  debug_printout: false
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
 
 #============================================================================

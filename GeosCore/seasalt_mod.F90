@@ -199,9 +199,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    LOGICAL            :: prtDebug
-
     ! Strings
     CHARACTER(LEN=255) :: thisLoc
     CHARACTER(LEN=512) :: errMsg
@@ -216,7 +213,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !========================================================================
     ! Accumulation mode (SALA) wet settling
@@ -238,7 +234,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
        ENDIF
     ENDIF
@@ -263,7 +259,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
        ENDIF
     ENDIF
@@ -288,7 +284,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
        ENDIF
     ENDIF
@@ -313,7 +309,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
        ENDIF
     ENDIF
@@ -338,7 +334,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
        ENDIF
     ENDIF
@@ -363,7 +359,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
        ENDIF
     ENDIF
@@ -388,7 +384,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
           ENDIF
        ENDIF
@@ -408,7 +404,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
           ENDIF
        ENDIF
@@ -425,7 +421,9 @@ CONTAINS
     ENDDO
     CALL SRCSALTBIN( Seasalt_Ids, State_Grid, State_Met, State_Chm )
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+    ENDIF
 
     !----------------------------------------
     ! APM microphysics
@@ -500,7 +498,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: PrtDebug
     INTEGER            :: I,           J,          L
     INTEGER            :: S,           ID
     REAL(fp)           :: DELZ,        DELZ1,      REFF
@@ -534,7 +531,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     DTCHEM   = GET_TS_CHEM()    ! Chemistry timestep [s]
     DEN      = SS_DEN( N )      ! Sea salt density [kg/m3]
     ErrMsg   = ''
@@ -558,7 +554,9 @@ CONTAINS
        REFF = REFF_accum                  ! Eff radius of accum mode  [m]
     ENDIF
 
-    IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+    ENDIF
 
 !%%% Comment out unused code (not sure who disabled this)
 !%%%    ! Sea salt radius [cm]
@@ -823,7 +821,9 @@ CONTAINS
     ENDDO ! J
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+    ENDIF
 
   END SUBROUTINE Wet_Settling
 !EOC

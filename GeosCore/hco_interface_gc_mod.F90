@@ -12,8 +12,8 @@
 ! to run HEMCO within GEOS-Chem.
 !\\
 !\\
-! The HEMCO driver is now present in this file as HEMCO is restructured to provide
-! a unified point-of-entry for coupling with other models.
+! The HEMCO driver is now present in this file as HEMCO is restructured to
+! provide a unified point-of-entry for coupling with other models.
 !\\
 !\\
 ! Notes:
@@ -3635,8 +3635,8 @@ CONTAINS
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
 
-          ! Verbose
-          IF ( Input_Opt%amIRoot ) THEN
+          ! Verbose (only written if debug printout is requested)
+          IF ( Input_Opt%Verbose ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -3665,8 +3665,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, N )
+             ! Logfile output (only written if debug printout is requested)
+             IF ( Input_Opt%Verbose ) THEN
+                CALL HCO_SPEC2LOG( HcoState, N )
+             ENDIF
 
              ! Free pointer memory
              SpcInfo => NULL()
@@ -3686,8 +3688,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR     = 0.0_hp
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG(  HcoState, N )
+             ! Logfile output (only written if debug output is requested)
+             IF ( Input_Opt%Verbose ) THEN 
+                CALL HCO_SPEC2LOG(  HcoState, N )
+             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
@@ -3726,13 +3730,17 @@ CONTAINS
                 HcoState%Spc(M)%HenryCR    = 0.0_hp
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
-                ! Write to log file
-                IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, M )
+                ! Logfile output (only written if debug printout is requested)
+                IF ( Input_Opt%Verbose ) THEN
+                   CALL HCO_SPEC2LOG( HcoState, M )
+                ENDIF
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( Input_Opt%amIRoot ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          IF ( Input_Opt%Verbose ) THEN
+             CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          ENDIF
        ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
@@ -4263,8 +4271,8 @@ CONTAINS
 
     ENDIF
 
-    ! Print value of shadow fields
-    IF ( Input_Opt%amIRoot ) THEN
+    ! Print value of shadow fields (only if debug output is requested)
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'

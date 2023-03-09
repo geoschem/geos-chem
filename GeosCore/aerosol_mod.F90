@@ -229,7 +229,6 @@ CONTAINS
     REAL(fp)            :: REFF
 
     ! Logical flags
-    LOGICAL             :: prtDebug
     LOGICAL             :: LCARB
     LOGICAL             :: LDUST
     LOGICAL             :: LSSALT
@@ -277,9 +276,6 @@ CONTAINS
     LDUST   = Input_Opt%LDUST
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
-
-    ! Do we have to print debug output?
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Define logical flags
     IS_OCPI    = ( id_OCPI  > 0 )
@@ -417,7 +413,7 @@ CONTAINS
                             ( Rho_wet / Rho_dry ) )
 
        ! Print values to log file
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'
@@ -1288,7 +1284,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 100 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 100 )
 100       FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
        ENDIF
 
@@ -1326,7 +1322,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 110 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 110 )
 110       FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
        ENDIF
 
@@ -1377,8 +1373,10 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 120 )
-120       FORMAT( '     - RDAER: Using online SALA SALC' )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+             WRITE( 6, 120 )
+120          FORMAT( '     - RDAER: Using online SALA SALC' )
+          ENDIF
        ENDIF
 
        !$OMP PARALLEL DO       &

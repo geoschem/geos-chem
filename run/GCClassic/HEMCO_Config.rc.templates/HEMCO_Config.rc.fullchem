@@ -38,8 +38,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
@@ -85,7 +85,7 @@ Warnings:                    1
 #     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
 #
 #  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
-#     incur much less computational overhaead.  This options should suffice
+#     incur much less computational overhaead.  This option should suffice
 #     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
 #
 #  3. AEIC_SCALE_1990_2019: If "false", the AEIC 2019 data from the year
@@ -202,7 +202,7 @@ Warnings:                    1
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false

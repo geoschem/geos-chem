@@ -3816,8 +3816,8 @@ CONTAINS
 !
 ! !IROUTINE: Print_Current_Time
 !
-! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, GMT time, and
-!  elapsed hours of a GEOS-Chem simulation.
+! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, and UTC time
+!  of a GEOS-Chem simulation.
 !\\
 !\\
 ! !INTERFACE:
@@ -3831,19 +3831,12 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
-!
-    REAL(f4) :: E_HOURS
-
-    ! Hours since start of run
-    E_HOURS = REAL( ELAPSED_SEC ) / 3600e+0_f4
-
     ! Write quantities
-    WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE, E_HOURS
+    WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE
 
     ! Format string
 100 FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, &
-                '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
+                '  UTC: ', i2.2, ':', i2.2 )
 
   END SUBROUTINE PRINT_CURRENT_TIME
 !EOC
