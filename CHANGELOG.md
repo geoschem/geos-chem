@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Removed the `NcdfUtil/perl` folder
   - Removed `X-HRS` output from log file
 
+### Fixed
+  - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
+
 ## [14.1.1] - 2023-03-03
 ### Added
 - New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
