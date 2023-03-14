@@ -165,6 +165,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: SALAAL_gt_0_1
     LOGICAL            :: SALCAL_gt_0_1
+    LOGICAL            :: O3_gt_0
     REAL(fp)           :: k_ex
 
     ! Strings
@@ -181,6 +182,7 @@ CONTAINS
     K_MT          = 0.0_dp
     SALAAL_gt_0_1 = ( C(ind_SALAAL) > 0.1_dp )
     SALCAL_gt_0_1 = ( C(ind_SALCAL) > 0.1_dp )
+    O3_gt_0       = ( C(ind_O3) > 0.0_dp )
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
@@ -195,7 +197,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! SALAAL + SO2 + O3 = SO4 - SALAAL
     !------------------------------------------------------------------------
-    IF ( SALAAL_gt_0_1 ) THEN
+    IF ( SALAAL_gt_0_1 .AND. O3_gt_0 ) THEN
 
        ! 1st order uptake
        k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
@@ -250,7 +252,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! SALCAL + SO2 + O3 = SO4s - SALCAL
     !------------------------------------------------------------------------
-    IF ( SALCAL_gt_0_1 ) THEN
+    IF ( SALCAL_gt_0_1 .AND. O3_gt_0 ) THEN
 
        ! 1st order uptake
        k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &
