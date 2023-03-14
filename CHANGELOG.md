@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
   - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
+  - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
 
 ## [14.1.1] - 2023-03-03
 ### Added
