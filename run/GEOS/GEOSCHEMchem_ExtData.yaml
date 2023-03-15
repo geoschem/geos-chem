@@ -258,11 +258,12 @@ Collections:
   GEOSCHEMchem_WOA_2013_salinity:
     template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/WOA_2013_salinity.nc
   Jason_10.18.0_carbon_c90:
-    #template: /discover/nobackup/cakelle2/tmp/methane_tags.20190101.nc4
     template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
     ref_time: "2001-01-01T00:00"
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
+  GCC_CMAM_CO:
+    template: /discover/nobackup/projects/gmao/geos_cf_dev/pawales/CFv2_spinup/CFv2_spinup_c90_CO2phot/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.01hPa.1979_2010.nc
 
 Exports:
   ACET_SEAWATER:
@@ -2637,4 +2638,8 @@ Exports:
     regrid: BILINEAR
     sample: gcc_3hr
     variable: CH4_total_dry
-
+  CO_CMAM:
+    collection: GCC_CMAM_CO
+    regrid: BILINEAR
+    sample: gcc_monthly_clim
+    variable: CO

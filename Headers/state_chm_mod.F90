@@ -283,6 +283,10 @@ MODULE State_Chm_Mod
      ! Carbon stuff for GEOS 
      !-----------------------------------------------------------------------
 #if defined( MODEL_GEOS )
+     ! CO mesosphere boundary
+     INTEGER            :: COmesosphere 
+     CHARACTER(LEN=255) :: impCOmeso
+     ! CO2 photolysis
      INTEGER            :: CO2fromGOCART
      CHARACTER(LEN=255) :: impCO2name
      INTEGER            :: numphoto
@@ -511,6 +515,8 @@ CONTAINS
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
 
 #if defined( MODEL_GEOS )
+    State_Chm%COmesosphere      = .FALSE.
+    State_Chm%impCOmeso         = "unknown" 
     State_Chm%CO2fromGOCART     = .FALSE.
     State_Chm%impCO2name        = "unknown" 
     State_Chm%numphoto          = 0

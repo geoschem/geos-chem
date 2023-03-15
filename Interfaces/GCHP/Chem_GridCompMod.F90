@@ -2001,7 +2001,7 @@ CONTAINS
                                         GEOS_RATSandOxDiags,       &
                                         GEOS_PreRunChecks
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
-    USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonGetConc,        &
+    USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonSetConc,        &
                                         GEOS_CarbonRunPhoto
 #endif
 
@@ -2673,11 +2673,11 @@ CONTAINS
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
              State_Met=State_Met, State_Grid=State_Grid, __RC__ )
 
-       ! Import CO2 concentrations from external field (e.g., GOCART)
+       ! Set CO2 / mesosphere CO concentrations from external field (e.g., GOCART)
        ! Note: comment out for now and call this below immediately before doing
        ! CO2 photolysis. Reason for this is that CO2 is currently hardcoded to 
        ! 0.0 in fullchem to match the old SMVGEAR code (??)
-!       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+!       CALL GEOS_CarbonSetConc( Import,    Input_Opt,  State_Chm,        &
 !                                State_Met, State_Diag, State_Grid, __RC__ )
 
        ! Eventually initialize species concentrations from external field.
@@ -2925,7 +2925,7 @@ CONTAINS
        ! Import CO2 concentrations from external field (e.g., GOCART)
        ! Note: this call should be moved to the beginning of the routine once
        ! CO2 is not hardcoded to 0.0 anymore (in fullchem)
-       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+       CALL GEOS_CarbonSetConc( Import,    Input_Opt,  State_Chm,        &
                                 State_Met, State_Diag, State_Grid, __RC__ )
 
        IF ( PHASE == CHEMPHASE ) THEN
