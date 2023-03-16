@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
   - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
   - `HEMCO_Config.rc` template files now use `Verbose: true` to toggle debug printout
+  - Turn on sea salt debromination via switches in `HEMCO_config.rc`
 
 ### Removed
   - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files

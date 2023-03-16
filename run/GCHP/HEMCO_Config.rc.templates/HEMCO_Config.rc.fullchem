@@ -147,7 +147,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> OFFLINE_DUST           :       ${RUNDIR_OFFLINE_DUST}    # 1980-2019
     --> OFFLINE_BIOGENICVOC    :       ${RUNDIR_OFFLINE_BIOVOC}    # 1980-2020
     --> OFFLINE_SEASALT        :       ${RUNDIR_OFFLINE_SEASALT}    # 1980-2019
-    -->  CalcBrSeasalt         :       false
+    -->  CalcBrSeasalt         :       true
     --> OFFLINE_SOILNOX        :       ${RUNDIR_OFFLINE_SOILNOX}    # 1980-2020
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> UVALBEDO               :       true     # 1985
@@ -189,7 +189,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       false
+    --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
