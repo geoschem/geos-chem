@@ -80,7 +80,10 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
-     LOGICAL                     :: LPRT
+     LOGICAL                     :: VerboseRequested
+     CHARACTER(LEN=10)           :: VerboseOnCores
+     LOGICAL                     :: Verbose
+     LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: useTimers
 
      !----------------------------------------
@@ -580,6 +583,7 @@ CONTAINS
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
     Input_Opt%SpcMetaDataOutFile     = ''
+    Input_Opt%ITS_A_CARBON_SIM       = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
@@ -590,7 +594,9 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
-    Input_Opt%LPRT                   = .FALSE.
+    Input_Opt%VerboseRequested       = .FALSE.
+    Input_Opt%VerboseOnCores         = ''
+    Input_Opt%Verbose                = .FALSE.
     Input_Opt%useTimers              = .FALSE.
 
     !----------------------------------------

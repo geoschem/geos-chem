@@ -1,0 +1,86 @@
+#!/bin/bash
+
+#SBATCH -c 48
+#SBATCH -N 1
+#SBATCH -t 0-5:00
+#SBATCH -p seas_compute
+#SBATCH --mem=16000
+#SBATCH --mail-type=END
+
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: geoschem.benchmark.run
+#
+# !DESCRIPTION: This bash script submits a 1-month benchmark simulation
+#\\
+#\\
+# !REMARKS:
+#  Designed to be used with the geosfp_4x5_standard run directory created
+#  by the GEOS-Chem Unit Tester. To use this script, you must first compile
+#  the GEOS-Chem code with CMake to create the gcclassic executable.
+#
+#  NOTES:
+#  (1) This script is customized for the Harvard "Cannon" cluster.  If you
+#      are running a benchmark on a different machine, you can edit this
+#      script accordingly.
+#
+#  (2) SBATCH --exclusive will request an entire node, to prevent backfilling
+#      jobs from affecting timing results.  If you don't need the timing info,
+#      then you can delete this.
+#
+# !CALLING SEQUENCE:
+#  To submit run to the SLURM queue system:
+#   sbatch geoschem.benchmark.run
+#
+#  To run interactively:
+#   ./geoschem.benchmark.run
+#
+# !REVISION HISTORY:
+#  Type 'gitk' at the prompt to browse the revision history.
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
+# Set the proper # of threads for OpenMP
+# SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+#-------------------------------------------------
+# Initialize
+#-------------------------------------------------
+
+# Define GEOS-Chem log file
+log=GC.log
+
+#-------------------------------------------------
+# Start the simulation
+#-------------------------------------------------
+
+# Run GEOS-Chem and pipe output to log
+srun -c $OMP_NUM_THREADS time -p ./gcclassic >> $log
+
+# Echo end time
+echo '===> Run ended at' `date` >> $log
+
+#-------------------------------------------------
+# Clean up
+#-------------------------------------------------
+
+# Echo info from computational cores to log file for displaying results
+nodeName=`uname -n`
+echo "# of CPUs: $OMP_NUM_THREADS"
+echo "NodeName : $nodeName"
+grep "vendor_id"  /proc/cpuinfo
+grep "model name" /proc/cpuinfo
+grep "cpu MHz"    /proc/cpuinfo
+
+# Clear variable
+unset log
+unset nodename
+
+# Exit normally
+exit 0
+#EOC

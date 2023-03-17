@@ -411,11 +411,11 @@ EmisRCHO_Anthro    RCHO   0      1   -1   3   kg/m2/s  RCHO_emission_flux_from_a
 #####  Sea salt emissions                                                 #####
 ###############################################################################
 EmisSALA_Natural     SALA  0      3   -1   2   kg/m2/s  SALA_emission_flux_from_natural_sources
-#EmisBrSALA_Natural BrSALA  0      3   -1   2   kg/m2/s  BrSALA_emission_flux_from_natural_sources
+EmisBrSALA_Natural BrSALA  0      3   -1   2   kg/m2/s  BrSALA_emission_flux_from_natural_sources
 EmisSALAAL_Natural SALAAL  0      3   -1   2   kg/m2/s  SALAAL_emission_flux_from_natural_sources
 EmisSALACL_Natural SALACL  0      3   -1   2   kg/m2/s  SALACL_emission_flux_from_natural_sources
 EmisSALC_Natural     SALC  0      3   -1   2   kg/m2/s  SALC_emission_flux_from_natural_sources
-#EmisBrSALC_Natural BrSALC  0      3   -1   2   kg/m2/s  BrSALC_emission_flux_from_natural_sources
+EmisBrSALC_Natural BrSALC  0      3   -1   2   kg/m2/s  BrSALC_emission_flux_from_natural_sources
 EmisSALCAL_Natural SALCAL  0      3   -1   2   kg/m2/s  SALCAL_emission_flux_from_natural_sources
 EmisSALCCL_Natural SALCCL  0      3   -1   2   kg/m2/s  SALCCL_emission_flux_from_natural_sources
 

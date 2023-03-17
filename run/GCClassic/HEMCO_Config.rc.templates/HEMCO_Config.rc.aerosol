@@ -39,8 +39,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
@@ -99,14 +99,14 @@ Warnings:                    1
 # See additional notes in the AEIC scale factor section below.
 #------------------------------------------------------------------------------
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
-    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
-    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
+    --> AEIC2019_MONMEAN       :       ${RUNDIR_USE_AEIC}     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       ${RUNDIR_USE_AEIC}     # Scale to year in 1990-2019
 # ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
     --> CEDSv2_SHIP            :       ${RUNDIR_USE_CEDS}    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
-    --> HTAPv3_SHIP            :       false    # 2008-2018
+    --> HTAPv3_SHIP            :       false    # 2000-2018
     --> ICOADS_SHIP            :       false    # 2002
     --> ARCTAS_SHIP            :       false    # 2008
     --> CORBETT_SHIP           :       false    # 1985
@@ -121,7 +121,7 @@ Warnings:                    1
     --> CMIP6_SFC_LAND_ANTHRO  :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> CMIP6_AIRCRAFT         :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> CMIP6_SHIP             :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
-# ----- BIOMASS BURNING EMISSIONS -----------------------------
+# ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
@@ -181,7 +181,7 @@ Warnings:                    1
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -211,7 +211,7 @@ Warnings:                    1
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr	Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 
@@ -1659,7 +1659,7 @@ Warnings:                    1
 0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75  5 3
 0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75  5 3
 0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75     5 3
-0 GFAS_pFe   -                                          -             -                     - -             -       pFe  75/66  5 3
+0 GFAS_pFe   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s pFe  75/66  5 3
 0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75     5 3
 0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75     5 3
 )))GFAS
@@ -2442,19 +2442,19 @@ ${RUNDIR_TES_CLIM_N2O}
 # --- EPA NEI day-of-week scale factors ---
 #==============================================================================
 (((NEI2016_MONMEAN
-210 NEI99_DOW_NOX     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           NOX          1999/1-12/WD/0 C xy 1 1
-211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           CO           1999/1-12/WD/0 C xy 1 1
-212 NEI99_DOW_ALK4    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           ALK4         1999/1-12/WD/0 C xy 1 1
-213 NEI99_DOW_ACET    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           ACET         1999/1-12/WD/0 C xy 1 1
-214 NEI99_DOW_MEK     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           MEK          1999/1-12/WD/0 C xy 1 1
-215 NEI99_DOW_PRPE    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           PRPE         1999/1-12/WD/0 C xy 1 1
-216 NEI99_DOW_C3H8    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           C3H8         1999/1-12/WD/0 C xy 1 1
-217 NEI99_DOW_C2H6    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           C2H6         1999/1-12/WD/0 C xy 1 1
-218 NEI99_DOW_SO2     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           SO2          1999/1-12/WD/0 C xy 1 1
-219 NEI99_DOW_SO4     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           SO4          1999/1-12/WD/0 C xy 1 1
-220 NEI99_DOW_MSA     $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           MSA          1999/1-12/WD/0 C xy 1 1
-221 NEI99_DOW_BCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           BCPI         1999/1-12/WD/0 C xy 1 1
-222 NEI99_DOW_OCPI    $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc           OCPI         1999/1-12/WD/0 C xy 1 1
+210 NEI99_DOW_NOX   $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc NOX  1999/1-12/WD/0 C xy 1 1
+211 NEI99_DOW_CO    $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO   1999/1-12/WD/0 C xy 1 1
+212 NEI99_DOW_ALK4  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc ALK4 1999/1-12/WD/0 C xy 1 1
+213 NEI99_DOW_ACET  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc ACET 1999/1-12/WD/0 C xy 1 1
+214 NEI99_DOW_MEK   $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc MEK  1999/1-12/WD/0 C xy 1 1
+215 NEI99_DOW_PRPE  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc PRPE 1999/1-12/WD/0 C xy 1 1
+216 NEI99_DOW_C3H8  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc C3H8 1999/1-12/WD/0 C xy 1 1
+217 NEI99_DOW_C2H6  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc C2H6 1999/1-12/WD/0 C xy 1 1
+218 NEI99_DOW_SO2   $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc SO2  1999/1-12/WD/0 C xy 1 1
+219 NEI99_DOW_SO4   $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc SO4  1999/1-12/WD/0 C xy 1 1
+220 NEI99_DOW_MSA   $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc MSA  1999/1-12/WD/0 C xy 1 1
+221 NEI99_DOW_BCPI  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc BCPI 1999/1-12/WD/0 C xy 1 1
+222 NEI99_DOW_OCPI  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc OCPI 1999/1-12/WD/0 C xy 1 1
 )))NEI2016_MONMEAN
 
 #==============================================================================

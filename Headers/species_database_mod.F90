@@ -128,7 +128,6 @@ CONTAINS
     LOGICAL                     :: found_wd_rainouteff_luo
     LOGICAL                     :: found_wd_retfactor_luo
     LOGICAL                     :: no_luo
-    LOGICAL                     :: prtDebug
     LOGICAL                     :: v_bool
     LOGICAL                     :: wd_liqandgas_luo
     INTEGER                     :: v_int
@@ -170,7 +169,6 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     errMsg     = ""
     thisLoc    = &
     " -> at Init_Species_Database (in module Headers/species_database_mod.F90"
@@ -820,6 +818,11 @@ CONTAINS
        ENDIF
 #endif
 
+       ! Debug printout
+       IF ( Input_Opt%Verbose ) THEN
+          CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       ENDIF
+
        ! Free pointer
        ThisSpc => NULL()
     ENDDO
@@ -835,22 +838,19 @@ CONTAINS
     !=======================================================================
     ! Print metadata for only the species that are defined in this
     ! simulation (but not the entire species database) to a YAML file.
-    !
-    ! Also note: Input_Opt%amIRoot is always set to False in MODEL_CESM
-    ! so we will need to block out the test for it for CESM only.
+    ! This file may be used for pre-processing files in other models
+    ! when updating GEOS-Chem versions, such as in WRF and CESM. It
+    ! should not be generated when running those models. Output file is
+    ! set in simulation%species_metadata_output_file in geoschem_config.yml.
     !=======================================================================
-    IF ( TRIM( Input_Opt%SpcMetaDataOutFile ) /= "none" ) THEN
-#ifndef MODEL_CESM
+    IF ( LEN(TRIM( Input_Opt%SpcMetaDataOutFile )) > 0 ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-#endif
           CALL QFYAML_Print( yml        = yml,                               &
                              fileName   = Input_Opt%SpcMetaDataOutFile,      &
                              searchKeys = species_names,                     &
                              RC         = RC                                )
 
-#ifndef MODEL_CESM
        ENDIF
-#endif
     ENDIF
 
     !=======================================================================
@@ -1126,10 +1126,12 @@ CONTAINS
     nSpecies = nAdvect
 
     !=======================================================================
-    ! For full-chemistry and Hg simulations with KPP, get the list of all of
+    ! For KPP-based simulations, get the list of all of
     ! species names in the KPP mechanism, and their indices
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                             &
+         Input_Opt%ITS_A_MERCURY_SIM       .or.                             &
+         Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        ! Allocate a temporary array large enough to hold all of the
        ! advected species listed in geoschem_config.yml as well as all of the

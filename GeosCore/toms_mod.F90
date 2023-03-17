@@ -211,8 +211,9 @@ CONTAINS
        !---------------------------------------------------------------
        ! Here we are using the overhead O3 from the meteorology;
        ! we won't overwrite this with TOMS/SBUV O3 columns
+       ! NOTE: Only print if debug output is on (bmy, 05 Dec 2022)
        !---------------------------------------------------------------
-       IF ( FIRST .and. Input_Opt%amIRoot ) THEN
+       IF ( FIRST .and. Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           WRITE( 6, '(a)' ) REPEAT( '%', 45 )
           WRITE( 6, 100   )
 100       FORMAT( '%%% USING O3 COLUMNS FROM THE MET FIELDS! %%% ' )

@@ -23,6 +23,7 @@ MODULE fullchem_AutoReduceFuncs
   PUBLIC :: fullchem_AR_KeepHalogensActive
   PUBLIC :: fullchem_AR_SetKeepActive
   PUBLIC :: fullchem_AR_UpdateKppDiags
+  PUBLIC :: fullchem_AR_SetIntegratorOptions
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -185,5 +186,161 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE fullchem_AR_UpdateKppDiags
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fullchem_AR_SetIntegratorOptions
+!
+! !DESCRIPTION: Defines the settings for ICNTRL and RCNTRL used for the
+!  rosenbrock_autoreduce integrator.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE fullchem_AR_SetIntegratorOptions( Input_Opt, State_Chm,      &
+                                               State_Met, FirstChem,      &
+                                               I,         J,         L,   &
+                                               ICNTRL,    RCNTRL          )
+!
+! !USES:
+!
+    USE gckpp_Parameters
+    USE gckpp_Precision
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+    USE State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object 
+    TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+    LOGICAL,        INTENT(IN)    :: FirstChem    ! Is it the 1st chem timestep
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(INOUT) :: ICNTRL(20)   ! Options for KPP (integer)
+    REAL(dp),       INTENT(INOUT) :: RCNTRL(20)   ! Options for KPP (real   )
+!
+! !REMARKS:
+!  This code was abstracted out of the parallel DO loop in DO_FULLCHEM
+!  (in module GeosCore/fullchem_mod.F90)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    !=====================================================================
+    ! fullchem_AR_SetIntegratorOptions begins here!
+    !=====================================================================
+    
+    ! Initialize
+    ICNTRL = 0
+    RCNTRL = 0.0_dp
+
+    !=====================================================================
+    ! Define settings in the ICNTRL vector
+    !=====================================================================
+
+    ! 0 - non-autonomous, 1 - autonomous
+    ICNTRL(1) = 1
+
+    ! NOTE: ICNTRL is already zeroed out so we don't need to
+    ! set this to zero again.  Uncomment if you change this value.
+    !! 0 - vector tolerances, 1 - scalars
+    !ICNTRL(2) = 0  
+
+    ! Select a particular integration method.
+    ! For Rosenbrock, options are:
+    ! = 0 :  default method is Rodas3
+    ! = 1 :  method is  Ros2
+    ! = 2 :  method is  Ros3
+    ! = 3 :  method is  Ros4
+    ! = 4 :  method is  Rodas3
+    ! = 5:   method is  Rodas4
+    ICNTRL(3) = 4
+
+    ! 0 - adjoint, 1 - no adjoint
+    ICNTRL(7) = 1
+
+    ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
+    ! the integrator.  Rate updates are done before calling KPP.
+    ICNTRL(15) = -1
+
+    ! Specify that a threshold value will be used for auto-reduction.
+    ! The threshold will be specified in RCNTRL(12), see below.
+    IF ( Input_Opt%USE_AUTOREDUCE .and. .not. FIRSTCHEM ) ICNTRL(12) = 1
+
+    ! Use the append functionality?
+    IF ( Input_Opt%AUTOREDUCE_IS_APPEND ) ICNTRL(13) = 1
+
+    !=====================================================================
+    ! Define settings in the ICNTRL vector
+    !=====================================================================
+
+    ! Initialize Hstart (the starting value of the integration step
+    ! size with the value of Hnew (the last predicted but not yet 
+    ! taken timestep)  saved to the the restart file.
+    RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
+
+    !---------------------------------------------------------------------
+    ! Auto-reduce threshold, Method 1: Pressure-dependent
+    !                                            
+    !   Actual_Threshold =
+    !                                           Mid-Pressure at Level
+    !     AUTOREDUCE_THRESHOLD (at surface) * --------------------------
+    !                                          "Mid-Pressure" at Sfc.
+    !
+    !---------------------------------------------------------------------
+    IF ( .not. Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
+       IF ( Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
+          RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD                        & 
+                     * State_Met%PMID(I,J,L)                                 & 
+                     / State_Met%PMID(I,J,1)
+       ENDIF
+       
+       IF ( .not. Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD ) THEN
+          RCNTRL(12) = Input_Opt%AUTOREDUCE_THRESHOLD
+       ENDIF
+    ENDIF
+
+    !---------------------------------------------------------------------
+    ! Auto-reduce threshold, Method 2: Determine threshold 
+    ! dynamically by scaling rates of key species.
+    !---------------------------------------------------------------------
+    IF ( Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
+
+       !--------------------------------
+       ! Daytime target species (OH)
+       !--------------------------------
+       ICNTRL(14) = ind_OH
+       RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_OH
+       
+       !--------------------------------
+       ! Nighttime target species (NO2)
+       !--------------------------------
+       ! COMMENTS BY HAIPENG LIN:
+       ! 1e6 daytime conc...testing shows 5e-5 as an offset here works best.
+       ! Use JNO2 as night determination.
+       ! RXN_NO2: NO2 + hv --> NO  + O
+       ! JNO2 ranges from 0 to 0.02 and is order ~ 1e-4 at the terminator. 
+       ! We set this threshold to be slightly relaxed so it captures the 
+       ! terminator, but this needs some tweaking.
+       !
+       ! For some reason, RXN_NO2 as a proxy fails to propagate the sunset 
+       ! terminator even though all diagnostics seem fine, and after a while 
+       ! only the OH scheme applies.  Use SUNCOSmid as a proxy to fix this. 
+       ! (hplin, 4/20/22)
+       ! IF(ZPJ(L,RXN_NO2,I,J) .eq. 0.0_fp) THEN
+       !
+       IF( State_Met%SUNCOSmid(I,J) .le. -0.1391731e+0_dp ) THEN
+          ICNTRL(14) = ind_NO2
+          RCNTRL(14) = Input_Opt%AUTOREDUCE_TUNING_NO2
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE fullchem_AR_SetIntegratorOptions
 !EOC
 END MODULE fullchem_AutoReduceFuncs
