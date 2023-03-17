@@ -104,8 +104,8 @@ MODULE Mercury_Mod
   !--------------------------------------------------------------------------
   ! Scalars
   !--------------------------------------------------------------------------
-  LOGICAL  :: Failed2x
-  INTEGER  :: N_Hg_CATS
+  LOGICAL  :: doSuppress,     Failed2x
+  INTEGER  :: errorCount,     N_Hg_CATS
   INTEGER  :: id_Hg0,         id_Hg2,      id_HgP
   INTEGER  :: id_phot_NO2,    id_phot_BrO, id_phot_ClO
   INTEGER  :: id_phot_Hg2Org, id_O3,       id_OH
@@ -672,15 +672,16 @@ CONTAINS
     LOGICAL, SAVE          :: FIRST = .TRUE.
 
     ! Scalars
-    INTEGER                :: I,         J,        L,         K
-    INTEGER                :: N,         NN,       CN,        Hg_Cat
-    INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      IRH
-    INTEGER                :: TotSteps,  TotFuncs, TotJacob,  TotAccep
-    INTEGER                :: TotRejec,  TotNumLU, HCRC,      IERR
-    INTEGER                :: Day,       S
-    REAL(fp)               :: REL_HUM,   Start,     Finish,   rtim
-    REAL(fp)               :: itim,      TOUT,      T,        TIN
+    LOGICAL                :: doSuppress
+    INTEGER                :: I,         J,         L,         K
+    INTEGER                :: N,         NN,        CN,        Hg_Cat
+    INTEGER                :: NA,        F,         SpcID,     KppID
+    INTEGER                :: P,         MONTH,     YEAR,      IRH
+    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
+    INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
+    INTEGER                :: Day,       S,         errorCount
+    REAL(fp)               :: REL_HUM,   Start,     Finish,    rtim
+    REAL(fp)               :: itim,      TOUT,      T,         TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -709,6 +710,9 @@ CONTAINS
     ! Toggle hetchem or photolysis on/off for testing (default=on)
     LOGICAL,  PARAMETER :: DO_HETCHEM  = .TRUE.
     LOGICAL,  PARAMETER :: DO_PHOTCHEM = .TRUE.
+    
+    ! Suppress KPP integrator output after this many errors occur
+    INTEGER,  PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
 
     ! Relative Humidities (to be passed to FAST_JX)
     REAL(fp), PARAMETER :: RH(5) = (/0.0_fp, 0.5_fp, 0.7_fp, 0.8_fp, 0.9_fp/)
@@ -718,24 +722,26 @@ CONTAINS
     !========================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
-    errMsg   = ''
-    thisLoc  = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
-    itim     =  0.0_fp            ! For KPP timing
-    rtim     =  0.0_fp            ! For KPP timing
-    totsteps =  0                 ! Total # of KPP timesteps
-    totfuncs =  0                 ! Total # of integrator function calls
-    totjacob =  0                 ! Total # of jacobian calls
-    totaccep =  0                 ! Total # of KPP calls that finished OK
-    totrejec =  0                 ! Total # of KPP calls that didn't converge
-    totnumLU =  0                 ! Total # of LU decomposition calls
-    Day      =  Get_Day()         ! Current day
-    Month    =  Get_Month()       ! Current month
-    Year     =  Get_Year()        ! Current year
-    Spc      => State_Chm%Species ! Chemical species array [kg]
-    TK       => State_Met%T       ! Temperature [K]
-    SpcInfo  => NULL()            ! Pointer to GEOS-Chem species database
-    Failed2x =  .FALSE.           ! Flag for graceful exit of simulation
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    thisLoc    = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
+    itim       =  0.0_fp            ! For KPP timing
+    rtim       =  0.0_fp            ! For KPP timing
+    totsteps   =  0                 ! Total # of KPP timesteps
+    totfuncs   =  0                 ! Total # of integrator function calls
+    totjacob   =  0                 ! Total # of jacobian calls
+    totaccep   =  0                 ! Total # of KPP calls that finished OK
+    totrejec   =  0                 ! Total # of KPP calls that didn't converge
+    totnumLU   =  0                 ! Total # of LU decomposition calls
+    errorCount =  0                 ! Count of KPP integration errors
+    Day        =  Get_Day()         ! Current day
+    Month      =  Get_Month()       ! Current month
+    Year       =  Get_Year()        ! Current year
+    Spc        => State_Chm%Species ! Chemical species array [kg]
+    TK         => State_Met%T       ! Temperature [K]
+    SpcInfo    => NULL()            ! Pointer to GEOS-Chem species database
+    Failed2x   = .FALSE.            ! Flag for graceful exit of simulation
+    doSuppress = .FALSE.            ! Suppress further KPP integration errmsgs?
 
     !========================================================================
     ! Set chemistry options and pointers to chemical inputs from HEMCO
@@ -1127,7 +1133,15 @@ CONTAINS
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+          IF ( .not. doSuppress ) THEN
+             WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+             errorCount = errorCount + 1
+             IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
+                doSuppress = .TRUE.
+                WRITE( 6, * ) &
+                 '### Further KPP integration error messages will be suppressed'
+             ENDIF
+          ENDIF
        ENDIF
 
        !--------------------------------------------------------------------

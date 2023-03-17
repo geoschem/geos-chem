@@ -162,11 +162,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: IsLocNoon, Size_Res, Failed2x
+    LOGICAL                :: IsLocNoon,  Size_Res,  Failed2x, doSuppress
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
     INTEGER                :: WAVELENGTH, IERR,      S,        Thread
+    INTEGER                :: errorCount
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
 
@@ -178,7 +179,7 @@ CONTAINS
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
 
-    ! For
+    ! Forq
 
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
@@ -228,21 +229,26 @@ CONTAINS
     ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
     INTEGER,     PARAMETER :: Nhnew = 3
 
+    ! Suppress printing out KPP error messages after this many errors occur
+    INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
+
     !========================================================================
     ! Do_FullChem begins here!
     ! NOTE: FlexChem timer is started in DO_CHEMISTRY (the calling routine)
     !========================================================================
 
     ! Initialize
-    RC        =  GC_SUCCESS
-    ErrMsg    =  ''
-    ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
-    SpcInfo   => NULL()
-    Day       =  Get_Day()    ! Current day
-    Month     =  Get_Month()  ! Current month
-    Year      =  Get_Year()   ! Current year
-    Thread    =  1
-    Failed2x  = .FALSE.
+    RC         =  GC_SUCCESS
+    ErrMsg     =  ''
+    ThisLoc    =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
+    SpcInfo    => NULL()
+    Day        =  Get_Day()    ! Current day
+    Month      =  Get_Month()  ! Current month
+    Year       =  Get_Year()   ! Current year
+    Thread     =  1
+    errorCount =  0
+    Failed2x   = .FALSE.
+    doSuppress = .FALSE.
 
     ! Set a switch that allows you to toggle off photolysis for testing
     ! (default value : TRUE)
@@ -1039,18 +1045,25 @@ CONTAINS
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
-       ENDIF
+
+          ! Turn off error output after a certain limit is reached
+          IF ( .not. doSuppress ) THEN
+             WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+             errorCount = errorCount + 1
+             IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
+                WRITE( 6, '(a)' ) &
+                   '### Further error output has been switched off'
+                doSuppress = .FALSE.
+             ENDIF
+          ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-       ! Print grid box indices to screen if integrate failed
-       IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
-          IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+          ! Keep track of error boxes
+          IF ( State_Diag%Archive_KppError ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
           ENDIF
-       ENDIF
 #endif
+       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -1214,7 +1227,9 @@ CONTAINS
                 ! Revert to concentrations prior to 1st call to "Integrate"
                 C = C_before_integrate
              ENDIF
-             IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+
+             ! Keep track of error boxes
+             IF ( State_Diag%Archive_KppError ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
@@ -1343,13 +1358,17 @@ CONTAINS
 #endif
 
 #ifdef MODEL_CESM
-       ! Calculate H2SO4 production rate for coupling to CESM (interface to MAM4 nucleation)
+       !---------------------------------------------------------------------
+       ! Calculate H2SO4 production rate for coupling to CESM 
+       ! (interface to MAM4 nucleation)
+       !---------------------------------------------------------------------
        DO F = 1, NFAM
 
           ! Determine dummy species index in KPP
           KppID =  PL_Kpp_Id(F)
 
-          ! Calculate H2SO4 production rate [mol mol-1] in this timestep (hplin, 1/25/23)
+          ! Calculate H2SO4 production rate [mol mol-1] in this timestep 
+          ! (hplin, 1/25/23)
           IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
              ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3)
              !         = mol/molAir
