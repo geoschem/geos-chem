@@ -162,7 +162,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug,   IsLocNoon, Size_Res, Failed2x
+    LOGICAL                :: IsLocNoon, Size_Res, Failed2x
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
@@ -238,7 +238,6 @@ CONTAINS
     ErrMsg    =  ''
     ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
     SpcInfo   => NULL()
-    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Day       =  Get_Day()    ! Current day
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
@@ -385,7 +384,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after FAST_JX' )
     ENDIF
 
@@ -587,7 +586,7 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+          SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
@@ -1343,6 +1342,29 @@ CONTAINS
 #endif
 #endif
 
+#ifdef MODEL_CESM
+       ! Calculate H2SO4 production rate for coupling to CESM (interface to MAM4 nucleation)
+       DO F = 1, NFAM
+
+          ! Determine dummy species index in KPP
+          KppID =  PL_Kpp_Id(F)
+
+          ! Calculate H2SO4 production rate [mol mol-1] in this timestep (hplin, 1/25/23)
+          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
+             ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3)
+             !         = mol/molAir
+             State_Chm%H2SO4_PRDR(I,J,L) = C(KppID) * AIRMW * 1e-3_fp * 1.0e+6_fp / &
+                                 (AVO * State_Met%AIRDEN(I,J,L))
+
+             IF ( State_Chm%H2SO4_PRDR(I,J,L) < 0.0d0) THEN
+               write(*,*) "H2SO4_PRDR negative in fullchem_mod.F90!!", &
+                  I, J, L, "was:", State_Chm%H2SO4_PRDR(I,J,L), "  setting to 0.0d0"
+               State_Chm%H2SO4_PRDR(I,J,L) = 0.0d0
+             ENDIF
+          ENDIF
+       ENDDO
+#endif
+
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! Archive NOx lifetime [h]
@@ -1564,7 +1586,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### Do_FullChem: after OHSAVE' )
        ENDIF
     ENDIF
@@ -1582,7 +1604,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after Diag_Metrics' )
     ENDIF
 
@@ -1623,12 +1645,12 @@ CONTAINS
     ! photolysis approximations outside the chemistry grid
     !=======================================================================
     CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
     ENDIF
 
     CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
 
@@ -1678,8 +1700,8 @@ CONTAINS
     ! Exit if we are not on the first chemistry timestep
     IF ( .not. FirstChem ) RETURN
 
-    ! Print on the root CPU only
-    IF ( Input_Opt%AmIRoot ) THEN
+    ! Print on the root CPU only (only if debug printout is on)
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Write header
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -2530,7 +2552,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: KppId,    N
-    LOGICAL            :: prtDebug
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
@@ -2552,10 +2573,9 @@ CONTAINS
     !=======================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Debug output
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 100 )
 100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays' )
 

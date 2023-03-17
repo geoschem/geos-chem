@@ -827,23 +827,26 @@ CONTAINS
     !=======================================================================
     ! Print info about registered variables
     !=======================================================================
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
 
-    ! Header line
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Registered variables contained within grid_registry_mod.F90:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       ! Header line
+       WRITE( 6, 10 )
+ 10    FORMAT( /, &
+         'Registered variables contained within grid_registry_mod.F90:'     )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-    ! Print registry info in truncated format
-    CALL Registry_Print( Input_Opt   = Input_Opt,             &
-                         Registry    = Registry,              &
-                         ShortFormat = ShortFormat,           &
-                         RC          = RC                    )
+       ! Print registry info in truncated format
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = Registry,                          &
+                            ShortFormat = ShortFormat,                       &
+                            RC          = RC                                )
 
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in routine "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE Print_Grid

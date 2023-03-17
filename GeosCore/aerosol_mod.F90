@@ -186,7 +186,6 @@ CONTAINS
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
-    USE UCX_MOD,           ONLY : KG_STRAT_AER
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
     USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
@@ -230,7 +229,6 @@ CONTAINS
     REAL(fp)            :: REFF
 
     ! Logical flags
-    LOGICAL             :: prtDebug
     LOGICAL             :: LCARB
     LOGICAL             :: LDUST
     LOGICAL             :: LSSALT
@@ -250,6 +248,7 @@ CONTAINS
     REAL(fp),      POINTER   :: PMID(:,:,:)
     REAL(fp),      POINTER   :: T(:,:,:)
     REAL(fp),      POINTER   :: SOILDUST(:,:,:,:)
+    REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -277,9 +276,6 @@ CONTAINS
     LDUST   = Input_Opt%LDUST
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
-
-    ! Do we have to print debug output?
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Define logical flags
     IS_OCPI    = ( id_OCPI  > 0 )
@@ -320,6 +316,7 @@ CONTAINS
     PMID     => State_Met%PMID
     T        => State_Met%T
     SOILDUST => State_Chm%SoilDust
+    KG_STRAT_AER => State_Chm%KG_AER
 
     !=================================================================
     ! OM/OC ratio
@@ -416,7 +413,7 @@ CONTAINS
                             ( Rho_wet / Rho_dry ) )
 
        ! Print values to log file
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'
@@ -1062,7 +1059,6 @@ CONTAINS
     USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
     USE UCX_MOD,        ONLY : GET_STRAT_OPT
-    USE UCX_MOD,        ONLY : NDENS_AER
     USE Species_Mod,    ONLY : Species
 
     IMPLICIT NONE
@@ -1288,7 +1284,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 100 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 100 )
 100       FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
        ENDIF
 
@@ -1326,7 +1322,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 110 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 110 )
 110       FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
        ENDIF
 
@@ -1377,8 +1373,10 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 120 )
-120       FORMAT( '     - RDAER: Using online SALA SALC' )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+             WRITE( 6, 120 )
+120          FORMAT( '     - RDAER: Using online SALA SALC' )
+          ENDIF
        ENDIF
 
        !$OMP PARALLEL DO       &
@@ -1722,7 +1720,7 @@ CONTAINS
                 !--------------------------------------------------------
 
                 ! Get aerosol effective radius
-                CALL GET_STRAT_OPT(I, J, L, ISTRAT, RAER, REFF, &
+                CALL GET_STRAT_OPT(State_Chm, I, J, L, ISTRAT, RAER, REFF, &
                                    SADSTRAT, XSASTRAT)
 
                 ! SDE 2014-02-04
@@ -1950,7 +1948,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           ! Get aerosol effective radius
-          CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+          CALL GET_STRAT_OPT(State_Chm, I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
           ! Moved this from a separate loop for clarity
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1986,7 +1984,7 @@ CONTAINS
              IF ( IsSLA ) THEN
                 IF ( State_Diag%Archive_AerNumDenSLA ) THEN
                    State_Diag%AerNumDenSLA(I,J,L) = &
-                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODSLAWL1 ) THEN
                    State_Diag%AODSLAWL1(I,J,L) = &
@@ -2003,7 +2001,7 @@ CONTAINS
              ELSEIF ( IsPSC ) THEN
                 IF ( State_Diag%Archive_AerNumDenPSC ) THEN
                    State_Diag%AerNumDenPSC(I,J,L) = &
-                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODPSCWL1 ) THEN
                    State_Diag%AODPSCWL1(I,J,L) = &

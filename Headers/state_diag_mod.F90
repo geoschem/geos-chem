@@ -1214,6 +1214,10 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_PM25soa
 
      !%%%%% Species diagnostics %%%%%
+     REAL(f4),           POINTER :: PblCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_PblCol
+     LOGICAL                     :: Archive_PblCol
+
      REAL(f4),           POINTER :: TropCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TropCol
      LOGICAL                     :: Archive_TropCol
@@ -1221,6 +1225,13 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TotCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TotCol
      LOGICAL                     :: Archive_TotCol
+
+     ! Carbon stuff
+     REAL(f4),           POINTER :: COincCO2phot(:,:,:)
+     LOGICAL                     :: Archive_COincCO2phot
+
+     REAL(f4),           POINTER :: CO2photrate(:,:,:)
+     LOGICAL                     :: Archive_CO2photrate
 #endif
 
 #ifdef MODEL_WRF
@@ -2355,6 +2366,10 @@ CONTAINS
     State_Diag%PM25soa                             => NULL()
     State_Diag%Archive_PM25soa                     = .FALSE.
 
+    State_Diag%PblCol                              => NULL()
+    State_Diag%Map_PblCol                          => NULL()
+    State_Diag%Archive_PblCol                      = .FALSE.
+
     State_Diag%TropCol                             => NULL()
     State_Diag%Map_TropCol                         => NULL()
     State_Diag%Archive_TropCol                     = .FALSE.
@@ -2362,6 +2377,12 @@ CONTAINS
     State_Diag%TotCol                              => NULL()
     State_Diag%Map_TotCol                          => NULL()
     State_Diag%Archive_TotCol                      = .FALSE.
+
+    State_Diag%COincCO2phot                        => NULL()
+    State_Diag%Archive_COincCO2phot                = .FALSE.
+
+    State_Diag%CO2photrate                         => NULL()
+    State_Diag%Archive_CO2photrate                 = .FALSE.
 #endif
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
@@ -2465,10 +2486,10 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Write header
     !------------------------------------------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+       WRITE( 6, 10 )
+ 10    FORMAT(/, 'Allocating the following fields of the State_Diag object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 
     !------------------------------------------------------------------------
@@ -7782,6 +7803,26 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'PblCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PblCol,                              &
+            archiveData    = State_Diag%Archive_PblCol,                      &
+            mapData        = State_Diag%Map_PblCol,                          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        diagID  = 'TropCol'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -7796,6 +7837,50 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'S',                                            &
             RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CO2 photolysis rate 
+       !--------------------------------------------------------------------
+       diagID = 'CO2photrate'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%CO2photrate,                         &
+            archiveData    = State_Diag%Archive_CO2photrate,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CO relative increase due to CO2 photolysis 
+       !--------------------------------------------------------------------
+       diagID = 'COincCO2phot'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%COincCO2phot,                        &
+            archiveData    = State_Diag%Archive_COincCO2phot,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -10239,16 +10324,25 @@ CONTAINS
     !========================================================================
     ! Print information about the registered fields (short format)
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
             'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Diag%Registry,               &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
-    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
-                         Registry    = State_Diag%Registry,                  &
-                         ShortFormat = .TRUE.,                               &
-                         RC          = RC                                   )
 
     !========================================================================
     ! Set high-level logicals for diagnostics
@@ -10366,13 +10460,6 @@ CONTAINS
                                                3                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
   END SUBROUTINE Init_State_Diag
@@ -11938,6 +12025,22 @@ CONTAINS
                    mapData  = State_Diag%Map_TropCol,                        &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PblCol',                                      &
+                   Ptr2Data = State_Diag%PblCol,                             &
+                   mapData  = State_Diag%Map_PblCol,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CO2photrate',                                 &
+                   Ptr2Data = State_Diag%CO2photrate,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'COincCO2phot',                                &
+                   Ptr2Data = State_Diag%COincCO2phot,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
@@ -13080,6 +13183,22 @@ CONTAINS
        IF ( isUnits   ) Units = '1.0e15 molec cm-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PBLCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'boundary layer column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'COINCCO2PHOT' ) THEN
+       IF ( isDesc    ) Desc  = 'Relative change of CO due to CO2 photolysis'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CO2PHOTRATE' ) THEN
+       IF ( isDesc    ) Desc  = 'CO2 photolysis rate' 
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  =  3
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
@@ -16614,7 +16733,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -16799,7 +16918,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -16980,7 +17099,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17171,7 +17290,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17356,7 +17475,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17534,7 +17653,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF

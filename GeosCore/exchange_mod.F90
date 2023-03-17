@@ -797,7 +797,6 @@ CONTAINS
 !
     TYPE(SpcConc, POINTER :: SPC(:)
     INTEGER               :: L, I,IU_RST
-    LOGICAL               :: prtDebug
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! NOTE: Species units are in kg/kg dry which may be incompatible with
@@ -805,7 +804,6 @@ CONTAINS
     ! developers (ewl, 8/15/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     SPC      => State_Chm%Species
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     IU_RST=2
     IF ( Input_Opt%amIRoot ) THEN
        WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_DUMP_FOR_GLOBAL"
@@ -839,7 +837,9 @@ CONTAINS
     CLOSE( IU_RST )
 
     SPC => NULL()
-    IF ( prtDebug ) CALL DEBUG_MSG( '### WRITE_EXCHANGE: wrote file' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### WRITE_EXCHANGE: wrote file' )
+    ENDIF
 
   END SUBROUTINE EX_DUMP_FOR_GLOBAL
 !EOC
@@ -900,7 +900,6 @@ CONTAINS
     REAL*4                 :: ARRAYTEMPR(576,361,73)
     INTEGER                :: L,IU_RST,IOS
     INTEGER                :: NI,NJ,NK,I,J,K
-    LOGICAL                :: prtDebug
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! NOTE: Species units are in kg/kg dry which may be incompatible with
@@ -908,14 +907,13 @@ CONTAINS
     ! 3rd party developers (ewl, 8/15/16)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     SPC      => State_Chm%Species
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     IU_RST=2
     IOS=1
     NI=IM_BC_CH
     NJ=JM_BC_CH
     NK=State_Grid%NZ
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_READ_AND_APPLY_FEEDBACK"
        WRITE(*,*) "!!!!!!!!!!FILLING THE SPECIES BOUNDARY"
     ENDIF
@@ -1046,7 +1044,9 @@ CONTAINS
        !CLOSE( 2 )
     ENDIF
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### read and apply fb: done' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### read and apply fb: done' )
+    ENDIF
 
   END SUBROUTINE EX_READ_AND_APPLY_FEEDBACK
 !EOC

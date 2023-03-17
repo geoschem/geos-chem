@@ -912,7 +912,6 @@ Mask fractions:              false
 * GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* LWI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWI      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
@@ -1364,7 +1363,7 @@ ${RUNDIR_CO2_COPROD}
 # --- EPA NEI day-of-week scale factors ---
 #==============================================================================
 (((NEI2016_MONMEAN
-211 NEI99_DOW_CO      $ROOT/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc      CO 1999/1-12/WD/0 C xy 1 1
+211 NEI99_DOW_CO  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO 1999/1-12/WD/0 C xy 1 1
 )))NEI2016_MONMEAN
 #==============================================================================
 # --- EPA NEI2016 annual scale factors ---

@@ -260,7 +260,6 @@ CONTAINS
 !
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: THISMONTH, I, J
-    LOGICAL            :: prtDebug
     
     ! Pointers
     REAL(f4),  POINTER :: Ptr2D(:,:)
@@ -276,7 +275,6 @@ CONTAINS
 
     ! Assume success
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.F90)'
 
@@ -324,14 +322,18 @@ CONTAINS
                             State_Grid = State_Grid,                         &
                             State_Met  = State_Met,                          &
                             LFLUX      = EHg0_ln                            )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+    ENDIF
 
     ! Get soil mercury flux of Hg0
     CALL SOILEMIS( EHg0_dist  = EHg0_dist,                                   &
                    State_Grid = State_Grid,                                  &
                    State_Met  = State_Met,                                   &
                    EHg0_so    = EHg0_so                                     )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+    ENDIF
 
     ! Get snow mercury flux of Hg0
     CALL SNOWPACK_MERCURY_FLUX( LHgSNOW    = LHgSNOW,                        &
@@ -339,7 +341,9 @@ CONTAINS
                                 State_Grid = State_Grid,                     &
                                 State_Met  = State_Met,                      &
                                 FLUX       = EHg0_snow                      )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+    ENDIF
 
     ! If we are using the non-local PBL mixing,
     ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
@@ -348,12 +352,15 @@ CONTAINS
 
     ! Zero arrays for Hg deposition
     CALL RESET_HG_DEP_ARRAYS()
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: ' // &
-         'a RESET_HG_DEP_ARRAYS' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a RESET_HG_DEP_ARRAYS' )
+    ENDIF
 
     ! Add Hg(0) source into State_Chm%Species [kg]
     CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
-   IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+   IF ( Input_Opt%Verbose ) THEN
+      CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+   ENDIF
 
     ! Convert species units back to original unit
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -665,7 +672,6 @@ CONTAINS
     LOGICAL, SAVE          :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL                :: prtDebug
     INTEGER                :: I,         J,        L,         K
     INTEGER                :: N,         NN,       CN,        Hg_Cat
     INTEGER                :: NA,        F,        SpcID,     KppID
@@ -714,7 +720,6 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     errMsg   = ''
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     thisLoc  = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
     itim     =  0.0_fp            ! For KPP timing
     rtim     =  0.0_fp            ! For KPP timing
@@ -865,7 +870,7 @@ CONTAINS
         ENDIF
 
         !### Debug
-        IF ( prtDebug ) THEN
+        IF ( Input_Opt%Verbose ) THEN
            CALL DEBUG_MSG( '### ChemMercury: after FAST_JX' )
         ENDIF
     ENDIF
@@ -883,7 +888,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### ChemMercury: after Set_HgOxidConc' )
     ENDIF
 
@@ -1614,7 +1619,6 @@ CONTAINS
 !
 
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: I, J, L, N         ! lon, lat, lev, indexes
     INTEGER            :: SpcID
     CHARACTER(LEN=60)  :: Prefix             ! utility string
@@ -1635,9 +1639,6 @@ CONTAINS
     RC        = GC_SUCCESS
     errMsg    = ''
     thisLoc   = ' -> at Get_HgOxConc (in GeosCore/mercury_mod.F90)'
-
-    ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !=================================================================
     ! Set instantaneous species concentrations
@@ -2540,16 +2541,12 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
-    ! Boolean
-    LOGICAL            :: prtDebug
-
     !========================================================================
     ! SeaSaltUptake begins here!
     !========================================================================
 
     ! Assume success
     RC        =  GC_SUCCESS                                ! Success?
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Debug prints?
     DT        = Get_Ts_Chem()                              ! Chem timestep [s]
     errMsg    = ''
     thisLoc   = ' -> at SeaSaltUptake (in GeosCore/mercury_mod.F90)'
