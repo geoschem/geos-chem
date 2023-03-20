@@ -909,7 +909,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Only consider tropospheric boxes
-       IF ( State_Met%InChemGrid(I,J,L) ) THEN
+       IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
           ! Calculate rate coefficients
           KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L))
@@ -1385,7 +1385,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Only proceed if we are outside of the chemistry grid
-       IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
+       IF ( .not. State_Met%InTroposphere(I,J,L) ) THEN
 
           ! Conversion factor [kg/box] --> [molec/cm3]
           ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
