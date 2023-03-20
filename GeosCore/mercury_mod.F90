@@ -963,16 +963,9 @@ CONTAINS
     !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
     !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
     !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
-    !$OMP REDUCTION( +:ITIM                                                 )&
-    !$OMP REDUCTION( +:RTIM                                                 )&
-    !$OMP REDUCTION( +:TOTSTEPS                                             )&
-    !$OMP REDUCTION( +:TOTFUNCS                                             )&
-    !$OMP REDUCTION( +:TOTJACOB                                             )&
-    !$OMP REDUCTION( +:TOTACCEP                                             )&
-    !$OMP REDUCTION( +:TOTREJEC                                             )&
-    !$OMP REDUCTION( +:TOTNUMLU                                             )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE ( DYNAMIC,  24                                           )
+    !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
+    !$OMP REDUCTION( +:errorCount                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1137,9 +1130,9 @@ CONTAINS
              WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
              errorCount = errorCount + 1
              IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
-                doSuppress = .TRUE.
                 WRITE( 6, * ) &
                  '### Further KPP integration error messages will be suppressed'
+                doSuppress = .TRUE.
              ENDIF
           ENDIF
        ENDIF

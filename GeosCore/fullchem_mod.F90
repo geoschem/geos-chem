@@ -515,7 +515,8 @@ CONTAINS
     !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP REDUCTION( +:errorCount                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1053,7 +1054,7 @@ CONTAINS
              IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
                 WRITE( 6, '(a)' ) &
                    '### Further error output has been switched off'
-                doSuppress = .FALSE.
+                doSuppress = .TRUE.
              ENDIF
           ENDIF
 
