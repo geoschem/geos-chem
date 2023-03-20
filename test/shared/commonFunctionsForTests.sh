@@ -197,7 +197,7 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change simulation time to 20 minutes
     # in order to reduce the run time of the whole set of integration tests.
-    if [[ "x${runPath}" == "xgc_05x0625_NA_47L_merra2_fullchem" ]]; then
+    if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
     fi
 
@@ -243,7 +243,7 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change frequency and duration to 20 mins
     # in order to reduce the run time of the whole set of integration tests.
-    if [[ "x${runPath}" == "xgc_05x0625_NA_47L_merra2_fullchem" ]]; then
+    if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
 
