@@ -6,22 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.2.0]
 ### Added
-  - Added a printout of GEOS-Chem species and indices
-  - Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
+- Added a printout of GEOS-Chem species and indices
+- Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
 
 ### Changed
-  - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
-  - `HEMCO_Config.rc` template files now use `Verbose: true` to toggle debug printout
-  - Turn on sea salt debromination via switches in `HEMCO_config.rc`
+- Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
+- `HEMCO_Config.rc` template files now use `Verbose: true` to toggle debug printout
+- Turn on sea salt debromination via switches in `HEMCO_config.rc`
+- If KPP integration fails, reset to prior concentrations and set RSTATE(3) = 0 before retrying
+- Suppress integration errors after 20 errors have been printed to stdout
 
 ### Removed
-  - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
-  - Removed the `NcdfUtil/perl` folder
-  - Removed `X-HRS` output from log file
+- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
+- Removed the `NcdfUtil/perl` folder
+- Removed `X-HRS` output from log file
 
 ### Fixed
-  - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
-  - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
+- Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script fom being copied to the run directory
+- Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
 
 ## [14.1.1] - 2023-03-03
 ### Added
