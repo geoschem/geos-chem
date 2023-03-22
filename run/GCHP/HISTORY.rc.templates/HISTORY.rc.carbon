@@ -20,9 +20,9 @@ VERSION: 1
 #   SpeciesConc.conservative: 1
 #
 #==============================================================================
-GRID_LABELS: PE24x144-CF
-             PC360x181-DC
-             REGIONAL1x1
+GRID_LABELS: #PE24x144-CF
+             #PC360x181-DC
+             #REGIONAL1x1
     ::
 
     # Example of cubed-sphere grid at c24 resolution
