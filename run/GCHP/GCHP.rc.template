@@ -61,6 +61,10 @@ BKG_FREQUENCY: 0
 #-----------------------------------------------------------------
 MAPL_ENABLE_BOOTSTRAP: YES
 
+# Require all species in initial restart file (1 = yes; else no)
+#-----------------------------------------------------------------
+INITIAL_RESTART_SPECIES_REQUIRED: 0
+
 # Settings for production of restart files
 #---------------------------------------------------------------
 # Record frequency (HHMMSS, or monthly) : Frequency of restart file write

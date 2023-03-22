@@ -181,6 +181,7 @@ function update_gchp_config_files() {
     sed_ie "s/TOTAL_CORES=.*/TOTAL_CORES=24/"                       "${file}"
     sed_ie "s/NUM_NODES=.*/NUM_NODES=1/"                            "${file}"
     sed_ie "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/"         "${file}"
+    sed_ie "s/Require_Species_in_Restart=.*/Require_Species_in_Restart=0/" "${file}"
 }
 
 function update_config_files() {

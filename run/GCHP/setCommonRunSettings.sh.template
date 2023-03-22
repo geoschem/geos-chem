@@ -118,6 +118,11 @@ Checkpoint_Freq=monthly
 Model_Phase=FORWARD
 
 #------------------------------------------------
+#   REQUIRE ALL SPECIES IN INITIAL RESTART FILE
+#------------------------------------------------
+Require_Species_in_Restart=${RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED}
+
+#------------------------------------------------
 #    TIMESTEPS
 #------------------------------------------------
 # Timesteps in GCHP are resolution-dependent
@@ -558,6 +563,12 @@ print_msg "---------------"
 if [[ ${dustSetting[3]} = "on" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
+
+###  Set initial restart file options
+print_msg ""
+print_msg "Initial restart settings:"
+print_msg "-------------------------"
+replace_val INITIAL_RESTART_SPECIES_REQUIRED ${Require_Species_in_Restart} GCHP.rc
 
 #### Set frequency of writing restart files
 # Set to a very large number if turned off
