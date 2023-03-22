@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Turn on sea salt debromination via switches in `HEMCO_config.rc`
 - If KPP integration fails, reset to prior concentrations and set RSTATE(3) = 0 before retrying
 - Suppress integration errors after 20 errors have been printed to stdout
+- Updated `HEMCO_Config.rc` templates to read HEMCO restarts from the `Restarts` rundir folder
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
