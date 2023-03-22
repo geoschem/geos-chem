@@ -162,11 +162,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: IsLocNoon, Size_Res, Failed2x
+    LOGICAL                :: IsLocNoon,  Size_Res,  Failed2x, doSuppress
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
     INTEGER                :: WAVELENGTH, IERR,      S,        Thread
+    INTEGER                :: errorCount
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
 
@@ -178,7 +179,7 @@ CONTAINS
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
 
-    ! For
+    ! Forq
 
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
@@ -191,6 +192,7 @@ CONTAINS
     INTEGER                :: ISTATUS(20)
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
+    REAL(dp)               :: C_before_integrate(NSPEC)
     REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
                                      State_Grid%NZ, State_Chm%nAdvect       )
 
@@ -211,17 +213,13 @@ CONTAINS
     REAL(f4)               :: TROP_NOx_Tau
     REAL(f4)               :: TROPv_NOx_tau(State_Grid%NX,State_Grid%NY)
     REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
-    REAL(dp)               :: localC(NSPEC)
-#endif
-#ifdef MODEL_WRF
-    REAL(dp)               :: localC(NSPEC)
 #endif
 
     ! Grid box integration time diagnostic
     REAL(fp)               :: TimeStart, TimeEnd
 
     ! Objects
-    TYPE(DgnMap), POINTER :: mapData => NULL()
+    TYPE(DgnMap),  POINTER :: mapData => NULL()
 !
 ! !DEFINED PARAMETERS
 !
@@ -229,7 +227,10 @@ CONTAINS
     ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
     ! (assuming Rosenbrock solver).  Define this locally in order to break
     ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
-    INTEGER,    PARAMETER :: Nhnew = 3
+    INTEGER,     PARAMETER :: Nhnew = 3
+
+    ! Suppress printing out KPP error messages after this many errors occur
+    INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
 
     !========================================================================
     ! Do_FullChem begins here!
@@ -237,15 +238,17 @@ CONTAINS
     !========================================================================
 
     ! Initialize
-    RC        =  GC_SUCCESS
-    ErrMsg    =  ''
-    ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
-    SpcInfo   => NULL()
-    Day       =  Get_Day()    ! Current day
-    Month     =  Get_Month()  ! Current month
-    Year      =  Get_Year()   ! Current year
-    Thread    =  1
-    Failed2x  = .FALSE.
+    RC         =  GC_SUCCESS
+    ErrMsg     =  ''
+    ThisLoc    =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
+    SpcInfo    => NULL()
+    Day        =  Get_Day()    ! Current day
+    Month      =  Get_Month()  ! Current month
+    Year       =  Get_Year()   ! Current year
+    Thread     =  1
+    errorCount =  0
+    Failed2x   = .FALSE.
+    doSuppress = .FALSE.
 
     ! Set a switch that allows you to toggle off photolysis for testing
     ! (default value : TRUE)
@@ -456,7 +459,9 @@ CONTAINS
     ATOL      = 1e-2_dp
 
     ! Relative tolerance
-    RTOL      = 0.5e-2_dp
+    ! Changed to 0.5e-3 to avoid integrate errors by halogen chemistry
+    !  -- Becky Alexander & Bob Yantosca (24 Jan 2023)
+    RTOL      = 0.5e-3_dp
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -502,21 +507,18 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL                                                   )&
+    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, localC                              )&
-    !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
-#endif
-#ifdef MODEL_WRF
-    !$OMP PRIVATE( localC                                                   )&
+    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP REDUCTION( +:errorCount                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -550,13 +552,9 @@ CONTAINS
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
 #endif
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-       localC    = 0.0_dp                   ! Local backup array for C
-#endif
 
-       ! Per discussions for Lin et al., force keepActive throughout the atmosphere
-       ! if keepActive option is enabled. (hplin, 2/9/22)
-       !keepActive = .true.
+       ! Per discussions for Lin et al., force keepActive throughout the
+       ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
        CALL fullchem_AR_SetKeepActive( option=.TRUE. )
 
        ! Start measuring KPP-related routine timing for this grid box
@@ -1027,6 +1025,10 @@ CONTAINS
        ! Integrate the box forwards
        !=====================================================================
 
+       ! Store concentrations before the call to "Integrate".  This will
+       ! let us reset concentrations before calling "Integrate" a 2nd time.
+       C_before_integrate = C
+
        ! Start timer
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( TimerName = "     Integrate 1",                  &
@@ -1035,7 +1037,8 @@ CONTAINS
                             RC        = RC                                  )
        ENDIF
 
-       ! Call the KPP integrator
+       ! Call the Rosenbrock integrator
+       ! (with optional auto-reduce functionality)
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
@@ -1049,21 +1052,30 @@ CONTAINS
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
-       ENDIF
+
+          ! Turn off error output after a certain limit is reached
+          IF ( .not. doSuppress ) THEN
+             WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+             errorCount = errorCount + 1
+             IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
+                WRITE( 6, '(a)' ) &
+                   '### Further error output has been switched off'
+                doSuppress = .TRUE.
+             ENDIF
+          ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-       ! Print grid box indices to screen if integrate failed
-       IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
-          IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+          ! Keep track of error boxes
+          IF ( State_Diag%Archive_KppError ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
           ENDIF
-       ENDIF
 #endif
+       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
+       !
+       ! !TODO: Abstract this into a separate routine
        !=====================================================================
        IF ( State_Diag%Archive_KppDiags ) THEN
 
@@ -1119,15 +1131,10 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-          ! Save a copy of the C vector (GEOS and WRF only)
-          localC    = C
-#endif
-
-          ! Reset first time step and start concentrations
-          ! Retry the integration with non-optimized settings
+          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
+          ! C with concentrations prior to the 1st call to "Integrate".
           RCNTRL(3) = 0.0_dp
-          C         = 0.0_dp
+          C         = C_before_integrate
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%Use_AutoReduce ) THEN
@@ -1145,7 +1152,7 @@ CONTAINS
                                RC        = RC                               )
           ENDIF
 
-          ! Integrate again
+          ! Call the Rosenbrock integrator (w/ auto-reduction disabled)
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
 
@@ -1160,6 +1167,8 @@ CONTAINS
           !==================================================================
           ! HISTORY: Archive KPP solver diagnostics
           ! This time, add to the existing value
+          !
+          ! !TODO: Abstract this into a separate routine
           !==================================================================
           IF ( State_Diag%Archive_KppDiags ) THEN
 
@@ -1221,11 +1230,13 @@ CONTAINS
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
-             ! Revert to start values
              ELSE
-                C = localC
+                ! Revert to concentrations prior to 1st call to "Integrate"
+                C = C_before_integrate
              ENDIF
-             IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+
+             ! Keep track of error boxes
+             IF ( State_Diag%Archive_KppError ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
@@ -1354,13 +1365,17 @@ CONTAINS
 #endif
 
 #ifdef MODEL_CESM
-       ! Calculate H2SO4 production rate for coupling to CESM (interface to MAM4 nucleation)
+       !---------------------------------------------------------------------
+       ! Calculate H2SO4 production rate for coupling to CESM 
+       ! (interface to MAM4 nucleation)
+       !---------------------------------------------------------------------
        DO F = 1, NFAM
 
           ! Determine dummy species index in KPP
           KppID =  PL_Kpp_Id(F)
 
-          ! Calculate H2SO4 production rate [mol mol-1] in this timestep (hplin, 1/25/23)
+          ! Calculate H2SO4 production rate [mol mol-1] in this timestep 
+          ! (hplin, 1/25/23)
           IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
              ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3)
              !         = mol/molAir

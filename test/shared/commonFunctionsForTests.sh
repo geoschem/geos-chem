@@ -32,7 +32,8 @@ SED_CONFIG_3='s/end_date: \[20160201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_4='s/end_date: \[20160101, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_5='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_6='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 010000\]/'
-SED_CONFIG_N='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
+SED_CONFIG_N1='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 002000\]/'
+SED_CONFIG_N2='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
 SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
 SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
@@ -197,11 +198,9 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change simulation time to 20 minutes
     # in order to reduce the run time of the whole set of integration tests.
-    if grep -q "025x03125_fullchem" <<< "${runPath}"; then
-	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
-    fi
-    if grep -q "05x0625_fullchem" <<< "${runPath}"; then
-	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
+    if grep -q "05x0625" <<< "${runPath}"; then
+	sed_ie "${SED_CONFIG_N1}" "${runPath}/geoschem_config.yml"
+	sed_ie "${SED_CONFIG_N2}" "${runPath}/geoschem_config.yml"
     fi
 
     # Other text replacements
@@ -217,9 +216,6 @@ function update_config_files() {
     #------------------------------------------------------------------------
 
     # For all nested-grid rundirs, add a NA into the entries for met fields
-    if grep -q "025x03125" <<< "${runPath}"; then
-	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
-    fi
     if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
     fi
@@ -234,9 +230,6 @@ function update_config_files() {
 
     if [[ -f "${runPath}/HEMCO_Config.rc.gmao_metfields" ]]; then
 	# For all nested-grid rundirs, add a NA into the entries for met fields
-	if grep -q "025x03125" <<< "${runPath}"; then
-	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
-	fi
 	if grep -q "05x0625" <<< "${runPath}"; then
 	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
 	fi
@@ -252,10 +245,7 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change frequency and duration to 20 mins
     # in order to reduce the run time of the whole set of integration tests.
-    if grep -q "025x03125_fullchem" <<< "${runPath}"; then
-	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
-    fi
-    if grep -q "05x0625_fullchem" <<< "${runPath}"; then
+    if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
 
