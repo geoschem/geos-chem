@@ -4,9 +4,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
-## [ Unreleased 14.2.0]
+## [Unreleased 14.2.0]
 ### Added
   - Add lumped furan chemistry following Carter2020
+
+### Changed
+  - Restored sink reactions for HOI, IONO, IONO2
+  - Use `GCARR_ac` for rxns where the Arrhenius `B` parameter is zero
+
+### Removed
+  - IONO2 recycling
 
 ## [14.1.0] - Feb 2023
 ### Added

@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.2.0]
 ### Added
+- Chemistry mechanism updates; See `KPP/fullchem/CHANGELOG_fullchem.md` for details
 - Added a printout of GEOS-Chem species and indices
 - Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
-- Restored sink reactions for HOI, IONO, IONO2 (fullchem, custom mechanisms)
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
@@ -21,7 +21,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
 - Removed the `NcdfUtil/perl` folder
 - Removed `X-HRS` output from log file
-- IONO2 recycling (fullchem, custom mechanisms)
 
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
