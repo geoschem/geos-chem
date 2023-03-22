@@ -1,7 +1,7 @@
-
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
+Allow_Overwrite: .true.
 VERSION: 1
 
 #==============================================================================
