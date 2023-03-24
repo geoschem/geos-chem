@@ -6,6 +6,9 @@
 # run directory to specify start date. Set grid resolution, number of cores,
 # and other common settings in setCommonRunSettings.sh prior to running.
 
+# Stop run if errors encountered
+set -eo pipefail
+
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
 log=gchp.${start_str:0:13}z.log
