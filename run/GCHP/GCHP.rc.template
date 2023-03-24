@@ -79,13 +79,13 @@ RECORD_REF_TIME: 000000
 # -------------------------------------
 GCHPchem_INTERNAL_RESTART_FILE:     gchp_restart.nc4
 GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
-GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
+GCHPchem_INTERNAL_CHECKPOINT_FILE:  Restarts/gcchem_internal_checkpoint
 GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
 
 # GCHP dynamics (FV3) does not use a restart file because its internal state is empty
 #DYN_INTERNAL_RESTART_FILE:    fvcore_internal_rst
 #DYN_INTERNAL_RESTART_TYPE:    pbinary
-#DYN_INTERNAL_CHECKPOINT_FILE: fvcore_internal_checkpoint
+#DYN_INTERNAL_CHECKPOINT_FILE: Restarts/fvcore_internal_checkpoint
 #DYN_INTERNAL_CHECKPOINT_TYPE: pbinary
 #DYN_INTERNAL_HEADER:          1
 
