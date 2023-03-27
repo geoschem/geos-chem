@@ -455,22 +455,21 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
 
 # --- OH from the latest 10-year benchmark ---
-# ** TODO: Update to 14.0.0 **
-#GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
+#GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
 
 # --- OH from GEOS-Chem v5-07-08 ---
 # --- NOTE: Use this for CH4/IMI ---
 #GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc
 
 # --- Global Cl concentrations
-GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
+GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
 # --- Stratospheric L(CO) from GMI ---
 CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2022-11/4x5/gmi.ch4loss.geos5_47L.4x5.nc
 
 # --- P(CO) from CH4 and NMVOC from the last 10-yr benchmark ---
-PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
-PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
+PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
+PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 
 #--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---
 GMI_LOSS_CH4 s-1   2000 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2022-11/gmi.clim.CH4.geos5.2x25.nc
