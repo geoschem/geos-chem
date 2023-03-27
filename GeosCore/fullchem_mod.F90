@@ -547,6 +547,9 @@ CONTAINS
        K_CLD     = 0.0_dp                   ! Sulfur in-cloud rxn het rates
        K_MT      = 0.0_dp                   ! Sulfur sea salt rxn het rates
        CFACTOR   = 1.0_dp                   ! KPP conversion factor
+       SRO3      = 0.0_dp                   ! Enhanced sulfate production of
+       SRHOBr    = 0.0_dp                   !  O3, HOBr, HCl in size-resolved
+       SRHOCl    = 0.0_dp                   !  cloud droplets
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
@@ -923,14 +926,9 @@ CONTAINS
              CALL fullchem_HetDropChem( I         = I,                       &
                                         J         = J,                       &
                                         L         = L,                       &
-                                        SR        = SR,                      &
                                         Input_Opt = Input_Opt,               &
                                         State_Met = State_Met,               &
                                         State_Chm = State_Chm               )
-
-             ! Add result as an enhancement to O2 metal catalysis rate
-             ! as a 1st order reaction
-             K_CLD(3) = K_CLD(3) + SR
           ENDIF
 
           ! Stop timer

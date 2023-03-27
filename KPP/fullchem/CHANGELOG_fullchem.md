@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [ Unreleased 14.2.0]
 ### Added
-  - Add lumped furan chemistry following Carter2020
+  - Added lumped furan chemistry following Carter2020
+  - Restored sink reactions for HOI, IONO, IONO2
+  - Added S(IV)+HOBr and S(IV)+HOCl rxns (they had been inadvertently omitted)
 
 ## [14.1.0] - Feb 2023
 ### Added

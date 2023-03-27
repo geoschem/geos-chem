@@ -403,7 +403,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fullchem_HetDropChem( I,         J,         L,         SR,      &
+  SUBROUTINE fullchem_HetDropChem( I,         J,         L,                  &
                                    Input_Opt, State_Met, State_Chm          )
 !
 ! !USES:
@@ -429,10 +429,6 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-    REAL(fp),       INTENT(OUT)   :: SR          ! Sulfate production rate
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -474,6 +470,7 @@ CONTAINS
     REAL(dp)              :: XX,         FC,        LST
     REAL(dp)              :: XX1,        XX2,       XX3
     REAL(dp)              :: XX4,        XX5,       GNH3
+    REAL(dp)              :: SR,         DENOM
 
     ! Pointers
     REAL(fp), POINTER     :: AD(:,:,:)
@@ -495,9 +492,6 @@ CONTAINS
     U      => State_Met%U
     V      => State_Met%V
 
-    ! Zero output argument for safety's sake
-    SR     =  0.0_dp
-
     ! Zero/initialize local variables for safety's sake
     arg    =  0.0_dp
     B      =  0.0_dp
@@ -510,8 +504,12 @@ CONTAINS
     LST    =  0.0_dp
     R1     =  0.0_dp
     R2     =  0.0_dp
+    SR     =  0.0_dp
+    SRHOBr =  0.0_dp
+    SRHOCl =  0.0_dp
+    SRO3   =  0.0_dp
     W      =  0.0_dp
-    XX     =  0.0_dp
+    XX     =  0.0_dp  ! All XX* in units of [v/v/timestep]
     XX1    =  0.0_dp
     XX2    =  0.0_dp
     XX3    =  0.0_dp
@@ -655,14 +653,14 @@ CONTAINS
     ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
     ! based on equation in Hofmann, Science, 1990.
     ! First convert from [v/v] to [kg/m3 air]
-    CNss = State_Chm%Species(id_SALC)%Conc(I,J,L)*CVF * AD(I,J,L)         &
+    CNss = State_Chm%Species(id_SALC)%Conc(I,J,L)*CVF * AD(I,J,L)            &
          / ( ( AIRMW / MW_SALC ) * AIRVOL(I,J,L) )
 
     ! Now convert from [kg/m3 air] to [#/cm3 air]
     ! Sea-salt
     ARG  = NINE_HALVES * ( LOG( SIG_S ) )**2
-    NDss = ( THREE_FOURTHS * CNss                           )               &
-         / ( PI * SS_DEN * RG_S**3 * SafeExp( Arg, 0.0_dp ) )               &
+    NDss = ( THREE_FOURTHS * CNss                           )                &
+         / ( PI * SS_DEN * RG_S**3 * SafeExp( Arg, 0.0_dp ) )                &
          * 1.e-6_dp
 
     ! Total coarse mode number concentration [#/cm3]
@@ -733,8 +731,8 @@ CONTAINS
     ! Yuen et al. (1996) (qjc, 04/10/16)
     IF ( W > 0.0_dp .and. C(ind_SO2) > 0.0_dp ) THEN
 
-       ! additional sulfate production that can be
-       ! attributed to ozone [ug/m3/timestep]
+       ! additional sulfate production in large, higher pH
+       ! cloud droplets [ug/m3/timestep]
        ! Don't allow SR to be negative
        SR = MAX( ( DSVI - B ), 0.0_dp )
 
@@ -747,10 +745,32 @@ CONTAINS
           ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
           ! -- SR is dSO4/timestep (v/v) continue onvert
           !    to 1st order rate
-          SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
+          !SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * CVF * DT )
+          !SR = MIN( SR, SO2 / 1.0e12_dp ) / ( C(ind_SO2) * C(ind_O3) * CVF * DT ) 
+          !I think the unit conversion is wrong. There should be another 
+          !CVF and DT here. But I don't know why we need the denominator.
+          !  -- Becky Alexander (30 Jan 2023)
+          SR = MIN( SR, SO2 / 1.0e12_dp )
+
        ENDIF
     ENDIF
 
+    ! Convert SR from [v/v/timestep] to [mlcl/cm3/s]
+    SR     = SR / CVF / DT
+
+    ! Split SR between S(IV) oxidation by O3, HOCl, and HOBr
+    ! Make sure division can be done safely
+    DENOM  = XX2 + XX4 + XX5
+    SRO3   = SR * SafeDiv( XX2, DENOM, 0.0_fp )
+    SRHOCl = SR * SafeDiv( XX4, DENOM, 0.0_fp )
+    SRHOBr = SR * SafeDiv( XX5, DENOM, 0.0_fp )
+    
+    ! Convert this rate to a second order rate constant for use in KPP
+    ! Make sure division can be done safely
+    SRO3   = SafeDiv( SRO3,   ( C(ind_SO2) * C(ind_O3  ) ), 0.0_dp )
+    SRHOCl = SafeDiv( SRHOCl, ( C(ind_SO2) * C(ind_HOCl) ), 0.0_dp )
+    SRHOBr = SafeDiv( SRHOBr, ( C(ind_SO2) * C(ind_HOBr) ), 0.0_dp )
+ 
     ! Free pointers
     AD     => NULL()
     AIRDEN => NULL()
@@ -929,7 +949,7 @@ CONTAINS
     REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
     ! (qjc, 04/10/16)
-    REAL(fp)              :: L5,L5S,SRo3,SRhobr
+    REAL(fp)              :: L5,L5S
     REAL(fp)              :: L5_1,L5S_1,L3_1,L3S_1,KaqO3_1
     REAL(fp)              :: HSO3aq, SO3aq
     REAL(fp)              :: SO2_AfterSS0, rSIV, fupdateHOBr_0
@@ -942,7 +962,7 @@ CONTAINS
     REAL(fp)              :: Fe_ant, Fe_nat,  Fe_tot
     REAL(fp)              :: Fe_d_ant, Fe_d_nat
 
-    REAL(fp)              :: L6,L6S,SRhocl,L6_1,L6S_1      !XW
+    REAL(fp)              :: L6,L6S,L6_1,L6S_1      !XW
     REAL(fp)              :: fupdateHOCl_0  !XW
     REAL(fp)              :: HCHOCl, KHOCl, f_srhocl, HOCl0 !XW
 
