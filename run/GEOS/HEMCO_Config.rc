@@ -855,17 +855,37 @@ Warnings:                    1
 0 QFED_NH3_BO_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312/315/543 8 1
 0 QFED_NH3_GL_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312/544     8 1
 0 QFED_NH3_SV_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312/544     8 1
-# NO
-0 QFED_NO_TF_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/545     8 1
-0 QFED_NO_TP_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/314/546 8 1
-0 QFED_NO_BO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/315/547 8 1
-0 QFED_NO_SV_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548     8 1
-0 QFED_NO_GL_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548     8 1
-0 QFED_NO_TF_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/545     8 1
-0 QFED_NO_TP_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/314/546 8 1
-0 QFED_NO_BO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/315/547 8 1
-0 QFED_NO_SV_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548     8 1
-0 QFED_NO_GL_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548     8 1
+# NO/PAN/HNO3                
+0 QFED_NO_TF_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/545/592     8 1
+0 QFED_PAN_TF_SFC   -                                                                 -          -                     - -               -       PAN  75/311/545/593     8 1
+0 QFED_HNO3_TF_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/545/594     8 1
+0 QFED_NO_TP_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/314/546/592 8 1
+0 QFED_PAN_TP_SFC   -                                                                 -          -                     - -               -       PAN  75/311/314/546/593 8 1
+0 QFED_HNO3_TP_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/314/546/594 8 1
+0 QFED_NO_BO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/315/547/592 8 1
+0 QFED_PAN_BO_SFC   -                                                                 -          -                     - -               -       PAN  75/311/315/547/593 8 1
+0 QFED_HNO3_BO_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/315/547/594 8 1
+0 QFED_NO_SV_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548/592     8 1
+0 QFED_PAN_SV_SFC   -                                                                 -          -                     - -               -       PAN  75/311/548/593     8 1
+0 QFED_HNO3_SV_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/548/594     8 1
+0 QFED_NO_GL_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548/592     8 1
+0 QFED_PAN_GL_SFC   -                                                                 -          -                     - -               -       PAN  75/311/548/593     8 1
+0 QFED_HNO3_GL_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/548/594     8 1
+0 QFED_NO_TF_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/545/592     8 1
+0 QFED_PAN_TF_FT    -                                                                 -          -                     - -               -       PAN  75/312/545/593     8 1
+0 QFED_HNO3_TF_FT   -                                                                 -          -                     - -               -       HNO3 75/312/545/594     8 1
+0 QFED_NO_TP_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/314/546/592 8 1
+0 QFED_PAN_TP_FT    -                                                                 -          -                     - -               -       PAN  75/312/314/546/593 8 1
+0 QFED_HNO3_TP_FT   -                                                                 -          -                     - -               -       HNO3 75/312/314/546/594 8 1
+0 QFED_NO_BO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/315/547/592 8 1
+0 QFED_PAN_BO_FT    -                                                                 -          -                     - -               -       PAN  75/312/315/547/593 8 1
+0 QFED_HNO3_BO_FT   -                                                                 -          -                     - -               -       HNO3 75/312/315/547/594 8 1
+0 QFED_NO_SV_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548/592     8 1
+0 QFED_PAN_SV_FT    -                                                                 -          -                     - -               -       PAN  75/312/548/593     8 1
+0 QFED_HNO3_SV_FT   -                                                                 -          -                     - -               -       HNO3 75/312/548/594     8 1
+0 QFED_NO_GL_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548/592     8 1
+0 QFED_PAN_GL_FT    -                                                                 -          -                     - -               -       PAN  75/312/548/593     8 1
+0 QFED_HNO3_GL_FT   -                                                                 -          -                     - -               -       HNO3 75/312/548/594     8 1
 # SO2
 0 QFED_SO2_TF_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s SO2  75/311/549     8 1
 0 QFED_SO2_TP_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s SO2  75/311/314/550 8 1
@@ -1685,6 +1705,13 @@ Warnings:                    1
 546 QFED2_NO_TP_SCAL 0.45            -                -          - xy 1 1
 547 QFED2_NO_BO_SCAL 0.57            -                -          - xy 1 1
 548 QFED2_NO_SV_SCAL 0.64            -                -          - xy 1 1
+
+# Partition NO emissions into 40%NO, 40%PAN, and 20%HNO3 (on a N basis).
+# For PAN:  0.4 * 121.05 / 30.01 = 1.614
+# For HNO3: 0.2 * 63.012 / 30.01 = 0.420
+592 QFED2_NO_SCAL    0.400           -                -          - xy 1 1
+593 QFED2_NOtoPAN    1.614           -                -          - xy 1 1
+594 QFED2_NOtoHNO3   0.420           -                -          - xy 1 1
 
 #==============================================================================
 # Scale the CMIP6 values in pptv to ppbv
