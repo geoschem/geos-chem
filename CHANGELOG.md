@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
 - Restored sink reactions for HOI, IONO, IONO2 (fullchem, custom mechanisms)
 - S(IV) + HOBr and S(IV) + HOCl reactions to `KPP/fullchem/fullchem.eqn`
+- Added setting in GCHP setCommonRunSettings.sh to require species in restarts
+- Added setting in GCHP HISTORY.rc to control whether output can be overwritten
 - Activated nitrate photolysis
 
 ### Changed
@@ -19,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - If KPP integration fails, reset to prior concentrations and set RSTATE(3) = 0 before retrying
 - Suppress integration errors after 20 errors have been printed to stdout
 - Simplified and added comments for bimolecular reactions in clouds in function CloudHet2R
+- Updated GCHP carbon simulation Global Cl and P(CO) inputs to use 14.0.0 files
+- Write GCHP restart files directory to Restarts subdirectory
+- Rename GCHP mid-run checkpoint files to standard GEOS-Chem restart format
+- Rules for species in restarts files are now the same in GCHP as in GC-Classic
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
@@ -34,6 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Tests now run for 20 model minutes instead of an hour
 - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
 - Restore seasalt alkalinity to heterogeneous acid-catalyzed reactions of halogens on seasalt aerosols.
+- Fixed GCHP HISTORY.rc issue preventing running with over 3000 cores
+- Fixed GCHP ExtData.rc error in tagged ozone simulation
+- Fixed GCHP HISTORY.rc issue preventing diagnostic file overwrite
+- Update GCHP interactive run script to fix error handling silent bugs
 
 ## [14.1.1] - 2023-03-03
 ### Added
