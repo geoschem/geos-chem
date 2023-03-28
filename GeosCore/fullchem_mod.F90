@@ -267,6 +267,7 @@ CONTAINS
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
     IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
     IF (State_Diag%Archive_KppDiags) THEN
        IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
@@ -977,7 +978,7 @@ CONTAINS
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
-       ! Archive KPP reaction rates [s-1]
+       ! Archive KPP reaction rates [molec cm-3 s-1]
        ! See gckpp_Monitor.F90 for a list of chemical reactions
        !
        ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
@@ -1009,6 +1010,18 @@ CONTAINS
                 State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
              ENDDO
           ENDIF
+       ENDIF
+
+       ! Archive KPP reaction rate constants (RCONST). The units vary.
+       ! They are already updated in Update_RCONST, and do not require
+       ! a call of Fun(). (hplin, 3/28/23)
+       IF ( State_Diag%Archive_RxnConst ) THEN
+
+          DO S = 1, State_Diag%Map_RxnConst%nSlots
+             N = State_Diag%Map_RxnConst%slot2Id(S)
+             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+          ENDDO
+
        ENDIF
 
        !=====================================================================

@@ -299,6 +299,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SatDiagnRxnRate
      LOGICAL                     :: Archive_SatDiagnRxnRate     
 
+     REAL(f4),           POINTER :: RxnConst(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnConst
+     LOGICAL                     :: Archive_RxnConst
+
      REAL(f4),           POINTER :: OHreactivity(:,:,:)
      LOGICAL                     :: Archive_OHreactivity
 
@@ -1518,6 +1522,10 @@ CONTAINS
     State_Diag%SatDiagnRxnRate                     => NULL()
     State_Diag%Map_SatDiagnRxnRate                 => NULL()
     State_Diag%Archive_SatDiagnRxnRate             = .FALSE.
+
+    State_Diag%RxnConst                            => NULL()
+    State_Diag%Map_RxnConst                        => NULL()
+    State_Diag%Archive_RxnConst                    = .FALSE.
 
     State_Diag%OHreactivity                        => NULL()
     State_Diag%Archive_OHreactivity                = .FALSE.
@@ -5072,6 +5080,30 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! KPP Reaction Rate Constants
+       !--------------------------------------------------------------------
+       diagID  = 'RxnConst'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RxnConst,                            &
+            archiveData    = State_Diag%Archive_RxnConst,                    &
+            mapData        = State_Diag%Map_RxnConst,                        &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! OH reactivity
        !--------------------------------------------------------------------
        diagID  = 'OHreactivity'
@@ -6086,7 +6118,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 34
+       DO N = 1, 35
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -6165,6 +6197,8 @@ CONTAINS
                 diagID = 'KppcNONZERO'
              CASE( 38 )
                 diagID = 'KppAutoReduceThres'
+             CASE( 39 )
+                diagID = 'RxnConst'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -10765,6 +10799,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'RxnConst',                                    &
+                   Ptr2Data = State_Diag%RxnConst,                           &
+                   mapData  = State_Diag%Map_RxnConst,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'OHreactivity',                                &
                    Ptr2Data = State_Diag%OHreactivity,                       &
                    RC       = RC                                            )
@@ -12504,7 +12544,13 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNRXNRATE' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
-       IF ( isUnits   ) Units = 's-1'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'RXN'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNCONST' ) THEN
+       IF ( isDesc    ) Desc  = 'KPP equation reaction rate constants'
+       IF ( isUnits   ) Units = 'various'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
