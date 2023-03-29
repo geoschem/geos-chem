@@ -12550,7 +12550,7 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNCONST' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rate constants'
-       IF ( isUnits   ) Units = 'various'
+       IF ( isUnits   ) Units = '(cm3 molec-1)**nreactants s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
