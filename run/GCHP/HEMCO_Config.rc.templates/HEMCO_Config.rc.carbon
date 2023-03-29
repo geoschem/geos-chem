@@ -70,6 +70,7 @@ Mask fractions:              false
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
+    --> RESERVOIRS             :       true     # 2022
     --> FUNG_TERMITES          :       true     # 1985
     --> FUNG_SOIL_ABSORPTION   :       false    # 2009-2015
     --> MeMo_SOIL_ABSORPTION   :       true     # 1990-2009 or clim.
@@ -157,74 +158,78 @@ Mask fractions:              false
 # --- CH4: Gridded EPA (Maasakkers et al., Environ. Sci. Technol., 2016) ---
 #
 # NOTES:
+# - Use Hier=100 to add to Canada and Mexico regional inventories
 # - Do not use GEPA forest fire emissions. Use QFED instead.
 # - Apply seasonal scale factors to manure and rice emissions
 #==============================================================================
 (((GEPA
-0 GEPA_OIL              $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2a_Petroleum                     2012/1/1/0    C xy molec/cm2/s CH4 1008    1 50
-0 GEPA_GAS_PRODUCTION   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Production        2012/1/1/0    C xy molec/cm2/s CH4 1008    2 50
-0 GEPA_GAS_PROCESSING   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Processing        2012/1/1/0    C xy molec/cm2/s CH4 1008    2 50
-0 GEPA_GAS_TRANSMISSION $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Transmission      2012/1/1/0    C xy molec/cm2/s CH4 1008    2 50
-0 GEPA_GAS_DISTRIBUTION $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Distribution      2012/1/1/0    C xy molec/cm2/s CH4 1008    2 50
-0 GEPA_COAL_UNDERGROUND $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Underground       2012/1/1/0    C xy molec/cm2/s CH4 1008    3 50
-0 GEPA_COAL_SURFACE     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Surface           2012/1/1/0    C xy molec/cm2/s CH4 1008    3 50
-0 GEPA_COAL_ABANDONED   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Abandoned_Coal                2012/1/1/0    C xy molec/cm2/s CH4 1008    3 50
-0 GEPA_LIVESTOCK__4A    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4A_Enteric_Fermentation            2012/1/1/0    C xy molec/cm2/s CH4 1008    4 50
-0 GEPA_LIVESTOCK__4B    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4B_Manure_Management               2012/1/1/0    C xy molec/cm2/s CH4 10/1008 4 50
-0 GEPA_LANDFILLS_MUNI   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Municipal             2012/1/1/0    C xy molec/cm2/s CH4 1008    5 50
-0 GEPA_LANDFILLS_INDU   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Industrial            2012/1/1/0    C xy molec/cm2/s CH4 1008    5 50
-0 GEPA_WASTEWATER_DOME  $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Domestic   2012/1/1/0    C xy molec/cm2/s CH4 1008    6 50
-0 GEPA_WASTEWATER_INDU  $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Industrial 2012/1/1/0    C xy molec/cm2/s CH4 1008    6 50
-0 GEPA_RICE             $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc emissions_4C_Rice_Cultivation                 2012/1/1/0    C xy molec/cm2/s CH4 11/1008 7 50
-0 GEPA_OTHER__1A_M      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Mobile               2012/1/1/0    C xy molec/cm2/s CH4 1008    8 50
-0 GEPA_OTHER__1A_S      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Stationary           2012/1/1/0    C xy molec/cm2/s CH4 1008    8 50
-0 GEPA_OTHER__2B5       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2B5_Petrochemical_Production       2012/1/1/0    C xy molec/cm2/s CH4 1008    8 50
-0 GEPA_OTHER__2C2       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2C2_Ferroalloy_Production          2012/1/1/0    C xy molec/cm2/s CH4 1008    8 50
-0 GEPA_OTHER__4F        $ROOT/CH4/v2022-11/GEPA/GEPA_Monthly.nc emissions_4F_Field_Burning                   2012/1-12/1/0 C xy molec/cm2/s CH4 1008    8 50
-#0 GEPA_OTHER__5        $ROOT/CH4/v2022-11/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1008    9 50
-0 GEPA_OTHER__6D        $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1008    8 50
-0 GEPA_COAST_OIL        $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2a_Petroleum                     2012/1/1/0    C xy molec/cm2/s CH4 1009    1 1
-0 GEPA_COAST_GAS_PR     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Production        2012/1/1/0    C xy molec/cm2/s CH4 1009    2 1
-0 GEPA_COAST_GAS_PC     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Processing        2012/1/1/0    C xy molec/cm2/s CH4 1009    2 1
-0 GEPA_COAST_GAS_TR     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Transmission      2012/1/1/0    C xy molec/cm2/s CH4 1009    2 1
-0 GEPA_COAST_GAS_DS     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Distribution      2012/1/1/0    C xy molec/cm2/s CH4 1009    2 1
-0 GEPA_COAST_COAL_U     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Underground       2012/1/1/0    C xy molec/cm2/s CH4 1009    3 1
-0 GEPA_COAST_COAL_S     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Surface           2012/1/1/0    C xy molec/cm2/s CH4 1009    3 1
-0 GEPA_COAST_COAL_A     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Abandoned_Coal                2012/1/1/0    C xy molec/cm2/s CH4 1009    3 1
-0 GEPA_COAST_LVSTK_F    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4A_Enteric_Fermentation            2012/1/1/0    C xy molec/cm2/s CH4 1009    4 1
-0 GEPA_COAST_LVSTK_M    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4B_Manure_Management               2012/1/1/0    C xy molec/cm2/s CH4 10/1009 4 1
-0 GEPA_COAST_LDF_M      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Municipal             2012/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GEPA_COAST_LDF_I      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Industrial            2012/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GEPA_COAST_WSTW_D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Domestic   2012/1/1/0    C xy molec/cm2/s CH4 1009    6 1
-0 GEPA_COAST_WSTW_I     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Industrial 2012/1/1/0    C xy molec/cm2/s CH4 1009    6 1
-0 GEPA_COAST_RICE       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4C_Rice_Cultivation                2012/1/1/0    C xy molec/cm2/s CH4 11/1009 7 1
-0 GEPA_COAST_OTH_1AM    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Mobile               2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GEPA_COAST_OTH_1AS    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Stationary           2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GEPA_COAST_OTH_2B5    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2B5_Petrochemical_Production       2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GEPA_COAST_OTH_2C2    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2C2_Ferroalloy_Production          2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GEPA_COAST_OTH_4F     $ROOT/CH4/v2022-11/GEPA/GEPA_Monthly.nc emissions_4F_Field_Burning                   2012/1-12/1/0 C xy molec/cm2/s CH4 1009    8 1
-#0 GEPA_COAST_OTH_5     $ROOT/CH4/v2022-11/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1009    9 1
-0 GEPA_COAST_OTH_6D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GEPA_OIL              $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2a_Petroleum                     2012/1/1/0    C xy molec/cm2/s CH4 1008    1 100
+0 GEPA_GAS_PRODUCTION   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Production        2012/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GEPA_GAS_PROCESSING   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Processing        2012/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GEPA_GAS_TRANSMISSION $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Transmission      2012/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GEPA_GAS_DISTRIBUTION $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Distribution      2012/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GEPA_COAL_UNDERGROUND $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Underground       2012/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GEPA_COAL_SURFACE     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Surface           2012/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GEPA_COAL_ABANDONED   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Abandoned_Coal                2012/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GEPA_LIVESTOCK__4A    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4A_Enteric_Fermentation            2012/1/1/0    C xy molec/cm2/s CH4 1008    4 100
+0 GEPA_LIVESTOCK__4B    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4B_Manure_Management               2012/1/1/0    C xy molec/cm2/s CH4 10/1008 4 100
+0 GEPA_LANDFILLS_MUNI   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Municipal             2012/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GEPA_LANDFILLS_INDU   $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Industrial            2012/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GEPA_WASTEWATER_DOME  $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Domestic   2012/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GEPA_WASTEWATER_INDU  $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Industrial 2012/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GEPA_RICE             $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc emissions_4C_Rice_Cultivation                 2012/1/1/0    C xy molec/cm2/s CH4 11/1008 7 100
+0 GEPA_OTHER__1A_M      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Mobile               2012/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GEPA_OTHER__1A_S      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Stationary           2012/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GEPA_OTHER__2B5       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2B5_Petrochemical_Production       2012/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GEPA_OTHER__2C2       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2C2_Ferroalloy_Production          2012/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GEPA_OTHER__4F        $ROOT/CH4/v2022-11/GEPA/GEPA_Monthly.nc emissions_4F_Field_Burning                   2012/1-12/1/0 C xy molec/cm2/s CH4 1008    8 100
+#0 GEPA_OTHER__5        $ROOT/CH4/v2022-11/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1008    9 100
+0 GEPA_OTHER__6D        $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GEPA_COAST_OIL        $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2a_Petroleum                     2012/1/1/0    C xy molec/cm2/s CH4 1009    1 5
+0 GEPA_COAST_GAS_PR     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Production        2012/1/1/0    C xy molec/cm2/s CH4 1009    2 5
+0 GEPA_COAST_GAS_PC     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Processing        2012/1/1/0    C xy molec/cm2/s CH4 1009    2 5
+0 GEPA_COAST_GAS_TR     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Transmission      2012/1/1/0    C xy molec/cm2/s CH4 1009    2 5
+0 GEPA_COAST_GAS_DS     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B2b_Natural_Gas_Distribution      2012/1/1/0    C xy molec/cm2/s CH4 1009    2 5
+0 GEPA_COAST_COAL_U     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Underground       2012/1/1/0    C xy molec/cm2/s CH4 1009    3 5
+0 GEPA_COAST_COAL_S     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Surface           2012/1/1/0    C xy molec/cm2/s CH4 1009    3 5
+0 GEPA_COAST_COAL_A     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Abandoned_Coal                2012/1/1/0    C xy molec/cm2/s CH4 1009    3 5
+0 GEPA_COAST_LVSTK_F    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4A_Enteric_Fermentation            2012/1/1/0    C xy molec/cm2/s CH4 1009    4 5
+0 GEPA_COAST_LVSTK_M    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4B_Manure_Management               2012/1/1/0    C xy molec/cm2/s CH4 10/1009 4 5
+0 GEPA_COAST_LDF_M      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Municipal             2012/1/1/0    C xy molec/cm2/s CH4 1009    5 5
+0 GEPA_COAST_LDF_I      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Industrial            2012/1/1/0    C xy molec/cm2/s CH4 1009    5 5
+0 GEPA_COAST_WSTW_D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Domestic   2012/1/1/0    C xy molec/cm2/s CH4 1009    6 5
+0 GEPA_COAST_WSTW_I     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Industrial 2012/1/1/0    C xy molec/cm2/s CH4 1009    6 5
+0 GEPA_COAST_RICE       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4C_Rice_Cultivation                2012/1/1/0    C xy molec/cm2/s CH4 11/1009 7 5
+0 GEPA_COAST_OTH_1AM    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Mobile               2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
+0 GEPA_COAST_OTH_1AS    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Stationary           2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
+0 GEPA_COAST_OTH_2B5    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2B5_Petrochemical_Production       2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
+0 GEPA_COAST_OTH_2C2    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2C2_Ferroalloy_Production          2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
+0 GEPA_COAST_OTH_4F     $ROOT/CH4/v2022-11/GEPA/GEPA_Monthly.nc emissions_4F_Field_Burning                   2012/1-12/1/0 C xy molec/cm2/s CH4 1009    8 5
+#0 GEPA_COAST_OTH_5     $ROOT/CH4/v2022-11/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1009    9 5
+0 GEPA_COAST_OTH_6D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
 )))GEPA
 
 #==============================================================================
 # --- CH4: Mexico emissions (Scarpelli et. al, Environ. Res. Lett., 2020) ---
+#
+# NOTES:
+# - Use Hier=100 to add to Canada and USA regional inventories
 #==============================================================================
 (((Scarpelli_Mexico
-0 MEX_OIL               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 30
-0 MEX_GAS               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 30
-0 MEX_COAL              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 30
-0 MEX_LIVESTOCK_A       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 30
-0 MEX_LIVESTOCK_B       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 30
-0 MEX_LANDFILLS         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 30
-0 MEX_WASTEWATER        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 30
-0 MEX_RICE              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 30
-0 MEX_OTHER             $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 30
+0 MEX_OIL               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 100
+0 MEX_GAS               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 100
+0 MEX_COAL              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 100
+0 MEX_LIVESTOCK_A       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 100
+0 MEX_LIVESTOCK_B       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 100
+0 MEX_LANDFILLS         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 100
+0 MEX_WASTEWATER        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 100
+0 MEX_RICE              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 100
+0 MEX_OTHER             $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 100
 
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR) ###
-0 MEX_OIL_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 1
-0 MEX_GAS_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 1
-0 MEX_COAL_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 1
+### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
+0 MEX_OIL_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 5
+0 MEX_GAS_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 5
+0 MEX_COAL_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 5
 0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
 0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
 0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
@@ -235,6 +240,9 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CH4: Canada emissions (Scarpelli et al., Environ. Res. Lett., 2022) ---
+#
+# NOTES:
+# - Use Hier=100 to add to USA and Mexico regional inventories
 #==============================================================================
 (((Scarpelli_Canada
 0 CAN_OIL_GAS_COMBUSTION  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
@@ -246,11 +254,11 @@ Mask fractions:              false
 0 CAN_WASTEWATER          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1002 6   100
 0 CAN_OTHER               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1002 8   100
 
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR) ###
-0 CAN_OIL_GAS_COMBUSTION_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 100
-0 CAN_OIL_GAS_LEAKAGE_COAST     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 100
-0 CAN_OIL_GAS_VENT_FLARE_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 100
-0 CAN_COAL_COAST                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1011 3   100
+### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
+0 CAN_OIL_GAS_COMBUSTION_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
+0 CAN_OIL_GAS_LEAKAGE_COAST     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
+0 CAN_OIL_GAS_VENT_FLARE_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
+0 CAN_COAL_COAST                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1011 3   5
 0 CAN_LIVESTOCK_COAST           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1011 4   1
 0 CAN_SOLID_WASTE_COAST         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1011 5   1
 0 CAN_WASTEWATER_COAST          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1011 6   1
@@ -350,11 +358,19 @@ Mask fractions:              false
 )))SEEPS
 
 #==============================================================================
-# --- CH4: Emissions from Lakes (Maasakkers et al., in prep) ---
+# --- CH4: Emissions from Lakes (Maasakkers et al., 2019) ---
 #==============================================================================
 (((LAKES
 0 CH4_LAKES $ROOT/CH4/v2017-10/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4 - 12 1
 )))LAKES
+
+#==============================================================================
+# --- Emissions from Hydroelectric Reservoirs (Delwich et al., 2022) ---
+#==============================================================================
+(((RESERVOIRS
+0 CH4_RES_DAM $ROOT/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+)))RESERVOIRS
 
 #==============================================================================
 # --- CH4: Soil absorption & termites from Fung et al, 1991 ---
@@ -716,7 +732,7 @@ Mask fractions:              false
 )))OCEAN_EXCH_TAKA09
 
 (((OCEAN_EXCH_SCALED
-0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
+0 OCEANCO2_SCALED_MONTHLY  $ROOT/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
 )))OCEAN_EXCH_SCALED
 
 #==============================================================================
@@ -748,7 +764,7 @@ Mask fractions:              false
 #      inversion/assimilation
 #==============================================================================
 (((NET_TERR_EXCH
-0 CO2_NET_TERRESTRIAL    $ROOT/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2   - 5 1
+0 CO2_NET_TERRESTRIAL  $ROOT/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2   - 5 1
 )))NET_TERR_EXCH
 
 #==============================================================================
@@ -890,96 +906,7 @@ Mask fractions:              false
 #==============================================================================
 (((METEOROLOGY
 
-#==============================================================================
-# --- Meteorology fields ---
-#==============================================================================
-# --- CN fields ---
-* FRLAKE    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAKE   */1/1/0               C xy  1  * -  1 1
-* FRLAND    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLAND   */1/1/0               C xy  1  * -  1 1
-* FRLANDIC  $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FRLANDIC */1/1/0               C xy  1  * -  1 1
-* FROCEAN   $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        FROCEAN  */1/1/0               C xy  1  * -  1 1
-* PHIS      $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        PHIS     */1/1/0               C xy  1  * -  1 1
-
-# --- A1 fields ---
-* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-
-# --- A3cld fields ---
-* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH 1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-
-# --- A3dyn fields ---
-* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-
-# --- A3mstC fields ---
-* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN 1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS 1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-
-# --- A3mstE fields ---
-* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1980-2020/1-12/1-31/*/+90minute RFY xyz 1  * -  1 1
-
-# --- I3 fields ---
-* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1980-2020/1-12/1-31/*           RFY xy  1  * -  1 1
-* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1980-2020/1-12/1-31/*           RFY xyz 1  * -  1 1
-* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1980-2020/1-12/1-31/*           RFY xyz 1  * -  1 1
-
-* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1980-2020/1-12/1-31/1/+1day     RFY xy  1  * -  1 1
-* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1980-2020/1-12/1-31/1/+1day     RFY xyz 1  * -  1 1
-* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1980-2020/1-12/1-31/1/+1day     RFY xyz 1  * -  1 1
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
 
 )))METEOROLOGY
 
@@ -1218,7 +1145,7 @@ Mask fractions:              false
 
 # --- OH from GEOS-Chem v5-07 [kg/m3] ---
 (((GLOBAL_OH_GCv5
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---

@@ -465,6 +465,25 @@ CONTAINS
     ENDIF
     Ptr2D => NULL()
 
+    !-------------------
+    ! Reservoirs
+    !-------------------
+    DgnName = 'CH4_RESERVOIRS'
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+
+    ! Trap potential errors and assign HEMCO pointer to array
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM(DgnName)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ELSEIF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+       ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
+       CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
+    ELSE
+       State_Chm%CH4_EMIS(:,:,16) =  Ptr2D(:,:)
+    ENDIF
+    Ptr2D => NULL()
+
     ! =================================================================
     ! Total emission: sum of all emissions - (2*soil absorption)
     ! We have to substract soil absorption twice because it is added
@@ -489,6 +508,7 @@ CONTAINS
        WRITE(*,*) 'Lakes        : ', SUM(State_Chm%CH4_EMIS(:,:,13))
        WRITE(*,*) 'Termites     : ', SUM(State_Chm%CH4_EMIS(:,:,14))
        WRITE(*,*) 'Soil absorb  : ', SUM(State_Chm%CH4_EMIS(:,:,15))
+       WRITE(*,*) 'Reservoirs   : ', SUM(State_Chm%CH4_EMIS(:,:,16))
     ENDIF
 
     ! =================================================================
