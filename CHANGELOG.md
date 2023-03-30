@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - If KPP integration fails, reset to prior concentrations and set RSTATE(3) = 0 before retrying
 - Suppress integration errors after 20 errors have been printed to stdout
 - Simplified and added comments for bimolecular reactions in clouds in function CloudHet2R
+- `HEMCO_Config.rc` and `ExtData.rc` templates now point `HEMCO/GFED4/v2023-03`
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
