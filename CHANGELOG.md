@@ -5,6 +5,8 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased 14.2.0]
+### Changed
+- Updated CH4 simulation to use CH4 loss frequencies from GCClassic 14.0.0 10-year benchmarks instead of GMI
 
 ## [14.1.1] - 2023-03-03
 ### Added

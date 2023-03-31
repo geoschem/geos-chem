@@ -466,7 +466,7 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
 # --- Stratospheric L(CO) from GMI ---
-CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2022-11/4x5/gmi.ch4loss.geos5_47L.4x5.nc
+CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2023-04/GC_CH4_LOSS/GCC14_72LM.ch4loss.4x5.nc4
 
 # --- P(CO) from CH4 and NMVOC from the last 10-yr benchmark ---
 PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
