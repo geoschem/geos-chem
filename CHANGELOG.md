@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - S(IV) + HOBr and S(IV) + HOCl reactions to `KPP/fullchem/fullchem.eqn`
 - Activated nitrate photolysis
 - Added LightingClimatology option to HEMCO_Config.rc
+- Added new files photolysis_mod.F90, phot_container_mod.F90, and fjx_interface_mod.F90
+- Added photolysis toggle in geoschem_config.yml and Input_Opt variable Do_Photolysis
+- Added speed of light and Planck's constant to PhysConstants module
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
@@ -21,12 +24,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Suppress integration errors after 20 errors have been printed to stdout
 - Simplified and added comments for bimolecular reactions in clouds in function CloudHet2R
 - `HEMCO_Config.rc` and `ExtData.rc` templates now point `HEMCO/GFED4/v2023-03`
+- Moved parts of CMN_FJX_Mod.F90 not used in original Fast-JX to new container State_Chm%Phot
+- Restructured photolysis to create generic photolysis module, interface with Fast-JX, and module containing original Fast-JX analogous to Cloud-J
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
 - Removed the `NcdfUtil/perl` folder
 - Removed `X-HRS` output from log file
 - IONO2 recycling (fullchem, custom mechanisms)
+- Deleted unused file set_prof_o3.F90
 
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
