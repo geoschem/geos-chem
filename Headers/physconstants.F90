@@ -69,6 +69,12 @@ MODULE PHYSCONSTANTS
   ! ATM : Standard atmosphere [Pa]  (Source: NIST, 2014)
   REAL(fp), PARAMETER :: ATM = 1.01325e+5_fp
 
+  ! PLANK : Plank's constant
+  REAL(fp), PARAMETER :: PLANCK = 6.62606957e-34_fp
+
+  ! CCONST : Speed of light [m/s]
+  REAL(fp), PARAMETER :: CCONST = 2.99792458e+8_fp
+
   ! Condensation vapor pressure
   ! ** NEED SOURCE **
   !  We think 6.1078 hPa is the saturation vapor pressure at 273.16 K, the

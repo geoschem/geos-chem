@@ -1043,15 +1043,15 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : W_
-    USE CMN_SIZE_MOD,       ONLY : NRHAER, NDUST, NSTRATAER
+    USE CMN_FJX_Mod,     ONLY : W_
+    USE CMN_SIZE_MOD,    ONLY : NRHAER, NDUST, NSTRATAER
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE Species_Mod,     ONLY : Species
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Chm_Mod,   ONLY : Ind_
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
+    USE TOMAS_MOD,       ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
 !
 ! !INPUT PARAMETERS:

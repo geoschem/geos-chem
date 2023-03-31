@@ -16,6 +16,7 @@ add_library(Headers
   errcode_mod.F90
   input_opt_mod.F90
   inquireMod.F90
+  phot_container_mod.F90
   physconstants.F90
   precision_mod.F90
   qfyaml_mod.F90

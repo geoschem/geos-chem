@@ -91,11 +91,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
-    USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
@@ -112,6 +109,7 @@ CONTAINS
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
+    USE Photolysis_Mod,           ONLY : Do_Photolysis, PhotRate_Adj
     USE PhysConstants,            ONLY : AVO, AIRMW
     USE PRESSURE_MOD
     USE Species_Mod,              ONLY : Species
@@ -166,7 +164,7 @@ CONTAINS
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
-    INTEGER                :: WAVELENGTH, IERR,      S,        Thread
+    INTEGER                :: IERR,       S,         Thread
     INTEGER                :: errorCount
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
@@ -201,9 +199,6 @@ CONTAINS
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
-
-    ! For testing purposes
-    LOGICAL                :: DO_PHOTCHEM
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
@@ -250,12 +245,8 @@ CONTAINS
     Failed2x   = .FALSE.
     doSuppress = .FALSE.
 
-    ! Set a switch that allows you to toggle off photolysis for testing
-    ! (default value : TRUE)
-    DO_PHOTCHEM = .TRUE.
-
     ! Print information the first time that DO_FULLCHEM is called
-    CALL PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem, Do_PhotChem )
+    CALL PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem )
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
@@ -373,29 +364,28 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !========================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",           RC )
-       CALL Timer_Start( "=> FAST-JX photolysis", RC )
+       CALL Timer_End  ( "=> FlexChem",   RC )
+       CALL Timer_Start( "=> Photolysis", RC )
     ENDIF
 
-    ! Do Photolysis
-    WAVELENGTH = 0
-    CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm,                         &
-                  State_Diag, State_Grid, State_Met, RC                     )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "FAST_JX"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    ! Compute J-values
+    IF ( Input_Opt%Do_Photolysis ) THEN
+       CALL Do_Photolysis( Input_Opt, State_Chm, State_Diag, &
+                           State_Grid, State_Met, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Do_Photolysis"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !### Debug
     IF ( Input_Opt%Verbose ) THEN
-       CALL DEBUG_MSG( '### Do_FullChem: after FAST_JX' )
+       CALL DEBUG_MSG( '### Do_FullChem: after computing J-values' )
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FAST-JX photolysis", RC )
+       CALL Timer_End  ( "=> Photolysis", RC )
        CALL Timer_Start( "=> FlexChem",           RC ) ! ended in Do_Chemistry
     ENDIF
 
@@ -596,127 +586,127 @@ CONTAINS
                                RC        = RC                               )
           ENDIF
 
-          ! Get the fraction of H2SO4 that is available for photolysis
-          ! (this is only valid for UCX-enabled mechanisms)
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
+          ! Only proceed if doing photolysis
+          IF ( Input_Opt%Do_Photolysis ) THEN
 
-          ! Adjust certain photolysis rates:
-          ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
-          ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
-          ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-          CALL PHOTRATE_ADJ( Input_Opt, State_Chm,  State_Diag, State_Met,  &
-                             I,         J,          L,          SO4_FRAC,  IERR )
+             ! Get the fraction of H2SO4 that is available for photolysis
+             ! (this is only valid for UCX-enabled mechanisms)
+             SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
 
-          ! Loop over the FAST-JX photolysis species
-          DO N = 1, JVN_
+             ! Adjust certain photolysis rates:
+             ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
+             ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
+             ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
+             CALL PHOTRATE_ADJ( Input_Opt, State_Chm,  State_Diag, State_Met,&
+                                I,         J,          L,          SO4_FRAC, &
+                                IERR )
 
-             IF ( DO_PHOTCHEM ) THEN
+             ! Loop over the FAST-JX photolysis species
+             DO N = 1, State_Chm%Phot%nMaxPhotRxns
 
                 ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
-                PHOTOL(N) = ZPJ(L,N,I,J)
+                PHOTOL(N) = State_Chm%Phot%ZPJ(L,N,I,J)
 
-             ENDIF
+                !============================================================
+                ! HISTORY (aka netCDF diagnostics)
+                !
+                ! Instantaneous photolysis rates [s-1] (aka J-values)
+                ! and noontime photolysis rates [s-1]
+                !
+                !    NOTE: Attach diagnostics here instead of in module
+                !    fast_jx_mod.F90 so that we can get the adjusted photolysis
+                !    rates (output from routne PHOTRATE_ADJ above).
+                !
+                ! The mapping between the GEOS-Chem photolysis species and
+                ! the FAST-JX photolysis species is contained in the lookup
+                ! table in input file FJX_j2j.dat.
 
-             !===============================================================
-             ! HISTORY (aka netCDF diagnostics)
-             !
-             ! Instantaneous photolysis rates [s-1] (aka J-values)
-             ! and noontime photolysis rates [s-1]
-             !
-             !    NOTE: Attach diagnostics here instead of in module
-             !    fast_jx_mod.F90 so that we can get the adjusted photolysis
-             !    rates (output from routne PHOTRATE_ADJ above).
-             !
-             ! The mapping between the GEOS-Chem photolysis species and
-             ! the FAST-JX photolysis species is contained in the lookup
-             ! table in input file FJX_j2j.dat.
+                ! Some GEOS-Chem photolysis species may have multiple
+                ! branches for photolysis reactions.  These will be
+                ! represented by multiple entries in the FJX_j2j.dat
+                ! lookup table.
+                !
+                !    NOTE: For convenience, we have stored the GEOS-Chem
+                !    photolysis species index (range: 1..State_Chm%nPhotol)
+                !    for each of the FAST-JX photolysis species (range;
+                !    1..State_Chm%Phot%nMaxPhotRxns) in the GC_PHOTO_ID array
+                !============================================================
 
-             ! Some GEOS-Chem photolysis species may have multiple
-             ! branches for photolysis reactions.  These will be
-             ! represented by multiple entries in the FJX_j2j.dat
-             ! lookup table.
-             !
-             !    NOTE: For convenience, we have stored the GEOS-Chem
-             !    photolysis species index (range: 1..State_Chm%nPhotol)
-             !    for each of the FAST-JX photolysis species (range;
-             !    1..JVN_) in the GC_PHOTO_ID array (located in module
-             !    CMN_FJX_MOD.F90).
-             !===============================================================
+                ! GC photolysis species index
+                P = State_Chm%Phot%GC_Photo_Id(N)
 
-             ! GC photolysis species index
-             P = GC_Photo_Id(N)
+                ! If this FAST_JX photolysis species maps to a valid
+                ! GEOS-Chem photolysis species (for this simulation)...
+                IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
 
-             ! If this FAST_JX photolysis species maps to a valid
-             ! GEOS-Chem photolysis species (for this simulation)...
-             IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
-
-                ! Archive the instantaneous photolysis rate
-                ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_Jval ) THEN
-                   S = State_Diag%Map_Jval%id2slot(P)
-                   IF ( S > 0 ) THEN
-                      State_Diag%Jval(I,J,L,S) =                             &
-                      State_Diag%Jval(I,J,L,S) + PHOTOL(N)
-                   ENDIF
-                ENDIF
-
-                ! Satellite diagnostics
-                ! Archive the instantaneous photolysis rate
-                ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_SatDiagnJval ) THEN
-                   S = State_Diag%Map_SatDiagnJval%id2slot(P)
-                   IF ( S > 0 ) THEN
-                      State_Diag%SatDiagnJval(I,J,L,S) =                     &
-                      State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
-                   ENDIF
-                ENDIF
-
-                ! Archive the noontime photolysis rate
-                ! (summing over all reaction branches)
-                IF ( State_Met%IsLocalNoon(I,J) ) THEN
-                   IF ( State_Diag%Archive_JNoon ) THEN
-                      S = State_Diag%Map_JNoon%id2slot(P)
+                   ! Archive the instantaneous photolysis rate
+                   ! (summing over all reaction branches)
+                   IF ( State_Diag%Archive_Jval ) THEN
+                      S = State_Diag%Map_Jval%id2slot(P)
                       IF ( S > 0 ) THEN
-                         State_Diag%JNoon(I,J,L,S) =                         &
-                         State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                         State_Diag%Jval(I,J,L,S) =                          &
+                         State_Diag%Jval(I,J,L,S) + PHOTOL(N)
                       ENDIF
                    ENDIF
+
+                   ! Satellite diagnostics
+                   ! Archive the instantaneous photolysis rate
+                   ! (summing over all reaction branches)
+                   IF ( State_Diag%Archive_SatDiagnJval ) THEN
+                      S = State_Diag%Map_SatDiagnJval%id2slot(P)
+                      IF ( S > 0 ) THEN
+                         State_Diag%SatDiagnJval(I,J,L,S) =                  &
+                         State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
+                      ENDIF
+                   ENDIF
+
+                   ! Archive the noontime photolysis rate
+                   ! (summing over all reaction branches)
+                   IF ( State_Met%IsLocalNoon(I,J) ) THEN
+                      IF ( State_Diag%Archive_JNoon ) THEN
+                         S = State_Diag%Map_JNoon%id2slot(P)
+                         IF ( S > 0 ) THEN
+                            State_Diag%JNoon(I,J,L,S) =                      &
+                            State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                         ENDIF
+                      ENDIF
+                   ENDIF
+
+                ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
+
+                   ! J(O3_O1D).  This used to be stored as the nPhotol+1st
+                   ! diagnostic in Jval, but needed to be broken off
+                   ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                   IF ( State_Diag%Archive_JvalO3O1D ) THEN
+                      State_Diag%JvalO3O1D(I,J,L) =                          &
+                      State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
+                   ENDIF
+
+                   ! J(O3_O1D) for satellite diagnostics
+                   IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+                      State_Diag%SatDiagnJvalO3O1D(I,J,L) =                  &
+                      State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
+                   ENDIF
+
+                ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
+
+                   ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
+                   ! diagnostic in Jval, but needed to be broken off
+                   ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                   IF ( State_Diag%Archive_JvalO3O3P ) THEN
+                      State_Diag%JvalO3O3P(I,J,L) =                          &
+                      State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
+                   ENDIF
+
+                   ! J(O3_O3P) for satellite diagnostics
+                   IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+                      State_Diag%SatDiagnJvalO3O3P(I,J,L) =                  &
+                      State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
+                   ENDIF
+
                 ENDIF
-
-             ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
-
-                ! J(O3_O1D).  This used to be stored as the nPhotol+1st
-                ! diagnostic in Jval, but needed to be broken off
-                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                IF ( State_Diag%Archive_JvalO3O1D ) THEN
-                   State_Diag%JvalO3O1D(I,J,L) =                             &
-                   State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
-                ENDIF
-
-                ! J(O3_O1D) for satellite diagnostics
-                IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-                   State_Diag%SatDiagnJvalO3O1D(I,J,L) =                     &
-                   State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
-                ENDIF
-
-             ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
-
-                ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
-                ! diagnostic in Jval, but needed to be broken off
-                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                IF ( State_Diag%Archive_JvalO3O3P ) THEN
-                   State_Diag%JvalO3O3P(I,J,L) =                             &
-                   State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
-                ENDIF
-
-                ! J(O3_O3P) for satellite diagnostics
-                IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-                   State_Diag%SatDiagnJvalO3O3P(I,J,L) =                     &
-                   State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
-                ENDIF
-
-             ENDIF
-          ENDDO
+             ENDDO
+          ENDIF
 
           ! Stop timer
           IF ( Input_Opt%useTimers ) THEN
@@ -1680,11 +1670,11 @@ CONTAINS
 
     ! Set State_Chm arrays for surface J-values used in HEMCO and
     ! saved to restart file
-    IF ( RXN_O3_1 >= 0 ) THEN
-       State_Chm%JOH(:,:) = ZPJ(1,RXN_O3_1,:,:)
+    IF ( State_Chm%Phot%RXN_O3_1 >= 0 ) THEN
+       State_Chm%JOH(:,:) = State_Chm%Phot%ZPJ(1,State_Chm%Phot%RXN_O3_1,:,:)
     ENDIF
-    IF ( RXN_NO2 >= 0 ) THEN
-       State_Chm%JNO2(:,:) = ZPJ(1,RXN_NO2,:,:)
+    IF ( State_Chm%Phot%RXN_NO2 >= 0 ) THEN
+       State_Chm%JNO2(:,:) = State_Chm%Phot%ZPJ(1,State_Chm%Phot%RXN_NO2,:,:)
     ENDIF
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
@@ -1704,7 +1694,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem, Do_PhotChem )
+  SUBROUTINE PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem )
 !
 ! !USES:
 !
@@ -1716,7 +1706,6 @@ CONTAINS
     TYPE(OptInput), INTENT(IN) :: Input_Opt     ! Input Options object
     TYPE(ChmState), INTENT(IN) :: State_Chm     ! Chemistry State object
     LOGICAL,        INTENT(IN) :: FirstChem     ! Is this the first call?
-    LOGICAL,        INTENT(IN) :: Do_PhotChem   ! Is photolysis turned on?
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1751,13 +1740,13 @@ CONTAINS
  140      FORMAT( '* Sulfur in-cloud chemistry is computed in KPP' )
        ENDIF
 
-       ! Print the status of photolysis: on or off
-       IF ( Do_Photchem ) THEN
+          ! Print the status of photolysis: on or off
+       IF ( Input_Opt%Do_Photolysis ) THEN
           WRITE( 6, 150 )
  150      FORMAT(  '* Photolysis is activated -- rates computed by FAST-JX' )
        ELSE
           WRITE( 6, 160 )
- 160      FORMAT(  '* Photolysis has been deactivated for testing purposes'  )
+ 160      FORMAT(  '* Photolysis is off for testing -- using zero J-values'  )
        ENDIF
 
        ! Write footer

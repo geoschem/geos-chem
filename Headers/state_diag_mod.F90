@@ -21,7 +21,6 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
-  USE CMN_FJX_MOD,        ONLY : W_
   USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
   USE Dictionary_M,       ONLY : dictionary_t
@@ -14172,7 +14171,7 @@ CONTAINS
        CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
-          numTags = W_
+          numTags = State_Chm%Phot%nWLbins
        CASE( 'PRD',     'Y' )
           numTags = State_Chm%nProd
        CASE( 'RRTMG',   'Z' )

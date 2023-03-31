@@ -16,7 +16,6 @@ MODULE RRTMG_RAD_TRANSFER_MOD
 !
 ! !USES:
 !
-  USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER, WVAA, SPECMASK
   USE CMN_SIZE_MOD, ONLY : NDUST, NAER
 #if defined( MODEL_CLASSIC )
   USE OMP_LIB
@@ -145,12 +144,6 @@ CONTAINS
     !-----------------------------------------------------------------
     ! GEOS-Chem modules
     !-----------------------------------------------------------------
-    USE CMN_FJX_MOD,         ONLY : NSPECRAD  ! NUMBER OF SPECIES FOR RT
-    USE CMN_FJX_MOD,         ONLY : NASPECRAD ! NUMBER OF AEROSOL SPECIES
-    USE CMN_FJX_MOD,         ONLY : SPECMASK,   IRTWVSELECT
-    USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV
-    USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
-    USE CMN_FJX_MOD,         ONLY : NWVAA0
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,       ONLY : OptInput
@@ -232,7 +225,7 @@ CONTAINS
     INTEGER            :: OUTIDX,IOUTWV
     INTEGER            :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
     INTEGER            :: IS_ON,NASPECRAD_ON
-    INTEGER            :: IASPECRAD_ON(NASPECRAD)
+    INTEGER            :: IASPECRAD_ON(State_Chm%Phot%NASPECRAD)
     INTEGER            :: BaseIndex
     REAL*8             :: RHOICE=0.9167, RHOLIQ=1.    ! G/CM3
 
@@ -486,7 +479,16 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    TYPE(SpcConc), POINTER :: Spc(:)
+    TYPE(SpcConc), POINTER :: Spc        (:)
+    INTEGER,       POINTER :: SPECMASK   (:)
+    INTEGER,       POINTER :: IRTWVSELECT(:,:)
+    REAL*8,        POINTER :: ACOEF_RTWV (:)
+    REAL*8,        POINTER :: BCOEF_RTWV (:)
+    REAL*8,        POINTER :: CCOEF_RTWV (:)
+    REAL*8,        POINTER :: WVAA       (:,:)
+    REAL*8,        POINTER :: RTODAER    (:,:,:,:,:)
+    REAL*8,        POINTER :: RTSSAER    (:,:,:,:,:)
+    REAL*8,        POINTER :: RTASYMAER  (:,:,:,:,:)
 
     !=================================================================
     ! DO_RRTMG_RAD_TRANSFER begins here!
@@ -496,6 +498,18 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at DO_RRTMG_RAD_TRANSFER (in rrtmg_rad_transfer_mod.F90)'
+
+    ! Set pointers
+    Spc         => State_Chm%Species
+    SPECMASK    => State_Chm%Phot%SPECMASK
+    IRTWVSELECT => State_Chm%Phot%IRTWVSELECT
+    ACOEF_RTWV  => State_Chm%Phot%ACOEF_RTWV
+    BCOEF_RTWV  => State_Chm%Phot%BCOEF_RTWV
+    CCOEF_RTWV  => State_Chm%Phot%CCOEF_RTWV
+    WVAA        => State_Chm%Phot%WVAA
+    RTODAER     => State_Chm%Phot%RTODAER
+    RTSSAER     => State_Chm%Phot%RTSSAER
+    RTASYMAER   => State_Chm%Phot%RTASYMAER
 
     ! Convert species units to kg/kg dry for RRTMG
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -539,7 +553,7 @@ CONTAINS
     NASPECRAD_ON    = 0
     IASPECRAD_ON(:) = 0
 
-    DO N=1,NASPECRAD
+    DO N=1,State_Chm%Phot%NASPECRAD
        IF (SPECMASK(N).GT.0) THEN
           DOAERAD = .TRUE.
           NASPECRAD_ON = NASPECRAD_ON +1
@@ -611,9 +625,6 @@ CONTAINS
        FIRST = .FALSE.
 
     ENDIF
-
-    ! Set pointer to species vector containing concentrations
-    Spc => State_Chm%Species
 
     !$OMP PARALLEL DO          &
     !$OMP DEFAULT( SHARED )    &
@@ -766,13 +777,13 @@ CONTAINS
              !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
              !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 
-             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
+             IF (SPECMASK(State_Chm%Phot%NASPECRAD+1).EQ.1) THEN
                 O3VMR(I,J,L)  = Spc(id_O3)%Conc(I,J,L) * AIRMW / &
                                 State_Chm%SpcData(id_O3)%Info%MW_g
 
              ENDIF
 
-             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
+             IF (SPECMASK(State_Chm%Phot%NASPECRAD+2).EQ.1) THEN
                 CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW /&
                                 State_Chm%SpcData(id_CH4)%Info%MW_g
 
@@ -829,9 +840,9 @@ CONTAINS
        DO IB = 1,NBNDS
           !RRTMG WAVEBANDS START AFTER WVAA0 STANDARD WAVELNGTHS IN GC ARRAYS
           !BASED ON LUT ORDER. JUST APPLY OFFSET
-          IBX=IB+NWVAA0
+          IBX=IB+State_Chm%Phot%NWVAA0
           IB_SW = IB-NBNDLW
-          DO IS = 1,NASPECRAD
+          DO IS = 1,State_Chm%Phot%NASPECRAD
              !THE AEROSOL SPECIES WE ARE CURRENTLY CALCULATING FOR WILL BE
              !SET TO THE LSPECRADMENU VALUE FOR THAT SPECIES.
              !THIS MEANS THAT RRTMG REQUIRES *ALL OTHER* SPECIES SO THAT THE
@@ -1695,7 +1706,17 @@ CONTAINS
     ENDIF
 
     ! Nullify pointers
-    Spc => NULL()
+    Spc         => NULL()
+    SPECMASK    => NULL()
+    IRTWVSELECT => NULL()
+    ACOEF_RTWV  => NULL()
+    BCOEF_RTWV  => NULL()
+    CCOEF_RTWV  => NULL()
+    WVAA        => NULL()
+    RTODAER     => NULL()
+    RTSSAER     => NULL()
+    RTASYMAER   => NULL()
+
 
   END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 !EOC
@@ -1718,15 +1739,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_SpecMask( iSpecRadMenu )
+  SUBROUTINE Set_SpecMask( iSpecRadMenu, State_Chm )
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD, ONLY : SPECMASK, NSPECRAD, NASPECRAD
+    USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: iSpecRadMenu  ! Index of RRTMG flux output
+    INTEGER,        INTENT(IN)    :: iSpecRadMenu  ! Index of RRTMG flux output
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry state object
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
@@ -1738,6 +1763,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: N0,N,I,II,NXTRA
+
+    ! Pointers
+    INTEGER, POINTER :: SPECMASK(:)
 
     !=================================================================
     ! SET_SPECMASK begins here!
@@ -1754,7 +1782,10 @@ CONTAINS
     !WHERE NXTRA=NUMBER OF NEW SPECIES ADDED ABOVE THE STANDARD CODE
     !E.G. FOR UCX NSPECRAD=18 AND STS AND NAT ARE INCLUDED
     !IN RTODAER INDEX 8 AND 9, BEFORE DUST
-    NXTRA=NSPECRAD-16
+    NXTRA = State_Chm%Phot%NSPECRAD - 16
+
+    ! Set pointer
+    SPECMASK => State_Chm%Phot%SpecMask
 
     !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
     !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
@@ -1811,7 +1842,7 @@ CONTAINS
        ! PM = All particulate matter
        ! add all aerosols but not gases here
        CASE( 10 )
-          DO II = 1, NASPECRAD
+          DO II = 1, State_Chm%Phot%NASPECRAD
              SPECMASK(II)=10
           ENDDO
 
@@ -1826,6 +1857,9 @@ CONTAINS
 
        END SELECT
     ENDIF
+
+    ! Nullify pointer
+    SPECMASK => NULL()
 
   END SUBROUTINE Set_SpecMask
 !EOC
@@ -1967,7 +2001,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD
     USE ERROR_MOD,      ONLY : ALLOC_ERR
     USE State_Grid_Mod, ONLY : GrdState
 !
@@ -2384,7 +2417,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD
     USE ERROR_MOD,      ONLY : ALLOC_ERR
     USE PARRRTM,        ONLY : NGPTLW
     USE PARRRSW,        ONLY : NGPTSW
