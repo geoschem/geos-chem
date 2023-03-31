@@ -35,7 +35,7 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-             #'StateMet',
+             'StateMet',
              #'BoundaryConditions',
 ::
 ###############################################################################

@@ -60,7 +60,7 @@ COLLECTIONS: 'Emissions',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-             #'StateMet',
+             'StateMet',
 ::
 #==============================================================================
 # Define collections
