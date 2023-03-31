@@ -1461,7 +1461,7 @@ CONTAINS
           IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
              WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
           ENDIF
-          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
                                       iCld       = State_Chm%RRTMG_iCld,   &
