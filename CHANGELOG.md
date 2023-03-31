@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restored sink reactions for HOI, IONO, IONO2 (fullchem, custom mechanisms)
 - S(IV) + HOBr and S(IV) + HOCl reactions to `KPP/fullchem/fullchem.eqn`
 - Activated nitrate photolysis
+- Added LightingClimatology option to HEMCO_Config.rc
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`

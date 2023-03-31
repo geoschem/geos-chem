@@ -36,6 +36,10 @@ ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
 FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
 CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
 #
+# To utilize climatology lightning fields, comment the two lines above and uncomment these lines
+#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#
 ###############################################################################
 ###
 ### Land data (not handled by HEMCO)
