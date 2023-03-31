@@ -79,6 +79,7 @@ COLLECTIONS: 'Metrics',
              'StateChm',
              #'StateMet',
              #'StratBM',
+             'UVFlux',
 ::
 ###############################################################################
 ### The rest of this file consists of collection definitions.               ###
@@ -310,9 +311,9 @@ COLLECTIONS: 'Metrics',
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
 #
-# Photolysis rates and UV fluxes (from the FAST-JX photolysis module)
+# Photolysis rates (from the photolysis module)
 #
-# Available for all full-chemistry simulations
+# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
   JValues.frequency:          {FREQUENCY}
@@ -457,7 +458,19 @@ COLLECTIONS: 'Metrics',
                               'Jval_ATOOH             ',
                               'Jval_ALD2              ',
                               'Jval_ACET              ',
-                              'UVFluxNet_574nm        ',
+::
+#==============================================================================
+# %%%%% THE UVFlux COLLECTION %%%%%
+#
+# UV fluxes (from the photolysis module)
+#
+# Available for all full-chemistry simulations with photolysis
+#==============================================================================
+  UVFlux.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  UVFlux.frequency:          {FREQUENCY}
+  UVFlux.duration:           {DURATION}
+  UVFlux.mode:               'time-averaged'
+  UVFlux.fields:             'UVFluxNet_574nm        ',
                               'UVFluxNet_380nm        ',
                               'UVFluxNet_333nm        ',
                               'UVFluxNet_316nm        ',

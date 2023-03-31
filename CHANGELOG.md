@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - `HEMCO_Config.rc` and `ExtData.rc` templates now point `HEMCO/GFED4/v2023-03`
 - Moved parts of CMN_FJX_Mod.F90 not used in original Fast-JX to new container State_Chm%Phot
 - Restructured photolysis to create generic photolysis module, interface with Fast-JX, and module containing original Fast-JX analogous to Cloud-J
+- Moved UVFlux diagnostics out of JValues collection and into new collection called UVFlux
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
