@@ -144,7 +144,7 @@ source checkRunSettings.sh
 #
 # POST-RUN COMMANDS
 #
-# If new start time in cap_restart is okay, rename and move restart file
+# If new start time in cap_restart is okay, rename restart file
 # and update restart symlink
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
@@ -152,6 +152,20 @@ if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh
 fi
+
+# Rename other checkpoint files generated during the run, if any,
+# but discard the first checkpoint since duplicate with original restart
+chkpnts=$(ls Restarts/gcchem_internal_checkpoint.*)
+for chkpnt in ${chkpnts}
+do
+   chkpnt_time=${chkpnt:36:13}
+   if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+      rm ${chkpnt}
+   else
+      new_chkpnt=Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+      mv ${chkpnt} ${new_chkpnt}
+   fi
+done

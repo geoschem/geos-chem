@@ -507,7 +507,7 @@ VerboseOnCores:              root       # Accepted values: root all
 (((CHEMISTRY_INPUT
 
 #==============================================================================
-# --- Oxidant fields (from GEOS-Chem 13.0.0 10-yr benchmark output) ---
+# --- Oxidant fields (from GEOS-Chem 10-yr benchmark output) ---
 #==============================================================================
 (((OXIDANT_FIELDS
 
