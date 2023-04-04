@@ -213,10 +213,10 @@ for runDir in *; do
 		#  runScriptSamples/operational_examples/harvard_cannon
 		NX=$(grep NX GCHP.rc | awk '{print $2}')
 		NY=$(grep NY GCHP.rc | awk '{print $2}')
-		let coreCt=$(( ${NX} * ${NY} ))
-		let planeCt=$(( ${coreCt} / ${SLURM_NNODES} ))
+		coreCt=$(( ${NX} * ${NY} ))
+		planeCt=$(( ${coreCt} / ${SLURM_NNODES} ))
 		if [[ $(( ${coreCt} % ${SLURM_NNODES} )) > 0 ]]; then
-		    let planeCt+=1
+		    planeCt=$(( ${planeCt} + 1 ))
 		fi
 
 		# Execute GCHP with srun
