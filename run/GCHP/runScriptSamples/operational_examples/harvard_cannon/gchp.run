@@ -31,7 +31,7 @@ NY=$( grep NY GCHP.rc | awk '{print $2}' )
 coreCount=$(( ${NX} * ${NY} ))
 planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
 if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
-	${planeCount}=$(( ${planeCount} + 1 ))
+    planeCount=$(( ${planeCount} + 1 ))
 fi
 time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
