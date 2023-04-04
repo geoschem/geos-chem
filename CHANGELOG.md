@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added setting in GCHP HISTORY.rc to control whether output can be overwritten
 - Activated nitrate photolysis
 - Added LightingClimatology option to HEMCO_Config.rc
+- Added run configuration files for WRF-GC
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
