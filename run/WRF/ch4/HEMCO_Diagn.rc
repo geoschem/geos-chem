@@ -1,0 +1,85 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the CH4 simulation.
+#
+# !REVISION HISTORY:
+#  18 Oct 2018 - R. Yantosca - Added comment header and longname metadata.
+#                              Also changed output unit to kg/m2/s.                    
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name               Spec ExtNr Cat Hier Dim  OutUnit  LongName
+EmisCH4_Total        CH4   -1   -1   -1   2   kg/m2/s  CH4_emissions_from_all_sectors
+EmisCH4_Oil          CH4    0    1   -1   2   kg/m2/s  CH4_emissions_from_oil
+EmisCH4_Gas          CH4    0    2   -1   2   kg/m2/s  CH4_emissions_from_gas
+EmisCH4_Coal         CH4    0    3   -1   2   kg/m2/s  CH4_emissions_from_coal
+EmisCH4_Livestock    CH4    0    4   -1   2   kg/m2/s  CH4_emissions_from_livestock
+EmisCH4_Landfills    CH4    0    5   -1   2   kg/m2/s  CH4_emissions_from_landfills
+EmisCH4_Wastewater   CH4    0    6   -1   2   kg/m2/s  CH4_emissions_from_wastewater
+EmisCH4_Rice         CH4    0    7   -1   2   kg/m2/s  CH4_emissions_from_rice
+EmisCH4_OtherAnth    CH4    0    8   -1   2   kg/m2/s  CH4_emissions_from_other_anthropogenic_sources
+EmisCH4_BiomassBurn  CH4    0    9   -1   2   kg/m2/s  CH4_emissions_from_biomass_burning
+EmisCH4_Wetlands     CH4    0   10   -1   2   kg/m2/s  CH4_emissions_from_wetlands
+EmisCH4_Seeps        CH4    0   11   -1   2   kg/m2/s  CH4_emissions_from_geological_seeps
+EmisCH4_Lakes        CH4    0   12   -1   2   kg/m2/s  CH4_emissions_from_lakes
+EmisCH4_Termites     CH4    0   13   -1   2   kg/m2/s  CH4_emissions_from_termites
+EmisCH4_SoilAbsorb   CH4    0   14   -1   2   kg/m2/s  CH4_emissions_from_soil_absorption
+
+###############################################################################
+#####  Anthropogenic emissions diagnostics by inventory                   #####
+#####  (not needed for other sectors with only one inventory)             #####
+###############################################################################
+#InvGEPA_CH4_TOTAL                 CH4 0 -1 50  2 kg/m2/s CH4_total_emissions_from_GEPA_inventory
+#InvGEPA_CH4_OIL                   CH4 0  1 50  2 kg/m2/s CH4_oil_emissions_from_GEPA_inventory
+#InvGEPA_CH4_GAS                   CH4 0  2 50  2 kg/m2/s CH4_gas_emissions_from_GEPA_inventory
+#InvGEPA_CH4_COAL                  CH4 0  3 50  2 kg/m2/s CH4_coal_emissions_from_GEPA_inventory
+#InvGEPA_CH4_LIVESTOCK             CH4 0  4 50  2 kg/m2/s CH4_livestock_emissions_from_GEPA_inventory
+#InvGEPA_CH4_LANDFILLS             CH4 0  5 50  2 kg/m2/s CH4_landfills_emissions_from_GEPA_inventory
+#InvGEPA_CH4_WASTEWATER            CH4 0  6 50  2 kg/m2/s CH4_wastewater_emissions_from_GEPA_inventory
+#InvGEPA_CH4_RICE                  CH4 0  7 50  2 kg/m2/s CH4_rice_emissions_from_GEPA_inventory
+#InvGEPA_CH4_OTHER_ANTH            CH4 0  8 50  2 kg/m2/s CH4_other_anthro_emissions_from_GEPA_inventory
+#
+#InvScarpelliMexico_CH4_TOTAL      CH4 0 -1 30  2 kg/m2/s CH4_total_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_OIL        CH4 0  1 30  2 kg/m2/s CH4_oil_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_GAS        CH4 0  2 30  2 kg/m2/s CH4_gas_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_COAL       CH4 0  3 30  2 kg/m2/s CH4_coal_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_LIVESTOCK  CH4 0  4 30  2 kg/m2/s CH4_livestock_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_LANDFILLS  CH4 0  5 30  2 kg/m2/s CH4_landfills_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_WASTEWATER CH4 0  6 30  2 kg/m2/s CH4_wastewater_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_RICE       CH4 0  7 30  2 kg/m2/s CH4_rice_emissions_from_ScarpelliMexico_inventory
+#InvScarpelliMexico_CH4_OTHER_ANTH CH4 0  8 30  2 kg/m2/s CH4_other_anthro_emissions_from_ScarpelliMexico_inventory
+#
+#InvScarpelliCanada_CH4_TOTAL      CH4 0 -1 100 2 kg/m2/s CH4_total_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_OIL        CH4 0  1 100 2 kg/m2/s CH4_oil_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_GAS        CH4 0  2 100 2 kg/m2/s CH4_gas_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_COAL       CH4 0  3 100 2 kg/m2/s CH4_coal_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_LIVESTOCK  CH4 0  4 100 2 kg/m2/s CH4_livestock_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_LANDFILLS  CH4 0  5 100 2 kg/m2/s CH4_landfills_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_WASTEWATER CH4 0  6 100 2 kg/m2/s CH4_wastewater_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_RICE       CH4 0  7 100 2 kg/m2/s CH4_rice_emissions_from_ScarpelliCanada_inventory
+#InvScarpelliCanada_CH4_OTHER_ANTH CH4 0  8 100 2 kg/m2/s CH4_other_anthro_emissions_from_ScarpelliCanada_inventory
+#
+#InvGFEI_CH4_TOTAL                 CH4 0 -1 5   2 kg/m2/s CH4_total_emissions_from_GFEI_inventory
+#InvGFEI_CH4_OIL                   CH4 0  1 5   2 kg/m2/s CH4_oil_emissions_from_GFEI_inventory
+#InvGFEI_CH4_GAS                   CH4 0  2 5   2 kg/m2/s CH4_gas_emissions_from_GFEI_inventory
+#InvGFEI_CH4_COAL                  CH4 0  3 5   2 kg/m2/s CH4_coal_emissions_from_GFEI_inventory
+#
+#InvEDGAR_CH4_TOTAL                CH4 0 -1 1   2 kg/m2/s CH4_total_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_OIL                  CH4 0  1 1   2 kg/m2/s CH4_oil_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_GAS                  CH4 0  2 1   2 kg/m2/s CH4_gas_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_COAL                 CH4 0  3 1   2 kg/m2/s CH4_coal_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_LIVESTOCK            CH4 0  4 1   2 kg/m2/s CH4_livestock_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_LANDFILLS            CH4 0  5 1   2 kg/m2/s CH4_landfills_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_WASTEWATER           CH4 0  6 1   2 kg/m2/s CH4_wastewater_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_RICE                 CH4 0  7 1   2 kg/m2/s CH4_rice_emissions_from_EDGAR_inventory
+#InvEDGAR_CH4_OTHER_ANTH           CH4 0  8 1   2 kg/m2/s CH4_other_anthro_emissions_from_EDGAR_inventory
+#EOC

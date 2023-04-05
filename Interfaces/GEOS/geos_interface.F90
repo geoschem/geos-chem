@@ -357,8 +357,8 @@ CONTAINS
     ENDIF
     IF ( ASSOCIATED(O3)       ) O3       = PTR_O3
     IF ( ASSOCIATED(GCO3)     ) GCO3     = PTR_O3
-    IF ( ASSOCIATED(O3PPMV  ) ) GCO3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
-    IF ( ASSOCIATED(GCO3PPMV) ) O3PPMV   = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(O3PPMV  ) ) O3PPMV   = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(GCO3PPMV) ) GCO3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
     IF ( ASSOCIATED(OX) .OR. ASSOCIATED(OX_TEND) ) THEN
        ALLOCATE(OXLOCAL(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
        OXLOCAL = PTR_O3 * MAPL_AIRMW / MAPL_O3MW
@@ -1118,6 +1118,7 @@ CONTAINS
     INTEGER                      :: indSpc
     INTEGER                      :: I,  J,  L, N, LB
     INTEGER                      :: IM, JM, LM
+    INTEGER                      :: SfcTypeIndex
 
     REAL, POINTER                :: Q(:,:,:)     => NULL()
     REAL, POINTER                :: PLE(:,:,:)   => NULL()
@@ -1131,7 +1132,6 @@ CONTAINS
     ! LFR diag
     REAL                         :: lp1, lp2      ! lightning potentials
     REAL, POINTER                :: PtrEmis(:,:)  => NULL()
-    REAL, POINTER                :: LWI(:,:)      => NULL()
     REAL, POINTER                :: LFR(:,:)      => NULL()
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
@@ -1210,7 +1210,7 @@ CONTAINS
     !=======================================================================
     ! Total and tropospheric columns
     !=======================================================================
-    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, __RC__ )
+    CALL CalcColumns_( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
 
     !=======================================================================
     ! Derived met. diagnostics relevant to chemistry processes
@@ -1262,7 +1262,6 @@ CONTAINS
        IF ( State_Diag%Archive_LGHTPOTENTIAL .AND. &
             ASSOCIATED(State_Diag%LightningPotential) ) THEN
           CALL MAPL_GetPointer( IMPORT, LFR,     'LFR_GCC', __RC__ )
-          CALL MAPL_GetPointer( IMPORT, LWI,     'LWI', __RC__ )
           CALL MAPL_GetPointer( IMPORT, CNV_FRC, 'CNV_FRC', __RC__ )
           CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT', NotFoundOk=.TRUE., __RC__ )
           State_Diag%LightningPotential(:,:) = 0.0
@@ -1271,10 +1270,18 @@ CONTAINS
              lp1 = 0.0
              lp2 = 0.0
 
+             ! Locally compute if over continuous land (formerly used LWI)
+             SfcTypeIndex = MAXLOC( (/                            &
+                State_Met%FRLAND(I,J) + State_Met%FRLANDIC(I,J)   &
+                + State_Met%FRLAKE(I,J),                          &
+                State_Met%FRSEAICE(I,J),                          &
+                State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)  &
+             /), 1 )
+
              ! If there are HEMCO lightning emissions in current grid box set
              ! lightning potential accordingly
              IF ( ASSOCIATED(PtrEmis) ) THEN
-                IF ( LWI(I,J) == 1 ) THEN
+                IF ( SfcTypeIndex == 1 ) THEN
                    lp1 = PtrEmis(I,J) / 1.0e-11 ! Land
                 ELSE
                    lp1 = PtrEmis(I,J) / 1.0e-13 ! Water/Ice
@@ -1284,7 +1291,7 @@ CONTAINS
 
              ! Lightning flash rate
              IF ( LFR(I,J) > 0.0 ) THEN
-                IF ( LWI(I,J) == 1 ) THEN
+                IF ( SfcTypeIndex == 1 ) THEN
                    lp2 = LFR(I,J) / 5.0e-07 ! Land
                 ELSE
                    lp2 = LFR(I,J) / 1.0e-08 ! Water/Ice
@@ -1442,9 +1449,6 @@ CONTAINS
 
   END SUBROUTINE GEOS_CalcTotOzone
 !EOC
-
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -1804,7 +1808,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, RC )
+  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -1814,6 +1818,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)            :: am_I_Root
     TYPE(OptInput),   INTENT(INOUT)         :: Input_Opt
+    TYPE(MetState),   INTENT(INOUT)         :: State_Met 
     TYPE(ChmState),   INTENT(INOUT)         :: State_Chm
     TYPE(DgnState),   INTENT(INOUT)         :: State_Diag
     REAL,             POINTER               :: PLE  (:,:,:)
@@ -1831,6 +1836,7 @@ CONTAINS
 !
     REAL,  POINTER               :: ExpTOTCOL(:,:)
     REAL,  POINTER               :: ExpTRPCOL(:,:)
+    REAL,  POINTER               :: ExpPBLCOL(:,:)
     REAL(fp), POINTER            :: Spc3D    (:,:,:)
     REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer, 
                                                   !  for total ozone
@@ -1838,13 +1844,14 @@ CONTAINS
                                                   !  for total ozone
     REAL                         :: MW, const
     INTEGER                      :: I, J, IM, JM, LM, LB, L, STATUS
-    INTEGER                      :: ID, TotID, TropID
+    INTEGER                      :: ID, TotID, TropID, PblID
     CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
     CHARACTER(LEN=15)            :: ISPEC
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapTotCol  => NULL()
     TYPE(DgnMap), POINTER :: mapTropCol => NULL()
+    TYPE(DgnMap), POINTER :: mapPblCol  => NULL()
 
     !=======================================================================
     ! CalcColumns_ begins here
@@ -1854,8 +1861,9 @@ CONTAINS
     Iam = 'CalcColumns_'
 
     ! Nothing to do if not active
-    IF ( .NOT. State_Diag%Archive_TotCol .AND. &
-         .NOT. State_Diag%Archive_TropCol       ) THEN
+    IF ( .NOT. State_Diag%Archive_TotCol  .AND. &
+         .NOT. State_Diag%Archive_TropCol .AND. &
+         .NOT. State_Diag%Archive_PblCol         ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
@@ -1875,6 +1883,10 @@ CONTAINS
        mapTropCol => State_Diag%Map_TropCol
        State_Diag%TropCol(:,:,:) = 0.0
     ENDIF
+    IF ( State_Diag%Archive_PblCol ) THEN
+       mapPblCol => State_Diag%Map_PblCol
+       State_Diag%PblCol(:,:,:) = 0.0
+    ENDIF
 
     ! Allocate local variables
     ALLOCATE(DUsLayerL(IM,JM), STAT=STATUS)
@@ -1887,20 +1899,33 @@ CONTAINS
 
        ! Check if total column and/or trop. column requested for this species
        TotID = -1
-       DO J = 1,mapTotCol%nSlots
-           IF ( mapTotCol%slot2id(J)==I ) THEN
-              TotID = J
-              EXIT
-           ENDIF
-       ENDDO
+       IF ( State_Diag%Archive_TotCol ) THEN 
+          DO J = 1,mapTotCol%nSlots
+             IF ( mapTotCol%slot2id(J)==I ) THEN
+                TotID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
        TropID = -1
-       DO J = 1,mapTropCol%nSlots
-           IF ( mapTropCol%slot2id(J)==I ) THEN
-              TropID = J
-              EXIT
-           ENDIF
-       ENDDO
-       IF ( (TotID<0) .AND. (TropID<0) ) CYCLE
+       IF ( State_Diag%Archive_TropCol ) THEN
+          DO J = 1,mapTropCol%nSlots
+             IF ( mapTropCol%slot2id(J)==I ) THEN
+                TropID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
+       PblID = -1
+       IF ( State_Diag%Archive_PblCol ) THEN
+          DO J = 1,mapPblCol%nSlots
+             IF ( mapPblCol%slot2id(J)==I ) THEN
+                PblID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
+       IF ( (TotID<0) .AND. (TropID<0) .AND. (PblID<0)  ) CYCLE
 
        ! Species info
        ISPEC = State_Chm%SpcData(I)%Info%Name
@@ -1930,6 +1955,13 @@ CONTAINS
              wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-TROPP(:,:)) &
                  / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
              State_Diag%TropCol(:,:,TropID) = State_Diag%TropCol(:,:,TropID) &
+                                            + DUsLayerL(:,:)*wgt(:,:)
+          END IF
+          ! Add to PBL column
+          IF ( PblID > 0 ) THEN
+             wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-(State_Met%PBL_TOP_hPa(:,:)*100.0)) &
+                 / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
+             State_Diag%PblCol(:,:,PblID) = State_Diag%PblCol(:,:,PblID) &
                                             + DUsLayerL(:,:)*wgt(:,:)
           END IF
        END DO
@@ -2150,10 +2182,15 @@ CONTAINS
              ENDIF
           ENDIF
           PtrTmp => State_Chm%Species(N)%Conc(:,:,LM:1:-1)
-          IF ( STATUS /= ESMF_SUCCESS ) THEN
-             WRITE(*,*) 'Error reading ',TRIM(SpcName)
-             VERIFY_(STATUS)
-          ENDIF
+
+          ! uncomment below to output more family species information 
+!          IF ( am_I_Root .AND. FIRST ) THEN
+!             write(*,*) 'First GCC species diagnostics: ', TRIM(SpcName), MW
+!             IF ( IsNOy   ) write(*,*) '--> Is part of NOy'
+!             IF ( IsBry   ) write(*,*) '--> Is part of Bry: ', BrCoeff
+!             IF ( IsCly   ) write(*,*) '--> Is part of Cly: ', ClCoeff
+!             IF ( IsOrgCl ) write(*,*) '--> Is part of OrgCl: ', OrgClCoeff
+!          ENDIF
 
           ! NOy concentration
           IF ( IsNOy ) NOy = NOy + PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
@@ -2167,6 +2204,10 @@ CONTAINS
           ! OrgCl concentration
           IF ( IsOrgCl ) OrgCl = OrgCl + OrgClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
        ENDIF
+
+       
+
+
     ENDDO
 
     !=======================================================================

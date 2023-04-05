@@ -275,7 +275,6 @@ CONTAINS
     ! Scalars
     LOGICAL                  :: LGRAVSTRAT
     LOGICAL                  :: LDSTUP
-    LOGICAL                  :: prtDebug
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
     CHARACTER(LEN=63)        :: OrigUnit
@@ -305,9 +304,6 @@ CONTAINS
 
     ! Initialize pointers
     Spc                  => State_Chm%Species  ! Chemistry species [kg]
-
-    ! Should we print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Get current month
     MONTH                = GET_MONTH()
@@ -446,7 +442,7 @@ CONTAINS
        IF ( id_SO4s > 0 ) THEN
           CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                               State_Met, id_SO4s,   RC )
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
           ENDIF
        ENDIF
@@ -455,7 +451,7 @@ CONTAINS
        IF ( id_NITs > 0 ) THEN
           CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                               State_Met, id_NITs,   RC )
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
           ENDIF
        ENDIF
@@ -469,7 +465,7 @@ CONTAINS
           IF ( id_SO4d1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d1,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
              ENDIF
           ENDIF
@@ -478,7 +474,7 @@ CONTAINS
           IF ( id_SO4d2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d2,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
              ENDIF
           ENDIF
@@ -487,7 +483,7 @@ CONTAINS
           IF ( id_SO4d3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d3,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
              ENDIF
           ENDIF
@@ -496,7 +492,7 @@ CONTAINS
           IF ( id_SO4d4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d4,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
              ENDIF
           ENDIF
@@ -505,7 +501,7 @@ CONTAINS
           IF ( id_NITd1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd1,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
              ENDIF
           ENDIF
@@ -514,7 +510,7 @@ CONTAINS
           IF ( id_NITd2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd2,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
              ENDIF
           ENDIF
@@ -523,7 +519,7 @@ CONTAINS
           IF ( id_NITd3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd3,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
              ENDIF
           ENDIF
@@ -532,7 +528,7 @@ CONTAINS
           IF ( id_NITd4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd4,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
              ENDIF
           ENDIF
@@ -542,7 +538,7 @@ CONTAINS
        IF ( LGRAVSTRAT ) THEN
           CALL SETTLE_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
                                  State_Met, RC )
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
           ENDIF
        ENDIF
@@ -555,7 +551,7 @@ CONTAINS
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
 
@@ -576,7 +572,7 @@ CONTAINS
           ENDIF
 
           ! Debug info
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' )
           ENDIF
 
@@ -593,7 +589,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
           ENDIF
 
@@ -613,7 +609,7 @@ CONTAINS
        ENDIF
 
        ! Debug info
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
        ENDIF
 
@@ -630,7 +626,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
        ENDIF
 
@@ -645,14 +641,16 @@ CONTAINS
        ! to tomas_mod.F90 in the future, but for now it still needs to get
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
        !-----------------------------------------------------------------
-       CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                          State_Diag, RC )
-       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
+       CALL CHEM_SO4_AQ( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                         State_Diag, RC )
+       IF ( Input_Opt%Verbose ) THEN
+          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
+       ENDIF
 #endif
 
        ! MSA
        CALL CHEM_MSA( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
        ENDIF
 
@@ -660,13 +658,13 @@ CONTAINS
        ! CHEM_NIT includes a source term from sea salt aerosols, so keep
        ! here.
        CALL CHEM_NIT( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
        ENDIF
 
        ! Calculate the HCl uptake by alkalinity, xnw
        CALL CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_CL' )
        ENDIF
 
@@ -684,7 +682,7 @@ CONTAINS
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
 
@@ -699,7 +697,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2 false' )
        ENDIF
 
@@ -1006,7 +1004,7 @@ CONTAINS
     real*8   dummy
 
     ! For fields from Input_Opt
-    LOGICAL :: prtDebug, LNLPBL
+    LOGICAL :: LNLPBL
     LOGICAL :: jkdbg=.true.
 
     ! Strings
@@ -1023,7 +1021,6 @@ CONTAINS
     Ptr3D    => NULL()
 
     ! COpy values from Input_Opt
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     LNLPBL   = Input_Opt%LNLPBL
 
     ! Import emissions from HEMCO (through HEMCO state)
@@ -1417,7 +1414,7 @@ CONTAINS
 
     NULLIFY(TC1)
 
-    IF ( prtDebug ) print *,'   ### Finish SRCSF30'
+    IF ( Input_Opt%Verbose ) print *,'   ### Finish SRCSF30'
 
   END SUBROUTINE SRCSF30
 #endif
@@ -2524,7 +2521,8 @@ CONTAINS
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
     State_Chm%isCloud    =  0.0_fp
-    State_Chm%pHcloud    =  0.0_fp
+!    State_Chm%pHcloud    =  0.0_fp
+    State_Chm%pHcloud    =  4.5_fp
     State_Chm%QLxpHcloud =  0.0_fp
 #ifdef LUO_WETDEP
     State_Chm%pHrain     =  5.6_fp
@@ -2823,6 +2821,7 @@ CONTAINS
        IF ( ( DO_SEASALT_CHEM ) .and. ( ALK    > MINDAT )  .and.             &
             ( SO2_cd > MINDAT ) .and. ( SO2_cd < O3     ) ) THEN
 
+
           ! Compute oxidation of SO2 -> SO4 and condensation of
           ! HNO3 -> nitrate within the seasalt aerosol
           CALL SEASALT_CHEM( I,          J,          L,         ALK1,        &
@@ -2845,33 +2844,6 @@ CONTAINS
           PACL(I,J,L)  = 0.0_fp
           PCCL(I,J,L)  = 0.0_fp
 
-       ENDIF
-
-       ! We must store alkalinity first for gas phase chemistry
-       ! (convert from kg to equivalents) -- Xuan Wang 6/9/19
-       IF ( .NOT. FullRun ) Then
-
-          ! Fine mode seasalt alkalinity
-          State_Chm%SSAlk(I,J,L,1)                                           &
-               =  AlkA                                                       &
-               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
-               / ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%MW_g )
-
-          ! Coarse mode seasalt alkalinity
-          State_Chm%SSAlk(I,J,L,2)                                           &
-               = AlkC                                                        &
-               * ( 7.0d-2 * State_Met%AD(I,J,L) )                            &
-               / ( AIRMW / State_Chm%SpcData(id_SALCAL)%Info%MW_g )
-
-          ! We also need to update the SALAAL and SALCAL species here
-          ! when we are using KPP to perform sulfur chemistry, otherwise
-          ! SALAAL and SALCAL will not get set properly.  Think about
-          ! a better way to abstract this code later.
-          !   -- Bob Yantosca (09 Sep 2021)
-          IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
-             Spc(id_SALAAL)%Conc(I,J,L) = AlkA
-             Spc(id_SALCAL)%Conc(I,J,L) = AlkC
-          ENDIF
        ENDIF
 
        ! If we are not using KPP to compute seasalt reaction rates,

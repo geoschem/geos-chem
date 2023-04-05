@@ -202,7 +202,6 @@ CONTAINS
     LOGICAL            :: IT_IS_A_TAGO3_SIM
 
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: I,     J,       L,   N
     INTEGER            :: NN
     REAL(fp)           :: dt,    P,       k,   M0,  RC
@@ -242,7 +241,6 @@ CONTAINS
     LSYNOZ               = Input_Opt%LSYNOZ
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Spc                  => NULL()
     AD                   => NULL()
     T                    => NULL()
@@ -306,7 +304,7 @@ CONTAINS
     ENDIF
 #endif
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### LINEAR_CHEM: at DO_LINEAR_CHEM' )
     ENDIF
 
@@ -1148,15 +1146,15 @@ CONTAINS
              IF ( TRIM( SpcInfo%Name ) .eq. TRIM(sname) ) THEN
 
                 IF ( LLINOZ .and. TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
-                   IF ( Input_Opt%amIRoot ) THEN
+                   IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Linoz)'
                    ENDIF
                 ELSE IF ( Input_Opt%LSYNOZ .AND. TRIM( SpcInfo%Name ) .eq. 'O3' ) THEN
-                   IF ( Input_Opt%amIRoot ) THEN
+                   IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
                    ENDIF
                 ELSE
-                   IF ( Input_Opt%amIRoot ) THEN
+                   IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via GMI rates)'
                    ENDIF
                 ENDIF
@@ -1173,7 +1171,7 @@ CONTAINS
 
        ! These are the reactions with which we will use OH fields
        ! to determine loss.
-       IF( Input_Opt%amIRoot ) THEN
+       IF( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           IF ( id_CHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
           IF ( id_CH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
           IF ( id_CH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
@@ -1184,11 +1182,11 @@ CONTAINS
     !===========!
     ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
        IF ( LLINOZ ) THEN
-          IF ( Input_Opt%amIRoot ) THEN
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
              WRITE(6,*) 'Linoz ozone performed on: '
           ENDIF
        ELSE
-          IF ( Input_Opt%amIRoot ) THEN
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
              WRITE(6,*) 'Synoz ozone performed on: '
           ENDIF
        ENDIF

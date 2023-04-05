@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#SBATCH -c 8
+#SBATCH -N 1
+#SBATCH -t 0-12:00
+#SBATCH -p seas_compute
+#SBATCH --mem=15000
+#SBATCH --mail-type=END
+
+###############################################################################
+### Sample GEOS-Chem run script for SLURM
+### You can increase the number of cores with -c and memory with --mem,
+### particularly if you are running at very fine resolution (e.g. nested-grid)
+###############################################################################
+
+# Set the proper # of threads for OpenMP
+# SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+# Run GEOS_Chem.  The "time" command will return CPU and wall times.
+# Stdout and stderr will be directed to the "GC.log" log file
+# (you can change the log file name below if you wish)
+srun -c $OMP_NUM_THREADS time -p ./gcclassic >> GC.log
+
+# Exit normally
+exit 0
+#EOC

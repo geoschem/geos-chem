@@ -36,8 +36,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             2
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
@@ -264,19 +264,19 @@ Warnings:                    1
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2020-02/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2019/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2020-02/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2019/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -342,7 +342,6 @@ Warnings:                    1
 * GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* LWI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWI      1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LWGNT    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1980-2020/1-12/1-31/*/+30minute RFY xy  1  * -  1 1

@@ -342,7 +342,7 @@ CONTAINS
 #endif
 
     !### Debug
-    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
     ENDIF
 
@@ -601,12 +601,13 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Set diagnostics - cnsider moving?
-    IF ( State_Diag%Archive_DryDepVel .OR. &
-         State_Diag%Archive_DryDepVelForALT1 ) THEN
+    IF ( State_Diag%Archive_DryDepVel                                   .or. &
+         State_Diag%Archive_DryDepVelForALT1                            .or. &
+         State_Diag%Archive_SatDiagnDryDepVel                         ) THEN 
 
-       !$OMP PARALLEL DO                                           &
-       !$OMP DEFAULT( SHARED                                     ) &
-       !$OMP PRIVATE( D, S, N, A, NDVZ )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( D, S, N, A, NDVZ                                      )
        DO D = 1, State_Chm%nDryDep
 
           ! Point to State_Chm%DryDepVel [m/s]
@@ -616,8 +617,17 @@ CONTAINS
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(D)
              IF ( S > 0 ) THEN
-                State_Diag%DryDepVel(:,:,S) = &
-                           State_Chm%DryDepVel(:,:,NDVZ) * 100._f4
+                State_Diag%DryDepVel(:,:,S)   =                              &
+                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
+             ENDIF
+          ENDIF
+
+          ! Satellite diagnostic: Dry dep velocity [cm/s]
+          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
+             IF ( S > 0 ) THEN
+                State_Diag%SatDiagnDryDepVel(:,:,S)   =                      &
+                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
              ENDIF
           ENDIF
 
@@ -2287,16 +2297,14 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Pick the proper Hplus value based on surface
-             !----------------------------------------------------------------
-             ! NOTE: Should be using these but the original code used LWI.
-             ! Leave this comment here for now (bmy, 08 Jul 2021)
-             !IF ( State_Met%IsWater(I,J) ) Hplus = HPLUS_ocn
-             !IF ( State_Met%IsLand(I,J)  ) Hplus = HPLUS_lnd
-             !IF ( State_Met%IsIce(I,J)   ) Hplus = HPLUS_ice
-             !----------------------------------------------------------------
-             IF ( State_Met%LWI(I,J) == 0 ) Hplus = HPLUS_ocn
-             IF ( State_Met%LWI(I,J) == 1 ) Hplus = HPLUS_lnd
-             IF ( State_Met%LWI(I,J) == 2 ) Hplus = HPLUS_ice
+             IF ( State_Met%isIce(I,J) .OR. State_Met%isSnow(I,J) ) THEN
+                Hplus = HPLUS_ice
+             ELSEIF ( State_Met%IsWater(I,J) .AND. &
+                      ( State_Met%FROCEAN(I,J) > State_met%FRLAKE(I,J) ) ) THEN
+                Hplus = HPLUS_ocn
+             ELSE
+                Hplus = HPLUS_lnd ! includes lakes but not ice/snow
+             ENDIF
 
              ! Temperature terms
              tAq      = MAX( 253.0_f8, State_Met%TS(I,J) )
@@ -2643,7 +2651,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
 130    FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
     ENDIF
@@ -2675,7 +2683,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2703,7 +2711,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2745,7 +2753,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2773,7 +2781,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2801,7 +2809,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2833,7 +2841,7 @@ CONTAINS
     IRI(3) = 200
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2861,7 +2869,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2889,7 +2897,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2917,7 +2925,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2945,7 +2953,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2973,7 +2981,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3001,7 +3009,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3029,7 +3037,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3045,7 +3053,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
     ENDIF
 
@@ -4770,7 +4778,7 @@ CONTAINS
     !=================================================================
     ! Echo information to stdout
     !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Line 1
        MSG = 'INIT_DRYDEP: List of dry deposition species:'

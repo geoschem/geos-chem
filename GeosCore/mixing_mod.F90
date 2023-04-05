@@ -273,7 +273,7 @@ CONTAINS
     INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O
     INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO
     INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
-    INTEGER,           SAVE :: id_BrNO3, id_CH4_SAB
+    INTEGER,           SAVE :: id_BrNO3, id_CH4_SAB, id_CO2
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
@@ -408,6 +408,7 @@ CONTAINS
        id_C2H6 = Ind_('C2H6' )
        id_C3H8 = Ind_('C3H8' )
        id_CH2O = Ind_('CH2O' )
+       id_CO2  = Ind_('CO2'  )
        id_PRPE = Ind_('PRPE' )
        id_O3   = Ind_('O3'   )
        id_HNO3 = Ind_('HNO3' )
@@ -830,11 +831,12 @@ CONTAINS
                 State_Chm%Species(N)%Conc(I,J,L) = 1e-26_fp
 #else
 
-                ! KLUDGE: skip the warning message for CH4_SAB, which can be
-                ! negative (it's a soil absorption flux).  The TagCH4
-                ! simulation is not used regularly as of Feb 2021 -- fix this
-                ! later if need by. (bmy, 2/25/21)
-                IF ( N /= id_CH4_SAB ) THEN
+                IF ( ( N /= id_CH4_SAB ) .and. ( N /= id_CO2 ) ) THEN
+
+                 ! KLUDGE: skip the warning message for CH4_SAB, which can be
+                 ! negative (it's a soil absorption flux).  The TagCH4
+                 ! simulation is not used regularly as of Feb 2021 -- fix this
+                 ! later if need by. (bmy, 2/25/21)
                  Print*, 'WARNING: Negative concentration for species ',     &
                           TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
                  ErrorMsg = 'Negative species concentations encountered.' // &

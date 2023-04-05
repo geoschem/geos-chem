@@ -24,7 +24,6 @@ MODULE Mercury_Mod
   USE Ocean_Mercury_Mod, ONLY : LGEIA05
   USE Ocean_Mercury_Mod, ONLY : LVEGEMIS
   USE Ocean_Mercury_Mod, ONLY : LBrCHEM
-  USE Ocean_Mercury_Mod, ONLY : LRED_JNO2
   USE Ocean_Mercury_Mod, ONLY : LRED_CLOUDONLY
   USE Ocean_Mercury_Mod, ONLY : LHALOGENCHEM
   USE Ocean_Mercury_Mod, ONLY : LHgAQCHEM
@@ -105,8 +104,8 @@ MODULE Mercury_Mod
   !--------------------------------------------------------------------------
   ! Scalars
   !--------------------------------------------------------------------------
-  LOGICAL  :: Failed2x
-  INTEGER  :: N_Hg_CATS
+  LOGICAL  :: doSuppress,     Failed2x
+  INTEGER  :: errorCount,     N_Hg_CATS
   INTEGER  :: id_Hg0,         id_Hg2,      id_HgP
   INTEGER  :: id_phot_NO2,    id_phot_BrO, id_phot_ClO
   INTEGER  :: id_phot_Hg2Org, id_O3,       id_OH
@@ -261,7 +260,6 @@ CONTAINS
 !
     LOGICAL, SAVE      :: FIRST = .TRUE.
     INTEGER            :: THISMONTH, I, J
-    LOGICAL            :: prtDebug
     
     ! Pointers
     REAL(f4),  POINTER :: Ptr2D(:,:)
@@ -277,7 +275,6 @@ CONTAINS
 
     ! Assume success
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.F90)'
 
@@ -325,14 +322,18 @@ CONTAINS
                             State_Grid = State_Grid,                         &
                             State_Met  = State_Met,                          &
                             LFLUX      = EHg0_ln                            )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+    ENDIF
 
     ! Get soil mercury flux of Hg0
     CALL SOILEMIS( EHg0_dist  = EHg0_dist,                                   &
                    State_Grid = State_Grid,                                  &
                    State_Met  = State_Met,                                   &
                    EHg0_so    = EHg0_so                                     )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+    ENDIF
 
     ! Get snow mercury flux of Hg0
     CALL SNOWPACK_MERCURY_FLUX( LHgSNOW    = LHgSNOW,                        &
@@ -340,7 +341,9 @@ CONTAINS
                                 State_Grid = State_Grid,                     &
                                 State_Met  = State_Met,                      &
                                 FLUX       = EHg0_snow                      )
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+    ENDIF
 
     ! If we are using the non-local PBL mixing,
     ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
@@ -349,12 +352,15 @@ CONTAINS
 
     ! Zero arrays for Hg deposition
     CALL RESET_HG_DEP_ARRAYS()
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: ' // &
-         'a RESET_HG_DEP_ARRAYS' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a RESET_HG_DEP_ARRAYS' )
+    ENDIF
 
     ! Add Hg(0) source into State_Chm%Species [kg]
     CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
-   IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+   IF ( Input_Opt%Verbose ) THEN
+      CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+   ENDIF
 
     ! Convert species units back to original unit
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -666,16 +672,16 @@ CONTAINS
     LOGICAL, SAVE          :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL                :: prtDebug
-    INTEGER                :: I,         J,        L,         K
-    INTEGER                :: N,         NN,       CN,        Hg_Cat
-    INTEGER                :: NA,        F,        SpcID,     KppID
-    INTEGER                :: P,         MONTH,    YEAR,      IRH
-    INTEGER                :: TotSteps,  TotFuncs, TotJacob,  TotAccep
-    INTEGER                :: TotRejec,  TotNumLU, HCRC,      IERR
-    INTEGER                :: Day,       S
-    REAL(fp)               :: REL_HUM,   Start,     Finish,   rtim
-    REAL(fp)               :: itim,      TOUT,      T,        TIN
+    LOGICAL                :: doSuppress
+    INTEGER                :: I,         J,         L,         K
+    INTEGER                :: N,         NN,        CN,        Hg_Cat
+    INTEGER                :: NA,        F,         SpcID,     KppID
+    INTEGER                :: P,         MONTH,     YEAR,      IRH
+    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
+    INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
+    INTEGER                :: Day,       S,         errorCount
+    REAL(fp)               :: REL_HUM,   Start,     Finish,    rtim
+    REAL(fp)               :: itim,      TOUT,      T,         TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -690,10 +696,7 @@ CONTAINS
     REAL(dp)               :: RSTATE(20)
     REAL(dp)               :: Vloc(NVAR)
     REAL(dp)               :: Aout(NREACT)
-#ifdef MODEL_GEOS
-    REAL(dp)               :: Vdotout(NVAR)
-    REAL(dp)               :: localC(NSPEC)
-#endif
+    REAL(dp)               :: C_before_integrate(NSPEC)
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -707,6 +710,9 @@ CONTAINS
     ! Toggle hetchem or photolysis on/off for testing (default=on)
     LOGICAL,  PARAMETER :: DO_HETCHEM  = .TRUE.
     LOGICAL,  PARAMETER :: DO_PHOTCHEM = .TRUE.
+    
+    ! Suppress KPP integrator output after this many errors occur
+    INTEGER,  PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
 
     ! Relative Humidities (to be passed to FAST_JX)
     REAL(fp), PARAMETER :: RH(5) = (/0.0_fp, 0.5_fp, 0.7_fp, 0.8_fp, 0.9_fp/)
@@ -716,25 +722,26 @@ CONTAINS
     !========================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
-    errMsg   = ''
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-    thisLoc  = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
-    itim     =  0.0_fp            ! For KPP timing
-    rtim     =  0.0_fp            ! For KPP timing
-    totsteps =  0                 ! Total # of KPP timesteps
-    totfuncs =  0                 ! Total # of integrator function calls
-    totjacob =  0                 ! Total # of jacobian calls
-    totaccep =  0                 ! Total # of KPP calls that finished OK
-    totrejec =  0                 ! Total # of KPP calls that didn't converge
-    totnumLU =  0                 ! Total # of LU decomposition calls
-    Day      =  Get_Day()         ! Current day
-    Month    =  Get_Month()       ! Current month
-    Year     =  Get_Year()        ! Current year
-    Spc      => State_Chm%Species ! Chemical species array [kg]
-    TK       => State_Met%T       ! Temperature [K]
-    SpcInfo  => NULL()            ! Pointer to GEOS-Chem species database
-    Failed2x =  .FALSE.           ! Flag for graceful exit of simulation
+    RC         = GC_SUCCESS
+    errMsg     = ''
+    thisLoc    = ' -> at ChemMercury (in GeosCore/mercury_mod.F90)'
+    itim       =  0.0_fp            ! For KPP timing
+    rtim       =  0.0_fp            ! For KPP timing
+    totsteps   =  0                 ! Total # of KPP timesteps
+    totfuncs   =  0                 ! Total # of integrator function calls
+    totjacob   =  0                 ! Total # of jacobian calls
+    totaccep   =  0                 ! Total # of KPP calls that finished OK
+    totrejec   =  0                 ! Total # of KPP calls that didn't converge
+    totnumLU   =  0                 ! Total # of LU decomposition calls
+    errorCount =  0                 ! Count of KPP integration errors
+    Day        =  Get_Day()         ! Current day
+    Month      =  Get_Month()       ! Current month
+    Year       =  Get_Year()        ! Current year
+    Spc        => State_Chm%Species ! Chemical species array [kg]
+    TK         => State_Met%T       ! Temperature [K]
+    SpcInfo    => NULL()            ! Pointer to GEOS-Chem species database
+    Failed2x   = .FALSE.            ! Flag for graceful exit of simulation
+    doSuppress = .FALSE.            ! Suppress further KPP integration errmsgs?
 
     !========================================================================
     ! Set chemistry options and pointers to chemical inputs from HEMCO
@@ -817,7 +824,10 @@ CONTAINS
     ! leftover values from the last timestep near the top of the chemgrid
     IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
     IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnLoss   ) State_Diag%SatDiagnLoss   = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnProd   ) State_Diag%SatDiagnProd   = 0.0_f4
     IF (State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
+    IF (State_Diag%Archive_SatDiagnJVal   ) State_Diag%SatDiagnJVal   = 0.0_f4
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
@@ -866,7 +876,7 @@ CONTAINS
         ENDIF
 
         !### Debug
-        IF ( prtDebug ) THEN
+        IF ( Input_Opt%Verbose ) THEN
            CALL DEBUG_MSG( '### ChemMercury: after FAST_JX' )
         ENDIF
     ENDIF
@@ -884,7 +894,7 @@ CONTAINS
     ENDIF
 
     !### Debug
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### ChemMercury: after Set_HgOxidConc' )
     ENDIF
 
@@ -926,6 +936,7 @@ CONTAINS
 
     ! Turn off calling Update_SUN, Update_RCONST, Update_PHOTO from within
     ! the integrator.  Rate updates are done before calling KPP.
+    !  -- Bob Yantosca (03 May 2022)
     ICNTRL(15) = -1
 
     !=======================================================================
@@ -951,20 +962,10 @@ CONTAINS
     !$OMP PRIVATE( I,        J,        L,       N                           )&
     !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
     !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
-    !$OMP PRIVATE( Vloc,     Aout,     NN                                   )&
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( Vdotout                                                  )&
-#endif
-    !$OMP REDUCTION( +:ITIM                                                 )&
-    !$OMP REDUCTION( +:RTIM                                                 )&
-    !$OMP REDUCTION( +:TOTSTEPS                                             )&
-    !$OMP REDUCTION( +:TOTFUNCS                                             )&
-    !$OMP REDUCTION( +:TOTJACOB                                             )&
-    !$OMP REDUCTION( +:TOTACCEP                                             )&
-    !$OMP REDUCTION( +:TOTREJEC                                             )&
-    !$OMP REDUCTION( +:TOTNUMLU                                             )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE ( DYNAMIC,  24                                           )
+    !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
+    !$OMP REDUCTION( +:errorCount                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1029,10 +1030,21 @@ CONTAINS
                 State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)          &
                                          + PHOTOL(N)
              ENDIF
+
+             ! J_values for satellite diagnostics
+             IF ( State_Diag%Archive_SatDiagnJVal ) THEN
+
+                ! GC photolysis species index
+                P = GC_Photo_Id(N)
+
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                State_Diag%SatDiagnJVal(I,J,L,P) =                           &
+                State_Diag%SatDiagnJVal(I,J,L,P) + PHOTOL(N)
+             ENDIF
+
           ENDDO
        ENDIF
-
-
 
        !====================================================================
        ! Copy values at each gridbox into variables in gckpp_Global.F90
@@ -1065,7 +1077,7 @@ CONTAINS
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Archive KPP equation rates (Aout).  For GEOS-Chem in GEOS, also
-       ! archive the time derivative of variable species (Vdotout).
+       ! archive the time derivative of variable species (Vdot).
        !
        ! NOTE: Replace VAR with C(1:NVAR) and FIX with C(NVAR+1:NSPEC),
        ! because VAR and FIX are now local to the integrator
@@ -1073,26 +1085,12 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_RxnRate ) THEN
 
-#ifdef MODEL_GEOS
-          !------------------------------------------
-          ! GEOS-Chem in GEOS: Get Aout and Vdotout
-          !------------------------------------------
-          CALL Fun ( V       = C(1:NVAR),                                    &
-                     F       = C(NVAR+1:NSPEC),                              &
-                     RCT     = RCONST,                                       &
-                     Vdot    = Vloc,                                         &
-                     Aout    = Aout,                                         &
-                     Vdotout = Vdotout                                      )
-#else
-          !------------------------------------------
-          ! All other contexts: Get Aout only
-          !------------------------------------------
+          ! Get the reaction rates as Aout
           CALL Fun ( V       = C(1:NVAR),                                    &
                      F       = C(NVAR+1:NSPEC),                              &
                      RCT     = RCONST,                                       &
                      Vdot    = Vloc,                                         &
                      Aout    = Aout                                         )
-#endif
 
           ! Only save requested equation rates
           DO S = 1, State_Diag%Map_RxnRate%nSlots
@@ -1117,12 +1115,26 @@ CONTAINS
        !=====================================================================
        ! Integrate the box forwards
        !=====================================================================
+
+       ! Store concentrations before the call to "Integrate".  This will
+       ! let us reset concentrations before calling "Integrate" a 2nd time.
+       C_before_integrate = C
+
+       ! Call the Rosenbrock integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+          IF ( .not. doSuppress ) THEN
+             WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+             errorCount = errorCount + 1
+             IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
+                WRITE( 6, * ) &
+                 '### Further KPP integration error messages will be suppressed'
+                doSuppress = .TRUE.
+             ENDIF
+          ENDIF
        ENDIF
 
        !--------------------------------------------------------------------
@@ -1130,21 +1142,15 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( IERR < 0 ) THEN
 
-#ifdef MODEL_GEOS
-          ! Save a backup copy of C (for GEOS-Chem in GEOS only)
-          localC    = C
-#endif
-
-          ! Reset first time step and start concentrations
-          ! Retry the integration with non-optimized
-          ! settings
-          RCNTRL(3) = 0e+0_fp
-          C         = 0.0_dp
+          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
+          ! C with concentrations prior to the 1st call to "Integrate".
+          RCNTRL(3) = 0.0_dp
+          C         = C_before_integrate
 
           ! Update rate constants again
           CALL Update_RCONST( )
 
-          ! Integrate again
+          ! Call the Rosenbrock integrator again
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
 
@@ -1157,9 +1163,9 @@ CONTAINS
 #ifdef MODEL_GEOS
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
-                ! Revert to start values
              ELSE
-                C = localC
+                ! Revert to concentrations prior to 1st call to "Integrate"
+                C = C_before_integrate
              ENDIF
              IF ( ASSOCIATED(State_Diag%KppError) ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
@@ -1250,6 +1256,21 @@ CONTAINS
           ENDDO
        ENDIF
 
+       ! Satellite diagnostic: chemical loss of species/families [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             KppId = State_Diag%Map_SatDiagnLoss%slot2Id(S)
+             State_Diag%SatdiagnLoss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: chemical prod of species/families [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             KppID = State_Diag%Map_SatDiagnProd%slot2Id(S)
+             State_Diag%SatDiagnProd(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
@@ -1605,7 +1626,6 @@ CONTAINS
 !
 
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: I, J, L, N         ! lon, lat, lev, indexes
     INTEGER            :: SpcID
     CHARACTER(LEN=60)  :: Prefix             ! utility string
@@ -1626,9 +1646,6 @@ CONTAINS
     RC        = GC_SUCCESS
     errMsg    = ''
     thisLoc   = ' -> at Get_HgOxConc (in GeosCore/mercury_mod.F90)'
-
-    ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !=================================================================
     ! Set instantaneous species concentrations
@@ -2531,16 +2548,12 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
-    ! Boolean
-    LOGICAL            :: prtDebug
-
     !========================================================================
     ! SeaSaltUptake begins here!
     !========================================================================
 
     ! Assume success
     RC        =  GC_SUCCESS                                ! Success?
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Debug prints?
     DT        = Get_Ts_Chem()                              ! Chem timestep [s]
     errMsg    = ''
     thisLoc   = ' -> at SeaSaltUptake (in GeosCore/mercury_mod.F90)'
@@ -3498,7 +3511,6 @@ CONTAINS
     ! INIT_MERCURY begins here!
     !========================================================================
 
-    ! Initialize
     ! Assume success
     RC = GC_SUCCESS
 
@@ -3806,9 +3818,6 @@ CONTAINS
     ! Switch for only doing reduction in cloud water
     LRED_CLOUDONLY = .TRUE.
 
-    ! Switches for new reduction parameterization
-    LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
-
     ! Switch for using GEOS-Chem tropospheric bromine fields,
     ! ref. Parrella et al. 2012, instead of older TOMCAT fields
     LGCBROMINE = .TRUE.
@@ -3967,17 +3976,6 @@ CONTAINS
     ! Set the value of chemistry flags depending on whether or not
     ! the HEMCO collection LFLAGNAME is activated
     !-----------------------------------------------------------------
-    CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2', &
-                    OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) THEN
-       errMsg = 'LRED_JNO2 not found in HEMCO_Config.rc file!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    IF ( .not. FOUND ) THEN
-       LRED_JNO2 = .FALSE.
-    ENDIF
-
     CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM', &
                     OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -4101,7 +4099,6 @@ CONTAINS
     !-----------------------------------------------------------------
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     WRITE( 6, 100   )
-    WRITE( 6, 110   ) LRED_JNO2
     WRITE( 6, 120   ) LGCBROMINE
     WRITE( 6, 130   ) LNEI2005
     WRITE( 6, 140   ) LInPlume
@@ -4112,7 +4109,6 @@ CONTAINS
     WRITE( 6, 190   ) LOHO3CHEM
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 100 FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
-110 FORMAT( 'LRED_JNO2  is set to ', L1                          )
 120 FORMAT( 'LGCBROMINE is set to ', L1                          )
 130 FORMAT( 'LNEI2005   is set to ', L1                          )
 140 FORMAT( 'LInPlume   is set to ', L1                          )

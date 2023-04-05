@@ -87,6 +87,7 @@ MODULE FAST_JX_MOD
   INTEGER :: id_HOI,    id_IO,   id_OIO,    id_INO,   id_IONO
   INTEGER :: id_IONO2,  id_I2O2, id_CH3I,   id_CH2I2, id_I2O4
   INTEGER :: id_I2O3
+  INTEGER :: id_NIT,    id_NITs, id_SALA,   id_SALC
 
   ! Needed for scaling JNIT/JNITs photolysis to JHNO3
   REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
@@ -200,7 +201,6 @@ CONTAINS
 
     LOGICAL       :: AOD999
     LOGICAL, SAVE :: FIRST = .true.
-    LOGICAL       :: prtDebug
 
     ! Species ID flags
     INTEGER, SAVE :: id_O3
@@ -216,7 +216,6 @@ CONTAINS
     RC        = GC_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' -> at Fast_JX (in module GeosCore/fast_jx_mod.F)'
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot)
 
     ! Get day of year (0-365 or 0-366)
     DAY_OF_YR = GET_DAY_OF_YEAR()
@@ -1726,17 +1725,22 @@ CONTAINS
        id_CH2I2    = IND_('CH2I2'   )
        id_I2O4     = IND_('I2O4'    )
        id_I2O3     = IND_('I2O3'    )
+       id_NIT      = IND_('NIT'     )
+       id_NITs     = IND_('NITs'    )
+       id_SALA     = IND_('SALA'    )
+       id_SALC     = IND_('SALC'    )
 
        ! Print info
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
-
-          if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
-             ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          endif
        ENDIF
+
+       ! Move error check outside the print statement (bmy, 05 Dec 2022)
+       if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
+          ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       endif
 
 #if defined( MODEL_CESM )
        IF ( Input_Opt%amIRoot ) THEN
@@ -1890,8 +1894,8 @@ CONTAINS
 
           ENDIF
 
-          ! Print the mapping
-          IF ( Input_Opt%amIRoot ) THEN
+          ! Print the mapping (for debug printout only)
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
              IF ( GC_Photo_Id(J) > 0 ) THEN
                 WRITE(6, 200) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
 200             FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
@@ -2012,7 +2016,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -2055,7 +2059,7 @@ CONTAINS
     read (NUN,101) NQRD,NWWW
     NW1 = 1
     NW2 = NWWW
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
        write(6,'(1x,a)') TITLE0
        write(6,'(i8)') NWWW
     ENDIF
@@ -2127,7 +2131,7 @@ CONTAINS
     NJX = JJ
 
     do J = 1,NJX
-       if ( Input_Opt%AmIRoot ) then
+       if ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) then
           write(6,200) J,TITLEJX(J),SQQ(J),LQQ(J),(TQQ(I,J),I=1,LQQ(J))
        endif
        ! need to check that TQQ is monotonically increasing:
@@ -2154,7 +2158,7 @@ CONTAINS
     if (W_ .ne. WX_) then
        ! TROP-ONLY
        if (W_ .eq. 12) then
-          if ( Input_Opt%AmIRoot ) then
+          if ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) then
              write(6,'(a)') &
                   ' >>>TROP-ONLY reduce wavelengths to 12, drop strat X-sects'
           endif
@@ -2191,7 +2195,7 @@ CONTAINS
           enddo
           ! TROP-QUICK  (must scale solar flux for W=5)
        elseif (W_ .eq. 8) then
-          if ( Input_Opt%amIRoot ) then
+          if ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) then
              write(6,'(a)') &
                   ' >>>TROP-QUICK reduce wavelengths to 8, drop strat X-sects'
           endif
@@ -2347,7 +2351,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -2381,7 +2385,9 @@ CONTAINS
 
     ! Read header lines
     READ( NUN,'(A)' ) TITLE0
-    IF  ( Input_Opt%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
+       WRITE( 6, '(1X,A)' ) TITLE0
+    ENDIF 
     READ( NUN,'(A)' ) TITLE0
 
     !---Read aerosol phase functions:
@@ -2427,7 +2433,7 @@ CONTAINS
 #endif
 #endif
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):', &
                             (WAA(K,1),K=1,5)
        do J=1,NAA
@@ -2562,7 +2568,7 @@ CONTAINS
        ENDIF
 
        ! Write to stdout for both regular and dry-run simulations
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
 300       FORMAT( a, ' ', a )
        ENDIF
@@ -2599,12 +2605,18 @@ CONTAINS
        ENDIF
 
        ! Read header lines
+       ! Write only if debug printout is on (bmy, 05 Dec 2022)
        READ(  NJ1, '(A)' ) TITLE0
-       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+          WRITE( 6, '(1X,A)' ) TITLE0
+       ENDIF
 
        ! Second header line added for more info
+       ! Write only if debug printout is on (bmy, 05 Dec 2022)
        READ(  NJ1, '(A)' ) TITLE0
-       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+          WRITE( 6, '(1X,A)' ) TITLE0
+       ENDIF
 
        READ(  NJ1, '(A)' ) TITLE0
 110    FORMAT( 3x, a20 )
@@ -2654,7 +2666,7 @@ CONTAINS
     !=================================================================
     IF ( .not. Input_Opt%DryRun ) THEN
 
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           WRITE( 6, * ) 'Optics read for all wavelengths successfully'
        ENDIF
 
@@ -2808,7 +2820,7 @@ CONTAINS
           CCOEF_WV(W) =(Input_Opt%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/ &
                       (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
        ENDIF
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           write(6,*) 'N WAVELENGTHS: ',Input_Opt%NWVSELECT
           write(6,*) 'WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
           write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
@@ -2896,7 +2908,7 @@ CONTAINS
        !i.e. without the standard and LW wavelengths
        IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
        IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           write(6,*) 'N RT WAVELENGTHS: ',Input_Opt%NWVSELECT
           write(6,*) 'RT WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
           write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
@@ -2996,7 +3008,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -3034,7 +3046,7 @@ CONTAINS
     open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
     read (NUNIT,'(a)') CLINE
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        write(6,'(a)') CLINE
     ENDIF
     do J = 1,JVN_
@@ -3095,13 +3107,13 @@ CONTAINS
        enddo
     enddo
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        write(6,'(a,i4,a)')'Photochemistry Scheme with',NRATJ,' J-values'
     ENDIF
     do K=1,NRATJ
        if (JMAP(K) .ne. '------' ) then
           J = JIND(K)
-          IF ( Input_Opt%amIRoot ) THEN
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
              if (J.eq.0) then
                 write(6,'(i5,1x,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K), &
                      ' no mapping onto fast-JX',JMAP(K)
@@ -3126,7 +3138,7 @@ CONTAINS
           TEXT = JLABEL(K)
           CALL CSTRIP( TEXT )
 
-          !IF ( Input_Opt%amIRoot ) THEN
+          !IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           !   WRITE(*,*) K, TRIM( TEXT )
           !ENDIF
 
@@ -3246,7 +3258,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Print out saved rxn flags for fullchem simulations
        !---------------------------------------------------------------------
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
           WRITE( 6, 110 )
           WRITE( 6, 120 ) RXN_O2
@@ -3326,7 +3338,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Print out saved rxn flags for Hg simulation
        !---------------------------------------------------------------------
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
           WRITE( 6, 100 ) REPEAT( '=', 79 )
           WRITE( 6, 110 )
           WRITE( 6, 130 ) RXN_O3_1
@@ -5010,10 +5022,13 @@ CONTAINS
     MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 
     ! Ensure all 'AN_' types are valid selections
+    ! NOTE: Only write out messages if debug printout has been selected
     do i=1,AN_
-       IF (Input_Opt%amIRoot) write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
+       IF (Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+          write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
+       ENDIF
        if (MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
-          if (Input_Opt%amIRoot) then
+          if ( Input_Opt%amIRoot .and. Input_Opt%Verbose) then
              write(6,1200) MIEDX(i),NAA
           endif
           CALL EXITC('Bad MIEDX value.')
@@ -5140,7 +5155,7 @@ CONTAINS
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
 300    FORMAT( a, ' ', a )
     ENDIF
@@ -5169,7 +5184,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) REPEAT( '%', 79 )
        WRITE( 6, 110 ) TRIM(nc_file)
        WRITE( 6, 120 ) TRIM(nc_dir)
@@ -5196,7 +5211,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 #endif
@@ -5222,7 +5237,7 @@ CONTAINS
     CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 #endif
@@ -5239,7 +5254,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 140 )
        WRITE( 6, 100 ) REPEAT( '%', 79 )
     ENDIF
@@ -5266,9 +5281,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met,                 &
-                           I,         J,          L,                         &
-                           FRAC,      RC                                    )
+  SUBROUTINE PHOTRATE_ADJ( Input_Opt, State_Chm, State_Diag,                 &
+                           State_Met, I,         J,                          &
+                           L,         FRAC,      RC                         )
 !
 ! !USES:
 !
@@ -5276,10 +5291,13 @@ CONTAINS
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE ERROR_MOD,      ONLY : SAFE_DIV
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input_Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm  ! Chemistry State object
     TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
     INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, lev indices
     REAL(fp),       INTENT(IN)    :: FRAC       ! Result of SO4_PHOTFRAC,
@@ -5293,11 +5311,6 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REMARKS:
-!  NOTE: The netCDF diagnostics are attached in DO_FLEXCHEM so that we have
-!  access to the adjusted rates.  Only the bpch diagnostics are updated
-!  here.
-!    -- Bob Yantosca, 19 Dec 2017
-!
 !  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
 !  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
 !
@@ -5309,68 +5322,77 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp) :: C_O2,     C_N2, C_H2,   ITEMPK, RO1DplH2O
-    REAL(fp) :: RO1DplH2, RO1D, NUMDEN, TEMP,   C_H2O
+    ! Scalars
+    REAL(fp) :: C_NIT,       C_SALA,     FAC
+    REAL(fp) :: JScale_NITs, JScale_NIT, JNITChanA, JNITChanB
 
-    !=================================================================
+    !========================================================================
     ! PHOTRATE_ADJ begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    TEMP    = State_Met%T(I,J,L)                                 ! K
-    NUMDEN  = State_Met%AIRNUMDEN(I,J,L)                         ! molec/cm3
-    C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
+    ! Also zero NIT and NITs photolysis rxns here (avoids an ELSE block)
+    RC                    = GC_SUCCESS
+    ZPJ(L,RXN_JNITSa,I,J) = 0.0_fp
+    ZPJ(L,RXN_JNITSb,I,J) = 0.0_fp
+    ZPJ(L,RXN_JNITa,I,J)  = 0.0_fp
+    ZPJ(L,RXN_JNITb,I,J)  = 0.0_fp
 
-    ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
-    ! scaled value of JHNO3. NOTE: this is set in geoschem_config.yml
-    IF ( Input_Opt%hvAerNIT ) THEN
+    !========================================================================
+    ! NITRATE PHOTOLYSIS (Viral Shah & Bob Yantsoca, 30 Jan 2023)
+    !
+    ! For all fullchem simulations. Set the photolysis rate of NITs and NIT
+    ! to a scaled value of JHNO3 (scale factors can be specified in the
+    ! in geoschem_config.yml configuration file).
+    !
+    ! Allow particulate nitrate photolysis in the troposphere only.
+    !========================================================================
+    IF ( Input_Opt%hvAerNIT .and. State_Met%InTroposphere(I,J,L) ) THEN
 
-       ! Get the photolysis scalars read in from geoschem_config.yml
+       ! Get NIT and seasalt concentrations [molec cm-3]
+       C_NIT      = State_Chm%Species(id_NIT)%Conc(I,J,L)
+       C_SALA     = State_Chm%Species(id_SALA)%Conc(I,J,L)
+
+       ! Scaling factor for J(NIT)
+       ! Prevent div by zero, and also set to a minimum of 0.1
+       FAC        = SAFE_DIV( C_SALA, ( C_SALA + C_NIT ), 1.0_fp )
+       FAC        = MAX( 0.1_fp, FAC )
+
+       ! Scale factors for NITs and NIT
        JscaleNITs = Input_Opt%hvAerNIT_JNITs
        JscaleNIT  = Input_Opt%hvAerNIT_JNIT
-       ! convert reaction channel % to a fraction
-       JNITChanA  = Input_Opt%JNITChanA
-       JNITChanB  = Input_Opt%JNITChanB
-       JNITChanA  = JNITChanA / 100.0_fp
-       JNITChanB  = JNITChanB / 100.0_fp
+
+       ! Convert reaction channel % to a fraction
+       JNITChanA  = Input_Opt%JNITChanA / 100.0_fp
+       JNITChanB  = Input_Opt%JNITChanB / 100.0_fp
+
        ! Set the photolysis rate of NITs
        ZPJ(L,RXN_JNITSa,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNITs
        ZPJ(L,RXN_JNITSb,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNITs
+
        ! Set the photolysis rate of NIT
-       ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
-       ZPJ(L,RXN_JNITb,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
-       ! Adjust to scaling for channels set in geoschem_config.yml
+       ZPJ(L,RXN_JNITa, I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT * FAC
+       ZPJ(L,RXN_JNITb, I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT * FAC
+
        ! NOTE: channel scaling is 1 in FJX_j2j.dat, then updated here
        ZPJ(L,RXN_JNITSa,I,J) = ZPJ(L,RXN_JNITSa,I,J) * JNITChanA
-       ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JNITa,I,J) * JNITChanA
+       ZPJ(L,RXN_JNITa, I,J) = ZPJ(L,RXN_JNITa, I,J) * JNITChanA
        ZPJ(L,RXN_JNITSb,I,J) = ZPJ(L,RXN_JNITSb,I,J) * JNITChanB
-       ZPJ(L,RXN_JNITb,I,J) = ZPJ(L,RXN_JNITb,I,J) * JNITChanB
-
-    ! Gotcha to set JNIT and JNITs to zero if hvAerNIT switch is off
-    ELSE
-
-       ! Set the photolysis rate of NITs to zero
-       ZPJ(L,RXN_JNITSa,I,J) = 0.0_fp
-       ZPJ(L,RXN_JNITSb,I,J) = 0.0_fp
-       ! Set the photolysis rate of NIT to zero
-       ZPJ(L,RXN_JNITa,I,J) = 0.0_fp
-       ZPJ(L,RXN_JNITb,I,J) = 0.0_fp
-
+       ZPJ(L,RXN_JNITb, I,J) = ZPJ(L,RXN_JNITb, I,J) * JNITChanB
     ENDIF
 
-    !==============================================================
+    !========================================================================
     ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
     !
     ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
-    !==============================================================
+    !========================================================================
 
     ! Calculate if H2SO4 expected to be gaseous or aqueous
     ! Only allow photolysis above 6 hPa
     ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
     ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
-    !==============================================================
+    !========================================================================
     ! SPECIAL TREATMENT FOR O3+hv -> O+O2
     !
     ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
@@ -5379,13 +5401,12 @@ CONTAINS
     ! We don't want to do this if strat-chem is in use, as all
     ! the intermediate reactions are included - this would be
     ! double-counting (SDE 04/01/13)
-    !==============================================================
+    !========================================================================
 
     ! Need to subtract O3->O1D from rate
     ! RXN_O3_1 specifies: O3 + hv -> O2 + O
     ! RXN_O3_2 specifies: O3 + hv -> O2 + O(1D)
-    ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) &
-                        - ZPJ(L,RXN_O3_2,I,J)
+    ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J) - ZPJ(L,RXN_O3_2,I,J)
 
   END SUBROUTINE PHOTRATE_ADJ
 !EOC

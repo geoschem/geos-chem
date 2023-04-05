@@ -406,6 +406,10 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Free Item once we have attached it to the Registry linked list
+    DEALLOCATE( Item )
+    Item => NULL()
+
   END SUBROUTINE Registry_AddField
 !EOC
 !------------------------------------------------------------------------------
@@ -850,8 +854,9 @@ CONTAINS
     ! Initialize
     !=======================================================================
 
-    ! Only print information on the root CPU
-    IF ( .not. Input_Opt%amIRoot ) RETURN
+    ! Only print information if (1) we are on the root CPU;
+    ! and (2) if debug printout has been selected.
+    IF ( .not. ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) ) RETURN
 
     ! Initialize fields
     RC      =  GC_SUCCESS

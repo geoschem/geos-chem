@@ -59,10 +59,14 @@ MODULE GEOS_Analysis
      INTEGER                      :: AnalysisMinute
      LOGICAL                      :: ForwardLooking
      LOGICAL                      :: ReadAnaTime 
+     LOGICAL                      :: SkipPredictor
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileTemplate 
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarName
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
+     INTEGER                      :: FileVarDry
      LOGICAL                      :: ApplyIncrement
+     INTEGER                      :: IAU
+     INTEGER                      :: AnalysisWindow
      LOGICAL                      :: NonZeroIncOnly
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarNameInc
      LOGICAL                      :: InStrat
@@ -387,12 +391,13 @@ CONTAINS
   USE Input_Opt_Mod,         ONLY : OptInput
   USE State_Chm_Mod,         ONLY : ChmState         ! Chemistry State obj
   USE State_Met_Mod,         ONLY : MetState         ! Meteorology State obj
+  USE TIME_MOD,              ONLY : GET_TS_CHEM
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
     TYPE(ESMF_State),    INTENT(INOUT)         :: Import    ! Import State
-    TYPE(ESMF_STATE),    INTENT(INOUT)         :: Internal  ! Internal state
+    TYPE(ESMF_State),    INTENT(INOUT)         :: Internal  ! Internal state
     TYPE(ESMF_State),    INTENT(INOUT)         :: Export    ! Export State
     TYPE(ESMF_Clock),    INTENT(INOUT)         :: Clock     ! ESMF Clock object
     INTEGER,             INTENT(IN)            :: ispec     ! analysis species index
@@ -440,16 +445,18 @@ CONTAINS
     TYPE(ESMF_TIME)            :: fileTime
     INTEGER                    :: I, J, L, N, IM, JM, LM, LB, indSpc
     INTEGER, ALLOCATABLE       :: indSpc2(:)
-    INTEGER                    :: UnitFlag, NNEG
+    INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
     REAL                       :: wgt, tropwgt, stratwgt
+    REAL                       :: DilFact, tsChem
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc
     REAL, ALLOCATABLE          :: mwSpc2(:)
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
     LOGICAL                    :: UpdateSpec2
-
+    TYPE(ESMF_Alarm)           :: PredictorAlarm
+    LOGICAL                    :: PredictorActive
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
     INTEGER                    :: STATUS 
 
@@ -474,13 +481,27 @@ CONTAINS
     TimeForAna = .FALSE. 
     CALL GetAnaTime_( Clock, iopt%ForwardLooking, yy, mm, dd, h, m, s, __RC__ )
     ThisHour = real(h)
+    DilFact  = 1.0
 
+    ! Always do analysis if spreading increment evenly
+    IF ( iopt%IAU ) THEN
+       TimeForAna = .TRUE.
+       ! Calculate dilution factor, to be applied to analysis/increment weight
+       tsChem  = GET_TS_CHEM()
+       DilFact = real(iopt%AnalysisWindow)*(3600./tsChem)
     ! If using observation hours, apply analysis every (full) hour
-    IF ( iopt%UseObsHour ) THEN
-       IF ( m==0 ) TimeForAna = .TRUE.
+    ELSEIF ( iopt%UseObsHour .AND. m==0 ) THEN
+       TimeForAna = .TRUE.
     ! Otherwise, use specified analysis frequency and hour/minute offsets
     ELSE 
        IF ( m==iopt%AnalysisMinute .AND. MOD(h,iopt%AnalysisFreq)==iopt%AnalysisHour ) TimeForAna = .TRUE. 
+    ENDIF
+
+    ! Eventually skip during predictor step
+    IF ( iopt%SkipPredictor ) THEN
+       CALL ESMF_ClockGetAlarm(Clock, "PredictorActive", PredictorAlarm, __RC__)
+       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, __RC__ )
+       IF ( PredictorActive ) TimeForAna = .FALSE.
     ENDIF
 
     ! Initialize/reset diagnostics
@@ -604,18 +625,26 @@ CONTAINS
        ! Get lower bound of PLE array
        LB = LBOUND(PLE,3)
 
+       ! Set dry flag
+       DryFlag = iopt%FileVarDry
+
        ! Set unit flag. This is to prevent parsing the unit string within the loop below
        SELECT CASE ( TRIM(iopt%FileVarUnit) )
           CASE ( 'kg/kg' )
              UnitFlag = 1
+             IF ( DryFlag < 0 ) DryFlag = 0 ! assume kg/kg is total, not dry
           CASE ( 'mol/mol', 'v/v' )
              UnitFlag = 2
+             IF ( DryFlag < 0 ) DryFlag = 1 ! assume is dry 
           CASE ( 'ppmv', 'ppm', 'PPMV', 'PPM' )
              UnitFlag = 3
+             IF ( DryFlag < 0 ) DryFlag = 1 ! assume dry 
           CASE ( 'ppbv', 'ppb', 'PPBV', 'PPB' )
              UnitFlag = 4
+             IF ( DryFlag < 0 ) DryFlag = 1 ! assume dry 
           CASE DEFAULT
              UnitFlag = 1
+             IF ( DryFlag < 0 ) DryFlag = 0 ! assume kg/kg is total, not dry
        END SELECT
 
        ! State_Chm%Species are in kg/kg total. Make local copy in v/v dry before applying increments.
@@ -661,7 +690,9 @@ CONTAINS
 
              ! Skip cell if concentration change is too small
              IF ( iopt%ApplyIncrement .AND. ABS(AnaPtr(I,J,L)) < MinConc ) CYCLE 
-             IF ( iopt%NonZeroIncOnly .AND. ABS(IncPtr(I,J,L)) < MinConc ) CYCLE
+             IF ( iopt%NonZeroIncOnly ) THEN
+                IF ( ABS(IncPtr(I,J,L)) < MinConc ) CYCLE
+             ENDIF
 
              ! Default weight to be given to analysis.
              wgt = iopt%AnaFraction
@@ -679,15 +710,19 @@ CONTAINS
                 IF ( stratwgt > 0.0 .AND. StratCount <= iopt%StratSponge ) wgt = 0.0 
              ENDIF
 
+             ! Adjust weight by # of time steps if spreading evenly using IAU.
+             IF ( iopt%IAU ) wgt = wgt / DilFact
+
              ! Fraction must be between 0 and 1
              wgt = max(0.0,min(1.0,wgt))
              IF ( wgt == 0.0 ) CYCLE
 
              ! Get target concentration in v/v dry
              SpcAna = AnaPtr(I,J,L)
-             IF ( UnitFlag == 1 ) SpcAna = SpcAna * ( MAPL_AIRMW / mwSpc ) / ( 1. - Q(I,J,L) )
+             IF ( UnitFlag == 1 ) SpcAna = SpcAna * ( MAPL_AIRMW / mwSpc )
              IF ( UnitFlag == 3 ) SpcAna = SpcAna * 1.0e-6
              IF ( UnitFlag == 4 ) SpcAna = SpcAna * 1.0e-9
+             IF ( DryFlag  == 0 ) SpcAna = SpcAna / ( 1. - Q(I,J,L) )
 
              ! Update field
              SpcNew = SpcBkg(I,J,L)
@@ -978,6 +1013,7 @@ CONTAINS
     m_  = m
     ! If anatime is true, set time to closest analysis hour (0z, 6z, 12z, 18z)
     IF ( anatime_ ) THEN
+       m_ = 0
        IF (     h < 3  ) THEN
           h_ = 0
        ELSEIF ( h < 9  ) THEN
@@ -1148,11 +1184,17 @@ CONTAINS
     AnaConfig(ispec)%ForwardLooking = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ReadAnaTime:'   , Default=0,     __RC__ )
     AnaConfig(ispec)%ReadAnaTime = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='SkipPredictor:' , Default=0,     __RC__ )
+    AnaConfig(ispec)%SkipPredictor = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileTemplate,   Label='FileTemplate:'  ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarName,    Label='FileVarName:'   ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarUnit,    Label='FileVarUnit:'   , Default='v/v', __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarDry,     Label='FileVarDry:'    , Default=-1,    __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ApplyIncrement:', Default=0,     __RC__ )
     AnaConfig(ispec)%ApplyIncrement = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='IAU:'           , Default=0,     __RC__ )
+    AnaConfig(ispec)%IAU = ( ThisInt == 1 )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%AnalysisWindow, Label='AnalysisWindow:', Default=6,     __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InStrat:'       , Default=1,     __RC__ )
     AnaConfig(ispec)%InStrat = ( ThisInt == 1 )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='InTrop:'        , Default=1,     __RC__ )
@@ -1212,6 +1254,13 @@ CONTAINS
     ! Some logical checks
     IF ( AnaConfig(ispec)%ApplyIncrement ) AnaConfig(ispec)%NonZeroIncOnly = .FALSE.
 
+    ! Force some flags if spreading increments across observation window
+    IF ( AnaConfig(ispec)%IAU ) THEN
+        AnaConfig(ispec)%UseObsHour  = .FALSE.
+        AnaConfig(ispec)%ReadAnaTime = .TRUE.
+        !AnaConfig(ispec)%AnaFraction = AnaConfig(ispec)%AnaFraction
+    ENDIF
+
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(*,*) '----------------------------------------'
@@ -1223,14 +1272,18 @@ CONTAINS
           WRITE(*,*) '- Analysis minute               : ',AnaConfig(ispec)%AnalysisMinute
           WRITE(*,*) '- Forward looking file read     : ', AnaConfig(ispec)%ForwardLooking
           WRITE(*,*) '- Read file analysis time stamp : ', AnaConfig(ispec)%ReadAnaTime
+          WRITE(*,*) '- Ignore during predictor step  : ', AnaConfig(ispec)%SkipPredictor
           WRITE(*,*) '- Use observation hour          : ', AnaConfig(ispec)%UseObsHour
           WRITE(*,*) '- File template                 : ', TRIM(AnaConfig(ispec)%FileTemplate)
           WRITE(*,*) '- Variable name on file         : ', TRIM(AnaConfig(ispec)%FileVarName)
           WRITE(*,*) '- Variable unit on file         : ', TRIM(AnaConfig(ispec)%FileVarUnit)
+          WRITE(*,*) '- Dry air flag (0=dry, 1=total) : ', AnaConfig(ispec)%FileVarDry 
           IF ( AnaConfig(ispec)%UseObsHour ) THEN
              WRITE(*,*) '- Observation hour name on file : ', TRIM(AnaConfig(ispec)%ObsHourName)
           ENDIF
           WRITE(*,*) '- Apply increments              : ', AnaConfig(ispec)%ApplyIncrement
+          WRITE(*,*) '- Spread increments (IAU)       : ', AnaConfig(ispec)%IAU
+          WRITE(*,*) '- Analysis window length [h]    : ', AnaConfig(ispec)%AnalysisWindow
           WRITE(*,*) '- Analysis where inc is not zero: ', AnaConfig(ispec)%NonZeroIncOnly
           IF ( AnaConfig(ispec)%NonZeroIncOnly ) THEN
              WRITE(*,*) '- Analysis inc variable name    : ', TRIM(AnaConfig(ispec)%FileVarNameInc)

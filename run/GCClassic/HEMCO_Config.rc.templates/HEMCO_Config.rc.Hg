@@ -39,8 +39,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
@@ -90,8 +90,6 @@ Warnings:                    1
     --> EDGAR_WASTE            :       false    # 1970-2012
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> OXIDANT_FIELDS         :       true     # 2010-2019
-    --> LRED_JNO2              :       true     # 2005
-    --> AERO_HG2_PARTITION     :       true     # 2010-2019
     --> OCEAN_Hg               :       true     # 1985,2003,2009
     --> TOMS_SBUV_O3           :       true     # 1971-2010
     --> LHALOGENCHEM           :       true
@@ -138,12 +136,14 @@ Warnings:                    1
 #==============================================================================
 # --- GMA 2018 emissions ---
 #
-#  NOTE: HgP emissions are added to Hg2 emissions!
+#  NOTES:
+#  - HgP emissions are added to Hg2 emissions!
+#  - Hg2 and HgP emissions are 0 everywhere for ASGM source and are not read
 #==============================================================================
 (((GMA_ASGM
 0 GMA_ASGM_HG0     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_asgm 2015/1/1/0 C xy kg/m2/s Hg0    - 8 1
-0 GMA_ASGM_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_asgm 2015/1/1/0 C xy *       HgCl2  - 8 1
-0 GMA_ASGM_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_asgm 2015/1/1/0 C xy *       Hg2ClP - 8 1
+#0 GMA_ASGM_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_asgm 2015/1/1/0 C xy *       HgCl2  - 8 1
+#0 GMA_ASGM_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_asgm 2015/1/1/0 C xy *       Hg2ClP - 8 1
 )))GMA_ASGM
 
 (((GMA_INDS
@@ -400,8 +400,8 @@ Warnings:                    1
 # --- QFED2 biomass burning ---
 #==============================================================================
 (((QFED2
-0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
-0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
+0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
+0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
 )))QFED2
 
 ###############################################################################
@@ -419,19 +419,19 @@ Warnings:                    1
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2020-02/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2016/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2016/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2020-02/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2016/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2016/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -507,7 +507,7 @@ Warnings:                    1
 (((CHEMISTRY_INPUT
 
 #==============================================================================
-# --- Oxidant fields (from GEOS-Chem 13.0.0 10-yr benchmark output) ---
+# --- Oxidant fields (from GEOS-Chem 10-yr benchmark output) ---
 #==============================================================================
 (((OXIDANT_FIELDS
 

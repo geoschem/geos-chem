@@ -56,7 +56,6 @@ MODULE History_Mod
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:  )
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:  )
@@ -66,6 +65,7 @@ MODULE History_Mod
   INTEGER,                 ALLOCATABLE :: CollectionSubsetInd  (:,:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLevels     (:  )
   INTEGER,                 ALLOCATABLE :: CollectionLevelInd   (:,:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionHrRange    (:  )
 
   ! Objects
   TYPE(MetaHistContainer), POINTER     :: CollectionList
@@ -119,15 +119,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt
-    TYPE(ChmState),   INTENT(IN)  :: State_Chm
-    TYPE(DgnState),   INTENT(IN)  :: State_Diag
-    TYPE(GrdState),   INTENT(IN)  :: State_Grid
-    TYPE(MetState),   INTENT(IN)  :: State_Met
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Option object
+    TYPE(ChmState),   INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT) :: RC
+    INTEGER,          INTENT(OUT)   :: RC           ! Success or failure
 !
 ! !REMARKS:
 !  Calls internal routines History_ReadCollectionNames and
@@ -158,8 +161,8 @@ CONTAINS
     ! ("collection" = a netCDF file with a specific update frequency)
     !=======================================================================
     IF ( .not. Input_Opt%DryRun ) THEN
-       CALL History_ReadCollectionNames( Input_Opt,  State_Chm, &
-                                         State_Diag, State_Met, RC )
+       CALL History_ReadCollectionNames( Input_Opt,  State_Chm,             &
+                                         State_Diag, State_Met, RC         )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -345,17 +348,6 @@ CONTAINS
        CollectionTemplate = UNDEFINED_STR
     ENDIF
 
-    ! Allocate CollectionFormat
-    IF ( .not. ALLOCATED( CollectionFormat ) ) THEN
-       ALLOCATE( CollectionFormat( CollectionCount ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not allocate "CollectionFormat"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       CollectionFormat = UNDEFINED_STR
-    ENDIF
-
     ! Allocate CollectionFrequency
     IF ( .not. ALLOCATED( CollectionFrequency ) ) THEN
        ALLOCATE( CollectionFrequency( CollectionCount ), STAT=RC )
@@ -455,6 +447,17 @@ CONTAINS
        CollectionLevelInd = UNDEFINED_INT
     ENDIF
 
+    ! Allocate CollectionHrRange
+    IF ( .not. ALLOCATED( CollectionHrRange ) ) THEN
+       ALLOCATE( CollectionHrRange( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not allocate "CollectionHrRange"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionHrRange = UNDEFINED_STR
+    ENDIF
+
   END SUBROUTINE History_ReadCollectionNames
 !EOC
 !------------------------------------------------------------------------------
@@ -498,7 +501,7 @@ CONTAINS
 !
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt    ! Input Options object
     TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
-    TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnostic State object
+    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag   ! Diagnostic State object
     TYPE(GrdState),   INTENT(IN)  :: State_Grid   ! Grid State Object object
     TYPE(MetState),   INTENT(IN)  :: State_Met    ! Meteorology State object
 !
@@ -867,13 +870,6 @@ CONTAINS
           IF ( C > 0 ) CollectionTemplate(C) = Metadata
        ENDIF
 
-       ! "format": Specifies the file output format (e.g. netCDF-4, CFIO)
-       Pattern = 'format'
-       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
-          IF ( C > 0 ) CollectionFormat(C) = Metadata
-       ENDIF
-
        ! "frequency": Specifies how often diagnostics are updated,
        ! Must be either in "YYYYMMDD hhmmss" or "hhmmss" format.
        Pattern = 'frequency'
@@ -1126,6 +1122,34 @@ CONTAINS
              CollectionLevelInd(2,C) = MAXVAL( Levels(1:nSubs2) )
           ENDIF
        ENDIF
+
+       ! "hrrange": Specifies an hour range for the satellite
+       ! diagnostic. The required order is: hrMin, hrMax
+       Pattern = 'hrrange'
+       Subset  =  UNDEFINED_DBL
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+
+          ! First split the line by colon
+          CALL StrSplit( Line, ":", Subs1, nSubs1 )
+
+          ! Split by spaces and convert to FLOAT:
+          CALL StrSplit( Subs1(2), " ", Subs2, nSubs2 )
+          IF ( nSubs2 == 2 ) THEN
+             DO N = 1, nSubs2
+                READ( Subs2(N), '(f6.0)' ) Subset(N)
+             ENDDO
+          ELSE
+             ErrMsg = 'Subsets must be specified as: hrmin, hrmax!'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! Assign hour range to State_Diag:
+          State_Diag%SatDiagn_StartHr = Subset(1)
+          State_Diag%SatDiagn_EndHr   = Subset(2)
+             
+       ENDIF       
 
        !====================================================================
        ! NOTE: We assume FIELDS is the last metadata tag for the
@@ -1461,7 +1485,7 @@ CONTAINS
                                      Conventions    = 'COARDS',              &
                                      FileName       = CollectionFileName(C), &
                                      FileTemplate   = CollectionTemplate(C), &
-                                     NcFormat       = CollectionFormat(C),   &
+                                     NcFormat       = 'NetCDF-4',            &
                                      Reference      = Reference,             &
                                      Title          = Title,                 &
                                      Contact        = Contact,               &
@@ -1631,7 +1655,7 @@ CONTAINS
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
 
-                  ! Create the a HISTORY ITEM object for this diagnostic
+                   ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
                    CALL History_AddItemToCollection(                         &
                             Input_Opt    = Input_Opt,                        &
@@ -1770,7 +1794,6 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-
     ENDDO
 
     !=======================================================================
@@ -1796,12 +1819,13 @@ CONTAINS
        DO C = 1, CollectionCount
           print*, 'Collection        ', TRIM( CollectionName       (C) )
           print*, '  -> FileName     ', TRIM( CollectionFileName   (C) )
-          print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
           IF ( CollectionAccInterval(C) /= UNDEFINED_STR ) THEN
              print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
           ENDIF
+          IF ( CollectionDuration(C) /= UNDEFINED_STR ) THEN
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
+          ENDIF
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
           IF ( CollectionLonRange(C) /= UNDEFINED_STR ) THEN
              print*, '  -> LON_RANGE    ',                                   &
@@ -1817,6 +1841,9 @@ CONTAINS
              print*, '  -> Levels    ' , TRIM( CollectionLevels(C) )
              print*, '     -> Z0 Z1  ', ((CollectionLevelInd(N,C)), N=1,2)
           ENDIF
+          IF ( CollectionHrRange(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> hrrange  ' , TRIM( CollectionHrRange(C) )
+          ENDIF
 
           ! Trap error if the collection frequency is undefined
           ! This indicates an error in parsing the file
@@ -1830,7 +1857,7 @@ CONTAINS
        ENDDO
     ENDIF
 
-    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        ! Print information about each diagnostic collection
        CALL MetaHistContainer_Print( Input_Opt, CollectionList, RC )
     ENDIF
@@ -2345,6 +2372,10 @@ CONTAINS
     ! Increment number of HISTORY ITEMS in this collection
     Collection%nHistItems = Collection%nHistItems + 1
 
+    ! Free Item (we have added it to the container and don't need it anymore)
+    DEALLOCATE( Item )
+    Item => NULL()
+
     ! Free pointers
     Ptr0d   => NULL()
     Ptr0d_8 => NULL()
@@ -2474,7 +2505,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Update( Input_Opt, RC )
+  SUBROUTINE History_Update( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2484,6 +2515,7 @@ CONTAINS
     USE HistContainer_Mod,     ONLY : HistContainer_UpdateIvalSet
     USE History_Util_Mod
     USE Input_Opt_Mod,         ONLY : OptInput
+    USE State_Diag_Mod,        ONLY : DgnState
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
     USE Registry_Params_Mod
@@ -2491,6 +2523,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(DgnState), INTENT(IN)    :: State_Diag     ! Diagnostics state obj
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2570,7 +2603,7 @@ CONTAINS
        ENDIF
 
        ! Debug output
-       IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE( 6, 100 ) Container%Name
  100      FORMAT( '     - Updating collection: ', a20 )
        ENDIF
@@ -2737,7 +2770,7 @@ CONTAINS
 
 ! Uncomment more detailed debug output if you need it!
 !          ! Debug output
-!          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+!          IF ( Input_Opt%Verbose ) THEN
 !             WRITE( 6, 110 ) TRIM(Container%Name),                        &
 !                             TRIM(Item%Name),       Item%nUpdates
 ! 110         FORMAT( a20, 1x, a20, 1x, f7.1 )
@@ -2799,16 +2832,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Write( Input_Opt, Spc_Units, State_Diag, State_Chm, RC )
+  SUBROUTINE History_Write( Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
+    USE Charpak_Mod,           ONLY : To_UpperCase
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod,          ONLY : HistItem
     USE History_Netcdf_Mod
     USE History_Util_Mod
     USE Input_Opt_Mod,         ONLY : OptInput
+    USE State_Diag_Mod,        ONLY : DgnState
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
     USE PhysConstants,         ONLY : AIRMW
@@ -2819,9 +2854,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnsotics State object
-    CHARACTER(LEN=*), INTENT(IN)  :: Spc_Units   ! Units of SC%Species array
-    TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),   INTENT(IN)  :: State_Diag  ! Diagnsotics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2843,12 +2877,16 @@ CONTAINS
     ! Scalars
     LOGICAL                          :: DoClose
     LOGICAL                          :: DoWrite
+    LOGICAL                          :: isBndCond
+    LOGICAL                          :: isRestart
     INTEGER                          :: S, N
+
 
     ! Strings
     CHARACTER(LEN=20)                :: TmpUnits
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
+    CHARACTER(LEN=255)               :: cName
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -2881,12 +2919,17 @@ CONTAINS
        ! Point to the HISTORY CONTAINER object in this COLLECTION
        Container => Collection%Container
 
+       ! Identify the BoundaryConditions and Restart collectiond
+       cName     = To_UpperCase( TRIM( Container%Name ) )
+       isBndCond = ( TRIM( cName ) == 'BOUNDARYCONDITIONS' )
+       isRestart = ( TRIM( cName ) == 'RESTART'            )
+
        ! Force define write alarm for creating and saving boundary
        ! conditions to ensure first file of the simulation has the
        ! correct file name and number of entries.
-       IF ( Container%ElapsedSec .eq. 0.0 ) THEN
-          IF ( TRIM(Container%Name) .eq. 'BoundaryConditions' ) THEN
-             Container%FileWriteAlarm = 0.0
+       IF ( Container%ElapsedSec < EPS ) THEN
+          IF ( isBndCond ) THEN
+             Container%FileWriteAlarm = 0.0_fp
           ELSE
              RETURN
           ENDIF
@@ -2925,7 +2968,7 @@ CONTAINS
           mapData => NULL()
 
           ! Update each HISTORY ITEM from its data source
-          CALL History_Update( Input_Opt, RC )
+          CALL History_Update( Input_Opt, State_Diag, RC )
 
        ENDIF
           
@@ -2939,7 +2982,7 @@ CONTAINS
           ! Save the units of State_Chm%Species(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
-          TmpUnits            = Spc_Units
+          TmpUnits            = State_Chm%Spc_Units
           Container%Spc_Units = TmpUnits
 
           !-----------------------------------------------------------------
@@ -2961,9 +3004,9 @@ CONTAINS
           ! Defines each variable, saves global attributes, and writes
           ! the index variable data to the file.
           !-----------------------------------------------------------------
-          CALL History_Netcdf_Define( Input_Opt = Input_Opt,                &
-                                      Container = Container,                &
-                                         RC = RC  )
+          CALL History_Netcdf_Define( Input_Opt  = Input_Opt,                &
+                                      Container  = Container,                &
+                                      RC         = RC                       )
 
           ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
@@ -2998,9 +3041,10 @@ CONTAINS
           !-----------------------------------------------------------------
           ! Write the HISTORY ITEMS for this collection to the netCDF file.
           !-----------------------------------------------------------------
-          CALL History_Netcdf_Write( Input_Opt = Input_Opt,                  &
-                                     Container = Container,                  &
-                                     RC        = RC                         )
+          CALL History_Netcdf_Write( Input_Opt  = Input_Opt,                 &
+                                     State_Diag = State_Diag,                &
+                                     Container  = Container,                 &
+                                     RC         = RC                         )
 
           ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
@@ -3023,6 +3067,22 @@ CONTAINS
           Container%FileWriteAlarm = Container%FileWriteAlarm                &
                                    + Container%FileWriteIvalSec
 
+          !-----------------------------------------------------------------
+          ! SPECIAL HANDLING FOR RESTART COLLECTION
+          ! Make sure to close the restart file after writing, to avoid
+          ! incompletly-flushed files.  Need to implement a more general
+          ! way of doing this for other types of collections later.
+          !  -- Bob Yantosca (17 Nov 2022)
+          !-----------------------------------------------------------------
+          IF ( isRestart ) THEN
+             CALL History_Netcdf_Close( Container = Container,               &
+                                        RC        = RC                      )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
        ENDIF
 
        ! Skip to the next collection
@@ -3333,15 +3393,6 @@ CONTAINS
         ENDIF
      ENDIF
 
-     IF ( ALLOCATED( CollectionFormat ) ) THEN
-        DEALLOCATE( CollectionFormat, STAT=RC )
-        IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Could not deallocate "CollectionFormat"!'
-           CALL GC_Error( ErrMsg, RC, ThisLoc )
-           RETURN
-        ENDIF
-     ENDIF
-
      IF ( ALLOCATED( CollectionFrequency ) ) THEN
         DEALLOCATE( CollectionFrequency, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
@@ -3418,6 +3469,15 @@ CONTAINS
         DEALLOCATE( CollectionLevelInd, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not deallocate "CollectionLevelInd"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionHrRange ) ) THEN
+        DEALLOCATE( CollectionHrRange, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionHrRange"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF

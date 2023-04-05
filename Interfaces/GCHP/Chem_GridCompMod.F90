@@ -144,6 +144,7 @@ MODULE Chem_GridCompMod
 
   ! When to do the analysis
   INTEGER                          :: ANAPHASE
+  INTEGER, PARAMETER               :: CHEMPHASE = 2
 #endif
 
   ! Number of run phases, 1 or 2. Set in the rc file; else default is 2.
@@ -164,6 +165,7 @@ MODULE Chem_GridCompMod
   ! This option can be used to initialize a simulation using a restart file
   ! from a 'GEOS-Chem classic' CTM simulation.
   LOGICAL                          :: InitFromFile
+  LOGICAL                          :: SkipReplayGCC
 #endif
 
   ! Pointers to import, export and internal state data. Declare them as
@@ -236,6 +238,7 @@ CONTAINS
     USE GEOS_Interface,       ONLY : MetVars_For_Lightning_Init, &
                                      GEOS_CheckRATSandOx 
     USE GEOS_AeroCoupler,     ONLY : GEOS_AeroSetServices
+    USE GEOS_CarbonInterface, ONLY : GEOS_CarbonSetServices
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -279,7 +282,7 @@ CONTAINS
     LOGICAL                       :: EOF
     CHARACTER(LEN=60)             :: landTypeStr, importName, simType
     CHARACTER(LEN=ESMF_MAXPATHLEN):: rstFile
-    INTEGER                       :: restartAttr
+    INTEGER                       :: SpcRestartAttr
     CHARACTER(LEN=ESMF_MAXSTR)    :: HistoryConfigFile ! HISTORY config file
     INTEGER                       :: T
 
@@ -287,19 +290,19 @@ CONTAINS
     TYPE(MAPL_MetaComp),  POINTER :: STATE => NULL()
 #endif
 
+    INTEGER                       :: DoIt
+
 #if defined( MODEL_GEOS )
     CHARACTER(LEN=ESMF_MAXSTR)    :: LongName      ! Long name for diagnostics
     CHARACTER(LEN=ESMF_MAXSTR)    :: ShortName
     CHARACTER(LEN=255)            :: MYFRIENDLIES
     CHARACTER(LEN=127)            :: FullName
-    INTEGER                       :: DoIt
     LOGICAL                       :: FriendMoist, SpcInRestart, ReduceSpc
     CHARACTER(LEN=40)             :: SpcsBlacklist(255)
     INTEGER                       :: nBlacklist
     CHARACTER(LEN=ESMF_MAXSTR)    :: Blacklist
 #endif
 #ifdef ADJOINT
-    INTEGER                       :: restartAttrAdjoint
     LOGICAL                       :: useCFMaskFile
 #endif
 
@@ -377,7 +380,8 @@ CONTAINS
     _VERIFY(STATUS)
 
 #if defined(MODEL_GEOS)
-    CALL GEOS_AeroSetServices( GC, DoAERO, __RC__ )
+    CALL GEOS_AeroSetServices  ( GC, DoAERO, __RC__ )
+    CALL GEOS_CarbonSetServices( GC, myState%myCF, __RC__ )
 #endif
 
     !=======================================================================
@@ -447,29 +451,33 @@ CONTAINS
 #   include "GCHPchem_InternalSpec___.h"
 #endif
 
-#if !defined( MODEL_GEOS )
-    ! Determine if using a restart file for the internal state. Setting
-    ! the GCHPchem_INTERNAL_RESTART_FILE to +none in GCHP.rc indicates
-    ! skipping the restart file. Species concentrations will be retrieved
-    ! from the species database, overwriting MAPL-assigned default values.
-    CALL ESMF_ConfigGetAttribute( myState%myCF, rstFile, &
-                                  Label = "GCHPchem_INTERNAL_RESTART_FILE:",&
-                                  __RC__ )
-    IF ( TRIM(rstFile) == '+none' ) THEN
-       restartAttr = MAPL_RestartSkipInitial ! file does not exist;
-                                             ! use background values
+!------ Species in restart file ------
+
+#if defined( MODEL_GEOS )
+    ! Determine if non-advected species shall be included in restart file
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Shortlived_species_in_restart:", &
+                                  Default = 1, __RC__ )
+    IF ( DoIt==1 ) THEN
+       SpcRestartAttr  = MAPL_RestartOptional
+       SpcInRestart = .TRUE.
     ELSE
-       restartAttr = MAPL_RestartOptional    ! try to read species from file;
-                                             ! use background vals if not found
+       SpcRestartAttr  = MAPL_RestartSkip
+       SpcInRestart = .FALSE.
     ENDIF
-#ifdef ADJOINT
-    restartAttrAdjoint = MAPL_RestartSkip
-#endif
+#else
+    ! Determine if all species (SPC_*) are required in initial restart file
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "INITIAL_RESTART_SPECIES_REQUIRED:", &
+                                  Default = 1, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       SpcRestartAttr  = MAPL_RestartRequired
+    ELSE
+       SpcRestartAttr  = MAPL_RestartOptional
+    ENDIF
 #endif
 
 !-- Read in species from geoschem_config.yml and set FRIENDLYTO
-    ! ewl TODO: This works but is not ideal. Look into how to remove it.
-
 #if defined( MODEL_GEOS )
     ! Check if species are friendly to moist
     CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
@@ -479,17 +487,6 @@ CONTAINS
     FriendMoist = (DoIt==1)
     IF ( MAPL_am_I_Root() ) THEN
        WRITE(*,*) 'GCC species friendly to MOIST: ',FriendMoist
-    ENDIF
-    ! Determine if non-advected species shall be included in restart file
-    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
-                                  Label = "Shortlived_species_in_restart:", &
-                                  Default = 1, __RC__ )
-    IF ( DoIt==1 ) THEN
-       restartAttr  = MAPL_RestartOptional
-       SpcInRestart = .TRUE.
-    ELSE
-       restartAttr  = MAPL_RestartSkip
-       SpcInRestart = .FALSE.
     ENDIF
     ! Check if we want to use a reduced set of species for transport
     SpcsBlacklist(:) = ''
@@ -540,7 +537,8 @@ CONTAINS
     DO WHILE ( LEN_TRIM( line ) > 0 )
        READ( IU_GEOS, '(a)', IOSTAT=IOS ) LINE
        EOF = IOS < 0
-       IF ( EOF ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
+       IF ( EOF ) EXIT !Simply exit when the file ends (bmy, 12 Jan 2023)
+       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:3' )
        LINE = ADJUSTL( ADJUSTR( LINE ) )
        IF ( INDEX( LINE, 'passive_species' ) > 0 ) EXIT
        CALL STRSPLIT( LINE, '-', SUBSTRS, N )
@@ -601,7 +599,7 @@ CONTAINS
                VLOCATION       = MAPL_VLocationCenter,                      &
                PRECISION       = ESMF_KIND_R8,                              &
                FRIENDLYTO      = 'DYNAMICS:TURBULENCE:MOIST',               &
-               RESTART         = restartAttr,                               &
+               RESTART         = SpcRestartAttr,                               &
                RC              = RC                                       )
 
           ! Add to list of transported speces
@@ -621,16 +619,19 @@ CONTAINS
                VLOCATION       = MAPL_VLocationCenter,                      &
                PRECISION       = ESMF_KIND_R8,                              &
                FRIENDLYTO      = 'DYNAMICS:TURBULENCE:MOIST',               &
-               RESTART         = restartAttrAdjoint,                        &
+               RESTART         = MAPL_RestartSkip,                          &
                RC              = RC                                        )
 #endif
        ENDIF
     ENDDO
     CLOSE( IU_GEOS )
 
-!-- Add all additional species in KPP (careful not to add dummy species)
-    ! Hg is now a KPP specialty simulation, so we need to get KPP species
-    IF ( TRIM( simType ) == 'fullchem' .or. TRIM( simType ) == 'Hg' ) THEN
+!-- Add all non-advected species from KPP-based simulations
+!-- (but don't add dummy species).  KPP-based simulations now
+!-- include fullchem, Hg, and carbon.
+    IF ( TRIM( simType ) == 'fullchem'      .or.                            &
+         TRIM( simType ) == 'Hg'            .or.                            &
+         TRIM( simType ) == 'carbon' ) THEN
        DO I=1,NSPEC
           FOUND = .false.
 
@@ -681,7 +682,7 @@ CONTAINS
                !!!PRECISION       = ESMF_KIND_R8,                            &
                   DIMS            = MAPL_DimsHorzVert,                       &
                   FRIENDLYTO      = COMP_NAME,                               &
-                  RESTART         = restartAttr,                             &
+                  RESTART         = SpcRestartAttr,                          &
                   VLOCATION       = MAPL_VLocationCenter,                    &
                                    __RC__                                   )
              ! verbose
@@ -696,7 +697,7 @@ CONTAINS
                   PRECISION       = ESMF_KIND_R8,                            &
                   DIMS            = MAPL_DimsHorzVert,                       &
                   VLOCATION       = MAPL_VLocationCenter,                    &
-                  RESTART         = restartAttr,                             &
+                  RESTART         = SpcRestartAttr,                          &
                   RC              = STATUS                                  )
 #ifdef ADJOINT
              !%%%% GEOS-Chem in GCHP ADJOINT %%%%
@@ -710,7 +711,7 @@ CONTAINS
                   PRECISION       = ESMF_KIND_R8,                            &
                   DIMS            = MAPL_DimsHorzVert,                       &
                   VLOCATION       = MAPL_VLocationCenter,                    &
-                  RESTART         = restartAttrAdjoint,                      &
+                  RESTART         = MAPL_RestartSkip,                        &
                   RC              = STATUS                                  )
 #endif
 #endif
@@ -1030,8 +1031,9 @@ CONTAINS
     USE TIME_MOD,  ONLY : GET_TS_DYN,  GET_TS_CONV
     USE TIME_MOD,  ONLY : GET_TS_RAD
 #if defined( MODEL_GEOS )
-    USE GEOS_INTERFACE,   ONLY : GEOS_AddSpecInfoForMoist
-    USE GEOS_AeroCoupler, ONLY : GEOS_AeroInit
+    USE GEOS_INTERFACE,       ONLY : GEOS_AddSpecInfoForMoist
+    USE GEOS_AeroCoupler,     ONLY : GEOS_AeroInit
+    USE GEOS_CarbonInterface, ONLY : GEOS_CarbonInit
 !    USE TENDENCIES_MOD, ONLY : Tend_CreateClass
 !    USE TENDENCIES_MOD, ONLY : Tend_Add
 #endif
@@ -1356,6 +1358,7 @@ CONTAINS
                           nhmsE     = nhmsE,      & ! hhmmss   @ end of run
                           tsChem    = tsChem,     & ! Chemical timestep [s]
                           tsDyn     = tsDyn,      & ! Dynamic  timestep [s]
+                          tsRad     = tsRad,      & ! RRTMG    timestep [s]
                           lonCtr    = lonCtr,     & ! Lon centers [radians]
                           latCtr    = latCtr,     & ! Lat centers [radians]
 #if !defined( MODEL_GEOS )
@@ -1415,11 +1418,6 @@ CONTAINS
 
        ! Get tracer ID
        Int2Spc(I)%ID = IND_( TRIM(Int2Spc(I)%Name) )
-
-       ! testing only
-       !if(MAPL_am_I_Root())then
-       ! write(*,*) 'Int2Spc setup: ',I,TRIM(SpcInfo%Name),Int2Spc(I)%ID,SpcInfo%ModelID
-       !endif
 
        ! If tracer ID is not valid, make sure all vars are at least defined.
        IF ( Int2Spc(I)%ID <= 0 ) THEN
@@ -1714,6 +1712,11 @@ CONTAINS
                                   Default = 0, __RC__ )
     InitFromFile = ( DoIt == 1 )
 
+    ! Skip GCC during replay predictor step
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label = "SkipReplayGCC:", &
+                                  Default = 0, __RC__ )
+    SkipReplayGCC = ( DoIt == 1 )
+
     ! Always set stratospheric H2O
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, &
           Label="Prescribe_strat_H2O:", Default=0, __RC__ )
@@ -1744,6 +1747,9 @@ CONTAINS
     ! Add Henry law constants and scavenging coefficients to internal state.
     ! These are needed by MOIST for wet scavenging (if this is enabled).
     CALL GEOS_AddSpecInfoForMoist ( am_I_Root, GC, GeosCF, Input_Opt, State_Chm, __RC__ )
+
+    ! Initialize carbon coupling / CO production from CO2 photolysis (if used) 
+    CALL GEOS_CarbonInit( GC, GeosCF, State_Chm, State_Grid, __RC__ ) 
 
     !=======================================================================
     ! All done
@@ -1943,6 +1949,8 @@ CONTAINS
                                         GEOS_RATSandOxDiags,       &
                                         GEOS_PreRunChecks
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
+    USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonGetConc,        &
+                                        GEOS_CarbonRunPhoto
 #endif
 
 !
@@ -2055,6 +2063,10 @@ CONTAINS
     INTEGER, SAVE                :: phms = 0         ! previous time
     INTEGER, SAVE                :: nnRewind = 0
 
+    ! For skipping GCC during predictor step                                                  
+    TYPE(ESMF_Alarm)             :: PredictorAlarm  ! skip GCC during replay
+    LOGICAL                      :: PredictorActive ! skip GCC during replay
+
 #else
     ! GCHP only local variables
     INTEGER                      :: trcID, RST
@@ -2064,7 +2076,6 @@ CONTAINS
     TYPE(ESMF_FieldBundle)       :: trcBUNDLE
     REAL              , POINTER  :: fPtrArray(:,:,:)
     REAL(ESMF_KIND_R8), POINTER  :: fPtrVal, fPtr1D(:)
-    INTEGER                      :: IMAXLOC(1)
     INTEGER                      :: z_lb, z_ub
 
 #endif
@@ -2176,6 +2187,24 @@ CONTAINS
     IF ( Input_Opt%LCONV .AND. Phase /= 2 ) IsRunTime = .TRUE.
     IF ( Input_Opt%LTURB .AND. Phase /= 1 ) IsRunTime = .TRUE.
     IF ( Input_Opt%LWETD .AND. Phase /= 1 ) IsRunTime = .TRUE.
+
+    !=======================================================================
+    ! Skip GCC during replay, predictor step (posturm and cakelle2)
+    !=======================================================================
+#if defined( MODEL_GEOS )
+    IF ( SkipReplayGCC ) THEN
+       CALL ESMF_ClockGetAlarm(CLOCK, "PredictorActive", PredictorAlarm, RC=STATUS)
+       VERIFY_(STATUS)
+
+       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, RC=STATUS )
+       VERIFY_(STATUS)
+
+       IF ( PredictorActive ) THEN
+          IsRunTime = .FALSE.
+          IF ( am_I_root ) write(*,*) '  --- Skipping GCC during Predictor Step '
+       END IF
+    END IF
+#endif
 
 #ifdef ADJOINT
     if (Input_Opt%is_adjoint .and. first) THEN
@@ -2300,6 +2329,26 @@ CONTAINS
 #if !defined( MODEL_GEOS )
        ! MSL - shift from 0 - 360 to -180 - 180 degree grid
        where (lonCtr .gt. MAPL_PI ) lonCtr = lonCtr - 2*MAPL_PI
+#endif
+
+#if defined( MODEL_GEOS )
+       ! Check if this time is before the datetime of the prev timestep, e.g.
+       ! if this is after a clock rewind
+       AFTERREWIND = .FALSE.
+       FIRSTREWIND = .FALSE.
+       IF ( nymd < pymd ) THEN
+          AFTERREWIND = .TRUE.
+       ELSEIF ( (nymd == pymd) .AND. (nhms < phms) ) THEN
+          AFTERREWIND = .TRUE.
+       ENDIF
+
+       ! If this is after a rewind, check if it's the first rewind. In this
+       ! case, we need to re-do some first-time assignments to make sure that
+       ! we reset all variables to the initial state!
+       IF ( AFTERREWIND ) THEN
+          nnRewind = nnRewind + 1
+          IF ( nnRewind == 1 ) FIRSTREWIND = .TRUE.
+       ENDIF
 #endif
 
        ! Pass grid area [m2] obtained from dynamics component to State_Grid
@@ -2556,6 +2605,13 @@ CONTAINS
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
              State_Met=State_Met, State_Grid=State_Grid, __RC__ )
 
+       ! Import CO2 concentrations from external field (e.g., GOCART)
+       ! Note: comment out for now and call this below immediately before doing
+       ! CO2 photolysis. Reason for this is that CO2 is currently hardcoded to 
+       ! 0.0 in fullchem to match the old SMVGEAR code (??)
+!       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+!                                State_Met, State_Diag, State_Grid, __RC__ )
+
        ! Eventually initialize species concentrations from external field.
        IsFirst = ( FIRST .OR. FIRSTREWIND )
        IF ( InitFromFile ) THEN
@@ -2790,6 +2846,19 @@ CONTAINS
        !=======================================================================
        ! GEOS post-run procedures
        !=======================================================================
+
+       ! Import CO2 concentrations from external field (e.g., GOCART)
+       ! Note: this call should be moved to the beginning of the routine once
+       ! CO2 is not hardcoded to 0.0 anymore (in fullchem)
+       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+                                State_Met, State_Diag, State_Grid, __RC__ )
+
+       IF ( PHASE == CHEMPHASE ) THEN
+          ! CO production from CO2 photolysis, using StratChem code
+          CALL GEOS_CarbonRunPhoto( Input_Opt,  State_Chm,  State_Met, &
+                                    State_Diag, State_Grid, __RC__      )
+       ENDIF
+
        IF ( PHASE == ANAPHASE ) THEN
           ! Call GEOS analysis routine
           CALL GEOS_AnaRun( GC, Import, INTSTATE, Export, Clock, &
