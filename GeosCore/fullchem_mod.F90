@@ -321,12 +321,7 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! Zero out certain species:
-    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
-    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
-    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
-    !      (dkh, 10/06/06)
-    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    ! Zero out certain species
     !========================================================================
     DO N = 1, State_Chm%nSpecies
 
@@ -346,6 +341,12 @@ CONTAINS
                     'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
                 State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
           END SELECT
+       ENDIF
+
+       ! Sulfate gas/cloud prod diagnostic species
+       IF ( TRIM( SpcInfo%Name ) == 'PH2SO4' .or. &
+            TRIM( SpcInfo%Name ) == 'PSO4AQ' ) THEN
+          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
        ! Temporary fix for CO2
@@ -754,9 +755,6 @@ CONTAINS
           C(N)  = 0.0_dp
           IF ( SpcId > 0 ) C(N) = State_Chm%Species(SpcID)%Conc(I,J,L)
        ENDDO
-
-       C(ind_PH2SO4) = 0.0e+0_fp  !for sulfate gas   prod diag, BC,12/20/22
-       C(ind_PSO4AQ) = 0.0e+0_fp  !for sulfate cloud prod diag, BC 12/20/22
 
        !=====================================================================
        ! Start KPP main timer
@@ -1596,8 +1594,11 @@ CONTAINS
        ! aerosol by TOMAS subroutine AQOXID.
        !-----------------------------------------------------------------
 
-       CALL TOMAS_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMSULFATE: a TOMAS_SO4_AQ' )
+       CALL TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
+                          State_Met, State_Diag, RC )
+       IF ( Input_Opt%Verbose ) THEN
+          CALL DEBUG_MSG( '### CHEMSULFATE: a TOMAS_SO4_AQ' )
+       ENDIF
 #endif
 
     !=======================================================================
@@ -1716,7 +1717,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE TOMAS_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
+                           State_Met, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1726,6 +1728,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN,PSO4AQ_RATE
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
@@ -1738,6 +1741,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1819,7 +1823,7 @@ CONTAINS
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
           CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, RC )
+                       State_Chm, State_Grid, State_Met, State_Diag, RC )
        ENDIF
     ENDDO
     ENDDO
