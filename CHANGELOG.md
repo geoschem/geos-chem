@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed GCHP ExtData.rc error in tagged ozone simulation
 - Fixed GCHP HISTORY.rc issue preventing diagnostic file overwrite
 - Update GCHP interactive run script to fix error handling silent bugs
+- Removed operator splitting in CH4 simulation that was biasing diagnostics
 
 ## [14.1.1] - 2023-03-03
 ### Added
