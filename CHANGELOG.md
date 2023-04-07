@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Activated nitrate photolysis
 - Added LightingClimatology option to HEMCO_Config.rc
 - Added run configuration files for WRF-GC
+- Added new files photolysis_mod.F90, phot_container_mod.F90, and fjx_interface_mod.F90
+- Added photolysis toggle in geoschem_config.yml and Input_Opt variable Do_Photolysis
+- Added speed of light and Planck's constant to PhysConstants module
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
@@ -28,12 +31,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Write GCHP restart files directory to Restarts subdirectory
 - Rename GCHP mid-run checkpoint files to standard GEOS-Chem restart format
 - Rules for species in restarts files are now the same in GCHP as in GC-Classic
+- Moved parts of CMN_FJX_Mod.F90 not used in original Fast-JX to new container State_Chm%Phot
+- Restructured photolysis to create generic photolysis module, interface with Fast-JX, and module containing original Fast-JX analogous to Cloud-J
+- Moved UVFlux diagnostics out of JValues collection and into new collection called UVFlux
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
 - Removed the `NcdfUtil/perl` folder
 - Removed `X-HRS` output from log file
 - IONO2 recycling (fullchem, custom mechanisms)
+- Deleted unused file set_prof_o3.F90
 
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory

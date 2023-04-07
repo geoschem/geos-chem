@@ -2930,9 +2930,24 @@ CONTAINS
     thisLoc = ' -> at Config_Photolysis (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Directory with photolysis input files
+    ! Turn on photolysis
     !------------------------------------------------------------------------
-    key   = "operations%photolysis%input_dir"
+
+    key    = "operations%photolysis%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Directories with photolysis input files
+    !------------------------------------------------------------------------
+
+    key   = "operations%photolysis%input_directories%fastjx_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3124,6 +3139,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
+       WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3

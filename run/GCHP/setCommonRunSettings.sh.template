@@ -90,6 +90,7 @@ Diag_Collections=(SpeciesConc    \
                   StateMet       \
                   StratBM        \
                   Transport	 \
+                  UVFlux         \
                   WetLossConv    \
                   WetLossLS      \
 )

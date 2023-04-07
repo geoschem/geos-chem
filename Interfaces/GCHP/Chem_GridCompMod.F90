@@ -230,7 +230,6 @@ CONTAINS
     USE inquireMod,           ONLY : findFreeLUN
     USE FILE_MOD,             ONLY : IOERROR
 #if defined( MODEL_GEOS )
-    USE CMN_FJX_MOD
     USE GCKPP_Monitor
     USE GCKPP_Parameters
     USE Precision_Mod
