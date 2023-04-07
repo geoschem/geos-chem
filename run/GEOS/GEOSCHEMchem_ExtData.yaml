@@ -266,7 +266,8 @@ Collections:
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
   GCC_CMAM_CO:
-    template: /discover/nobackup/projects/gmao/geos_cf_dev/pawales/CFv2_spinup/CFv2_spinup_c90_CO2phot/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.01hPa.1979_2010.nc
+    #template: /discover/nobackup/projects/gmao/geos_cf_dev/pawales/CFv2_spinup/CFv2_spinup_c90_CO2phot/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.01hPa.1979_2010.nc
+    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CMAM/v0.0.0/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.015hPa.1979_2010.nc
 
 Exports:
   ACET_SEAWATER:
