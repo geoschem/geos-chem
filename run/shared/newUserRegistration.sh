@@ -73,9 +73,10 @@ function registerNewUser() {
     # Ask user several questions
     printf "\nInitiating User Registration:\n"
     printf "You will only need to fill this information out once.\n"
-    printf "Please respond to all questions.\n"
+    printf "Please respond to all questions.  Registration is required \n"
+    printf "in order to receive GEOS-Chem support.\n"
 
-    printf "${thinline}What is your name?${thinline}"
+    printf "${thinline}What is your name (first and last)?${thinline}"
     name=$(userInput)
 
     # Ask for email
