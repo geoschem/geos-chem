@@ -59,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed GCHP HISTORY.rc issue preventing diagnostic file overwrite
 - Update GCHP interactive run script to fix error handling silent bugs
 - Rewrote subroutine calls in `carbon_mod.F90` and `seasalt_mod.F90` to prevent array temporaries.
+- Prevent repeated printing of KPP integrate errors to the stdout stream.
 
 ## [14.1.1] - 2023-03-03
 ### Added

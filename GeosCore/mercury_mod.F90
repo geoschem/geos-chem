@@ -972,6 +972,9 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Skip to the end of the loop if we have failed integration twice
+       IF ( Failed2x ) CYCLE
+
        !====================================================================
        ! For safety sake, initialize certain variables for each grid
        ! box (I,J,L), whether or not chemistry will be done there.
@@ -1160,8 +1163,11 @@ CONTAINS
           ! Exit upon the second failure
           !------------------------------------------------------------------
           IF ( IERR < 0 ) THEN
+
+             ! Print error message
              WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
+
 #ifdef MODEL_GEOS
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
@@ -1173,29 +1179,37 @@ CONTAINS
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             ! Make sure only one thread at a time executes this block
+             !$OMP CRITICAL
+
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
-             !$OMP CRITICAL
              Failed2x = .TRUE.
 
              ! Print concentrations at trouble box KPP error
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Species concentrations at problem box ', I, J, L
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              DO N = 1, NSPEC
-                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
+                PRINT*, C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
              ENDDO
-
+             
              ! Print rate constants at trouble box KPP error
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Reaction rates at problem box ', I, J, L
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              DO N = 1, NREACT
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
+             !
              !$OMP END CRITICAL
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             ! Start skipping to end of loop upon 2 failures in a row
+             CYCLE
 #endif
           ENDIF
        ENDIF
