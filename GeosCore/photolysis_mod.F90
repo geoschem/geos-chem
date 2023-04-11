@@ -1022,15 +1022,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(IN) :: State_Chm
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN) :: RC
+    INTEGER,        INTENT(IN)    :: RC
 !
 ! !REMARKS:
 !  Now the user is able to select any 3 wavelengths for optics
