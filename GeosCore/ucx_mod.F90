@@ -437,13 +437,19 @@ CONTAINS
           RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
           ! 4:  NO2 + hv -> NO + O1D
           !RRATE(k_JNO2) = State_Chm%NOX_J(I,J,L,JNO2IDX)*DAYFRAC
-          RRATE(k_JNO2) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO2,I,J)
+          IF ( State_Chm%Phot%RXN_NO2 > 0 ) THEN
+             RRATE(k_JNO2) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO2,I,J)
+          ENDIF
           ! 5:  NO3 + hv -> NO2 + O
           !RRATE(k_JNO3) = State_Chm%NOX_J(I,J,L,JNO3IDX)*DAYFRAC
-          RRATE(k_JNO3) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO3,I,J)
+          IF ( State_Chm%Phot%RXN_NO3 > 0 ) THEN
+             RRATE(k_JNO3) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO3,I,J)
+          ENDIF
           ! 6:  NO + hv -> N + O
           !RRATE(k_JNO ) = State_Chm%NOX_J(I,J,L,JNOIDX)*DAYFRAC
-          RRATE(k_JNO) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO,I,J)
+          IF ( State_Chm%Phot%RXN_NO > 0 ) THEN
+             RRATE(k_JNO) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO,I,J)
+          ENDIF
           ! 7:  N + NO2 -> N2O + O
           RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
           ! 8:  N + NO -> N2 + O
@@ -456,7 +462,9 @@ CONTAINS
           RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
           ! 12:  N2O + hv -> N2 + O1D
           !RRATE(k_JN2O) = State_Chm%NOX_J(I,J,L,JN2OIDX)*DAYFRAC
-          RRATE(k_JN2O) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_N2O,I,J)
+          IF ( State_Chm%Phot%RXN_N2O > 0 ) THEN
+             RRATE(k_JN2O) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_N2O,I,J)
+          ENDIF
 
           ! Sanity check
           Where(RRate.lt.0.0e+0_fp) RRate = 0.0e+0_fp
@@ -3834,8 +3842,10 @@ CONTAINS
           LMINPHOT  = State_Met%ChemGridLev(I,J)
 
           ! Retrieve photolysis rate as a fraction of gaseous SO4
+          IF ( State_Chm%Phot%RXN_H2SO4 > 0 ) THEN
           PHOTDELTA = State_Chm%Phot%ZPJ(LMINPHOT,State_Chm%Phot%RXN_H2SO4,I,J)&
                       * DTCHEM
+          ENDIF
           PHOTDELTA = MIN(1.e+0_fp,PHOTDELTA)
 
           DO L=LMINPHOT+1,State_Grid%NZ
