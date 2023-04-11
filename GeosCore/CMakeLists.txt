@@ -45,6 +45,7 @@ add_library(GeosCore
   carbon_gases_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
+  cldj_interface_mod.F90
   cleanup.F90
   co2_mod.F90
   convection_mod.F90

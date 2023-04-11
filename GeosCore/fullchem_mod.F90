@@ -1829,7 +1829,11 @@ CONTAINS
           ! Print the status of photolysis: on or off
        IF ( Input_Opt%Do_Photolysis ) THEN
           WRITE( 6, 150 )
+#ifdef CLOUDJ
+ 150      FORMAT(  '* Photolysis is activated -- rates computed by Cloud-J' )
+#else
  150      FORMAT(  '* Photolysis is activated -- rates computed by FAST-JX' )
+#endif
        ELSE
           WRITE( 6, 160 )
  160      FORMAT(  '* Photolysis is off for testing -- using zero J-values'  )

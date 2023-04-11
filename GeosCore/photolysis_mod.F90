@@ -62,13 +62,21 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,    ONLY : CSTRIP
+#ifdef CLOUDJ
+    USE Cldj_Cmn_Mod,   ONLY : JVN_, W_, JLABEL, RNAMES, WL, JFACTA
+#else
     USE CMN_FJX_Mod,    ONLY : JVN_, W_, JLABEL, RNAMES, WL, JFACTA
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : Planck, CConst
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnState
+#ifdef CLOUDJ
+    USE Cldj_Interface_Mod, ONLY : Init_CloudJ
+#else
     USE Fjx_Interface_Mod,  ONLY : Init_FastJX
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -124,6 +132,20 @@ CONTAINS
     ! a list of all of the lookup tables etc read by Fast-JX
     !--------------------------------------------------------------------
     IF ( Input_Opt%Do_Photolysis ) THEN
+#ifdef CLOUDJ
+       IF ( TRIM(Input_Opt%CloudJ_Dir) == MISSING_STR ) THEN
+          ErrMsg = 'Init_Photolysis: Cloud-J directory missing in ' // &
+                   'geoschem_config.yml!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CALL Init_CloudJ( Input_Opt, State_Diag, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_CloudJ"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+#else
        IF ( TRIM(Input_Opt%Fast_JX_Dir) == MISSING_STR ) THEN
           ErrMsg = 'Init_Photolysis: Fast-JX directory missing in ' // &
                    'in geoschem_config.yml!'
@@ -136,8 +158,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+#endif
     ENDIF
 
+    
     !------------------------------------------------------------------------
     ! Read in AOD data even if photolysis disabled
     ! (or just print file name if in dry-run mode)
@@ -148,6 +172,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
     !------------------------------------------------------------------------
     ! Exit without doing any computations if we are doing a dry-run
@@ -505,7 +530,11 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+#ifdef CLOUDJ
+    USE Cldj_Interface_Mod, ONLY : Run_CloudJ
+#else
     USE Fjx_Interface_Mod,  ONLY : Run_FastJX
+#endif
 
     IMPLICIT NONE
 !
@@ -549,9 +578,20 @@ CONTAINS
     ThisLoc  = ' -> at DO_PHOTOLYSIS (in module GeosCore/photolysis_mod.F90)'
     WAVELENGTH = 0
 
+#ifdef CLOUDJ
+    CALL Run_CloudJ( Wavelength, Input_Opt, State_Chm, State_Diag, &
+                     State_Grid, State_Met, RC )
+#else
     CALL Run_FastJX( Wavelength, Input_Opt,  State_Chm, State_Diag, &
                      State_Grid, State_Met, RC )
+#endif
+
     IF ( RC /= GC_SUCCESS ) THEN
+#ifdef CloudJ
+       ErrMsg = 'Error encountered in subroutine Run_CloudJ!'
+#else
+       ErrMsg = 'Error encountered in subroutine Run_FastJX!'
+#endif
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -1316,7 +1356,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod, ONLY : AN_, NAA, TITLAA
+#ifdef CLOUDJ
+    USE Cldj_Cmn_Mod,   ONLY : AN_, NAA, TITLAA
+#else
+    USE CMN_FJX_Mod,    ONLY : AN_, NAA, TITLAA
+#endif
     USE CMN_SIZE_Mod,   ONLY : NRHAER, NRH
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -1393,7 +1437,11 @@ CONTAINS
     ENDDO
 
     ! Stratospheric aerosols - SSA/STS and solid PSCs
+#ifdef CLOUDJ
+    MIEDX(10+(NRHAER*NRH)+1) = 1  ! SSA/LBS/STS
+#else
     MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
+#endif
     MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 
     ! Ensure all 'AN_' types are valid selections

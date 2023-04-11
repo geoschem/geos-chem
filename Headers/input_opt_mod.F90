@@ -200,6 +200,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
+     CHARACTER(LEN=255)          :: CloudJ_Dir
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -713,6 +714,7 @@ CONTAINS
     !----------------------------------------
     Input_Opt%Do_Photolysis         = .FALSE.
     Input_Opt%FAST_JX_DIR           = ''
+    Input_Opt%CloudJ_Dir            = ''
 
     !----------------------------------------
     ! RADIATION MENU fields (for RRTMG only)

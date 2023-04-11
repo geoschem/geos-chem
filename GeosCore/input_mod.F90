@@ -2927,6 +2927,16 @@ CONTAINS
     ENDIF
     Input_Opt%FAST_JX_DIR = TRIM( v_str )
 
+    key   = "operations%photolysis%input_directories%cloudj_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CloudJ_DIR = TRIM( v_str )
+
     !------------------------------------------------------------------------
     ! Use online ozone in extinction calculations for FAST-JX?
     !------------------------------------------------------------------------
@@ -3112,6 +3122,8 @@ CONTAINS
        WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
+       WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
+                       TRIM( Input_Opt%CloudJ_Dir )
        WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
        WRITE( 6,100 ) 'Ozone from met for FAST-JX? : ',                      &
                        Input_Opt%USE_O3_FROM_MET
