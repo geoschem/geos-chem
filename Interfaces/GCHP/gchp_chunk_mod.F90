@@ -512,8 +512,10 @@ CONTAINS
     State_Chm%Spc_Units = 'v/v dry'
 #endif
 
-    ! Initialize photolysis
-    IF ( Input_Opt%Do_Photolysis ) THEN
+    ! Initialize photolysis, including reading files for optical properties
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  ) THEN
        CALL Init_Photolysis ( Input_Opt, State_Chm, State_Diag, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Init_Photolysis')
     ENDIF
