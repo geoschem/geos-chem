@@ -1588,9 +1588,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    print*, '### bmystop', failed2x
-    call exit(1)
-
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_TropNOxTau ) THEN
        WHERE (TROPv_NOx_mass > 0.0_f4 )
