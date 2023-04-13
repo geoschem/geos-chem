@@ -38,9 +38,6 @@ MODULE Chemistry_Mod
 !
 ! !PRIVATE TYPES:
 !
-
-  INTEGER :: id_DST1, id_NK1   ! Species ID flags
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -128,6 +125,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
+    INTEGER, SAVE      :: id_DST1, id_NK1, id_CO2   ! Species ID flags
+
     ! Scalars
     INTEGER            :: N_TROP, N
     INTEGER            :: MONTH
@@ -160,6 +160,7 @@ CONTAINS
     IF ( FIRST ) THEN
        id_DST1 = Ind_('DST1')
        id_NK1  = Ind_('NK1' )
+       id_CO2  = Ind_('CO2' )
     ENDIF
 
     !========================================================================
@@ -197,6 +198,16 @@ CONTAINS
     !========================================================================
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
     !========================================================================
+
+    ! Here, units are still in mol/mol dry.   For fullchem-simulation only,
+    ! set CO2 to 421 ppm (or 421e-6 mol/mol dry) since this is the global
+    ! average value. This is necessary to reduce the error norm in KPP.
+    ! See https://github.com/geoschem/geos-chem/issues/1529.
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       State_Chm%Species(id_CO2)%Conc = 421.0e-6_fp
+    ENDIF
+
+    ! Convert units from mol/mol dry to kg
     CALL Convert_Spc_Units( Input_Opt  = Input_Opt,                          &
                             State_Chm  = State_Chm,                          &
                             State_Grid = State_Grid,                         &
