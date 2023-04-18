@@ -13,11 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added setting in GCHP setCommonRunSettings.sh to require species in restarts
 - Added setting in GCHP HISTORY.rc to control whether output can be overwritten
 - Activated nitrate photolysis
-- Added LightingClimatology option to HEMCO_Config.rc
+- Added `LightingClimatology` option to HEMCO_Config.rc
 - Added run configuration files for WRF-GC
 - Added new files photolysis_mod.F90, phot_container_mod.F90, and fjx_interface_mod.F90
 - Added photolysis toggle in geoschem_config.yml and Input_Opt variable Do_Photolysis
 - Added speed of light and Planck's constant to PhysConstants module
+- Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
