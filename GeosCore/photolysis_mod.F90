@@ -596,7 +596,7 @@ CONTAINS
     WAVELENGTH = 0
 
 #ifdef CLOUDJ
-    CALL Run_CloudJ( Wavelength, Input_Opt, State_Chm, State_Diag, &
+    CALL Run_CloudJ( Input_Opt%Use_Online_O3, State_Chm, State_Diag, &
                      State_Grid, State_Met, RC )
 #else
     CALL Run_FastJX( Wavelength, Input_Opt,  State_Chm, State_Diag, &
