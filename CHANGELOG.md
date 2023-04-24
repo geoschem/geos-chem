@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Do not compile GCHP for tagO3 integration tests; use the default build instead
 - Moved GC-Classic sample run scripts to operational_examples/harvard_cannon
 - The GitHub PR template is now named `./github/PULL_REQUEST_TEMPLATE.md`
+- Updated CH4 global anthropogenic emission inventory from EDGARv6 to EDGARv7
 
 ### Fixed
 - Fixed bug in where writing species metadata yaml file write was always attempted
