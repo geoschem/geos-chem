@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 14.2.0]
 ### Added
 - Added a printout of GEOS-Chem species and indices
-- Added 'NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
+- Added `NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
 - Restored sink reactions for HOI, IONO, IONO2 (fullchem, custom mechanisms)
 - S(IV) + HOBr and S(IV) + HOCl reactions to `KPP/fullchem/fullchem.eqn`
 - Added setting in GCHP setCommonRunSettings.sh to require species in restarts
@@ -15,8 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Activated nitrate photolysis
 - Added `LightingClimatology` option to HEMCO_Config.rc
 - Added run configuration files for WRF-GC
-- Added new files photolysis_mod.F90, phot_container_mod.F90, and fjx_interface_mod.F90
-- Added photolysis toggle in geoschem_config.yml and Input_Opt variable Do_Photolysis
+- Added new files `photolysis_mod.F90`, `phot_container_mod.F90`, and `fjx_interface_mod.F90`
+- Added photolysis toggle in `geoschem_config.yml` and `Input_Opt` variable Do_Photolysis
 - Added speed of light and Planck's constant to PhysConstants module
 - Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
 
@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
 - `HEMCO_Config.rc` template files now use `Verbose: true` to toggle debug printout
 - Turn on sea salt debromination via switches in `HEMCO_config.rc`
-- If KPP integration fails, reset to prior concentrations and set RSTATE(3) = 0 before retrying
+- If KPP integration fails, reset to prior concentrations and set `RSTATE(3) = 0` before retrying
 - Suppress integration errors after 20 errors have been printed to stdout
 - Simplified and added comments for bimolecular reactions in clouds in function CloudHet2R
 - `HEMCO_Config.rc` and `ExtData.rc` templates now point `HEMCO/GFED4/v2023-03`
@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Write GCHP restart files directory to Restarts subdirectory
 - Rename GCHP mid-run checkpoint files to standard GEOS-Chem restart format
 - Rules for species in restarts files are now the same in GCHP as in GC-Classic
-- Moved parts of CMN_FJX_Mod.F90 not used in original Fast-JX to new container State_Chm%Phot
+- Moved parts of `CMN_FJX_Mod.F90` not used in original Fast-JX to new container State_Chm%Phot
 - Restructured photolysis to create generic photolysis module, interface with Fast-JX, and module containing original Fast-JX analogous to Cloud-J
 - Moved UVFlux diagnostics out of JValues collection and into new collection called UVFlux
 - In the user registration process:
@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Now state that user registration is needed for GEOS-Chem support
 - Updated `HEMCO_Config.rc` templates to read HEMCO restarts from the `Restarts` rundir folder
 - In fullchem simulations, set CO2 to 421 ppm (avg global conc in 2022) everywhere
+- Updated `AUTHORS.txt` for version 14.2.0
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
@@ -56,9 +57,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Tests now run for 20 model minutes instead of an hour
 - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
 - Restore seasalt alkalinity to heterogeneous acid-catalyzed reactions of halogens on seasalt aerosols.
-- Fixed GCHP HISTORY.rc issue preventing running with over 3000 cores
-- Fixed GCHP ExtData.rc error in tagged ozone simulation
-- Fixed GCHP HISTORY.rc issue preventing diagnostic file overwrite
+- Fixed GCHP `HISTORY.rc` issue preventing running with over 3000 cores
+- Fixed GCHP `ExtData.rc` error in tagged ozone simulation
+- Fixed GCHP `HISTORY.rc` issue preventing diagnostic file overwrite
 - Update GCHP interactive run script to fix error handling silent bugs
 - Rewrote subroutine calls in `carbon_mod.F90` and `seasalt_mod.F90` to prevent array temporaries.
 - Prevent repeated printing of KPP integrate errors to the stdout stream.
