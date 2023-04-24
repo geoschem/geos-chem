@@ -226,29 +226,29 @@ GFEI_CH4_OIL  kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Gl
 GFEI_CH4_GAS  kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
 GFEI_CH4_COAL kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
 
-# --- EDGAR v6.0 ---
-CH4_OIL__1B2a          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_PRO_OIL.0.1x0.1.nc
-CH4_OIL__1B2c          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_PRO_GAS.0.1x0.1.nc
-CH4_COAL__1B1a         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_PRO_COAL.0.1x0.1.nc
-CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_ENF.0.1x0.1.nc
-CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_MNM.0.1x0.1.nc
-CH4_LANDFILLS__6A_6D   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_SWD_LDF.0.1x0.1.nc
-CH4_WASTEWATER__6B     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_WWT.0.1x0.1.nc
-CH4_RICE__4C_4D        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_AGS.0.1x0.1.nc
-CH4_OTHER__1A1_1B1_1B2 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_REF_TRF.0.1x0.1.nc
-CH4_OTHER__1A1a        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_ENE.0.1x0.1.nc
-CH4_OTHER__1A2         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_IND.0.1x0.1.nc
-CH4_OTHER__1A3a_CDS    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_TNR_Aviation_CDS.0.1x0.1.nc
-CH4_OTHER__1A3a_CRS    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_TNR_Aviation_CRS.0.1x0.1.nc
-CH4_OTHER__1A3a_LTO    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_TNR_Aviation_LTO.0.1x0.1.nc
-CH4_OTHER__1A3b        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_TRO_noRES.0.1x0.1.nc
-CH4_OTHER__1A3c_1A3e   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_TNR_Other.0.1x0.1.nc
-CH4_OTHER__1A3d_1C2    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_TNR_Ship.0.1x0.1.nc
-CH4_OTHER__1A4         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_RCO.0.1x0.1.nc
-CH4_OTHER__2B          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_CHE.0.1x0.1.nc
-CH4_OTHER__2C          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_IRO.0.1x0.1.nc
-CH4_OTHER__4F          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_AWB.0.1x0.1.nc
-CH4_OTHER__6C          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2022-11/EDGARv6/%y4/v6.0_CH4_%y4_SWD_INC.0.1x0.1.nc
+# --- EDGAR v7.0 ---
+EDGAR7_CH4_OIL__1B2a          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_PRO_OIL.0.1x0.1.nc
+EDGAR7_CH4_OIL__1B2c          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_PRO_GAS.0.1x0.1.nc
+EDGAR7_CH4_COAL__1B1a         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_PRO_COAL.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
+EDGAR7_CH4_LANDFILLS__6A_6D   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_SWD_LDF.0.1x0.1.nc
+EDGAR7_CH4_WASTEWATER__6B     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_WWT.0.1x0.1.nc
+EDGAR7_CH4_RICE__4C_4D        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_AGS.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A1_1B1_1B2 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_REF_TRF.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A1a        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENE.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A2         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_IND.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3a_CDS    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_CDS.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3a_CRS    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_CRS.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3a_LTO    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_LTO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3b        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TRO_noRES.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3c_1A3e   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Other.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3d_1C2    kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Ship.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A4         kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_RCO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__2B          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_CHE.0.1x0.1.nc
+EDGAR7_CH4_OTHER__2C          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_IRO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__4F          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_AWB.0.1x0.1.nc
+EDGAR7_CH4_OTHER__6C          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_SWD_INC.0.1x0.1.nc
 
 # --- CH4: CEDS (historical) or Shared Socioeconomic Pathways (future) ---
 # --- NOTE: This is only for GCAP2 meteorology, so we can comment out  ---
@@ -491,6 +491,32 @@ CO2_WEEKLY  1 2006 Y F%y4-%m2-%d2T00:00:00  none none weekly_scale_factors  ./Hc
 # --- CH4 manure and rice scale factors ---
 MANURE_SF  1 N    Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc
 RICE_SF    1 2012 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc
+
+# --- Seasonal scale factors for EDGARv7 ---
+EDGAR_SEASONAL_SF_AGS        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AGS.0.1x0.1.nc
+EDGAR_SEASONAL_SF_AWB        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AWB.0.1x0.1.nc
+EDGAR_SEASONAL_SF_CHE        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_CHE.0.1x0.1.nc
+EDGAR_SEASONAL_SF_ENE        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENE.0.1x0.1.nc
+EDGAR_SEASONAL_SF_ENF        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENF.0.1x0.1.nc
+EDGAR_SEASONAL_SF_FFF        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_FFF.0.1x0.1.nc
+EDGAR_SEASONAL_SF_IND        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_IND.0.1x0.1.nc
+EDGAR_SEASONAL_SF_IRO        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_IRO.0.1x0.1.nc
+EDGAR_SEASONAL_SF_MNM        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_MNM.0.1x0.1.nc
+EDGAR_SEASONAL_SF_PRO        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO.0.1x0.1.nc
+EDGAR_SEASONAL_SF_PRO_COAL   1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_COAL.0.1x0.1.nc
+EDGAR_SEASONAL_SF_PRO_GAS    1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_GAS.0.1x0.1.nc
+EDGAR_SEASONAL_SF_PRO_OIL    1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_OIL.0.1x0.1.nc
+EDGAR_SEASONAL_SF_RCO        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_RCO.0.1x0.1.nc
+EDGAR_SEASONAL_SF_REF_TRF    1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_REF_TRF.0.1x0.1.nc
+EDGAR_SEASONAL_SF_SWD_INC    1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_SWD_INC.0.1x0.1.nc
+EDGAR_SEASONAL_SF_SWD_LDF    1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_SWD_LDF.0.1x0.1.nc
+EDGAR_SEASONAL_SF_TNR_AV_CDS 1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Aviation_CDS.0.1x0.1.nc
+EDGAR_SEASONAL_SF_TNR_AV_CRS 1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Aviation_CRS.0.1x0.1.nc
+EDGAR_SEASONAL_SF_TNR_AV_LTO 1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Aviation_LTO.0.1x0.1.nc
+EDGAR_SEASONAL_SF_TNR_Other  1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Other.0.1x0.1.nc
+EDGAR_SEASONAL_SF_TNR_SHIP   1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Ship.0.1x0.1.nc
+EDGAR_SEASONAL_SF_TRO_noRes  1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TRO_noRES.0.1x0.1.nc
+EDGAR_SEASONAL_SF_WWT        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_WWT.0.1x0.1.nc
 
 #--- annual scale factors ---
 ## Need DC0360xPC0181_CFnnnnx6C.bin
