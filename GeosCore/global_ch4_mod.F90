@@ -896,7 +896,7 @@ CONTAINS
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, C_OH ) &
-    !$OMP PRIVATE( C_Cl, KRATE_Cl ) &
+    !$OMP PRIVATE( C_Cl, KRATE_Cl                       ) &
     !$OMP REDUCTION( +:TROPOCH4 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
@@ -951,8 +951,8 @@ CONTAINS
           ENDIF
 
           ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt)
-          GCH4 = GCH4 * ( 1e+0_fp - KRATE    * C_OH * DT )
-          GCH4 = GCH4 * ( 1e+0_fp - KRATE_Cl * C_Cl * DT )
+          GCH4 = GCH4 *                                                      &
+             ( 1.0_fp - ( KRATE * C_OH * DT ) - ( KRATE_Cl * C_Cl * DT )    )
 
           ! Convert back from [molec/cm3] --> [kg/box]
           Spc(1)%Conc(I,J,L) = GCH4 / Spc2GCH4

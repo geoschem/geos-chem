@@ -64,6 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Rewrote subroutine calls in `carbon_mod.F90` and `seasalt_mod.F90` to prevent array temporaries.
 - Prevent repeated printing of KPP integrate errors to the stdout stream.
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
+- Removed operator splitting in CH4 simulation that was biasing diagnostics
 
 ## [14.1.1] - 2023-03-03
 ### Added
