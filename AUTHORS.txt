@@ -41,6 +41,7 @@ CAROUGE, Claire
 CARTER, Therese
 CAZORLA, Maria
 CHALIYAKUNNEL, Sreelekha
+CHAN MILLER, Christopher
 CHEN, Han
 CHEN, Jing
 CHEN, Long
@@ -130,7 +131,7 @@ JOHNSON, Matthew
 JONES, Dylan
 JUNG, Jaegun
 KASIBHATLA, Prasad
-HUDMAN, Rynda Kay
+HUDMAN KAY, Rynda
 KELLER, Christoph
 KIKUCHI, Tetsuro
 KIM, Hyeonmin
@@ -149,7 +150,7 @@ LAPINA, Kateryna
 LARSON, Kelsey
 LARY, David
 LATIMER, Robyn
-LE, Philippe Sager
+LE SAGER, Philippe
 LEE, Chulkyu
 LEE, Colin
 LEE, Meemong
@@ -182,7 +183,7 @@ LONG, Mike
 LU, Xiao
 LUNDGREN, Lizzie
 LUO, Gan
-MAASAKKERS,
+MAASAKKERS, J. D. (Bram)
 MACINTYRE, Helen
 MACKENZIE, Dave
 MAHIEU, Emmanuel
@@ -200,7 +201,6 @@ MENG, Jun
 MESKHIDZE, Nicholas
 MIATSELSKAYA, Natallia
 MICKLEY, Loretta
-CHAN, Christopher Miller
 MILLET, Dylan
 MING, Kai
 MOCH, Jonathan
@@ -230,7 +230,7 @@ PARK, Rokjin
 PARRINGTON, Mark
 PAULOT, Fabien
 PHILIP, Sajeev
-PICKETT, Christopher-Heaps
+PICKETT-HEAPS, Christopher
 PIERCE, Jeff
 PORTER, Will
 POUND, Ryan
@@ -265,8 +265,8 @@ SHEN, Lu
 SHERWEN, Tomas
 SHUTTER, Joshua
 SILVA, Sam
-SMITH, Nicole-Downey
-LAERKE, Anne Soerensen
+SMITH-DOWNEY, Nicole
+SOERENSEN, Anne Laerke
 SOFEN, Eric
 SONG, Shaojie
 SONG, Yu
@@ -302,9 +302,9 @@ TRUJILLO, Corey
 TUCCELLA, Paolo
 TURNER, Alexander
 TURQUETY, Solene
-TZOMPA, Zitely-Sosa
+TZOMPA-SOSA, Zitely
 UNGER, Nadine
-VAL, Maria-Martin
+VAL-MARTIN, Maria
 VAN, Aaron Donkelaar
 VAROTSOS, Kostas
 VINKEN, Geert
@@ -329,7 +329,6 @@ WHALEY, Cynthia
 WIEDINMYER, Christine
 WILD, Oliver
 WOHLTMANN, Ingo
-WU, Shiliang
 WU, Shiliang
 XIAO, Yaping
 XU, Junwei
