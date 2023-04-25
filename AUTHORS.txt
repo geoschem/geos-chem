@@ -26,11 +26,11 @@ BRATTICH, Erika
 BREIDER, Tom
 BREWER, Jared
 BROWNE, Ellie
-BROWN, Benjamin-Steiner
+BROWN-STEINER, Benjamin
 BUKOSA, Beata
 BUTENHOFF, Christopher
-CADY, Karen-Pereira
-CAMERON, Philip-Smith
+CADY-PEREIRA, Karen
+CAMERON-SMITH, Philip
 CAMPBELL, Patrick
 CAO, Guofeng
 CAO, Hansen
@@ -63,7 +63,7 @@ DENG, Feng
 DESOUZA, Priyanka
 DESSERVETTAZ, Max
 DEUTSCHER, Nicholas
-DI, Maurizio Pierro
+DI PIERRO, Maurizio
 DLAMINI, Thandolwethu 
 DOMMERGUE, Aurelien
 DOWNS, Will
@@ -74,7 +74,7 @@ ELLIS, Raluca
 ENBERG, Joseph
 ESTRADA, Lucas
 EVANS, Mathew
-FAIRLIE,
+FAIRLIE, T. Duncan
 FARINA, Sal
 FAYE, Vivian
 FEINBERG, Ari
@@ -84,13 +84,13 @@ FISCHER, Emily
 FISHER, Jenny
 FITE, Charley
 FLEMING, Eric
-FLO, Judit-Gaya
+FLO-GAYA, Judit
 FORD, Bonne
 FRANCIS, Timmy
 FREESE, Lyssa
 FRIEDMAN, Carey
 FRITZ, Thibaud
-FU,
+FU, Tzung-May
 FU, Joshua
 GANTT, Brett
 GE, Cui
@@ -156,19 +156,19 @@ LEE, Meemong
 LEHMANN, Ralph
 LEIBENSPERGER, Eric
 LERICHE, Maud
-LEUNG,
+LEUNG, Fok-Yan
 LI, Bengang
 LI, Chi
 LI, Ke
 LI, Qinbin
 LI, Xianglan
 LI, Yanshun
-LIAO,
+LIAO, K.J.
 LIANG, Qing
 LIAO, Hong
 LIN, Haipeng
 LIN, Jintai
-LIN,
+LIN, Shian-Jiann
 LINFORD, John
 LIU, Hongyu
 LIU, Jane
