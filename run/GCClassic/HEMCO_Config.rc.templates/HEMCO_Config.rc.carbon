@@ -82,7 +82,7 @@ Mask fractions:              false
     --> CMIP6_SHIP             :       false    # 1850-2100
     --> BB4MIPS                :       false    # 1850-2100
 # ..... Non-Emissions Data ...........
-    --> GMI_CH4_LOSS           :       true     # 1985
+    --> CH4_LOSS_FREQ          :       true     # 1985
     --> GLOBAL_CL              :       true     # 2010-2019
 # ..... Options for the IMI ..........
     --> AnalyticalInv          :       false
@@ -1163,12 +1163,12 @@ ${RUNDIR_GLOBAL_OH}
 #------------------------------------------------------------------------------
 (((USE_CH4_DATA
 
-# --- Global CH4 loss, Cl fields for CH4 simulation [1/s] -----------
-(((GMI_CH4_LOSS
+# --- Global CH4 loss frequencies [1/s] -----------
+(((CH4_LOSS_FREQ
 ${RUNDIR_CH4_LOSS}
-)))GMI_CH4_LOSS
+)))CH4_LOSS_FREQ
 
-# --- Cl from the last 10-yr benchmark [mol/mol dry air] ---
+# --- Global Cl [mol/mol dry air] ---
 (((GLOBAL_CL
 ${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL

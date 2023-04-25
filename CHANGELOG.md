@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Now state that user registration is needed for GEOS-Chem support
 - Updated `HEMCO_Config.rc` templates to read HEMCO restarts from the `Restarts` rundir folder
 - In fullchem simulations, set CO2 to 421 ppm (avg global conc in 2022) everywhere
+- Updated CH4 simulation to use CH4 loss frequencies from GCClassic 14.0.0 10-year benchmarks instead of GMI
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
