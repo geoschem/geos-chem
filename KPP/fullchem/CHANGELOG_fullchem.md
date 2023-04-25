@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
-## [ Unreleased 14.2.0]
+## [Unreleased 14.2.0]
 ### Added
 - Added lumped furan chemistry following Carter2020
 - Restored sink reactions for HOI, IONO, IONO2
@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fix bugs in HOBr uptake rate calculation in `fullchem_RateLawFuncs.F90`
+- Now cap `State_Het%f_Alk_SSA` and `State_Het%f_Alk_SSC` at 1.0
+- Unbalanced rxn IONO = ISALA is now balanced: IONO = ISALA + HNO2
+- Unbalanced rxn IONO = ISALC is now balanced: IONO = ISALC + HNO2
+- Unbalanced rxn IONO2 = ISALA is now balanced: IONO2 = ISALA + HNO3
+- Unbalanced rxn IONO2 = ISALC is now balanced: IONO2 = ISALC + HNO3
 
 ## [14.1.0] - Feb 2023
 ### Added
