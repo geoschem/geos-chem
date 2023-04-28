@@ -3549,6 +3549,8 @@ CONTAINS
 
     CHARACTER(len=ESMF_MAXSTR)    :: OUTSTR         ! Parallel write nonsense
 
+    ! Saved variables
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
     __Iam__('Extract_')
 
     !=======================================================================
@@ -3842,6 +3844,7 @@ CONTAINS
     !=======================================================================
     ! All done
     !=======================================================================
+    FIRST = .FALSE.
     _RETURN(ESMF_SUCCESS)
 
   END SUBROUTINE Extract_
