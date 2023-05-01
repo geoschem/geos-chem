@@ -1132,8 +1132,7 @@ CONTAINS
     ! Internal run alarms
     type(GC_run_alarms), pointer :: GC_alarms
     type(GCRA_wrap)              :: GC_alarm_wrapper
-    TYPE(ESMF_Time)              :: startTime      ! Simulation start time
-    TYPE(ESMF_Time)              :: currTime
+    TYPE(ESMF_Time)              :: currTime       ! Current (start) time
     TYPE(ESMF_Time)              :: ringTime
     type(ESMF_TimeInterval)      :: tsRad_TI
     type(ESMF_TimeInterval)      :: tsChem_TI
@@ -1595,7 +1594,9 @@ CONTAINS
        RadTS = ChemTS
     End If
 
+    !=======================================================================
     ! Establish the internal alarms for GEOS-Chem
+    !=======================================================================
     allocate(GC_alarms,stat=status)
     _ASSERT(rc==0,'Could not allocate GC alarms')
     GC_alarm_wrapper%ptr => GC_alarms
@@ -1605,25 +1606,24 @@ CONTAINS
 
     ! Get information about/from the clock
     CALL ESMF_ClockGet( Clock,                    &
-                        startTime    = startTime, &
                         currTime     = currTime,  &
                         calendar     = cal,       &
                         __RC__ )
+
 
     ! Set up the radiation alarm
     ! Must ring once per tsRad
     call ESMF_TimeIntervalSet(tsRad_TI, S=nint(tsRad), calendar=cal, RC=STATUS)
     _ASSERT(STATUS==0,'Could not set radiation alarm time interval')
 
-    ! Initially, just set the ring time to be midnight on the starting day
-    call ESMF_TimeGet( startTime, YY = yyyy, MM = mm, DD = dd, H=h, M=m, S=s, rc = STATUS )
-    _ASSERT(STATUS==0,'Could not extract start time information')
-    call ESMF_TimeSet( ringTime,  YY = yyyy, MM = mm, DD = dd, H=0, M=0, S=0, rc = STATUS )
+    ! Initialize the ring time to midnight on the starting (current) day
+    call ESMF_TimeGet( currTime, YY=yyyy, MM=mm, DD=dd, H=h, M=m, S=s, rc=STATUS )
+    _ASSERT(STATUS==0,'Could not extract ESMF clock current time information')
+    call ESMF_TimeSet( ringTime, YY=yyyy, MM=mm, DD=dd, H=0, M=0, S=0, rc=STATUS )
     _ASSERT(STATUS==0,'Could not set initial radiation alarm ring time')
 
-    ! NOTE: RRTMG is run AFTER chemistry has completed. So we actually want the
-    ! alarm to go off on the chemistry timestep immediately before the target
-    ! output time.
+    ! Adjust the alarm to go off on the chemistry timestep immediately before the
+    ! target output time. This is because RRTMG is run after chemistry.
     call ESMF_TimeIntervalSet(tsChem_TI, S=nint(tsChem), calendar=cal, RC=STATUS)
     _ASSERT(STATUS==0,'Could not set chemistry alarm time interval')
     ringTime = ringTime - tsChem_TI
