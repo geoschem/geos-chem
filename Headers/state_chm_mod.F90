@@ -2227,7 +2227,7 @@ CONTAINS
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%CH4_EMIS,                                 &
-            nSlots     = 15,                                                 &
+            nSlots     = 16,                                                 &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN

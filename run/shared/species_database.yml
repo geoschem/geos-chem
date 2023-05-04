@@ -768,6 +768,10 @@ CH4_OTA:
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from other anthropogenic emissions
+CH4_RES:
+  << : *CH4properties
+  Background_VV: 1.0e-20
+  FullName: Methane from hydroelectric reservoir emissions
 CH4_RIC:
   << : *CH4properties
   Background_VV: 1.0e-20

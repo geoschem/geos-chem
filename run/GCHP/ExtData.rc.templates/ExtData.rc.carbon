@@ -274,9 +274,13 @@ JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v202
 # --- Geological seeps ---
 CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc
 
-# --- Emissions from lakes (Maasakkers et al.) ---
+# --- Emissions from lakes (Maasakkers et al 2019) ---
 # --- NOTE: Superseded by WetCHARTs            ---
 #CH4_LAKES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2022-11/Lakes/Maasakkers_Lakes_%y4.01x01.nc
+
+# --- Emissions from reservoirs (Delwich et al 2022) ---
+CH4_RES_DAM kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Potential_Dam_Emissions.0.1x0.1.nc
+CH4_RES_SFC kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc
 
 # --- Emissions from termites (Fung et al 1991) ---
 CH4_TERMITES    kg/m2/s N Y - none none  CH4  ./HcoDir/CH4/v2022-11/4x5/termites.geos.4x5.nc

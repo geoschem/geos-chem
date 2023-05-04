@@ -76,6 +76,7 @@ Mask fractions:              false
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
+    --> RESERVOIRS             :       true     # 2022
     --> FUNG_TERMITES          :       true     # 1985
     --> FUNG_SOIL_ABSORPTION   :       false    # 2009-2015
     --> MeMo_SOIL_ABSORPTION   :       true     # 1990-2009 or clim.
@@ -415,6 +416,14 @@ Mask fractions:              false
 (((LAKES
 0 CH4_LAKES $ROOT/CH4/v2017-10/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4 - 12 1
 )))LAKES
+
+#==============================================================================
+# --- Emissions from Hydroelectric Reservoirs (Delwich et al., 2022) ---
+#==============================================================================
+(((RESERVOIRS
+0 CH4_RES_DAM $ROOT/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+)))RESERVOIRS
 
 #==============================================================================
 # --- CH4: Soil absorption & termites from Fung et al, 1991 ---

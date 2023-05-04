@@ -80,6 +80,7 @@ operations:
       - CH4_LAK
       - CH4_TER
       - CH4_SAB
+      - CH4_RES
 
 #============================================================================
 # Settings specific to the CH4 simulation / Integrated Methane Inversion

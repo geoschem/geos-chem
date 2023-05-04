@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added photolysis toggle in `geoschem_config.yml` and `Input_Opt` variable Do_Photolysis
 - Added speed of light and Planck's constant to PhysConstants module
 - Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
+- Added CH4 emissions from hydroelectric reservoirs to CH4, Carbon, and tagCH4 simulations
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
