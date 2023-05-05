@@ -251,23 +251,21 @@ Collections:
   GEOSCHEMchem_uvalbedo:
     template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/UV_ALBEDO/uvalbedo.geos.2x25.nc
   GEOSCHEMchem_Condensed_Yuan_proc_MODIS_XLAI:
-    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
-    valid_range: "2005-01-01T00:00/2016-12-31T00:00"
+    template: ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Yuan_XLAI/v2021-06/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+    valid_range: "2000-01-01T00:00/2020-12-31T00:00"
   GEOSCHEMchem_Oi_prj_predicted_iodide:
     template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
   GEOSCHEMchem_WOA_2013_salinity:
     template: ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/WOA_2013_salinity.nc
   GEOSCHEMchem_AEIC19_MONMEAN:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/AEIC2019/v2022-03/2019_mommean/72LGEOS/AEIC_monmean_%y4%m2.0.5x0.625.72LGEOS.nc
-    valid_range: "2019-01-01T00:00/2019-12-31T00:00"
+    template: ExtData/chemistry/AEIC2019/v2022-03/2019_mommean/72LGEOS/AEIC_monmean_2019_t12.0.5x0.625.72LGEOS.nc
   Jason_10.18.0_carbon_c90:
     template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
     ref_time: "2001-01-01T00:00"
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
   GCC_CMAM_CO:
-    #template: /discover/nobackup/projects/gmao/geos_cf_dev/pawales/CFv2_spinup/CFv2_spinup_c90_CO2phot/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.01hPa.1979_2010.nc
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CMAM/v0.0.0/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.015hPa.1979_2010.nc
+    template: ExtData/chemistry/CMAM/v0.0.0/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.015hPa.1979_2010.nc
 
 Exports:
   ACET_SEAWATER:
