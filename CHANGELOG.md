@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added speed of light and Planck's constant to PhysConstants module
 - Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
 - Added CH4 emissions from hydroelectric reservoirs to CH4, Carbon, and tagCH4 simulations
+- Added option to GCHP.rc to choose dry or total pressure in GCHP advection
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
@@ -45,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated CH4 global anthropogenic emission inventory from EDGARv6 to EDGARv7
 - Updated `AUTHORS.txt` for version 14.2.0
 - Updated links in `README.md` to point to `http://geos-chem.org`
+- Changed GCHP settings to use dry pressure in advection unless importing mass fluxes
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files

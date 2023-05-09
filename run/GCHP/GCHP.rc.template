@@ -23,9 +23,18 @@ LM: 72
 
 GEOSChem_CTM: 1
 
+
+# Set met-field vertical index top down to true if using native fields from GMAO
+#--------------------------------------------------------------------------------
 METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN: ${RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN}
-USE_TOTAL_AIR_PRESSURE_IN_ADVECTION: ${RUNDIR_USE_TOTAL_AIR_PRESSURE_IN_ADVECTION}
+
+# Set whether to import mass fluxes for use in advection
+#-----------------------------------------------------------------------
 IMPORT_MASS_FLUX_FROM_EXTDATA: ${RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA}
+
+# Set whether to use total pressure (1) or dry pressure (0) in advection
+#-----------------------------------------------------------------------
+USE_TOTAL_AIR_PRESSURE_IN_ADVECTION: ${RUNDIR_USE_TOTAL_AIR_PRESSURE_IN_ADVECTION}
 
 AdvCore_Advection: 1
 	DYCORE: OFF
