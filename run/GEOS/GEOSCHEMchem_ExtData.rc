@@ -672,6 +672,10 @@ ANA_O3  'kg/kg' N N 0 none none O3 /discover/nobackup/projects/gmao/yotc/pub/fp/
 QFED2_TEMPERATE     '1'          N   N -                      none     none    qfed2_temperate /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
 QFED2_BOREAL        '1'          N   N -                      none     none    qfed2_boreal    /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
 
+# GEOS_CH4
+GEOS_CH4        'mol/mol'    N   N -		           none     none    CH4_total_dry     /dev/null 
+#GEOS_CH4        'mol/mol'    N   N -		           none     none    CH4_total_dry     /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc 2001-01-01T00:00:00P0000-00-00T03:00:00
+
 # Masks
 DEAD_SFC_TYP  NA  N V - none none  SFC_TYP    /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
 TIMEZONES     NA  N V - none none  UTC_OFFSET /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc

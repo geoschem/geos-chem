@@ -110,6 +110,9 @@ Online_CLDLIQ: 1
 # Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
 Online_VUD: 1
 
+# Use GAAS on GEOS-Chem aerosols? 
+Species_friendly_to_GAAS: 0
+
 #
 # %%% Tuning parameter to reduce washout efficiency 
 # %%% of convective large-scale precip.
@@ -221,3 +224,14 @@ CO2photolysisFile: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/G
 #
 Import_CO2_from_GOCART: 0
 GOCART_CO2_FieldName: GOCART_CO2
+
+#
+# Set CO mesosphere upper boundary to external field 
+#
+Set_CO_Mesosphere: 0
+CO_Mesosphere_FieldName: CO_CMAM
+
+#
+# To set CH4 boundary condition from GEOS 
+# Note: if set to 1, need to make sure that an import named 'GEOS_CH4' is set in ExtData.
+CH4_from_GEOS: 0
