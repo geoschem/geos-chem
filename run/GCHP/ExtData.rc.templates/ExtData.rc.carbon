@@ -436,15 +436,15 @@ OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir
 ###############################################################################
 
 # --- GFED4 (Extension 111)---
-GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 
 # --- GFED_daily scale factors ---
-GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2022-11/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
+GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2023-03/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
 
 # --- GFED_3hourly (off by default in HEMCO_Config.rc) ---
 #GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc

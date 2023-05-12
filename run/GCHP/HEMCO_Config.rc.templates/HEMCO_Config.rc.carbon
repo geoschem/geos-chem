@@ -37,8 +37,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             2
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 Mask fractions:              false
 
 ### END SECTION SETTINGS ###
@@ -194,20 +194,20 @@ Mask fractions:              false
 0 GEPA_COAST_COAL_U     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Underground       2012/1/1/0    C xy molec/cm2/s CH4 1009    3 5
 0 GEPA_COAST_COAL_S     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Coal_Mining_Surface           2012/1/1/0    C xy molec/cm2/s CH4 1009    3 5
 0 GEPA_COAST_COAL_A     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1B1a_Abandoned_Coal                2012/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GEPA_COAST_LVSTK_F    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4A_Enteric_Fermentation            2012/1/1/0    C xy molec/cm2/s CH4 1009    4 5
-0 GEPA_COAST_LVSTK_M    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4B_Manure_Management               2012/1/1/0    C xy molec/cm2/s CH4 10/1009 4 5
-0 GEPA_COAST_LDF_M      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Municipal             2012/1/1/0    C xy molec/cm2/s CH4 1009    5 5
-0 GEPA_COAST_LDF_I      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Industrial            2012/1/1/0    C xy molec/cm2/s CH4 1009    5 5
-0 GEPA_COAST_WSTW_D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Domestic   2012/1/1/0    C xy molec/cm2/s CH4 1009    6 5
-0 GEPA_COAST_WSTW_I     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Industrial 2012/1/1/0    C xy molec/cm2/s CH4 1009    6 5
-0 GEPA_COAST_RICE       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4C_Rice_Cultivation                2012/1/1/0    C xy molec/cm2/s CH4 11/1009 7 5
-0 GEPA_COAST_OTH_1AM    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Mobile               2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
-0 GEPA_COAST_OTH_1AS    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Stationary           2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
-0 GEPA_COAST_OTH_2B5    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2B5_Petrochemical_Production       2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
-0 GEPA_COAST_OTH_2C2    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2C2_Ferroalloy_Production          2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
-0 GEPA_COAST_OTH_4F     $ROOT/CH4/v2022-11/GEPA/GEPA_Monthly.nc emissions_4F_Field_Burning                   2012/1-12/1/0 C xy molec/cm2/s CH4 1009    8 5
-#0 GEPA_COAST_OTH_5     $ROOT/CH4/v2022-11/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1009    9 5
-0 GEPA_COAST_OTH_6D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1009    8 5
+0 GEPA_COAST_LVSTK_F    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4A_Enteric_Fermentation            2012/1/1/0    C xy molec/cm2/s CH4 1009    4 1
+0 GEPA_COAST_LVSTK_M    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4B_Manure_Management               2012/1/1/0    C xy molec/cm2/s CH4 10/1009 4 1
+0 GEPA_COAST_LDF_M      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Municipal             2012/1/1/0    C xy molec/cm2/s CH4 1009    5 1
+0 GEPA_COAST_LDF_I      $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6A_Landfills_Industrial            2012/1/1/0    C xy molec/cm2/s CH4 1009    5 1
+0 GEPA_COAST_WSTW_D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Domestic   2012/1/1/0    C xy molec/cm2/s CH4 1009    6 1
+0 GEPA_COAST_WSTW_I     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6B_Wastewater_Treatment_Industrial 2012/1/1/0    C xy molec/cm2/s CH4 1009    6 1
+0 GEPA_COAST_RICE       $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_4C_Rice_Cultivation                2012/1/1/0    C xy molec/cm2/s CH4 11/1009 7 1
+0 GEPA_COAST_OTH_1AM    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Mobile               2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GEPA_COAST_OTH_1AS    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_1A_Combustion_Stationary           2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GEPA_COAST_OTH_2B5    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2B5_Petrochemical_Production       2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GEPA_COAST_OTH_2C2    $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_2C2_Ferroalloy_Production          2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GEPA_COAST_OTH_4F     $ROOT/CH4/v2022-11/GEPA/GEPA_Monthly.nc emissions_4F_Field_Burning                   2012/1-12/1/0 C xy molec/cm2/s CH4 1009    8 1
+#0 GEPA_COAST_OTH_5     $ROOT/CH4/v2022-11/GEPA_Daily.nc        emissions_5_Forest_Fires                     2012/1/1/0    C xy molec/cm2/s CH4 1009    9 1
+0 GEPA_COAST_OTH_6D     $ROOT/CH4/v2022-11/GEPA/GEPA_Annual.nc  emissions_6D_Composting                      2012/1/1/0    C xy molec/cm2/s CH4 1009    8 1
 )))GEPA
 
 #==============================================================================
@@ -914,19 +914,19 @@ Mask fractions:              false
 (((USE_CH4_DATA.or.USE_CO2_DATA
 
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2022-11/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2022-11/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2022-11/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2022-11/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2022-11/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2022-11/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2022-11/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2022-11/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -1193,7 +1193,7 @@ Mask fractions:              false
 
 # --- OH from GEOS-Chem v5-07 [kg/m3] ---
 (((GLOBAL_OH_GCv5
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
