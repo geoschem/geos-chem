@@ -160,7 +160,7 @@ for runDir in *; do
 
     # Expand rundir to absolute path
     runAbsPath="${rundirsDir}/${runDir}"
-    
+
     # Do the following if for only valid GCHP run dirs
     expr=$(is_gchp_rundir "${runAbsPath}")
     if [[ "x${expr}" == "xTRUE" ]]; then
@@ -201,6 +201,13 @@ for runDir in *; do
 	    . gchp.env                >> "${log}" 2>&1
 	    . checkRunSettings.sh     >> "${log}" 2>&1
 
+	    # For safety's sake, remove restarts that weren't renamed
+	    for rst in Restarts; do
+		if [[ "${rst}" =~ "gcchem_internal_checkpoint" ]]; then
+		    rm -f "${rst}"
+		fi
+	    done
+
 	    # Run GCHP and evenly distribute tasks across nodes
 	    if [[ "x${scheduler}" == "xSLURM" ]]; then
 
@@ -240,11 +247,22 @@ for runDir in *; do
 
 	    # Update pass/failed counts and write to results.log
 	    if [[ $? -eq 0 ]]; then
+
+		# The run passed ...
                 let passed++
                 print_to_log "${passMsg}" "${results}"
+
+		# ... so also rename the end-of-run restart file
+		new_start_str=$(sed 's/ /_/g' cap_restart)
+		N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )
+		mv Restarts/gcchem_internal_checkpoint \
+		   Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
             else
+
+		# The run failed
                 let failed++
                 print_to_log "${failMsg}" "${results}"
+
             fi
 
             # Change to root directory for next iteration
