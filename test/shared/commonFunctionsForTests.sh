@@ -36,6 +36,8 @@ SED_CONFIG_N1='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 002000\]/'
 SED_CONFIG_N2='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
 SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
+SED_HEMCO_CONF_3='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 010000/'
+SED_HEMCO_CONF_4='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 002000/'
 SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
 SED_HISTORY_RC_1='s/00000100 000000/00000000 010000/'
 SED_HISTORY_RC_N='s/00000100 000000/00000000 002000/'
@@ -215,8 +217,12 @@ function update_config_files() {
     #------------------------------------------------------------------------
 
     # For all nested-grid rundirs, add a NA into the entries for met fields
+    # Also update the DiagnFreq for nested or global simulations
     if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
+	sed_ie "${SED_HEMCO_CONF_4}" "${runPath}/HEMCO_Config.rc"
+    else
+	sed_ie "${SED_HEMCO_CONF_3}" "${runPath}/HEMCO_Config.rc"
     fi
 
     # Other text replacements
