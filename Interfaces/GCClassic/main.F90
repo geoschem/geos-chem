@@ -67,6 +67,7 @@ PROGRAM GEOS_Chem
   USE LINEAR_CHEM_MOD       ! For linearized chemistry above chem grid
   USE MERCURY_MOD           ! For offline Hg simulation (driver)
   USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
+  USE Photolysis_Mod,  ONLY : Init_Photolysis
   USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
   USE UCX_MOD               ! For unified trop-strat chemistry
   USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
@@ -193,9 +194,9 @@ PROGRAM GEOS_Chem
   !-----------------------------
 
   ! Logicals
-  LOGICAL                  :: prtDebug
   LOGICAL                  :: TimeForEmis
   LOGICAL                  :: notDryRun
+  LOGICAL                  :: VerboseAndRoot
 
   ! Integers
   INTEGER                  :: I,             IOS,         J
@@ -334,7 +335,7 @@ PROGRAM GEOS_Chem
      CALL Timer_Add( "     Integrate 2",             RC )
      CALL Timer_Add( "  -> Prod/loss diags",         RC )
      CALL Timer_Add( "  -> OH reactivity diag",      RC )
-     CALL Timer_Add( "=> FAST-JX photolysis",        RC )
+     CALL Timer_Add( "=> Photolysis",                RC )
      CALL Timer_Add( "=> Aerosol chem",              RC )
      CALL Timer_Add( "=> Linearized chem",           RC )
      CALL Timer_Add( "Transport",                    RC )
@@ -425,14 +426,11 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
-  ! Set a flag to denote if we should print debug output
-  prtDebug            = ( Input_Opt%LPRT .and. am_I_Root )
-
-  ! Turn off debug output for the dry-runs simulation
-  prtDebug            = ( prtDebug .and. notDryRun )
+  ! Turn off verbose output for the dry-run simulation
+  VerboseAndRoot = ( Input_Opt%Verbose .and. notDryRun )
 
   ! Debug output
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
 
   !--------------------------------------------------------------------------
   ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -467,7 +465,7 @@ PROGRAM GEOS_Chem
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
-     IF ( prtDebug ) THEN
+     IF ( VerboseAndRoot ) THEN
         CALL Print_DiagList( Input_Opt%amIRoot, Diag_List, RC )
         CALL Print_TaggedDiagList( Input_Opt%amIRoot, TaggedDiag_List, RC )
      ENDIF
@@ -609,7 +607,7 @@ PROGRAM GEOS_Chem
   IF ( notDryRun ) THEN
      CALL Initialize( Input_Opt, State_Grid, 2, RC )
      CALL Initialize( Input_Opt, State_Grid, 3, RC )
-     IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INITIALIZE' )
+     IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a INITIALIZE' )
   ENDIF
 #endif
 
@@ -748,19 +746,13 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
-  ! Initialize chemistry
-  ! Moved here because some of the variables are used for non-local
-  ! PBL mixing BEFORE the first call of the chemistry routines
-  ! (ckeller, 05/19/14).
-  IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                                &
-       Input_Opt%ITS_AN_AEROSOL_SIM      .or.                                &
-       Input_Opt%ITS_A_MERCURY_SIM       .or.                                &
-       Input_Opt%ITS_A_CARBON_SIM )      THEN
-     CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
-
-     ! Trap potential errors
+  ! Initialize photolysis, including reading files for optical properties
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+       Input_Opt%ITS_AN_AEROSOL_SIM .or. &
+       Input_Opt%ITS_A_MERCURY_SIM  ) THEN
+     CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Init_Chemistry"!'
+        ErrMsg = 'Error encountered in "Init_Photolysis"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
   ENDIF
@@ -771,7 +763,7 @@ PROGRAM GEOS_Chem
 
   ! Initialize the UCX routines
   CALL INIT_UCX( Input_Opt, State_Chm, State_Diag, State_Grid )
-  IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
+  IF ( VerboseAndRoot ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
 
   ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
   IF ( Input_Opt%LINEAR_CHEM .and. notDryRun ) THEN
@@ -905,7 +897,7 @@ PROGRAM GEOS_Chem
        YEAR          = GET_YEAR()
        ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
-       IF ( prtDebug ) THEN
+       IF ( VerboseAndRoot ) THEN
           CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
        ENDIF
 
@@ -965,7 +957,7 @@ PROGRAM GEOS_Chem
           CALL Timer_End( "Input", RC )
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( VerboseAndRoot ) THEN
           CALL Debug_Msg( '### MAIN: a HEMCO PHASE 1' )
        ENDIf
 
@@ -1199,7 +1191,7 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
+       IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
 
        !---------------------------------------------------------------------
        ! %%% GET SOME NON-EMISSIONS DATA FIELDS VIA HEMCO %%%
@@ -1238,7 +1230,7 @@ PROGRAM GEOS_Chem
             id_CH4 > 0                     .and.                             &
             notDryRun                     ) THEN
 
-          IF ( prtDebug ) THEN
+          IF ( VerboseAndRoot ) THEN
              CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
           ENDIF
 
@@ -1304,7 +1296,7 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             IF ( prtDebug ) THEN
+             IF ( VerboseAndRoot ) THEN
                 CALL Debug_Msg( '### MAIN: a DO_TRANSPORT' )
              ENDIF
           ENDIF
@@ -1336,7 +1328,7 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             IF ( prtDebug ) THEN
+             IF ( VerboseAndRoot ) THEN
                 CALL Debug_Msg( '### MAIN: a SETUP_WETSCAV' )
              ENDIF
           ENDIF
@@ -1376,7 +1368,7 @@ PROGRAM GEOS_Chem
              CALL Timer_End( "Boundary layer mixing", RC )
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( VerboseAndRoot ) THEN
              CALL Debug_Msg( '### MAIN: a COMPUTE_PBL_HEIGHT' )
           ENDIF
        ENDIF
@@ -1419,7 +1411,7 @@ PROGRAM GEOS_Chem
                 CALL Timer_End ( "Dry deposition", RC )
              ENDIF
 
-             IF ( prtDebug ) THEN
+             IF ( VerboseAndRoot ) THEN
                 CALL Debug_Msg( '### MAIN: a DO_DRYDEP' )
              ENDIF
           ENDIF
@@ -1453,7 +1445,7 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( VerboseAndRoot ) THEN
              CALL Debug_Msg( '### MAIN: a HEMCO PHASE 2' )
           ENDIF
 
@@ -1492,7 +1484,9 @@ PROGRAM GEOS_Chem
              ENDIF
           ENDIF
 
-          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+          IF ( VerboseAndRoot ) THEN
+             CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+          ENDIF
 
           ! Note: mixing routine expects tracers in v/v
           ! DO_MIXING applies the tracer tendencies (dry deposition,
@@ -1516,7 +1510,7 @@ PROGRAM GEOS_Chem
              CALL Timer_End( "Boundary layer mixing", RC )
           ENDIF
 
-          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
+          IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
 
           !==================================================================
           !           ***** C L O U D   C O N V E C T I O N *****
@@ -1536,7 +1530,7 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             IF ( prtDebug ) THEN
+             IF ( VerboseAndRoot ) THEN
                 CALL Debug_Msg( '### MAIN: a CONVECTION' )
              ENDIF
 
@@ -1712,7 +1706,7 @@ PROGRAM GEOS_Chem
           WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
 
           ! Generate mask for species in RT
-          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
 
           ! Compute radiative transfer for the given output
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
@@ -1739,7 +1733,7 @@ PROGRAM GEOS_Chem
           ! Calculate for rest of outputs, if any
           DO N = 2, State_Diag%nRadOut
              WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-             CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+             CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
                                          iCld       = State_Chm%RRTMG_iCld,   &
@@ -1768,7 +1762,7 @@ PROGRAM GEOS_Chem
           CALL Set_Ct_Rad( INCREMENT=.TRUE. )
 #endif
 
-          IF ( prtDebug ) THEN
+          IF ( VerboseAndRoot ) THEN
              CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
           ENDIF
 
@@ -1938,7 +1932,7 @@ PROGRAM GEOS_Chem
        CALL Timestamp_Diag()
        CALL Set_Elapsed_Sec()
        CALL Set_Current_Time()
-       IF ( prtDebug ) THEN
+       IF ( VerboseAndRoot ) THEN
           CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
        ENDIF
 
@@ -1967,7 +1961,7 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
           ENDIF
-          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after Planeflight' )
+          IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: after Planeflight' )
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "All diagnostics",              RC )
@@ -1985,7 +1979,7 @@ PROGRAM GEOS_Chem
        IF ( notDryRun ) THEN
           IF ((mod(get_hour(), 3) .eq. 0) .AND. (get_minute() .eq. 0)) THEN
              CALL Copy_I3_Fields( State_Met )
-             IF ( prtDebug ) THEN
+             IF ( VerboseAndRoot ) THEN
                 CALL Debug_Msg( '### MAIN: after COPY_I3_FIELDS' )
              ENDIF
           ENDIF
@@ -2106,7 +2100,7 @@ PROGRAM GEOS_Chem
 
   ! Close all files
   CALL CLOSE_FILES()
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a CLOSE_FILES' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a CLOSE_FILES' )
 
   !%%% NOTE: Call HISTORY_CLEANUP from cleanup.F.  This will
   !%%% close all netCDF files upon both normal or abnormal exits.
@@ -2117,7 +2111,7 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Cleanup_State_Chm"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Chm' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a cleanup State_Chm' )
 
   ! Deallocate fields of the Diagnostics State object
   CALL Cleanup_State_Diag( State_Diag, RC )
@@ -2125,7 +2119,7 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Cleanup_State_Diag"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Diag' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a cleanup State_Diag' )
 
   ! Deallocate fields of the Meteorology State object
   CALL Cleanup_State_Met( State_Met, RC )
@@ -2133,7 +2127,7 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Cleanup_State_Met"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Met' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a cleanup State_Met' )
 
   ! Deallocate dynamic module arrays
   CALL CleanUp( Input_Opt, State_Grid, .FALSE., RC )
@@ -2141,7 +2135,7 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Cleanup"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup modules' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a cleanup modules' )
 
   ! Deallocate fields of the Input Options object
   CALL Cleanup_Input_Opt( Input_Opt, RC )
@@ -2149,7 +2143,7 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Cleanup_Input_Opt"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Input_Opt' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a cleanup Input_Opt' )
 
   ! Deallocate fields of the Grid State object
   CALL Cleanup_State_Grid( State_Grid, RC )
@@ -2157,7 +2151,7 @@ PROGRAM GEOS_Chem
      ErrMsg = 'Error encountered in "Cleanup_State_grid"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Grid' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a cleanup State_Grid' )
 
   ! Deallocate fields of the diagnostics list object
   IF ( notDryRun ) THEN
@@ -2171,7 +2165,7 @@ PROGRAM GEOS_Chem
         ErrMsg = 'Error encountered in "Cleanup_TaggedDiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
-     IF ( prtDebug ) THEN
+     IF ( VerboseAndRoot ) THEN
         CALL Debug_Msg( '### MAIN: a cleanup diag lists' )
      ENDIF
   ENDIF
@@ -2205,7 +2199,7 @@ PROGRAM GEOS_Chem
   IF ( Input_Opt%LGTMM ) CALL CleanupCASAarrays()
 #endif
 
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a CLEANUP' )
+  IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a CLEANUP' )
 
   IF ( Input_Opt%useTimers ) THEN
      ! Stop remaining timers

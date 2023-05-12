@@ -80,8 +80,10 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
+     LOGICAL                     :: VerboseRequested
+     CHARACTER(LEN=10)           :: VerboseOnCores
+     LOGICAL                     :: Verbose
      LOGICAL                     :: ITS_A_CARBON_SIM
-     LOGICAL                     :: LPRT
      LOGICAL                     :: useTimers
 
      !----------------------------------------
@@ -209,6 +211,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! PHOTOLYSIS MENU fields
      !----------------------------------------
+     LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
 
      !----------------------------------------
@@ -592,7 +595,9 @@ CONTAINS
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
-    Input_Opt%LPRT                   = .FALSE.
+    Input_Opt%VerboseRequested       = .FALSE.
+    Input_Opt%VerboseOnCores         = ''
+    Input_Opt%Verbose                = .FALSE.
     Input_Opt%useTimers              = .FALSE.
 
     !----------------------------------------
@@ -736,7 +741,8 @@ CONTAINS
     !----------------------------------------
     ! PHOTOLYSIS MENU fields
     !----------------------------------------
-    Input_Opt%FAST_JX_DIR            = './'
+    Input_Opt%Do_Photolysis         = .FALSE.
+    Input_Opt%FAST_JX_DIR           = ''
 
     !----------------------------------------
     ! RADIATION MENU fields (for RRTMG only)

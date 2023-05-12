@@ -1,0 +1,89 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for simulations using the CO2 mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+###
+### Customized for WRF-GC, Haipeng Lin, August 2022
+### Note: Most of configuration options here do not need to be changed
+### when running in the WRF-GC environment!
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: co2
+  start_date: [19970215, 031100]
+  end_date: [20180415, 040000]
+  root_data_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData
+  chem_inputs_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/
+  met_field: GEOSFP
+  species_database_file: ./species_database.yml
+  debug_printout: false
+  use_gcclassic_timers: false
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: true
+
+  transport:
+    gcclassic_tpcore:                 # GEOS-Chem Classic only
+      activate: true                  # GEOS-Chem Classic only
+      fill_negative_values: true      # GEOS-Chem Classic only
+      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
+    transported_species:
+      - CO2
+
+#============================================================================
+# Options for CO2
+#============================================================================
+CO2_simulation_options:
+
+  sources:
+    fossil_fuel_emissions: true
+    ocean_exchange: true
+    balanced_biosphere_exchange: true
+    net_terrestrial_exchange: true
+    ship_emissions: true
+    aviation_emissions: true
+    3D_chemical_oxidation_source: true
+
+  tagged_species:
+    save_fossil_fuel_in_background: false
+    tag_bio_and_ocean_CO2: false
+    tag_land_fossil_fuel_CO2: 
+    tag_global_ship_CO2: false
+    tag_global_aircraft_CO2: false
+    
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+# These options are currently unsupported for WRF-GC!
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - CO
+      - 'NO'
+      - O3
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: plane.log.YYYYMMDD

@@ -64,7 +64,7 @@ MODULE Carbon_Gases_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  INTEGER,  PARAMETER   :: N_CH4_DIAGS = 15
+  INTEGER,  PARAMETER   :: N_CH4_DIAGS = 16
   REAL(fp), PARAMETER   :: CM2perM2    = 1.0e+4_fp
   REAL(fp), PARAMETER   :: CM3perM3    = 1.0e+6_fp
   REAL(fp), PARAMETER   :: toMolecCm3  = ( AVO / AIRMW ) * 1.0e-3_fp
@@ -163,7 +163,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Ptr2D    => NULL()
     Spc      => NULL()
     errMsg   =  ''
@@ -216,6 +215,7 @@ CONTAINS
        CH4diag(13)  = 'CH4_LAKES'
        CH4diag(14)  = 'CH4_TERMITES'
        CH4diag(15)  = 'CH4_SOILABSORB'    ! CH4 soilabsorb values are negative!
+       CH4diag(16)  = 'CH4_RESERVOIRS'
        CH4scale(15) = -1.0_hp             ! Need to convert to positive
 
        ! Loop over manual CH4 diagnostics
@@ -253,7 +253,7 @@ CONTAINS
        CH4_EMIS_J(:,:,1) = SUM( CH4_EMIS_J, 3 )                              &
                          - ( 2.0_fp * CH4_EMIS_J(:,:,15) )
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
           WRITE(*,*) 'Total        : ', SUM( CH4_EMIS_J(:,:,1 ) )
           WRITE(*,*) 'Oil          : ', SUM( CH4_EMIS_J(:,:,2 ) )
@@ -270,6 +270,7 @@ CONTAINS
           WRITE(*,*) 'Lakes        : ', SUM( CH4_EMIS_J(:,:,13) )
           WRITE(*,*) 'Termites     : ', SUM( CH4_EMIS_J(:,:,14) )
           WRITE(*,*) 'Soil absorb  : ', SUM( CH4_EMIS_J(:,:,15) )
+          WRITE(*,*) 'Reservoirs   : ', SUM( CH4_EMIS_J(:,:,16) )
        ENDIF
 
     ENDIF

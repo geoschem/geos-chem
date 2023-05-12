@@ -453,6 +453,12 @@ BrSALA:
   FullName: Fine sea salt bromine
   Is_HygroGrowth: false
   MW_g: 79.90
+BUTDI:
+  Formula: C4H4O2
+  FullName: Butenedial
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 84.07
 BZCO3:
   Formula: C7H5O3
   FullName: Acyl peroxy radical from benzaldehyde
@@ -762,6 +768,10 @@ CH4_OTA:
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from other anthropogenic emissions
+CH4_RES:
+  << : *CH4properties
+  Background_VV: 1.0e-20
+  FullName: Methane from hydroelectric reservoir emissions
 CH4_RIC:
   << : *CH4properties
   Background_VV: 1.0e-20
@@ -1210,6 +1220,20 @@ FixedOH:
   FullName: Hydroxyl radical (external input for carbon mechanism)
   Is_Gas: true
   MW_g: 17.01
+FURA:
+  DD_F0: 1.0
+  DD_Hstar: 1.80e-1
+  Formula: C4H4O
+  FullName: Furan
+  Henry_CR: 6100.0
+  Henry_K0: 1.80e-1
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: false
+  Is_WetDep: true
+  MW_g: 68.07
+  WD_RetFactor: 2.0e-2
 GlobEmis90dayTracer:
   FullName: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
   Is_Advected: true

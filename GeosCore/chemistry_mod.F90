@@ -23,7 +23,6 @@ MODULE Chemistry_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Init_Chemistry
   PUBLIC  :: Do_Chemistry
   PUBLIC  :: Recompute_OD
 !
@@ -39,9 +38,6 @@ MODULE Chemistry_Mod
 !
 ! !PRIVATE TYPES:
 !
-
-  INTEGER :: id_DST1, id_NK1   ! Species ID flags
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -129,12 +125,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
+    INTEGER, SAVE      :: id_DST1, id_NK1, id_CO2   ! Species ID flags
+
     ! Scalars
     INTEGER            :: N_TROP, N
     INTEGER            :: MONTH
     INTEGER            :: YEAR
     INTEGER            :: WAVELENGTH
-    LOGICAL            :: prtDebug
     INTEGER            :: TS_Chem
     REAL(f8)           :: DT_Chem, sDTFC, fDTFC
 #ifdef APM
@@ -156,13 +154,13 @@ CONTAINS
     ! Initialize
     RC        = GC_SUCCESS
     ErrMsg    = ''
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ThisLoc   = ' -> at Do_Chemistry  (in module GeosCore/chemistry_mod.F90)'
 
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
        id_DST1 = Ind_('DST1')
        id_NK1  = Ind_('NK1' )
+       id_CO2  = Ind_('CO2' )
     ENDIF
 
     !========================================================================
@@ -200,6 +198,16 @@ CONTAINS
     !========================================================================
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
     !========================================================================
+
+    ! Here, units are still in mol/mol dry.   For fullchem-simulation only,
+    ! set CO2 to 421 ppm (or 421e-6 mol/mol dry) since this is the global
+    ! average value. This is necessary to reduce the error norm in KPP.
+    ! See https://github.com/geoschem/geos-chem/issues/1529.
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       State_Chm%Species(id_CO2)%Conc = 421.0e-6_fp
+    ENDIF
+
+    ! Convert units from mol/mol dry to kg
     CALL Convert_Spc_Units( Input_Opt  = Input_Opt,                          &
                             State_Chm  = State_Chm,                          &
                             State_Grid = State_Grid,                         &
@@ -1058,7 +1066,7 @@ CONTAINS
           ENDIF
 
           !### Debug
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL Debug_Msg( '### MAIN: a CHEMISTRY' )
           ENDIF
 
@@ -1182,7 +1190,6 @@ CONTAINS
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
     LOGICAL            :: LCARB, LCHEM,  LDUST
     LOGICAL            :: LSSALT, LSULF, LSOA
-    LOGICAL            :: prtDebug
     INTEGER            :: MONTH, YEAR,   WAVELENGTH
 
     ! Strings
@@ -1196,7 +1203,6 @@ CONTAINS
     RC       = GC_SUCCESS
     MONTH    = GET_MONTH()
     YEAR     = GET_YEAR()
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at Recompute_OD  (in module GeosCore/chemistry_mod.F90)'
 
@@ -1241,7 +1247,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL Debug_Msg( '### RECOMPUTE_OD: after RDAER' )
              ENDIF
 
@@ -1270,7 +1276,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
              ENDIF
           ENDIF
@@ -1331,7 +1337,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtDebug
     LOGICAL             :: Is_HalfLife
     INTEGER             :: I,       J,      L
     INTEGER             :: N,       GCId,   Id
@@ -1353,7 +1358,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F90)'
@@ -1404,7 +1408,7 @@ CONTAINS
 
        !### Debug output
        IF ( First ) THEN
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
                             GcId, Rate
  100         FORMAT( '     -  Pass. species name, Id, loss rate: ',          &
@@ -1436,101 +1440,5 @@ CONTAINS
     IF ( First ) First = .FALSE.
 
   END SUBROUTINE Chem_Passive_Species
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_chemistry
-!
-! !DESCRIPTION: Subroutine INIT\_CHEMISTRY initializes chemistry
-! variables.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Init_Chemistry( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE FAST_JX_MOD,       ONLY : Init_FJX
-    USE FullChem_Mod,      ONLY : Init_FullChem
-    USE Input_Opt_Mod,     ONLY : OptInput
-    USE State_Chm_Mod,     ONLY : ChmState
-    USE State_Chm_Mod,     ONLY : Ind_
-    USE State_Diag_Mod,    ONLY : DgnState
-    USE State_Grid_Mod,    ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-    INTEGER,        INTENT(INOUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  We initialize relevant fullchem and carbon KPP mechanism variables
-!  here in order to use values from the Species Database.  When the other
-!  modules are initialized (most of which are done in GC_Init_Extra), at
-!  that point the Species Database has not been read from the YAML file,
-!  so we must call Init_FullChem and Init_Carbon_Gases here.
-!
-! !REVISION HISTORY:
-!  19 May 2014 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! INIT_CHEMISTRY begins here!
-    !=======================================================================
-
-    ! Initialize
-    RC       = GC_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = ' -> at Init_Chemistry  (in module GeosCore/chemistry_mod.F90)'
-
-    ! Skip if we have already done this
-    IF ( FIRST ) THEN
-
-       ! Adjust first flag
-       FIRST  = .FALSE.
-
-       !--------------------------------------------------------------------
-       ! Initialize Fast-JX photolysis
-       ! (except for carbon, which has no photolysis)
-       !
-       ! NOTE: we need to call this for a dry-run so that we can get
-       ! a list of all of the lookup tables etc. that FAST-JX reads
-       !--------------------------------------------------------------------
-       IF ( .not. Input_Opt%ITS_A_CARBON_SIM ) THEN
-          CALL Init_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-       ENDIF
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_FJX"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-  END SUBROUTINE Init_Chemistry
 !EOC
 END MODULE Chemistry_Mod

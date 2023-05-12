@@ -216,7 +216,7 @@ for runDir in *; do
 		coreCt=$(( ${NX} * ${NY} ))
 		planeCt=$(( ${coreCt} / ${SLURM_NNODES} ))
 		if [[ $(( ${coreCt} % ${SLURM_NNODES} )) > 0 ]]; then
-		    ${planeCt}=$(( ${planeCt} + 1 ))
+		    planeCt=$(( ${planeCt} + 1 ))
 		fi
 
 		# Execute GCHP with srun

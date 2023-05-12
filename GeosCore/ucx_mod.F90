@@ -203,8 +203,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_HOUR
     USE TIME_MOD,           ONLY : GET_LOCALTIME
     USE TIME_MOD,           ONLY : GET_MINUTE
-    USE CMN_FJX_MOD,        ONLY : ZPJ
-    USE FAST_JX_MOD,        ONLY : RXN_NO, RXN_NO2, RXN_NO3, RXN_N2O
 !
 ! !INPUT PARAMETERS:
 !
@@ -279,11 +277,9 @@ CONTAINS
     LOGICAL              :: CYCLEBOX
     CHARACTER(LEN=255)   :: DBGMSG
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL              :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
+    REAL(fp),      POINTER :: ZPJ(:,:,:,:)
 
     ! Required for updated chemistry
     Integer            :: LMinPhot
@@ -292,11 +288,9 @@ CONTAINS
     ! UCX_NOX begins here!
     !=================================================================
 
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
-    ! Point to GEOS-Chem species array
+    ! Point to GEOS-Chem species array and J-values
     Spc => State_Chm%Species
+    ZPJ => State_Chm%Phot%ZPJ
 
     ! Retrieve monthly mean data if necessary
     IF (LASTMONTH.ne.GET_MONTH()) THEN
@@ -443,13 +437,19 @@ CONTAINS
           RRATE(1)  = 5.1e-12_fp*exp(210.e+0_fp*TINV)
           ! 4:  NO2 + hv -> NO + O1D
           !RRATE(k_JNO2) = State_Chm%NOX_J(I,J,L,JNO2IDX)*DAYFRAC
-          RRATE(k_JNO2) = ZPJ(LMINPHOT,RXN_NO2,I,J)
+          IF ( State_Chm%Phot%RXN_NO2 > 0 ) THEN
+             RRATE(k_JNO2) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO2,I,J)
+          ENDIF
           ! 5:  NO3 + hv -> NO2 + O
           !RRATE(k_JNO3) = State_Chm%NOX_J(I,J,L,JNO3IDX)*DAYFRAC
-          RRATE(k_JNO3) = ZPJ(LMINPHOT,RXN_NO3,I,J)
+          IF ( State_Chm%Phot%RXN_NO3 > 0 ) THEN
+             RRATE(k_JNO3) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO3,I,J)
+          ENDIF
           ! 6:  NO + hv -> N + O
           !RRATE(k_JNO ) = State_Chm%NOX_J(I,J,L,JNOIDX)*DAYFRAC
-          RRATE(k_JNO) = ZPJ(LMINPHOT,RXN_NO,I,J)
+          IF ( State_Chm%Phot%RXN_NO > 0 ) THEN
+             RRATE(k_JNO) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_NO,I,J)
+          ENDIF
           ! 7:  N + NO2 -> N2O + O
           RRATE(7)  = 5.8e-12_fp*exp(220.e+0_fp*TINV)
           ! 8:  N + NO -> N2 + O
@@ -462,7 +462,9 @@ CONTAINS
           RRATE(11) = 7.25e-11_fp*exp(20.e+0_fp*TINV)
           ! 12:  N2O + hv -> N2 + O1D
           !RRATE(k_JN2O) = State_Chm%NOX_J(I,J,L,JN2OIDX)*DAYFRAC
-          RRATE(k_JN2O) = ZPJ(LMINPHOT,RXN_N2O,I,J)
+          IF ( State_Chm%Phot%RXN_N2O > 0 ) THEN
+             RRATE(k_JN2O) = ZPJ(LMINPHOT,State_Chm%Phot%RXN_N2O,I,J)
+          ENDIF
 
           ! Sanity check
           Where(RRate.lt.0.0e+0_fp) RRate = 0.0e+0_fp
@@ -483,7 +485,11 @@ CONTAINS
              NO_BETA = 0.0_fp
           ENDIF
 
-          NO_GAMMA = (RRATE(3)*LOCALO3) / RRATE(k_JNO3)
+          IF ( RRATE(k_JNO3) > 0.0_fp ) THEN
+             NO_GAMMA = (RRATE(3)*LOCALO3) / RRATE(k_JNO3)
+          ELSE
+             NO_GAMMA = 0.0_fp
+          ENDIF
 
           ! Calculate the partition fractions
           FRACNO2 = 1.e+0_fp/(1.e+0_fp+NO_GAMMA+(NO_BETA* &
@@ -553,7 +559,7 @@ CONTAINS
     ENDDO ! L
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        ! Print mean NOx tendency in mesosphere
        DBGMSG = ' ### UCX_NOX: Mesospheric NOx processed'
        CALL DEBUG_MSG(TRIM(DBGMSG))
@@ -568,8 +574,9 @@ CONTAINS
        CALL DEBUG_MSG(TRIM(DBGMSG))
     ENDIF
 
-    ! Free pointer
+    ! Free pointers
     NULLIFY( Spc )
+    NULLIFY( ZPJ )
 
   END SUBROUTINE UCX_NOX
 !EOC
@@ -647,15 +654,9 @@ CONTAINS
     TYPE(FILE_DESC_T)  :: ncid
 #endif
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL                               :: prtDebug
-
     !=================================================================
     ! GET_NOXCOEFF begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Clear interpolated arrays
     State_Chm%NOX_O = 0e+0_fp
@@ -755,15 +756,15 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : RAA, IND999
+    USE CMN_FJX_Mod,     ONLY : RAA
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : SpcConc
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
+    USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE Species_Mod,     ONLY : SpcConc
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Met_Mod,   ONLY : MetState
+    USE TIME_MOD,        ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -922,7 +923,7 @@ CONTAINS
                 RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
-                RWET(IBC) = RAA(IND999,29) * 1.0e-6_fp
+                RWET(IBC) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
              ENDIF
 
              ! Taken from aerosol_mod (MSDENS(2))
@@ -1409,18 +1410,12 @@ CONTAINS
     REAL(fp)           :: INVAIR
     REAL(fp)           :: SO4_MW_G
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL            :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
     !=================================================================
     ! CALC_H2SO4_GAS begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = Input_Opt%LPRT .and. Input_Opt%amIRoot
 
     ! Copy fields from species database
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
@@ -1491,7 +1486,9 @@ CONTAINS
     ! Free pointer
     NULLIFY( Spc )
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### UCX: H2SO4 partitioned' )
+    ENDIF
 
   END SUBROUTINE CALC_H2SO4_GAS
 !EOC
@@ -1674,7 +1671,6 @@ CONTAINS
     INTEGER                 :: I, J, L, K
 
     ! Local variables for quantities from Input_Opt
-    LOGICAL                 :: prtDebug
     LOGICAL                 :: LHOMNUCNAT
     LOGICAL                 :: LSOLIDPSC
     LOGICAL                 :: LACTIVEH2O
@@ -1699,9 +1695,6 @@ CONTAINS
     LSOLIDPSC   = Input_Opt%LSOLIDPSC
     LACTIVEH2O  = Input_Opt%LACTIVEH2O
 
-    ! Do we have to print debug output?
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
     ! Copy fields from species database
     NIT_MW_G  = State_Chm%SpcData(id_NIT)%Info%MW_g   ! g/mol
     HNO3_MW_G = State_Chm%SpcData(id_HNO3)%Info%MW_g  ! g/mol
@@ -1716,7 +1709,7 @@ CONTAINS
     ! Initialize gridbox PSC type (see Kirner et al. 2011, GMD)
     STATE_PSC => State_Chm%STATE_PSC
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
     ENDIF
 
@@ -3782,8 +3775,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : ZPJ
-    USE FAST_JX_MOD,        ONLY : RXN_H2SO4
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
@@ -3851,7 +3842,10 @@ CONTAINS
           LMINPHOT  = State_Met%ChemGridLev(I,J)
 
           ! Retrieve photolysis rate as a fraction of gaseous SO4
-          PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM
+          IF ( State_Chm%Phot%RXN_H2SO4 > 0 ) THEN
+          PHOTDELTA = State_Chm%Phot%ZPJ(LMINPHOT,State_Chm%Phot%RXN_H2SO4,I,J)&
+                      * DTCHEM
+          ENDIF
           PHOTDELTA = MIN(1.e+0_fp,PHOTDELTA)
 
           DO L=LMINPHOT+1,State_Grid%NZ
@@ -3925,7 +3919,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug, FileExists
+    LOGICAL            :: FileExists
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
@@ -3944,9 +3938,6 @@ CONTAINS
     !=================================================================
     ! NOXCOEFF_INIT begins here!
     !=================================================================
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! --------------------------------------------------------------
     ! Input data sources
@@ -4104,7 +4095,7 @@ CONTAINS
           CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', TRIM( NOX_FILE )
           CALL DEBUG_MSG( TRIM(DBGMSG) )
        ENDIF
@@ -4268,9 +4259,6 @@ CONTAINS
     REAL(fp)           :: JRATIO
     REAL(fp)           :: DEG_SUM
 
-    ! Local variables for quantities from Input_Opt
-    LOGICAL            :: prtDebug
-
     ! Strings
     CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
 
@@ -4284,9 +4272,6 @@ CONTAINS
     ! Exit unless we are doing a full-chemistry or aerosol-only simulation
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM                            .and. &
          .not. Input_Opt%ITS_AN_AEROSOL_SIM ) RETURN
-
-    ! Copy fields from INPUT_OPT
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize species ID flags
     id_BCPI  = Ind_('BCPI'      )
@@ -4309,7 +4294,7 @@ CONTAINS
     id_SO4   = Ind_('SO4'       )
 
     ! Print info
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6,'(a)') REPEAT( '=', 79 )
        WRITE( 6,'(a)') 'U N I F I E D   C H E M I S T R Y'
        WRITE( 6,'(a)') 'Routines written by SEBASTIAN D. EASTHAM'
@@ -4491,7 +4476,7 @@ CONTAINS
        ENDIF
 
        !! Debug
-       !IF ( prtDebug ) THEN
+       !IF ( Input_Opt%Verbose ) THEN
        !   WRITE(DBGMSG,'(a,I03,a,3(F6.2,x))') '### UCX: Exgrid: J-', &
        !     JOUT, '->',JMIN_OUT,JMAX_OUT,JDIF_OUT
        !   CALL DEBUG_MSG( TRIM(DBGMSG) )

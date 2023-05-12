@@ -461,6 +461,7 @@ CONTAINS
     CHARACTER(LEN=6)             :: timeStr
     CHARACTER(LEN=8)             :: dateStr
     CHARACTER(LEN=12)            :: met
+    CHARACTER(LEN=15)            :: verboseMsg
     CHARACTER(LEN=24)            :: sim
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
@@ -551,7 +552,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on debug output
     !------------------------------------------------------------------------
-    key    = "simulation%debug_printout"
+    key    = "simulation%verbose%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -559,7 +560,36 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%LPRT = v_bool
+    Input_Opt%VerboseRequested = v_bool
+
+    !------------------------------------------------------------------------
+    ! Which cores for verbose output: root or all?
+    !------------------------------------------------------------------------
+    key  = "simulation%verbose%on_cores"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%VerboseOnCores = To_UpperCase( v_str )
+
+    ! Should verbose output be printed only on root or on all cores?
+    SELECT CASE ( TRIM( Input_Opt%VerboseOnCores ) )
+       CASE( 'ROOT' )
+          verboseMsg = 'root core only'
+          Input_Opt%Verbose =                                                &
+             ( Input_Opt%VerboseRequested .and. Input_Opt%amIRoot )    
+       CASE( 'ALL' )
+          verboseMsg = 'all cores'
+          Input_Opt%Verbose = Input_Opt%VerboseRequested
+       CASE DEFAULT
+          errMsg = 'Invalid selection!' // NEW_LINE( 'a' ) //                &
+               'simulation:verbose:on_cores must be either "root" or "all"'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+    END SELECT
 
 #if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     !========================================================================
@@ -887,8 +917,10 @@ CONTAINS
                         TRIM( Input_Opt%CHEM_INPUTS_DIR )
        WRITE( 6, 110 ) 'Species database file       : ',                     &
                         TRIM( Input_Opt%SpcDatabaseFile )
-       WRITE( 6, 120 ) 'Turn on debug output        : ',                     &
-                        Input_Opt%LPRT
+       WRITE( 6, 120 ) 'Turn on verbose output      : ',                     &
+                        Input_Opt%Verbose
+       WRITE( 6, 110 ) 'Verbose output printed on   : ',                     &
+                        TRIM( verboseMsg )
 #ifdef MODEL_CLASSIC
        WRITE( 6, 100 ) 'Start time of run           : ',                     &
                         Input_Opt%NYMDb, Input_Opt%NHMSb
@@ -2898,9 +2930,24 @@ CONTAINS
     thisLoc = ' -> at Config_Photolysis (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Directory with photolysis input files
+    ! Turn on photolysis
     !------------------------------------------------------------------------
-    key   = "operations%photolysis%input_dir"
+
+    key    = "operations%photolysis%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Directories with photolysis input files
+    !------------------------------------------------------------------------
+
+    key   = "operations%photolysis%input_directories%fastjx_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3092,6 +3139,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
+       WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3

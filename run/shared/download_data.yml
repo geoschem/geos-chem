@@ -11,12 +11,6 @@ mirrors:
     remote: s3://gcgrid
     command: 'aws s3 cp --request-payer=requester '
     quote: ""
-  computecanada:
-    short_name: cc
-    s3_bucket: False
-    remote: http://geoschemdata.computecanada.ca/ExtData
-    command:  'wget -r -np -nH -R "*.html" -N -P @PATH@ '
-    quote: '"'
   rochester:
     short_name: ur
     s3_bucket: False
