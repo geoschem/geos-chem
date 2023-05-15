@@ -40,10 +40,17 @@ MODULE UnitConv_Mod
   INTEGER, PARAMETER, PUBLIC :: KG_SPECIES                        = 1
   INTEGER, PARAMETER, PUBLIC :: KG_SPECIES_PER_KG_DRY_AIR         = 2
   INTEGER, PARAMETER, PUBLIC :: KG_SPECIES_PER_KG_TOTAL_AIR       = 3
-  INTEGER, PARAMETER. PUBLIC :: KG_SPECIES_PER_M2                 = 4
+  INTEGER, PARAMETER, PUBLIC :: KG_SPECIES_PER_M2                 = 4
   INTEGER, PARAMETER, PUBLIC :: MOLECULES_SPECIES_PER_CM3         = 5
   INTEGER, PARAMETER, PUBLIC :: MOLES_SPECIES_PER_MOLES_DRY_AIR   = 6
   INTEGER, PARAMETER, PUBLIC :: MOLES_SPECIES_PER_MOLES_TOTAL_AIR = 7
+
+  ! Labels corresponding to each integer unit flag defined above.
+  ! This array is private to this module, whereas the flags are public.
+  CHARACTER(LEN=13), PARAMETER, PUBLIC :: UNIT_STR(7) =                   (/ &
+     'kg           ', 'kg/kg dry    ', 'kg/kg total  ', 'kg/m2        ',     &
+     'molec/cm3    ', 'mol/mol dry  ', 'mol/mol total'                       &
+                                                                         /)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -127,13 +134,6 @@ MODULE UnitConv_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-
-  ! Labels corresponding to each integer unit flag defined above.
-  ! This array is private to this module, whereas the flags are public.
-  CHARACTER(LEN=13), PARAMETER :: UNIT_STR =                              (/ &
-     'kg           ', 'kg/kg dry    ', 'kg/kg total  ', 'kg/m2        ',     &
-     'molec/cm3    ', 'mol/mol dry  ', 'mol/mol total'                       &
-                                                                           /)
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -230,12 +230,12 @@ CONTAINS
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( outUnit) == inUnit ) THEN
+    IF ( outUnit == inUnit ) THEN
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End( "Unit conversions", RC )
        ENDIF
        RETURN
-    ENDIFf
+    ENDIF
 
 #ifdef ADJOINT
     ! Set a flag if we have compiled for the adjoint
@@ -248,11 +248,11 @@ CONTAINS
        !================================================================
        ! Convert from kg/kg dry
        !================================================================
-       CASE ( KG_PER_KG_DRY_AIR )
+       CASE ( KG_SPECIES_PER_KG_DRY_AIR )
 
           SELECT CASE ( outUnit )
 
-             CASE ( KG_SPECIES_PER_KG_DRY_AIR )
+             CASE ( MOLES_SPECIES_PER_MOLES_DRY_AIR )
                 CALL ConvertSpc_KgKgDry_to_VVDry( State_Chm, State_Grid, &
                                                   isAdjoint, RC )
              CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
@@ -279,6 +279,7 @@ CONTAINS
        ! Convert from kg/kg total
        !================================================================
        CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
+
           SELECT CASE ( outUnit )
 
              CASE ( KG_SPECIES_PER_KG_DRY_AIR )
@@ -299,7 +300,7 @@ CONTAINS
                                                 State_Met, isAdjoint, &
                                                 RC )
              CASE DEFAULT
-                CALL GC_Error( ErrMsg_noOut, RC, thisLoc )
+                CALL GC_Error( errNoOut, RC, thisLoc )
           END SELECT
 
        !====================================================================
@@ -353,7 +354,7 @@ CONTAINS
                 CALL ConvertSpc_Kg_to_MND( State_Chm, State_Grid, &
                                            State_Met, isAdjoint, RC )
              CASE DEFAULT
-                CALL GC_Error( ErrMsg_noOut, RC, thisLoc )
+                CALL GC_Error( errNoOut, RC, thisLoc )
           END SELECT
 
        !====================================================================
@@ -374,14 +375,16 @@ CONTAINS
                 CALL ConvertSpc_KgKgDry_to_VVDry( State_Chm, State_Grid, &
                                                   isAdjoint, RC )
              CASE DEFAULT
-                CALL GC_Error( ErrMsg_noOut, RC, thisLoc )
+                CALL GC_Error( errNoOut, RC, thisLoc )
           END SELECT
 
        !====================================================================
        ! Convert from molecular number density (MND)
        !====================================================================
        CASE ( MOLECULES_SPECIES_PER_CM3 )
+
           SELECT CASE ( outUnit )
+
              CASE ( KG_SPECIES )
                 CALL ConvertSpc_MND_to_Kg( State_Chm, State_Grid, &
                                            State_Met,             &
@@ -400,12 +403,12 @@ CONTAINS
                                                       State_Met,             &
                                                       isAdjoint, RC )
              CASE DEFAULT
-                CALL GC_Error( ErrMsg_noOut, RC, thisLoc )
+                CALL GC_Error( errNoOut, RC, thisLoc )
           END SELECT
 
        ! Error if input units not found
        CASE DEFAULT
-          CALL GC_Error( ErrMsg_noIn, RC, thisLoc )
+          CALL GC_Error( errNoIn, RC, thisLoc )
 
     END SELECT
 
@@ -473,19 +476,19 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: N
+    INTEGER            :: origUnit
     REAL(fp)           :: SpcTotal
     CHARACTER(LEN=12)  :: SpcName
-    CHARACTER(LEN=63)  :: origUnit
-    CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
+    CHARACTER(LEN=255) :: errMsg, errLoc
 
     !========================================================================
     ! Print_Global_Species_Kg begins here!
     !========================================================================
 
-    RC        = GC_SUCCESS
-    ErrorMsg  = ''
-    ThisLoc   = ' -> at Print_Global_Species_Kg (in module ' //              &
-                'GeosUtil/unitconv_mod.F90)'
+    RC     = GC_SUCCESS
+    errMsg = ''
+    errLoc = &
+     ' -> at Print_Global_Species_Kg (in module GeosUtil/unitconv_mod.F90)'
 
     ! Convert species conc units to kg
     CALL Convert_Spc_Units(                                                  &
@@ -499,8 +502,8 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrorMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrorMsg, RC, ThisLoc )
+       errMsg = 'Unit conversion error!'
+       CALL GC_Error( errMsg, RC, errLoc )
        RETURN
     ENDIF
 
@@ -543,8 +546,8 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrorMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrorMsg, RC, ThisLoc )
+       errMsg = 'Unit conversion error!'
+       CALL GC_Error( errMsg, RC, errLoc )
        RETURN
     ENDIF
 
@@ -1193,7 +1196,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Update species units
-    State_Chm%Spc_Units = KG_PER_KG_DRY_AIR
+    State_Chm%Spc_Units = KG_SPECIES_PER_KG_DRY_AIR
 
   END SUBROUTINE ConvertSpc_Kgm2_to_KgKgDry
 !EOC
@@ -1251,7 +1254,7 @@ CONTAINS
     ! Verify correct initial units. If current units are unexpected,
     ! write error message and location to log, then pass failed RC
     ! to calling routine.
-    IF ( State_Chm%Spc_Units /= KG_PER_KG_DRY_AIR ) THEN
+    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
        errMsg = 'Incorrect initial units: '                               // &
                  TRIM( UNIT_STR( State_Chm%Spc_Units ) )
        thisLoc = 'Routine ConvertSpc_KgKgDry_to_MND in unitconv_mod.F90'
@@ -1762,7 +1765,8 @@ CONTAINS
     ! write error message and location to log, then pass failed RC
     ! to calling routine.
     IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
+       errMsg = 'Incorrect initial units: '                               // &
+                 TRIM( UNIT_STR(State_Chm%Spc_Units) )
        thisLoc = 'Routine ConvertSpc_KgKgDry_to_Kg in unitconv_mod.F90'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
