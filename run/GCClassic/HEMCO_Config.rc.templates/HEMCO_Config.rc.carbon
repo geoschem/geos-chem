@@ -73,7 +73,6 @@ Mask fractions:              false
     --> EDGARv6                :       false    # 2000-2018
     --> EDGARv7                :       true     # 2010-2021
     --> QFED2                  :       false    # 2009-2015
-    --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
@@ -390,12 +389,6 @@ Mask fractions:              false
 (((QFED2
 0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
-
-# --- Updated GFED4 biomass burning ---
-# Emissions thru 2019 (cf Yuzhong Zhang)
-(((UPDATED_GFED4
-0 UPDATED_GFED4_CH4    $ROOT/CH4/v2020-09/GFED/GFED4_CH4_FIRE_$YYYY.nc emi_ch4 2009-2019/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 3
-)))UPDATED_GFED4
 
 #==============================================================================
 # --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
