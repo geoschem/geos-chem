@@ -426,7 +426,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -466,9 +466,9 @@ CONTAINS
     REAL(fp)                   :: Mask(State_Grid%NX,State_Grid%NY)
 
     ! Strings
-    CHARACTER(LEN=63)          :: OrigUnit
-    CHARACTER(LEN=255)         :: ThisLoc
-    CHARACTER(LEN=512)         :: ErrMsg
+    INTEGER                    :: origUnit
+    CHARACTER(LEN=255)         :: thisLoc
+    CHARACTER(LEN=512)         :: errMsg
 
     ! Pointers
     TYPE(SpcConc),   POINTER   :: Spc(:)
@@ -479,9 +479,9 @@ CONTAINS
     ! Hardcode global burden to 100 ppbv for now
     REAL(fp),        PARAMETER :: GlobalBurden = 1.0e-7_fp ! [v/v]
 
-    !=================================================================
+    !========================================================================
     ! MMR_Compute_Flux begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC         = GC_SUCCESS
@@ -495,13 +495,20 @@ CONTAINS
     ! Number of advected species
     nAdvect     = State_Chm%nAdvect
 
-    !=======================================================================
-    ! Convert species units to v/v dry
-    !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC, OrigUnit=OrigUnit )
+    !========================================================================
+    ! Convert species units to v/v dry aka mol/mol dry
+    !========================================================================
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
+       ErrMsg = 'Unit conversion error (kg/kg dry -> mol/mol dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -602,11 +609,18 @@ CONTAINS
 
     ENDDO
 
-    !=======================================================================
+    !========================================================================
     ! Convert species units back to original unit
-    !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    !========================================================================
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
+    ! Trap errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

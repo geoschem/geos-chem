@@ -2210,7 +2210,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE Time_Mod,           ONLY : Get_Ts_Dyn
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -2240,10 +2240,10 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: TS_Dyn
+    INTEGER            :: origUnit
     REAL(fp)           :: DT_Dyn
 
     ! Strings
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: errMsg
     CHARACTER(LEN=255) :: thisLoc
 
@@ -2300,14 +2300,19 @@ CONTAINS
     ! Unit conversion #1
     !=======================================================================
 
-    ! Convert species concentration to v/v dry
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, 'v/v dry', RC,                        &
-                            OrigUnit=OrigUnit                               )
+    ! Convert species concentration to [v/v dry] aka [mol/mol dry]
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
+       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to mol.mol dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -2362,8 +2367,13 @@ CONTAINS
     !=======================================================================
 
     ! Convert species back to the original units
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

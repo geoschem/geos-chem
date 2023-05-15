@@ -1281,7 +1281,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -1319,10 +1319,11 @@ CONTAINS
     LOGICAL             :: prtLog,  doSample
     INTEGER             :: I,       J,        L,  N,  R,  S
     INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
+    INTEGER             :: origUnit
     REAL(f8)            :: TsStart, TsEnd
 
     ! Strings
-    CHARACTER(LEN=255)  :: PriorUnit, ErrMsg, ThisLoc
+    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
 
     !=================================================================
     ! ObsPack_Sample begins here
@@ -1338,13 +1339,19 @@ CONTAINS
     ! because there are no data at this time).
     IF ( .not. State_Diag%Do_ObsPack ) RETURN
 
-    ! Ensure that units of species are "v/v dry", which is dry
-    ! air mole fraction.  Capture the InUnit value, this is
-    ! what the units are prior to this call.  After we sample
-    ! the species, we'll call this again requesting that the
-    ! species are converted back to the InUnit values.
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,  State_Met, &
-                            'v/v dry', RC, PriorUnit )
+    ! Ensure that units of species are [v/v dry], which is dry air mole 
+    ! fraction, aka [mol/mol dry].  Capture the InUnit value, this is what 
+    ! the units are prior to this call.  After we sample the species, we'll 
+    ! call this again requesting that the species are converted back to the 
+    ! InUnit values.
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1480,8 +1487,13 @@ CONTAINS
 
     ! Return State_Chm%Species(:)%Conc to whatever units they had
     ! coming into this routine
-    call Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            PriorUnit, RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

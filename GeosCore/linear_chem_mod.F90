@@ -166,7 +166,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -203,7 +203,7 @@ CONTAINS
 
     ! Scalars
     INTEGER            :: I,     J,       L,   N
-    INTEGER            :: NN
+    INTEGER            :: NN,    origUnit
     REAL(fp)           :: dt,    P,       k,   M0,  RC
     REAL(fp)           :: TK,    RDLOSS,  T1L, mOH, BryTmp
     REAL(fp)           :: BOXVL, Num,     Den, M
@@ -218,7 +218,6 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=16)  :: STAMP
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ThisLoc
     CHARACTER(LEN=512) :: ErrMsg
 
@@ -600,9 +599,16 @@ CONTAINS
        !======================================================================
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-          ! Convert units to [v/v dry air] for Linoz and Synoz (ewl, 10/05/15)
-          CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                  'v/v dry', errCode,   OrigUnit=OrigUnit )
+          ! Convert units to [v/v dry air] aka [mol/mol dry] 
+          ! for Linoz and Synoz (ewl, 10/05/15)
+          CALL Convert_Spc_Units(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                 &
+               origUnit   = origUnit,                                        &
+               RC         = errCode                                         )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
@@ -620,9 +626,14 @@ CONTAINS
                             State_Met, errCode )
           ENDIF
 
-         ! Convert species units back to original unit
-         CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                 OrigUnit,  errCode )
+          ! Convert species units back to original unit
+          CALL Convert_Spc_Units(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               outUnit    = origUnit,                                        &
+               RC         = errCode                                         )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN

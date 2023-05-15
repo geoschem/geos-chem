@@ -370,7 +370,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -429,7 +429,7 @@ CONTAINS
     INTEGER            :: IOS
     INTEGER, SAVE      :: TotalObs = 0
     CHARACTER(LEN=255) :: FILENAME
-    CHARACTER(LEN=63)  :: OrigUnit
+    INTEGER            :: origUnit
     CHARACTER(LEN=255) :: ThisLoc
     CHARACTER(LEN=512) :: ErrMsg
     INTEGER            :: RC
@@ -517,8 +517,15 @@ CONTAINS
     print*, ' found # AIRS observations: ', NOBS
 
     ! Convert species units to [v/v] (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC,        OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -687,8 +694,15 @@ CONTAINS
     !!$OMP END PARALLEL DO
 
     ! Convert species units back to original unit (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC ) 
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
+    ! Trap errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

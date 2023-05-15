@@ -158,6 +158,7 @@ CONTAINS
     USE Time_Mod,       ONLY : Get_LocalTime
     USE Time_Mod,       ONLY : Get_LocalTime_In_Sec
     USE Time_Mod,       ONLY : Get_Ts_Dyn
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -673,8 +674,8 @@ CONTAINS
 
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
-       IF ( State_Chm%Spc_units == 'kg/kg dry' .or. &
-            State_Chm%Spc_units == 'v/v dry' ) THEN
+       IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR        .or.     &
+            State_Chm%Spc_Units == MOLES_SPECIES_PER_MOLES_DRY_AIR ) THEN
 
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
@@ -694,7 +695,8 @@ CONTAINS
           !$OMP END PARALLEL DO
 
        ELSE
-          ErrMsg = 'Incorrect species units: ' // TRIM( State_Chm%Spc_Units )
+          ErrMsg = 'Incorrect species units: '                            // & 
+                    TRIM( UNIT_STR( State_Chm%Spc_Units ) )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

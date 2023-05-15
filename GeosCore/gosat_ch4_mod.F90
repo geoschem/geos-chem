@@ -366,7 +366,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -399,6 +399,7 @@ CONTAINS
     INTEGER            :: IIJJ(2), I,      J,     N
     INTEGER            :: L,       LL,     LGOS
     INTEGER            :: JLOOP,   NOBS,   IND
+    INTEGER            :: origUnit
     INTEGER            :: INDS(MAXGOS)
     REAL(fp)           :: REF_DATE, TIME
     REAL(fp)           :: GC_PRES(State_Grid%NZ)
@@ -455,7 +456,6 @@ CONTAINS
     INTEGER            :: IOS
     INTEGER, SAVE      :: TotalObs = 0
     CHARACTER(LEN=255) :: FILENAME
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ThisLoc
     CHARACTER(LEN=512) :: ErrMsg
     INTEGER            :: RC
@@ -582,9 +582,16 @@ CONTAINS
     print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
     print*, ' found # GOSAT observations: ', NOBS
 
-    ! Convert species units to [v/v] (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC,        OrigUnit=OrigUnit )
+    ! Convert species units to [v/v dry] aka [mol/mol dry]
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -933,8 +940,14 @@ CONTAINS
     COST_FUNC = COST_FUNC + SUM(NEW_COST(:))
 
     ! Convert species units back to original unit (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

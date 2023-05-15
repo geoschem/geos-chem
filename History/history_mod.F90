@@ -2850,6 +2850,7 @@ CONTAINS
     USE Registry_Params_Mod
     USE State_Chm_Mod,         ONLY : ChmState
     USE State_Diag_Mod,        ONLY : DgnMap, DgnState
+    USE UnitConv_Mod,          ONLY : UNIT_STR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2881,9 +2882,8 @@ CONTAINS
     LOGICAL                          :: isRestart
     INTEGER                          :: S, N
 
-
     ! Strings
-    CHARACTER(LEN=20)                :: TmpUnits
+    CHARACTER(LEN=20 )               :: TmpUnits
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
     CHARACTER(LEN=255)               :: cName
@@ -2982,7 +2982,7 @@ CONTAINS
           ! Save the units of State_Chm%Species(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
-          TmpUnits            = State_Chm%Spc_Units
+          TmpUnits            = UNIT_STR(State_Chm%Spc_Units)
           Container%Spc_Units = TmpUnits
 
           !-----------------------------------------------------------------

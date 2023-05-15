@@ -185,7 +185,7 @@ CONTAINS
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
-    USE UnitConv_Mod,      ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
     USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
     USE TOMAS_MOD,        ONLY : IBINS
@@ -251,7 +251,8 @@ CONTAINS
     REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
-    CHARACTER(LEN=63)   :: OrigUnit
+    INTEGER             :: OrigUnit
+
 
     ! For spatially and seasonally varying OM/OC
     CHARACTER(LEN=255)  :: FIELDNAME
@@ -303,8 +304,14 @@ CONTAINS
     REAA => State_Chm%Phot%REAA
 
     ! Convert species to [kg] for this routine
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1011,8 +1018,14 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit, RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of AEROSOL_CONC in aerosol_mod.F90')
@@ -2643,7 +2656,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE PhysConstants,  ONLY : MwCarb
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -2679,7 +2692,7 @@ CONTAINS
     INTEGER                  :: I, J, L
 
     ! Strings
-    CHARACTER(LEN=63)        :: OrigUnit
+    INTEGER                  :: origUnit
     CHARACTER(LEN=255)       :: ThisLoc
     CHARACTER(LEN=512)       :: ErrMsg
 
@@ -2711,13 +2724,14 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = ' -> at Set_AerMass_Diagnostic (in module GeosCore/aerosol_mod.F90)'
+    errMsg   = ''
+    thisLoc  = &
+     ' -> at Set_AerMass_Diagnostic (in module GeosCore/aerosol_mod.F90)'
 
     ! Check that species units are kg/kg dry air
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       CALL GC_Error( 'Incorrect species units: ' // &
-                      State_Chm%Spc_Units, RC, ThisLoc )
+    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       errMsg = 'Incorrect species units: ' // UNIT_STR( State_Chm%Spc_Units )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 

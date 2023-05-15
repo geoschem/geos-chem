@@ -473,7 +473,7 @@ CONTAINS
     ! Species-based quantities
     State_Chm%SpcData           => NULL()
     State_Chm%Species           => NULL()
-    State_Chm%Spc_Units         =  ''
+    State_Chm%Spc_Units         =  0
     State_Chm%BoundaryCond      => NULL()
 
 #ifdef ADJOINT

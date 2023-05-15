@@ -88,7 +88,7 @@ CONTAINS
     USE TIME_MOD,         ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,         ONLY : GET_TS_CHEM
     USE UCX_MOD,          ONLY : CALC_STRAT_AER
-    USE UnitConv_Mod,     ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 #ifdef APM
     USE APM_INIT_MOD,     ONLY : APMIDS
     USE APM_DRIV_MOD,     ONLY : PSO4GAS
@@ -144,7 +144,7 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Strings
-    CHARACTER(LEN=63)  :: OrigUnit
+    INTEGER            :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     !=======================================================================
@@ -208,13 +208,14 @@ CONTAINS
     ENDIF
 
     ! Convert units from mol/mol dry to kg
-    CALL Convert_Spc_Units( Input_Opt  = Input_Opt,                          &
-                            State_Chm  = State_Chm,                          &
-                            State_Grid = State_Grid,                         &
-                            State_Met  = State_Met,                          &
-                            OutUnit    = 'kg',                               &
-                            OrigUnit   = OrigUnit,                           &
-                            RC         = RC                                 )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -424,7 +425,7 @@ CONTAINS
                             RC         = RC                                 )
 
           ! Check units (ewl, 10/5/15)
-          IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+          IF (  State_Chm%Spc_Units /= KG_SPECIES ) THEN
              ErrMsg = 'Incorrect species units after Do_FullChem!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -458,7 +459,7 @@ CONTAINS
                                   errCode    = RC                           )
 
              ! Check units (ewl, 10/5/15)
-             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
                 ErrMsg = 'Incorrect species units after DO_LINEARCHEM!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
              ENDIF
@@ -552,7 +553,7 @@ CONTAINS
                                RC         = RC                              )
 
              ! Check units (ewl, 10/5/15)
-             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
                 ErrMsg =  'Incorrect species units after CHEMSULFATE!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
              ENDIF
@@ -637,7 +638,7 @@ CONTAINS
 
 
              ! Check units (ewl, 10/5/15)
-             IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
                 ErrMsg = 'Incorrect species units after DO_TOMAS!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
              ENDIF
@@ -676,7 +677,7 @@ CONTAINS
                              RC         = RC                                )
 
           ! Check units (ewl, 10/5/15)
-          IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+          IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
              ErrMsg = 'Incorrect species units after AEROSOL_CONC'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
           ENDIF
@@ -1077,12 +1078,13 @@ CONTAINS
     !========================================================================
     ! Convert species units back to original unit (ewl, 8/12/15)
     !========================================================================
-    CALL Convert_Spc_Units( Input_Opt  = Input_Opt,                          &
-                            State_Chm  = State_Chm,                          &
-                            State_Grid = State_Grid,                         &
-                            State_Met  = State_Met,                          &
-                            OutUnit    = OrigUnit,                           &
-                            RC         = RC                                 )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
