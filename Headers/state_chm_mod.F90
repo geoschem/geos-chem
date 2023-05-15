@@ -118,7 +118,7 @@ MODULE State_Chm_Mod
      TYPE(SpcConc),     POINTER :: Species (:      )    ! Vector for species
                                                         ! concentrations
                                                         !  [kg/kg dry air]
-     CHARACTER(LEN=20)          :: Spc_Units            ! Species units
+     INTEGER                    :: Spc_Units            ! Species units
 
 #ifdef ADJOINT
      REAL(fp),          POINTER :: SpeciesAdj (:,:,:,:) ! Species adjoint variables
