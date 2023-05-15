@@ -28,7 +28,7 @@
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
-GCAP2SCENARIO:               ${RUNDIR_GCAP2_SCENARIO}
+GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
 GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc
@@ -72,6 +72,7 @@ Mask fractions:              false
     --> GFEIv2                 :       true     # 2019
     --> EDGARv6                :       false    # 2000-2018
     --> EDGARv7                :       true     # 2010-2021
+    --> QFED2                  :       false    # 2009-2015
     --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
@@ -165,7 +166,7 @@ Mask fractions:              false
 #
 # NOTES:
 # - Use Hier=100 to add to Canada and Mexico regional inventories
-# - Do not use GEPA forest fire emissions. Use QFED instead.
+# - Do not use GEPA forest fire emissions. Use QFED or GFED instead.
 # - Apply seasonal scale factors to manure and rice emissions
 #==============================================================================
 (((GEPA
@@ -361,23 +362,23 @@ Mask fractions:              false
 # --- CH4: CEDS (historical) or Shared Socioeconomic Pathways (future) ---
 #==============================================================================
 (((CMIP6_SFC_LAND_ANTHRO
-0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_agr 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 4 1
-0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_ene 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 2 1
-0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_ind 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_tra 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_rco 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 2 1
-0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_slv 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_wst 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 5 1
+0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_agr 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 4 1
+0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_ene 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 2 1
+0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_ind 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_tra 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_rco 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 2 1
+0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_slv 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_wst 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 5 1
 )))CMIP6_SFC_LAND_ANTHRO
 (((CMIP6_SHIP
-0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_shp 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_shp 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 )))CMIP6_SHIP
 
 #==============================================================================
 # --- CH4: BB4MIPs historical / SSP future biomass burning inventories ---
 #==============================================================================
 (((BB4MIPS
-0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CH4_bbn 1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s CH4 75 9 1
+0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_bbn 1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s CH4 75 9 1
 )))BB4MIPS
 
 #==============================================================================
@@ -414,7 +415,7 @@ Mask fractions:              false
 # --- CH4: Emissions from Lakes (Maasakkers et al., 2019) ---
 #==============================================================================
 (((LAKES
-0 CH4_LAKES $ROOT/CH4/v2017-10/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4 - 12 1
+0 CH4_LAKES $ROOT/CH4/v2022-11/Lakes/Maasakkers_Lakes_$YYYY.01x01.nc emi_ch4 $YYYY/1-12/1/0 C xy molec/cm2/s CH4 - 12 1
 )))LAKES
 
 #==============================================================================
@@ -613,26 +614,26 @@ Mask fractions:              false
 # CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 #   the CMIP6 simulation experimental design.
 #
-# Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
+# Make sure that the desired $GCAPSCENARIO is set above in SECTION SETTINGS
 #==============================================================================
 (((CMIP6_SFC_LAND_ANTHRO
-0 CMIP6_CO_AGR  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_agr 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
-0 CMIP6_CO_ENE  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_ene 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
-0 CMIP6_CO_IND  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_ind 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
-0 CMIP6_CO_TRA  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_tra 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
-0 CMIP6_CO_RCO  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_rco 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
-0 CMIP6_CO_SLV  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_slv 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
-0 CMIP6_CO_WST  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_wst 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_AGR  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_agr 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_ENE  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_ene 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_IND  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_ind 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_TRA  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_tra 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_RCO  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_rco 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_SLV  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_slv 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
+0 CMIP6_CO_WST  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_wst 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 1 5
 )))CMIP6_SFC_LAND_ANTHRO
 
 #==============================================================================
 # CO: CEDS (historical) or Shared Socioeconomic Pathways (future) aircraft
 # emissions, consistent with the CMIP6 simulation experimental design
 #
-# Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
+# Make sure that the desired $GCAPSCENARIO is set above in SECTION SETTINGS
 #==============================================================================
 (((CMIP6_AIRCRAFT
-0 CMIP6_AIR_CO   $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4 CO_air 1750-2100/1-12/1/0 C xyz kg/m2/s CO 26 20 1
+0 CMIP6_AIR_CO   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4 CO_air 1750-2100/1-12/1/0 C xyz kg/m2/s CO 26 20 1
 )))CMIP6_AIRCRAFT
 
 #==============================================================================
@@ -682,10 +683,10 @@ Mask fractions:              false
 # CEDS (historical) or Shared Socioeconomic Pathways (future), consistent with
 # the CMIP6 simulation experimental design.
 #
-# Make sure that the desired $GCAP2SCENARIO is set above in SECTION SETTINGS
+# Make sure that the desired $GCAPSCENARIO is set above in SECTION SETTINGS
 #==============================================================================
 (((CMIP6_SHIP
-0 CMIP6_CO_SHP  $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_shp 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 10 5
+0 CMIP6_CO_SHP  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_shp 1750-2100/1-12/1/0 C xy kg/m2/s CO 26 10 5
 )))CMIP6_SHIP
 
 )))SHIP
@@ -740,7 +741,7 @@ Mask fractions:              false
 
 # --- BB4MIPs ---
 (((BB4MIPS
-0 CMIP6_BB_CO $ROOT/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_$YYYY.nc4 CO_bbn 1750-2100/1-12/1/0 C xyL=1:PBL kg/m2/s CO 75 5 3
+0 CMIP6_BB_CO $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CO_bbn 1750-2100/1-12/1/0 C xyL=1:PBL kg/m2/s CO 75 5 3
 )))BB4MIPS
 
 )))USE_CO_DATA
