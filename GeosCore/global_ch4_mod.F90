@@ -118,8 +118,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 
-    ! For fields from Input_Opt
-    LOGICAL            :: ITS_A_CH4_SIM
+    ! Logicals
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Arrays of state vector elements for applying emissions perturbations
@@ -143,10 +142,7 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at EMISSCH4 (in GeosCore/global_ch4_mod.F90)'
 
-    ! Copy values from Input_Opt
-    ITS_A_CH4_SIM  = Input_Opt%ITS_A_CH4_SIM
-
-    IF ( ITS_A_CH4_SIM .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        print*,'BEGIN SUBROUTINE: EMISSCH4'
     ENDIF
 
@@ -560,7 +556,7 @@ CONTAINS
 
     ENDIF
 
-    IF ( ITS_A_CH4_SIM .and. Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        print*,'END SUBROUTINE: EMISSCH4'
     ENDIF
 
@@ -646,9 +642,6 @@ CONTAINS
     INTEGER            :: NODAYS(12) = (/ 31, 28, 31, 30, 31, 30, &
                                           31, 31, 30, 31, 30, 31 /)
 
-    ! For fields from Input_Opt
-    LOGICAL            :: LSPLIT
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
@@ -664,9 +657,6 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at CHEMCH4 (in module GeosCore/global_ch4_mod.F90)'
-
-    ! Copy values from Input_Opt
-    LSPLIT  = Input_Opt%LSPLIT
 
     ! Point to the chemical species
     Spc     => State_Chm%Species
@@ -736,7 +726,7 @@ CONTAINS
     ! If multi-CH4 species, we store the CH4 total conc. to
     ! distribute the sink after the chemistry. (ccc, 2/10/09)
     !=================================================================
-    IF ( LSPLIT ) THEN
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -768,7 +758,7 @@ CONTAINS
     ! Distribute the chemistry sink from total CH4 to other CH4
     !     species. (ccc, 2/10/09)
     !=================================================================
-    IF ( LSPLIT ) THEN
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
        CALL CH4_DISTRIB( Input_Opt, State_Chm, State_Grid, PREVCH4 )
     ENDIF
 

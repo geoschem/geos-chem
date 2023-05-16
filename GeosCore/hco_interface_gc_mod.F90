@@ -3600,14 +3600,15 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
          Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
+         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
          Input_Opt%ITS_A_CO2_SIM          .or.                               &
          Input_Opt%ITS_A_CH4_SIM          .or.                               &
          Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
          Input_Opt%ITS_A_POPS_SIM         .or.                               &
          Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
-         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
+         Input_Opt%ITS_A_TAGCH4_SIM       .or.                               &
          Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
+         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
 
 
@@ -4164,7 +4165,7 @@ CONTAINS
     ! If we have turned on CH4 options in geoschem_config.yml, then we
     ! also need to toggle switches so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
 
        IF ( Input_Opt%AnalyticalInv ) THEN
           CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
@@ -4771,7 +4772,7 @@ CONTAINS
         ! Add total emissions in the PBL to the EFLX array
         ! which tracks emission fluxes.  Units are [kg/m2/s].
         !------------------------------------------------------------------
-        IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+        IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
            ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions

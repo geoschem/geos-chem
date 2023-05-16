@@ -70,20 +70,21 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: SimulationName
      CHARACTER(LEN=255)          :: SpcDatabaseFile
      CHARACTER(LEN=255)          :: SpcMetaDataOutFile
+     LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
      LOGICAL                     :: ITS_A_RnPbBe_SIM
-     LOGICAL                     :: ITS_A_TAGO3_SIM
+     LOGICAL                     :: ITS_A_TAGCH4_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
-     LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
      LOGICAL                     :: VerboseRequested
      CHARACTER(LEN=10)           :: VerboseOnCores
      LOGICAL                     :: Verbose
-     LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: useTimers
 
      !----------------------------------------
@@ -584,6 +585,7 @@ CONTAINS
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
     Input_Opt%SpcMetaDataOutFile     = ''
+    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_CARBON_SIM       = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
@@ -591,9 +593,9 @@ CONTAINS
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
     Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
-    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
+    Input_Opt%ITS_A_TAGCH4_SIM       = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
-    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
+    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
     Input_Opt%VerboseRequested       = .FALSE.
     Input_Opt%VerboseOnCores         = ''
