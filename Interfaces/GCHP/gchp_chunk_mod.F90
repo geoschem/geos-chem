@@ -509,7 +509,7 @@ CONTAINS
 # if defined( MODEL_GEOS )
     State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
 #else
-    State_Chm%Spc_Units = KG_SPECIES_PER_KG_DRY_AIR
+    State_Chm%Spc_Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 #endif
 
     ! Initialize photolysis, including reading files for optical properties
