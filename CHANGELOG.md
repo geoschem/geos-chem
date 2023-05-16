@@ -5,8 +5,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+### Added
+- Script `intDiffTest.sh`, checks 2 different integration tests for differences
+
+### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
 - Rename restart files in GCHP integration tests (as we do in non-test runs)
+
 
 ## [Unreleased 14.2.0]
 ### Added
