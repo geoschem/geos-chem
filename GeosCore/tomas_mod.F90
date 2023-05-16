@@ -305,6 +305,7 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -401,6 +402,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3884,9 +3886,9 @@ CONTAINS
     ! Check that species units are as expected (ewl, 9/29/15)
     IF ( State_Chm%Spc_Units /= KG_SPECIES          .AND. &
          State_Chm%Spc_Units /= KG_SPECIES_PER_M2 )  THEN
-       CALL ERROR_STOP('Incorrect final species units:' // &
-                        TRIM( UNIT_STR( State_Chm%Spc_Units ),
-                       'Routine AQOXID in tomas_mod.F90')
+       MSG = 'Incorrect final species units:' // &
+              TRIM( UNIT_STR( State_Chm%Spc_Units ) )
+       CALL ERROR_STOP( MSG, 'Routine AQOXID in tomas_mod.F90' )
     ENDIF
 
   END SUBROUTINE AQOXID
@@ -3921,6 +3923,7 @@ CONTAINS
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -6577,6 +6580,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -6633,7 +6637,7 @@ CONTAINS
     IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
        UNITFACTOR = State_Grid%AREA_M2(I,J)
 
-    ELSE IF ( State_Chm%Spc_Units ) == KG_SPECIES_PER_KG_DRY_AIR ) THEN
+    ELSE IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
        UNITFACTOR = State_Met%AD(I,J,L)
 
     ELSE
@@ -6745,6 +6749,7 @@ CONTAINS
     USE ERROR_MOD
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -7233,7 +7238,8 @@ CONTAINS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
     IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+       MSG = 'Incorrect species units: ' // &
+              TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine AERO_DIADEN in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
@@ -7302,7 +7308,7 @@ CONTAINS
     ! Check that species units are in [kg] (ewl, 8/13/15)
     IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
        MSG = 'Incorrect species units at end of AERO_DIADEN: ' &
-             // TRIM(State_Chm%Spc_Units)
+             // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine AERO_DIADEN in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF

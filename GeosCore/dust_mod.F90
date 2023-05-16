@@ -355,6 +355,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
     USE Species_Mod,        ONLY : Species
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -406,8 +407,8 @@ CONTAINS
     RC      = GC_SUCCESS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine SETTLEDUST in dust_mod.F'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF

@@ -1720,7 +1720,7 @@ CONTAINS
 
        ! Exit if units are not as expected
        ErrMsg = 'Incorrect initial species units:' // &
-                TRIM( State_Chm%Spc_Units )
+                TRIM( UNIT_STR( State_Chm%Spc_Units ) )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
 
@@ -4285,6 +4285,7 @@ CONTAINS
 #ifdef TOMAS
     USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
 #endif
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4606,13 +4607,13 @@ CONTAINS
                 ! therefore converted to [kg] locally within AQOXID.
                 ! GAINED is now [kg/m2] ans so is multiplied
                 ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-                IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
+                IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
                    REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp &
                                * State_Grid%Area_M2(I,J)
                 ELSE
                    IF ( errPrint ) THEN
                       ErrorMsg= 'Unexpected species units: ' // &
-                                 TRIM( State_Chm%Spc_Units )
+                                 TRIM( UNIT_STR(State_Chm%Spc_Units) )
                       CALL GC_Error( ErrorMsg, RC, ThisLoc )
                    ENDIF
                    RETURN
@@ -4824,6 +4825,7 @@ CONTAINS
 #ifdef TOMAS
     USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
 #endif
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4953,13 +4955,13 @@ CONTAINS
              ! therefore converted to [kg] locally within AQOXID.
              ! WETLOSS is now [kg/m2] and so is multiplied
              ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-             IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
+             IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
                 REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )              &
                             * State_Grid%Area_M2(I,J)
              ELSE
                 IF ( errPrint ) THEN
                    ErrorMsg = 'Unexpected species units: '                   &
-                               // TRIM(State_Chm%Spc_Units)
+                               // TRIM( UNIT_STR(State_Chm%Spc_Units) )
                    CALL GC_Error( ErrorMsg, RC, ThisLoc )
                 ENDIF
                 Spc => NULL()
