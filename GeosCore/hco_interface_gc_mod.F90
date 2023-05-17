@@ -2836,9 +2836,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState

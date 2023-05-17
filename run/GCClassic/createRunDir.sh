@@ -848,7 +848,7 @@ fi
 
 # If benchmark simulation, put run script in directory
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-    scriptDir = ./runScriptSamples/operational_examples/harvard_cannon
+    scriptDir="./runScriptSamples/operational_examples/harvard_cannon"
     cp ${scriptDir}/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi

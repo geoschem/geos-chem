@@ -120,7 +120,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       false
+    --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -1007,11 +1007,11 @@ VerboseOnCores:              root       # Accepted values: root all
 #       with a specified MW of 12g/mol. This is the case for OCPI, ISOP and ACET.
 (((MEGAN
 (((HEMCO_RESTART
-108  T_DAVG                       ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  T_PREVDAY                    ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  LAI_PREVDAY                  ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
-108  PARDR_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
-108  PARDF_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  T_DAVG                       ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  T_PREVDAY                    ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  LAI_PREVDAY                  ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
+108  PARDR_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  PARDF_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
 )))HEMCO_RESTART
 108  MEGAN_AEF_ISOP               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_ISOPRENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
 108 MEGAN_AEF_MBOX               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_MBO                 1985/1/1/0    C xy kgC/m2/s * - 1 1

@@ -32,19 +32,13 @@ SED_CONFIG_3='s/end_date: \[20160201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_4='s/end_date: \[20160101, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_5='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_6='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 010000\]/'
-SED_CONFIG_N='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
+SED_CONFIG_N1='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 002000\]/'
+SED_CONFIG_N2='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
 SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
 SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
 SED_HISTORY_RC_1='s/00000100 000000/00000000 010000/'
-SED_HISTORY_RC_2='s/7440000/010000/'
 SED_HISTORY_RC_N='s/00000100 000000/00000000 002000/'
-SED_RUN_CONFIG_1='s/20160101 000000/20190101 000000/'
-SED_RUN_CONFIG_2='s/20160201 000000/20190101 010000/'
-SED_RUN_CONFIG_3='s/20190201 000000/20190101 010000/'
-SED_RUN_CONFIG_4='s/00000100 000000/00000000 010000/'
-SED_RUN_CONFIG_5='s/7440000/010000/'
-SED_RUN_CONFIG_6='s/1680000/010000/'
 CMP_PASS_STR='Configure & Build.....PASS'
 CMP_FAIL_STR='Configure & Build.....FAIL'
 EXE_PASS_STR='Execute Simulation....PASS'
@@ -163,23 +157,29 @@ function update_gchp_config_files() {
     # 2nd argument: Integration test root directory
     #========================================================================
     runPath=$(absolute_path "${1}")           # GCHP run dir (abs path)
-    file="${runPath}/setCommonRunSettings.sh" # config file to edit
 
-    # Replace text in config file
-    sed_ie "${SED_RUN_CONFIG_1}"                                    "${file}"
-    sed_ie "${SED_RUN_CONFIG_2}"                                    "${file}"
-    sed_ie "${SED_RUN_CONFIG_3}"                                    "${file}"
-    sed_ie "${SED_RUN_CONFIG_4}"                                    "${file}"
-    sed_ie "${SED_RUN_CONFIG_5}"                                    "${file}"
-    sed_ie "${SED_RUN_CONFIG_6}"                                    "${file}"
+    # Edit config file setCommonRunSettings.sh
+    file="${runPath}/setCommonRunSettings.sh"
+
+    # 24 cores on 1 node
+    sed_ie "s/TOTAL_CORES=.*/TOTAL_CORES=24/"                       "${file}"
+    sed_ie "s/NUM_NODES=.*/NUM_NODES=1/"                            "${file}"
+    sed_ie "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/"         "${file}"
+
+    # C24 grid resolution
     sed_ie "s/CS_RES=.*/CS_RES=24/"                                 "${file}"
+
+    # 1-hr duration
+    sed_ie "s/Run_Duration=\".*/Run_Duration=\"00000000 010000\"/"  "${file}"
+
+    # 1-hr diagnostics
     sed_ie "s/AutoUpdate_Diagnostics=.*/AutoUpdate_Diagnostics=ON/" "${file}"
     sed_ie "s/Diag_Monthly=\"1\".*/Diag_Monthly=\"0\"/"             "${file}"
     sed_ie "s/Diag_Frequency=\".*/Diag_Frequency=\"010000\"/"       "${file}"
     sed_ie "s/Diag_Duration=\".*/Diag_Duration=\"010000\"/"         "${file}"
-    sed_ie "s/TOTAL_CORES=.*/TOTAL_CORES=24/"                       "${file}"
-    sed_ie "s/NUM_NODES=.*/NUM_NODES=1/"                            "${file}"
-    sed_ie "s/NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=24/"         "${file}"
+
+    # Do not require species in restart file
+    sed_ie "s/Require_Species_in_Restart=.*/Require_Species_in_Restart=0/" "${file}"
 }
 
 function update_config_files() {
@@ -197,11 +197,9 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change simulation time to 20 minutes
     # in order to reduce the run time of the whole set of integration tests.
-    if grep -q "025x03125_fullchem" <<< "${runPath}"; then
-	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
-    fi
-    if grep -q "05x0625_fullchem" <<< "${runPath}"; then
-	sed_ie "${SED_CONFIG_N}" "${runPath}/geoschem_config.yml"
+    if grep -q "05x0625" <<< "${runPath}"; then
+	sed_ie "${SED_CONFIG_N1}" "${runPath}/geoschem_config.yml"
+	sed_ie "${SED_CONFIG_N2}" "${runPath}/geoschem_config.yml"
     fi
 
     # Other text replacements
@@ -217,9 +215,6 @@ function update_config_files() {
     #------------------------------------------------------------------------
 
     # For all nested-grid rundirs, add a NA into the entries for met fields
-    if grep -q "025x03125" <<< "${runPath}"; then
-	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
-    fi
     if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
     fi
@@ -234,9 +229,6 @@ function update_config_files() {
 
     if [[ -f "${runPath}/HEMCO_Config.rc.gmao_metfields" ]]; then
 	# For all nested-grid rundirs, add a NA into the entries for met fields
-	if grep -q "025x03125" <<< "${runPath}"; then
-	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
-	fi
 	if grep -q "05x0625" <<< "${runPath}"; then
 	    sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
 	fi
@@ -252,16 +244,12 @@ function update_config_files() {
 
     # For nested-grid fullchem runs, change frequency and duration to 20 mins
     # in order to reduce the run time of the whole set of integration tests.
-    if grep -q "025x03125_fullchem" <<< "${runPath}"; then
-	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
-    fi
-    if grep -q "05x0625_fullchem" <<< "${runPath}"; then
+    if grep -q "05x0625" <<< "${runPath}"; then
 	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
 
     # Other text replacements
     sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
-    sed_ie "${SED_HISTORY_RC_2}" "${runPath}/HISTORY.rc"
 }
 
 

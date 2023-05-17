@@ -1,4 +1,4 @@
-<###############################################################################
+###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -49,6 +49,7 @@ COLLECTIONS: 'Restart',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
+             ##'UVFlux',
              ##'WetLossConv',
              ##'WetLossLS',
              ##'BoundaryConditions',
@@ -365,9 +366,9 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
 #
-# Photolysis rates and UV fluxes (from the FAST-JX photolysis module)
+# Photolysis rates (from the photolysis module)
 #
-# Available for all full-chemistry simulations
+# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
   JValues.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -376,9 +377,17 @@ COLLECTIONS: 'Restart',
   JValues.fields:             'Jval_?PHO?                    ',
                               'JvalO3O1D                     ',
                               'JvalO3O3P                     ',
-                              'UVFluxDiffuse_?UVFLX?         ',
-                              'UVFluxDirect_?UVFLX?          ',
-                              'UVFluxNet_?UVFLX?             ',
+::
+#==============================================================================
+# %%%%% THE UVFlux COLLECTION %%%%%
+#
+# UV fluxes (from the photolysis module)
+#
+# Available for all full-chemistry simulations with photolysis
+#==============================================================================
+  UVFlux.template:           'UVFluxDiffuse_?UVFLX?         ',
+                             'UVFluxDirect_?UVFLX?          ',
+                             'UVFluxNet_?UVFLX?             ',
 ::
 #==============================================================================
 # %%%%% THE KppDiags COLLECTION %%%%%

@@ -186,7 +186,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       false
+    --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : off   ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
@@ -2918,10 +2918,10 @@ VerboseOnCores:              root       # Accepted values: root all
 (((SoilNOx
 104 DEP_RESERVOIR_DEFAULT $ROOT/SOILNOX/v2014-07/DepReservoirDefault.nc                 DEP_RESERVOIR 2013/7/1/0        C  xy kg/m3 NO - 1 1
 (((HEMCO_RESTART
-104 PFACTOR               ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                           PFACTOR       $YYYY/$MM/$DD/$HH EY xy 1     NO - 1 1
-104 DRYPERIOD             ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                           DRYPERIOD     $YYYY/$MM/$DD/$HH EY xy 1     NO - 1 1
-104 GWET_PREV             ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                           GWET_PREV     $YYYY/$MM/$DD/$HH EY xy 1     NO - 1 1
-104 DEP_RESERVOIR         ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                           DEP_RESERVOIR $YYYY/$MM/$DD/$HH EY xy kg/m3 NO - 1 1
+104 PFACTOR               ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                           PFACTOR       $YYYY/$MM/$DD/$HH EY xy 1     NO - 1 1
+104 DRYPERIOD             ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                           DRYPERIOD     $YYYY/$MM/$DD/$HH EY xy 1     NO - 1 1
+104 GWET_PREV             ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                           GWET_PREV     $YYYY/$MM/$DD/$HH EY xy 1     NO - 1 1
+104 DEP_RESERVOIR         ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                           DEP_RESERVOIR $YYYY/$MM/$DD/$HH EY xy kg/m3 NO - 1 1
 )))HEMCO_RESTART
 104 SOILNOX_FERT          $ROOT/SOILNOX/v2014-07/soilNOx.fert_res.generic.05x05.nc      FERT          2000/1-12/1-31/0  C  xy kg/m3 NO - 1 1
 104 SOILNOX_LANDK1        $ROOT/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc LANDFRAC_K01  2000/1/1/0        C  xy 1     NO - 1 1
@@ -3018,11 +3018,11 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 (((MEGAN
 (((HEMCO_RESTART
-108  T_DAVG                       ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  T_PREVDAY                    ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  LAI_PREVDAY                  ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
-108  PARDR_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
-108  PARDF_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  T_DAVG                       ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  T_PREVDAY                    ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  LAI_PREVDAY                  ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
+108  PARDR_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  PARDF_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
 )))HEMCO_RESTART
 108  MEGAN_AEF_ISOP               $ROOT/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc      AEF_ISOPRENE            1985/1/1/0        C xy kgC/m2/s * 61 1 1
 108  MEGAN_AEF_MBOX               $ROOT/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc      AEF_MBO                 1985/1/1/0        C xy kgC/m2/s * 64 1 1
@@ -3056,23 +3056,23 @@ VerboseOnCores:              root       # Accepted values: root all
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_subgrid_coag
 111 FINN_DAILY_NUMBER   $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25_with_num.nc   number   2002-2016/1-12/1/0   RF xy unitless  * - 1 1
 )))GFED_subgrid_coag
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2020-02/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2019/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2020-02/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2019/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 

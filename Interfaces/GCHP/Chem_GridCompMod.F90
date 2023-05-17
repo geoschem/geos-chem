@@ -230,7 +230,6 @@ CONTAINS
     USE inquireMod,           ONLY : findFreeLUN
     USE FILE_MOD,             ONLY : IOERROR
 #if defined( MODEL_GEOS )
-    USE CMN_FJX_MOD
     USE GCKPP_Monitor
     USE GCKPP_Parameters
     USE Precision_Mod
@@ -282,7 +281,7 @@ CONTAINS
     LOGICAL                       :: EOF
     CHARACTER(LEN=60)             :: landTypeStr, importName, simType
     CHARACTER(LEN=ESMF_MAXPATHLEN):: rstFile
-    INTEGER                       :: restartAttr
+    INTEGER                       :: SpcRestartAttr
     CHARACTER(LEN=ESMF_MAXSTR)    :: HistoryConfigFile ! HISTORY config file
     INTEGER                       :: T
 
@@ -290,19 +289,19 @@ CONTAINS
     TYPE(MAPL_MetaComp),  POINTER :: STATE => NULL()
 #endif
 
+    INTEGER                       :: DoIt
+
 #if defined( MODEL_GEOS )
     CHARACTER(LEN=ESMF_MAXSTR)    :: LongName      ! Long name for diagnostics
     CHARACTER(LEN=ESMF_MAXSTR)    :: ShortName
     CHARACTER(LEN=255)            :: MYFRIENDLIES
     CHARACTER(LEN=127)            :: FullName
-    INTEGER                       :: DoIt
     LOGICAL                       :: FriendMoist, SpcInRestart, ReduceSpc
     CHARACTER(LEN=40)             :: SpcsBlacklist(255)
     INTEGER                       :: nBlacklist
     CHARACTER(LEN=ESMF_MAXSTR)    :: Blacklist
 #endif
 #ifdef ADJOINT
-    INTEGER                       :: restartAttrAdjoint
     LOGICAL                       :: useCFMaskFile
 #endif
 
@@ -451,29 +450,33 @@ CONTAINS
 #   include "GCHPchem_InternalSpec___.h"
 #endif
 
-#if !defined( MODEL_GEOS )
-    ! Determine if using a restart file for the internal state. Setting
-    ! the GCHPchem_INTERNAL_RESTART_FILE to +none in GCHP.rc indicates
-    ! skipping the restart file. Species concentrations will be retrieved
-    ! from the species database, overwriting MAPL-assigned default values.
-    CALL ESMF_ConfigGetAttribute( myState%myCF, rstFile, &
-                                  Label = "GCHPchem_INTERNAL_RESTART_FILE:",&
-                                  __RC__ )
-    IF ( TRIM(rstFile) == '+none' ) THEN
-       restartAttr = MAPL_RestartSkipInitial ! file does not exist;
-                                             ! use background values
+!------ Species in restart file ------
+
+#if defined( MODEL_GEOS )
+    ! Determine if non-advected species shall be included in restart file
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Shortlived_species_in_restart:", &
+                                  Default = 1, __RC__ )
+    IF ( DoIt==1 ) THEN
+       SpcRestartAttr  = MAPL_RestartOptional
+       SpcInRestart = .TRUE.
     ELSE
-       restartAttr = MAPL_RestartOptional    ! try to read species from file;
-                                             ! use background vals if not found
+       SpcRestartAttr  = MAPL_RestartSkip
+       SpcInRestart = .FALSE.
     ENDIF
-#ifdef ADJOINT
-    restartAttrAdjoint = MAPL_RestartSkip
-#endif
+#else
+    ! Determine if all species (SPC_*) are required in initial restart file
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "INITIAL_RESTART_SPECIES_REQUIRED:", &
+                                  Default = 1, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       SpcRestartAttr  = MAPL_RestartRequired
+    ELSE
+       SpcRestartAttr  = MAPL_RestartOptional
+    ENDIF
 #endif
 
 !-- Read in species from geoschem_config.yml and set FRIENDLYTO
-    ! ewl TODO: This works but is not ideal. Look into how to remove it.
-
 #if defined( MODEL_GEOS )
     ! Check if species are friendly to moist
     CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
@@ -483,17 +486,6 @@ CONTAINS
     FriendMoist = (DoIt==1)
     IF ( MAPL_am_I_Root() ) THEN
        WRITE(*,*) 'GCC species friendly to MOIST: ',FriendMoist
-    ENDIF
-    ! Determine if non-advected species shall be included in restart file
-    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
-                                  Label = "Shortlived_species_in_restart:", &
-                                  Default = 1, __RC__ )
-    IF ( DoIt==1 ) THEN
-       restartAttr  = MAPL_RestartOptional
-       SpcInRestart = .TRUE.
-    ELSE
-       restartAttr  = MAPL_RestartSkip
-       SpcInRestart = .FALSE.
     ENDIF
     ! Check if we want to use a reduced set of species for transport
     SpcsBlacklist(:) = ''
@@ -606,7 +598,7 @@ CONTAINS
                VLOCATION       = MAPL_VLocationCenter,                      &
                PRECISION       = ESMF_KIND_R8,                              &
                FRIENDLYTO      = 'DYNAMICS:TURBULENCE:MOIST',               &
-               RESTART         = restartAttr,                               &
+               RESTART         = SpcRestartAttr,                               &
                RC              = RC                                       )
 
           ! Add to list of transported speces
@@ -626,7 +618,7 @@ CONTAINS
                VLOCATION       = MAPL_VLocationCenter,                      &
                PRECISION       = ESMF_KIND_R8,                              &
                FRIENDLYTO      = 'DYNAMICS:TURBULENCE:MOIST',               &
-               RESTART         = restartAttrAdjoint,                        &
+               RESTART         = MAPL_RestartSkip,                          &
                RC              = RC                                        )
 #endif
        ENDIF
@@ -689,7 +681,7 @@ CONTAINS
                !!!PRECISION       = ESMF_KIND_R8,                            &
                   DIMS            = MAPL_DimsHorzVert,                       &
                   FRIENDLYTO      = COMP_NAME,                               &
-                  RESTART         = restartAttr,                             &
+                  RESTART         = SpcRestartAttr,                          &
                   VLOCATION       = MAPL_VLocationCenter,                    &
                                    __RC__                                   )
              ! verbose
@@ -704,7 +696,7 @@ CONTAINS
                   PRECISION       = ESMF_KIND_R8,                            &
                   DIMS            = MAPL_DimsHorzVert,                       &
                   VLOCATION       = MAPL_VLocationCenter,                    &
-                  RESTART         = restartAttr,                             &
+                  RESTART         = SpcRestartAttr,                          &
                   RC              = STATUS                                  )
 #ifdef ADJOINT
              !%%%% GEOS-Chem in GCHP ADJOINT %%%%
@@ -718,7 +710,7 @@ CONTAINS
                   PRECISION       = ESMF_KIND_R8,                            &
                   DIMS            = MAPL_DimsHorzVert,                       &
                   VLOCATION       = MAPL_VLocationCenter,                    &
-                  RESTART         = restartAttrAdjoint,                      &
+                  RESTART         = MAPL_RestartSkip,                        &
                   RC              = STATUS                                  )
 #endif
 #endif

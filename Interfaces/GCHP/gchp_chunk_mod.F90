@@ -68,7 +68,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Chemistry_Mod,           ONLY : Init_Chemistry
     USE Emissions_Mod,           ONLY : Emissions_Init
     USE GC_Environment_Mod
     USE GC_Grid_Mod,             ONLY : SetGridFromCtr
@@ -78,6 +77,7 @@ CONTAINS
     USE Input_Opt_Mod,           ONLY : OptInput, Set_Input_Opt
     USE Linear_Chem_Mod,         ONLY : Init_Linear_Chem
     USE Linoz_Mod,               ONLY : Linoz_Read
+    USE Photolysis_Mod,          ONLY : Init_Photolysis
     USE PhysConstants,           ONLY : PI_180
     USE Pressure_Mod,            ONLY : Init_Pressure
     USE Roundoff_Mod,            ONLY : RoundOff
@@ -512,14 +512,12 @@ CONTAINS
     State_Chm%Spc_Units = 'v/v dry'
 #endif
 
-    ! Initialize chemistry mechanism
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM      .or. &
-         Input_Opt%ITS_A_MERCURY_SIM       .or. &
-         Input_Opt%ITS_A_CARBON_SIM      ) THEN
-       CALL INIT_CHEMISTRY ( Input_Opt,  State_Chm, State_Diag, &
-                             State_Grid, RC )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
+    ! Initialize photolysis, including reading files for optical properties
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM .or. &
+         Input_Opt%ITS_A_MERCURY_SIM  ) THEN
+       CALL Init_Photolysis ( Input_Opt, State_Chm, State_Diag, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling Init_Photolysis')
     ENDIF
 
 #if defined( RRTMG )
@@ -1441,7 +1439,7 @@ CONTAINS
        ENDIF
 
        ! Generate mask for species in RT
-       CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+       CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
 
        ! Compute radiative fluxes for the given output
        CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                     &
@@ -1465,7 +1463,7 @@ CONTAINS
           IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
              WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
           ENDIF
-          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
                                       iCld       = State_Chm%RRTMG_iCld,   &

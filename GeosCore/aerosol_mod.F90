@@ -173,7 +173,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,      ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
@@ -244,6 +243,7 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER   :: Spc(:)
+    REAL*8,        POINTER   :: REAA(:,:)
     REAL(fp),      POINTER   :: AIRVOL(:,:,:)
     REAL(fp),      POINTER   :: PMID(:,:,:)
     REAL(fp),      POINTER   :: T(:,:,:)
@@ -298,6 +298,9 @@ CONTAINS
     ! Logical flags for SOA scheme
     Is_SimpleSOA  = ( id_SOAS > 0 )
     Is_ComplexSOA = Input_Opt%LSOA
+
+    ! Set pointers
+    REAA => State_Chm%Phot%REAA
 
     ! Convert species to [kg] for this routine
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -1018,6 +1021,7 @@ CONTAINS
 
     ! Free pointers
     Spc      => NULL()
+    REAA     => NULL()
     AIRVOL   => NULL()
     PMID     => NULL()
     T        => NULL()
@@ -1046,8 +1050,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,   ONLY : NRH, NRHAER, NSTRATAER
-    USE CMN_FJX_MOD
+    USE CMN_SIZE_Mod,   ONLY : NAER, NRH, NDUST, NRHAER, NSTRATAER
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : ERROR_STOP, Safe_Div
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -1176,14 +1179,33 @@ CONTAINS
     REAL(fp)            :: GF_RH
     REAL(fp)            :: BCAE_1, BCAE_2
 
-    ! Pointers
-    REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
-    REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: TAREA(:,:,:,:)
-    REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+    ! Pointers to State_Chm%Phot
+    INTEGER,  POINTER   :: IWVREQUIRED(:)
+    INTEGER,  POINTER   :: IWVSELECT  (:,:)
+    INTEGER,  POINTER   :: IRHARR     (:,:,:)
+    REAL*8,   POINTER   :: ACOEF_WV (:)
+    REAL*8,   POINTER   :: BCOEF_WV (:)
+    REAL*8,   POINTER   :: REAA     (:,:)
+    REAL*8,   POINTER   :: QQAA     (:,:,:)
+    REAL*8,   POINTER   :: ALPHAA   (:,:,:)
+    REAL*8,   POINTER   :: SSAA     (:,:,:)
+    REAL*8,   POINTER   :: ASYMAA   (:,:,:)
+    REAL*8,   POINTER   :: ISOPOD   (:,:,:,:)
+    REAL*8,   POINTER   :: ODAER    (:,:,:,:,:)
+#ifdef RRTMG
+    REAL*8,   POINTER   :: RTODAER  (:,:,:,:,:)
+    REAL*8,   POINTER   :: RTSSAER  (:,:,:,:,:)
+    REAL*8,   POINTER   :: RTASYMAER(:,:,:,:,:)
+#endif
+
+    ! Other pointers
+    REAL(fp), POINTER   :: BXHEIGHT (:,:,:)
+    REAL(fp), POINTER   :: ERADIUS  (:,:,:,:)
+    REAL(fp), POINTER   :: TAREA    (:,:,:,:)
+    REAL(fp), POINTER   :: WERADIUS (:,:,:,:)
+    REAL(fp), POINTER   :: WTAREA   (:,:,:,:)
     REAL(fp), POINTER   :: ACLRADIUS(:,:,:)
-    REAL(fp), POINTER   :: ACLAREA(:,:,:)
+    REAL(fp), POINTER   :: ACLAREA  (:,:,:)
 
     ! For diagnostics
     LOGICAL                :: IsWL1
@@ -1222,13 +1244,30 @@ CONTAINS
     IS_POA               = ( id_POA1 > 0 .AND. id_POA2 > 0 )
 
     ! Initialize pointers
-    BXHEIGHT            => State_Met%BXHEIGHT    ! Grid box height [m]
-    ERADIUS             => State_Chm%AeroRadi    ! Aerosol Radius [cm]
-    TAREA               => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
-    WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
-    WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
-    ACLRADIUS           => State_Chm%AClRadi     ! Fine Cl- Radius [cm]
-    ACLAREA             => State_Chm%AClArea     ! Fine Cl- Area [cm2/cm3]
+    IWVREQUIRED => State_Chm%Phot%IWVREQUIRED ! WL indexes for interpolation
+    IWVSELECT   => State_Chm%Phot%IWVSELECT   ! Indexes of requested WLs
+    IRHARR      => State_Chm%Phot%IRHARR      ! Relative humidity indexes
+    ACOEF_WV    => State_Chm%Phot%ACOEF_WV    ! Coeffs for WL interpolation
+    BCOEF_WV    => State_Chm%Phot%BCOEF_WV    ! Coeffs for WL interpolation
+    REAA        => State_Chm%Phot%REAA
+    QQAA        => State_Chm%Phot%QQAA
+    ALPHAA      => State_Chm%Phot%ALPHAA
+    SSAA        => State_Chm%Phot%SSAA
+    ASYMAA      => State_Chm%Phot%ASYMAA
+    ISOPOD      => State_Chm%Phot%ISOPOD      ! Isoprene optical depth
+    ODAER       => State_Chm%Phot%ODAER       ! Aerosol optical depth
+#ifdef RRTMG
+    RTODAER     => State_Chm%Phot%RTODAER     ! Optical dust
+    RTSSAER     => State_Chm%Phot%RTSSAER
+    RTASYMAER   => State_Chm%Phot%RTASYMAER
+#endif
+    BXHEIGHT    => State_Met%BXHEIGHT    ! Grid box height [m]
+    ERADIUS     => State_Chm%AeroRadi    ! Aerosol Radius [cm]
+    TAREA       => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
+    WERADIUS    => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+    WTAREA      => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
+    ACLRADIUS   => State_Chm%AClRadi     ! Fine Cl- Radius [cm]
+    ACLAREA     => State_Chm%AClArea     ! Fine Cl- Area [cm2/cm3]
 
     ! Initialize the mapping between hygroscopic species in the
     ! species database and the species order in NRHAER
@@ -1460,12 +1499,13 @@ CONTAINS
        IF ( LRAD ) THEN
           !Loop over all RT wavelengths (30)
           ! plus any required for calculating the AOD
-          NWVS = NWVAA-NWVAA0+NWVREQUIRED
+          NWVS = State_Chm%Phot%NWVAA - State_Chm%Phot%NWVAA0 + &
+                 State_Chm%Phot%NWVREQUIRED
        ELSE
           !Loop over wavelengths needed for
           !interpolation to those requested in geoschem_config.yml
           !(determined in RD_AOD)
-          NWVS = NWVREQUIRED
+          NWVS = State_Chm%Phot%NWVREQUIRED
        ENDIF
     ENDIF
 
@@ -1474,16 +1514,16 @@ CONTAINS
        IF (ODSWITCH .EQ. 0) THEN
           ! only doing for 1000nm (IWV1000 is set in RD_AOD)
           ! N.B. NWVS is fixed to 1 above - only one wavelength
-          IWV=IWV1000
+          IWV=State_Chm%Phot%IWV1000
        ELSE
           IF ( LRAD ) THEN
              ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
              ! but add on any others required
              IF (IIWV.LE.30) THEN
                 !index of RRTMG wavelengths starts after the standard NWVAA0
-                !(currently NWVAA0=11, set in CMN_FJX_mod based on the
-                ! .dat LUT)
-                IWV = IIWV+NWVAA0
+                !(currently NWVAA0=11, hard-coded in phot_container_mod based
+                ! on the .dat LUT)
+                IWV = IIWV + State_Chm%Phot%NWVAA0
              ELSE
                 !now we calculate at wvs for the requested AOD
                 IWV = IWVREQUIRED(IIWV-30)
@@ -2240,7 +2280,30 @@ CONTAINS
     !TAREA(:,NDUST+NRHAER+2) = 0.d0 !SPA
 
     ! Free pointers
-    NULLIFY( BXHEIGHT, ERADIUS, TAREA, WERADIUS, WTAREA, ACLRADIUS, ACLAREA )
+    IWVREQUIRED => NULL()
+    IWVSELECT   => NULL()
+    IRHARR      => NULL()
+    ACOEF_WV    => NULL()
+    BCOEF_WV    => NULL()
+    REAA        => NULL()
+    QQAA        => NULL()
+    ALPHAA      => NULL()
+    SSAA        => NULL()
+    ASYMAA      => NULL()
+    ISOPOD      => NULL()
+    ODAER       => NULL()
+#ifdef RRTMG
+    RTODAER     => NULL()
+    RTSSAER     => NULL()
+    RTASYMAER   => NULL()
+#endif
+    BXHEIGHT    => NULL()
+    ERADIUS     => NULL()
+    TAREA       => NULL()
+    WERADIUS    => NULL()
+    WTAREA      => NULL()
+    ACLRADIUS   => NULL()
+    ACLAREA     => NULL()
 
     ! Reset first-time flag
     FIRST = .FALSE.
