@@ -6360,7 +6360,7 @@ CONTAINS
 
        ! Transport tracer ID
        CASE( 'T', 't' )
-          Indx = SpcDataLocal(N)%Info%Tracer
+          Indx = SpcDataLocal(N)%Info%TracerId
           RETURN
 
        ! KPP variable species ID

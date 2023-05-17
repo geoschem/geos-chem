@@ -3486,7 +3486,7 @@ CONTAINS
     !
     ! THE TransportTracers SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Emission of Pb210 from Rn222 decay

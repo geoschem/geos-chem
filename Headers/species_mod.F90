@@ -163,8 +163,9 @@ MODULE Species_Mod
      REAL(fp)           :: Snk_LatMax       ! Maximum latitude for applying sink
      CHARACTER(LEN=80)  :: Snk_Mode         ! Sink mode of tracer
      REAL(fp)           :: Snk_Period       ! Sink period in days
+     REAL(fp)           :: Snk_Value        ! Sink value
      CHARACTER(LEN=80)  :: Snk_Vert         ! Where to apply sink vertically?
-     LOGICAL            :: Src_Add          ! Add tracer source?
+     LOGICAL            :: Src_Add          ! T- add values; F- replace values
      CHARACTER(LEN=80)  :: Src_Horiz        ! Where to apply source horizontally
      REAL(fp)           :: Src_LatMin       ! Minimum latitude for applying src
      REAL(fp)           :: Src_LatMax       ! Maximum latitude for applying src
@@ -430,6 +431,7 @@ CONTAINS
     Spc%Snk_LatMin      = MISSING
     Spc%Snk_LatMax      = MISSING
     Spc%Snk_Period      = MISSING
+    Spc%Snk_Value       = MISSING
     Spc%Src_LatMin      = MISSING
     Spc%Src_LatMax      = MISSING
     Spc%Src_PresMin     = MISSING
@@ -686,10 +688,33 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Is the species a TransportTracer species?
        !--------------------------------------------------------------------
-       IF ( ThisSpc%Snk_Horiz ) THEN
-          WRITE( 6, 130 )    "Is_Tracer      ",  ThisSpc%Is_Tracer
-       ENDIF
+       IF ( ThisSpc%Is_Tracer ) THEN
 
+          WRITE( 6, 130 )    "Src_Add        ",  ThisSpc%Src_Add
+          WRITE( 6, 110 )    "Src_Horiz      ",  TRIM(ThisSpc%Src_Horiz)
+          IF ( TRIM(ThisSpc%Src_Horiz) == 'lat_zone' ) THEN
+             WRITE( 6, 121 ) "Src_LatMin     ",  ThisSpc%Src_LatMin
+             WRITE( 6, 121 ) "Src_LatMax     ",  ThisSpc%Src_LatMax
+          ENDIF
+          WRITE( 6, 110 )    "Src_Mode       ",  TRIM(ThisSpc%Src_Mode)
+          WRITE( 6, 110 )    "Src_Vert       ",  TRIM(ThisSpc%Src_Vert)
+          IF ( TRIM(ThisSpc%Src_Vert) == 'pressures' ) THEN
+             WRITE( 6, 121 ) "Src_PresMin    ",  ThisSpc%Src_PresMin
+             WRITE( 6, 121 ) "Src_PresMax    ",  ThisSpc%Src_PresMax
+          ENDIF
+          WRITE( 6, 110 )    "Src_Units      ",  TRIM(ThisSpc%Src_Units)
+          WRITE( 6, 121 )    "Src_Value      ",  ThisSpc%Src_Value
+          WRITE( 6, 110 )    "Snk_Horiz      ",  TRIM(ThisSpc%Snk_Horiz)
+          IF ( TRIM(ThisSpc%Snk_Horiz) == 'lat_zone' ) THEN
+             WRITE( 6, 121 ) "Snk_LatMin     ",  ThisSpc%Snk_LatMin
+             WRITE( 6, 121 ) "Snk_LatMax     ",  ThisSpc%Snk_LatMax
+          ENDIF
+          WRITE( 6, 110 )    "Snk_Mode       ",  TRIM(ThisSpc%Snk_Mode)
+          WRITE( 6, 121 )    "Snk_Period     ",  ThisSpc%Snk_Period
+          WRITE( 6, 121 )    "Snk_Value      ",  ThisSpc%Snk_Value
+          WRITE( 6, 110 )    "Snk_Vert       ",  TRIM(ThisSpc%Snk_Vert)
+
+       ENDIF
 
        !--------------------------------------------------------------------
        ! Is the species a mercury species?

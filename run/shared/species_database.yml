@@ -139,10 +139,11 @@ ALK4:
 aoa:
   FullName: Age of air uniform source tracer
   Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
-  Snk_Mode: constant
-  Snk_Period: 0
   Snk_Horiz: all
+  Snk_Mode: constant
+  Snk_Value: 0
   Snk_Vert: surface
   Src_Add: true
   Src_Horiz: all
@@ -154,10 +155,11 @@ aoa:
 aoa_bl:
   FullName: Age of air uniform source tracer with sink restricted to the boundary layer
   Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
-  Snk_Mode: constant
-  Snk_Period: 0
   Snk_Horiz: all
+  Snk_Mode: constant
+  Snk_Value: 0
   Snk_Vert: boundary_layer
   Src_Add: true
   Src_Horiz: all
@@ -169,11 +171,12 @@ aoa_bl:
 aoa_nh:
   FullName: Age of air uniform source tracer with surface sink restricted to a zone in the northern hemisphere
   Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
-  Snk_Mode: constant
-  Snk_Period: 0
   Snk_Horiz: lat_zone
   Snk_Lats: [30.0, 50.0]
+  Snk_Mode: constant
+  Snk_Value: 0
   Snk_Vert: surface
   Src_Add: true
   Src_Horiz: all
@@ -1149,6 +1152,7 @@ DSTAL4:
 e90_PROP: &e90properties
   Background_VV: 1.0e-20
   Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
   MW_g: 1.0
   Snk_Horiz: all
@@ -1160,14 +1164,17 @@ e90_PROP: &e90properties
   Src_Units: ppbv
   Src_Value: 100
   Src_Vert: surface
-e90: *e90properties
+e90:
+  << : *e90properties
   FullName: Constant burden 90 day tracer
   Src_Horiz: all
-e90_n: *e90properties
+e90_n:
+  << : *e90properties
   FullName: Constant burden Northern Hemisphere 90 day tracer
   Src_Horiz: lat_zone
   Src_Lats: [ 40.0, 91.0]
 e90_s:
+  << : *e90properties
   FullName: Constant burden Southern Hemisphere 90 day tracer
   Src_Horiz: lat_zone
   Src_Lats: [ -91.0, -40.0 ]
@@ -3327,6 +3334,7 @@ NAP:
   MW_g: 128.18
 nh_PROP: &nhproperties
   Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
   Snk_Horiz: all
   Snk_Mode: efolding
@@ -3338,10 +3346,12 @@ nh_PROP: &nhproperties
   Src_Units: ppbv
   Src_Value: 100
   Src_Vert: all
-nh_5: *nhproperties
+nh_5:
+  << : *nhproperties
   FullName: Northern Hemisphere 5 day tracer
   Snk_Period: 5
-nh_50: *nhproperties
+nh_50:
+  << : *nhproperties
   FullName: Northern Hemisphere 50 day tracer
   Snk_Period: 50
 NH3:
@@ -3712,6 +3722,7 @@ PassiveTracer:
   Background_VV: 1.0e-7
   FullName: Passive tracer for mass conservation evaluation
   Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
   MW_g: 1.0
   Snk_Mode: none
@@ -4539,6 +4550,8 @@ SOAS:
   WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
 st80_25:
   FullName: Stratosphere source 25 day tracer
+  Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
   Snk_Horiz: all
   Snk_Mode: efolding
@@ -4551,8 +4564,10 @@ st80_25:
   Src_Units: ppbv
   Src_Value: 200
   Src_Vert: pressures
-stOx:
+stOX:
   FullName: Tracer with O3 values in stratosphere and O3 loss applied in troposphere
+  Is_Advected: true
+  Is_Gas: true
   Is_Tracer: true
   Loss_Species: O3
   Snk_Horiz: all
@@ -4560,7 +4575,7 @@ stOx:
   Snk_Vert: troposphere
   Src_Add: false
   Src_Horiz: all
-  Src_Mode: HEMCO
+  Src_Mode: model_field
   Src_Vert: stratosphere
 TiF1:
   << : *DST1properties

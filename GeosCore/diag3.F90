@@ -349,7 +349,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      ! Loop over drydep species
      DO N = 1, M
 
-        IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+        IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
 
            ! NOTE: ND44 is now archived in molec/cm2/s for all
            ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)

@@ -158,7 +158,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(48)
+    CHARACTER(LEN=17)           :: tags(64)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -235,6 +235,7 @@ CONTAINS
              "Snk_Lats         ",  &
              "Snk_Mode         ",  &
              "Snk_Period       ",  &
+             "Snk_Value        ",  &
              "Snk_Vert         ",  &
              "Src_Add          ",  &
              "Src_Horiz        ",  &
@@ -656,6 +657,11 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_Period = DBLE( v_real )
+
+          ELSE IF ( INDEX( key, "%Snk_Value" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_Value = DBLE( v_real )
 
           ELSE IF ( INDEX( key, "%Snk_Vert" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
