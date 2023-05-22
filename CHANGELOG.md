@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added speed of light and Planck's constant to PhysConstants module
 - Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
 - Added CH4 emissions from hydroelectric reservoirs to CH4, Carbon, and tagCH4 simulations
+- Add RxnConst diagnostic for archiving reaction rate constants
 - Added GCHP run-time option in GCHP.rc to choose dry or total pressure in GCHP advection
 - Added GCHP run-time option in GCHP.rc to correct native mass fluxes for humidity
 
@@ -72,6 +73,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Prevent repeated printing of KPP integrate errors to the stdout stream.
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
+- Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
 
 ## [14.1.1] - 2023-03-03
 ### Added

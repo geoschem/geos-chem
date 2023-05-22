@@ -85,7 +85,6 @@ CONTAINS
     USE State_Met_Mod,    ONLY : MetState
     USE TAGGED_CO_MOD,    ONLY : CHEM_TAGGED_CO
     USE TAGGED_O3_MOD,    ONLY : CHEM_TAGGED_O3
-    USE TIME_MOD,         ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,         ONLY : GET_TS_CHEM
     USE UCX_MOD,          ONLY : CALC_STRAT_AER
     USE UnitConv_Mod,     ONLY : Convert_Spc_Units

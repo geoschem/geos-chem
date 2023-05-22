@@ -120,9 +120,6 @@ MODULE SULFATE_MOD
   ! LVOLC      : Number of volcanic levels (20)   [unitless]
   !========================================================================
 
-  ! Time variable
-  INTEGER                :: ELAPSED_SEC
-
   ! Allocatable arrays
   REAL(fp),  ALLOCATABLE :: DMSo(:,:)
   REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
@@ -235,7 +232,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
     USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -339,9 +335,6 @@ CONTAINS
        CALL OHNO3TIME( State_Grid )
 
     ENDIF
-
-    ! Store NTIME in a shadow variable
-    ELAPSED_SEC = GET_ELAPSED_SEC()
 
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM = GET_TS_CHEM()
@@ -1444,7 +1437,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
 #ifdef BPCH_DIAG
@@ -4317,7 +4309,6 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -4789,8 +4780,8 @@ CONTAINS
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
