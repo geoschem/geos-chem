@@ -2881,7 +2881,7 @@ VerboseOnCores:              root       # Accepted values: root all
 (((CalcBrSeasalt
 0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BrSALA  617 3 2
 )))CalcBrSeasalt
-0 SEASALT_SALCAL  $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC     SALCAL  615 3 2
+0 SEASALT_SALCAL  $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s          SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
 (((CalcBrSeasalt
 0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BrSALC  617 3 2
