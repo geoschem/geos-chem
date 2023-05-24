@@ -1802,14 +1802,14 @@ CONTAINS
    ! remove NOX (hotp 5/22/10)
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
-   !$OMP PRIVATE( I,        J,        L,      JHC,   IPR,   GM0,  AM0       )&
-   !$OMP PRIVATE( VOL,      FAC,      RTEMP,  KO3,   KOH,   KNO3, CAIR      )&
-   !$OMP PRIVATE( VALUE,    UPPER,    LOWER,  MNEW,  TOL                    )&
-   !$OMP PRIVATE( ORG_AER,  ORG_GAS,  KOM,    MPOC                          )&
-   !$OMP PRIVATE( KRO2NO,   KRO2HO2,  JSV                                   )&
 #ifdef APM
-   !$OMP PRIVATE( IFINORG,  N,        NTEMP,  OCBIN_SUM                     )&
+   !$OMP PRIVATE( IFINORG,  OCBIN_SUM, N,     NTEMP                         )&
 #endif
+   !$OMP PRIVATE( I,        J,         L,      JHC,   IPR,   GM0,  AM0      )&
+   !$OMP PRIVATE( VOL,      FAC,       RTEMP,  KO3,   KOH,   KNO3, CAIR     )&
+   !$OMP PRIVATE( VALUE,    UPPER,     LOWER,  MNEW,  TOL                   )&
+   !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
+   !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )
    DO L = 1, State_Grid%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
