@@ -167,7 +167,7 @@ CONTAINS
 ! !USES:
 !
     ! ewl: if these are in cloud-j, why do we need them here??
-    USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_
+    USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
     USE Cldj_Cmn_Mod,   ONLY : JVN_, JXL_, JXL1_, AN_, NQD_, W_r
     USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL 
     USE Cld_Sub_Mod,    ONLY : Cloud_JX
@@ -441,9 +441,9 @@ CONTAINS
        ! Initialize cloud fraction to State_Met values
        CLDF(1:State_Grid%NZ) = State_Met%CLDF(I,J,1:State_Grid%NZ)
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
-      
-       ! Loop over levels
-       DO L = 1, State_Grid%NZ+1 ! LTOP in Cloud-J. LTOP is # levels with clouds. Reduce?
+
+       ! Loop over # layers in cloud-j (layers with clouds)
+       DO L=1,LWEPAR
 
           ! Initialize local variables
           CLDLIQ_MMR = 0.d0
