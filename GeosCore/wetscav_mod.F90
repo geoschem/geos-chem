@@ -4566,8 +4566,8 @@ CONTAINS
                                  + GAINED * 96e+0_fp / 64e+0_fp
 
 #ifdef APM
-             State_Met%PSO4_SO2APM2(I,J,L) = State_Met%PSO4_SO2APM2(I,J,L) &
-                                   + GAINED * 96e+0_fp / 64e+0_fp
+             State_Chm%PSO4_SO2APM2(I,J,L) =                                 &
+             State_Chm%PSO4_SO2APM2(I,J,L) + GAINED * 96e+0_fp / 64e+0_fp
 #endif
 
              Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) * ( 1e+0_fp - WASHFRAC )
@@ -4905,8 +4905,8 @@ CONTAINS
                               ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
 #ifdef APM
-          State_Met%PSO4_SO2APM2(I,J,L) = State_Met%PSO4_SO2APM2(I,J,L) - &
-                                ( WETLOSS * 96e+0_fp / 64e+0_fp )
+          State_Chm%PSO4_SO2APM2(I,J,L) =                                    &
+          State_Chm%PSO4_SO2APM2(I,J,L) - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 #endif
 
 #ifdef TOMAS
