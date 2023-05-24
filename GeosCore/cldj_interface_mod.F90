@@ -161,7 +161,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Run_CloudJ( Use_Online_O3, State_Chm, State_Diag, &
+  SUBROUTINE Run_CloudJ( Input_Opt, State_Chm, State_Diag, &
                          State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -173,6 +173,7 @@ CONTAINS
     USE Cld_Sub_Mod,    ONLY : Cloud_JX
     USE Cmn_Size_Mod,   ONLY : NRHAER
     USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : AVO, H2OMW, AIRMW, G0_100, PI, PI_180
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnState
@@ -185,7 +186,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: Use_Online_O3 ! Use online ozone?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm     ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
@@ -421,10 +422,10 @@ CONTAINS
        O3_CTM(1:MaxLev) = State_Chm%Species(id_O3)%Conc(I,J,1:MaxLev)
 
        ! Compute climatology. This subroutine is analogous to Cloud-J ACLIM_FJX.
-       CALL Set_Clim_Profiles (I,          J,        MONTH,    DAY,           &
-                               T_CTM,      P_CTM,    O3_CTM,   Use_Online_O3, &
-                               T_CLIM,     O3_CLIM,  Z_CLIM,   AIR_CLIM,      &
-                               State_Grid, State_Chm )
+       CALL Set_Clim_Profiles (I,          J,        MONTH,    DAY,      &
+                               T_CTM,      P_CTM,    O3_CTM,             &
+                               T_CLIM,     O3_CLIM,  Z_CLIM,   AIR_CLIM, &
+                               Input_Opt,  State_Grid, State_Chm )
 
        !-----------------------------------------------------------------
        ! Clouds
@@ -721,17 +722,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Clim_Profiles( ILON,       ILAT,     MONTH,  DAY,           &
-                                T_CTM,      P_CTM,    O3_CTM, Use_Online_O3, &
-                                T_CLIM,     O3_CLIM,  Z_CLIM, AIR_CLIM,      &
-                                State_Grid, State_Chm )
+  SUBROUTINE Set_Clim_Profiles( ILON,       ILAT,       MONTH,   DAY,       &
+                                T_CTM,      P_CTM,      O3_CTM,             &
+                                T_CLIM,     O3_CLIM,    Z_CLIM,  AIR_CLIM,  &
+                                Input_Opt,  State_Grid, State_Chm )
 !
 ! !USES:
 !
-    USE Cldj_Cmn_Mod,       ONLY : L_, L1_, ZZHT
-    USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Chm_Mod,      ONLY : ChmState
+    USE Cldj_Cmn_Mod,    ONLY : L_, L1_, ZZHT
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE PhysConstants,   ONLY : AIRMW, AVO, g0, BOLTZ
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Chm_Mod,   ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -742,7 +744,7 @@ CONTAINS
     REAL(fp),       INTENT(IN) :: T_CTM(L1_)        ! CTM temperatures (K)
     REAL(fp),       INTENT(IN) :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
     REAL(fp),       INTENT(IN) :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
-    LOGICAL,        INTENT(IN) :: Use_Online_O3     ! Use online ozone?
+    TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input Options object
     TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
     TYPE(ChmState), INTENT(IN) :: State_Chm         ! Chemistry State object
 !
@@ -857,7 +859,7 @@ CONTAINS
     DO L = 1, L1_
 
        ! Use online O3 values in the chemistry grid if selected
-       IF ( (Use_Online_O3) .and. &
+       IF ( ( Input_opt%Use_Online_O3 ) .and. &
             (L <= State_Grid%MaxChemLev) .and. &
             (O3_CTM(L) > 0e+0_fp) ) THEN
 
