@@ -488,7 +488,13 @@ CONTAINS
              REFFI(L) = 164.d0 * ( ICWC**0.23d0 )
           ENDIF
 
+          ! Relative humidity [unitless] as fraction, e.g. 0.8
+          RRR(L) = State_Met%RH(I,J,L) / 100.d0
+
        ENDDO
+
+       ! Set top of atmosphere relative humidity to 10% of layer below
+       RRR(State_Grid%NZ+1) = RRR(State_Grid%NZ) * 1.d-1
 
        !-----------------------------------------------------------------
        ! Compute concentration per aerosol [g/m2]
@@ -575,10 +581,6 @@ CONTAINS
 
        ! UV surface albedo [unitless]. Use same value for all levels and wavelengths.
        RFL(1:5,:) = State_Met%UVALBEDO(I,J)
-
-       ! Relative humidity [unitless] as fraction, e.g. 0.8
-       RRR(1:State_Grid%NZ) = State_Met%RH(I,J,1:State_Grid%NZ) / 100.d0
-       RRR(1:State_Grid%NZ+1) = RRR(State_Grid%NZ)
 
        ! Cloud correlation coefficient
        CLDCOR = 0.33
