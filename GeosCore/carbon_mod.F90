@@ -1808,8 +1808,7 @@ CONTAINS
    !$OMP PRIVATE( ORG_AER,  ORG_GAS,  KOM,    MPOC                          )&
    !$OMP PRIVATE( KRO2NO,   KRO2HO2,  JSV                                   )&
 #ifdef APM
-   !$OMP PRIVATE( IFINORG,  N,        NTEMP                                 )&
-   !$OMP REDUCTION( +:OCBIN_SUM                                             )
+   !$OMP PRIVATE( IFINORG,  N,        NTEMP,  OCBIN_SUM                     )&
 #endif
    DO L = 1, State_Grid%MaxChemLev
    DO J = 1, State_Grid%NY
