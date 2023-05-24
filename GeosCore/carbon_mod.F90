@@ -1802,13 +1802,14 @@ CONTAINS
    ! remove NOX (hotp 5/22/10)
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
-   !$OMP PRIVATE( I,         J,        L,      JHC,   IPR,   GM0,  AM0      )&
-   !$OMP PRIVATE( VOL,       FAC,      RTEMP,  KO3,   KOH,   KNO3, CAIR     )&
-   !$OMP PRIVATE( VALUE,     UPPER,    LOWER,  MNEW,  TOL                   )&
-   !$OMP PRIVATE( ORG_AER,   ORG_GAS,  KOM,    MPOC                         )&
-   !$OMP PRIVATE( KRO2NO,    KRO2HO2,  JSV                                  )&
+   !$OMP PRIVATE( I,        J,        L,      JHC,   IPR,   GM0,  AM0       )&
+   !$OMP PRIVATE( VOL,      FAC,      RTEMP,  KO3,   KOH,   KNO3, CAIR      )&
+   !$OMP PRIVATE( VALUE,    UPPER,    LOWER,  MNEW,  TOL                    )&
+   !$OMP PRIVATE( ORG_AER,  ORG_GAS,  KOM,    MPOC                          )&
+   !$OMP PRIVATE( KRO2NO,   KRO2HO2,  JSV                                   )&
 #ifdef APM
-   !$OMP PRIVATE( OCBIN_SUM, IFINORG,  N,      NTEMP                        )
+   !$OMP PRIVATE( IFINORG,  N,        NTEMP                                 )&
+   !$OMP REDUCTION( +:OCBIN_SUM                                             )
 #endif
    DO L = 1, State_Grid%MaxChemLev
    DO J = 1, State_Grid%NY
@@ -8382,7 +8383,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settlingbin
+! !IROUTINE: bcdry_settlingbin
 !
 ! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
@@ -8650,7 +8651,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settlingbin
+! !IROUTINE: ocdry_settlingbin
 !
 ! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
