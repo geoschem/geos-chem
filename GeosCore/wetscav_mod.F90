@@ -1882,7 +1882,8 @@ CONTAINS
     ELSE IF ( SpcInfo%MP_SizeResAer .or. SpcInfo%MP_SizeResNum ) THEN
 #ifdef APM
        ! Washout is a kinetic process
-       KIN      = .TRUE.
+       KIN = .TRUE.
+       RIN = 0.0_fp
 
        IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
           RIN = RDRY(N-APMIDS%id_SO4BIN1+1) * GFTOT3D(I,J,L,1)
