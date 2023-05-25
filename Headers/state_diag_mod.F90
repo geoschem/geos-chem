@@ -4494,37 +4494,42 @@ CONTAINS
 
     !------------------------------------------------------------------------
     ! Set a single logical for SatDiagn output
+    ! For ease of comparison, place fields in alphabetical order
     !------------------------------------------------------------------------
     State_Diag%Archive_SatDiagn = (                                          &
-         State_Diag%Archive_SatDiagnColEmis                             .or. &
-         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
-         State_Diag%Archive_SatDiagnOH                                  .or. &
-         State_Diag%Archive_SatDiagnRH                                  .or. &
          State_Diag%Archive_SatDiagnAirDen                              .or. &
          State_Diag%Archive_SatDiagnBoxHeight                           .or. &
-         State_Diag%Archive_SatDiagnPEdge                               .or. &
-         State_Diag%Archive_SatDiagnTROPP                               .or. &
-         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
-         State_Diag%Archive_SatDiagnPBLTop                              .or. &
-         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnColEmis                             .or. &
+         State_Diag%Archive_SatDiagnConc                                .or. &
+         State_Diag%Archive_SatDiagnDryDep                              .or. &
+         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
-         State_Diag%Archive_SatDiagnPARDR                               .or. &
-         State_Diag%Archive_SatDiagnPARDF                               .or. &
-         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
-         State_Diag%Archive_SatDiagnSLP                                 .or. &
-         State_Diag%Archive_SatDiagnSPHU                                .or. &
-         State_Diag%Archive_SatDiagnTS                                  .or. &
-         State_Diag%Archive_SatDiagnPBLTOPL                             .or. &
-         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
-         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
-         State_Diag%Archive_SatDiagnWetLossConv                         .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
          State_Diag%Archive_SatDiagnJvalO3O1D                           .or. &
          State_Diag%Archive_SatDiagnJvalO3O3P                           .or. &
-         State_Diag%Archive_SatDiagnDryDep                              .or. &
-         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
-         State_Diag%Archive_SatDiagnOHreactivity                            )
+         State_Diag%Archive_SatDiagnLoss                                .or. &
+         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
+         State_Diag%Archive_SatDiagnOH                                  .or. &
+         State_Diag%Archive_SatDiagnOHreactivity                        .or. &
+         State_Diag%Archive_SatDiagnPARDF                               .or. &
+         State_Diag%Archive_SatDiagnPARDR                               .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnPBLTopL                             .or. &
+         State_Diag%Archive_SatDiagnPEdge                               .or. &
+         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
+         State_Diag%Archive_SatDiagnProd                                .or. &
+         State_Diag%Archive_SatDiagnRH                                  .or. &
+         State_Diag%Archive_SatDiagnRxnRate                             .or. &
+         State_Diag%Archive_SatDiagnSLP                                 .or. &
+         State_Diag%Archive_SatDiagnSPHU                                .or. &
+         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnTS                                  .or. &
+         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
+         State_Diag%Archive_SatDiagnWetLossConv                             )
 
     !------------------------------------------------------------------------
     ! Satellite diagnostic: Counter
