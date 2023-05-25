@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
 - Rename restart files in GCHP integration tests (as we do in non-test runs)
 - The `integrationTestCreate.sh` copy `integrationDiffTest.sh` to the integration test scripts folder
+- Request 3 hours of execution time for GEOS-Chem Classic integration tests
 
 ## [Unreleased 14.2.0]
 ### Added
